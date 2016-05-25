@@ -12,10 +12,16 @@
 
 #define INDENTATION 4
 
-//#define ISL_ONLY_CODE_GENERATOR
-#define ISL_AND_HALIDE_CODE_GENERATOR
+isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
+{
+	Halide::Internal::Stmt *s = new Halide::Internal::Stmt();
+	*s = Halide::Internal::AssertStmt::make (Halide::Expr(0), Halide::Expr(1));
+	user = (void *) s;
 
-isl_printer *for_halide_code_generator(isl_printer *p, isl_ast_print_options *options, isl_ast_node *node, void *user)
+	return node;
+}
+
+isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
 	Halide::Internal::Stmt *s = (Halide::Internal::Stmt *) user;
 
@@ -27,52 +33,27 @@ isl_printer *for_halide_code_generator(isl_printer *p, isl_ast_print_options *op
 	isl_val *init_val = isl_ast_expr_get_val(init);
 	Halide::Expr init_expr = Halide::Expr((uint64_t)isl_val_get_num_si(init_val));
 
-	*s = Halide::Internal::For::make(iterator_str, init_expr, Halide::Expr(10), Halide::Internal::ForType::Serial,
+	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
+	isl_ast_expr *cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+	Halide::Expr cond_upper_bound_halide_format = Halide::Expr((uint64_t)isl_val_get_num_si(isl_ast_expr_get_val(cond_upper_bound_isl_format)));
+	*s = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, Halide::Internal::ForType::Serial,
 		  		    Halide::DeviceAPI::Host, *s);
 
-	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
 	
-	isl_ast_node *loop_body = isl_ast_node_for_get_body(node);
-
-	p = isl_ast_node_print(loop_body, p, options);
-
-	return p;
-}
-
-isl_printer *for_isl_printer(isl_printer *p, isl_ast_print_options *options, isl_ast_node *node, void *user)
-{
-	p = isl_printer_start_line(p);
-	p = isl_printer_print_str(p, "for (");
-	isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
-	p = isl_printer_print_ast_expr(p, iter);
-	p = isl_printer_print_str(p, ", ");
-	isl_ast_expr *init = isl_ast_node_for_get_init(node);
-	p = isl_printer_print_ast_expr(p, init);
-	p = isl_printer_print_str(p, ", ");
-	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
-	p = isl_printer_print_ast_expr(p, cond);
-	p = isl_printer_print_str(p, ")");
-	p = isl_printer_end_line(p);
-	
-	p = isl_printer_start_line(p);
-	p = isl_printer_indent(p, INDENTATION);
-	isl_ast_node *loop_body = isl_ast_node_for_get_body(node);
-	p = isl_ast_node_print(loop_body, p, options);
-	p = isl_printer_indent(p, -INDENTATION);
-	p = isl_printer_end_line(p);
-
-	return p;
+	return node;
 }
                 
 int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
-	std::string str0 = "{S0[i,j]: 0<i<100 and 0<j<100}";
+	std::string str0 = "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}";
 	isl_union_set *set0 = isl_union_set_read_from_str(ctx, str0.c_str());
 
-	isl_union_map *schedule_map = create_schedule_map(ctx, 1);
+	IF_DEBUG(str_dump("\nIteration Space IR:\n"));
+	IF_DEBUG(str_dump(str0.c_str())); IF_DEBUG(str_dump("\n\n"));
+
+	isl_union_map *schedule_map = create_schedule_map(ctx, set0, 1);
 	isl_schedule *schedule_tree = create_schedule_tree(ctx, set0, schedule_map);
-	isl_ast_node *program = generate_code(ctx, schedule_tree);
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
     	std::vector<Halide::Argument> args(1);
@@ -88,29 +69,18 @@ int main(int argc, char **argv)
         p = isl_printer_to_str(ctx);
 	isl_ast_print_options *options = isl_ast_print_options_alloc(ctx);
 
-	IF_DEBUG(str_dump("\nIteration space:\n"));
-	IF_DEBUG(str_dump(str0.c_str())); IF_DEBUG(str_dump("\n\n"));
-
-#ifdef ISL_ONLY_CODE_GENERATOR
-        options = isl_ast_print_options_set_print_for(options, &for_isl_printer, &s);
-#endif
-
-#ifdef ISL_AND_HALIDE_CODE_GENERATOR
-        options = isl_ast_print_options_set_print_for(options, &for_halide_code_generator, &s);
-#endif
+	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
+	ast_build = isl_ast_build_set_after_each_for(ast_build, &for_halide_code_generator_after_for, &s);
+	ast_build = isl_ast_build_set_at_each_domain(ast_build, &stmt_halide_code_generator, &s);
+	isl_ast_node *program = isl_ast_build_node_from_schedule(ast_build, schedule_tree);
+	isl_ast_build_free(ast_build);
 
 	p = isl_ast_node_print(program, p, options);
 
-#ifdef ISL_ONLY_CODE_GENERATOR
-	char *program_str = isl_printer_get_str(p);
-	IF_DEBUG(str_dump("Generated code:\n"));
-	IF_DEBUG(str_dump(program_str)); IF_DEBUG(str_dump("\n"));
-#endif
-
-#ifdef ISL_AND_HALIDE_CODE_GENERATOR
-	IF_DEBUG(str_dump("\nHalide Low Level IR:\n\n"));
+	IF_DEBUG(str_dump("\n\n"));
+	IF_DEBUG(str_dump("\nGenerated Halide Low Level IR:\n"));
     	pr.print(s);
-#endif
+	IF_DEBUG(str_dump("\n\n"));
 
 	return 0;
 }
