@@ -9,8 +9,7 @@
 #include <IR.h>
 
 /* Schedule the iteration space.  */
-isl_union_map *create_schedule_map(isl_ctx *ctx, isl_union_set *set,
-		   std::string map)
+isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
 {
 	isl_union_map *schedule_map = isl_union_map_read_from_str(ctx,
 			map.c_str());

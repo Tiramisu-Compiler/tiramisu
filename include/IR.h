@@ -28,7 +28,7 @@ isl_ast_node *generate_code(isl_ctx *ctx,
 		   isl_schedule *sched_tree);
 
 isl_union_map *create_schedule_map(isl_ctx *ctx,
-		   isl_union_set *set, std::string map);
+		   std::string map);
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node,
 		isl_ast_build *build, void *user);
