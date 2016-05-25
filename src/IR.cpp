@@ -79,3 +79,9 @@ isl_ast_node *generate_code(isl_ctx *ctx,
 
 	return program;
 }
+
+// Computation related methods
+void Computation::dump()
+{
+	IF_DEBUG(isl_union_set_dump(this->iter_space)); IF_DEBUG(str_dump("\n"));
+}

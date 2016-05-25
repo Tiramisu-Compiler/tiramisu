@@ -17,8 +17,7 @@ int main(int argc, char **argv)
 
 	Computation computation0(ctx, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}");
 
-	IF_DEBUG(str_dump("\nIteration Space IR:\n"));
-	IF_DEBUG(isl_union_set_dump(computation0.iter_space)); IF_DEBUG(str_dump("\n"));
+	IF_DEBUG(str_dump("\nIteration Space IR:\n")); computation0.dump();
 
 	isl_union_map *schedule_map = create_schedule_map(ctx, "{S0[i,j]->S0[i+100,j+100]}");
 
@@ -46,11 +45,6 @@ int main(int argc, char **argv)
 	ast_build = isl_ast_build_set_at_each_domain(ast_build, &stmt_halide_code_generator, &s);
 	isl_ast_node *program = isl_ast_build_node_from_schedule(ast_build, schedule_tree);
 	isl_ast_build_free(ast_build);
-
-	isl_printer *p;
-        p = isl_printer_to_str(ctx);
-	isl_ast_print_options *options = isl_ast_print_options_alloc(ctx);
-	p = isl_ast_node_print(program, p, options);
 
 	IF_DEBUG(str_dump("\n\n"));
 	IF_DEBUG(str_dump("\nGenerated Halide Low Level IR:\n"));

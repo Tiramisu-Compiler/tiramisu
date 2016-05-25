@@ -59,6 +59,8 @@ public:
 		char *stmt_name = (char *) malloc(stmt_name_length*sizeof(char));
 		strcpy(stmt_name, tuple_name);
 	}
+
+	void dump();
 };
 
 #endif
