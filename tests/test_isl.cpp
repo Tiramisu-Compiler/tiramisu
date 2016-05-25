@@ -10,8 +10,6 @@
 #include <String.h>
 #include <Halide.h>
 
-#define INDENTATION 4
-
 
 int main(int argc, char **argv)
 {
@@ -22,7 +20,7 @@ int main(int argc, char **argv)
 	IF_DEBUG(str_dump("\nIteration Space IR:\n"));
 	IF_DEBUG(isl_union_set_dump(computation0.iter_space)); IF_DEBUG(str_dump("\n"));
 
-	isl_union_map *schedule_map = create_schedule_map(ctx, computation0.iter_space, 1);
+	isl_union_map *schedule_map = create_schedule_map(ctx, computation0.iter_space, "{S0[i,j]->S0[i+100,j+100]}");
 
 	IF_DEBUG(str_dump("Schedule:\n"));
 	IF_DEBUG(isl_union_map_dump(schedule_map)); IF_DEBUG(str_dump("\n\n"));

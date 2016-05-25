@@ -10,18 +10,10 @@
 
 /* Schedule the iteration space.  */
 isl_union_map *create_schedule_map(isl_ctx *ctx, isl_union_set *set,
-		   int tile)
+		   std::string map)
 {
-	// Identity schedule for 1D iteration space
-	std::string map = "{S0[i,j]->S0[i+100,j+100]}";
-
-	// Tiling
-	// std::string map = "{S0[i,j]->S1[i/32, j/32, i, j]}";
-
-	// One point into multiple points
-	// std::string map = "{S0[i,j]->S0[0, i, j, k]: 0<i<10000 and 0<j<10000 and 0<k<5}";
-	
-	isl_union_map *schedule_map = isl_union_map_read_from_str(ctx, map.c_str());
+	isl_union_map *schedule_map = isl_union_map_read_from_str(ctx,
+			map.c_str());
 
 	return schedule_map;
 }
