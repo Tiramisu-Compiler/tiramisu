@@ -11,4 +11,6 @@
 
 void str_dump(std::string str);
 
+void Error(std::string str, bool exit);
+
 #endif

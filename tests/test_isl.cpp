@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
 	Computation computation0(ctx, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}");
-	isl_union_map *schedule_map = create_schedule_map(ctx, "{S0[i,j]->S0[i1,j1,i2,j2]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j and 0<=i<=1000 and 0<=j<=1000}");
+	isl_union_map *schedule_map = create_schedule_map(ctx,"{S0[i,j]->S0[i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
 	isl_schedule *schedule_tree = create_schedule_tree(ctx, isl_union_set_copy(computation0.iter_space), isl_union_map_copy(schedule_map));
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(computation0.iter_space), isl_union_map_copy(schedule_map));
 

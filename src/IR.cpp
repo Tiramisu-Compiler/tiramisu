@@ -26,24 +26,67 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *buil
 	return node;
 }
 
+Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
+{
+	Halide::Expr result;
+
+	if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_int)
+	{
+		isl_val *init_val = isl_ast_expr_get_val(isl_expr);
+		result = Halide::Expr((uint64_t)isl_val_get_num_si(init_val));
+	}
+	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
+	{
+		isl_id *identifier = isl_ast_expr_get_id(isl_expr);
+		std::string name_str(isl_id_get_name(identifier));
+		result = Halide::Internal::Variable::make(Halide::UInt(64), name_str);
+	}
+	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
+	{
+		Halide::Expr op0, op1;
+
+		int nb_args = isl_ast_expr_get_op_n_arg(isl_expr);
+		op0 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
+
+		if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
+			op1 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 1));
+
+		switch(isl_ast_expr_get_op_type(isl_expr))
+		{
+			case isl_ast_op_min:
+				result = Halide::Internal::Min::make(op0, op1);
+				break;
+			case isl_ast_op_add:
+				result = Halide::Internal::Add::make(op0, op1);
+				break;
+			case isl_ast_op_mul:
+				result = Halide::Internal::Mul::make(op0, op1);
+				break;
+			default:
+				Error("Translating an unsupported ISL expression in a Halide expression.", 1);
+		}
+	}
+	else
+		Error("Translating an unsupported ISL expression in a Halide expression.", 1);
+
+	return result;
+}
+
 isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
 	Halide::Internal::Stmt *s = (Halide::Internal::Stmt *) user;
 
 	isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
 	char *iterator_str = isl_ast_expr_to_str(iter);
-	Halide::Var x(iterator_str);
 
 	isl_ast_expr *init = isl_ast_node_for_get_init(node);
-	isl_val *init_val = isl_ast_expr_get_val(init);
-	Halide::Expr init_expr = Halide::Expr((uint64_t)isl_val_get_num_si(init_val));
-
 	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
 	isl_ast_expr *cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
-	Halide::Expr cond_upper_bound_halide_format = Halide::Expr((uint64_t)isl_val_get_num_si(isl_ast_expr_get_val(cond_upper_bound_isl_format)));
+
+        Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
+	Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
 	*s = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, Halide::Internal::ForType::Serial,
 			Halide::DeviceAPI::Host, *s);
-
 
 	return node;
 }
