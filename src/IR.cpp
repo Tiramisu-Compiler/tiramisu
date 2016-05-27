@@ -33,13 +33,13 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 	if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_int)
 	{
 		isl_val *init_val = isl_ast_expr_get_val(isl_expr);
-		result = Halide::Expr((uint64_t)isl_val_get_num_si(init_val));
+		result = Halide::Expr((int64_t)isl_val_get_num_si(init_val));
 	}
 	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
 	{
 		isl_id *identifier = isl_ast_expr_get_id(isl_expr);
 		std::string name_str(isl_id_get_name(identifier));
-		result = Halide::Internal::Variable::make(Halide::UInt(64), name_str);
+		result = Halide::Internal::Variable::make(Halide::Int(64), name_str);
 	}
 	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
 	{
@@ -56,11 +56,29 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 			case isl_ast_op_min:
 				result = Halide::Internal::Min::make(op0, op1);
 				break;
+			case isl_ast_op_max:
+				result = Halide::Internal::Max::make(op0, op1);
+				break;
 			case isl_ast_op_add:
 				result = Halide::Internal::Add::make(op0, op1);
 				break;
+			case isl_ast_op_sub:
+				result = Halide::Internal::Sub::make(op0, op1);
+				break;
 			case isl_ast_op_mul:
 				result = Halide::Internal::Mul::make(op0, op1);
+				break;
+			case isl_ast_op_div:
+				result = Halide::Internal::Div::make(op0, op1);
+				break;
+			case isl_ast_op_and:
+				result = Halide::Internal::And::make(op0, op1);
+				break;
+			case isl_ast_op_or:
+				result = Halide::Internal::Or::make(op0, op1);
+				break;
+			case isl_ast_op_minus:
+				result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
 				break;
 			default:
 				Error("Translating an unsupported ISL expression in a Halide expression.", 1);
@@ -81,7 +99,11 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_bu
 
 	isl_ast_expr *init = isl_ast_node_for_get_init(node);
 	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
-	isl_ast_expr *cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+	isl_ast_expr *cond_upper_bound_isl_format;
+	if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
+		cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+	else
+		Error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
 
         Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 	Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
