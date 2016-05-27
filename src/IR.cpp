@@ -58,9 +58,6 @@ isl_schedule *create_schedule_tree(isl_ctx *ctx,
 
 	isl_schedule *sched_tree = isl_schedule_from_domain(scheduled_domain);
 
-	IF_DEBUG2(str_dump("[ir.c] Schedule tree: "));
-	IF_DEBUG2(isl_schedule_dump(sched_tree));
-
 	return sched_tree;
 }
 

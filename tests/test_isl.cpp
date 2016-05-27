@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
 	Computation computation0(ctx, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}");
-	isl_union_map *schedule_map = create_schedule_map(ctx, "{S0[i,j]->S0[i+100,j+100]}");
+	isl_union_map *schedule_map = create_schedule_map(ctx, "{S0[i,j]->S0[i1,j1,i2,j2]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j and 0<=i<=1000 and 0<=j<=1000}");
 	isl_schedule *schedule_tree = create_schedule_tree(ctx, isl_union_set_copy(computation0.iter_space), isl_union_map_copy(schedule_map));
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(computation0.iter_space), isl_union_map_copy(schedule_map));
 
@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 	IF_DEBUG(str_dump("\nIteration Space IR:\n")); computation0.dump();
 	IF_DEBUG(str_dump("Schedule:\n")); IF_DEBUG(isl_union_map_dump(schedule_map)); IF_DEBUG(str_dump("\n\n"));
 	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
+	IF_DEBUG(str_dump("\n\nSchedule tree:\n")); IF_DEBUG(isl_schedule_dump(schedule_tree)); IF_DEBUG(str_dump("\n\n"));
 
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
@@ -39,6 +40,14 @@ int main(int argc, char **argv)
 	isl_ast_node *program = isl_ast_build_node_from_schedule(ast_build, schedule_tree);
 	isl_ast_build_free(ast_build);
 
+
+	IF_DEBUG(str_dump("\n\n")); IF_DEBUG(str_dump("\nC like code:\n"));
+	isl_printer *p;
+        p = isl_printer_to_file(ctx, stdout);
+        p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+        p = isl_printer_print_ast_node(p, program);
+        isl_printer_free(p);
+	IF_DEBUG(str_dump("\n\n"));
 
 	IF_DEBUG(str_dump("\n\n")); IF_DEBUG(str_dump("\nGenerated Halide Low Level IR:\n"));
 	Halide::Internal::IRPrinter pr(std::cout);
