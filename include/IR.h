@@ -46,11 +46,6 @@ public:
 	isl_union_set *iter_space;
 
 	/**
-	  * The name of this computation.
-	  */
-	std::string name;
-
-	/**
 	  * Halide expression that represents the computation.
 	  */
 	Halide::Expr expression;
@@ -60,12 +55,11 @@ public:
 
 	Computation(isl_ctx *ctx,
 		    Halide::Internal::Stmt given_stmt,
-		    std::string iteration_space_str,
-		    std::string given_name) {
+		    std::string iteration_space_str) {
 		iter_space = isl_union_set_read_from_str(ctx, iteration_space_str.c_str());
-		this->name = given_name;
+		const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
 		this->stmt = given_stmt;
-		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(this->name, this->stmt));
+		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(tuple_name, this->stmt));
 	}
 
 	void dump();

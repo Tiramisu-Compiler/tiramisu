@@ -21,9 +21,15 @@ isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-//	const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
 
-	Halide::Internal::Stmt s = stmts_list.find("S0")->second; 
+	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+	isl_id *id = isl_ast_expr_get_id(arg);
+	isl_ast_expr_free(arg);
+	std::string computation_name(isl_id_get_name(id));
+	isl_id_free(id);
+
+	Halide::Internal::Stmt s = stmts_list.find(computation_name)->second; 
 	user = (void *) &s;
 
 	return node;
