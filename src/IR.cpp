@@ -8,6 +8,8 @@
 #include <DebugIR.h>
 #include <IR.h>
 
+std::map<std::string, Halide::Internal::Stmt> stmts_list;
+
 /* Schedule the iteration space.  */
 isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
 {
@@ -19,9 +21,10 @@ isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-	Halide::Internal::Stmt *s = new Halide::Internal::Stmt();
-	*s = Halide::Internal::AssertStmt::make (Halide::Expr(0), Halide::Expr(1));
-	user = (void *) s;
+//	const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
+
+	Halide::Internal::Stmt s = stmts_list.find("S0")->second; 
+	user = (void *) &s;
 
 	return node;
 }

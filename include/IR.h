@@ -16,6 +16,8 @@
 #include <DebugIR.h>
 #include <IR.h>
 
+extern std::map<std::string, Halide::Internal::Stmt> stmts_list;
+
 isl_union_set *create_time_space(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
@@ -44,6 +46,11 @@ public:
 	isl_union_set *iter_space;
 
 	/**
+	  * The name of this computation.
+	  */
+	std::string name;
+
+	/**
 	  * Halide expression that represents the computation.
 	  */
 	Halide::Expr expression;
@@ -51,14 +58,14 @@ public:
 
 	Computation(Halide::Expr expression, isl_union_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
-	Computation(isl_ctx *ctx, Halide::Internal::Stmt s, std::string iteration_space_str) {
+	Computation(isl_ctx *ctx,
+		    Halide::Internal::Stmt given_stmt,
+		    std::string iteration_space_str,
+		    std::string given_name) {
 		iter_space = isl_union_set_read_from_str(ctx, iteration_space_str.c_str());
-		this->expression = expression;
-		const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
-		unsigned char stmt_name_length = strlen(tuple_name);
-		char *stmt_name = (char *) malloc(stmt_name_length*sizeof(char));
-		strcpy(stmt_name, tuple_name);
-		stmt = s;
+		this->name = given_name;
+		this->stmt = given_stmt;
+		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(this->name, this->stmt));
 	}
 
 	void dump();
