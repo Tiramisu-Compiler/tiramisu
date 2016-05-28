@@ -147,3 +147,30 @@ void Computation::dump()
 {
 	IF_DEBUG(isl_union_set_dump(this->iter_space)); IF_DEBUG(str_dump("\n"));
 }
+
+void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
+{
+	if (DEBUG)
+	{
+		str_dump("\n\n");
+		str_dump("\nC like code:\n");
+		isl_printer *p;
+		p = isl_printer_to_file(ctx, stdout);
+		p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+		p = isl_printer_print_ast_node(p, root_node);
+		isl_printer_free(p);
+		str_dump("\n\n");
+	}
+}
+
+void halide_IR_dump(Halide::Internal::Stmt s)
+{
+	if (DEBUG)
+	{
+		str_dump("\n\n");
+		str_dump("\nGenerated Halide Low Level IR:\n");
+		Halide::Internal::IRPrinter pr(std::cout);
+	    	pr.print(s);
+		str_dump("\n\n");
+	}
+}

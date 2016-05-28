@@ -63,4 +63,7 @@ public:
 	void dump();
 };
 
+void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
+void halide_IR_dump(Halide::Internal::Stmt s);
+
 #endif
