@@ -47,17 +47,18 @@ public:
 	  * Halide expression that represents the computation.
 	  */
 	Halide::Expr expression;
-	Halide::Internal::Stmt *s;
+	Halide::Internal::Stmt stmt;
 
 	Computation(Halide::Expr expression, isl_union_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
-	Computation(isl_ctx *ctx, std::string iteration_space_str) {
+	Computation(isl_ctx *ctx, Halide::Internal::Stmt s, std::string iteration_space_str) {
 		iter_space = isl_union_set_read_from_str(ctx, iteration_space_str.c_str());
 		this->expression = expression;
 		const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
 		unsigned char stmt_name_length = strlen(tuple_name);
 		char *stmt_name = (char *) malloc(stmt_name_length*sizeof(char));
 		strcpy(stmt_name, tuple_name);
+		stmt = s;
 	}
 
 	void dump();
