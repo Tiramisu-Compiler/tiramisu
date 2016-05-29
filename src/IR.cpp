@@ -151,13 +151,6 @@ isl_ast_node *generate_code(isl_ctx *ctx,
 	return program;
 }
 
-// Computation related methods
-void Computation::dump_ISIR()
-{
-	std::cout << "Computation \"" << this->name << "\"" << std::endl;
-	IF_DEBUG(isl_set_dump(this->iter_space)); IF_DEBUG(str_dump("\n"));
-}
-
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
 {
 	if (DEBUG)
@@ -173,17 +166,35 @@ void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
 	}
 }
 
-void halide_IR_dump(Halide::Internal::Stmt s)
+
+// Computation related methods
+
+void Computation::dump_ISIR()
 {
 	if (DEBUG)
 	{
-		str_dump("\n\n");
-		str_dump("\nGenerated Halide Low Level IR:\n");
-		Halide::Internal::IRPrinter pr(std::cout);
-	    	pr.print(s);
-		str_dump("\n\n");
+		isl_set_dump(this->iter_space);
+		str_dump("\n");
 	}
 }
+
+void Computation::dump()
+{
+	if (DEBUG)
+	{
+		std::cout << "Computation \"" << this->name << "\"" << std::endl;
+		isl_set_dump(this->iter_space);
+		str_dump("\n");
+		str_dump("Halide statement:\n");
+		Halide::Internal::IRPrinter pr(std::cout);
+	    	pr.print(this->stmt);
+		str_dump("\n");
+
+	}
+}
+
+
+// Function related methods
 
 void IRFunction::add_computation_to_body(Computation *cpt)
 {
@@ -195,21 +206,36 @@ void IRFunction::add_computation_to_signature(Computation *cpt)
 	this->signature.push_back(cpt);
 }
 
-void IRProgram::add_function(IRFunction *fct)
+void IRFunction::dump()
 {
-	this->functions.push_back(fct);
+	if (DEBUG)
+	{
+		std::cout << "Function \"" << this->name << "\"" << std::endl;
+		std::cout << "Body " << std::endl;
+
+		for (auto cpt : this->body)
+		       cpt->dump();
+
+		std::cout << "Function signature:" << std::endl;
+
+		for (auto cpt : this->signature)
+		       cpt->dump();
+
+		std::cout << std::endl;
+	}
 }
 
 void IRFunction::dump_ISIR()
 {
 	if (DEBUG)
 	{
-		std::cout << "Function \"" << this->name << "\"" << std::endl;
-
 		for (auto cpt : this->body)
 		       cpt->dump_ISIR();
 	}
 }
+
+
+// Program related methods
 
 void IRProgram::dump_ISIR()
 {
@@ -219,5 +245,38 @@ void IRProgram::dump_ISIR()
 		for (const auto &fct : this->functions)
 		       fct->dump_ISIR();
 		str_dump("\n");
+	}
+}
+
+void IRProgram::dump()
+{
+	if (DEBUG)
+	{
+		std::cout << "Program \"" << this->name << "\"" << std::endl;
+
+		for (const auto &fct : this->functions)
+		       fct->dump();
+
+		std::cout << std::endl;
+	}
+}
+
+void IRProgram::add_function(IRFunction *fct)
+{
+	this->functions.push_back(fct);
+}
+
+
+// Halide IR related methods
+
+void halide_IR_dump(Halide::Internal::Stmt s)
+{
+	if (DEBUG)
+	{
+		str_dump("\n\n");
+		str_dump("\nGenerated Halide Low Level IR:\n");
+		Halide::Internal::IRPrinter pr(std::cout);
+	    	pr.print(s);
+		str_dump("\n\n");
 	}
 }

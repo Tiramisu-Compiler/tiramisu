@@ -51,6 +51,7 @@ public:
 	IRProgram(std::string name): name(name) { };
 	void add_function(IRFunction *fct);
 	void dump_ISIR();
+	void dump();
 };
 
 
@@ -79,6 +80,7 @@ public:
 
 	IRFunction(std::string name): name(name) { };
 	void dump_ISIR();
+	void dump();
 };
 
 
@@ -93,6 +95,7 @@ public:
 	  * The name of this computation.
 	  */
 	std::string name;
+
 	/**
 	  * Halide expression that represents the computation.
 	  */
@@ -113,6 +116,7 @@ public:
 	}
 
 	void dump_ISIR();
+	void dump();
 };
 
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
