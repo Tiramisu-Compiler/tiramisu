@@ -18,13 +18,13 @@ int main(int argc, char **argv)
 	IRFunction fct("function");
 	pgm.add_function(&fct);
 
-	Halide::Internal::Stmt halide_pgm = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
+	Halide::Internal::Stmt halide_pgm = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(1));
 	Halide::Internal::Stmt s0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
 	Halide::Internal::Stmt s1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));
 
 	Computation computation0(ctx, s0, "{S0[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, s1, "{S1[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
-	isl_union_map *schedule_map = create_schedule_map(ctx,"{S0[i,j]->S0[0, i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 1<=i<=1000 and 0<=j<=1000; S1[i,j]->S1[1, i,j]: 1<=i<=1000 and 0<=j<=1000}");
+	isl_union_map *schedule_map = create_schedule_map(ctx,"{S0[i,j]->S0[0, i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 1<=i<=1000 and 0<=j<=1000; S1[i,j]->S1[1, i,j, 0, 0]: 1<=i<=1000 and 0<=j<=1000}");
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
 
