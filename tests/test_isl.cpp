@@ -47,8 +47,11 @@ int main(int argc, char **argv)
 	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, schedule_map);
 	isl_ast_build_free(ast_build);
 
+	Halide::Internal::Stmt final_pgm = generate_Halide_stmt_from_isl_node(program);
+
 	isl_ast_node_dump_c_code(ctx, program);
-	halide_IR_dump(halide_pgm);
+//	halide_IR_dump(halide_pgm);
+	halide_IR_dump(final_pgm);
 
 	// pgm.dump();
 

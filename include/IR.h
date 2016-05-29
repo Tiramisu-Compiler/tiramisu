@@ -41,6 +41,7 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node,
 isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *program);
 
 class IRProgram
 {
