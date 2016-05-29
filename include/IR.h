@@ -50,12 +50,13 @@ private:
 public:
 	IRProgram(std::string name): name(name) { };
 	void add_function(IRFunction *fct);
+	void dump_ISIR();
 };
 
 
 class IRFunction
 {
-private:
+public:
 	std::string name;
 
 	/**
@@ -77,6 +78,7 @@ public:
 	void add_computation_to_signature(Computation *cpt);
 
 	IRFunction(std::string name): name(name) { };
+	void dump_ISIR();
 };
 
 
@@ -85,27 +87,32 @@ public:
 	/**
 	  * Iteration space of the computation.
 	 */
-	isl_union_set *iter_space;
+	isl_set *iter_space;
 
+	/**
+	  * The name of this computation.
+	  */
+	std::string name;
 	/**
 	  * Halide expression that represents the computation.
 	  */
 	Halide::Expr expression;
 	Halide::Internal::Stmt stmt;
 
-	Computation(Halide::Expr expression, isl_union_set *iter_space) : iter_space(iter_space), expression(expression) { };
+	Computation(Halide::Expr expression, isl_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
 	Computation(isl_ctx *ctx,
 		    Halide::Internal::Stmt given_stmt,
-		    std::string iteration_space_str, IRFunction fct) {
-		iter_space = isl_union_set_read_from_str(ctx, iteration_space_str.c_str());
-		const char *tuple_name = isl_space_get_tuple_name(isl_union_set_get_space(iter_space), isl_dim_type::isl_dim_set);
+		    std::string iteration_space_str, IRFunction *fct) {
+		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+		isl_space *space = isl_set_get_space(iter_space);
+		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
 		this->stmt = given_stmt;
-		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(tuple_name, this->stmt));
-		fct.add_computation_to_body(this);
+		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(name, this->stmt));
+		fct->add_computation_to_body(this);
 	}
 
-	void dump();
+	void dump_ISIR();
 };
 
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);

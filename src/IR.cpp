@@ -152,9 +152,10 @@ isl_ast_node *generate_code(isl_ctx *ctx,
 }
 
 // Computation related methods
-void Computation::dump()
+void Computation::dump_ISIR()
 {
-	IF_DEBUG(isl_union_set_dump(this->iter_space)); IF_DEBUG(str_dump("\n"));
+	std::cout << "Computation \"" << this->name << "\"" << std::endl;
+	IF_DEBUG(isl_set_dump(this->iter_space)); IF_DEBUG(str_dump("\n"));
 }
 
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
@@ -197,4 +198,26 @@ void IRFunction::add_computation_to_signature(Computation *cpt)
 void IRProgram::add_function(IRFunction *fct)
 {
 	this->functions.push_back(fct);
+}
+
+void IRFunction::dump_ISIR()
+{
+	if (DEBUG)
+	{
+		std::cout << "Function \"" << this->name << "\"" << std::endl;
+
+		for (auto cpt : this->body)
+		       cpt->dump_ISIR();
+	}
+}
+
+void IRProgram::dump_ISIR()
+{
+	if (DEBUG)
+	{
+		str_dump("\nIteration Space IR:\n");
+		for (const auto &fct : this->functions)
+		       fct->dump_ISIR();
+		str_dump("\n");
+	}
 }
