@@ -184,7 +184,6 @@ void Computation::dump()
 	{
 		std::cout << "Computation \"" << this->name << "\"" << std::endl;
 		isl_set_dump(this->iter_space);
-		str_dump("\n");
 		str_dump("Halide statement:\n");
 		Halide::Internal::IRPrinter pr(std::cout);
 	    	pr.print(this->stmt);
@@ -216,7 +215,7 @@ void IRFunction::dump()
 		for (auto cpt : this->body)
 		       cpt->dump();
 
-		std::cout << "Function signature:" << std::endl;
+		std::cout << "Signature:" << std::endl;
 
 		for (auto cpt : this->signature)
 		       cpt->dump();
@@ -252,7 +251,9 @@ void IRProgram::dump()
 {
 	if (DEBUG)
 	{
-		std::cout << "Program \"" << this->name << "\"" << std::endl;
+		std::cout << "Program \"" << this->name << "\"" << std::endl
+			  <<
+			std::endl;
 
 		for (const auto &fct : this->functions)
 		       fct->dump();

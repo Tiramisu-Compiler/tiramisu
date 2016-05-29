@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	isl_ast_node_dump_c_code(ctx, program);
 	halide_IR_dump(computation0.stmt);
 
-	pgm.dump();
+	// pgm.dump();
 
 	return 0;
 }
