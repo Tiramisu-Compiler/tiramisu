@@ -50,6 +50,7 @@ private:
 public:
 	IRProgram(std::string name): name(name) { };
 	void add_function(IRFunction *fct);
+	isl_union_set *get_iteration_spaces();
 	void dump_ISIR();
 	void dump();
 };

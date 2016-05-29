@@ -174,7 +174,6 @@ void Computation::dump_ISIR()
 	if (DEBUG)
 	{
 		isl_set_dump(this->iter_space);
-		str_dump("\n");
 	}
 }
 
@@ -243,7 +242,7 @@ void IRProgram::dump_ISIR()
 		str_dump("\nIteration Space IR:\n");
 		for (const auto &fct : this->functions)
 		       fct->dump_ISIR();
-		str_dump("\n");
+		str_dump("\n\n\n");
 	}
 }
 
@@ -265,6 +264,31 @@ void IRProgram::dump()
 void IRProgram::add_function(IRFunction *fct)
 {
 	this->functions.push_back(fct);
+}
+
+isl_union_set * IRProgram::get_iteration_spaces()
+{
+	isl_union_set *result;
+	isl_space *space;
+
+	if (this->functions.empty() == false)
+	{
+		if(this->functions[0]->body.empty() == false)
+			space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
+	}
+	else
+		return NULL;
+
+	result = isl_union_set_empty(isl_space_copy(space));
+
+	for (const auto &fct : this->functions)
+		for (const auto &cpt : fct->body)
+		{
+			isl_set *cpt_iter_space = isl_set_copy(cpt->iter_space);
+			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+		}
+
+	return result;
 }
 
 
