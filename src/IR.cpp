@@ -183,3 +183,18 @@ void halide_IR_dump(Halide::Internal::Stmt s)
 		str_dump("\n\n");
 	}
 }
+
+void IRFunction::add_computation_to_body(Computation *cpt)
+{
+	this->body.push_back(cpt);
+}
+
+void IRFunction::add_computation_to_signature(Computation *cpt)
+{
+	this->signature.push_back(cpt);
+}
+
+void IRProgram::add_function(IRFunction *fct)
+{
+	this->functions.push_back(fct);
+}
