@@ -140,6 +140,8 @@ public:
 	Schedule(isl_ctx *ctx): ctx(ctx) { };
 
 	void add_schedule_map(std::string umap_str);
+	void tag_parallel_dimension(std::string stmt_name, int dim);
+	void tag_vector_dimension(std::string stmt_name, int dim);
 	isl_union_map *get_schedule_map();
 
 	void dump();

@@ -1,4 +1,5 @@
 #include <isl/set.h>
+#include <isl/map.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/ast_build.h>
@@ -9,6 +10,8 @@
 #include <IR.h>
 
 std::map<std::string, Halide::Internal::Stmt> stmts_list;
+std::map<std::string, int> parallel_dimensions;
+std::map<std::string, int> vector_dimensions;
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
@@ -361,6 +364,24 @@ void Schedule::add_schedule_map(std::string umap_str)
 	schedule_map_vector.push_back(umap);
 }
 
+void Schedule::tag_parallel_dimension(std::string stmt_name,
+				      int par_dim)
+{
+	if (par_dim >= 0)
+		parallel_dimensions.insert(
+				std::pair<std::string,int>(stmt_name,
+							   par_dim));
+}
+
+void Schedule::tag_vector_dimension(std::string stmt_name,
+		int vec_dim)
+{
+	if (vec_dim >= 0)
+		vector_dimensions.insert(
+				std::pair<std::string,int>(stmt_name,
+					                   vec_dim));
+}
+
 isl_union_map *Schedule::get_schedule_map()
 {
 	isl_union_map *result = NULL;
@@ -383,6 +404,17 @@ void Schedule::dump()
 		std::cout << "Schedule:" << std::endl;
 		for (auto umap: this->schedule_map_vector)
 			isl_union_map_dump(umap);
+
+		std::cout << "Parallel dimensions: ";
+		for (auto par_dim: parallel_dimensions)
+			std::cout << par_dim.first << "(" << par_dim.second << ") ";
+
+		std::cout << std::endl;
+
+		std::cout << "Vector dimensions: ";
+		for (auto vec_dim: vector_dimensions)
+			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+
 		std::cout<< std::endl << std::endl;
 	}
 }

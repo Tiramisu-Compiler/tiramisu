@@ -27,6 +27,9 @@ int main(int argc, char **argv)
 
 	schedule.add_schedule_map("{S0[i,j]->[0,i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
 	schedule.add_schedule_map("{S1[i,j]->[1,i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
+	schedule.tag_parallel_dimension("S0", 1);
+	schedule.tag_vector_dimension("S0", 4);
+	schedule.tag_vector_dimension("S1", 4);
 	isl_union_map *schedule_map = schedule.get_schedule_map();
 
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
@@ -40,7 +43,7 @@ int main(int argc, char **argv)
 	isl_ast_build_free(ast_build);
 
 
-	isl_ast_node_dump_c_code(ctx, program);
+//	isl_ast_node_dump_c_code(ctx, program);
 
 
 	Halide::Internal::Stmt halide_pgm = generate_Halide_stmt_from_isl_node(program);
