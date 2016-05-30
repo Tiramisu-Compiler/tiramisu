@@ -151,6 +151,12 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 
 		isl_ast_expr *init = isl_ast_node_for_get_init(node);
 		isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
+		isl_ast_expr *inc  = isl_ast_node_for_get_inc(node);
+
+		if (!isl_val_is_one(isl_ast_expr_get_val(inc)))
+			Error("The increment in one of the loops is not +1."
+			      "This is not supported by Halide", 1);
+
 		isl_ast_node *body = isl_ast_node_for_get_body(node);
 		isl_ast_expr *cond_upper_bound_isl_format;
 		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
