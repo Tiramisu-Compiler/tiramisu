@@ -43,11 +43,28 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 
 		switch(isl_ast_expr_get_op_type(isl_expr))
 		{
-			case isl_ast_op_min:
-				result = Halide::Internal::Min::make(op0, op1);
+			case isl_ast_op_and:
+				result = Halide::Internal::And::make(op0, op1);
+				break;
+			case isl_ast_op_and_then:
+				result = Halide::Internal::And::make(op0, op1);
+				Error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
+				break;
+			case isl_ast_op_or:
+				result = Halide::Internal::Or::make(op0, op1);
+				break;
+			case isl_ast_op_or_else:
+				result = Halide::Internal::Or::make(op0, op1);
+				Error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
 				break;
 			case isl_ast_op_max:
 				result = Halide::Internal::Max::make(op0, op1);
+				break;
+			case isl_ast_op_min:
+				result = Halide::Internal::Min::make(op0, op1);
+				break;
+			case isl_ast_op_minus:
+				result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
 				break;
 			case isl_ast_op_add:
 				result = Halide::Internal::Add::make(op0, op1);
@@ -61,14 +78,20 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 			case isl_ast_op_div:
 				result = Halide::Internal::Div::make(op0, op1);
 				break;
-			case isl_ast_op_and:
-				result = Halide::Internal::And::make(op0, op1);
+			case isl_ast_op_le:
+				result = Halide::Internal::LE::make(op0, op1);
 				break;
-			case isl_ast_op_or:
-				result = Halide::Internal::Or::make(op0, op1);
+			case isl_ast_op_lt:
+				result = Halide::Internal::LT::make(op0, op1);
 				break;
-			case isl_ast_op_minus:
-				result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
+			case isl_ast_op_ge:
+				result = Halide::Internal::GE::make(op0, op1);
+				break;
+			case isl_ast_op_gt:
+				result = Halide::Internal::GT::make(op0, op1);
+				break;
+			case isl_ast_op_eq:
+				result = Halide::Internal::EQ::make(op0, op1);
 				break;
 			default:
 				Error("Translating an unsupported ISL expression in a Halide expression.", 1);
@@ -150,6 +173,16 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 		isl_id_free(id);
 
 		result = stmts_list.find(computation_name)->second; 
+	}
+	else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+	{
+		isl_ast_expr *cond = isl_ast_node_if_get_cond(node);
+		isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
+		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
+
+		result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
+				generate_Halide_stmt_from_isl_node(if_stmt),
+				generate_Halide_stmt_from_isl_node(else_stmt));
 	}
 
 	return result;

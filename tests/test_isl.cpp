@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	Computation computation0(ctx, s0, "{S0[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, s1, "{S1[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
 
-	schedule.add_schedule_map("{S0[i,j]->[i1,j1,i2,j2,1]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j and 1<=i<=1000 and 0<=j<=1000}");
+	schedule.add_schedule_map("{S0[i,j]->[i1,j1,i2,j2,1]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j+2 and 1<=i<=1000 and 0<=j<=1000}");
 	schedule.add_schedule_map("{S1[i,j]->[i1,j1,i2,j2,0]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j and 1<=i<=1000 and 0<=j<=1000}");
 	isl_union_map *schedule_map = schedule.get_schedule_map();
 
@@ -40,6 +40,9 @@ int main(int argc, char **argv)
 	isl_ast_build_free(ast_build);
 
 
+//	isl_ast_node_dump_c_code(ctx, program);
+
+
 	Halide::Internal::Stmt halide_pgm = generate_Halide_stmt_from_isl_node(program);
 
 
@@ -47,7 +50,6 @@ int main(int argc, char **argv)
 	schedule.dump();
 	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
 	halide_IR_dump(halide_pgm);
-//	isl_ast_node_dump_c_code(ctx, program);
 
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
