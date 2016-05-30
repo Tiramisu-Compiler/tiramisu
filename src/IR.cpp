@@ -10,15 +10,6 @@
 
 std::map<std::string, Halide::Internal::Stmt> stmts_list;
 
-/* Schedule the iteration space.  */
-isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
-{
-	isl_union_map *schedule_map = isl_union_map_read_from_str(ctx,
-			map.c_str());
-
-	return schedule_map;
-}
-
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
 
@@ -320,6 +311,42 @@ isl_union_set * IRProgram::get_iteration_spaces()
 	return result;
 }
 
+
+// Schedule
+
+void Schedule::add_schedule_map(std::string umap_str)
+{
+	isl_union_map *umap = isl_union_map_read_from_str(this->ctx,
+			umap_str.c_str());
+
+	schedule_map_vector.push_back(umap);
+}
+
+isl_union_map *Schedule::get_schedule_map()
+{
+	isl_union_map *result = NULL;
+
+	for (const auto umap: this->schedule_map_vector)
+	{
+		if (result == NULL)
+			result = isl_union_map_copy(umap);
+		else
+			result = isl_union_map_union(isl_union_map_copy(umap), result);
+	}
+
+	return result;
+}
+
+void Schedule::dump()
+{
+	if (DEBUG)
+	{
+		std::cout << "Schedule:" << std::endl;
+		for (auto umap: this->schedule_map_vector)
+			isl_union_map_dump(umap);
+		std::cout<< std::endl << std::endl;
+	}
+}
 
 // Halide IR related methods
 

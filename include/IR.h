@@ -41,7 +41,10 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node,
 isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *program);
+void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
+
+
+//IRProgram
 
 class IRProgram
 {
@@ -56,6 +59,8 @@ public:
 	void dump();
 };
 
+
+// IRFunction
 
 class IRFunction
 {
@@ -85,6 +90,7 @@ public:
 	void dump();
 };
 
+// Computation
 
 class Computation {
 public:
@@ -121,7 +127,28 @@ public:
 	void dump();
 };
 
-void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
+
+// Schedule
+
+class Schedule
+{
+	isl_ctx *ctx;
+
+public:
+	std::vector<isl_union_map *> schedule_map_vector;
+
+	Schedule(isl_ctx *ctx): ctx(ctx) { };
+
+	void add_schedule_map(std::string umap_str);
+	isl_union_map *get_schedule_map();
+
+	void dump();
+};
+
+
+// Halide IR specific functions
+
 void halide_IR_dump(Halide::Internal::Stmt s);
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *program);
 
 #endif
