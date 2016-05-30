@@ -21,17 +21,6 @@ isl_union_map *create_schedule_map(isl_ctx *ctx, std::string map)
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-#if 0
-	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
-	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
-	isl_id *id = isl_ast_expr_get_id(arg);
-	isl_ast_expr_free(arg);
-	std::string computation_name(isl_id_get_name(id));
-	isl_id_free(id);
-
-	Halide::Internal::Stmt s = stmts_list.find(computation_name)->second; 
-	user = (void *) &s;
-#endif
 
 	return node;
 }
@@ -102,26 +91,6 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 
 isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-
-#if 0
-	Halide::Internal::Stmt *s = (Halide::Internal::Stmt *) user;
-
-	isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
-	char *iterator_str = isl_ast_expr_to_str(iter);
-
-	isl_ast_expr *init = isl_ast_node_for_get_init(node);
-	isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
-	isl_ast_expr *cond_upper_bound_isl_format;
-	if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
-		cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
-	else
-		Error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
-
-        Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
-	Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-	*s = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, Halide::Internal::ForType::Serial,
-			Halide::DeviceAPI::Host, *s);
-#endif 
 
 	return node;
 }

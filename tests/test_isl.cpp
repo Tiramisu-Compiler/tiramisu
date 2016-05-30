@@ -14,23 +14,36 @@
 int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
-	IRProgram pgm("program");
-	IRFunction fct("function");
+	IRProgram pgm("program0");
+	IRFunction fct("function0");
 	pgm.add_function(&fct);
 
-	Halide::Internal::Stmt halide_pgm = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(1));
 	Halide::Internal::Stmt s0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
 	Halide::Internal::Stmt s1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));
 
 	Computation computation0(ctx, s0, "{S0[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, s1, "{S1[i,j]: 1<=i<=1000 and 0<=j<=1000}", &fct);
-	isl_union_map *schedule_map = create_schedule_map(ctx,"{S0[i,j]->S0[0, i1,j1,i,j]: i1=floor(i/32) and j1=floor(j/32) and 1<=i<=1000 and 0<=j<=1000; S1[i,j]->S1[1, i,j, 0, 0]: 1<=i<=1000 and 0<=j<=1000}");
+	isl_union_map *schedule_map = create_schedule_map(ctx,
+			"{S0[i,j]->S0[0, i1,j1,i2,j2]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j2=j and 1<=i<=1000 and 0<=j<=1000;"
+ 			 "S1[i,j]->S1[1, i,j, 0, 0]: 1<=i<=1000 and 0<=j<=1000}");
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
+
+	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
+	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
+	ast_build = isl_ast_build_set_after_each_for(ast_build, &for_halide_code_generator_after_for, NULL);
+	ast_build = isl_ast_build_set_at_each_domain(ast_build, &stmt_halide_code_generator, NULL);
+	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(schedule_map));
+	isl_ast_build_free(ast_build);
+
+
+	Halide::Internal::Stmt halide_pgm = generate_Halide_stmt_from_isl_node(program);
 
 	pgm.dump_ISIR();
 	IF_DEBUG(str_dump("Schedule:\n")); IF_DEBUG(isl_union_map_dump(schedule_map)); IF_DEBUG(str_dump("\n\n"));
 	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
+	halide_IR_dump(halide_pgm);
+//	isl_ast_node_dump_c_code(ctx, program);
 
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
@@ -38,22 +51,6 @@ int main(int argc, char **argv)
     	args[0] = buffer_arg;
 	Halide::Module::Module m("", Halide::get_host_target());
 	m.append(Halide::Internal::LoweredFunc("test1", args, halide_pgm, Halide::Internal::LoweredFunc::External));
-
-
-	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
-	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
-	ast_build = isl_ast_build_set_after_each_for(ast_build, &for_halide_code_generator_after_for, &halide_pgm);
-	ast_build = isl_ast_build_set_at_each_domain(ast_build, &stmt_halide_code_generator, &halide_pgm);
-	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, schedule_map);
-	isl_ast_build_free(ast_build);
-
-	Halide::Internal::Stmt final_pgm = generate_Halide_stmt_from_isl_node(program);
-
-	isl_ast_node_dump_c_code(ctx, program);
-//	halide_IR_dump(halide_pgm);
-	halide_IR_dump(final_pgm);
-
-	// pgm.dump();
 
 	return 0;
 }
