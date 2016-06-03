@@ -2,6 +2,7 @@
 #define _H_IR_
 
 #include <isl/set.h>
+#include <isl/map.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/ast_build.h>
@@ -96,10 +97,17 @@ public:
 
 class Computation {
 public:
+	isl_ctx *ctx;
+
 	/**
 	  * Iteration space of the computation.
 	 */
 	isl_set *iter_space;
+
+	/**
+	  *
+	  */
+	isl_map *schedule;
 
 	/**
 	  * The name of this computation.
@@ -117,13 +125,25 @@ public:
 	Computation(isl_ctx *ctx,
 		    Halide::Internal::Stmt given_stmt,
 		    std::string iteration_space_str, IRFunction *fct) {
+		this->ctx = ctx;
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
-		isl_space *space = isl_set_get_space(iter_space);
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
 		this->stmt = given_stmt;
 		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(name, this->stmt));
 		fct->add_computation_to_body(this);
+
+		std::string domain = isl_space_to_str(isl_set_get_space(iter_space));
+		domain = domain.erase(domain.find("{"), 1);
+		domain = domain.erase(domain.find("}"), 1);
+		std::string domain_without_name = domain;
+		domain_without_name.erase(domain.find(name), name.length()); 
+		std::string schedule_map_str = "{" + domain + " -> " + domain_without_name + "}";
+		this->schedule = isl_map_read_from_str(ctx, schedule_map_str.c_str());
 	}
+
+	void tile(std::string inDim0, std::string inDim1, std::string outDim0,
+			std::string outDim1, std::string outDim2,
+			std::string outDime3, int sizeX, int sizeY);
 
 	void dump_ISIR();
 	void dump();

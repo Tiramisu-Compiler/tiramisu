@@ -24,6 +24,7 @@ int main(int argc, char **argv)
 	Computation computation0(ctx, s0, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, s1, "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
+	computation0.tile("i","j","i0","i1","j1","j2", 8,8);
 	schedule.add_schedule_map("{S0[i,j]->[0,i1,j1,i,j,0]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
 	schedule.add_schedule_map("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
 	schedule.tag_parallel_dimension("S0", 1);

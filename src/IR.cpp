@@ -9,6 +9,8 @@
 #include <DebugIR.h>
 #include <IR.h>
 
+#include <string>
+
 std::map<std::string, Halide::Internal::Stmt> stmts_list;
 std::map<std::string, int> parallel_dimensions;
 std::map<std::string, int> vector_dimensions;
@@ -363,6 +365,39 @@ void Schedule::add_schedule_map(std::string umap_str)
 
 	schedule_map_vector.push_back(umap);
 }
+
+
+void Computation::tile(std::string inDim0, std::string inDim1,
+		std::string outDim0, std::string outDim1,
+		std::string outDim2, std::string outDim3,
+		int sizeX, int sizeY)
+{
+	std::string tiling_map, domain, range, relations;
+
+	std::string map_str = isl_map_to_str(this->schedule);
+
+	std::string outDimensions = outDim0 + "," + outDim1;
+	map_str.replace(map_str.find_last_of(inDim0), inDim0.length(), outDimensions);
+
+	outDimensions = outDim2 + "," + outDim3;
+	map_str.replace(map_str.find_last_of(inDim1), inDim1.length(), outDimensions);
+
+	if (map_str.find(":") == std::string::npos)
+		map_str.insert(map_str.find("}"), " : ");
+	else
+		map_str.insert(map_str.find("}"), " and ");
+
+	// Add the relations
+	std::string relation1 = outDim0 + "=floor(" + inDim0 + "/" +
+		std::to_string(sizeX) + ") and " + outDim1 + "=" + inDim0;
+	std::string relation2 = " and " + outDim2 + "=floor(" + inDim1 + "/" +
+		std::to_string(sizeY) + ") and " + outDim3 + "=" + inDim1;
+	map_str.insert(map_str.find("}"), relation1);
+	map_str.insert(map_str.find("}"), relation2);
+
+	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
+}
+
 
 void Schedule::tag_parallel_dimension(std::string stmt_name,
 				      int par_dim)
