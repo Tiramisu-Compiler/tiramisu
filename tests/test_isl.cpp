@@ -15,9 +15,8 @@ int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
 	IRProgram pgm("program0");
-	IRFunction fct("function0");
+	IRFunction fct("function0", &pgm);
 	Schedule schedule(ctx);
-	pgm.add_function(&fct);
 
 	Halide::Internal::Stmt s0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
 	Halide::Internal::Stmt s1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));

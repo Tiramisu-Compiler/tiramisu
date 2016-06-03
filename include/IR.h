@@ -85,7 +85,9 @@ public:
 	void add_computation_to_body(Computation *cpt);
 	void add_computation_to_signature(Computation *cpt);
 
-	IRFunction(std::string name): name(name) { };
+	IRFunction(std::string name, IRProgram *pgm): name(name) {
+		pgm->add_function(this);
+	};
 	void dump_ISIR();
 	void dump();
 };
