@@ -255,6 +255,14 @@ void Computation::dump_ISIR()
 	}
 }
 
+void Computation::dump_schedule()
+{
+	if (DEBUG)
+	{
+		isl_map_dump(this->schedule);
+	}
+}
+
 void Computation::dump()
 {
 	if (DEBUG)
@@ -353,6 +361,15 @@ void IRFunction::dump_ISIR()
 	}
 }
 
+void IRFunction::dump_schedule()
+{
+	if (DEBUG)
+	{
+		for (auto cpt : this->body)
+		       cpt->dump_schedule();
+	}
+}
+
 
 // Program related methods
 
@@ -381,7 +398,29 @@ void IRProgram::dump_ISIR()
 		str_dump("\nIteration Space IR:\n");
 		for (const auto &fct : this->functions)
 		       fct->dump_ISIR();
-		str_dump("\n\n\n");
+		str_dump("\n");
+	}
+}
+
+void IRProgram::dump_schedule()
+{
+	if (DEBUG)
+	{
+		str_dump("\nSchedule:\n");
+		for (const auto &fct : this->functions)
+		       fct->dump_schedule();
+
+		std::cout << "Parallel dimensions: ";
+		for (auto par_dim: parallel_dimensions)
+			std::cout << par_dim.first << "(" << par_dim.second << ") ";
+
+		std::cout << std::endl;
+
+		std::cout << "Vector dimensions: ";
+		for (auto vec_dim: vector_dimensions)
+			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+
+		std::cout<< std::endl << std::endl << std::endl;
 	}
 }
 

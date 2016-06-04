@@ -23,8 +23,9 @@ int main(int argc, char **argv)
 	Computation computation0(ctx, s0, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, s1, "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
-	computation0.tile("i","j","i0","i1","j1","j2", 8,8);
-//	computation0.use_schedule_map("{S0[i,j]->[0,i1,j1,i ,j , 0]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
+	computation0.tile("i","j","i0","i1","j1","j2", 32,32);
+	computation0.split("j2","j21","j22", 4);
+
 	computation1.use_schedule_map("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
 	pgm.tag_parallel_dimension("S0", 1);
 	pgm.tag_vector_dimension("S1", 5);
@@ -48,9 +49,9 @@ int main(int argc, char **argv)
 
 
 	pgm.dump_ISIR();
+	pgm.dump_schedule();
 	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
 	halide_IR_dump(halide_pgm);
-	pgm.dump();
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
     	std::vector<Halide::Argument> args(1);

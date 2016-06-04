@@ -66,6 +66,7 @@ public:
 	isl_union_map *get_schedule_map();
 
 	void dump_ISIR();
+	void dump_schedule();
 	void dump();
 };
 
@@ -99,6 +100,7 @@ public:
 		pgm->add_function(this);
 	};
 	void dump_ISIR();
+	void dump_schedule();
 	void dump();
 };
 
@@ -158,6 +160,7 @@ public:
 	void use_schedule_map(std::string umap_str);
 
 	void dump_ISIR();
+	void dump_schedule();
 	void dump();
 };
 
