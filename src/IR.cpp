@@ -12,8 +12,6 @@
 #include <string>
 
 std::map<std::string, Halide::Internal::Stmt> stmts_list;
-std::map<std::string, int> parallel_dimensions;
-std::map<std::string, int> vector_dimensions;
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
@@ -247,12 +245,55 @@ void Computation::dump()
 	{
 		std::cout << "Computation \"" << this->name << "\"" << std::endl;
 		isl_set_dump(this->iter_space);
+		std::cout << "Schedule " << std::endl;
+		isl_map_dump(this->schedule);
 		str_dump("Halide statement:\n");
 		Halide::Internal::IRPrinter pr(std::cout);
 	    	pr.print(this->stmt);
 		str_dump("\n");
 
 	}
+}
+
+void Computation::use_schedule_map(std::string map_str)
+{
+	isl_map *map = isl_map_read_from_str(this->ctx,
+			map_str.c_str());
+
+	this->schedule = map;
+}
+
+
+void Computation::tile(std::string inDim0, std::string inDim1,
+		std::string outDim0, std::string outDim1,
+		std::string outDim2, std::string outDim3,
+		int sizeX, int sizeY)
+{
+	std::string tiling_map, domain, range, relations;
+
+	std::string map_str = isl_map_to_str(this->schedule);
+
+	int pos_arrow = map_str.find("->");
+	std::string outDimensions = outDim0 + "," + outDim1;
+	map_str.replace(map_str.find(inDim0, pos_arrow), inDim0.length(), outDimensions);
+
+	outDimensions = outDim2 + "," + outDim3;
+	map_str.replace(map_str.find(inDim1, pos_arrow), inDim1.length(), outDimensions);
+
+	if (map_str.find(":") == std::string::npos)
+		map_str.insert(map_str.find("}"), " : ");
+	else
+		map_str.insert(map_str.find("}"), " and ");
+
+	// Add the relations
+	std::string relation1 = outDim0 + "=floor(" + inDim0 + "/" +
+		std::to_string(sizeX) + ") and " + outDim1 + "=" + inDim0;
+	std::string relation2 = " and " + outDim2 + "=floor(" + inDim1 + "/" +
+		std::to_string(sizeY) + ") and " + outDim3 + "=" + inDim1;
+	map_str.insert(map_str.find("}"), relation1);
+	map_str.insert(map_str.find("}"), relation2);
+
+	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
 }
 
 
@@ -299,6 +340,24 @@ void IRFunction::dump_ISIR()
 
 // Program related methods
 
+void IRProgram::tag_parallel_dimension(std::string stmt_name,
+				      int par_dim)
+{
+	if (par_dim >= 0)
+		this->parallel_dimensions.insert(
+				std::pair<std::string,int>(stmt_name,
+							   par_dim));
+}
+
+void IRProgram::tag_vector_dimension(std::string stmt_name,
+		int vec_dim)
+{
+	if (vec_dim >= 0)
+		this->vector_dimensions.insert(
+				std::pair<std::string,int>(stmt_name,
+					                   vec_dim));
+}
+
 void IRProgram::dump_ISIR()
 {
 	if (DEBUG)
@@ -321,7 +380,17 @@ void IRProgram::dump()
 		for (const auto &fct : this->functions)
 		       fct->dump();
 
+		std::cout << "Parallel dimensions: ";
+		for (auto par_dim: parallel_dimensions)
+			std::cout << par_dim.first << "(" << par_dim.second << ") ";
+
 		std::cout << std::endl;
+
+		std::cout << "Vector dimensions: ";
+		for (auto vec_dim: vector_dimensions)
+			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+
+		std::cout<< std::endl << std::endl;
 	}
 }
 
@@ -355,104 +424,31 @@ isl_union_set * IRProgram::get_iteration_spaces()
 	return result;
 }
 
-
-// Schedule
-
-void Schedule::add_schedule_map(std::string umap_str)
+isl_union_map * IRProgram::get_schedule_map()
 {
-	isl_union_map *umap = isl_union_map_read_from_str(this->ctx,
-			umap_str.c_str());
+	isl_union_map *result;
+	isl_space *space;
 
-	schedule_map_vector.push_back(umap);
-}
-
-
-void Computation::tile(std::string inDim0, std::string inDim1,
-		std::string outDim0, std::string outDim1,
-		std::string outDim2, std::string outDim3,
-		int sizeX, int sizeY)
-{
-	std::string tiling_map, domain, range, relations;
-
-	std::string map_str = isl_map_to_str(this->schedule);
-
-	std::string outDimensions = outDim0 + "," + outDim1;
-	map_str.replace(map_str.find_last_of(inDim0), inDim0.length(), outDimensions);
-
-	outDimensions = outDim2 + "," + outDim3;
-	map_str.replace(map_str.find_last_of(inDim1), inDim1.length(), outDimensions);
-
-	if (map_str.find(":") == std::string::npos)
-		map_str.insert(map_str.find("}"), " : ");
-	else
-		map_str.insert(map_str.find("}"), " and ");
-
-	// Add the relations
-	std::string relation1 = outDim0 + "=floor(" + inDim0 + "/" +
-		std::to_string(sizeX) + ") and " + outDim1 + "=" + inDim0;
-	std::string relation2 = " and " + outDim2 + "=floor(" + inDim1 + "/" +
-		std::to_string(sizeY) + ") and " + outDim3 + "=" + inDim1;
-	map_str.insert(map_str.find("}"), relation1);
-	map_str.insert(map_str.find("}"), relation2);
-
-	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
-}
-
-
-void Schedule::tag_parallel_dimension(std::string stmt_name,
-				      int par_dim)
-{
-	if (par_dim >= 0)
-		parallel_dimensions.insert(
-				std::pair<std::string,int>(stmt_name,
-							   par_dim));
-}
-
-void Schedule::tag_vector_dimension(std::string stmt_name,
-		int vec_dim)
-{
-	if (vec_dim >= 0)
-		vector_dimensions.insert(
-				std::pair<std::string,int>(stmt_name,
-					                   vec_dim));
-}
-
-isl_union_map *Schedule::get_schedule_map()
-{
-	isl_union_map *result = NULL;
-
-	for (const auto umap: this->schedule_map_vector)
+	if (this->functions.empty() == false)
 	{
-		if (result == NULL)
-			result = isl_union_map_copy(umap);
-		else
-			result = isl_union_map_union(isl_union_map_copy(umap), result);
+		if(this->functions[0]->body.empty() == false)
+			space = isl_map_get_space(this->functions[0]->body[0]->schedule);
 	}
+	else
+		return NULL;
+
+	result = isl_union_map_empty(isl_space_copy(space));
+
+	for (const auto &fct : this->functions)
+		for (const auto &cpt : fct->body)
+		{
+			isl_map *m = isl_map_copy(cpt->schedule);
+			result = isl_union_map_union(isl_union_map_from_map(m), result);
+		}
 
 	return result;
 }
 
-void Schedule::dump()
-{
-	if (DEBUG)
-	{
-		std::cout << "Schedule:" << std::endl;
-		for (auto umap: this->schedule_map_vector)
-			isl_union_map_dump(umap);
-
-		std::cout << "Parallel dimensions: ";
-		for (auto par_dim: parallel_dimensions)
-			std::cout << par_dim.first << "(" << par_dim.second << ") ";
-
-		std::cout << std::endl;
-
-		std::cout << "Vector dimensions: ";
-		for (auto vec_dim: vector_dimensions)
-			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
-
-		std::cout<< std::endl << std::endl;
-	}
-}
 
 // Halide IR related methods
 
@@ -464,6 +460,6 @@ void halide_IR_dump(Halide::Internal::Stmt s)
 		str_dump("\nGenerated Halide Low Level IR:\n");
 		Halide::Internal::IRPrinter pr(std::cout);
 	    	pr.print(s);
-		str_dump("\n\n");
+		str_dump("\n\n\n\n");
 	}
 }

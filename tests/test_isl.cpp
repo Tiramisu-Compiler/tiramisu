@@ -16,7 +16,6 @@ int main(int argc, char **argv)
 	isl_ctx *ctx = isl_ctx_alloc();
 	IRProgram pgm("program0");
 	IRFunction fct("function0", &pgm);
-	Schedule schedule(ctx);
 
 	Halide::Internal::Stmt s0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
 	Halide::Internal::Stmt s1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));
@@ -25,11 +24,11 @@ int main(int argc, char **argv)
 	Computation computation1(ctx, s1, "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	computation0.tile("i","j","i0","i1","j1","j2", 8,8);
-	schedule.add_schedule_map("{S0[i,j]->[0,i1,j1,i,j,0]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
-	schedule.add_schedule_map("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
-	schedule.tag_parallel_dimension("S0", 1);
-	schedule.tag_vector_dimension("S1", 4);
-	isl_union_map *schedule_map = schedule.get_schedule_map();
+//	computation0.use_schedule_map("{S0[i,j]->[0,i1,j1,i ,j , 0]: i1=floor(i/32) and j1=floor(j/32) and 0<=i<=1000 and 0<=j<=1000}");
+	computation1.use_schedule_map("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
+	pgm.tag_parallel_dimension("S0", 1);
+	pgm.tag_vector_dimension("S1", 4);
+	isl_union_map *schedule_map = pgm.get_schedule_map();
 
 	isl_union_set *time_space = create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
@@ -49,10 +48,9 @@ int main(int argc, char **argv)
 
 
 	pgm.dump_ISIR();
-	schedule.dump();
 	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
 	halide_IR_dump(halide_pgm);
-
+	pgm.dump();
 
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 3);
     	std::vector<Halide::Argument> args(1);

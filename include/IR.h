@@ -53,9 +53,18 @@ private:
 	std::string name;
 	std::vector<IRFunction *> functions;
 public:
+	std::map<std::string, int> parallel_dimensions;
+	std::map<std::string, int> vector_dimensions;
+
 	IRProgram(std::string name): name(name) { };
 	void add_function(IRFunction *fct);
+
+	void tag_parallel_dimension(std::string stmt_name, int dim);
+	void tag_vector_dimension(std::string stmt_name, int dim);
+
 	isl_union_set *get_iteration_spaces();
+	isl_union_map *get_schedule_map();
+
 	void dump_ISIR();
 	void dump();
 };
@@ -133,11 +142,12 @@ public:
 		fct->add_computation_to_body(this);
 
 		std::string domain = isl_space_to_str(isl_set_get_space(iter_space));
+		std::string schedule_map_str = isl_set_to_str(iter_space);
 		domain = domain.erase(domain.find("{"), 1);
 		domain = domain.erase(domain.find("}"), 1);
 		std::string domain_without_name = domain;
 		domain_without_name.erase(domain.find(name), name.length()); 
-		std::string schedule_map_str = "{" + domain + " -> " + domain_without_name + "}";
+		schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain_without_name);
 		this->schedule = isl_map_read_from_str(ctx, schedule_map_str.c_str());
 	}
 
@@ -145,27 +155,9 @@ public:
 			std::string outDim1, std::string outDim2,
 			std::string outDime3, int sizeX, int sizeY);
 
+	void use_schedule_map(std::string umap_str);
+
 	void dump_ISIR();
-	void dump();
-};
-
-
-// Schedule
-
-class Schedule
-{
-	isl_ctx *ctx;
-
-public:
-	std::vector<isl_union_map *> schedule_map_vector;
-
-	Schedule(isl_ctx *ctx): ctx(ctx) { };
-
-	void add_schedule_map(std::string umap_str);
-	void tag_parallel_dimension(std::string stmt_name, int dim);
-	void tag_vector_dimension(std::string stmt_name, int dim);
-	isl_union_map *get_schedule_map();
-
 	void dump();
 };
 
