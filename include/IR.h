@@ -165,6 +165,7 @@ public:
 // Halide IR specific functions
 
 void halide_IR_dump(Halide::Internal::Stmt s);
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *program);
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
+		int level, std::vector<std::string> &generated_stmts);
 
 #endif

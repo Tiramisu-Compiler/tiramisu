@@ -125,7 +125,9 @@ isl_schedule *create_schedule_tree(isl_ctx *ctx,
 	return sched_tree;
 }
 
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
+// Level represents the level of the node in the schedule.  0 means root.
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
+		int level, std::vector<std::string> &generated_stmts)
 {
 	Halide::Internal::Stmt result;
 	int i;
@@ -138,12 +140,12 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 		if (isl_ast_node_list_n_ast_node(list) >= 1)
 		{
 			child = isl_ast_node_list_get_ast_node(list, 0);
-			result = Halide::Internal::Block::make(generate_Halide_stmt_from_isl_node(child), Halide::Internal::Stmt());
+			result = Halide::Internal::Block::make(generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts), Halide::Internal::Stmt());
 		
 			for (i = 1; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				result = Halide::Internal::Block::make(result, generate_Halide_stmt_from_isl_node(child));
+				result = Halide::Internal::Block::make(result, generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts));
 			}
 		}
 	}
@@ -169,8 +171,19 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, Halide::Internal::ForType::Serial,
-				Halide::DeviceAPI::Host, generate_Halide_stmt_from_isl_node(body));
+		Halide::Internal::Stmt halide_body = generate_Halide_stmt_from_isl_node(pgm, body, level+1, generated_stmts);
+		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
+
+		// Change the type from Serial to parallel or vector if the
+		// current level was marked as such.
+		for (auto generated_stmt: generated_stmts)
+			if (pgm.parallel_dimensions.find(generated_stmt)->second == level)
+				fortype = Halide::Internal::ForType::Parallel;
+			else if (pgm.vector_dimensions.find(generated_stmt)->second == level)
+				fortype = Halide::Internal::ForType::Vectorized;
+
+		result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
+				Halide::DeviceAPI::Host, halide_body);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{
@@ -180,6 +193,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 		isl_ast_expr_free(arg);
 		std::string computation_name(isl_id_get_name(id));
 		isl_id_free(id);
+		generated_stmts.push_back(computation_name);
 
 		result = stmts_list.find(computation_name)->second; 
 	}
@@ -190,8 +204,10 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(isl_ast_node *node)
 		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
 
 		result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
-				generate_Halide_stmt_from_isl_node(if_stmt),
-				generate_Halide_stmt_from_isl_node(else_stmt));
+				generate_Halide_stmt_from_isl_node(pgm, if_stmt,
+					level+1, generated_stmts),
+				generate_Halide_stmt_from_isl_node(pgm, else_stmt,
+					level+1, generated_stmts));
 	}
 
 	return result;
