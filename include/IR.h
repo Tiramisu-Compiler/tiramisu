@@ -157,9 +157,10 @@ public:
 			std::string outDim1, std::string outDim2,
 			std::string outDime3, int sizeX, int sizeY);
 
-	void Split(int inDim0_int, int sizeX);
+	void Split(int inDim0, int sizeX);
+	void Interchange(int inDim0, int inDim1);
 
-	void use_schedule_map(std::string umap_str);
+	void Schedule(std::string umap_str);
 
 	void dump_ISIR();
 	void dump_schedule();

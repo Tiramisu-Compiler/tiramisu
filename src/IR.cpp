@@ -280,14 +280,13 @@ void Computation::dump()
 	}
 }
 
-void Computation::use_schedule_map(std::string map_str)
+void Computation::Schedule(std::string map_str)
 {
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
 
 	this->schedule = map;
 }
-
 
 void Computation::Tile(std::string inDim0, std::string inDim1,
 		std::string outDim0, std::string outDim1,
@@ -339,25 +338,47 @@ std::vector<std::string> split_space_into_dimensions(std::string space)
 	return result;
 }
 
+std::string generate_new_variable_name()
+{
+	return "r" + std::to_string(id_counter++);
+}
 
 /**
- * Modify the schedule of this computation so that it splits the
- * dimension inDim0_int of the iteration space into two new dimensions.
- * The size of the inner dimension created is sizeX.
+ * Modify the schedule of this computation so that the two dimensions
+ * inDim0 and inDime1 are interchanged (swaped).
  */
-void Computation::Split(int inDim0_int, int sizeX)
+void Computation::Interchange(int inDim0, int inDim1)
 {
-	assert(inDim0_int >= 0);
-	assert(inDim0_int < isl_space_dim(isl_map_get_space(this->schedule),
-				          isl_dim_out));
-	assert(sizeX >= 1);
-
-	std::string tiling_map, domain, range, relations;
+	assert(inDim0 >= 0);
+	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
+							isl_dim_out));
+	assert(inDim1 >= 0);
+	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
+				          		isl_dim_out));
 
 	std::string map_str = isl_map_to_str(this->schedule);
 
-	std::string outDim0 = "r" + std::to_string(id_counter++);
-	std::string outDim1 = "r" + std::to_string(id_counter++);
+	std::string outDim0 = generate_new_variable_name(); 
+	std::string outDim1 = generate_new_variable_name(); 
+
+}
+
+/**
+ * Modify the schedule of this computation so that it splits the
+ * dimension inDim0 of the iteration space into two new dimensions.
+ * The size of the inner dimension created is sizeX.
+ */
+void Computation::Split(int inDim0, int sizeX)
+{
+	assert(inDim0 >= 0);
+	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
+				          isl_dim_out));
+	assert(sizeX >= 1);
+
+	std::string map_str = isl_map_to_str(this->schedule);
+
+	std::string outDim0 = generate_new_variable_name(); 
+	std::string outDim1 = generate_new_variable_name();
 
 	int pos_arrow = map_str.find("->");
 	std::string outDimensions = outDim0 + "," + outDim1;
@@ -369,7 +390,7 @@ void Computation::Split(int inDim0_int, int sizeX)
 
 	std::vector<std::string> dimensions =
 		split_space_into_dimensions(range_space);
-	std::string inDim0_str = dimensions.at(inDim0_int);
+	std::string inDim0_str = dimensions.at(inDim0);
 
 	map_str.replace(map_str.find(inDim0_str, pos_arrow), inDim0_str.length(), outDimensions);
 
