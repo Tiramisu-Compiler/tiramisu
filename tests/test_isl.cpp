@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 	// computation0.Tile("i","j","i0","i1","j1","j2", 32,32);
 	computation0.Split(0, 32);
 	computation0.Split(2, 32);
+	computation0.Interchange(1, 2);
 
 	computation1.Schedule("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
 	pgm.tag_parallel_dimension("S0", 1);

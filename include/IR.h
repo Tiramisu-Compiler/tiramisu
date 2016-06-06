@@ -22,6 +22,9 @@ class IRProgram;
 class IRFunction;
 class Computation;
 
+void split_string(std::string str, std::string delimiter,
+		  std::vector<std::string> &vector);
+
 isl_union_set *create_time_space(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
@@ -165,6 +168,177 @@ public:
 	void dump_ISIR();
 	void dump_schedule();
 	void dump();
+};
+
+
+// A class to hold parsed tokens of isl_space
+
+class isl_space_tokens
+{
+public:
+	std::vector<std::string> dimensions;
+
+	isl_space_tokens(std::string isl_space_str)
+	{
+		assert(isl_space_str.empty() == false);
+		this->Parse(isl_space_str);
+	};
+
+	isl_space_tokens() {};
+
+	std::string get_str()
+	{
+		std::string result;
+
+		for (int i=0; i<dimensions.size(); i++)
+		{
+			if (i != 0)
+				result = result + ",";
+			result = result + dimensions.at(i);
+		}
+
+		return result;
+	};
+
+	void replace(std::string in, std::string out1, std::string out2)
+	{
+		std::vector<std::string> new_dimensions;
+
+		for (auto dim:dimensions)
+		{
+			if (dim.compare(in) == 0)
+			{
+				new_dimensions.push_back(out1);
+				new_dimensions.push_back(out2);
+			}
+			else
+				new_dimensions.push_back(dim);
+		}
+
+		dimensions = new_dimensions;
+	}
+
+	void Parse(std::string space);
+	bool empty() {return dimensions.empty();};
+};
+
+
+// A class to hold parsed tokens of isl_constraints
+
+class constraint_tokens
+{
+public:
+	std::vector<std::string> constraints;
+	constraint_tokens() { };
+
+	void Parse(std::string str)
+	{
+		assert(str.empty() == false);
+
+		split_string(str, "and", this->constraints);
+	};
+
+	void add(std::string str)
+	{
+		assert(str.empty() == false);
+		constraints.push_back(str);
+	}
+
+	std::string get_str()
+	{
+		std::string result;
+
+		for (int i=0; i<constraints.size(); i++)
+		{
+			if (i != 0)
+				result = result + " and ";
+			result = result + constraints.at(i);
+		}
+
+		return result;
+	};
+
+	bool empty() {return constraints.empty();};
+};
+
+
+// A class to hold parsed tokens of isl_maps
+
+class isl_map_tokens
+{
+public:
+	isl_space_tokens parameters;
+	std::string domain_name;
+	isl_space_tokens domain;
+	isl_space_tokens range;
+	constraint_tokens constraints;
+
+	isl_map_tokens(std::string map_str)
+	{
+		int map_begin =  map_str.find("{")+1;
+		int map_end   =  map_str.find("}")-1;
+
+		assert(map_begin != std::string::npos);
+		assert(map_end != std::string::npos);
+
+		int domain_space_begin = map_str.find("[", map_begin)+1;
+		int domain_space_begin_pre_bracket = map_str.find("[", map_begin)-1;
+		int domain_space_end   = map_str.find("]", map_begin)-1;
+
+		assert(domain_space_begin != std::string::npos);
+		assert(domain_space_end != std::string::npos);
+
+		domain_name = map_str.substr(map_begin,
+		 		             domain_space_begin_pre_bracket-map_begin+1);
+
+		std::string domain_space_str =
+			map_str.substr(domain_space_begin,
+		 		       domain_space_end-domain_space_begin+1);
+
+		domain.Parse(domain_space_str);
+
+		int pos_arrow = map_str.find("->", domain_space_end);
+
+		assert(pos_arrow != std::string::npos);
+
+		int range_space_begin = map_str.find("[", pos_arrow)+1;
+		int range_space_end = map_str.find("]",pos_arrow)-1;
+
+		assert(range_space_begin != std::string::npos);
+		assert(range_space_end != std::string::npos);
+
+		std::string range_space_str = map_str.substr(range_space_begin,
+							 range_space_end-range_space_begin+1);
+		range.Parse(range_space_str);
+		int column_pos = map_str.find(":")+1;
+
+		if (column_pos != std::string::npos)
+		{
+			std::string constraints_str = map_str.substr(column_pos,
+								     map_end-column_pos+1);
+			constraints.Parse(constraints_str);
+		}
+	};
+
+	std::string get_str()
+	{
+		std::string result;
+
+		result = "{" + domain_name + "[" + domain.get_str() + "] -> [" +
+			  range.get_str() + "]";
+
+		if (constraints.empty() == false)
+			result = result + " : " + constraints.get_str();
+
+		result = result + " }";
+
+		return result;
+	};
+
+	isl_map *get_isl_map(isl_ctx *ctx)
+	{
+		return isl_map_read_from_str(ctx, this->get_str().c_str());
+	};
 };
 
 

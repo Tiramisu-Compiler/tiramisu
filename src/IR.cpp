@@ -320,22 +320,23 @@ void Computation::Tile(std::string inDim0, std::string inDim1,
 	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
 }
 
-std::vector<std::string> split_space_into_dimensions(std::string space)
+void split_string(std::string str, std::string delimiter,
+		  std::vector<std::string> &vector)
 {
-	std::vector<std::string> result;
-
 	size_t pos = 0;
 	std::string token;
-	std::string delimiter = ",";
-	while ((pos = space.find(delimiter)) != std::string::npos) {
-		token = space.substr(0, pos);
-		result.push_back(token);
-		space.erase(0, pos + delimiter.length());
+	while ((pos = str.find(delimiter)) != std::string::npos) {
+		token = str.substr(0, pos);
+		vector.push_back(token);
+		str.erase(0, pos + delimiter.length());
 	}
-	token = space.substr(0, pos);
-	result.push_back(token);
+	token = str.substr(0, pos);
+	vector.push_back(token);
+}
 
-	return result;
+void isl_space_tokens::Parse(std::string space)
+{
+	split_string(space, ",", this->dimensions);
 }
 
 std::string generate_new_variable_name()
@@ -356,11 +357,12 @@ void Computation::Interchange(int inDim0, int inDim1)
 	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
 				          		isl_dim_out));
 
-	std::string map_str = isl_map_to_str(this->schedule);
+	isl_map_tokens map(isl_map_to_str(this->schedule));
 
-	std::string outDim0 = generate_new_variable_name(); 
-	std::string outDim1 = generate_new_variable_name(); 
+	std::iter_swap(map.range.dimensions.begin()+inDim0,
+			map.range.dimensions.begin()+inDim1);
 
+	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
 }
 
 /**
@@ -375,37 +377,26 @@ void Computation::Split(int inDim0, int sizeX)
 				          isl_dim_out));
 	assert(sizeX >= 1);
 
-	std::string map_str = isl_map_to_str(this->schedule);
 
+	isl_map_tokens map(isl_map_to_str(this->schedule));
+
+	std::string inDim0_str = map.range.dimensions.at(inDim0);
 	std::string outDim0 = generate_new_variable_name(); 
 	std::string outDim1 = generate_new_variable_name();
-
-	int pos_arrow = map_str.find("->");
 	std::string outDimensions = outDim0 + "," + outDim1;
 
-	int range_space_begin = map_str.find("[", pos_arrow)+1;
-	int range_space_end = map_str.find("]",pos_arrow)-1;
-	std::string range_space = map_str.substr(range_space_begin,
-						 range_space_end-range_space_begin+1);
-
-	std::vector<std::string> dimensions =
-		split_space_into_dimensions(range_space);
-	std::string inDim0_str = dimensions.at(inDim0);
-
-	map_str.replace(map_str.find(inDim0_str, pos_arrow), inDim0_str.length(), outDimensions);
-
-	if (map_str.find(":") == std::string::npos)
-		map_str.insert(map_str.find("}"), " : ");
-	else
-		map_str.insert(map_str.find("}"), " and ");
+	map.range.replace(inDim0_str, outDim0, outDim1);
 
 	// Add the relations
 	std::string relation1 = outDim0 + "=floor(" + inDim0_str + "/" +
-		std::to_string(sizeX) + ") and " + outDim1 + "=" + inDim0_str +
-		"%" + std::to_string(sizeX);
-	map_str.insert(map_str.find("}"), relation1);
+		std::to_string(sizeX) + ") ";
+	std::string relation2 = outDim1 + "=" + inDim0_str + "%" +
+	 	std::to_string(sizeX);
 
-	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
+	map.constraints.add(relation1);
+	map.constraints.add(relation2);
+
+	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
 }
 
 
