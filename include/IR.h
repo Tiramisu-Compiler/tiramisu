@@ -156,9 +156,7 @@ public:
 		this->schedule = isl_map_read_from_str(ctx, schedule_map_str.c_str());
 	}
 
-	void Tile(std::string inDim0, std::string inDim1, std::string outDim0,
-			std::string outDim1, std::string outDim2,
-			std::string outDime3, int sizeX, int sizeY);
+	void Tile(int inDim0, int inDim1, int sizeX, int sizeY);
 
 	void Split(int inDim0, int sizeX);
 	void Interchange(int inDim0, int inDim1);

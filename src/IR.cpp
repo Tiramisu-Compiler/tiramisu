@@ -288,36 +288,14 @@ void Computation::Schedule(std::string map_str)
 	this->schedule = map;
 }
 
-void Computation::Tile(std::string inDim0, std::string inDim1,
-		std::string outDim0, std::string outDim1,
-		std::string outDim2, std::string outDim3,
-		int sizeX, int sizeY)
+void Computation::Tile(int inDim0, int inDim1,
+			int sizeX, int sizeY)
 {
-	std::string tiling_map, domain, range, relations;
+	assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
 
-	std::string map_str = isl_map_to_str(this->schedule);
-
-	int pos_arrow = map_str.find("->");
-	std::string outDimensions = outDim0 + "," + outDim1;
-	map_str.replace(map_str.find(inDim0, pos_arrow), inDim0.length(), outDimensions);
-
-	outDimensions = outDim2 + "," + outDim3;
-	map_str.replace(map_str.find(inDim1, pos_arrow), inDim1.length(), outDimensions);
-
-	if (map_str.find(":") == std::string::npos)
-		map_str.insert(map_str.find("}"), " : ");
-	else
-		map_str.insert(map_str.find("}"), " and ");
-
-	// Add the relations
-	std::string relation1 = outDim0 + "=floor(" + inDim0 + "/" +
-		std::to_string(sizeX) + ") and " + outDim1 + "=" + inDim0;
-	std::string relation2 = " and " + outDim2 + "=floor(" + inDim1 + "/" +
-		std::to_string(sizeY) + ") and " + outDim3 + "=" + inDim1;
-	map_str.insert(map_str.find("}"), relation1);
-	map_str.insert(map_str.find("}"), relation2);
-
-	this->schedule = isl_map_read_from_str(this->ctx, map_str.c_str());
+	this->Split(inDim0, sizeX);
+	this->Split(inDim1+1, sizeY);
+	this->Interchange(inDim0+1, inDim1+1);
 }
 
 void split_string(std::string str, std::string delimiter,
