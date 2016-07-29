@@ -17,11 +17,11 @@ int main(int argc, char **argv)
 	IRProgram pgm("program0");
 	IRFunction fct("function0", &pgm);
 
-	Halide::Internal::Stmt s0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
-	Halide::Internal::Stmt s1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));
+	Halide::Internal::Stmt expr0 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(3));
+	Halide::Internal::Stmt expr1 = Halide::Internal::AssertStmt::make(Halide::Expr(0), Halide::Expr(5));
 
-	Computation computation0(ctx, s0, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
-	Computation computation1(ctx, s1, "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	Computation computation0(ctx, expr0, "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
+	Computation computation1(ctx, expr1, "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 /*	computation0.Split(0, 32);
 	computation0.Split(2, 32);
