@@ -11,7 +11,7 @@
 
 #include <string>
 
-std::map<std::string, Halide::Internal::Stmt> stmts_list;
+std::map<std::string, Computation *> computations_list;
 int id_counter = 0;
 
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
@@ -196,7 +196,10 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		isl_id_free(id);
 		generated_stmts.push_back(computation_name);
 
-		result = stmts_list.find(computation_name)->second; 
+		Computation *comp = computations_list.find(computation_name)->second;
+		comp->Create_halide_assignement();
+
+		result = comp->stmt;
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_if)
 	{
@@ -232,17 +235,14 @@ isl_ast_node *generate_code(isl_ctx *ctx,
 
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
 {
-	if (DEBUG)
-	{
-		str_dump("\n\n");
-		str_dump("\nC like code:\n");
-		isl_printer *p;
-		p = isl_printer_to_file(ctx, stdout);
-		p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-		p = isl_printer_print_ast_node(p, root_node);
-		isl_printer_free(p);
-		str_dump("\n\n");
-	}
+	str_dump("\n\n");
+	str_dump("\nC like code:\n");
+	isl_printer *p;
+	p = isl_printer_to_file(ctx, stdout);
+	p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+	p = isl_printer_print_ast_node(p, root_node);
+	isl_printer_free(p);
+	str_dump("\n\n");
 }
 
 
@@ -296,6 +296,56 @@ void Computation::Tile(int inDim0, int inDim1,
 	this->Split(inDim0, sizeX);
 	this->Split(inDim1+1, sizeY);
 	this->Interchange(inDim0+1, inDim1+1);
+}
+
+/*
+ * Create a Halide assign statement from a computation.
+ * The statement will assign the computations to a memory buffer based on the
+ * access function provided in access.
+ * TODO: for now this function ignores the access function.
+ */
+void Computation::Create_halide_assignement()
+{
+	assert(this->access != NULL);
+
+	/* Compute the index expression used to access the array.  */
+	/*
+	   isl_union_map *schedule = isl_ast_build_get_schedule(build);
+	   isl_map *map = isl_map_reverse(isl_map_from_union_map(schedule));
+           isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
+
+	   isl_multi_pw_aff *index =
+		index = isl_multi_pw_aff_pullback_pw_multi_aff(index, iterator_map);
+
+	   // Adapt the function that linearizes an index (gpu_local_array_info_linearize_index),
+
+	   Halide::Expr index
+	*/
+
+	   const char *buffer_name = isl_space_get_tuple_name(
+					isl_map_get_space(this->access), isl_dim_out);
+
+	   auto buffer_entry = this->function->buffers_list.find(buffer_name);
+
+	   if (buffer_entry != this->function->buffers_list.end())
+	   {
+		   if (DEBUG)
+			   std::cout << "Buffer_entry found" << std::endl;
+
+		   Halide::Buffer *buffer = buffer_entry->second;
+		   Halide::Internal::Parameter param(buffer->type(), true,
+				buffer->dimensions(), buffer->name());
+		   param.set_buffer(*buffer);
+		   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, Halide::Expr(0), param);
+	   }
+	   else
+	   {
+		   if (DEBUG)
+			   std::cout << "Buffer_entry found" << std::endl;
+
+		   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, Halide::Expr(0),
+				   Halide::Internal::Parameter::Parameter());
+	   }
 }
 
 void split_string(std::string str, std::string delimiter,

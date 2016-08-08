@@ -17,10 +17,10 @@
 #include <DebugIR.h>
 #include <IR.h>
 
-extern std::map<std::string, Halide::Internal::Stmt> stmts_list;
 class IRProgram;
 class IRFunction;
 class Computation;
+extern std::map<std::string, Computation *> computations_list;
 
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
@@ -95,6 +95,11 @@ public:
 	  */
 	std::vector<Computation *> body;
 
+	/**
+	  * The arguments of the function.
+	  */
+	std::map<std::string, Halide::Buffer *> buffers_list;
+
 public:
 	void add_computation_to_body(Computation *cpt);
 	void add_computation_to_signature(Computation *cpt);
@@ -119,9 +124,14 @@ public:
 	isl_set *iter_space;
 
 	/**
-	  *
+	  * Schedule of the computation.
 	  */
 	isl_map *schedule;
+
+	/**
+	  * The function where this computation is declared.
+	  */
+	IRFunction *function;
 
 	/**
 	  * The name of this computation.
@@ -132,29 +142,54 @@ public:
 	  * Halide expression that represents the computation.
 	  */
 	Halide::Expr expression;
+
+	/**
+	  * Halide statement that assigns the computation to a buffer location.
+	  */
 	Halide::Internal::Stmt stmt;
+
+	/**
+	  * Access function.  A map indicating how each computation should be stored
+	  * in memory.
+	  */
+	isl_map *access;
 
 	Computation(Halide::Expr expression, isl_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
 	Computation(isl_ctx *ctx,
-		    Halide::Internal::Stmt given_stmt,
+		    Halide::Expr expr,
 		    std::string iteration_space_str, IRFunction *fct) {
 		this->ctx = ctx;
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
-		this->stmt = given_stmt;
-		stmts_list.insert(std::pair<std::string, Halide::Internal::Stmt>(name, this->stmt));
-		fct->add_computation_to_body(this);
+		this->expression = expr;
+		computations_list.insert(std::pair<std::string, Computation *>(name, this));
+		function = fct;
+		function->add_computation_to_body(this);
 
-		std::string domain = isl_space_to_str(isl_set_get_space(iter_space));
+		std::string domain = isl_set_to_str(iter_space);
 		std::string schedule_map_str = isl_set_to_str(iter_space);
 		domain = domain.erase(domain.find("{"), 1);
 		domain = domain.erase(domain.find("}"), 1);
+		if (schedule_map_str.find(":") != std::string::npos)
+			domain = domain.erase(domain.find(":"), domain.length() - domain.find(":"));
 		std::string domain_without_name = domain;
-		domain_without_name.erase(domain.find(name), name.length()); 
-		schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain_without_name);
+		domain_without_name.erase(domain.find(name), name.length());
+
+		if (schedule_map_str.find(":") != std::string::npos)
+			schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain_without_name);
+		else
+			schedule_map_str.insert(schedule_map_str.find("]")+1, " -> " + domain_without_name);
+
 		this->schedule = isl_map_read_from_str(ctx, schedule_map_str.c_str());
 	}
+
+	void SetAccess(std::string access_str)
+	{
+		this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+	}
+
+	void Create_halide_assignement();
 
 	void Tile(int inDim0, int inDim1, int sizeX, int sizeY);
 

@@ -13,17 +13,9 @@ isl_test:
 	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/test_isl.cpp src/IR.cpp src/DebugIR.cpp -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/isl_test_executable
 	@echo; echo;echo; echo;
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/isl_test_executable
-
-
-generate_C_code_from_halide:
-	g++ -g -std=c++11 -DGENERATE_C tests/generate_code_from_halide_IR.cpp -I include/ ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -o build/generate_code_from_halide_IR
-	cd build; DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ ./generate_code_from_halide_IR
-	g++ -g -std=c++11 ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} tests/generated_C_pgm_tester.cpp build/generated_C_pgm.cpp -o build/generated_C_mgm_tester 
-
-
-generate_DEBUG_code_from_halide:
-	g++ -g -std=c++11 -DGENERATE_DEBUGING_CODE tests/generate_code_from_halide_IR.cpp -I include/ ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -o build/generate_code_from_halide_IR
-	cd build; DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ ./generate_code_from_halide_IR
+	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/generated_code_wrapper.cpp out.o -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/final
+	@echo; echo;echo; echo;
+	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/final
 
 
 clean:
