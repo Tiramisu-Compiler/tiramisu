@@ -21,15 +21,17 @@ Current code generators:
 #### Compiling COLi
 
 You need to specify the following paths
-    % ISL_INCLUDE_DIRECTORY: path to the ISL include directory
-    % ISL_LIB_DIRECTORY: path to the ISL library (lib/)
-    % HALIDE_SOURCE_DIRECTORY: path to the Halide source code directory
-    % HALIDE_LIB_DIRECTORY: path to the Halide library (bin/)
+
+  % ISL_INCLUDE_DIRECTORY: path to the ISL include directory
+  % ISL_LIB_DIRECTORY: path to the ISL library (lib/)
+  % HALIDE_SOURCE_DIRECTORY: path to the Halide source code directory
+  % HALIDE_LIB_DIRECTORY: path to the Halide library (bin/)
 
 To compile
-    % make
+
+  % make
 
 #### Run Tests
-    % make test
+  % make test
 
 (compiled shared library and the inlude directories
