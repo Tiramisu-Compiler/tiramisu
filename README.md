@@ -29,7 +29,7 @@ You need to specify the following paths
 
 To compile
 
-  % make
+    make
 
 #### Run Tests
     make test
