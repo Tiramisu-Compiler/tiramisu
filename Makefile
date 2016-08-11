@@ -19,4 +19,4 @@ isl_test:
 
 
 clean:
-	rm -rf src/*~ include/*~ build/*
+	rm -rf LLVM_generated_code.o src/*~ include/*~ build/*
