@@ -32,6 +32,4 @@ To compile
   % make
 
 #### Run Tests
-  % make test
-
-(compiled shared library and the inlude directories
+    make test
