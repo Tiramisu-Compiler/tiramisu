@@ -38,3 +38,12 @@ Current code generators:
        ¡ backends exist: LLVM IR, C code ... ¡
        ¡-------------------------------------¡
 
+Prerequisites
+--------------
+- ISL Library (http://repo.or.cz/w/isl.git).
+  Check http://repo.or.cz/isl.git/blob/HEAD:/README for information
+  about how to compile and install ISL.
+- Halide compiler (https://github.com/halide/Halide).
+  Check https://github.com/halide/Halide/blob/master/README.md for
+  information about how to compile and install Halide.  Halide itself
+  requires LLVM.
