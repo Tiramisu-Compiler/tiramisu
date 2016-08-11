@@ -1,19 +1,27 @@
-ISL_INCLUDE=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
-ISL_LIB=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
-HALIDE_INCLUDE_FLAGS=-I ~/Documents/src/MIT/halide/halide_src/include/ -I ~/Documents/src/MIT/halide/halide_src/tools/
-HALIDE_LIB_DIR_FLAGS=-L ~/Documents/src/MIT/halide/halide_src/bin/ -lHalide  `libpng-config --cflags --ldflags`
+# Set the following PATHs before compiling COLi
+ISL_INCLUDE_DIRECTORY=
+ISL_LIB_DIRECTORY=
+HALIDE_SOURCE_DIRECTORY=
+HALIDE_LIB_DIRECTORY=
+
+# Examples
+#ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
+#ISL_LIB_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
+#HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
+#HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
+
+
 EXTRA_FLAGS=-O3
+HALIDE_LIB_FLAGS=-lHalide  `libpng-config --cflags --ldflags`
+
+all: test
 
 
-#all: generate_DEBUG_code_from_halide
-all: isl_test
-
-
-isl_test:
-	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/test_isl.cpp src/IR.cpp src/DebugIR.cpp -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/isl_test_executable
+test:
+	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/test_isl.cpp src/IR.cpp src/DebugIR.cpp -L${ISL_LIB_DIRECTORY} -lisl -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -L${HALIDE_LIB_DIRECTORY} ${HALIDE_LIB_FLAGS} -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/isl_test_executable
 	@echo; echo;echo; echo;
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/isl_test_executable
-	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/generated_code_wrapper.cpp LLVM_generated_code.o -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/final
+	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/generated_code_wrapper.cpp LLVM_generated_code.o -L${ISL_LIB_DIRECTORY} -lisl -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -L${HALIDE_LIB_DIRECTORY} ${HALIDE_LIB_FLAGS} -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/final
 	@echo; echo;echo; echo;
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/final
 
