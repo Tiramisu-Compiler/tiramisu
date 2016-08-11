@@ -13,7 +13,7 @@ isl_test:
 	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/test_isl.cpp src/IR.cpp src/DebugIR.cpp -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/isl_test_executable
 	@echo; echo;echo; echo;
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/isl_test_executable
-	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/generated_code_wrapper.cpp out.o -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/final
+	g++ -g -std=c++11 ${EXTRA_FLAGS} tests/generated_code_wrapper.cpp LLVM_generated_code.o -L${ISL_LIB} -lisl ${HALIDE_INCLUDE_FLAGS} ${HALIDE_LIB_DIR_FLAGS} -Iinclude/ -I${ISL_INCLUDE} -o build/final
 	@echo; echo;echo; echo;
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/Users/b/Documents/src/MIT/halide/halide_src/bin/ build/final
 

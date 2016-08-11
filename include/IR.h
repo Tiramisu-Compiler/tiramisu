@@ -154,11 +154,22 @@ public:
 	  */
 	isl_map *access;
 
+	/**
+	  * An isl_ast_expr representing the index of the array where
+	  * the computation will be stored.  This index is computed after the scheduling is done.
+	  */
+	isl_ast_expr *index_expr;
+
 	Computation(Halide::Expr expression, isl_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
 	Computation(isl_ctx *ctx,
 		    Halide::Expr expr,
 		    std::string iteration_space_str, IRFunction *fct) {
+		// Initialize all the fields to NULL (useful for later asserts)
+		index_expr = NULL;
+		access = NULL;
+		schedule = NULL;
+
 		this->ctx = ctx;
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
@@ -189,7 +200,7 @@ public:
 		this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 	}
 
-	void Create_halide_assignement();
+	void create_halide_assignement(std::vector<std::string> &iterators);
 
 	void Tile(int inDim0, int inDim1, int sizeX, int sizeY);
 
@@ -379,6 +390,7 @@ public:
 
 void halide_IR_dump(Halide::Internal::Stmt s);
 Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
-		int level, std::vector<std::string> &generated_stmts);
+		int level, std::vector<std::string> &generated_stmts,
+		std::vector<std::string> &iterators);
 
 #endif
