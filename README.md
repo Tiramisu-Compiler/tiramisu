@@ -1,49 +1,39 @@
 Code Optimization Library (COLi)
 ----------------------------------
-COLi is a library that is designed to simplify code optimization
-and code generation.  The user can express his code in the COLi
-intermediate representation and can use the COLi API to specify
-the code optimizations that he wants to apply on the code.
-Finaly the user can generate an optimized code that can be
-executed.
+COLi is a library that is designed to simplify code optimization and code generation.  The user can express his code in the COLi intermediate representation (COLi IR), he can use the COLi API to perform different optimizations and finaly he can generate an LLVM code from the optimized COLi IR.
 
-The optimization that can be done currently are:
-- All the affine loop nest transformations (non-parametric
-  tiling, loop fusion/distribution, loop spliting,
-  loop interchange, loop shifting, ...),
-- Loop parallelization (for shared memory systems),
-- Loop vectorization,
+Current optimizations include:
+- Affine loop nest transformations (non-parametric tiling, loop fusion/distribution, spliting, interchange, shifting, ...),
+- For shared memory systems:
+  - Loop parallelization, and
+  - Loop vectorization.
 
 Current code generators:
-- LLVM IR for shared memory systems (with loop parallelization
-  and vectorization),
+- LLVM IR for shared memory systems.
 
+#### Prerequisites
 
-¡----------------------¡   ¡-----------------------------------¡
-¡ Set of Optimizations ¡ + ¡ COLi Intermediate Representation  ¡
-¡----------------------¡   ¡-----------------------------------¡
-                      \     /
-                       \   /
-                        \ /
-       ¡-------------------------------------¡
-       ¡ COLi Library: applies the requested ¡
-       ¡ optimizations on the COLi IR and    ¡
-       ¡ generates optimized code.           ¡
-       ¡-------------------------------------¡
-                      \     /
-                       \   /
-                        \ /
-       ¡-------------------------------------¡
-       ¡ Optimized code generated. Many      ¡
-       ¡ backends exist: LLVM IR, C code ... ¡
-       ¡-------------------------------------¡
+- [ISL] (http://repo.or.cz/w/isl.git) Library.
+  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.
+- [Halide] (https://github.com/halide/Halide) compiler.
+  Halide itself requires llvm-3.7 or greater. Check the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details.
 
-Prerequisites
---------------
-- ISL Library (http://repo.or.cz/w/isl.git).
-  Check http://repo.or.cz/isl.git/blob/HEAD:/README for information
-  about how to compile and install ISL.
-- Halide compiler (https://github.com/halide/Halide).
-  Check https://github.com/halide/Halide/blob/master/README.md for
-  information about how to compile and install Halide.  Halide itself
-  requires LLVM.
+#### Compiling COLi
+You need to specify the following paths
+
+    ISL_INCLUDE_DIRECTORY: path to the ISL include directory
+    ISL_LIB_DIRECTORY: path to the ISL library (lib/)
+    HALIDE_SOURCE_DIRECTORY: path to the Halide source code directory
+    HALIDE_LIB_DIRECTORY: path to the Halide library (bin/)
+
+You need also to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<HALIDE_LIB_DIRECTORY>
+
+To compile COLi
+
+    make
+
+#### Run Tests
+
+    make test
