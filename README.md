@@ -19,6 +19,7 @@ Current code generators:
   Halide itself requires llvm-3.7 or greater. Check the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details.
 
 #### Compiling COLi
+
 You need to specify the following paths
     % ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     % ISL_LIB_DIRECTORY: path to the ISL library (lib/)
