@@ -19,7 +19,6 @@ Current code generators:
   Halide itself requires llvm-3.7 or greater. Check the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details.
 
 #### Compiling COLi
-
 You need to specify the following paths
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
@@ -27,8 +26,14 @@ You need to specify the following paths
     HALIDE_SOURCE_DIRECTORY: path to the Halide source code directory
     HALIDE_LIB_DIRECTORY: path to the Halide library (bin/)
 
-To compile
+You need also to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<HALIDE_LIB_DIRECTORY>
+
+To compile COLi
+
     make
 
 #### Run Tests
+
     make test
