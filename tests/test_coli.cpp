@@ -6,7 +6,7 @@
 #include <isl/schedule_node.h>
 
 #include <coli/debug.h>
-#include <coli/ir.h>
+#include <coli/core.h>
 
 #include <String.h>
 #include <Halide.h>
