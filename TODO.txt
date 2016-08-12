@@ -6,6 +6,8 @@ Tests
     - Check if the declaration of an array with a symbolic constant size is possible.
     - Check if the use of a data dependent array access is possible.
 
-- Data types
+- General
    - Currently all loop iterators have an Int32 type.  Users should be able to choose which data type they can use
      (this is important to support loops over very large datasets).
+   - When the user does not provide a schedule or an access function for a
+   computation, a default schedule and access functions should be used.
