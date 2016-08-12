@@ -2,12 +2,19 @@ Tests
 ------
 - Testing Buffer Declaration
    - Test buffer access linearization for buffers with more than 3 dimensions.
-     Buffer access linearization is now done in Computation::create_halide_assignement(std::vector<std::string> &iterators).
-    - Check if the declaration of an array with a symbolic constant size is possible.
+     Buffer access linearization is now done in
+     Computation::create_halide_assignement(std::vector<std::string> &iterators).
+    - Check if the declaration of an array with a symbolic constant size is
+    possible.
     - Check if the use of a data dependent array access is possible.
 
 - General
-   - Currently all loop iterators have an Int32 type.  Users should be able to choose which data type they can use
-     (this is important to support loops over very large datasets).
+   - Currently all loop iterators have an Int32 type.  Users should be able to
+   choose which data type they can use (this is important to support loops over
+   very large datasets).
    - When the user does not provide a schedule or an access function for a
    computation, a default schedule and access functions should be used.
+   - Create a class "Buffer" to be used instead of using the Halide buffer
+   class.  The Halide::Buffer class should only be used during code
+   generation.  Currently Halide can only handle 3D arrays, make sure you
+   check for this during code generation.

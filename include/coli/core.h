@@ -24,7 +24,7 @@ extern std::map<std::string, Computation *> computations_list;
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
 
-isl_union_set *coli_create_time_space(
+isl_union_set *coli_create_time_space_representation(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
 
@@ -213,6 +213,50 @@ public:
 	void dump();
 };
 
+/**
+  * A class that represents a buffer.  The result of a computation
+  * can be stored in a buffer.  A computation can also be a binding
+  * to a buffer (i.e. a buffer element is represented as a computation).
+  */
+class Buffer
+{
+	/**
+	  * The type of the elements of the buffer.
+	  */
+	Halide::Type type;
+
+	/**
+	  * The number of dimensions of the buffer.
+	  */
+	int nb_dims;
+
+	/**
+	  * The size of buffer dimensions.  Assuming the following
+	  * buffer: buf[N0][N1][N2].  The first vector element represents the
+	  * leftmost dimension of the buffer (N0), the second vector element
+	  * represents N1, ...
+	  */
+	std::vector<int> dim_sizes;
+
+	/**
+	  * The name of the buffer.
+	  */
+	std::string name;
+
+	/**
+	  * A boolean indicating whether the buffer is an argument to the
+	  * function.  If the buffer is not an argument to the function,
+	  * the user should make sure the to allocate the buffer before
+	  * using it (unless automatic buffer allocation is enabled).
+	  */
+	bool argument;
+
+	/**
+	  * The coli function where this buffer is declared or where the
+	  * buffer is an argument.
+	  */
+	IRFunction *fct;
+};
 
 // A class to hold parsed tokens of isl_space
 

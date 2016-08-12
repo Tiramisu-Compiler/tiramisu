@@ -18,31 +18,56 @@ int main(int argc, char **argv)
 	IRProgram pgm("program0");
 	IRFunction fct("function0", &pgm);
 
+	// Declare the computations.  Each computation has: (1) a Halide expression,
+	// (2) an isl set representing its iteration space and (3) is attached to a
+	// function.
 	Computation computation0(ctx, Halide::Expr(3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
 	Computation computation1(ctx, Halide::Expr(5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
-	Computation computation2(ctx, Halide::Expr(7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+//	Computation computation2(ctx, Halide::Expr(7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
-	// Mapping to memory buffers
+	// Create memory buffers, then map the computations to those buffers.
+	/* Buffer:
+	   - Type (Halide type),
+	   - Number of dimensions,
+	   - Vector: Size of each dimensions,
+	   - Name,
+	   - The function in which the buffer is created, or to
+	   which the argument is passed.
+	*/
+
+	/*
+	   - Understand the difference between Halide::Buffer and
+	   Halide::Argument.  Is one of these a subtype for the
+	   other?.  I suppose Argument is supposed to be allocated
+	   outside the function while buffer is allocated within the
+	   function.
+	 */
+
 	Halide::Buffer buf(Halide::Int(32), 10, 10, 0, 0, NULL, "buf");
 	fct.buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf.name(), &buf));
+	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 2);
+	std::vector<Halide::Argument> args(1);
+	args[0] = buffer_arg;
+
 	computation0.SetAccess("{S0[i,j]->buf[i, j]}");
 	computation1.SetAccess("{S1[i,j]->buf[0, 0]}");
-	computation2.SetAccess("{S2[i,j]->buf[0, 0]}");
+//	computation2.SetAccess("{S2[i,j]->buf[0, 0]}");
 
 
-	// Schedule
+	// Set the schedule of each computation.
 	computation0.Tile(0,1,32,32);
 	computation1.Schedule("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
-	computation2.Split(0, 32);
+/*	computation2.Split(0, 32);
 	computation2.Split(2, 32);
-	computation2.Interchange(1, 2);
+	computation2.Interchange(1, 2);*/
 	pgm.tag_parallel_dimension("S0", 1);
 //	pgm.tag_vector_dimension("S1", 5);
 
 	isl_union_map *schedule_map = pgm.get_schedule_map();
 
 	// Create time space IR
-	isl_union_set *time_space = coli_create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
+	isl_union_set *time_space_representaion =
+		coli_create_time_space_representation(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
 	// Generate code
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
@@ -61,7 +86,7 @@ int main(int argc, char **argv)
 	// Dump IRs
 	pgm.dump_ISIR();
 	pgm.dump_schedule();
-	IF_DEBUG(coli_str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(coli_str_dump("\n\n"));
+	IF_DEBUG(coli_str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli_str_dump("\n\n"));
 	halide_IR_dump(halide_pgm);
 
 
@@ -75,9 +100,6 @@ int main(int argc, char **argv)
 	target.set_features(x86_features);
 
 
-	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 2);
-    	std::vector<Halide::Argument> args(1);
-    	args[0] = buffer_arg;
 
 	Halide::Module::Module m("test1", target);
 	m.append(Halide::Internal::LoweredFunc("test1", args, halide_pgm, Halide::Internal::LoweredFunc::External));

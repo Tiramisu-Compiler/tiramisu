@@ -32,7 +32,9 @@ isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
 }
 
 /* Schedule the iteration space.  */
-isl_union_set *coli_create_time_space(__isl_take isl_union_set *set, __isl_take isl_union_map *umap)
+isl_union_set *coli_create_time_space_representation(
+		__isl_take isl_union_set *set,
+		__isl_take isl_union_map *umap)
 {
 	return isl_union_set_apply(set, umap);
 }
