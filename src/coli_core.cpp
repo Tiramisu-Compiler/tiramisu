@@ -18,7 +18,7 @@ std::map<std::string, Computation *> computations_list;
 int id_counter = 0;
 
 
-isl_schedule *create_schedule_tree(isl_ctx *ctx,
+isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
 		   isl_union_set *udom,
 		   isl_union_map *sched_map)
 {
@@ -32,12 +32,12 @@ isl_schedule *create_schedule_tree(isl_ctx *ctx,
 }
 
 /* Schedule the iteration space.  */
-isl_union_set *create_time_space(__isl_take isl_union_set *set, __isl_take isl_union_map *umap)
+isl_union_set *coli_create_time_space(__isl_take isl_union_set *set, __isl_take isl_union_map *umap)
 {
 	return isl_union_set_apply(set, umap);
 }
 
-isl_ast_node *generate_code(isl_ctx *ctx,
+isl_ast_node *coli_generate_isl_ast_node(isl_ctx *ctx,
 		   isl_schedule *sched_tree)
 {
 	isl_ast_build *ast = isl_ast_build_alloc(ctx);

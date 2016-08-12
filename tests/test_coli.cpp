@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	isl_union_map *schedule_map = pgm.get_schedule_map();
 
 	// Create time space IR
-	isl_union_set *time_space = create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
+	isl_union_set *time_space = coli_create_time_space(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
 	// Generate code
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);

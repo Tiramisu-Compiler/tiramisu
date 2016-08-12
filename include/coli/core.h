@@ -24,15 +24,15 @@ extern std::map<std::string, Computation *> computations_list;
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
 
-isl_union_set *create_time_space(
+isl_union_set *coli_create_time_space(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
 
-isl_schedule *create_schedule_tree(isl_ctx *ctx,
+isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
 		   isl_union_set *udom,
 		   isl_union_map *sched_map);
 
-isl_ast_node *generate_code(isl_ctx *ctx,
+isl_ast_node *coli_generate_isl_ast_node(isl_ctx *ctx,
 		   isl_schedule *sched_tree);
 
 isl_union_map *create_schedule_map(isl_ctx *ctx,
