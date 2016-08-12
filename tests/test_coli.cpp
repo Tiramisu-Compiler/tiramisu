@@ -19,27 +19,26 @@ int main(int argc, char **argv)
 	IRFunction fct("function0", &pgm);
 
 	Computation computation0(ctx, Halide::Expr(3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
-/*	Computation computation1(ctx, Halide::Expr(5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
-	Computation computation2(ctx, Halide::Expr(7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);*/
-//	Computation computation0(ctx, Halide::Expr(3), "{S0[0, 0]}", &fct);
+	Computation computation1(ctx, Halide::Expr(5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	Computation computation2(ctx, Halide::Expr(7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	// Mapping to memory buffers
 	Halide::Buffer buf(Halide::Int(32), 10, 10, 0, 0, NULL, "buf");
 	fct.buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf.name(), &buf));
 	computation0.SetAccess("{S0[i,j]->buf[i, j]}");
-/*	computation1.SetAccess("{S1[i,j]->buf[0]}");
-	computation2.SetAccess("{S2[i,j]->buf[0]}");*/
+	computation1.SetAccess("{S1[i,j]->buf[0, 0]}");
+	computation2.SetAccess("{S2[i,j]->buf[0, 0]}");
 
 
 	// Schedule
 	computation0.Tile(0,1,32,32);
-/*	computation1.Schedule("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
+	computation1.Schedule("{S1[i,j]->[1,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
 	computation2.Split(0, 32);
 	computation2.Split(2, 32);
 	computation2.Interchange(1, 2);
 	pgm.tag_parallel_dimension("S0", 1);
-	pgm.tag_vector_dimension("S1", 5);
-*/
+//	pgm.tag_vector_dimension("S1", 5);
+
 	isl_union_map *schedule_map = pgm.get_schedule_map();
 
 	// Create time space IR
