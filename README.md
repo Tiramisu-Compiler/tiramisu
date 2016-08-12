@@ -11,6 +11,9 @@ Current optimizations include:
 Current code generators:
 - LLVM IR for shared memory systems.
 
+
+Compiling COLi
+-----------------
 #### Prerequisites
 
 - [ISL] (http://repo.or.cz/w/isl.git) Library.
