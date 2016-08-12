@@ -5,8 +5,9 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 
-#include <DebugIR.h>
-#include <IR.h>
+#include <coli/debug.h>
+#include <coli/ir.h>
+
 #include <String.h>
 #include <Halide.h>
 
@@ -61,7 +62,7 @@ int main(int argc, char **argv)
 	// Dump IRs
 	pgm.dump_ISIR();
 	pgm.dump_schedule();
-	IF_DEBUG(str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(str_dump("\n\n"));
+	IF_DEBUG(coli_str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space)); IF_DEBUG(coli_str_dump("\n\n"));
 	halide_IR_dump(halide_pgm);
 
 

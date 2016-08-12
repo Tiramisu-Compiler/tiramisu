@@ -14,8 +14,7 @@
 #include <String.h>
 
 #include <Halide.h>
-#include <DebugIR.h>
-#include <IR.h>
+#include <coli/debug.h>
 
 class IRProgram;
 class IRFunction;

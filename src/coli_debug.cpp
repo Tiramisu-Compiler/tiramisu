@@ -1,13 +1,13 @@
 #include <iostream>
 
-void str_dump(std::string str)
+void coli_str_dump(std::string str)
 {
 	std::cout << str;
 	std::cout.flush();	
 }
 
 
-void Error(std::string str, bool exit_program)
+void coli_error(std::string str, bool exit_program)
 {
 	std::cerr << "Error in " << __FILE__ << ":"
 		  << __LINE__ << " - " << str << std::endl;

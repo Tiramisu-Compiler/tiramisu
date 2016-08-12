@@ -9,8 +9,8 @@
 #define IF_DEBUG2(x) {if (DEBUG2) {x;}};
 #define IF_DEBUG(x)  {if (DEBUG || DEBUG2) {x;}};
 
-void str_dump(std::string str);
+void coli_str_dump(std::string str);
 
-void Error(std::string str, bool exit);
+void coli_error(std::string str, bool exit);
 
 #endif
