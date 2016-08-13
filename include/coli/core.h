@@ -24,6 +24,7 @@ extern std::map<std::string, Computation *> computations_list;
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
 
+/* Schedule the iteration space.  */
 isl_union_set *coli_create_time_space_representation(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
@@ -38,6 +39,10 @@ isl_ast_node *coli_generate_isl_ast_node(isl_ctx *ctx,
 isl_union_map *create_schedule_map(isl_ctx *ctx,
 		   std::string map);
 
+/**
+ * Retrieve the access function of the ISL AST leaf node (which represents a
+ * computation).  Store the access in computation->access.
+ */
 isl_ast_node *stmt_halide_code_generator(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
@@ -47,8 +52,10 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node,
 void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
 
 
-//IRProgram
-
+/**
+  * A class to represent a full program.  A program is composed of
+  * functions (of type coli::function).
+  */
 class IRProgram
 {
 private:
@@ -58,7 +65,14 @@ public:
 	std::map<std::string, int> parallel_dimensions;
 	std::map<std::string, int> vector_dimensions;
 
+	/**
+	 * Program name.
+	 */
 	IRProgram(std::string name): name(name) { };
+
+	/**
+	  * Add a function to the program.
+	  */
 	void add_function(IRFunction *fct);
 
 	void tag_parallel_dimension(std::string stmt_name, int dim);
@@ -73,17 +87,31 @@ public:
 };
 
 
-// IRFunction
-
+/**
+  * A class to represent functions.  A function is composed of
+  * computations (of type coli::computation).
+  */
 class IRFunction
 {
 public:
+	/**
+	  * The name of the function.
+	  */
 	std::string name;
 
 	/**
-	  * Function signature (a vector of computations).
+	  * Function signature (i.e. list of input and output computations and
+	  * their orders).  Some computations that are in the signature have
+	  * an associated buffer with them and some do not.  For the
+	  * computations that have a buffer associated with them, the buffer
+	  * needs to be added to the buffers_list vector.
 	  */
 	std::vector<Computation *> signature;
+
+	/**
+	  * List of buffer arguments to the function.
+	  */
+	std::map<std::string, Halide::Buffer *> buffers_list;
 
 	/**
 	  * Body of the function (a vector of functions).
@@ -93,11 +121,6 @@ public:
 	  * schedule.
 	  */
 	std::vector<Computation *> body;
-
-	/**
-	  * The arguments of the function.
-	  */
-	std::map<std::string, Halide::Buffer *> buffers_list;
 
 public:
 	void add_computation_to_body(Computation *cpt);
@@ -111,8 +134,9 @@ public:
 	void dump();
 };
 
-// Computation
-
+/**
+  * A class that represents computations.
+  */
 class Computation {
 public:
 	isl_ctx *ctx;
@@ -203,7 +227,17 @@ public:
 
 	void Tile(int inDim0, int inDim1, int sizeX, int sizeY);
 
+	/**
+	 * Modify the schedule of this computation so that it splits the
+	 * dimension inDim0 of the iteration space into two new dimensions.
+	 * The size of the inner dimension created is sizeX.
+	 */
 	void Split(int inDim0, int sizeX);
+
+	/**
+	 * Modify the schedule of this computation so that the two dimensions
+	 * inDim0 and inDime1 are interchanged (swaped).
+	 */
 	void Interchange(int inDim0, int inDim1);
 
 	void Schedule(std::string umap_str);
@@ -432,6 +466,12 @@ public:
 // Halide IR specific functions
 
 void halide_IR_dump(Halide::Internal::Stmt s);
+
+/**
+  * Generate a Halide statement from an ISL ast node object in the ISL ast
+  * tree.
+  * Level represents the level of the node in the schedule.  0 means root.
+  */
 Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts,
 		std::vector<std::string> &iterators);
