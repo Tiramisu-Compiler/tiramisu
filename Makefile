@@ -40,4 +40,4 @@ doc:
 	doxygen Doxyfile
 
 clean:
-	rm -rf LLVM_generated_code.o src/*~ include/*~ build/*
+	rm -rf LLVM_generated_code.o *~ src/*~ include/*~ build/* doc/
