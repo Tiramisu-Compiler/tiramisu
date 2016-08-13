@@ -1,31 +1,45 @@
+High Priority
+--------------
+- Code Cleaning
+    - Factorize code.
+    - Document important classes.
+    - Add basic asserts.
+    - Add a test file to test the basic functions.
+
+
+- Scheduling
+    - Assert that a schedule, an access function are provided before code
+    generation.
+    - All schedules should be aligned before scheduling otherwise shorter
+    times will be considered small lexicographically.
+    - Currently, when multiple computations are declared, users can specify the
+    order between these computations only when the explicit schedule time is
+    specified.  Enable users to express the order between computations if the
+    .Tile(), .Split(), ... is used.
+    - Tiling: support tiling when the loop size is not multiple of tile size.
+    - Add Fusion(), Distribution() commands.
+
+
 - Data layout
-   - Test buffer access linearization for buffers with more than 3 dimensions.
+    - Currently if you specify an access function that has constraints,
+    the constraints are not taken in consideration.  The access function is
+    applied for all the values of i and j.
+
+
+Low Priority
+-------------
+- Data layout
+    - Test buffer access linearization for buffers with more than 3 dimensions.
      Buffer access linearization is now done in
      Computation::create_halide_assignement(std::vector<std::string> &iterators).
     - Check if the declaration of an array with a symbolic constant size is
     possible.
-    - Check if the use of a data dependent array access is possible.
-    - Currently if you specify an access function that has constraints,
-    the constraints are not taken in consideration.  The access function is
-    applied for all the values of i and j.
 
 - General
    - Currently all loop iterators have an Int32 type.  Users should be able to
    choose which data type they can use (this is important to support loops over
    very large datasets).
-   - When the user does not provide a schedule or an access function for a
-   computation, a default schedule and access functions should be used.
    - Create a class "Buffer" to be used instead of using the Halide buffer
    class.  The Halide::Buffer class should only be used during code
    generation.  Currently Halide can only handle 3D arrays, make sure you
    check for this during code generation.
-
-- Scheduling
-   - Tiling: support tiling when the loop size is not multiple of tile size.
-   - Currently, when multiple computations are declared, users can specify the
-   order between these computations only when the explicit schedule time is
-   specified.  Enable users to express the order between computations if the
-   .Tile(), .Split(), ... is used.
-   - All schedules should be aligned before scheduling otherwise shorter
-   times will be considered small lexicographically.
-   - Add Fusion(), Distribution() commands.
