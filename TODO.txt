@@ -1,5 +1,3 @@
-Tests
-------
 - Data layout
    - Test buffer access linearization for buffers with more than 3 dimensions.
      Buffer access linearization is now done in
@@ -21,3 +19,13 @@ Tests
    class.  The Halide::Buffer class should only be used during code
    generation.  Currently Halide can only handle 3D arrays, make sure you
    check for this during code generation.
+
+- Scheduling
+   - Tiling: support tiling when the loop size is not multiple of tile size.
+   - Currently, when multiple computations are declared, users can specify the
+   order between these computations only when the explicit schedule time is
+   specified.  Enable users to express the order between computations if the
+   .Tile(), .Split(), ... is used.
+   - All schedules should be aligned before scheduling otherwise shorter
+   times will be considered small lexicographically.
+   - Add Fusion(), Distribution() commands.
