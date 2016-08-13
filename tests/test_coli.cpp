@@ -26,23 +26,6 @@ int main(int argc, char **argv)
 //	Computation computation2(ctx, Halide::Expr(7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	// Create memory buffers, then map the computations to those buffers.
-	/* Buffer:
-	   - Type (Halide type),
-	   - Number of dimensions,
-	   - Vector: Size of each dimensions,
-	   - Name,
-	   - The function in which the buffer is created, or to
-	   which the argument is passed.
-	*/
-
-	/*
-	   - Understand the difference between Halide::Buffer and
-	   Halide::Argument.  Is one of these a subtype for the
-	   other?.  I suppose Argument is supposed to be allocated
-	   outside the function while buffer is allocated within the
-	   function.
-	 */
-
 	Halide::Buffer buf(Halide::Int(32), 10, 10, 0, 0, NULL, "buf");
 	fct.buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf.name(), &buf));
 	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(32), 2);
