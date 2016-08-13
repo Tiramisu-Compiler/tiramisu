@@ -1,12 +1,15 @@
 Tests
 ------
-- Testing Buffer Declaration
+- Data layout
    - Test buffer access linearization for buffers with more than 3 dimensions.
      Buffer access linearization is now done in
      Computation::create_halide_assignement(std::vector<std::string> &iterators).
     - Check if the declaration of an array with a symbolic constant size is
     possible.
     - Check if the use of a data dependent array access is possible.
+    - Currently if you specify an access function that has constraints,
+    the constraints are not taken in consideration.  The access function is
+    applied for all the values of i and j.
 
 - General
    - Currently all loop iterators have an Int32 type.  Users should be able to
