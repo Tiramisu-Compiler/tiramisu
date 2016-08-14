@@ -12,18 +12,21 @@
 
 #include <string>
 
+namespace coli
+{
+
 std::map<std::string, Computation *> computations_list;
 
 // Used for the generation of new variable names.
 int id_counter = 0;
 
 
-isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
+isl_schedule *create_schedule_tree(isl_ctx *ctx,
 		   isl_union_set *udom,
 		   isl_union_map *sched_map)
 {
 	isl_union_set *scheduled_domain = isl_union_set_apply(udom, sched_map);
-	IF_DEBUG2(coli_str_dump("[ir.c] Scheduled domain: "));
+	IF_DEBUG2(coli::str_dump("[ir.c] Scheduled domain: "));
 	IF_DEBUG2(isl_union_set_dump(scheduled_domain));
 
 	isl_schedule *sched_tree = isl_schedule_from_domain(scheduled_domain);
@@ -32,14 +35,14 @@ isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
 }
 
 /* Schedule the iteration space.  */
-isl_union_set *coli_create_time_space_representation(
+isl_union_set *create_time_space_representation(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap)
 {
 	return isl_union_set_apply(set, umap);
 }
 
-isl_ast_node *coli_generate_isl_ast_node(isl_ctx *ctx,
+isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
 		   isl_schedule *sched_tree)
 {
 	isl_ast_build *ast = isl_ast_build_alloc(ctx);
@@ -101,10 +104,10 @@ void Computation::dump()
 		isl_set_dump(this->iter_space);
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
-		coli_str_dump("Halide statement:\n");
+		coli::str_dump("Halide statement:\n");
 		Halide::Internal::IRPrinter pr(std::cout);
 	    	pr.print(this->stmt);
-		coli_str_dump("\n");
+		coli::str_dump("\n");
 
 	}
 }
@@ -256,10 +259,10 @@ void IRProgram::dump_ISIR()
 {
 	if (DEBUG)
 	{
-		coli_str_dump("\nIteration Space IR:\n");
+		coli::str_dump("\nIteration Space IR:\n");
 		for (const auto &fct : this->functions)
 		       fct->dump_ISIR();
-		coli_str_dump("\n");
+		coli::str_dump("\n");
 	}
 }
 
@@ -267,7 +270,7 @@ void IRProgram::dump_schedule()
 {
 	if (DEBUG)
 	{
-		coli_str_dump("\nSchedule:\n");
+		coli::str_dump("\nSchedule:\n");
 		for (const auto &fct : this->functions)
 		       fct->dump_schedule();
 
@@ -374,10 +377,12 @@ void halide_IR_dump(Halide::Internal::Stmt s)
 {
 	if (DEBUG)
 	{
-		coli_str_dump("\n\n");
-		coli_str_dump("\nGenerated Halide Low Level IR:\n");
+		coli::str_dump("\n\n");
+		coli::str_dump("\nGenerated Halide Low Level IR:\n");
 		Halide::Internal::IRPrinter pr(std::cout);
 	    	pr.print(s);
-		coli_str_dump("\n\n\n\n");
+		coli::str_dump("\n\n\n\n");
 	}
+}
+
 }

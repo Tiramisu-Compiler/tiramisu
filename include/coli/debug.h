@@ -9,8 +9,11 @@
 #define IF_DEBUG2(x) {if (DEBUG2) {x;}};
 #define IF_DEBUG(x)  {if (DEBUG || DEBUG2) {x;}};
 
-void coli_str_dump(std::string str);
+namespace coli
+{
+	void str_dump(std::string str);
 
-void coli_error(std::string str, bool exit);
+	void error(std::string str, bool exit);
+}
 
 #endif

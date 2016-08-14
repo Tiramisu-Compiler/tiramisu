@@ -16,6 +16,9 @@
 #include <Halide.h>
 #include <coli/debug.h>
 
+namespace coli
+{
+
 class IRProgram;
 class IRFunction;
 class Computation;
@@ -25,15 +28,15 @@ void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
 
 /* Schedule the iteration space.  */
-isl_union_set *coli_create_time_space_representation(
+isl_union_set *create_time_space_representation(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap);
 
-isl_schedule *coli_create_schedule_tree(isl_ctx *ctx,
+isl_schedule *create_schedule_tree(isl_ctx *ctx,
 		   isl_union_set *udom,
 		   isl_union_map *sched_map);
 
-isl_ast_node *coli_generate_isl_ast_node(isl_ctx *ctx,
+isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
 		   isl_schedule *sched_tree);
 
 isl_union_map *create_schedule_map(isl_ctx *ctx,
@@ -296,8 +299,9 @@ public:
 		nb_dims(nb_dims), name(name), argument(argument), fct(fct) { };
 };
 
-// A class to hold parsed tokens of isl_space
-
+/**
+  * A class to hold parsed tokens of isl_space.
+  */
 class isl_space_tokens
 {
 public:
@@ -348,8 +352,9 @@ public:
 };
 
 
-// A class to hold parsed tokens of isl_constraints
-
+/**
+ * A class to hold parsed tokens of isl_constraints.
+ */
 class constraint_tokens
 {
 public:
@@ -387,8 +392,9 @@ public:
 };
 
 
-// A class to hold parsed tokens of isl_maps
-
+/**
+  * A class to hold parsed tokens of isl_maps.
+  */
 class isl_map_tokens
 {
 public:
@@ -480,4 +486,5 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		int level, std::vector<std::string> &generated_stmts,
 		std::vector<std::string> &iterators);
 
+}
 #endif

@@ -12,7 +12,10 @@
 
 #include <string>
 
-extern std::map<std::string, Computation *> computations_list;
+namespace coli
+{
+
+extern std::map<std::string, coli::Computation *> computations_list;
 extern int id_counter;
 
 /**
@@ -44,7 +47,7 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *buil
 	isl_ast_expr_free(arg);
 	std::string computation_name(isl_id_get_name(id));
 	isl_id_free(id);
-	Computation *comp = computations_list.find(computation_name)->second;
+	coli::Computation *comp = computations_list.find(computation_name)->second;
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(comp->access));
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
@@ -94,14 +97,14 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 				break;
 			case isl_ast_op_and_then:
 				result = Halide::Internal::And::make(op0, op1);
-				coli_error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
+				coli::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
 				break;
 			case isl_ast_op_or:
 				result = Halide::Internal::Or::make(op0, op1);
 				break;
 			case isl_ast_op_or_else:
 				result = Halide::Internal::Or::make(op0, op1);
-				coli_error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
+				coli::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
 				break;
 			case isl_ast_op_max:
 				result = Halide::Internal::Max::make(op0, op1);
@@ -140,11 +143,11 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 				result = Halide::Internal::EQ::make(op0, op1);
 				break;
 			default:
-				coli_error("Translating an unsupported ISL expression in a Halide expression.", 1);
+				coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 		}
 	}
 	else
-		coli_error("Translating an unsupported ISL expression in a Halide expression.", 1);
+		coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 
 	return result;
 }
@@ -156,7 +159,7 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_bu
 }
 
 // Level represents the level of the node in the schedule.  0 means root.
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::IRProgram pgm, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
 {
 	Halide::Internal::Stmt result;
@@ -170,12 +173,12 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		if (isl_ast_node_list_n_ast_node(list) >= 1)
 		{
 			child = isl_ast_node_list_get_ast_node(list, 0);
-			result = Halide::Internal::Block::make(generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
+			result = Halide::Internal::Block::make(coli::generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
 		
 			for (i = 1; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				result = Halide::Internal::Block::make(result, generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts, iterators));
+				result = Halide::Internal::Block::make(result, coli::generate_Halide_stmt_from_isl_node(pgm, child, level+1, generated_stmts, iterators));
 			}
 		}
 	}
@@ -194,7 +197,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		isl_ast_expr *inc  = isl_ast_node_for_get_inc(node);
 
 		if (!isl_val_is_one(isl_ast_expr_get_val(inc)))
-			coli_error("The increment in one of the loops is not +1."
+			coli::error("The increment in one of the loops is not +1."
 			      "This is not supported by Halide", 1);
 
 		isl_ast_node *body = isl_ast_node_for_get_body(node);
@@ -202,12 +205,12 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
 			cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
 		else
-			coli_error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
+			coli::error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
 
 		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		Halide::Internal::Stmt halide_body = generate_Halide_stmt_from_isl_node(pgm, body, level+1, generated_stmts, iterators);
+		Halide::Internal::Stmt halide_body = coli::generate_Halide_stmt_from_isl_node(pgm, body, level+1, generated_stmts, iterators);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
 
 		// Change the type from Serial to parallel or vector if the
@@ -231,7 +234,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		isl_id_free(id);
 		generated_stmts.push_back(computation_name);
 
-		Computation *comp = computations_list.find(computation_name)->second;
+		coli::Computation *comp = computations_list.find(computation_name)->second;
 		comp->create_halide_assignement(iterators);
 
 		result = comp->stmt;
@@ -243,9 +246,9 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
 
 		result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
-				generate_Halide_stmt_from_isl_node(pgm, if_stmt,
+				coli::generate_Halide_stmt_from_isl_node(pgm, if_stmt,
 					level+1, generated_stmts, iterators),
-				generate_Halide_stmt_from_isl_node(pgm, else_stmt,
+				coli::generate_Halide_stmt_from_isl_node(pgm, else_stmt,
 					level+1, generated_stmts, iterators));
 	}
 
@@ -259,7 +262,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr coli_linearize_access(Halide::Buffer *buffer,
+Halide::Expr linearize_access(Halide::Buffer *buffer,
 		isl_ast_expr *index_expr)
 {
 	assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
@@ -333,10 +336,12 @@ void Computation::create_halide_assignement(std::vector<std::string> &iterators)
 		   std::cout << std::endl;
 	   } 
 
-	   Halide::Expr index = coli_linearize_access(buffer, index_expr);
+	   Halide::Expr index = coli::linearize_access(buffer, index_expr);
 
 	   Halide::Internal::Parameter param(buffer->type(), true,
 			buffer->dimensions(), buffer->name());
 	   param.set_buffer(*buffer);
 	   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, index, param);
+}
+
 }

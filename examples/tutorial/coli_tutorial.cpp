@@ -15,15 +15,15 @@
 int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
-	IRProgram pgm("program0");
-	IRFunction fct("function0", &pgm);
+	coli::IRProgram pgm("program0");
+	coli::IRFunction fct("function0", &pgm);
 
 	// Declare the computations.  Each computation has: (1) a Halide expression,
 	// (2) an isl set representing its iteration space and (3) is attached to a
 	// function.
-	Computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
-	Computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
-	Computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	coli::Computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
+	coli::Computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	coli::Computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	// Create memory buffers, then map the computations to those buffers.
 	Halide::Buffer buf(Halide::Int(8), 10, 10, 0, 0, NULL, "buf");
@@ -50,27 +50,27 @@ int main(int argc, char **argv)
 
 	// Create time space IR
 	isl_union_set *time_space_representaion =
-		coli_create_time_space_representation(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
+		coli::create_time_space_representation(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
 	// Generate code
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
-	ast_build = isl_ast_build_set_after_each_for(ast_build, &for_halide_code_generator_after_for, NULL);
-	ast_build = isl_ast_build_set_at_each_domain(ast_build, &stmt_halide_code_generator, NULL);
+	ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_halide_code_generator_after_for, NULL);
+	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_halide_code_generator, NULL);
 	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(schedule_map));
 	isl_ast_build_free(ast_build);
 
 	if (DEBUG)
-		isl_ast_node_dump_c_code(ctx, program);
+		coli::isl_ast_node_dump_c_code(ctx, program);
 
 	std::vector<std::string> generated_stmts, iterators;
-	Halide::Internal::Stmt halide_pgm = generate_Halide_stmt_from_isl_node(pgm, program, 0, generated_stmts, iterators);
+	Halide::Internal::Stmt halide_pgm = coli::generate_Halide_stmt_from_isl_node(pgm, program, 0, generated_stmts, iterators);
 
 	// Dump IRs
 	pgm.dump_ISIR();
 	pgm.dump_schedule();
-	IF_DEBUG(coli_str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli_str_dump("\n\n"));
-	halide_IR_dump(halide_pgm);
+	IF_DEBUG(coli::str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli::str_dump("\n\n"));
+	coli::halide_IR_dump(halide_pgm);
 
 
 	Halide::Target target;
