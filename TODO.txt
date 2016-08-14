@@ -1,7 +1,6 @@
 High Priority
 --------------
 - Code Cleaning
-    - Add a namespace coli.
     - Factorize code.
     - Document important classes.
     - Add basic asserts.
