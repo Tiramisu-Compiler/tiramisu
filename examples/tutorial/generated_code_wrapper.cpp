@@ -8,11 +8,11 @@
 
 void print_array(buffer_t buf, int N)
 {
-	int i, j;
+	int i;
 
 	for (i=0; i<N; i++)
 	{
-	   printf("buf[%d] = %d, ", i, buf.host[i]);
+	   printf("%d, ", buf.host[i]);
 	}
 	printf("\n");
 }
