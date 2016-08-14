@@ -290,6 +290,10 @@ class Buffer
 	  * buffer is an argument.
 	  */
 	IRFunction *fct;
+
+public:
+	Buffer(std::string name, int nb_dims, bool argument, IRFunction *fct):
+		nb_dims(nb_dims), name(name), argument(argument), fct(fct) { };
 };
 
 // A class to hold parsed tokens of isl_space

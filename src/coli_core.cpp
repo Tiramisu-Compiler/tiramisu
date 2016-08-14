@@ -317,17 +317,18 @@ void IRProgram::add_function(IRFunction *fct)
 
 isl_union_set * IRProgram::get_iteration_spaces()
 {
-	isl_union_set *result;
-	isl_space *space;
+	isl_union_set *result = NULL;
+	isl_space *space = NULL;
 
-	if (this->functions.empty() == false)
+	if ((this->functions.empty() == false)
+			&& (this->functions[0]->body.empty() == false))
 	{
-		if(this->functions[0]->body.empty() == false)
-			space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
+		space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
 	}
 	else
 		return NULL;
 
+	assert(space != NULL);
 	result = isl_union_set_empty(isl_space_copy(space));
 
 	for (const auto &fct : this->functions)
@@ -342,17 +343,18 @@ isl_union_set * IRProgram::get_iteration_spaces()
 
 isl_union_map * IRProgram::get_schedule_map()
 {
-	isl_union_map *result;
-	isl_space *space;
+	isl_union_map *result = NULL;
+	isl_space *space = NULL;
 
-	if (this->functions.empty() == false)
+	if ((this->functions.empty() == false)
+		&& (this->functions[0]->body.empty() == false))
 	{
-		if(this->functions[0]->body.empty() == false)
-			space = isl_map_get_space(this->functions[0]->body[0]->schedule);
+		space = isl_map_get_space(this->functions[0]->body[0]->schedule);
 	}
 	else
 		return NULL;
 
+	assert(space != NULL);
 	result = isl_union_map_empty(isl_space_copy(space));
 
 	for (const auto &fct : this->functions)

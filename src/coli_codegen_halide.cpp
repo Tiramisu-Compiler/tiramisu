@@ -82,7 +82,6 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 	{
 		Halide::Expr op0, op1;
 
-		int nb_args = isl_ast_expr_get_op_n_arg(isl_expr);
 		op0 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
 
 		if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
@@ -199,12 +198,13 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast
 			      "This is not supported by Halide", 1);
 
 		isl_ast_node *body = isl_ast_node_for_get_body(node);
-		isl_ast_expr *cond_upper_bound_isl_format;
+		isl_ast_expr *cond_upper_bound_isl_format = NULL;
 		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
 			cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
 		else
 			coli_error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
 
+		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
 		Halide::Internal::Stmt halide_body = generate_Halide_stmt_from_isl_node(pgm, body, level+1, generated_stmts, iterators);
