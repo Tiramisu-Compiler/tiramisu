@@ -3,9 +3,9 @@ High Priority
 - Code Cleaning
     - Factorize code.
     - Document important classes.
+    - Split core.h into specialized codegen.h files.
     - Add basic asserts.
     - Add a test file to test the basic functions.
-    - Rename classes.
 
 
 - Scheduling
