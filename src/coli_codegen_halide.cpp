@@ -159,7 +159,7 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_bu
 }
 
 // Level represents the level of the node in the schedule.  0 means root.
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::IRProgram pgm, isl_ast_node *node,
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::program pgm, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
 {
 	Halide::Internal::Stmt result;

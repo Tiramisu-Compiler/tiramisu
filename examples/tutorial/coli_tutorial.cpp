@@ -15,8 +15,8 @@
 int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
-	coli::IRProgram pgm("program0");
-	coli::IRFunction fct("function0", &pgm);
+	coli::program pgm("program0");
+	coli::function fct("function0", &pgm);
 
 	// Declare the computations.  Each computation has: (1) a Halide expression,
 	// (2) an isl set representing its iteration space and (3) is attached to a

@@ -187,17 +187,17 @@ void Computation::Split(int inDim0, int sizeX)
 
 // Function related methods
 
-void IRFunction::add_computation_to_body(Computation *cpt)
+void coli::function::add_computation_to_body(Computation *cpt)
 {
 	this->body.push_back(cpt);
 }
 
-void IRFunction::add_computation_to_signature(Computation *cpt)
+void coli::function::add_computation_to_signature(Computation *cpt)
 {
 	this->signature.push_back(cpt);
 }
 
-void IRFunction::dump()
+void coli::function::dump()
 {
 	if (DEBUG)
 	{
@@ -216,7 +216,7 @@ void IRFunction::dump()
 	}
 }
 
-void IRFunction::dump_ISIR()
+void coli::function::dump_ISIR()
 {
 	if (DEBUG)
 	{
@@ -225,7 +225,7 @@ void IRFunction::dump_ISIR()
 	}
 }
 
-void IRFunction::dump_schedule()
+void coli::function::dump_schedule()
 {
 	if (DEBUG)
 	{
@@ -237,7 +237,7 @@ void IRFunction::dump_schedule()
 
 // Program related methods
 
-void IRProgram::tag_parallel_dimension(std::string stmt_name,
+void coli::program::tag_parallel_dimension(std::string stmt_name,
 				      int par_dim)
 {
 	if (par_dim >= 0)
@@ -246,7 +246,7 @@ void IRProgram::tag_parallel_dimension(std::string stmt_name,
 							   par_dim));
 }
 
-void IRProgram::tag_vector_dimension(std::string stmt_name,
+void coli::program::tag_vector_dimension(std::string stmt_name,
 		int vec_dim)
 {
 	if (vec_dim >= 0)
@@ -255,7 +255,7 @@ void IRProgram::tag_vector_dimension(std::string stmt_name,
 					                   vec_dim));
 }
 
-void IRProgram::dump_ISIR()
+void coli::program::dump_ISIR()
 {
 	if (DEBUG)
 	{
@@ -266,7 +266,7 @@ void IRProgram::dump_ISIR()
 	}
 }
 
-void IRProgram::dump_schedule()
+void coli::program::dump_schedule()
 {
 	if (DEBUG)
 	{
@@ -288,7 +288,7 @@ void IRProgram::dump_schedule()
 	}
 }
 
-void IRProgram::dump()
+void coli::program::dump()
 {
 	if (DEBUG)
 	{
@@ -313,12 +313,12 @@ void IRProgram::dump()
 	}
 }
 
-void IRProgram::add_function(IRFunction *fct)
+void coli::program::add_function(coli::function *fct)
 {
 	this->functions.push_back(fct);
 }
 
-isl_union_set * IRProgram::get_iteration_spaces()
+isl_union_set * coli::program::get_iteration_spaces()
 {
 	isl_union_set *result = NULL;
 	isl_space *space = NULL;
@@ -344,7 +344,7 @@ isl_union_set * IRProgram::get_iteration_spaces()
 	return result;
 }
 
-isl_union_map * IRProgram::get_schedule_map()
+isl_union_map * coli::program::get_schedule_map()
 {
 	isl_union_map *result = NULL;
 	isl_space *space = NULL;

@@ -19,8 +19,8 @@
 namespace coli
 {
 
-class IRProgram;
-class IRFunction;
+class program;
+class function;
 class Computation;
 extern std::map<std::string, Computation *> computations_list;
 
@@ -59,11 +59,11 @@ void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
   * A class to represent a full program.  A program is composed of
   * functions (of type coli::function).
   */
-class IRProgram
+class program
 {
 private:
 	std::string name;
-	std::vector<IRFunction *> functions;
+	std::vector<coli::function *> functions;
 public:
 	std::map<std::string, int> parallel_dimensions;
 	std::map<std::string, int> vector_dimensions;
@@ -71,12 +71,12 @@ public:
 	/**
 	 * Program name.
 	 */
-	IRProgram(std::string name): name(name) { };
+	program(std::string name): name(name) { };
 
 	/**
 	  * Add a function to the program.
 	  */
-	void add_function(IRFunction *fct);
+	void add_function(coli::function *fct);
 
 	void tag_parallel_dimension(std::string stmt_name, int dim);
 	void tag_vector_dimension(std::string stmt_name, int dim);
@@ -94,7 +94,7 @@ public:
   * A class to represent functions.  A function is composed of
   * computations (of type coli::computation).
   */
-class IRFunction
+class function
 {
 public:
 	/**
@@ -129,7 +129,7 @@ public:
 	void add_computation_to_body(Computation *cpt);
 	void add_computation_to_signature(Computation *cpt);
 
-	IRFunction(std::string name, IRProgram *pgm): name(name) {
+	function(std::string name, coli::program *pgm): name(name) {
 		pgm->add_function(this);
 	};
 	void dump_ISIR();
@@ -157,7 +157,7 @@ public:
 	/**
 	  * The function where this computation is declared.
 	  */
-	IRFunction *function;
+	coli::function *function;
 
 	/**
 	  * The name of this computation.
@@ -190,7 +190,7 @@ public:
 
 	Computation(isl_ctx *ctx,
 		    Halide::Expr expr,
-		    std::string iteration_space_str, IRFunction *fct) {
+		    std::string iteration_space_str, coli::function *fct) {
 		// Initialize all the fields to NULL (useful for later asserts)
 		index_expr = NULL;
 		access = NULL;
@@ -292,10 +292,10 @@ class Buffer
 	  * The coli function where this buffer is declared or where the
 	  * buffer is an argument.
 	  */
-	IRFunction *fct;
+	coli::function *fct;
 
 public:
-	Buffer(std::string name, int nb_dims, bool argument, IRFunction *fct):
+	Buffer(std::string name, int nb_dims, bool argument, coli::function *fct):
 		nb_dims(nb_dims), name(name), argument(argument), fct(fct) { };
 };
 
@@ -482,7 +482,7 @@ void halide_IR_dump(Halide::Internal::Stmt s);
   * tree.
   * Level represents the level of the node in the schedule.  0 means root.
   */
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(IRProgram pgm, isl_ast_node *node,
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::program pgm, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts,
 		std::vector<std::string> &iterators);
 
