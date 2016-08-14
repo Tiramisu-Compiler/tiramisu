@@ -33,10 +33,14 @@ You need also to add the Halide library path to your system library path (DYLD_L
 
     export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<HALIDE_LIB_DIRECTORY>
 
-To compile COLi
+To build COLi
 
     make
 
-#### Run Tests
+To build documentation (doxygen required)
 
-    make test
+    make doc
+
+#### Run Hello World Example
+
+    make tutorial

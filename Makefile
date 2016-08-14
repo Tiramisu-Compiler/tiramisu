@@ -4,37 +4,35 @@ ISL_LIB_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
 HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
 HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
 
-
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
 #ISL_LIB_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
 #HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
 #HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
 
+CXX=g++
+CXXFLAGS=-g -std=c++11 -O3 -Wall
+INCLUDES=-I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY}
+LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -L${HALIDE_LIB_DIRECTORY} -lHalide `libpng-config --cflags --ldflags`
+OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
 
-EXTRA_FLAGS=-O3
-HALIDE_LIB_FLAGS=-lHalide  `libpng-config --cflags --ldflags`
 
+all: builddir tutorial
 
-all: compile
-
-
-compile: doc
+builddir:
 	mkdir -p build
-	g++ -g -c -std=c++11 ${EXTRA_FLAGS} src/coli_debug.cpp -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/coli_debug.o
-	g++ -g -c -std=c++11 ${EXTRA_FLAGS} src/coli_codegen_c.cpp -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/coli_codegen_c.o
-	g++ -g -c -std=c++11 ${EXTRA_FLAGS} src/coli_codegen_halide.cpp -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/coli_codegen_halide.o
-	g++ -g -c -std=c++11 ${EXTRA_FLAGS} src/coli_core.cpp -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/coli_core.o
 
+build/coli_%.o: src/coli_%.cpp include/coli/*.h
+	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
 
-examples:
-	g++ -g -std=c++11 ${EXTRA_FLAGS} examples/tutorial/coli_tutorial.cpp build/coli_debug.o build/coli_core.o build/coli_codegen_c.o build/coli_codegen_halide.o -L${ISL_LIB_DIRECTORY} -lisl -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -L${HALIDE_LIB_DIRECTORY} ${HALIDE_LIB_FLAGS} -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/coli_tutorial
-	@echo; echo;
-	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY} build/coli_tutorial
-	g++ -g -std=c++11 ${EXTRA_FLAGS} examples/tutorial/generated_code_wrapper.cpp LLVM_generated_code.o -L${ISL_LIB_DIRECTORY} -lisl -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -L${HALIDE_LIB_DIRECTORY} ${HALIDE_LIB_FLAGS} -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -o build/final
-	@echo; echo;
-	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY} build/final
+build/coli_codegen_%.o: src/coli_codegen_%.cpp include/coli/*.h
+	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
 
+tutorial: $(OBJ) examples/tutorial/*.cpp
+	$(CXX) ${CXXFLAGS} ${INCLUDES} ${OBJ} examples/tutorial/coli_tutorial.cpp ${LIBRARIES} -o build/coli_tutorial
+	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ build/coli_tutorial
+	$(CXX) ${CXXFLAGS} ${INCLUDES} examples/tutorial/generated_code_wrapper.cpp LLVM_generated_code.o ${LIBRARIES} -o build/final
+	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ build/final
 
 doc:
 	doxygen Doxyfile
