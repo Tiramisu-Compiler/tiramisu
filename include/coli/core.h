@@ -21,8 +21,8 @@ namespace coli
 
 class program;
 class function;
-class Computation;
-extern std::map<std::string, Computation *> computations_list;
+class computation;
+extern std::map<std::string, computation *> computations_list;
 
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
@@ -109,7 +109,7 @@ public:
 	  * computations that have a buffer associated with them, the buffer
 	  * needs to be added to the buffers_list vector.
 	  */
-	std::vector<Computation *> signature;
+	std::vector<computation *> signature;
 
 	/**
 	  * List of buffer arguments to the function.
@@ -123,11 +123,11 @@ public:
 	  * The order of execution of computations is specified through the
 	  * schedule.
 	  */
-	std::vector<Computation *> body;
+	std::vector<computation *> body;
 
 public:
-	void add_computation_to_body(Computation *cpt);
-	void add_computation_to_signature(Computation *cpt);
+	void add_computation_to_body(computation *cpt);
+	void add_computation_to_signature(computation *cpt);
 
 	function(std::string name, coli::program *pgm): name(name) {
 		pgm->add_function(this);
@@ -140,7 +140,7 @@ public:
 /**
   * A class that represents computations.
   */
-class Computation {
+class computation {
 public:
 	isl_ctx *ctx;
 
@@ -186,9 +186,9 @@ public:
 	  */
 	isl_ast_expr *index_expr;
 
-	Computation(Halide::Expr expression, isl_set *iter_space) : iter_space(iter_space), expression(expression) { };
+	computation(Halide::Expr expression, isl_set *iter_space) : iter_space(iter_space), expression(expression) { };
 
-	Computation(isl_ctx *ctx,
+	computation(isl_ctx *ctx,
 		    Halide::Expr expr,
 		    std::string iteration_space_str, coli::function *fct) {
 		// Initialize all the fields to NULL (useful for later asserts)
@@ -200,7 +200,7 @@ public:
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
 		this->expression = expr;
-		computations_list.insert(std::pair<std::string, Computation *>(name, this));
+		computations_list.insert(std::pair<std::string, computation *>(name, this));
 		function = fct;
 		function->add_computation_to_body(this);
 

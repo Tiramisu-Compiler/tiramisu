@@ -21,9 +21,9 @@ int main(int argc, char **argv)
 	// Declare the computations.  Each computation has: (1) a Halide expression,
 	// (2) an isl set representing its iteration space and (3) is attached to a
 	// function.
-	coli::Computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
-	coli::Computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
-	coli::Computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	coli::computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
+	coli::computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
+	coli::computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	// Create memory buffers, then map the computations to those buffers.
 	Halide::Buffer buf(Halide::Int(8), 10, 10, 0, 0, NULL, "buf");

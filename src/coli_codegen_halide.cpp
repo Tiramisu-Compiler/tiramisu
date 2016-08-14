@@ -15,7 +15,7 @@
 namespace coli
 {
 
-extern std::map<std::string, coli::Computation *> computations_list;
+extern std::map<std::string, coli::computation *> computations_list;
 extern int id_counter;
 
 /**
@@ -47,7 +47,7 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *buil
 	isl_ast_expr_free(arg);
 	std::string computation_name(isl_id_get_name(id));
 	isl_id_free(id);
-	coli::Computation *comp = computations_list.find(computation_name)->second;
+	coli::computation *comp = computations_list.find(computation_name)->second;
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(comp->access));
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
@@ -234,7 +234,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::program pgm, isl
 		isl_id_free(id);
 		generated_stmts.push_back(computation_name);
 
-		coli::Computation *comp = computations_list.find(computation_name)->second;
+		coli::computation *comp = computations_list.find(computation_name)->second;
 		comp->create_halide_assignement(iterators);
 
 		result = comp->stmt;
@@ -297,7 +297,7 @@ Halide::Expr linearize_access(Halide::Buffer *buffer,
  * The statement will assign the computations to a memory buffer based on the
  * access function provided in access.
  */
-void Computation::create_halide_assignement(std::vector<std::string> &iterators)
+void computation::create_halide_assignement(std::vector<std::string> &iterators)
 {
 	   assert(this->access != NULL);
 

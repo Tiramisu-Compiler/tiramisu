@@ -15,7 +15,7 @@
 namespace coli
 {
 
-std::map<std::string, Computation *> computations_list;
+std::map<std::string, computation *> computations_list;
 
 // Used for the generation of new variable names.
 int id_counter = 0;
@@ -80,7 +80,7 @@ std::string generate_new_variable_name()
   * Methods for the computation class.
   */
 
-void Computation::dump_ISIR()
+void computation::dump_ISIR()
 {
 	if (DEBUG)
 	{
@@ -88,7 +88,7 @@ void Computation::dump_ISIR()
 	}
 }
 
-void Computation::dump_schedule()
+void computation::dump_schedule()
 {
 	if (DEBUG)
 	{
@@ -96,11 +96,11 @@ void Computation::dump_schedule()
 	}
 }
 
-void Computation::dump()
+void computation::dump()
 {
 	if (DEBUG)
 	{
-		std::cout << "Computation \"" << this->name << "\"" << std::endl;
+		std::cout << "computation \"" << this->name << "\"" << std::endl;
 		isl_set_dump(this->iter_space);
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
@@ -112,7 +112,7 @@ void Computation::dump()
 	}
 }
 
-void Computation::Schedule(std::string map_str)
+void computation::Schedule(std::string map_str)
 {
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
@@ -120,7 +120,7 @@ void Computation::Schedule(std::string map_str)
 	this->schedule = map;
 }
 
-void Computation::Tile(int inDim0, int inDim1,
+void computation::Tile(int inDim0, int inDim1,
 			int sizeX, int sizeY)
 {
 	assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
@@ -134,7 +134,7 @@ void Computation::Tile(int inDim0, int inDim1,
  * Modify the schedule of this computation so that the two dimensions
  * inDim0 and inDime1 are interchanged (swaped).
  */
-void Computation::Interchange(int inDim0, int inDim1)
+void computation::Interchange(int inDim0, int inDim1)
 {
 	assert(inDim0 >= 0);
 	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
@@ -156,7 +156,7 @@ void Computation::Interchange(int inDim0, int inDim1)
  * dimension inDim0 of the iteration space into two new dimensions.
  * The size of the inner dimension created is sizeX.
  */
-void Computation::Split(int inDim0, int sizeX)
+void computation::Split(int inDim0, int sizeX)
 {
 	assert(inDim0 >= 0);
 	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
@@ -187,12 +187,12 @@ void Computation::Split(int inDim0, int sizeX)
 
 // Function related methods
 
-void coli::function::add_computation_to_body(Computation *cpt)
+void coli::function::add_computation_to_body(computation *cpt)
 {
 	this->body.push_back(cpt);
 }
 
-void coli::function::add_computation_to_signature(Computation *cpt)
+void coli::function::add_computation_to_signature(computation *cpt)
 {
 	this->signature.push_back(cpt);
 }
