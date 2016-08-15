@@ -27,10 +27,7 @@ int main(int argc, char **argv)
 	coli::computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
 	// Create a memory buffer (2 dimensional).
-	std::vector<int> size1;
-	size1.push_back(10);
-	size1.push_back(10);
-	coli::buffer buf0("buf0", 2, size1, Halide::Int(8), NULL, &fct);
+	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
 
 	// Add the buffer as an argument to fct.
 	fct.add_argument(buf0);
