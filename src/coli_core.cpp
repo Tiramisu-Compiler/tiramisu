@@ -66,7 +66,7 @@ void split_string(std::string str, std::string delimiter,
 	vector.push_back(token);
 }
 
-void isl_space_tokens::Parse(std::string space)
+void coli::parser::space::parse(std::string space)
 {
 	split_string(space, ",", this->dimensions);
 }
@@ -145,7 +145,7 @@ void computation::Interchange(int inDim0, int inDim1)
 	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
 				          		isl_dim_out));
 
-	isl_map_tokens map(isl_map_to_str(this->schedule));
+	coli::parser::map map(isl_map_to_str(this->schedule));
 
 	std::iter_swap(map.range.dimensions.begin()+inDim0,
 			map.range.dimensions.begin()+inDim1);
@@ -166,7 +166,7 @@ void computation::Split(int inDim0, int sizeX)
 	assert(sizeX >= 1);
 
 
-	isl_map_tokens map(isl_map_to_str(this->schedule));
+	coli::parser::map map(isl_map_to_str(this->schedule));
 
 	std::string inDim0_str = map.range.dimensions.at(inDim0);
 	std::string outDim0 = generate_new_variable_name(); 

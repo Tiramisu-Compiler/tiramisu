@@ -331,21 +331,24 @@ public:
 	}
 };
 
+namespace parser
+{
+
 /**
-  * A class to hold parsed tokens of isl_space.
+  * A class to hold parsed tokens of an isl_space.
   */
-class isl_space_tokens
+class space
 {
 public:
 	std::vector<std::string> dimensions;
 
-	isl_space_tokens(std::string isl_space_str)
+	space(std::string isl_space_str)
 	{
 		assert(isl_space_str.empty() == false);
-		this->Parse(isl_space_str);
+		this->parse(isl_space_str);
 	};
 
-	isl_space_tokens() {};
+	space() {};
 
 	std::string get_str()
 	{
@@ -379,7 +382,7 @@ public:
 		dimensions = new_dimensions;
 	}
 
-	void Parse(std::string space);
+	void parse(std::string space);
 	bool empty() {return dimensions.empty();};
 };
 
@@ -387,13 +390,13 @@ public:
 /**
  * A class to hold parsed tokens of isl_constraints.
  */
-class constraint_tokens
+class constraint
 {
 public:
 	std::vector<std::string> constraints;
-	constraint_tokens() { };
+	constraint() { };
 
-	void Parse(std::string str)
+	void parse(std::string str)
 	{
 		assert(str.empty() == false);
 
@@ -427,16 +430,16 @@ public:
 /**
   * A class to hold parsed tokens of isl_maps.
   */
-class isl_map_tokens
+class map
 {
 public:
-	isl_space_tokens parameters;
+	coli::parser::space parameters;
 	std::string domain_name;
-	isl_space_tokens domain;
-	isl_space_tokens range;
-	constraint_tokens constraints;
+	coli::parser::space domain;
+	coli::parser::space range;
+	coli::parser::constraint constraints;
 
-	isl_map_tokens(std::string map_str)
+	map(std::string map_str)
 	{
 		int map_begin =  map_str.find("{")+1;
 		int map_end   =  map_str.find("}")-1;
@@ -458,7 +461,7 @@ public:
 			map_str.substr(domain_space_begin,
 		 		       domain_space_end-domain_space_begin+1);
 
-		domain.Parse(domain_space_str);
+		domain.parse(domain_space_str);
 
 		int pos_arrow = map_str.find("->", domain_space_end);
 
@@ -472,14 +475,14 @@ public:
 
 		std::string range_space_str = map_str.substr(range_space_begin,
 							 range_space_end-range_space_begin+1);
-		range.Parse(range_space_str);
+		range.parse(range_space_str);
 		int column_pos = map_str.find(":")+1;
 
 		if (column_pos != std::string::npos)
 		{
 			std::string constraints_str = map_str.substr(column_pos,
 								     map_end-column_pos+1);
-			constraints.Parse(constraints_str);
+			constraints.parse(constraints_str);
 		}
 	};
 
@@ -504,6 +507,7 @@ public:
 	};
 };
 
+}
 
 // Halide IR specific functions
 
