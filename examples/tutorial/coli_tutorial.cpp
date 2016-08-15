@@ -14,14 +14,21 @@
 
 int main(int argc, char **argv)
 {
+	// Allocate an isl context.  This isl context will be used by the
+	// isl library which is a part of coli.
 	isl_ctx *ctx = isl_ctx_alloc();
-	coli::library lib("library0");
-	coli::function fct("function0", &lib);
 
-	// Declare the computations.  Each computation has:
-	// (1) a Halide expression,
-	// (2) an isl set representing its iteration space, and
-	// (3) is attached to a function.
+	// Declare a library.  A library is composed of a set of functions.
+	coli::library lib("library0");
+
+	// Declare a function in the library lib.
+	coli::function fct("test1", &lib);
+
+	// Declare the computations of the function fct.
+	// To declare a computation, you need to provide:
+	// (1) a Halide expression that represents the computation,
+	// (2) an isl set representing the iteration space of the computation, and
+	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
 	coli::computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 	coli::computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
@@ -29,10 +36,11 @@ int main(int argc, char **argv)
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
 
-	// Add the buffer as an argument to fct.
+	// Add the buffer as an argument to the function fct.
 	fct.add_argument(buf0);
 
-	// Map the computations to the buffers.
+	// Map the computations to the buffers (i.e. where each computation
+	// should be stored in the buffer).
 	computation0.SetAccess("{S0[i,j]->buf0[i, j]}");
 	computation1.SetAccess("{S1[i,j]->buf0[0, 0]}");
 	computation2.SetAccess("{S2[i,j]->buf0[i, j]}");
@@ -64,28 +72,18 @@ int main(int argc, char **argv)
 		coli::isl_ast_node_dump_c_code(ctx, program);
 
 	std::vector<std::string> generated_stmts, iterators;
-	Halide::Internal::Stmt halide_lib = coli::generate_Halide_stmt_from_isl_node(lib, program, 0, generated_stmts, iterators);
+	Halide::Internal::Stmt ss = coli::generate_Halide_stmt_from_isl_node(lib, program, 0, generated_stmts, iterators);
+	fct.halide_stmt = &ss; 
 
 	// Dump IRs
 	lib.dump_ISIR();
 	lib.dump_schedule();
 	IF_DEBUG(coli::str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli::str_dump("\n\n"));
-	coli::halide_IR_dump(halide_lib);
+	coli::halide_IR_dump(*(fct.halide_stmt));
 
 
-	Halide::Target target;
-	target.os = Halide::Target::OSX;
-	target.arch = Halide::Target::X86;
-	target.bits = 64;
-	std::vector<Halide::Target::Feature> x86_features;
-	x86_features.push_back(Halide::Target::AVX);
-	x86_features.push_back(Halide::Target::SSE41);
-	target.set_features(x86_features);
-
-	Halide::Module::Module m("test1", target);
-	m.append(Halide::Internal::LoweredFunc("test1", fct.get_args(), halide_lib, Halide::Internal::LoweredFunc::External));
-
-	Halide::compile_module_to_object(m, "LLVM_generated_code.o");
+	// Generate an object file from the library lib. 
+	lib.halide_gen_obj("LLVM_generated_code.o");
 
 	return 0;
 }

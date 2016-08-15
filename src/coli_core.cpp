@@ -189,7 +189,7 @@ void computation::Split(int inDim0, int sizeX)
 
 // Methods related to the coli::function class.
 
-void coli::function::add_computation_to_body(computation *cpt)
+void coli::function::add_computation(computation *cpt)
 {
 	this->body.push_back(cpt);
 }
@@ -212,7 +212,7 @@ void coli::function::dump()
 
 		std::cout << "Arguments" << std::endl;
 
-		for (auto arg : this->get_args())
+		for (auto arg : this->get_arguments())
 		       std::cout << "Argument name: " << arg.name
 				<< std::endl;
 

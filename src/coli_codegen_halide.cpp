@@ -344,4 +344,27 @@ void computation::create_halide_assignement(std::vector<std::string> &iterators)
 	   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, index, param);
 }
 
+void library::halide_gen_obj(std::string obj_file_name,
+		Halide::Target::OS os,
+		Halide::Target::Arch arch, int bits)
+{
+	Halide::Target target;
+	target.os = os;
+	target.arch = arch;
+	target.bits = bits;
+	std::vector<Halide::Target::Feature> x86_features;
+	x86_features.push_back(Halide::Target::AVX);
+	x86_features.push_back(Halide::Target::SSE41);
+	target.set_features(x86_features);
+	
+	Halide::Module::Module m(obj_file_name, target);
+
+	for (auto func: this->get_functions())
+	{
+		m.append(Halide::Internal::LoweredFunc(func->get_name(), func->get_arguments(), func->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
+	}
+
+	Halide::compile_module_to_object(m, obj_file_name);
+}
+
 }
