@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	coli::library lib("library0");
 
 	// Declare a function in the library lib.
-	coli::function fct("test1", &lib);
+	coli::function fct("function0", &lib);
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:

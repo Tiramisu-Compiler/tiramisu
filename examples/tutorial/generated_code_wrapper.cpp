@@ -41,7 +41,7 @@ int main(int, char**)
    std::cout << "Array (after initialization)" << std::endl;
    print_array(input_buf, NN);
 
-   test1(&input_buf);
+   function0(&input_buf);
 
    std::cout << "Array after the Halide pipeline" << std::endl;
    print_array(input_buf, NN);
