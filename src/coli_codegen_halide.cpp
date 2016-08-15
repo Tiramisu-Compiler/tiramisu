@@ -344,7 +344,7 @@ void computation::create_halide_assignement(std::vector<std::string> &iterators)
 	   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, index, param);
 }
 
-void library::halide_gen_obj(std::string obj_file_name,
+void library::gen_halide_obj(std::string obj_file_name,
 		Halide::Target::OS os,
 		Halide::Target::Arch arch, int bits)
 {

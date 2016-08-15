@@ -13,14 +13,14 @@
 #include <string>
 
 
-void coli::isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node)
+void coli::library::gen_c_code()
 {
 	coli::str_dump("\n\n");
 	coli::str_dump("\nC like code:\n");
 	isl_printer *p;
-	p = isl_printer_to_file(ctx, stdout);
+	p = isl_printer_to_file(this->get_ctx(), stdout);
 	p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-	p = isl_printer_print_ast_node(p, root_node);
+	p = isl_printer_print_ast_node(p, this->get_isl_ast());
 	isl_printer_free(p);
 	coli::str_dump("\n\n");
 }
