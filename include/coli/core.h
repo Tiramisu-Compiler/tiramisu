@@ -111,7 +111,16 @@ public:
 			Halide::Target::Arch arch = Halide::Target::X86, int bits = 64);
 
 
+	/**
+	  * Dump (on stdout) the iteration space representation of the library function.
+	  */
 	void dump_ISIR();
+
+	/**
+	  * Dump (on stdout) the time processor representation of the library function.
+	  */
+	void dump_TPIR();
+
 	void dump_schedule();
 	void dump();
 };

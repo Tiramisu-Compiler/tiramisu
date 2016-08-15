@@ -54,18 +54,12 @@ int main(int argc, char **argv)
 	lib.tag_parallel_dimension("S0", 1);
 //	lib.tag_vector_dimension("S1", 5);
 
-	isl_union_map *schedule_map = lib.get_schedule_map();
-
-	// Create time space IR
-	isl_union_set *time_space_representaion =
-		coli::create_time_space_representation(isl_union_set_copy(lib.get_iteration_spaces()), isl_union_map_copy(schedule_map));
-
 	// Generate code
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
 	ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_halide_code_generator_after_for, NULL);
 	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_halide_code_generator, NULL);
-	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(schedule_map));
+	isl_ast_node *program = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(lib.get_schedule_map()));
 	isl_ast_build_free(ast_build);
 
 	if (DEBUG)
@@ -78,7 +72,7 @@ int main(int argc, char **argv)
 	// Dump IRs
 	lib.dump_ISIR();
 	lib.dump_schedule();
-	IF_DEBUG(coli::str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli::str_dump("\n\n"));
+	lib.dump_TPIR();
 	coli::halide_IR_dump(*(fct.halide_stmt));
 
 

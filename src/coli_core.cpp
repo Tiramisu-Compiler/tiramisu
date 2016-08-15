@@ -88,6 +88,22 @@ void computation::dump_ISIR()
 	}
 }
 
+void library::dump_TPIR()
+{
+	// Create time space IR
+	isl_union_set *time_space_representaion =
+		coli::create_time_space_representation(
+				isl_union_set_copy(this->get_iteration_spaces()),
+				isl_union_map_copy(this->get_schedule_map()));
+
+	if (DEBUG)
+	{
+		coli::str_dump("\n\nTime Space IR:\n");
+		isl_union_set_dump(time_space_representaion);
+		coli::str_dump("\n\n");
+	}
+}
+
 void computation::dump_schedule()
 {
 	if (DEBUG)
