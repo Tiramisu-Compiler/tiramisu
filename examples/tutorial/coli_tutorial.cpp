@@ -15,8 +15,8 @@
 int main(int argc, char **argv)
 {
 	isl_ctx *ctx = isl_ctx_alloc();
-	coli::program pgm("program0");
-	coli::function fct("function0", &pgm);
+	coli::library lib("library0");
+	coli::function fct("function0", &lib);
 
 	// Declare the computations.  Each computation has:
 	// (1) a Halide expression,
@@ -43,14 +43,14 @@ int main(int argc, char **argv)
 	computation2.Split(0, 32);
 	computation2.Split(2, 32);
 	computation2.Interchange(1, 2);
-	pgm.tag_parallel_dimension("S0", 1);
-//	pgm.tag_vector_dimension("S1", 5);
+	lib.tag_parallel_dimension("S0", 1);
+//	lib.tag_vector_dimension("S1", 5);
 
-	isl_union_map *schedule_map = pgm.get_schedule_map();
+	isl_union_map *schedule_map = lib.get_schedule_map();
 
 	// Create time space IR
 	isl_union_set *time_space_representaion =
-		coli::create_time_space_representation(isl_union_set_copy(pgm.get_iteration_spaces()), isl_union_map_copy(schedule_map));
+		coli::create_time_space_representation(isl_union_set_copy(lib.get_iteration_spaces()), isl_union_map_copy(schedule_map));
 
 	// Generate code
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
@@ -64,13 +64,13 @@ int main(int argc, char **argv)
 		coli::isl_ast_node_dump_c_code(ctx, program);
 
 	std::vector<std::string> generated_stmts, iterators;
-	Halide::Internal::Stmt halide_pgm = coli::generate_Halide_stmt_from_isl_node(pgm, program, 0, generated_stmts, iterators);
+	Halide::Internal::Stmt halide_lib = coli::generate_Halide_stmt_from_isl_node(lib, program, 0, generated_stmts, iterators);
 
 	// Dump IRs
-	pgm.dump_ISIR();
-	pgm.dump_schedule();
+	lib.dump_ISIR();
+	lib.dump_schedule();
 	IF_DEBUG(coli::str_dump("\n\nTime Space IR:\n")); IF_DEBUG(isl_union_set_dump(time_space_representaion)); IF_DEBUG(coli::str_dump("\n\n"));
-	coli::halide_IR_dump(halide_pgm);
+	coli::halide_IR_dump(halide_lib);
 
 
 	Halide::Target target;
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	target.set_features(x86_features);
 
 	Halide::Module::Module m("test1", target);
-	m.append(Halide::Internal::LoweredFunc("test1", fct.get_args(), halide_pgm, Halide::Internal::LoweredFunc::External));
+	m.append(Halide::Internal::LoweredFunc("test1", fct.get_args(), halide_lib, Halide::Internal::LoweredFunc::External));
 
 	Halide::compile_module_to_object(m, "LLVM_generated_code.o");
 

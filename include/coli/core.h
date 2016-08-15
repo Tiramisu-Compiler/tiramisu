@@ -19,7 +19,7 @@
 namespace coli
 {
 
-class program;
+class library;
 class function;
 class computation;
 class buffer;
@@ -58,10 +58,10 @@ void isl_ast_node_dump_c_code(isl_ctx *ctx, isl_ast_node *root_node);
 
 
 /**
-  * A class to represent a full program.  A program is composed of
+  * A class to represent a full library.  A library is composed of
   * functions (of type coli::function).
   */
-class program
+class library
 {
 private:
 	std::string name;
@@ -73,10 +73,10 @@ public:
 	/**
 	 * Program name.
 	 */
-	program(std::string name): name(name) { };
+	library(std::string name): name(name) { };
 
 	/**
-	  * Add a function to the program.
+	  * Add a function to the library.
 	  */
 	void add_function(coli::function *fct);
 
@@ -136,8 +136,8 @@ public:
 	  */
 	void add_argument(coli::buffer buf);
 
-	function(std::string name, coli::program *pgm): name(name) {
-		pgm->add_function(this);
+	function(std::string name, coli::library *lib): name(name) {
+		lib->add_function(this);
 	};
 
 	std::vector<Halide::Argument> get_args()
@@ -518,7 +518,7 @@ void halide_IR_dump(Halide::Internal::Stmt s);
   * tree.
   * Level represents the level of the node in the schedule.  0 means root.
   */
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::program pgm, isl_ast_node *node,
+Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts,
 		std::vector<std::string> &iterators);
 

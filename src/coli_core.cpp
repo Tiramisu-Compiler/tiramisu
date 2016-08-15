@@ -248,7 +248,7 @@ void coli::function::add_argument(coli::buffer buf)
 
 // Program related methods
 
-void coli::program::tag_parallel_dimension(std::string stmt_name,
+void coli::library::tag_parallel_dimension(std::string stmt_name,
 				      int par_dim)
 {
 	if (par_dim >= 0)
@@ -257,7 +257,7 @@ void coli::program::tag_parallel_dimension(std::string stmt_name,
 							   par_dim));
 }
 
-void coli::program::tag_vector_dimension(std::string stmt_name,
+void coli::library::tag_vector_dimension(std::string stmt_name,
 		int vec_dim)
 {
 	if (vec_dim >= 0)
@@ -266,7 +266,7 @@ void coli::program::tag_vector_dimension(std::string stmt_name,
 					                   vec_dim));
 }
 
-void coli::program::dump_ISIR()
+void coli::library::dump_ISIR()
 {
 	if (DEBUG)
 	{
@@ -277,7 +277,7 @@ void coli::program::dump_ISIR()
 	}
 }
 
-void coli::program::dump_schedule()
+void coli::library::dump_schedule()
 {
 	if (DEBUG)
 	{
@@ -299,7 +299,7 @@ void coli::program::dump_schedule()
 	}
 }
 
-void coli::program::dump()
+void coli::library::dump()
 {
 	if (DEBUG)
 	{
@@ -324,12 +324,12 @@ void coli::program::dump()
 	}
 }
 
-void coli::program::add_function(coli::function *fct)
+void coli::library::add_function(coli::function *fct)
 {
 	this->functions.push_back(fct);
 }
 
-isl_union_set * coli::program::get_iteration_spaces()
+isl_union_set * coli::library::get_iteration_spaces()
 {
 	isl_union_set *result = NULL;
 	isl_space *space = NULL;
@@ -355,7 +355,7 @@ isl_union_set * coli::program::get_iteration_spaces()
 	return result;
 }
 
-isl_union_map * coli::program::get_schedule_map()
+isl_union_map * coli::library::get_schedule_map()
 {
 	isl_union_map *result = NULL;
 	isl_space *space = NULL;
