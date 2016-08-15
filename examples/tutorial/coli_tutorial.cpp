@@ -18,24 +18,27 @@ int main(int argc, char **argv)
 	coli::program pgm("program0");
 	coli::function fct("function0", &pgm);
 
-	// Declare the computations.  Each computation has: (1) a Halide expression,
-	// (2) an isl set representing its iteration space and (3) is attached to a
-	// function.
+	// Declare the computations.  Each computation has:
+	// (1) a Halide expression,
+	// (2) an isl set representing its iteration space, and
+	// (3) is attached to a function.
 	coli::computation computation0(ctx, Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
 	coli::computation computation1(ctx, Halide::Expr((uint8_t) 5), "{S1[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 	coli::computation computation2(ctx, Halide::Expr((uint8_t) 7), "{S2[i,j]: 0<=i<=1023 and 0<=j<=1023}", &fct);
 
-	// Create memory buffers, then map the computations to those buffers.
-	Halide::Buffer buf(Halide::Int(8), 10, 10, 0, 0, NULL, "buf");
-	fct.buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf.name(), &buf));
-	Halide::Argument buffer_arg("buf", Halide::Argument::OutputBuffer, Halide::Int(8), 2);
-	std::vector<Halide::Argument> args(1);
-	args[0] = buffer_arg;
+	// Create a memory buffer (2 dimensional).
+	std::vector<int> size1;
+	size1.push_back(10);
+	size1.push_back(10);
+	coli::buffer buf0("buf0", 2, size1, Halide::Int(8), NULL, &fct);
 
-	computation0.SetAccess("{S0[i,j]->buf[i, j]}");
-	computation1.SetAccess("{S1[i,j]->buf[0, 3]}");
-	computation2.SetAccess("{S2[i,j]->buf[0, 0]}");
+	// Add the buffer as an argument to fct.
+	fct.add_argument(buf0);
 
+	// Map the computations to the buffers.
+	computation0.SetAccess("{S0[i,j]->buf0[i, j]}");
+	computation1.SetAccess("{S1[i,j]->buf0[0, 0]}");
+	computation2.SetAccess("{S2[i,j]->buf0[i, j]}");
 
 	// Set the schedule of each computation.
 	computation0.Tile(0,1,32,32);
@@ -82,10 +85,8 @@ int main(int argc, char **argv)
 	x86_features.push_back(Halide::Target::SSE41);
 	target.set_features(x86_features);
 
-
-
 	Halide::Module::Module m("test1", target);
-	m.append(Halide::Internal::LoweredFunc("test1", args, halide_pgm, Halide::Internal::LoweredFunc::External));
+	m.append(Halide::Internal::LoweredFunc("test1", fct.get_args(), halide_pgm, Halide::Internal::LoweredFunc::External));
 
 	Halide::compile_module_to_object(m, "LLVM_generated_code.o");
 

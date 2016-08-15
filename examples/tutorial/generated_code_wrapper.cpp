@@ -32,7 +32,7 @@ int main(int, char**)
    input_buf.stride[0] = 1;
    input_buf.stride[1] = 1;
    input_buf.extent[0] = NN;
-   input_buf.extent[1] = 1;
+   input_buf.extent[1] = NN;
    input_buf.min[0] = 0;
    input_buf.min[1] = 0;
    input_buf.elem_size = 1;

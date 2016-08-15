@@ -22,6 +22,8 @@ namespace coli
 class program;
 class function;
 class computation;
+class buffer;
+
 extern std::map<std::string, computation *> computations_list;
 
 void split_string(std::string str, std::string delimiter,
@@ -103,21 +105,14 @@ public:
 	std::string name;
 
 	/**
-	  * Function signature (i.e. list of input and output computations and
-	  * their orders).  Some computations that are in the signature have
-	  * an associated buffer with them and some do not.  For the
-	  * computations that have a buffer associated with them, the buffer
-	  * needs to be added to the buffers_list vector.
-	  */
-	std::vector<computation *> signature;
-
-	/**
-	  * List of buffer arguments to the function.
+	  * List of buffers of the function.  Some of these buffers are passed
+	  * to the function as arguments and some are declared and allocated
+	  * within the function itself.
 	  */
 	std::map<std::string, Halide::Buffer *> buffers_list;
 
 	/**
-	  * Body of the function (a vector of functions).
+	  * Body of the function (a vector of computations).
 	  * The order of the computations in the vector do not have any
 	  * effect on the actual order of execution of the computations.
 	  * The order of execution of computations is specified through the
@@ -125,13 +120,31 @@ public:
 	  */
 	std::vector<computation *> body;
 
+	/**
+	  * Function arguments.  These are the buffers or scalars that are
+	  * passed to the function.
+	  */
+	std::vector<Halide::Argument> arguments;
+
 public:
 	void add_computation_to_body(computation *cpt);
-	void add_computation_to_signature(computation *cpt);
+
+	/**
+	  * Add an argument to the list of arguments of the function.
+	  * The order in which the arguments are added is important.
+	  * (the first added argument is the first function argument, ...).
+	  */
+	void add_argument(coli::buffer buf);
 
 	function(std::string name, coli::program *pgm): name(name) {
 		pgm->add_function(this);
 	};
+
+	std::vector<Halide::Argument> get_args()
+	{
+		return arguments;
+	}
+
 	void dump_ISIR();
 	void dump_schedule();
 	void dump();
@@ -195,6 +208,7 @@ public:
 		index_expr = NULL;
 		access = NULL;
 		schedule = NULL;
+		stmt = Halide::Internal::Stmt();
 
 		this->ctx = ctx;
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
@@ -255,12 +269,12 @@ public:
   * can be stored in a buffer.  A computation can also be a binding
   * to a buffer (i.e. a buffer element is represented as a computation).
   */
-class Buffer
+class buffer
 {
 	/**
-	  * The type of the elements of the buffer.
+	  * The name of the buffer.
 	  */
-	Halide::Type type;
+	std::string name;
 
 	/**
 	  * The number of dimensions of the buffer.
@@ -276,17 +290,14 @@ class Buffer
 	std::vector<int> dim_sizes;
 
 	/**
-	  * The name of the buffer.
+	  * The type of the elements of the buffer.
 	  */
-	std::string name;
+	Halide::Type type;
 
 	/**
-	  * A boolean indicating whether the buffer is an argument to the
-	  * function.  If the buffer is not an argument to the function,
-	  * the user should make sure the to allocate the buffer before
-	  * using it (unless automatic buffer allocation is enabled).
+	  * Buffer data.
 	  */
-	bool argument;
+	uint8_t *data;
 
 	/**
 	  * The coli function where this buffer is declared or where the
@@ -295,8 +306,29 @@ class Buffer
 	coli::function *fct;
 
 public:
-	Buffer(std::string name, int nb_dims, bool argument, coli::function *fct):
-		nb_dims(nb_dims), name(name), argument(argument), fct(fct) { };
+	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
+			Halide::Type type, uint8_t *data, coli::function *fct):
+		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
+		data(data), fct(fct)
+		{
+			Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
+			fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
+		};
+
+	std::string get_name()
+	{
+		return name;
+	}
+
+	Halide::Type get_type()
+	{
+		return type;
+	}
+
+	int get_n_dims()
+	{
+		return nb_dims;
+	}
 };
 
 /**

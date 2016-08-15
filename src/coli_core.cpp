@@ -105,10 +105,12 @@ void computation::dump()
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
 		coli::str_dump("Halide statement:\n");
-		Halide::Internal::IRPrinter pr(std::cout);
-	    	pr.print(this->stmt);
-		coli::str_dump("\n");
 
+		//TODO: if the stmt is not yet initialized, a NULL should printed,
+		// currently the programs segfaults.
+		Halide::Internal::IRPrinter pr(std::cout);
+		pr.print(this->stmt);
+		coli::str_dump("\n");
 	}
 }
 
@@ -185,16 +187,11 @@ void computation::Split(int inDim0, int sizeX)
 	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
 }
 
-// Function related methods
+// Methods related to the coli::function class.
 
 void coli::function::add_computation_to_body(computation *cpt)
 {
 	this->body.push_back(cpt);
-}
-
-void coli::function::add_computation_to_signature(computation *cpt)
-{
-	this->signature.push_back(cpt);
 }
 
 void coli::function::dump()
@@ -207,10 +204,17 @@ void coli::function::dump()
 		for (auto cpt : this->body)
 		       cpt->dump();
 
-		std::cout << "Signature:" << std::endl;
+		std::cout << "Buffers" << std::endl;
 
-		for (auto cpt : this->signature)
-		       cpt->dump();
+		for (auto buf : this->buffers_list)
+		       std::cout << "Buffer name: " << buf.second->name()
+				<< std::endl;
+
+		std::cout << "Arguments" << std::endl;
+
+		for (auto arg : this->get_args())
+		       std::cout << "Argument name: " << arg.name
+				<< std::endl;
 
 		std::cout << std::endl;
 	}
@@ -232,6 +236,13 @@ void coli::function::dump_schedule()
 		for (auto cpt : this->body)
 		       cpt->dump_schedule();
 	}
+}
+
+void coli::function::add_argument(coli::buffer buf)
+{
+	Halide::Argument buffer_arg(buf.get_name(), Halide::Argument::OutputBuffer,
+			buf.get_type(), buf.get_n_dims());
+	arguments.push_back(buffer_arg);
 }
 
 
