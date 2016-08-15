@@ -37,6 +37,8 @@ Low Priority
     possible.
 
 - General
+   - Trnasform computations_list from a global variable into a non global
+   variable.
    - Currently all loop iterators have an Int32 type.  Users should be able to
    choose which data type they can use (this is important to support loops over
    very large datasets).
