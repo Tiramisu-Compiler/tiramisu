@@ -80,7 +80,7 @@ std::string generate_new_variable_name()
   * Methods for the computation class.
   */
 
-void computation::dump_ISIR()
+void computation::dump_iteration_space_IR()
 {
 	if (DEBUG)
 	{
@@ -105,7 +105,7 @@ void library::gen_halide_stmt(std::vector<std::string> &iterators)
 	}
 }
 
-void library::dump_TPIR()
+void library::dump_time_processor_IR()
 {
 	// Create time space IR
 	isl_union_set *time_space_representaion =
@@ -253,12 +253,12 @@ void coli::function::dump()
 	}
 }
 
-void coli::function::dump_ISIR()
+void coli::function::dump_iteration_space_IR()
 {
 	if (DEBUG)
 	{
 		for (auto cpt : this->body)
-		       cpt->dump_ISIR();
+		       cpt->dump_iteration_space_IR();
 	}
 }
 
@@ -299,13 +299,13 @@ void coli::library::tag_vector_dimension(std::string stmt_name,
 					                   vec_dim));
 }
 
-void coli::library::dump_ISIR()
+void coli::library::dump_iteration_space_IR()
 {
 	if (DEBUG)
 	{
 		coli::str_dump("\nIteration Space IR:\n");
 		for (const auto &fct : this->functions)
-		       fct->dump_ISIR();
+		       fct->dump_iteration_space_IR();
 		coli::str_dump("\n");
 	}
 }

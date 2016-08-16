@@ -58,9 +58,9 @@ int main(int argc, char **argv)
 	lib.gen_halide_stmt(iterators);
 
 	// Dump IRs
-	lib.dump_ISIR();
+	lib.dump_iteration_space_IR();
 	lib.dump_schedule();
-	lib.dump_TPIR();
+	lib.dump_time_processor_IR();
 	lib.dump_halide_IR();
 
 	// Generate an object file from the library lib. 

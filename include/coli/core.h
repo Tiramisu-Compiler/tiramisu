@@ -186,12 +186,12 @@ public:
 	/**
 	  * Dump (on stdout) the iteration space representation of the library function.
 	  */
-	void dump_ISIR();
+	void dump_iteration_space_IR();
 
 	/**
 	  * Dump (on stdout) the time processor representation of the library function.
 	  */
-	void dump_TPIR();
+	void dump_time_processor_IR();
 
 	void dump_schedule();
 	void dump();
@@ -315,7 +315,7 @@ public:
 	/**
 	  * Dump the iteration space representation of the function.
 	  */
-	void dump_ISIR();
+	void dump_iteration_space_IR();
 
 	/**
 	  * Dump the schedule of the computations of the function.
@@ -450,7 +450,7 @@ public:
 
 	void Schedule(std::string umap_str);
 
-	void dump_ISIR();
+	void dump_iteration_space_IR();
 	void dump_schedule();
 	void dump();
 };
