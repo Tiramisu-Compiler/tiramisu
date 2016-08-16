@@ -90,9 +90,18 @@ private:
 	  */
 	isl_ast_node *ast;
 
-public:
+	/**
+	  * A vector representing the parallel dimensions.
+	  * A parallel dimension is identified using the pair
+	  * <computation_name, level>, for example the pair
+	  * <S0, 0> indicates that the loop with level 0
+	  * (i.e. the outermost loop) around the computation S0
+	  * should be parallelized.
+	  */
 	std::map<std::string, int> parallel_dimensions;
 	std::map<std::string, int> vector_dimensions;
+
+public:
 
 	/**
 	  * Instantiate a library.
@@ -116,6 +125,24 @@ public:
 	std::vector<coli::function *> get_functions()
 	{
 		return functions;
+	}
+
+	/**
+	  * Return true if the computation \p comp should be parallelized
+	  * at the loop level \p lev.
+	  */
+	bool parallelize(std::string comp, int lev)
+	{
+		return (this->parallel_dimensions.find(comp)->second == lev);
+	}
+
+	/**
+	  * Return true if the computation \p comp should be vectorized
+	  * at the loop level \p lev.
+	  */
+	bool vectorize(std::string comp, int lev)
+	{
+		return (this->vector_dimensions.find(comp)->second == lev);
 	}
 
 	/**

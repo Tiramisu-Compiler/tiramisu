@@ -216,9 +216,9 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		// Change the type from Serial to parallel or vector if the
 		// current level was marked as such.
 		for (auto generated_stmt: generated_stmts)
-			if (lib.parallel_dimensions.find(generated_stmt)->second == level)
+			if (lib.parallelize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Parallel;
-			else if (lib.vector_dimensions.find(generated_stmt)->second == level)
+			else if (lib.vectorize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Vectorized;
 
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
