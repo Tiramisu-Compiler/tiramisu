@@ -15,7 +15,7 @@ CXXFLAGS=-g -std=c++11 -O3 -Wall
 INCLUDES=-I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY}
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -L${HALIDE_LIB_DIRECTORY} -lHalide `libpng-config --cflags --ldflags`
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
-TUTO_OBJ=build/tutorial_01.o
+TUTO_GEN=build/tutorial_01_lib_generator
 TUTO_BIN=build/tutorial_01
 
 all: builddir tutorial
@@ -23,18 +23,20 @@ all: builddir tutorial
 builddir:
 	mkdir -p build
 
+# Build the coli library object files.  The list of these files is in $(OBJ).
 build/coli_%.o: src/coli_%.cpp include/coli/*.h
 	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
-
 build/coli_codegen_%.o: src/coli_codegen_%.cpp include/coli/*.h
 	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
 
-tutorial: $(OBJ) $(TUTO_OBJ) $(TUTO_BIN)
-
-build/tutorial_%.o: examples/tutorial_%.cpp
+# Build the tutorials.  First Object files need to be build, then the
+# library generators need to be build and execute (so that they generate
+# the libraries), then the wrapper should be built (wrapper are programs that call the
+# library functions).
+tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
+build/tutorial_%_lib_generator: examples/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${INCLUDES} ${OBJ} $< ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-
 build/tutorial_%: examples/wrapper_tutorial_%.cpp generated_lib_tutorial_%.o
 	$(CXX) ${CXXFLAGS} ${INCLUDES} $< $(word 2,$^) ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
