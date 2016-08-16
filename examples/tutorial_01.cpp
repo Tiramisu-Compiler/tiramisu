@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	lib.dump_halide_IR();
 
 	// Generate an object file from the library lib. 
-	lib.gen_halide_obj("LLVM_generated_code.o");
+	lib.gen_halide_obj("generated_lib_tutorial_01.o");
 
 	return 0;
 }

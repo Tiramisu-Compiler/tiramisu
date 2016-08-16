@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "generated_code_wrapper.h"
+#include "wrapper_tutorial_01.h"
 #include <cstdlib>
 #include <iostream>
 
