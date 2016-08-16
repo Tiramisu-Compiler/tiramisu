@@ -53,6 +53,11 @@ int main(int argc, char **argv)
 	// Halide::Internal::Stmt*.  Each one among these statements
 	// represents a function in the library.
 
+	// Dump the iteration space IR (input) and the the Halide IR (output)
+	// for each function in the library.
+	lib.dump_iteration_space_IR();
+	lib.dump_halide_IR();
+
 	// Generate an object file from the library lib. 
 	lib.gen_halide_obj("build/generated_lib_tutorial_01.o");
 
