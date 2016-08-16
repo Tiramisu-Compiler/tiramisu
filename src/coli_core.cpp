@@ -388,6 +388,16 @@ isl_union_set * coli::library::get_iteration_spaces()
 	return result;
 }
 
+std::vector<Halide::Internal::Stmt> library::get_halide_stmts()
+{
+	std::vector<Halide::Internal::Stmt> stmts;
+
+	for (auto func: this->get_functions())
+		stmts.push_back(func->get_halide_stmt());
+
+	return stmts;
+}
+
 isl_union_map * coli::library::get_schedule_map()
 {
 	isl_union_map *result = NULL;

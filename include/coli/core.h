@@ -131,6 +131,13 @@ public:
 	}
 
 	/**
+	  * Return a vector of Halide statements where each Halide statement
+	  * represents a function in the library.
+	  */
+	std::vector<Halide::Internal::Stmt> get_halide_stmts();
+
+
+	/**
 	  * Generate an object file.  This object file will contain the compiled
 	  * functions that are a part of the library.
 	  * \p obj_file_name indicates the name of the generated file.
