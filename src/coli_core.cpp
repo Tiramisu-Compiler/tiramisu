@@ -88,6 +88,13 @@ void computation::dump_ISIR()
 	}
 }
 
+void library::dump_halide_IR()
+{
+	for (auto func: this->get_functions())
+		coli::halide_IR_dump(func->get_halide_stmt());
+}
+
+
 void library::gen_halide_stmt(std::vector<std::string> &iterators)
 {
 	std::vector<std::string> generated_stmts;

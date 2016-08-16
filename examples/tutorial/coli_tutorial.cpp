@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	lib.dump_ISIR();
 	lib.dump_schedule();
 	lib.dump_TPIR();
-	coli::halide_IR_dump(*(fct.halide_stmt));
+	lib.dump_halide_IR();
 
 	// Generate an object file from the library lib. 
 	lib.gen_halide_obj("LLVM_generated_code.o");

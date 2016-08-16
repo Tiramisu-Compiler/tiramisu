@@ -195,6 +195,12 @@ public:
 
 	void dump_schedule();
 	void dump();
+
+	/**
+	  * Dump the Halide IR of each function of the library.
+	  * gen_halide_stmt should be called before calling this function.
+	  */
+	void dump_halide_IR();
 };
 
 
