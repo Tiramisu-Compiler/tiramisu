@@ -232,7 +232,7 @@ public:
 	/**
 	  * Generate a Halide stmt for each function in the library.
 	  */
-	void gen_halide_stmt(std::vector<std::string> &iterators);
+	void gen_halide_stmt();
 
 	/**
 	  * Set the isl context associated with this class.

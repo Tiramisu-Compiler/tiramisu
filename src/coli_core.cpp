@@ -115,9 +115,10 @@ void library::dump_halide_IR()
 }
 
 
-void library::gen_halide_stmt(std::vector<std::string> &iterators)
+void library::gen_halide_stmt()
 {
 	std::vector<std::string> generated_stmts;
+	std::vector<std::string> iterators;
 
 	for (auto func: this->get_functions())
 	{

@@ -54,8 +54,7 @@ int main(int argc, char **argv)
 	lib.gen_isl_ast();
 
 	// Generate Halide statement for each function in the library.
-	std::vector<std::string> iterators;
-	lib.gen_halide_stmt(iterators);
+	lib.gen_halide_stmt();
 
 	// Dump IRs
 	lib.dump_iteration_space_IR();
