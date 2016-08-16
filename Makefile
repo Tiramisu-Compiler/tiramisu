@@ -34,10 +34,10 @@ build/coli_codegen_%.o: src/coli_codegen_%.cpp include/coli/*.h
 # the libraries), then the wrapper should be built (wrapper are programs that call the
 # library functions).
 tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
-build/tutorial_%_lib_generator: examples/tutorial_%.cpp
+build/tutorial_%_lib_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${INCLUDES} ${OBJ} $< ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: examples/wrapper_tutorial_%.cpp generated_lib_tutorial_%.o
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp generated_lib_tutorial_%.o
 	$(CXX) ${CXXFLAGS} ${INCLUDES} $< $(word 2,$^) ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 
