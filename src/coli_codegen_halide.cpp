@@ -22,7 +22,7 @@ extern int id_counter;
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
  */
-isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
+isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
 	assert(build != NULL);
 	assert(node != NULL);
@@ -55,7 +55,7 @@ isl_ast_node *stmt_halide_code_generator(isl_ast_node *node, isl_ast_build *buil
 	isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(build, isl_pw_multi_aff_copy(iterator_map));
 	comp->index_expr = index_expr;
 
-	if (DEBUG)
+	if (DEBUG2)
 	{
 		std::cout << "Index expression (for an AST leaf): ";
 		std::cout.flush();
@@ -152,7 +152,7 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 	return result;
 }
 
-isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
+isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
 
 	return node;
@@ -328,9 +328,9 @@ void computation::create_halide_assignement(std::vector<std::string> &iterators)
 	   //the names that are generated when creating the Halide IR are
 	   //equivalent by chance.  They should be made always equivalent.
 
-	   if (DEBUG)
+	   if (DEBUG2)
 	   {
-		   std::cout << "Iterators: ";
+		   std::cout << "List of iterators: ";
 		   for (auto iter: iterators)
 			   std::cout << iter << ", ";
 		   std::cout << std::endl;

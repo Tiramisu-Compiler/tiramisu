@@ -26,32 +26,20 @@ class buffer;
 
 extern std::map<std::string, computation *> computations_list;
 
+/**
+  * A helper function to split a string.
+  */
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector);
-
-/* Schedule the iteration space.  */
-isl_union_set *create_time_space_representation(
-		__isl_take isl_union_set *set,
-		__isl_take isl_union_map *umap);
-
-isl_schedule *create_schedule_tree(isl_ctx *ctx,
-		   isl_union_set *udom,
-		   isl_union_map *sched_map);
-
-isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
-		   isl_schedule *sched_tree);
-
-isl_union_map *create_schedule_map(isl_ctx *ctx,
-		   std::string map);
 
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
  */
-isl_ast_node *stmt_halide_code_generator(isl_ast_node *node,
+isl_ast_node *stmt_code_generator(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
-isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node,
+isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
 
@@ -235,8 +223,8 @@ public:
 		isl_ctx *ctx = this->get_ctx();
 		isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 		isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
-		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_halide_code_generator_after_for, NULL);
-		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_halide_code_generator, NULL);
+		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
+		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
 		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
 		isl_ast_build_free(ast_build);
 	}
@@ -809,4 +797,19 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		std::vector<std::string> &iterators);
 
 }
+
+/** Transform the iteration space into time-processor space representation.
+ *  This is done by applying the schedule to the iteration space.
+ */
+isl_union_set *create_time_space_representation(
+		__isl_take isl_union_set *set,
+		__isl_take isl_union_map *umap);
+
+isl_schedule *create_schedule_tree(isl_ctx *ctx,
+		   isl_union_set *udom,
+		   isl_union_map *sched_map);
+
+isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
+		   isl_schedule *sched_tree);
+
 #endif
