@@ -133,6 +133,9 @@ public:
 	  */
 	bool parallelize(std::string comp, int lev)
 	{
+		assert(comp.length() > 0);
+		assert(lev >= 0);
+
 		return (this->parallel_dimensions.find(comp)->second == lev);
 	}
 
@@ -142,6 +145,9 @@ public:
 	  */
 	bool vectorize(std::string comp, int lev)
 	{
+		assert(comp.length() > 0);
+		assert(lev >= 0);
+
 		return (this->vector_dimensions.find(comp)->second == lev);
 	}
 

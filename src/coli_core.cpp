@@ -359,6 +359,8 @@ void coli::library::dump()
 
 void coli::library::add_function(coli::function *fct)
 {
+	assert(fct != NULL);
+
 	this->functions.push_back(fct);
 }
 

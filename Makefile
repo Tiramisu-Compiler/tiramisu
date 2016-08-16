@@ -14,6 +14,7 @@ CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall
 INCLUDES=-I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Iinclude/ -I${ISL_INCLUDE_DIRECTORY}
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -L${HALIDE_LIB_DIRECTORY} -lHalide `libpng-config --cflags --ldflags`
+HEADER_FILES=include/coli/core.h include/coli/debug.h
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
 TUTO_GEN=build/tutorial_01_lib_generator
 TUTO_BIN=build/tutorial_01
@@ -21,10 +22,10 @@ TUTO_BIN=build/tutorial_01
 all: builddir tutorial
 
 builddir:
-	mkdir -p build
+	@if [ ! -d "build" ]; then mkdir -p build; fi
 
 # Build the coli library object files.  The list of these files is in $(OBJ).
-build/coli_%.o: src/coli_%.cpp include/coli/*.h
+build/coli_%.o: src/coli_%.cpp $(HEADER_FILES)
 	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
 build/coli_codegen_%.o: src/coli_codegen_%.cpp include/coli/*.h
 	$(CXX) -c -fPIC ${CXXFLAGS} ${INCLUDES} $< -o $@
@@ -37,7 +38,7 @@ tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
 build/tutorial_%_lib_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${INCLUDES} ${OBJ} $< ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o tutorials/wrapper_tutorial_%.h 
 	$(CXX) ${CXXFLAGS} ${INCLUDES} $< $(word 2,$^) ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 
