@@ -1,8 +1,8 @@
 # Set the following PATHs before compiling COLi
-ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
-ISL_LIB_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
-HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
-HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
+ISL_INCLUDE_DIRECTORY=
+ISL_LIB_DIRECTORY=
+HALIDE_SOURCE_DIRECTORY=
+HALIDE_LIB_DIRECTORY=
 
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
