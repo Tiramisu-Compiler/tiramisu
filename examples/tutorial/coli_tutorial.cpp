@@ -54,15 +54,14 @@ int main(int argc, char **argv)
 	lib.gen_isl_ast();
 
 	// Generate Halide statement for each function in the library.
-	std::vector<std::string> generated_stmts, iterators;
-	lib.gen_halide_stmt(generated_stmts, iterators);
+	std::vector<std::string> iterators;
+	lib.gen_halide_stmt(iterators);
 
 	// Dump IRs
 	lib.dump_ISIR();
 	lib.dump_schedule();
 	lib.dump_TPIR();
 	coli::halide_IR_dump(*(fct.halide_stmt));
-
 
 	// Generate an object file from the library lib. 
 	lib.gen_halide_obj("LLVM_generated_code.o");
