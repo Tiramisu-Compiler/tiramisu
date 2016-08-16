@@ -37,7 +37,7 @@ tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
 build/tutorial_%_lib_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${INCLUDES} ${OBJ} $< ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: tutorials/wrapper_tutorial_%.cpp generated_lib_tutorial_%.o
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o
 	$(CXX) ${CXXFLAGS} ${INCLUDES} $< $(word 2,$^) ${LIBRARIES} -o $@
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 
@@ -45,4 +45,4 @@ doc:
 	doxygen Doxyfile
 
 clean:
-	rm -rf LLVM_generated_code.o *~ src/*~ include/*~ build/* doc/
+	rm -rf *~ src/*~ include/*~ build/* doc/
