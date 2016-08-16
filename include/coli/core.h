@@ -57,17 +57,31 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node,
 
 /**
   * A class to represent a full library.  A library is composed of
-  * functions (of type coli::function).
+  * functions (of type coli::function).  Since a common case for DSL
+  * (Domain Specific Language) compilers is to generate library functions,
+  * COLi provides an easy way for users to declare a library and the
+  * functions of that library and to manipulate the library as a whole
+  * instead of manipulating the individual functions.
   */
 class library
 {
 private:
+
+	/**
+	  * The name of the library.
+	  */
 	std::string name;
+
+	/**
+	  * The list of functions that are a part of the library.
+	  */
 	std::vector<coli::function *> functions;
 
-	// An isl context associate with the library.
-	// All the functions of the library should have the same
-	// isl context.
+	/**
+	  * An isl context associate with the library.
+	  * All the functions of the library should have the same
+	  * isl context.
+	  */
 	isl_ctx *ctx;
 
 	/**
@@ -81,11 +95,15 @@ public:
 	std::map<std::string, int> vector_dimensions;
 
 	/**
-	 * Program name.
-	 */
+	  * Instantiate a library.
+	  * \p name is the name of the library.
+	  */
 	library(std::string name): name(name)
 	{
 		ast = NULL;
+
+		assert((name.length() > 0) && ("The name of a library should \
+						not be empty"));
 	
 		// Allocate an isl context.  This isl context will be used by
 		// the isl library calls within coli.
