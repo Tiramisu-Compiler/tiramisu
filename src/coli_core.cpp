@@ -80,6 +80,26 @@ std::string generate_new_variable_name()
   * Methods for the computation class.
   */
 
+void coli::computation::tag_parallel_dimension(int par_dim)
+{
+	assert(par_dim >= 0);
+	assert(this->get_name().length() > 0);
+	assert(this->get_function() != NULL);
+	assert(this->get_function()->get_library() != NULL);
+
+	this->get_function()->get_library()->add_parallel_dimension(this->get_name(), par_dim);
+}
+
+void coli::computation::tag_vector_dimension(int par_dim)
+{
+	assert(par_dim >= 0);
+	assert(this->get_name().length() > 0);
+	assert(this->get_function() != NULL);
+	assert(this->get_function()->get_library() != NULL);
+
+	this->get_function()->get_library()->add_vector_dimension(this->get_name(), par_dim);
+}
+
 void computation::dump_iteration_space_IR()
 {
 	if (DEBUG)
@@ -147,7 +167,7 @@ void computation::dump()
 	}
 }
 
-void computation::Schedule(std::string map_str)
+void computation::set_schedule(std::string map_str)
 {
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
@@ -155,21 +175,21 @@ void computation::Schedule(std::string map_str)
 	this->schedule = map;
 }
 
-void computation::Tile(int inDim0, int inDim1,
+void computation::tile(int inDim0, int inDim1,
 			int sizeX, int sizeY)
 {
 	assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
 
-	this->Split(inDim0, sizeX);
-	this->Split(inDim1+1, sizeY);
-	this->Interchange(inDim0+1, inDim1+1);
+	this->split(inDim0, sizeX);
+	this->split(inDim1+1, sizeY);
+	this->interchange(inDim0+1, inDim1+1);
 }
 
 /**
  * Modify the schedule of this computation so that the two dimensions
  * inDim0 and inDime1 are interchanged (swaped).
  */
-void computation::Interchange(int inDim0, int inDim1)
+void computation::interchange(int inDim0, int inDim1)
 {
 	assert(inDim0 >= 0);
 	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
@@ -191,7 +211,7 @@ void computation::Interchange(int inDim0, int inDim1)
  * dimension inDim0 of the iteration space into two new dimensions.
  * The size of the inner dimension created is sizeX.
  */
-void computation::Split(int inDim0, int sizeX)
+void computation::split(int inDim0, int sizeX)
 {
 	assert(inDim0 >= 0);
 	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
@@ -279,24 +299,26 @@ void coli::function::add_argument(coli::buffer buf)
 }
 
 
-// Program related methods
+// Library related methods
 
-void coli::library::tag_parallel_dimension(std::string stmt_name,
-				      int par_dim)
-{
-	if (par_dim >= 0)
-		this->parallel_dimensions.insert(
-				std::pair<std::string,int>(stmt_name,
-							   par_dim));
-}
-
-void coli::library::tag_vector_dimension(std::string stmt_name,
+void coli::library::add_vector_dimension(std::string stmt_name,
 		int vec_dim)
 {
-	if (vec_dim >= 0)
-		this->vector_dimensions.insert(
-				std::pair<std::string,int>(stmt_name,
-					                   vec_dim));
+	assert(vec_dim >= 0);
+	assert(stmt_name.length() > 0);
+
+	this->vector_dimensions.insert(
+		std::pair<std::string,int>(stmt_name, vec_dim));
+}
+
+void coli::library::add_parallel_dimension(std::string stmt_name,
+		int vec_dim)
+{
+	assert(vec_dim >= 0);
+	assert(stmt_name.length() > 0);
+
+	this->parallel_dimensions.insert(
+		std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
 void coli::library::dump_iteration_space_IR()

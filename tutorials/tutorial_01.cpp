@@ -35,11 +35,11 @@ int main(int argc, char **argv)
 
 	// Map the computations to the buffers (i.e. where each computation
 	// should be stored in the buffer).
-	computation0.SetAccess("{S0[i,j]->buf0[i, j]}");
+	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
 
 	// Set the schedule of each computation.
-	computation0.Tile(0,1,32,32);
-	lib.tag_parallel_dimension("S0", 1);
+	computation0.tile(0,1,32,32);
+	computation0.tag_parallel_dimension(1);
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();

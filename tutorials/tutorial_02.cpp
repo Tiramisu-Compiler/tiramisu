@@ -37,18 +37,18 @@ int main(int argc, char **argv)
 
 	// Map the computations to the buffers (i.e. where each computation
 	// should be stored in the buffer).
-	computation0.SetAccess("{S0[i,j]->buf0[i, j]}");
-	computation1.SetAccess("{S1[i,j]->buf0[0, 0]}");
-	computation2.SetAccess("{S2[i,j]->buf0[i, j]}");
+	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
+	computation1.SetWriteAccess("{S1[i,j]->buf0[0, 0]}");
+	computation2.SetWriteAccess("{S2[i,j]->buf0[i, j]}");
 
 	// Set the schedule of each computation.
-	computation0.Tile(0,1,32,32);
-	computation1.Schedule("{S1[i,j]->[2,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
-	computation2.Split(0, 32);
-	computation2.Split(2, 32);
-	computation2.Interchange(1, 2);
-	lib.tag_parallel_dimension("S0", 1);
-//	lib.tag_vector_dimension("S1", 5);
+	computation0.tile(0,1,32,32);
+	computation1.set_schedule("{S1[i,j]->[2,i1,j1,i2,j3,j4]: i1=floor(i/32) and j1=floor(j/32) and i2=i and j3=floor(j/4) and j4=j%4 and 0<=i<=1023 and 0<=j<=1023}");
+	computation2.split(0, 32);
+	computation2.split(2, 32);
+	computation2.interchange(1, 2);
+	computation0.tag_parallel_dimension(1);
+//	computation1.tag_vector_dimension(5);
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();

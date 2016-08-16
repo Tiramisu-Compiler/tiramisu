@@ -152,12 +152,25 @@ public:
 	}
 
 	/**
+	  * Tag the dimension \p dim of the computation \p computation_name to
+	  * be parallelized.
+	  * The outermost loop level (which corresponds to the leftmost
+	  * dimension in the iteration space) is 0.
+	  */
+	void add_parallel_dimension(std::string computation_name, int vec_dim);
+
+	/**
+	  * Tag the dimension \p dim of the computation \p computation_name to
+	  * be parallelized.
+	  * The outermost loop level (which corresponds to the leftmost
+	  * dimension in the iteration space) is 0.
+	  */
+	void add_vector_dimension(std::string computation_name, int vec_dim);
+
+	/**
 	  * Add a function to the library.
 	  */
 	void add_function(coli::function *fct);
-
-	void tag_parallel_dimension(std::string stmt_name, int dim);
-	void tag_vector_dimension(std::string stmt_name, int dim);
 
 	isl_union_set *get_iteration_spaces();
 	isl_union_map *get_schedule_map();
@@ -484,29 +497,53 @@ public:
 		return function;
 	}
 
-	void SetAccess(std::string access_str)
+	/**
+	  * Return the name of the computation.
+	  */
+	std::string get_name()
+	{
+		assert(this->name.length() > 0);
+
+		return name;
+	}
+
+	/**
+	  * Tag the dimension \p dim of the computation to be parallelized.
+	  * The outermost loop level (which corresponds to the leftmost
+	  * dimension in the iteration space) is 0.
+	  */
+	void tag_parallel_dimension(int dim);
+
+	/**
+	  * Tag the dimension \p dim of the computation to be vectorized.
+	  * The outermost loop level (which corresponds to the leftmost
+	  * dimension in the iteration space) is 0.
+	  */
+	void tag_vector_dimension(int dim);
+
+	void SetWriteAccess(std::string access_str)
 	{
 		this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 	}
 
 	void create_halide_assignement(std::vector<std::string> &iterators);
 
-	void Tile(int inDim0, int inDim1, int sizeX, int sizeY);
+	void tile(int inDim0, int inDim1, int sizeX, int sizeY);
 
 	/**
 	 * Modify the schedule of this computation so that it splits the
 	 * dimension inDim0 of the iteration space into two new dimensions.
 	 * The size of the inner dimension created is sizeX.
 	 */
-	void Split(int inDim0, int sizeX);
+	void split(int inDim0, int sizeX);
 
 	/**
 	 * Modify the schedule of this computation so that the two dimensions
 	 * inDim0 and inDime1 are interchanged (swaped).
 	 */
-	void Interchange(int inDim0, int inDim1);
+	void interchange(int inDim0, int inDim1);
 
-	void Schedule(std::string umap_str);
+	void set_schedule(std::string umap_str);
 
 	void dump_iteration_space_IR();
 	void dump_schedule();
