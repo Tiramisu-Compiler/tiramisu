@@ -53,12 +53,9 @@ int main(int argc, char **argv)
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();
 
-	// Generate C code.
-	lib.gen_c_code();
-
+	// Generate Halide statement for each function in the library.
 	std::vector<std::string> generated_stmts, iterators;
-	Halide::Internal::Stmt ss = coli::generate_Halide_stmt_from_isl_node(lib, lib.get_isl_ast(), 0, generated_stmts, iterators);
-	fct.halide_stmt = &ss; 
+	lib.gen_halide_stmt(generated_stmts, iterators);
 
 	// Dump IRs
 	lib.dump_ISIR();

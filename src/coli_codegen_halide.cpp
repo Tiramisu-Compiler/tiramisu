@@ -159,26 +159,26 @@ isl_ast_node *for_halide_code_generator_after_for(isl_ast_node *node, isl_ast_bu
 }
 
 // Level represents the level of the node in the schedule.  0 means root.
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
+Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
 {
-	Halide::Internal::Stmt result;
+	Halide::Internal::Stmt *result = new Halide::Internal::Stmt();
 	int i;
 
 	if (isl_ast_node_get_type(node) == isl_ast_node_block)
 	{
 		isl_ast_node_list *list = isl_ast_node_block_get_children(node);
 		isl_ast_node *child;
-		
+
 		if (isl_ast_node_list_n_ast_node(list) >= 1)
 		{
 			child = isl_ast_node_list_get_ast_node(list, 0);
-			result = Halide::Internal::Block::make(coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
+			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
 		
 			for (i = 1; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				result = Halide::Internal::Block::make(result, coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators));
+				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators));
 			}
 		}
 	}
@@ -210,7 +210,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl
 		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		Halide::Internal::Stmt halide_body = coli::generate_Halide_stmt_from_isl_node(lib, body, level+1, generated_stmts, iterators);
+		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(lib, body, level+1, generated_stmts, iterators);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
 
 		// Change the type from Serial to parallel or vector if the
@@ -221,8 +221,8 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl
 			else if (lib.vector_dimensions.find(generated_stmt)->second == level)
 				fortype = Halide::Internal::ForType::Vectorized;
 
-		result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
-				Halide::DeviceAPI::Host, halide_body);
+		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
+				Halide::DeviceAPI::Host, *halide_body);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{
@@ -237,7 +237,7 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl
 		coli::computation *comp = computations_list.find(computation_name)->second;
 		comp->create_halide_assignement(iterators);
 
-		result = comp->stmt;
+		*result = comp->stmt;
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_if)
 	{
@@ -245,10 +245,10 @@ Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl
 		isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
 		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
 
-		result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
-				coli::generate_Halide_stmt_from_isl_node(lib, if_stmt,
+		*result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
+				*coli::generate_Halide_stmt_from_isl_node(lib, if_stmt,
 					level+1, generated_stmts, iterators),
-				coli::generate_Halide_stmt_from_isl_node(lib, else_stmt,
+				*coli::generate_Halide_stmt_from_isl_node(lib, else_stmt,
 					level+1, generated_stmts, iterators));
 	}
 

@@ -156,7 +156,6 @@ public:
 
 	/**
 	  * Generate an isl AST for the library.
-	  * \p ctx is an isl context (isl_ctx*).
 	  */
 	void gen_isl_ast()
 	{
@@ -170,6 +169,12 @@ public:
 		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
 		isl_ast_build_free(ast_build);
 	}
+
+	/**
+	  * Generate a Halide stmt for each function in the library.
+	  */
+	void gen_halide_stmt(std::vector<std::string> &generated_stmts,
+			std::vector<std::string> &iterators);
 
 	/**
 	  * Set the isl context associated with this class.
@@ -699,7 +704,7 @@ void halide_IR_dump(Halide::Internal::Stmt s);
   * tree.
   * Level represents the level of the node in the schedule.  0 means root.
   */
-Halide::Internal::Stmt generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
+Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts,
 		std::vector<std::string> &iterators);
 

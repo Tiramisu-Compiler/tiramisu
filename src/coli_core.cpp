@@ -88,6 +88,14 @@ void computation::dump_ISIR()
 	}
 }
 
+void library::gen_halide_stmt(std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
+{
+	for (auto func: this->get_functions())
+	{
+		func->halide_stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, iterators);
+	}
+}
+
 void library::dump_TPIR()
 {
 	// Create time space IR
