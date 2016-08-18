@@ -113,8 +113,6 @@ void coli::computation::tag_vector_dimension(int par_dim)
 
 void computation::dump_iteration_space_IR()
 {
-	assert(this->iter_space != NULL);
-
 	if (DEBUG)
 	{
 		isl_set_dump(this->iter_space);
@@ -175,6 +173,8 @@ void computation::dump()
 
 		//TODO: if the stmt is not yet initialized, a NULL should printed,
 		// currently the programs segfaults.
+		// Transform computation::stmt into a point to be able to check it
+		// is NULL.
 		Halide::Internal::IRPrinter pr(std::cout);
 		pr.print(this->stmt);
 		coli::str_dump("\n");
@@ -183,6 +183,9 @@ void computation::dump()
 
 void computation::set_schedule(std::string map_str)
 {
+	assert(map_str.length() > 0);
+	assert(this->ctx != NULL);
+
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
 
@@ -192,7 +195,16 @@ void computation::set_schedule(std::string map_str)
 void computation::tile(int inDim0, int inDim1,
 			int sizeX, int sizeY)
 {
+	// Check that the two dimensions are consecutive.
+	// Tiling only applies on a consecutive band of loop dimensions.
 	assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
+	assert(sizeX > 0);
+	assert(sizeY > 0);
+	assert(inDim0 >= 0);
+	assert(inDim1 >= 0);
+	assert(this->iter_space != NULL);
+	assert(inDim1 <= isl_space_dim(isl_set_get_space(this->iter_space),
+					isl_dim_set));
 
 	this->split(inDim0, sizeX);
 	this->split(inDim1+1, sizeY);
