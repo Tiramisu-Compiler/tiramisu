@@ -243,16 +243,32 @@ public:
 	}
 
 	/**
-	  * Dump (on stdout) the iteration space representation of the library function.
+	  * Dump (on stdout) the iteration space representation of the library functions.
+	  * This is mainly useful for debugging.
 	  */
 	void dump_iteration_space_IR();
 
 	/**
-	  * Dump (on stdout) the time processor representation of the library function.
+	  * Dump (on stdout) the time processor representation of the library functions.
+	  * This is mainly useful for debugging.
 	  */
 	void dump_time_processor_IR();
 
+	/**
+	  * Dump (on stdout) the schedule of the library functions.
+	  * This is mainly useful for debugging.
+	  * The schedule is a relation between the iteration space and a
+	  * time space.  The relation provides a logical date of execution for
+	  * each point in the iteration space.
+	  * THe schedule needs first to be set before calling this function.
+	  */
 	void dump_schedule();
+
+	/**
+	  * Dump (on stdout) the library (dump most of the fields of the
+	  * library class).
+	  * This is mainly useful for debugging.
+	  */
 	void dump();
 
 	/**
