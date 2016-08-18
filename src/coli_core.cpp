@@ -203,8 +203,8 @@ void computation::tile(int inDim0, int inDim1,
 	assert(inDim0 >= 0);
 	assert(inDim1 >= 0);
 	assert(this->iter_space != NULL);
-	assert(inDim1 <= isl_space_dim(isl_set_get_space(this->iter_space),
-					isl_dim_set));
+	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
+							isl_dim_out));
 
 	this->split(inDim0, sizeX);
 	this->split(inDim1+1, sizeY);
