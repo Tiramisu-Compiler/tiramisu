@@ -270,6 +270,8 @@ void computation::split(int inDim0, int sizeX)
 
 void coli::function::add_computation(computation *cpt)
 {
+	assert(cpt != NULL);
+
 	this->body.push_back(cpt);
 }
 
