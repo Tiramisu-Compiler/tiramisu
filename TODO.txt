@@ -1,11 +1,6 @@
 High Priority
 --------------
 - Code Cleaning
-    - Factorize code.
-    - Document important classes.
-    - Split core.h into specialized codegen.h files.
-    - Add basic asserts.
-    - Add a test file to test the basic functions.
     - Remove all the warnings.
 
 
@@ -47,3 +42,8 @@ Low Priority
    class.  The Halide::Buffer class should only be used during code
    generation.  Currently Halide can only handle 3D arrays, make sure you
    check for this during code generation.
+
+- Building and compiling
+   - ISL, Halide should be distributed with COLi and should be
+   compiled automatically.
+   - Compile COLi into one shared library.
