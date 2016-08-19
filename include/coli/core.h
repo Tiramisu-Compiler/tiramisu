@@ -203,18 +203,24 @@ public:
 	  * Generate an object file.  This object file will contain the compiled
 	  * functions that are a part of the library.
 	  * \p obj_file_name indicates the name of the generated file.
-	  * \p os indicates the targe operating system.
+	  * \p os indicates the target operating system.
 	  * \p arch indicates the architecture of the target (the instruction set).
 	  * \p bits indicate the bit-width of the target machine.
 	  *    must be 0 for unknown, or 32 or 64.
 	  * For a full list of supported value for \p os and \p arch please
 	  * check the documentation of Halide::Target
 	  * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
+	  * If the machine parameters are not supplied, it will detect one automatically.
 	  */
-	void gen_halide_obj(std::string obj_file_name,
-			Halide::Target::OS os = Halide::Target::OSX,
-			Halide::Target::Arch arch = Halide::Target::X86, int bits = 64);
+	// @{
+	void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
+			Halide::Target::Arch arch, int bits);
 
+	void gen_halide_obj(std::string obj_file_name) {
+		Halide::Target target = Halide::get_host_target();
+		gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
+	}
+	// @}
 
 	/**
 	  * Generate C code on stdout.
