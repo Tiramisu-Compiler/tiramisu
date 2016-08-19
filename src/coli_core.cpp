@@ -170,13 +170,14 @@ void computation::dump()
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
 		coli::str_dump("Halide statement:\n");
-
-		//TODO: if the stmt is not yet initialized, a NULL should printed,
-		// currently the programs segfaults.
-		// Transform computation::stmt into a point to be able to check it
-		// is NULL.
-		Halide::Internal::IRPrinter pr(std::cout);
-		pr.print(this->stmt);
+		if (this->stmt.defined())
+		{
+			std::cout << this->stmt;
+		}
+		else
+		{
+			coli::str_dump("NULL");
+		}
 		coli::str_dump("\n");
 	}
 }
@@ -248,7 +249,7 @@ void computation::split(int inDim0, int sizeX)
 	coli::parser::map map(isl_map_to_str(this->schedule));
 
 	std::string inDim0_str = map.range.dimensions.at(inDim0);
-	std::string outDim0 = generate_new_variable_name(); 
+	std::string outDim0 = generate_new_variable_name();
 	std::string outDim1 = generate_new_variable_name();
 	std::string outDimensions = outDim0 + "," + outDim1;
 
@@ -485,8 +486,7 @@ void halide_IR_dump(Halide::Internal::Stmt s)
 	{
 		coli::str_dump("\n\n");
 		coli::str_dump("\nGenerated Halide Low Level IR:\n");
-		Halide::Internal::IRPrinter pr(std::cout);
-	    	pr.print(s);
+		std::cout << s;
 		coli::str_dump("\n\n\n\n");
 	}
 }
