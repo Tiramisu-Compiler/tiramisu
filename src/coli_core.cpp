@@ -25,8 +25,12 @@ isl_schedule *create_schedule_tree(isl_ctx *ctx,
 		   isl_union_set *udom,
 		   isl_union_map *sched_map)
 {
+	assert(ctx != NULL);
+	assert(udom != NULL);
+	assert(sched_map != NULL);
+
 	isl_union_set *scheduled_domain = isl_union_set_apply(udom, sched_map);
-	IF_DEBUG2(coli::str_dump("[ir.c] Scheduled domain: "));
+	IF_DEBUG2(coli::str_dump(" Scheduled domain: "));
 	IF_DEBUG2(isl_union_set_dump(scheduled_domain));
 
 	isl_schedule *sched_tree = isl_schedule_from_domain(scheduled_domain);
@@ -39,12 +43,18 @@ isl_union_set *create_time_space_representation(
 		__isl_take isl_union_set *set,
 		__isl_take isl_union_map *umap)
 {
+	assert(set != NULL);
+	assert(umap != NULL);
+
 	return isl_union_set_apply(set, umap);
 }
 
 isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
 		   isl_schedule *sched_tree)
 {
+	assert(ctx != NULL);
+	assert(sched_tree != NULL);
+
 	isl_ast_build *ast = isl_ast_build_alloc(ctx);
  	isl_ast_node *program = isl_ast_build_node_from_schedule(ast, sched_tree);
 	isl_ast_build_free(ast);
@@ -52,6 +62,7 @@ isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
 	return program;
 }
 
+// TODO: Test this function
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector)
 {
@@ -162,6 +173,8 @@ void computation::dump()
 
 		//TODO: if the stmt is not yet initialized, a NULL should printed,
 		// currently the programs segfaults.
+		// Transform computation::stmt into a point to be able to check it
+		// is NULL.
 		Halide::Internal::IRPrinter pr(std::cout);
 		pr.print(this->stmt);
 		coli::str_dump("\n");
@@ -170,6 +183,9 @@ void computation::dump()
 
 void computation::set_schedule(std::string map_str)
 {
+	assert(map_str.length() > 0);
+	assert(this->ctx != NULL);
+
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
 
@@ -179,7 +195,16 @@ void computation::set_schedule(std::string map_str)
 void computation::tile(int inDim0, int inDim1,
 			int sizeX, int sizeY)
 {
+	// Check that the two dimensions are consecutive.
+	// Tiling only applies on a consecutive band of loop dimensions.
 	assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
+	assert(sizeX > 0);
+	assert(sizeY > 0);
+	assert(inDim0 >= 0);
+	assert(inDim1 >= 0);
+	assert(this->iter_space != NULL);
+	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
+							isl_dim_out));
 
 	this->split(inDim0, sizeX);
 	this->split(inDim1+1, sizeY);
@@ -245,6 +270,8 @@ void computation::split(int inDim0, int sizeX)
 
 void coli::function::add_computation(computation *cpt)
 {
+	assert(cpt != NULL);
+
 	this->body.push_back(cpt);
 }
 
