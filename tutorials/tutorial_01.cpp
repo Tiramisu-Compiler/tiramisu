@@ -8,7 +8,7 @@
 #include <coli/debug.h>
 #include <coli/core.h>
 
-#include <String.h>
+#include <string.h>
 #include <Halide.h>
 
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 	lib.dump_iteration_space_IR();
 	lib.dump_halide_IR();
 
-	// Generate an object file from the library lib. 
+	// Generate an object file from the library lib.
 	lib.gen_halide_obj("build/generated_lib_tutorial_01.o");
 
 	return 0;

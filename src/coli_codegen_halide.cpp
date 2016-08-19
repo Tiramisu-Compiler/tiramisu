@@ -174,7 +174,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		{
 			child = isl_ast_node_list_get_ast_node(list, 0);
 			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
-		
+
 			for (i = 1; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
@@ -334,7 +334,7 @@ void computation::create_halide_assignement(std::vector<std::string> &iterators)
 		   for (auto iter: iterators)
 			   std::cout << iter << ", ";
 		   std::cout << std::endl;
-	   } 
+	   }
 
 	   Halide::Expr index = coli::linearize_access(buffer, index_expr);
 
@@ -356,15 +356,16 @@ void library::gen_halide_obj(std::string obj_file_name,
 	x86_features.push_back(Halide::Target::AVX);
 	x86_features.push_back(Halide::Target::SSE41);
 	target.set_features(x86_features);
-	
-	Halide::Module::Module m(obj_file_name, target);
+
+	Halide::Module m(obj_file_name, target);
 
 	for (auto func: this->get_functions())
 	{
 		m.append(Halide::Internal::LoweredFunc(func->get_name(), func->get_arguments(), func->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
 	}
 
-	Halide::compile_module_to_object(m, obj_file_name);
+	Halide::Outputs output = Halide::Outputs().object(obj_file_name);
+	m.compile(output);
 }
 
 }

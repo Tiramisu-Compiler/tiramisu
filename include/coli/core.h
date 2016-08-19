@@ -11,7 +11,7 @@
 #include <isl/space.h>
 
 #include <map>
-#include <String.h>
+#include <string.h>
 
 #include <Halide.h>
 #include <coli/debug.h>
@@ -101,7 +101,7 @@ public:
 
 		assert((name.length() > 0) && ("The name of a library should \
 						not be empty"));
-	
+
 		// Allocate an isl context.  This isl context will be used by
 		// the isl library calls within coli.
 		ctx = isl_ctx_alloc();
@@ -124,7 +124,12 @@ public:
 		assert(comp.length() > 0);
 		assert(lev >= 0);
 
-		return (this->parallel_dimensions.find(comp)->second == lev);
+		const auto &iter = this->parallel_dimensions.find(comp);
+		if (iter == this->parallel_dimensions.end())
+		{
+	    	return false;
+		}
+		return (iter->second == lev);
 	}
 
 	/**
@@ -136,7 +141,12 @@ public:
 		assert(comp.length() > 0);
 		assert(lev >= 0);
 
-		return (this->vector_dimensions.find(comp)->second == lev);
+		const auto &iter = this->vector_dimensions.find(comp);
+		if (iter == this->vector_dimensions.end())
+		{
+	    	return false;
+		}
+		return (iter->second == lev);
 	}
 
 	/**
