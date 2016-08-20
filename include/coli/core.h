@@ -343,6 +343,7 @@ public:
 
 	function(std::string name, coli::library *lib): name(name) {
 		assert(lib != NULL);
+		assert((name.length()>0) && ("Empty function name"));
 
 		halide_stmt = NULL;
 		library = lib;
