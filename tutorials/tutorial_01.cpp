@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	// (1) a Halide expression that represents the computation,
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
-	coli::computation computation0(Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<=1000 and 0<=j<=1000}", &fct);
+	coli::computation computation0(Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<10 and 0<=j<10}", &fct);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
 
 	// Set the schedule of each computation.
-	computation0.tile(0,1,32,32);
-	computation0.tag_parallel_dimension(1);
+	computation0.set_schedule("{S0[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
+	computation0.tag_parallel_dimension(0);
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();

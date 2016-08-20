@@ -202,8 +202,28 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 		isl_ast_node *body = isl_ast_node_for_get_body(node);
 		isl_ast_expr *cond_upper_bound_isl_format = NULL;
-		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le || isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
+
+		/*
+		   Halide expects the loop bound to be of the form
+			iter < bound
+		   where as ISL can generated loop bounds of the forms
+			ite < bound
+		   and
+			iter <= bound
+		   We need to transform the two ISL loop bounds into the Halide
+		   format.
+		   */
+		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
 			cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+		else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)
+		{
+			// Create an expression of "1".
+			isl_val *one = isl_val_one(isl_ast_node_get_ctx(node));
+			// Add 1 to the ISL ast upper bound to transform it into a strinct bound.
+			cond_upper_bound_isl_format = isl_ast_expr_add(
+							isl_ast_expr_get_op_arg(cond, 1),
+							isl_ast_expr_from_val(one));
+		}
 		else
 			coli::error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
 

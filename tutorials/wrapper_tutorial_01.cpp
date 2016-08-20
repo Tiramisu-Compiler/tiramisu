@@ -12,7 +12,7 @@ void print_array(buffer_t buf, int N)
 
 	for (i=0; i<N; i++)
 	{
-	   printf("%d, ", buf.host[i]);
+	   printf("%u, ", buf.host[i]);
 	}
 	printf("\n");
 }
@@ -32,19 +32,19 @@ int main(int, char**)
    input_buf.stride[0] = 1;
    input_buf.stride[1] = 1;
    input_buf.extent[0] = NN;
-   input_buf.extent[1] = NN;
+   input_buf.extent[1] = MM;
    input_buf.min[0] = 0;
    input_buf.min[1] = 0;
    input_buf.elem_size = 1;
 
-   init_array(&input_buf, NN, 9);
+   init_array(&input_buf, NN*MM, 9);
    std::cout << "Array (after initialization)" << std::endl;
-   print_array(input_buf, NN);
+   print_array(input_buf, NN*MM);
 
    function0(&input_buf);
 
    std::cout << "Array after the Halide pipeline" << std::endl;
-   print_array(input_buf, NN);
+   print_array(input_buf, NN*MM);
 
    return 0;
 }
