@@ -185,7 +185,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 	else if (isl_ast_node_get_type(node) == isl_ast_node_for)
 	{
 		isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
-		char *iterator_str = isl_ast_expr_to_str(iter);
+		char *iterator_str = isl_ast_expr_to_C_str(iter);
 
 		// Add this iterator to the list of iterators.
 		// This list is used later when generating access of inner
