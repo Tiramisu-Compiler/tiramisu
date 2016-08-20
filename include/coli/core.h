@@ -685,6 +685,11 @@ public:
 		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
 		data(data), fct(fct)
 		{
+			assert(name.length()>0 && "Empty buffer name");
+			assert(nb_dims>0 && "Buffer dimensions <= 0");
+			assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
+			assert(fct != NULL && "Input function is NULL");
+
 			Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
 			fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
 		};
