@@ -99,8 +99,7 @@ public:
 	{
 		ast = NULL;
 
-		assert((name.length() > 0) && ("The name of a library should \
-						not be empty"));
+		assert((name.length() > 0) && ("Library name empty"));
 
 		// Allocate an isl context.  This isl context will be used by
 		// the isl library calls within coli.
