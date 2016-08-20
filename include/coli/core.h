@@ -502,6 +502,7 @@ public:
 		    std::string iteration_space_str, coli::function *fct) {
 
 		assert(fct != NULL);
+		assert(iteration_space_str.length()>0 && ("Empty iteration space"));
 
 		// Initialize all the fields to NULL (useful for later asserts)
 		index_expr = NULL;
