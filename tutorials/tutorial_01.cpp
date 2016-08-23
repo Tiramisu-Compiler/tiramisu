@@ -27,6 +27,20 @@ int main(int argc, char **argv)
 	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0(Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<10 and 0<=j<10}", &fct);
 
+	// Dump the iteration space IR (input)
+	// for each function in the library.
+	lib.dump_iteration_space_IR();
+
+	// Set the schedule of each computation.
+	computation0.set_schedule("{S0[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
+	computation0.tag_parallel_dimension(0);
+
+	// Generate the time-processor IR of each computation in the library.
+	lib.gen_time_processor_IR();
+
+	// Dump the time-processor IR
+	lib.dump_time_processor_IR();
+
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
 
@@ -36,10 +50,6 @@ int main(int argc, char **argv)
 	// Map the computations to the buffers (i.e. where each computation
 	// should be stored in the buffer).
 	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
-
-	// Set the schedule of each computation.
-	computation0.set_schedule("{S0[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
-	computation0.tag_parallel_dimension(0);
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();
@@ -52,9 +62,8 @@ int main(int argc, char **argv)
 	// Halide::Internal::Stmt*.  Each one among these statements
 	// represents a function in the library.
 
-	// Dump the iteration space IR (input) and the the Halide IR (output)
+	// Dump the Halide IR (output)
 	// for each function in the library.
-	lib.dump_iteration_space_IR();
 	lib.dump_halide_IR();
 
 	// Generate an object file from the library lib.

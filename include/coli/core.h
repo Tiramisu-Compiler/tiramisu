@@ -250,6 +250,16 @@ public:
 	void gen_halide_stmt();
 
 	/**
+	  * Generate the time-processor representation of the each
+	  * function in the library.
+	  * In this representation, the logical time of execution and the
+	  * processor where the computation will be executed are both
+	  * specified.
+	  */
+
+	void gen_time_processor_IR();
+
+	/**
 	  * Set the isl context associated with this class.
 	  */
 	void set_ctx(isl_ctx *ctx)
@@ -388,6 +398,14 @@ public:
 	}
 
 	/**
+	  * Return the computations of the function.
+	  */
+	std::vector<computation *> get_computations()
+	{
+		return body;
+	}
+
+	/**
 	  * Add a computation to the function.  The order in which
 	  * computations are added to the function is not important.
 	  * The order of execution is specified using the schedule.
@@ -423,9 +441,19 @@ public:
 class computation {
 	isl_ctx *ctx;
 
+	/**
+	  * Time-processor representation if the computation.
+	  * In this representation, the logical time of execution and the
+	  * processor where the computation will be executed are both
+	  * specified.
+	  */
+	isl_set *time_processor_space;
+
 public:
 	/**
-	  * Iteration space of the computation.
+	  * Iteration space representation of the computation.
+	  * In this representation, the order of execution of computations
+	  * is not specified, the computations are also not mapped to memory.
 	 */
 	isl_set *iter_space;
 
@@ -509,6 +537,7 @@ public:
 		access = NULL;
 		schedule = NULL;
 		stmt = Halide::Internal::Stmt();
+		time_processor_space = NULL;
 
 		assert(fct->get_library() != NULL);
 
@@ -547,6 +576,38 @@ public:
 	}
 
 	/**
+	  * Return the iteration space representation of the computation.
+	  * In this representation, the order of execution of computations
+	  * is not specified, the computations are also not mapped to memory.
+	  */
+	isl_set *get_iteration_space_representation()
+	{
+		// Every computation should have an iteration space.
+		assert(iter_space != NULL);
+
+		return iter_space;
+	}
+
+	/**
+	  * Return the time-processor representation of the computation.
+	  * In this representation, the logical time of execution and the
+	  * processor where the computation will be executed are both
+	  * specified.
+	  */
+	isl_set *get_time_processor_representation()
+	{
+		return time_processor_space;
+	}
+
+	/**
+	  * Return the schedule of the computation.
+	  */
+	isl_map *get_schedule()
+	{
+		return this->schedule;
+	}
+
+	/**
 	  * Return the name of the computation.
 	  */
 	std::string get_name()
@@ -567,6 +628,23 @@ public:
 	  * dimension in the iteration space) is 0.
 	  */
 	void tag_vector_dimension(int dim);
+
+	/**
+	  * Generate the time-processor representation of the computation.
+	  * In this representation, the logical time of execution and the
+	  * processor where the computation will be executed are both
+	  * specified.
+	  */
+	void gen_time_processor_IR()
+	{
+		assert(this->get_iteration_space_representation() != NULL);
+		assert(this->get_schedule() != NULL);
+
+		time_processor_space = isl_set_apply(
+				isl_set_copy(this->get_iteration_space_representation()),
+				isl_map_copy(this->get_schedule()));
+	}
+
 
 	void SetWriteAccess(std::string access_str)
 	{

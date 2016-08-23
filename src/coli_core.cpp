@@ -140,16 +140,34 @@ void library::gen_halide_stmt()
 void library::dump_time_processor_IR()
 {
 	// Create time space IR
-	isl_union_set *time_space_representaion =
+/*	isl_union_set *time_space_representaion =
 		coli::create_time_space_representation(
 				isl_union_set_copy(this->get_iteration_spaces()),
 				isl_union_map_copy(this->get_schedule_map()));
+				*/
 
 	if (DEBUG)
 	{
 		coli::str_dump("\n\nTime Space IR:\n");
-		isl_union_set_dump(time_space_representaion);
+
+		for (auto func: this->get_functions())
+		{
+			coli::str_dump("Function " + func->get_name() + ":\n");
+			for (auto comp: func->get_computations())
+				isl_set_dump(
+					comp->get_time_processor_representation());
+		}
+
 		coli::str_dump("\n\n");
+	}
+}
+
+void library::gen_time_processor_IR()
+{
+	for (auto func: this->get_functions())
+	{
+		for (auto comp: func->get_computations())
+			comp->gen_time_processor_IR();
 	}
 }
 
@@ -356,7 +374,10 @@ void coli::library::dump_iteration_space_IR()
 	{
 		coli::str_dump("\nIteration Space IR:\n");
 		for (const auto &fct : this->functions)
-		       fct->dump_iteration_space_IR();
+		{
+			coli::str_dump("Function " + fct->get_name() + ":\n");
+			fct->dump_iteration_space_IR();
+		}
 		coli::str_dump("\n");
 	}
 }
