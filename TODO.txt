@@ -17,6 +17,24 @@ High Priority
     - Add Fusion(), Distribution() commands.
 
 
+- Halide support
+	- Add a vector of parameters to the function class.
+	- New class parameters:
+		- a class to represent iteration set parameters.
+		- during code generation, parameters are generated before any loops start
+		  to be generated.  Parameters are supposed to constant throughout the whole
+		  program.
+	- Changes on the computation class:
+      		- The constructor should not take a Halide expression, the Halide expression
+		  is now set using a separate function.
+		- Add the binding function which simply sets the access function of a
+		  computation to a buffer (one-to-one).
+		- Add flag is_binded to a computation to check if it binded to a variable.  When generating code,
+		check that the arguments are all binded.  Currently we do not support unbinded arguments.
+		- Computation arguments should be transformed into computations.
+	- compute_halide_call_graph().
+
+
 - Data layout
     - Currently if you specify an access function that has constraints,
     the constraints are not taken in consideration.  The access function is
