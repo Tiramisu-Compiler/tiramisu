@@ -7,19 +7,19 @@ High Priority
 		OK-- Assert iteration space and schedule are provided.
 		OK-- Applies the schedule on the iteration space.
 	OK- The user specifies the mapping from time space to memory buffers.
-	- Apply the schedule on the memory mapping,
-    	- Assert that the spaces of the schedule, data mapping are compatible
+	1- Apply the schedule on the memory mapping,
+    	2- Assert that the spaces of the schedule, data mapping are compatible
 	(same number of dimensions, same tuple name, ...).
 	OK- Generate code:
 		OK- The identity schedule is used.
 
 
 - Scheduling
-    - Assert that a schedule, an access function are provided before code
+    3- Assert that a schedule, an access function are provided before code
     generation.
-    - All schedules should be aligned before scheduling otherwise shorter
+    4- All schedules should be aligned before scheduling otherwise shorter
     times will be considered small lexicographically.
-    - Currently, when multiple computations are declared, users can specify the
+    5- Currently, when multiple computations are declared, users can specify the
     order between these computations only when the explicit schedule time is
     specified.  Enable users to express the order between computations if the
     .Tile(), .Split(), ... is used.
@@ -29,19 +29,19 @@ High Priority
 
 - Halide support
 	- Add a vector of parameters to the function class.
-	- New class parameters:
-		- a class to represent iteration set parameters.
-		- during code generation, parameters are generated before any loops start
+	6- New class parameters:
+		6.1- a class to represent iteration set parameters.
+		6.2- during code generation, parameters are generated before any loops start
 		  to be generated.  Parameters are supposed to constant throughout the whole
 		  program.
-	- Changes on the computation class:
+	7- Changes on the computation class:
       		- The constructor should not take a Halide expression, the Halide expression
 		  is now set using a separate function.
 		- Add the binding function which simply sets the access function of a
 		  computation to a buffer (one-to-one).
 		- Add flag is_binded to a computation to check if it binded to a variable.  When generating code,
-		check that the arguments are all binded.  Currently we do not support unbinded arguments.
-		- Computation arguments should be transformed into computations.
+		  check that the arguments are all binded.  Currently we do not support unbinded arguments.
+		- Function arguments should be transformed into computations.
 	- compute_halide_call_graph().
 
 
