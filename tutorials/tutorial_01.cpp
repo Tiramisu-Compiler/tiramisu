@@ -32,13 +32,14 @@ int main(int argc, char **argv)
 	lib.dump_iteration_space_IR();
 
 	// Set the schedule of each computation.
-	computation0.set_schedule("{S0[i,j]->S0[i,j]: 0<=i<10 and 0<=j<10}");
+	// The identity schedule means that the program order is not modified
+	// (i.e. no optimization is applied).
+	computation0.set_identity_schedule();
 	computation0.tag_parallel_dimension(0);
 
-	// Generate the time-processor IR of each computation in the library.
+	// Generate the time-processor IR of each computation in the library
+	// and dump the time-processor IR on stdout
 	lib.gen_time_processor_IR();
-
-	// Dump the time-processor IR
 	lib.dump_time_processor_IR();
 
 	// Create a memory buffer (2 dimensional).
