@@ -230,6 +230,14 @@ void computation::set_schedule(std::string map_str)
 	isl_map *map = isl_map_read_from_str(this->ctx,
 			map_str.c_str());
 
+	assert(map != NULL);
+
+	// The tuple name for the domain and the range
+	// should be identical.
+	int diff = strcmp(isl_map_get_tuple_name(map, isl_dim_in),
+			  isl_map_get_tuple_name(map, isl_dim_out));
+	assert((diff == 0) && "Domain and range space names in the mapping from iteration space to processor-time must be identical.");
+
 	this->schedule = map;
 }
 
