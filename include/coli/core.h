@@ -717,7 +717,28 @@ public:
 	 */
 	void interchange(int inDim0, int inDim1);
 
-	void set_schedule(std::string umap_str);
+	/**
+	  * Set the mapping from iteration space to time-processor space.
+	  * The name of the domain and range space must be identical.
+	  * The input string must be in the ISL map format.
+	  */
+	void set_schedule(std::string map_str);
+
+	/**
+	  * Set the mapping from iteration space to time-processor space.
+	  * The name of the domain and range space must be identical.
+	  */
+	void set_schedule(isl_map *map)
+	{
+		// The tuple name for the domain and the range
+		// should be identical.
+		int diff = strcmp(isl_map_get_tuple_name(map, isl_dim_in),
+				  isl_map_get_tuple_name(map, isl_dim_out));
+		assert((diff == 0) && "Domain and range space names in the mapping from iteration space to processor-time must be identical.");
+
+		this->schedule = map;
+	}
+
 
 	/**
 	  * Dump the iteration space representation of the computation.
