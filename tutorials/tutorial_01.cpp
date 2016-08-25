@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	lib.dump_iteration_space_IR();
 
 	// Set the schedule of each computation.
-	computation0.set_schedule("{S0[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
+	computation0.set_schedule("{S0[i,j]->S0[i,j]: 0<=i<10 and 0<=j<10}");
 	computation0.tag_parallel_dimension(0);
 
 	// Generate the time-processor IR of each computation in the library.
