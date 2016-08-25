@@ -1,7 +1,17 @@
 High Priority
 --------------
-- Code Cleaning
-    - Remove all the warnings.
+- Time-processor representation
+	OK- The user specifies the iteration space.
+	OK- The user specifies the schedule and tags.
+	OK- computation.gen_time_space_IR()
+		OK-- Assert iteration space and schedule are provided.
+		OK-- Applies the schedule on the iteration space.
+	OK- The user specifies the mapping from time space to memory buffers.
+	- Apply the schedule on the memory mapping,
+    	- Assert that the spaces of the schedule, data mapping are compatible
+	(same number of dimensions, same tuple name, ...).
+	OK- Generate code:
+		OK- The identity schedule is used.
 
 
 - Scheduling

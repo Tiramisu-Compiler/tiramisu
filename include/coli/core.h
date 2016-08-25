@@ -192,6 +192,15 @@ public:
 	}
 
 	/**
+	  * Return the time-processor representation of all the computations
+	  * of the library.
+	  * In this representation, the logical time of execution and the
+	  * processor where the computation will be executed are both
+	  * specified.
+	  */
+	isl_union_set *get_time_processor_representation();
+
+	/**
 	  * Return a vector of Halide statements where each Halide statement
 	  * represents a function in the library.
 	  */
@@ -228,6 +237,12 @@ public:
 	  */
 	void gen_c_code();
 
+
+	/**
+	  * Get an identity relation for the time-processor representation.
+	  */
+	isl_union_map *get_time_processor_identity_relation();
+
 	/**
 	  * Generate an isl AST for the library.
 	  */
@@ -240,7 +255,13 @@ public:
 		isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
 		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
 		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
-		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
+		isl_union_map *sched = this->get_time_processor_identity_relation();
+		isl_union_map_dump(sched);
+		isl_union_set_dump(this->get_time_processor_representation());
+		sched = isl_union_map_intersect_domain(sched,
+				this->get_time_processor_representation());
+		isl_union_map_dump(sched);
+		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(sched));
 		isl_ast_build_free(ast_build);
 	}
 
@@ -557,7 +578,6 @@ public:
 		if (schedule_map_str.find(":") != std::string::npos)
 			domain = domain.erase(domain.find(":"), domain.length() - domain.find(":"));
 		std::string domain_without_name = domain;
-		domain_without_name.erase(domain.find(name), name.length());
 
 		if (schedule_map_str.find(":") != std::string::npos)
 			schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain_without_name);
@@ -597,6 +617,21 @@ public:
 	isl_set *get_time_processor_representation()
 	{
 		return time_processor_space;
+	}
+
+	/**
+	  * Get an identity map for the time processor representation.
+	  * This is a map that takes one element of the time-processor space
+	  * and returns the same element in the time-processor space.
+	  */
+	isl_map *get_time_processor_identity_relation()
+	{
+		assert(get_time_processor_representation() != NULL);
+
+		isl_space *sp = isl_set_get_space(get_time_processor_representation());
+		isl_map *out = isl_map_identity(isl_space_map_from_set(sp));
+		out = isl_map_set_tuple_name(out, isl_dim_out, "");
+		return out;
 	}
 
 	/**

@@ -140,11 +140,6 @@ void library::gen_halide_stmt()
 void library::dump_time_processor_IR()
 {
 	// Create time space IR
-/*	isl_union_set *time_space_representaion =
-		coli::create_time_space_representation(
-				isl_union_set_copy(this->get_iteration_spaces()),
-				isl_union_map_copy(this->get_schedule_map()));
-				*/
 
 	if (DEBUG)
 	{
@@ -160,6 +155,33 @@ void library::dump_time_processor_IR()
 
 		coli::str_dump("\n\n");
 	}
+}
+
+
+isl_union_map *library::get_time_processor_identity_relation()
+{
+	isl_union_map *result = NULL;
+	isl_space *space = NULL;
+
+	if ((this->functions.empty() == false)
+		&& (this->functions[0]->body.empty() == false))
+	{
+		space = isl_map_get_space(this->functions[0]->body[0]->get_time_processor_identity_relation());
+	}
+	else
+		return NULL;
+
+	assert(space != NULL);
+	result = isl_union_map_empty(isl_space_copy(space));
+
+	for (const auto &fct : this->functions)
+		for (const auto &cpt : fct->body)
+		{
+			isl_map *m = isl_map_copy(cpt->get_time_processor_identity_relation());
+			result = isl_union_map_union(isl_union_map_from_map(m), result);
+		}
+
+	return result;
 }
 
 void library::gen_time_processor_IR()
@@ -435,6 +457,33 @@ void coli::library::add_function(coli::function *fct)
 
 	this->functions.push_back(fct);
 }
+
+isl_union_set * coli::library::get_time_processor_representation()
+{
+	isl_union_set *result = NULL;
+	isl_space *space = NULL;
+
+	if ((this->functions.empty() == false)
+			&& (this->functions[0]->body.empty() == false))
+	{
+		space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
+	}
+	else
+		return NULL;
+
+	assert(space != NULL);
+	result = isl_union_set_empty(isl_space_copy(space));
+
+	for (const auto &fct : this->functions)
+		for (const auto &cpt : fct->body)
+		{
+			isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_representation());
+			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+		}
+
+	return result;
+}
+
 
 isl_union_set * coli::library::get_iteration_spaces()
 {

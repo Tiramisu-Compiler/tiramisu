@@ -167,23 +167,34 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 	if (isl_ast_node_get_type(node) == isl_ast_node_block)
 	{
-		isl_ast_node_list *list = isl_ast_node_block_get_children(node);
-		isl_ast_node *child;
+		IF_DEBUG2(coli::str_dump("Generating code for a block\n"));
 
-		if (isl_ast_node_list_n_ast_node(list) >= 1)
+		isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+		isl_ast_node *child, *child2;
+
+		if (isl_ast_node_list_n_ast_node(list) >= 2)
 		{
 			child = isl_ast_node_list_get_ast_node(list, 0);
-			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators), Halide::Internal::Stmt());
+			child2 = isl_ast_node_list_get_ast_node(list, 1);
 
-			for (i = 1; i < isl_ast_node_list_n_ast_node(list); i++)
+			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators),
+					*coli::generate_Halide_stmt_from_isl_node(lib, child2, level+1, generated_stmts, iterators));
+
+			for (i = 2; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
 				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators));
 			}
 		}
+		else
+			// The above code expects the isl ast block to have at least two statemenets so that the
+			// Halide::Internal::Block::make works (because that function expects its two inputs to be define).
+			coli::error("Expecting the block to have at least 2 statements but it does not.", true);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_for)
 	{
+		IF_DEBUG2(coli::str_dump("Generating code for Halide::For\n"));
+
 		isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
 		char *iterator_str = isl_ast_expr_to_C_str(iter);
 
@@ -246,6 +257,8 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{
+		IF_DEBUG2(coli::str_dump("Generating code for user node\n"));
+
 		isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
 		isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
 		isl_id *id = isl_ast_expr_get_id(arg);
@@ -255,12 +268,15 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		generated_stmts.push_back(computation_name);
 
 		coli::computation *comp = computations_list.find(computation_name)->second;
+
 		comp->create_halide_assignement(iterators);
 
 		*result = comp->stmt;
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_if)
 	{
+		IF_DEBUG2(coli::str_dump("Generating code for conditional\n"));
+
 		isl_ast_expr *cond = isl_ast_node_if_get_cond(node);
 		isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
 		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
