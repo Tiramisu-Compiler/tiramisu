@@ -8,7 +8,7 @@ High Priority
 		OK-- Applies the schedule on the iteration space.
 	OK- The user specifies the mapping from time space to memory buffers.
 	1- Apply the schedule on the memory mapping,
-    	2- Assert that the spaces of the schedule, data mapping are compatible
+    	OK- Assert that the spaces of the schedule, data mapping are compatible
 	(same number of dimensions, same tuple name, ...).
 	OK- Generate code:
 		OK- The identity schedule is used.
