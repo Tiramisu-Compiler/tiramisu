@@ -574,6 +574,14 @@ public:
 	}
 
 	/**
+	  * Return the access function of the computation.
+	  */
+	isl_map *get_access()
+	{
+		return access;
+	}
+
+	/**
 	  * Return the function where the computation is declared.
 	  */
 	coli::function *get_function()

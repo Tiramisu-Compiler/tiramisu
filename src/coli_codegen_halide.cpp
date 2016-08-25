@@ -19,6 +19,25 @@ extern std::map<std::string, coli::computation *> computations_list;
 extern int id_counter;
 
 /**
+  * Get the computation associated with a node.
+  */
+coli::computation *get_computation_name(isl_ast_node *node)
+{
+	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+	isl_id *id = isl_ast_expr_get_id(arg);
+	isl_ast_expr_free(arg);
+	std::string computation_name(isl_id_get_name(id));
+	isl_id_free(id);
+	coli::computation *comp = computations_list.find(computation_name)->second;
+
+	assert((comp != NULL) && "Computation not found for this node.");
+
+	return comp;
+}
+
+
+/**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
  */
@@ -34,20 +53,22 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	if (DEBUG2)
 	{
-		std::cout << "The iterator map of an AST leaf (after scheduling): " <<
-			std::endl;
+		coli::str_dump("The iterator map of an AST leaf (after scheduling):\n");
 		isl_pw_multi_aff_dump(iterator_map);
-		std::cout << std::endl;
+		coli::str_dump("\n");
 	}
 
 	// Find the name of the computation associated to this AST leaf node.
-	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
-	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
-	isl_id *id = isl_ast_expr_get_id(arg);
-	isl_ast_expr_free(arg);
-	std::string computation_name(isl_id_get_name(id));
-	isl_id_free(id);
-	coli::computation *comp = computations_list.find(computation_name)->second;
+	coli::computation *comp = get_computation_name(node);
+
+	// Check that the access domain is compatible with the time-processor representation.
+	// The must have the same tuple name and same number of dimensions.
+	int diff = strcmp(isl_set_get_tuple_name(comp->get_time_processor_representation()),
+			  isl_map_get_tuple_name(comp->get_access(), isl_dim_in));
+	assert((diff == 0) && "Name of space in time-processor space and the domain of the access function must be identical");
+	int n_dim_tpr = isl_space_dim(isl_set_get_space(comp->get_time_processor_representation()), isl_dim_set);
+	int n_dim_a  = isl_space_dim(isl_map_get_space(comp->get_access()), isl_dim_in);
+	assert((n_dim_a == n_dim_tpr) && "Number of dimensions in the time-processor space and the domain of the access function must be identical");
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(comp->access));
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
@@ -57,10 +78,9 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	if (DEBUG2)
 	{
-		std::cout << "Index expression (for an AST leaf): ";
-		std::cout.flush();
+		coli::str_dump("Index expression (for an AST leaf):\n");
 		isl_ast_expr_dump(index_expr);
-		std::cout << std::endl;
+		coli::str_dump("\n");
 	}
 
 	return node;
