@@ -570,21 +570,7 @@ public:
 		computations_list.insert(std::pair<std::string, computation *>(name, this));
 		function = fct;
 		function->add_computation(this);
-
-		std::string domain = isl_set_to_str(iter_space);
-		std::string schedule_map_str = isl_set_to_str(iter_space);
-		domain = domain.erase(domain.find("{"), 1);
-		domain = domain.erase(domain.find("}"), 1);
-		if (schedule_map_str.find(":") != std::string::npos)
-			domain = domain.erase(domain.find(":"), domain.length() - domain.find(":"));
-		std::string domain_without_name = domain;
-
-		if (schedule_map_str.find(":") != std::string::npos)
-			schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain_without_name);
-		else
-			schedule_map_str.insert(schedule_map_str.find("]")+1, " -> " + domain_without_name);
-
-		this->schedule = isl_map_read_from_str(ctx, schedule_map_str.c_str());
+		this->set_identity_schedule();
 	}
 
 	/**
@@ -689,6 +675,26 @@ public:
 	}
 
 	void create_halide_assignement(std::vector<std::string> &iterators);
+
+	/**
+	  * Set the identity schedule.
+	  */
+	void set_identity_schedule()
+	{
+		std::string domain = isl_set_to_str(this->get_iteration_space_representation());
+		std::string schedule_map_str = isl_set_to_str(this->get_iteration_space_representation());
+		domain = domain.erase(domain.find("{"), 1);
+		domain = domain.erase(domain.find("}"), 1);
+		if (schedule_map_str.find(":") != std::string::npos)
+			domain = domain.erase(domain.find(":"), domain.length() - domain.find(":"));
+
+		if (schedule_map_str.find(":") != std::string::npos)
+			schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain);
+		else
+			schedule_map_str.insert(schedule_map_str.find("]")+1, " -> " + domain);
+
+		this->set_schedule(schedule_map_str.c_str());
+	}
 
 	/**
 	  * Tile the two dimension \p inDim0 and \p inDim1 with rectangular
