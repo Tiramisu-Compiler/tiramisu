@@ -976,6 +976,7 @@ class map
 public:
 	coli::parser::space parameters;
 	std::string domain_name;
+	std::string range_name;
 	coli::parser::space domain;
 	coli::parser::space range;
 	coli::parser::constraint constraints;
@@ -1005,15 +1006,19 @@ public:
 		domain.parse(domain_space_str);
 
 		int pos_arrow = map_str.find("->", domain_space_end);
+		int first_char_after_arrow = pos_arrow + 2;
 
 		assert(pos_arrow != std::string::npos);
 
-		int range_space_begin = map_str.find("[", pos_arrow)+1;
-		int range_space_end = map_str.find("]",pos_arrow)-1;
+		int range_space_begin = map_str.find("[", first_char_after_arrow)+1;
+		int range_space_begin_pre_bracket = map_str.find("[", first_char_after_arrow)-1;
+		int range_space_end = map_str.find("]", first_char_after_arrow)-1;
 
 		assert(range_space_begin != std::string::npos);
 		assert(range_space_end != std::string::npos);
 
+		range_name = map_str.substr(first_char_after_arrow,
+		 		             range_space_begin_pre_bracket-first_char_after_arrow+1);
 		std::string range_space_str = map_str.substr(range_space_begin,
 							 range_space_end-range_space_begin+1);
 		range.parse(range_space_str);
@@ -1025,17 +1030,24 @@ public:
 								     map_end-column_pos+1);
 			constraints.parse(constraints_str);
 		}
+
+		if (DEBUG2)
+		{
+			coli::str_dump("Parsing the map : " + map_str + "\n");
+			coli::str_dump("The parsed map  : " + this->get_str() + "\n");
+		}
 	};
 
 	std::string get_str()
 	{
 		std::string result;
 
-		result = "{" + domain_name + "[" + domain.get_str() + "] -> [" +
+		result = "{" + domain_name + "[" + domain.get_str() + "] ->" +
+			  range_name + "[" +
 			  range.get_str() + "]";
 
 		if (constraints.empty() == false)
-			result = result + " : " + constraints.get_str();
+			result = result + " :" + constraints.get_str();
 
 		result = result + " }";
 

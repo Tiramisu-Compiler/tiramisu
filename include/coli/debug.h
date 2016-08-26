@@ -12,6 +12,7 @@
 namespace coli
 {
 	void str_dump(std::string str);
+	void str_dump(std::string str, const char * str2);
 
 	void error(std::string str, bool exit);
 }

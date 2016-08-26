@@ -9,6 +9,11 @@ void str_dump(std::string str)
 	std::cout.flush();	
 }
 
+void str_dump(std::string str, const char * str2)
+{
+	std::cout << str << " " << str2;
+	std::cout.flush();	
+}
 
 void error(std::string str, bool exit_program)
 {

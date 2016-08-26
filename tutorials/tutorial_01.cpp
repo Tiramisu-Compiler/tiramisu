@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 	// Set the schedule of each computation.
 	// The identity schedule means that the program order is not modified
 	// (i.e. no optimization is applied).
-	computation0.set_identity_schedule();
+	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
 
 	// Generate the time-processor IR of each computation in the library
@@ -43,14 +43,14 @@ int main(int argc, char **argv)
 	lib.dump_time_processor_IR();
 
 	// Create a memory buffer (2 dimensional).
-	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
+	coli::buffer buf0("buf0", 1, {10*10}, Halide::Int(8), NULL, &fct);
 
 	// Add the buffer as an argument to the function fct.
 	fct.add_argument(buf0);
 
 	// Map the computations to the buffers (i.e. where each computation
 	// should be stored in the buffer).
-	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
+	computation0.SetWriteAccess("{S0[i0,j0,i1,j1]->buf0[i0*2*2*5+j0*2*2+i1*2+j1]}");
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();

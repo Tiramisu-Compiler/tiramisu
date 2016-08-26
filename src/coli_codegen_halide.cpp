@@ -46,20 +46,28 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
+	IF_DEBUG2(coli::str_dump("Debugging stmt_code_generator():"));
+
 	/* Retrieve the iterator map and store it in computations_list.  */
 	isl_union_map *schedule = isl_ast_build_get_schedule(build);
+
+	IF_DEBUG2(coli::str_dump("\n\tSchedule:", isl_union_map_to_str(schedule)));
+
 	isl_map *map = isl_map_reverse(isl_map_from_union_map(schedule));
+
+	IF_DEBUG2(coli::str_dump("\n\tSchedule reversed:", isl_map_to_str(map)));
+
 	isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
 
-	if (DEBUG2)
-	{
-		coli::str_dump("The iterator map of an AST leaf (after scheduling):\n");
-		isl_pw_multi_aff_dump(iterator_map);
-		coli::str_dump("\n");
-	}
+	IF_DEBUG2(coli::str_dump("\n\tThe iterator map of an AST leaf (after scheduling):", isl_pw_multi_aff_to_str(iterator_map)));
 
 	// Find the name of the computation associated to this AST leaf node.
 	coli::computation *comp = get_computation_name(node);
+
+	// Transform the access function using the schedule.
+	isl_map *access = comp->get_access();
+
+	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
 
 	// Check that the access domain is compatible with the time-processor representation.
 	// The must have the same tuple name and same number of dimensions.
@@ -70,18 +78,24 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	int n_dim_a  = isl_space_dim(isl_map_get_space(comp->get_access()), isl_dim_in);
 	assert((n_dim_a == n_dim_tpr) && "Number of dimensions in the time-processor space and the domain of the access function must be identical");
 
-	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(comp->access));
+	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
+
+	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_from_map(access):", isl_pw_multi_aff_to_str(index_aff)));
+
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
 
-	isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(build, isl_pw_multi_aff_copy(iterator_map));
+	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):", isl_pw_multi_aff_to_str(iterator_map)));
+
+	isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(build,
+			isl_pw_multi_aff_copy(iterator_map));
+
+	IF_DEBUG2(coli::str_dump("\n\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):", isl_ast_expr_to_C_str(index_expr)));
+
 	comp->index_expr = index_expr;
 
-	if (DEBUG2)
-	{
-		coli::str_dump("Index expression (for an AST leaf):\n");
-		isl_ast_expr_dump(index_expr);
-		coli::str_dump("\n");
-	}
+	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):",
+				isl_ast_expr_to_C_str(index_expr)));
+	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
 }
@@ -185,6 +199,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 	Halide::Internal::Stmt *result = new Halide::Internal::Stmt();
 	int i;
 
+	IF_DEBUG2(str_dump("Debugging generate_Halide_stmt_from_isl_node(): "));
 	if (isl_ast_node_get_type(node) == isl_ast_node_block)
 	{
 		IF_DEBUG2(coli::str_dump("Generating code for a block\n"));
