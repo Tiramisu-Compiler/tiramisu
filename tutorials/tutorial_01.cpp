@@ -36,11 +36,11 @@ int main(int argc, char **argv)
 	// Add the buffer as an argument to the function fct.
 	fct.add_argument(buf0);
 
-	// Map the computations to the buffers (i.e. where each computation
+	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
-	// coli::constext::set_auto_data_mapping(false).
+	// coli::context::set_auto_data_mapping(false).
 	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
 
 	// Dump the iteration space IR (input)

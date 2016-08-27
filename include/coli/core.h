@@ -302,11 +302,8 @@ public:
 		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
 		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
 		isl_union_map *sched = this->get_time_processor_identity_relation();
-		isl_union_map_dump(sched);
-		isl_union_set_dump(this->get_time_processor_representation());
 		sched = isl_union_map_intersect_domain(sched,
 				this->get_time_processor_representation());
-		isl_union_map_dump(sched);
 		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(sched));
 		isl_ast_build_free(ast_build);
 	}
