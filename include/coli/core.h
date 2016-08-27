@@ -294,17 +294,24 @@ public:
 	  */
 	void gen_isl_ast()
 	{
-		assert(this->get_schedule_map() != NULL);
+		// Check that time_processor representation has already been computed,
+		// that the time_processor identity relation can be computed without any
+		// issue and check that the access was provided.
+		assert(this->get_time_processor_representation() != NULL);
+		assert(this->get_time_processor_identity_relation() != NULL);
+		assert(this->get_access() != NULL);
 
 		isl_ctx *ctx = this->get_ctx();
 		isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 		isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
 		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
 		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
+
 		isl_union_map *sched = this->get_time_processor_identity_relation();
 		sched = isl_union_map_intersect_domain(sched,
 				this->get_time_processor_representation());
 		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(sched));
+
 		isl_ast_build_free(ast_build);
 	}
 

@@ -1,8 +1,6 @@
 High Priority
 --------------
 - Scheduling
-    3- Assert that a schedule, an access function are provided before code
-    generation.
     4- All schedules should be aligned before scheduling otherwise shorter
     times will be considered small lexicographically.
     5- Currently, when multiple computations are declared, users can specify the
