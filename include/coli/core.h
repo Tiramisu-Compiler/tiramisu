@@ -299,7 +299,6 @@ public:
 		// issue and check that the access was provided.
 		assert(this->get_time_processor_representation() != NULL);
 		assert(this->get_time_processor_identity_relation() != NULL);
-		assert(this->get_access() != NULL);
 
 		isl_ctx *ctx = this->get_ctx();
 		isl_ast_build *ast_build = isl_ast_build_alloc(ctx);

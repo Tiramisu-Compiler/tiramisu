@@ -21,7 +21,7 @@ extern int id_counter;
 /**
   * Get the computation associated with a node.
   */
-coli::computation *get_computation_name(isl_ast_node *node)
+coli::computation *get_computation(isl_ast_node *node)
 {
 	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
 	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -49,15 +49,21 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	IF_DEBUG2(coli::str_dump("Debugging stmt_code_generator():"));
 
 	// Find the name of the computation associated to this AST leaf node.
-	coli::computation *comp = get_computation_name(node);
+	coli::computation *comp = get_computation(node);
+
+	assert((comp != NULL) && "Computation not found!");;
 
 	/* Retrieve the iterator map and store it in computations_list.  */
 	isl_map *schedule;
 	isl_map *access = comp->get_access();
 
+	assert((access != NULL) && "An access function should be provided before generating code.");;
+
+
 	if (coli::context::get_auto_data_mapping() == true)
 	{
 		schedule = comp->get_schedule();
+		assert((schedule != NULL) && "A schedule should be provided before generating code.");
 		schedule = isl_map_set_tuple_name(schedule, isl_dim_out, "");
 	}
 	else
@@ -105,6 +111,17 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
+}
+
+void library::gen_halide_stmt()
+{
+	std::vector<std::string> generated_stmts;
+	std::vector<std::string> iterators;
+
+	for (auto func: this->get_functions())
+	{
+		func->halide_stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, iterators);
+	}
 }
 
 Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
@@ -203,6 +220,10 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
 Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
 {
+	assert(node != NULL);
+	assert(level >= 0);
+
+
 	Halide::Internal::Stmt *result = new Halide::Internal::Stmt();
 	int i;
 
