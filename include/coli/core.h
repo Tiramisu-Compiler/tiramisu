@@ -42,6 +42,52 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node,
 isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
 		isl_ast_build *build, void *user);
 
+/**
+  * A class that holds all the global variables necessary for COLi.
+  * It also holds COLi options.
+  */
+class context
+{
+private:
+	static bool auto_data_mapping;
+
+public:
+	/**
+	  * If this option is set to true, COLi automatically
+	  * modifies the computation data mapping whenever a new
+	  * schedule is applied to a computation.
+	  * If it is set to false, it is up to the user to set
+	  * the right data mapping before code generation.
+	  */
+	static void set_auto_data_mapping(bool v)
+	{
+		context::auto_data_mapping = v;
+	}
+
+	/**
+	  * Return whether auto data mapping is set.
+	  * If auto data mapping is set, COLi automatically
+	  * modifies the computation data mapping whenever a new
+	  * schedule is applied to a computation.
+	  * If it is set to false, it is up to the user to set
+	  * the right data mapping before code generation.
+	  */
+	static bool get_auto_data_mapping()
+	{
+		return context::auto_data_mapping;
+	}
+
+	static void set_default_coli_options()
+	{
+		set_auto_data_mapping(true);
+	}
+
+	context()
+	{
+		set_default_coli_options();
+	}
+};
+
 
 /**
   * A class to represent a full library.  A library is composed of

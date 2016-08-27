@@ -14,6 +14,9 @@
 
 int main(int argc, char **argv)
 {
+	// Set default coli options.
+	coli::context::set_default_coli_options();
+
 	// Declare a library.  A library is composed of a set of functions.
 	coli::library lib("library0");
 
@@ -26,6 +29,19 @@ int main(int argc, char **argv)
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0(Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<10 and 0<=j<10}", &fct);
+
+	// Create a memory buffer (2 dimensional).
+	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
+
+	// Add the buffer as an argument to the function fct.
+	fct.add_argument(buf0);
+
+	// Map the computations to the buffers (i.e. where each computation
+	// should be stored in the buffer).
+	// This mapping will be updated automaticall when the schedule
+	// is applied.  To disable automatic data mapping updates use
+	// coli::constext::set_auto_data_mapping(false).
+	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
 
 	// Dump the iteration space IR (input)
 	// for each function in the library.
@@ -41,16 +57,6 @@ int main(int argc, char **argv)
 	// and dump the time-processor IR on stdout
 	lib.gen_time_processor_IR();
 	lib.dump_time_processor_IR();
-
-	// Create a memory buffer (2 dimensional).
-	coli::buffer buf0("buf0", 1, {10*10}, Halide::Int(8), NULL, &fct);
-
-	// Add the buffer as an argument to the function fct.
-	fct.add_argument(buf0);
-
-	// Map the computations to the buffers (i.e. where each computation
-	// should be stored in the buffer).
-	computation0.SetWriteAccess("{S0[i0,j0,i1,j1]->buf0[i0*2*2*5+j0*2*2+i1*2+j1]}");
 
 	// Generate an AST (abstract Syntax Tree)
 	lib.gen_isl_ast();
