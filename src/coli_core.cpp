@@ -22,47 +22,6 @@ bool context::auto_data_mapping;
 int id_counter = 0;
 
 
-isl_schedule *create_schedule_tree(isl_ctx *ctx,
-		   isl_union_set *udom,
-		   isl_union_map *sched_map)
-{
-	assert(ctx != NULL);
-	assert(udom != NULL);
-	assert(sched_map != NULL);
-
-	isl_union_set *scheduled_domain = isl_union_set_apply(udom, sched_map);
-	IF_DEBUG2(coli::str_dump(" Scheduled domain: "));
-	IF_DEBUG2(isl_union_set_dump(scheduled_domain));
-
-	isl_schedule *sched_tree = isl_schedule_from_domain(scheduled_domain);
-
-	return sched_tree;
-}
-
-/* Schedule the iteration space.  */
-isl_union_set *create_time_space_representation(
-		__isl_take isl_union_set *set,
-		__isl_take isl_union_map *umap)
-{
-	assert(set != NULL);
-	assert(umap != NULL);
-
-	return isl_union_set_apply(set, umap);
-}
-
-isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
-		   isl_schedule *sched_tree)
-{
-	assert(ctx != NULL);
-	assert(sched_tree != NULL);
-
-	isl_ast_build *ast = isl_ast_build_alloc(ctx);
- 	isl_ast_node *program = isl_ast_build_node_from_schedule(ast, sched_tree);
-	isl_ast_build_free(ast);
-
-	return program;
-}
-
 // TODO: Test this function
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector)

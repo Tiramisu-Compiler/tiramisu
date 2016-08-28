@@ -1126,18 +1126,4 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 }
 
-/** Transform the iteration space into time-processor space representation.
- *  This is done by applying the schedule to the iteration space.
- */
-isl_union_set *create_time_space_representation(
-		__isl_take isl_union_set *set,
-		__isl_take isl_union_map *umap);
-
-isl_schedule *create_schedule_tree(isl_ctx *ctx,
-		   isl_union_set *udom,
-		   isl_union_map *sched_map);
-
-isl_ast_node *generate_isl_ast_node(isl_ctx *ctx,
-		   isl_schedule *sched_tree);
-
 #endif
