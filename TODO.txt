@@ -26,6 +26,7 @@ High Priority
 		- Add flag is_binded to a computation to check if it binded to a variable.  When generating code,
 		  check that the arguments are all binded.  Currently we do not support unbinded arguments.
 		- Function arguments should be transformed into computations.
+	8- Add a computation to the outputs of a function. function.add_output().
 	- compute_halide_call_graph().
 
 
