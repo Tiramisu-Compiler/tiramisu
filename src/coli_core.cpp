@@ -39,7 +39,17 @@ void split_string(std::string str, std::string delimiter,
 
 void coli::parser::space::parse(std::string space)
 {
-	split_string(space, ",", this->dimensions);
+	std::vector<std::string> vector;
+	split_string(space, ",", vector);
+
+	// Check if the vector has constraints
+	for (int i=0; i<vector.size(); i++)
+		if (vector[i].find("=") != std::string::npos)
+		{
+			vector[i] = vector[i].erase(0, vector[i].find("=")+1);
+		}
+
+	this->dimensions = vector;
 }
 
 std::string generate_new_variable_name()
@@ -236,6 +246,7 @@ void computation::split(int inDim0, int sizeX)
 				          isl_dim_out));
 	assert(sizeX >= 1);
 
+	IF_DEBUG2(str_dump("\nDebugging split()"));
 
 	coli::parser::map map(isl_map_to_str(this->schedule));
 
@@ -249,12 +260,13 @@ void computation::split(int inDim0, int sizeX)
 	// Add the relations
 	std::string relation1 = outDim0 + "=floor(" + inDim0_str + "/" +
 		std::to_string(sizeX) + ") ";
-	std::string relation2 = outDim1 + "=" + inDim0_str + "%" +
-	 	std::to_string(sizeX);
+	std::string relation2 = outDim1 + "=(" + inDim0_str + "%" +
+	 	std::to_string(sizeX) + ")";
 
 	map.constraints.add(relation1);
 	map.constraints.add(relation2);
 
+	IF_DEBUG2(coli::str_dump("\nSchedule after splitting: ", map.get_str().c_str()));
 	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
 }
 

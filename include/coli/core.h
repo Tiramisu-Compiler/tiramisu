@@ -915,6 +915,9 @@ namespace parser
   */
 class space
 {
+private:
+	std::vector<std::string> constraints;
+
 public:
 	std::vector<std::string> dimensions;
 
@@ -946,6 +949,16 @@ public:
 
 		return result;
 	};
+
+	void add_constraint(std::string cst)
+	{
+		constraints.push_back(cst);
+	}
+
+	std::vector<std::string> get_constraints()
+	{
+		return constraints;
+	}
 
 	void replace(std::string in, std::string out1, std::string out2)
 	{
@@ -990,6 +1003,12 @@ public:
 	{
 		assert(str.empty() == false);
 		constraints.push_back(str);
+	}
+
+	void add_constraints(std::vector<std::string> vec)
+	{
+		for (auto cst:vec)
+			constraints.push_back(cst);
 	}
 
 	std::string get_str()
@@ -1064,6 +1083,8 @@ public:
 		std::string range_space_str = map_str.substr(range_space_begin,
 							 range_space_end-range_space_begin+1);
 		range.parse(range_space_str);
+		constraints.add_constraints(range.get_constraints());
+
 		int column_pos = map_str.find(":")+1;
 
 		if (column_pos != std::string::npos)
@@ -1089,7 +1110,7 @@ public:
 			  range.get_str() + "]";
 
 		if (constraints.empty() == false)
-			result = result + " :" + constraints.get_str();
+			result = result + " : " + constraints.get_str();
 
 		result = result + " }";
 
