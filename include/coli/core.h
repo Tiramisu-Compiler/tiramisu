@@ -306,10 +306,7 @@ public:
 		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
 		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
 
-		isl_union_map *sched = this->get_time_processor_identity_relation();
-		sched = isl_union_map_intersect_domain(sched,
-				this->get_time_processor_representation());
-		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(sched));
+		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
 
 		isl_ast_build_free(ast_build);
 	}
@@ -738,19 +735,15 @@ public:
 	  */
 	void set_identity_schedule()
 	{
-		std::string domain = isl_set_to_str(this->get_iteration_space_representation());
-		std::string schedule_map_str = isl_set_to_str(this->get_iteration_space_representation());
-		domain = domain.erase(domain.find("{"), 1);
-		domain = domain.erase(domain.find("}"), 1);
-		if (schedule_map_str.find(":") != std::string::npos)
-			domain = domain.erase(domain.find(":"), domain.length() - domain.find(":"));
-
-		if (schedule_map_str.find(":") != std::string::npos)
-			schedule_map_str.insert(schedule_map_str.find(":"), " -> " + domain);
-		else
-			schedule_map_str.insert(schedule_map_str.find("]")+1, " -> " + domain);
-
-		this->set_schedule(schedule_map_str.c_str());
+		isl_space *sp = isl_set_get_space(this->get_iteration_space_representation());
+		isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
+		sched = isl_map_intersect_domain(sched,
+				isl_set_copy(this->get_iteration_space_representation()));
+		sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
+		sched = isl_map_coalesce(sched);
+		IF_DEBUG2(coli::str_dump("\nThe following identity schedule is set: ",
+					isl_map_to_str(sched)));
+		this->set_schedule(sched);
 	}
 
 	/**
@@ -789,9 +782,9 @@ public:
 	{
 		// The tuple name for the domain and the range
 		// should be identical.
-		int diff = strcmp(isl_map_get_tuple_name(map, isl_dim_in),
+		int diff = strcmp("",
 				  isl_map_get_tuple_name(map, isl_dim_out));
-		assert((diff == 0) && "Domain and range space names in the mapping from iteration space to processor-time must be identical.");
+		assert((diff == 0) && "Range space should not have a name.");
 
 		this->schedule = map;
 	}

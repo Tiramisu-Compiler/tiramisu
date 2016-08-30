@@ -59,17 +59,9 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	assert((access != NULL) && "An access function should be provided before generating code.");;
 
+	schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
 
-	if (coli::context::get_auto_data_mapping() == true)
-	{
-		schedule = comp->get_schedule();
-		assert((schedule != NULL) && "A schedule should be provided before generating code.");
-		schedule = isl_map_set_tuple_name(schedule, isl_dim_out, "");
-	}
-	else
-		schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
-
-	IF_DEBUG2(coli::str_dump("\n\tSchedule (after removing range space name):", isl_map_to_str(schedule)));
+	IF_DEBUG2(coli::str_dump("\n\tSchedule:", isl_map_to_str(schedule)));
 
 	isl_map *map = isl_map_reverse(isl_map_copy(schedule));
 
@@ -81,15 +73,6 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
 	IF_DEBUG2(coli::str_dump("\n"));
-
-	// Check that the access domain is compatible with the time-processor representation.
-	// The must have the same tuple name and same number of dimensions.
-	int diff = strcmp(isl_set_get_tuple_name(comp->get_time_processor_representation()),
-			  isl_map_get_tuple_name(comp->get_access(), isl_dim_in));
-	assert((diff == 0) && "Name of space in time-processor space and the domain of the access function must be identical");
-	int n_dim_tpr = isl_space_dim(isl_map_get_space(schedule), isl_dim_in);
-	int n_dim_a  = isl_space_dim(isl_map_get_space(access), isl_dim_in);
-	assert((n_dim_a == n_dim_tpr) && "Number of dimensions in the time-processor space and the domain of the access function must be identical");
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
 
