@@ -241,33 +241,58 @@ void computation::interchange(int inDim0, int inDim1)
  */
 void computation::split(int inDim0, int sizeX)
 {
+	assert(this->get_schedule() != NULL);
 	assert(inDim0 >= 0);
-	assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
-				          isl_dim_out));
+	assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()),
+					isl_dim_out));
 	assert(sizeX >= 1);
 
 	IF_DEBUG2(str_dump("\nDebugging split()"));
 
-	coli::parser::map map(isl_map_to_str(this->schedule));
+	isl_map *schedule = this->get_schedule();
 
-	std::string inDim0_str = map.range.dimensions.at(inDim0);
-	std::string outDim0 = generate_new_variable_name();
-	std::string outDim1 = generate_new_variable_name();
-	std::string outDimensions = outDim0 + "," + outDim1;
+	IF_DEBUG2(coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
 
-	map.range.replace(inDim0_str, outDim0, outDim1);
+	int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+	std::string map = "{[";
 
-	// Add the relations
-	std::string relation1 = outDim0 + "=floor(" + inDim0_str + "/" +
-		std::to_string(sizeX) + ") ";
-	std::string relation2 = outDim1 + "=(" + inDim0_str + "%" +
-	 	std::to_string(sizeX) + ")";
+	for (int i=0; i<n_dims; i++)
+	{
+		map = map + "i" + std::to_string(i);
+		if (i != n_dims-1)
+			map = map + ",";
+	}
 
-	map.constraints.add(relation1);
-	map.constraints.add(relation2);
+	map = map + "] -> [";
 
-	IF_DEBUG2(coli::str_dump("\nSchedule after splitting: ", map.get_str().c_str()));
-	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
+	for (int i=0; i<n_dims; i++)
+	{
+		if (i != inDim0)
+			map = map + "i" + std::to_string(i);
+		else
+			map = map + "c0,c1";
+
+		if (i != n_dims-1)
+			map = map + ",";
+	}
+
+	map = map + "] : c0 = floor(i" + std::to_string(inDim0) + "/" +
+		std::to_string(sizeX) + ") and c1 = (i" +
+		std::to_string(inDim0) + "%" + std::to_string(sizeX) +
+		")}";
+
+	std::cout << "\nmap = " << map << std::endl;
+	isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+	transformation_map = isl_map_set_tuple_id(transformation_map,
+			isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+	isl_id *id_range = isl_id_alloc(this->get_ctx(), "", NULL);
+	transformation_map = isl_map_set_tuple_id(transformation_map,
+			isl_dim_out, id_range);
+	schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+	IF_DEBUG2(coli::str_dump("\nSchedule after splitting: ", isl_map_to_str(schedule)));
+
+	this->set_schedule(schedule);
 }
 
 // Methods related to the coli::function class.

@@ -691,6 +691,14 @@ public:
 	}
 
 	/**
+	  * Return the context of the computations.
+	  */
+	isl_ctx *get_ctx()
+	{
+		return ctx;
+	}
+
+	/**
 	  * Tag the dimension \p dim of the computation to be parallelized.
 	  * The outermost loop level (which corresponds to the leftmost
 	  * dimension in the iteration space) is 0.
@@ -780,12 +788,6 @@ public:
 	  */
 	void set_schedule(isl_map *map)
 	{
-		// The tuple name for the domain and the range
-		// should be identical.
-		int diff = strcmp("",
-				  isl_map_get_tuple_name(map, isl_dim_out));
-		assert((diff == 0) && "Range space should not have a name.");
-
 		this->schedule = map;
 	}
 

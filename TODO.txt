@@ -12,7 +12,7 @@ High Priority
     - Tiling: support tiling when the loop size is not multiple of tile size.
     - Add Fusion(), Distribution() commands.
     - Add duplication().
-
+    - Unify/clean function names.
 
 - Halide support
 	- Add a vector of parameters to the function class.
