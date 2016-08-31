@@ -7,8 +7,6 @@ High Priority
     order between these computations only when the explicit schedule time is
     specified.  Enable users to express the order between computations if the
     .Tile(), .Split(), ... is used.
-    - Use proper isl_map functions to create the split() and interchange()
-	schedules rather than using parsing.
     - Tiling: support tiling when the loop size is not multiple of tile size.
     - Add Fusion(), Distribution() commands.
     - Add duplication().
