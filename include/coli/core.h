@@ -252,11 +252,11 @@ public:
 	}
 
 	/**
-	  * Return the time-processor representation of all the computations
+	  * Return the time-processor domain of all the computations
 	  * of the library.
-	  * In this representation, the logical time of execution and the
-	  * processor where the computation will be executed are both
-	  * specified.
+	  * In the time-processor representation, the logical time of
+	  * execution and the processor where the computation will be
+	  * executed are both specified.
 	  */
 	isl_union_set *get_time_processor_domain();
 
@@ -308,7 +308,7 @@ public:
 	void gen_halide_stmt();
 
 	/**
-	  * Generate the time-processor representation of the each
+	  * Generate the time-processor domain of the each
 	  * function in the library.
 	  * In this representation, the logical time of execution and the
 	  * processor where the computation will be executed are both
@@ -517,16 +517,16 @@ class computation {
 	isl_ctx *ctx;
 
 	/**
-	  * Time-processor representation if the computation.
+	  * Time-processor domain of the computation.
 	  * In this representation, the logical time of execution and the
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
-	isl_set *time_processor_space;
+	isl_set *time_processor_domain;
 
 public:
 	/**
-	  * Iteration space representation of the computation.
+	  * Iteration domain of the computation.
 	  * In this representation, the order of execution of computations
 	  * is not specified, the computations are also not mapped to memory.
 	 */
@@ -618,7 +618,7 @@ public:
 		access = NULL;
 		schedule = NULL;
 		stmt = Halide::Internal::Stmt();
-		time_processor_space = NULL;
+		time_processor_domain = NULL;
 
 		assert(fct->get_library() != NULL);
 
@@ -649,11 +649,11 @@ public:
 	}
 
 	/**
-	  * Return the iteration space representation of the computation.
+	  * Return the iteration domain of the computation.
 	  * In this representation, the order of execution of computations
 	  * is not specified, the computations are also not mapped to memory.
 	  */
-	isl_set *get_iteration_space_representation()
+	isl_set *get_iteration_domain()
 	{
 		// Every computation should have an iteration space.
 		assert(iter_space != NULL);
@@ -662,14 +662,14 @@ public:
 	}
 
 	/**
-	  * Return the time-processor representation of the computation.
+	  * Return the time-processor domain of the computation.
 	  * In this representation, the logical time of execution and the
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
 	isl_set *get_time_processor_domain()
 	{
-		return time_processor_space;
+		return time_processor_domain;
 	}
 
 	/**
@@ -711,18 +711,18 @@ public:
 	void tag_vector_dimension(int dim);
 
 	/**
-	  * Generate the time-processor representation of the computation.
+	  * Generate the time-processor domain of the computation.
 	  * In this representation, the logical time of execution and the
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
 	void gen_time_processor_domain()
 	{
-		assert(this->get_iteration_space_representation() != NULL);
+		assert(this->get_iteration_domain() != NULL);
 		assert(this->get_schedule() != NULL);
 
-		time_processor_space = isl_set_apply(
-				isl_set_copy(this->get_iteration_space_representation()),
+		time_processor_domain = isl_set_apply(
+				isl_set_copy(this->get_iteration_domain()),
 				isl_map_copy(this->get_schedule()));
 	}
 
@@ -748,10 +748,10 @@ public:
 	  */
 	void set_identity_schedule()
 	{
-		isl_space *sp = isl_set_get_space(this->get_iteration_space_representation());
+		isl_space *sp = isl_set_get_space(this->get_iteration_domain());
 		isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
 		sched = isl_map_intersect_domain(sched,
-				isl_set_copy(this->get_iteration_space_representation()));
+				isl_set_copy(this->get_iteration_domain()));
 		sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
 		sched = isl_map_coalesce(sched);
 		IF_DEBUG2(coli::str_dump("\nThe following identity schedule is set: ",
