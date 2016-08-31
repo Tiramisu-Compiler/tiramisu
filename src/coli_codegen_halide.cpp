@@ -15,7 +15,6 @@
 namespace coli
 {
 
-extern std::map<std::string, coli::computation *> computations_list;
 extern int id_counter;
 
 /**
@@ -43,7 +42,7 @@ void library::gen_isl_ast()
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
 	ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
-	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
+	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
 
 	this->align_schedules();
 	this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
@@ -52,10 +51,23 @@ void library::gen_isl_ast()
 }
 
 
+computation *library::get_computation_by_name(std::string name)
+{
+	coli::computation *res_comp = NULL;
+
+	for (auto fct: this->get_functions())
+		for (auto comp: fct->get_computations())
+			if (name.compare(comp->get_name()) == 0)
+				res_comp = comp;
+
+	assert((res_comp != NULL) && "Computation not found");
+	return	res_comp;
+}
+
 /**
   * Get the computation associated with a node.
   */
-coli::computation *get_computation(isl_ast_node *node)
+coli::computation *get_computation_by_node(coli::library *lib, isl_ast_node *node)
 {
 	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
 	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -63,7 +75,8 @@ coli::computation *get_computation(isl_ast_node *node)
 	isl_ast_expr_free(arg);
 	std::string computation_name(isl_id_get_name(id));
 	isl_id_free(id);
-	coli::computation *comp = computations_list.find(computation_name)->second;
+	coli::computation *comp =
+		lib->get_computation_by_name(computation_name);
 
 	assert((comp != NULL) && "Computation not found for this node.");
 
@@ -80,14 +93,15 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
+	coli::library *lib = (coli::library *) user;
+
 	IF_DEBUG2(coli::str_dump("\n\nDebugging stmt_code_generator():"));
 
 	// Find the name of the computation associated to this AST leaf node.
-	coli::computation *comp = get_computation(node);
+	coli::computation *comp = get_computation_by_node(lib, node);
 
 	assert((comp != NULL) && "Computation not found!");;
 
-	/* Retrieve the iterator map and store it in computations_list.  */
 	isl_map *schedule;
 	isl_map *access = comp->get_access();
 
@@ -346,7 +360,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		isl_id_free(id);
 		generated_stmts.push_back(computation_name);
 
-		coli::computation *comp = computations_list.find(computation_name)->second;
+		coli::computation *comp = lib.get_computation_by_name(computation_name);
 
 		comp->create_halide_assignement(iterators);
 

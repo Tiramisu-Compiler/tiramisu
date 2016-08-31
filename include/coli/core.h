@@ -24,9 +24,6 @@ class function;
 class computation;
 class buffer;
 
-extern std::map<std::string, computation *> computations_list;
-
-
 /**
   * A class that holds all the global variables necessary for COLi.
   * It also holds COLi options.
@@ -144,6 +141,13 @@ public:
 	{
 		return functions;
 	}
+
+	/**
+	  * Return the computation that has the name \p str.
+	  * This function assumes that the library has only one computation
+	  * that has that name.
+	  */
+	computation *get_computation_by_name(std::string str);
 
 	/**
 	  * This functions applies to the schedule of each computation
@@ -615,7 +619,6 @@ public:
 		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
 		this->expression = expr;
-		computations_list.insert(std::pair<std::string, computation *>(name, this));
 		function = fct;
 		function->add_computation(this);
 		this->set_identity_schedule();

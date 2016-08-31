@@ -2,6 +2,7 @@ High Priority
 --------------
 - General
     1- Cleaning:
+	- Fix iterators.
     	- Clean code.
     	- Unify names.
 	- Document function.
@@ -13,6 +14,7 @@ High Priority
 
 
 - Scheduling
+   3- Set iterator names correctly.
    4- Intersect iteration space with schedule before applying the schedule.
    5- Tiling: support tiling when the loop size is not multiple of tile size.
     - Add scheduling commands:
@@ -56,8 +58,6 @@ Low Priority
     possible.
 
 - General
-   - Trnasform computations_list from a global variable into a non global
-   variable.
    - Currently all loop iterators have an Int32 type.  Users should be able to
    choose which data type they can use (this is important to support loops over
    very large datasets).
