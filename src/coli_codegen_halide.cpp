@@ -46,7 +46,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
-	IF_DEBUG2(coli::str_dump("Debugging stmt_code_generator():"));
+	IF_DEBUG2(coli::str_dump("\n\nDebugging stmt_code_generator():"));
 
 	// Find the name of the computation associated to this AST leaf node.
 	coli::computation *comp = get_computation(node);
@@ -72,7 +72,6 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	IF_DEBUG2(coli::str_dump("\n\tThe iterator map of an AST leaf (after scheduling):", isl_pw_multi_aff_to_str(iterator_map)));
 
 	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
-	IF_DEBUG2(coli::str_dump("\n"));
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
 

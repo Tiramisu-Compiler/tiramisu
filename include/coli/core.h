@@ -161,6 +161,16 @@ public:
 	}
 
 	/**
+	  * This functions applies to the schedule of each computation
+	  * in the functions of the library.  It makes the dimensions of the
+	  * ranges of all the schedules equal.  This is done by adding
+	  * dimensions equal to 0 to the range of schedules.
+	  * This function is called automatically when gen_isl_ast()
+	  * or gen_time_processor_IR() are called.
+	  */
+	void align_schedules();
+
+	/**
 	  * Return true if the computation \p comp should be parallelized
 	  * at the loop level \p lev.
 	  */
@@ -297,8 +307,7 @@ public:
 		// Check that time_processor representation has already been computed,
 		// that the time_processor identity relation can be computed without any
 		// issue and check that the access was provided.
-		assert(this->get_time_processor_representation() != NULL);
-		assert(this->get_time_processor_identity_relation() != NULL);
+		assert(this->get_schedule_map() != NULL);
 
 		isl_ctx *ctx = this->get_ctx();
 		isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
@@ -306,6 +315,7 @@ public:
 		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
 		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
 
+		this->align_schedules();
 		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
 
 		isl_ast_build_free(ast_build);
@@ -485,6 +495,24 @@ public:
 	  * (the first added argument is the first function argument, ...).
 	  */
 	void add_argument(coli::buffer buf);
+
+	/**
+	  * This functions applies to the schedule of each computation
+	  * in the function.  It makes the dimensions of the ranges of
+	  * all the schedules equal.  This is done by adding dimensions
+	  * equal to 0 to the range of schedules.
+	  * This function is called automatically when gen_isl_ast()
+	  * or gen_time_processor_IR() are called.
+	  */
+	void align_schedules();
+
+	/**
+	 * This functions applies to the schedule of each computation
+	 * in the functions of the library.  It computes the maximal
+	 * dimension among the dimensions of the ranges of all the
+	 * schedules.
+	 */
+	int get_max_schedules_range_dim();
 
 	/**
 	  * Dump the iteration space representation of the function.

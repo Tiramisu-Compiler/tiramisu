@@ -1,6 +1,7 @@
 #include <isl/aff.h>
 #include <isl/set.h>
 #include <isl/map.h>
+#include <isl/constraint.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/ast_build.h>
@@ -297,6 +298,62 @@ void computation::split(int inDim0, int sizeX)
 
 // Methods related to the coli::function class.
 
+int coli::function::get_max_schedules_range_dim()
+{
+	int max_dim = 0;
+
+	for (auto comp: this->get_computations())
+	{
+		int m = isl_map_dim(comp->get_schedule(), isl_dim_out);
+		max_dim = std::max(max_dim, m);
+	}
+
+	return max_dim;
+}
+
+isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
+{
+	assert(map != NULL);
+	int mdim = isl_map_dim(map, isl_dim_out);
+	assert(max_dim >= mdim);
+
+	IF_DEBUG2(coli::str_dump("\n\tDebugging isl_map_align_range_dims()."));
+	IF_DEBUG2(coli::str_dump("\n\tInput map:", isl_map_to_str(map)));
+
+	map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
+
+	for (int i=mdim; i<max_dim; i++)
+	{
+		isl_space *sp = isl_map_get_space(map);
+		isl_local_space *lsp =
+			isl_local_space_from_space(isl_space_copy(sp));
+		isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+		cst = isl_constraint_set_coefficient_si(cst,
+				isl_dim_out, i, 1);
+		map = isl_map_add_constraint(map, cst);
+	}
+
+	IF_DEBUG2(coli::str_dump("\n\tAfter alignement, map:",
+				isl_map_to_str(map)));
+
+	return map;
+}
+
+void coli::function::align_schedules()
+{
+	IF_DEBUG2(coli::str_dump("\nDebugging align_schedules()."));
+
+	int max_dim = this->get_max_schedules_range_dim();
+
+	for (auto &comp: this->get_computations())
+	{
+		isl_map *sched = comp->get_schedule();
+		assert((sched != NULL) && "Schedules should be set before calling align_schedules");
+		sched = isl_map_align_range_dims(sched, max_dim);
+		comp->set_schedule(sched);
+	}
+}
+
 void coli::function::add_computation(computation *cpt)
 {
 	assert(cpt != NULL);
@@ -357,6 +414,12 @@ void coli::function::add_argument(coli::buffer buf)
 
 
 // Library related methods
+
+void coli::library::align_schedules()
+{
+	for (auto fct: this->get_functions())
+		fct->align_schedules();
+}
 
 void coli::library::add_vector_dimension(std::string stmt_name,
 		int vec_dim)

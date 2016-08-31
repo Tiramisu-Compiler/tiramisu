@@ -29,6 +29,7 @@ int main(int argc, char **argv)
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0(Halide::Expr((uint8_t) 3), "{S0[i,j]: 0<=i<10 and 0<=j<10}", &fct);
+	coli::computation computation1(Halide::Expr((uint8_t) 3), "{S1[i,j]: 0<=i<10 and 0<=j<10}", &fct);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
@@ -42,6 +43,7 @@ int main(int argc, char **argv)
 	// is applied.  To disable automatic data mapping updates use
 	// coli::context::set_auto_data_mapping(false).
 	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
+	computation1.SetWriteAccess("{S1[i,j]->buf0[i,j]}");
 
 	// Dump the iteration space IR (input)
 	// for each function in the library.
@@ -50,8 +52,9 @@ int main(int argc, char **argv)
 	// Set the schedule of each computation.
 	// The identity schedule means that the program order is not modified
 	// (i.e. no optimization is applied).
-	computation0.tile(0,1,2,2);
+	computation0.set_schedule("{S0[i,j]->[0,i,j]: 0<=i<10 and 0<=j<10}");
 	computation0.tag_parallel_dimension(0);
+	computation1.set_schedule("{S1[i,j]->[1,i,j]: 0<=i<10 and 0<=j<10}");
 
 	// Generate the time-processor IR of each computation in the library
 	// and dump the time-processor IR on stdout
