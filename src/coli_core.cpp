@@ -92,7 +92,7 @@ void coli::computation::tag_vector_dimension(int par_dim)
 	this->get_function()->get_library()->add_vector_dimension(this->get_name(), par_dim);
 }
 
-void computation::dump_iteration_space_IR()
+void computation::dump_iteration_domain()
 {
 	if (DEBUG)
 	{
@@ -100,67 +100,44 @@ void computation::dump_iteration_space_IR()
 	}
 }
 
-void library::dump_halide_IR()
+void library::dump_halide_stmt()
 {
 	for (auto func: this->get_functions())
-		coli::halide_IR_dump(func->get_halide_stmt());
+		if (DEBUG)
+		{
+			coli::str_dump("\n\n");
+			coli::str_dump("\nGenerated Halide Low Level IR:\n");
+			std::cout << func->get_halide_stmt();
+			coli::str_dump("\n\n\n\n");
+		}
 }
 
 
-void library::dump_time_processor_IR()
+void library::dump_time_processor_domain()
 {
-	// Create time space IR
+	// Create time space domain
 
 	if (DEBUG)
 	{
-		coli::str_dump("\n\nTime Space IR:\n");
+		coli::str_dump("\n\nTime-processor domain:\n");
 
 		for (auto func: this->get_functions())
 		{
 			coli::str_dump("Function " + func->get_name() + ":\n");
 			for (auto comp: func->get_computations())
 				isl_set_dump(
-					comp->get_time_processor_representation());
+					comp->get_time_processor_domain());
 		}
 
 		coli::str_dump("\n\n");
 	}
 }
 
-
-isl_union_map *library::get_time_processor_identity_relation()
-{
-	isl_union_map *result = NULL;
-	isl_space *space = NULL;
-
-	if ((this->functions.empty() == false)
-		&& (this->functions[0]->body.empty() == false))
-	{
-		space = isl_map_get_space(this->functions[0]->body[0]->get_time_processor_identity_relation());
-	}
-	else
-		return NULL;
-
-	assert(space != NULL);
-	result = isl_union_map_empty(isl_space_copy(space));
-
-	for (const auto &fct : this->functions)
-		for (const auto &cpt : fct->body)
-		{
-			isl_map *m = isl_map_copy(cpt->get_time_processor_identity_relation());
-			result = isl_union_map_union(isl_union_map_from_map(m), result);
-		}
-
-	return result;
-}
-
-void library::gen_time_processor_IR()
+void library::gen_time_processor_domain()
 {
 	for (auto func: this->get_functions())
-	{
 		for (auto comp: func->get_computations())
-			comp->gen_time_processor_IR();
-	}
+			comp->gen_time_processor_domain();
 }
 
 void computation::dump_schedule()
@@ -442,12 +419,12 @@ void coli::function::dump()
 	}
 }
 
-void coli::function::dump_iteration_space_IR()
+void coli::function::dump_iteration_domain()
 {
 	if (DEBUG)
 	{
 		for (auto cpt : this->body)
-		       cpt->dump_iteration_space_IR();
+		       cpt->dump_iteration_domain();
 	}
 }
 
@@ -496,15 +473,15 @@ void coli::library::add_parallel_dimension(std::string stmt_name,
 		std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::library::dump_iteration_space_IR()
+void coli::library::dump_iteration_domain()
 {
 	if (DEBUG)
 	{
-		coli::str_dump("\nIteration Space IR:\n");
+		coli::str_dump("\nIteration domain:\n");
 		for (const auto &fct : this->functions)
 		{
 			coli::str_dump("Function " + fct->get_name() + ":\n");
-			fct->dump_iteration_space_IR();
+			fct->dump_iteration_domain();
 		}
 		coli::str_dump("\n");
 	}
@@ -564,7 +541,7 @@ void coli::library::add_function(coli::function *fct)
 	this->functions.push_back(fct);
 }
 
-isl_union_set * coli::library::get_time_processor_representation()
+isl_union_set * coli::library::get_time_processor_domain()
 {
 	isl_union_set *result = NULL;
 	isl_space *space = NULL;
@@ -583,7 +560,7 @@ isl_union_set * coli::library::get_time_processor_representation()
 	for (const auto &fct : this->functions)
 		for (const auto &cpt : fct->body)
 		{
-			isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_representation());
+			isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_domain());
 			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
 		}
 
@@ -591,7 +568,7 @@ isl_union_set * coli::library::get_time_processor_representation()
 }
 
 
-isl_union_set * coli::library::get_iteration_spaces()
+isl_union_set * coli::library::get_iteration_domain()
 {
 	isl_union_set *result = NULL;
 	isl_space *space = NULL;
@@ -627,7 +604,7 @@ std::vector<Halide::Internal::Stmt> library::get_halide_stmts()
 	return stmts;
 }
 
-isl_union_map * coli::library::get_schedule_map()
+isl_union_map * coli::library::get_schedule()
 {
 	isl_union_map *result = NULL;
 	isl_space *space = NULL;
@@ -652,20 +629,5 @@ isl_union_map * coli::library::get_schedule_map()
 
 	return result;
 }
-
-
-// Halide IR related methods
-
-void halide_IR_dump(Halide::Internal::Stmt s)
-{
-	if (DEBUG)
-	{
-		coli::str_dump("\n\n");
-		coli::str_dump("\nGenerated Halide Low Level IR:\n");
-		std::cout << s;
-		coli::str_dump("\n\n\n\n");
-	}
-}
-
 
 }

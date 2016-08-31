@@ -36,7 +36,7 @@ void library::gen_isl_ast()
 	// Check that time_processor representation has already been computed,
 	// that the time_processor identity relation can be computed without any
 	// issue and check that the access was provided.
-	assert(this->get_schedule_map() != NULL);
+	assert(this->get_schedule() != NULL);
 
 	isl_ctx *ctx = this->get_ctx();
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
@@ -45,7 +45,7 @@ void library::gen_isl_ast()
 	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
 
 	this->align_schedules();
-	this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
+	this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule()));
 
 	isl_ast_build_free(ast_build);
 }
@@ -340,9 +340,9 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		// Change the type from Serial to parallel or vector if the
 		// current level was marked as such.
 		for (auto generated_stmt: generated_stmts)
-			if (lib.parallelize(generated_stmt, level))
+			if (lib.should_parallelize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Parallel;
-			else if (lib.vectorize(generated_stmt, level))
+			else if (lib.should_vectorize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Vectorized;
 
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,

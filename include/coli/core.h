@@ -1,5 +1,5 @@
-#ifndef _H_IR_
-#define _H_IR_
+#ifndef _H_COLI_CORE_
+#define _H_COLI_CORE_
 
 #include <isl/set.h>
 #include <isl/map.h>
@@ -82,7 +82,6 @@ public:
 class library
 {
 private:
-
 	/**
 	  * The name of the library.
 	  */
@@ -115,10 +114,18 @@ private:
 	  * should be parallelized.
 	  */
 	std::map<std::string, int> parallel_dimensions;
+
+	/**
+	  * A vector representing the vector dimensions.
+	  * A vector dimension is identified using the pair
+	  * <computation_name, level>, for example the pair
+	  * <S0, 0> indicates that the loop with level 0
+	  * (i.e. the outermost loop) around the computation S0
+	  * should be vectorized.
+	  */
 	std::map<std::string, int> vector_dimensions;
 
 public:
-
 	/**
 	  * Instantiate a library.
 	  * \p name is the name of the library.
@@ -155,7 +162,7 @@ public:
 	  * ranges of all the schedules equal.  This is done by adding
 	  * dimensions equal to 0 to the range of schedules.
 	  * This function is called automatically when gen_isl_ast()
-	  * or gen_time_processor_IR() are called.
+	  * or gen_time_processor_domain() are called.
 	  */
 	void align_schedules();
 
@@ -163,7 +170,7 @@ public:
 	  * Return true if the computation \p comp should be parallelized
 	  * at the loop level \p lev.
 	  */
-	bool parallelize(std::string comp, int lev)
+	bool should_parallelize(std::string comp, int lev)
 	{
 		assert(comp.length() > 0);
 		assert(lev >= 0);
@@ -180,7 +187,7 @@ public:
 	  * Return true if the computation \p comp should be vectorized
 	  * at the loop level \p lev.
 	  */
-	bool vectorize(std::string comp, int lev)
+	bool should_vectorize(std::string comp, int lev)
 	{
 		assert(comp.length() > 0);
 		assert(lev >= 0);
@@ -214,8 +221,17 @@ public:
 	  */
 	void add_function(coli::function *fct);
 
-	isl_union_set *get_iteration_spaces();
-	isl_union_map *get_schedule_map();
+	/**
+	  * Return the union of all the iteration domains
+	  * of the computations of the library.
+	  */
+	isl_union_set *get_iteration_domain();
+
+	/**
+	  * Return the union of all the schedules
+	  * of the computations of the library.
+	  */
+	isl_union_map *get_schedule();
 
 	/**
 	  * Return the isl context associated with this library.
@@ -230,8 +246,7 @@ public:
 	  */
 	isl_ast_node *get_isl_ast()
 	{
-		assert((ast != NULL) && ("Generate the ISL ast using gen_isl_ast()"
-					" before calling get_isl_ast()."));
+		assert((ast != NULL) && ("You should generate an ISL ast first (gen_isl_ast())."));
 
 		return ast;
 	}
@@ -243,7 +258,7 @@ public:
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
-	isl_union_set *get_time_processor_representation();
+	isl_union_set *get_time_processor_domain();
 
 	/**
 	  * Return a vector of Halide statements where each Halide statement
@@ -282,12 +297,6 @@ public:
 	  */
 	void gen_c_code();
 
-
-	/**
-	  * Get an identity relation for the time-processor representation.
-	  */
-	isl_union_map *get_time_processor_identity_relation();
-
 	/**
 	  * Generate an isl AST for the library.
 	  */
@@ -305,8 +314,7 @@ public:
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
-
-	void gen_time_processor_IR();
+	void gen_time_processor_domain();
 
 	/**
 	  * Set the isl context associated with this class.
@@ -317,16 +325,16 @@ public:
 	}
 
 	/**
-	  * Dump (on stdout) the iteration space representation of the library functions.
+	  * Dump (on stdout) the iteration domain of the library functions.
 	  * This is mainly useful for debugging.
 	  */
-	void dump_iteration_space_IR();
+	void dump_iteration_domain();
 
 	/**
-	  * Dump (on stdout) the time processor representation of the library functions.
+	  * Dump (on stdout) the time processor domain of the library functions.
 	  * This is mainly useful for debugging.
 	  */
-	void dump_time_processor_IR();
+	void dump_time_processor_domain();
 
 	/**
 	  * Dump (on stdout) the schedule of the library functions.
@@ -346,10 +354,10 @@ public:
 	void dump();
 
 	/**
-	  * Dump the Halide IR of each function of the library.
+	  * Dump the Halide stmt of each function of the library.
 	  * gen_halide_stmt should be called before calling this function.
 	  */
-	void dump_halide_IR();
+	void dump_halide_stmt();
 };
 
 
@@ -474,7 +482,7 @@ public:
 	  * all the schedules equal.  This is done by adding dimensions
 	  * equal to 0 to the range of schedules.
 	  * This function is called automatically when gen_isl_ast()
-	  * or gen_time_processor_IR() are called.
+	  * or gen_time_processor_domain() are called.
 	  */
 	void align_schedules();
 
@@ -487,9 +495,9 @@ public:
 	int get_max_schedules_range_dim();
 
 	/**
-	  * Dump the iteration space representation of the function.
+	  * Dump the iteration domain of the function.
 	  */
-	void dump_iteration_space_IR();
+	void dump_iteration_domain();
 
 	/**
 	  * Dump the schedule of the computations of the function.
@@ -659,24 +667,9 @@ public:
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
-	isl_set *get_time_processor_representation()
+	isl_set *get_time_processor_domain()
 	{
 		return time_processor_space;
-	}
-
-	/**
-	  * Get an identity map for the time processor representation.
-	  * This is a map that takes one element of the time-processor space
-	  * and returns the same element in the time-processor space.
-	  */
-	isl_map *get_time_processor_identity_relation()
-	{
-		assert(get_time_processor_representation() != NULL);
-
-		isl_space *sp = isl_set_get_space(get_time_processor_representation());
-		isl_map *out = isl_map_identity(isl_space_map_from_set(sp));
-		out = isl_map_set_tuple_name(out, isl_dim_out, "");
-		return out;
 	}
 
 	/**
@@ -723,7 +716,7 @@ public:
 	  * processor where the computation will be executed are both
 	  * specified.
 	  */
-	void gen_time_processor_IR()
+	void gen_time_processor_domain()
 	{
 		assert(this->get_iteration_space_representation() != NULL);
 		assert(this->get_schedule() != NULL);
@@ -805,10 +798,10 @@ public:
 
 
 	/**
-	  * Dump the iteration space representation of the computation.
+	  * Dump the iteration domain of the computation.
 	  * This is useful for debugging.
 	  */
-	void dump_iteration_space_IR();
+	void dump_iteration_domain();
 
 	/**
 	  * Dump the schedule of the computation.
@@ -1136,7 +1129,7 @@ public:
 
 // Halide IR specific functions
 
-void halide_IR_dump(Halide::Internal::Stmt s);
+void halide_stmt_dump(Halide::Internal::Stmt s);
 
 /**
   * Generate a Halide statement from an ISL ast node object in the ISL ast

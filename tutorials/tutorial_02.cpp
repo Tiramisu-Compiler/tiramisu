@@ -46,8 +46,8 @@ coli::function blur_3x3(
 	blur_x.compute_at(blur_y, 1); //This call is subject to change.
 	blur_x.vectorize(1, 8);
 
-	// Generate time-processor IR
-	gen_time_processor_IR();
+	// Generate time-processor domain
+	gen_time_processor_domain();
 
 	// Data mapping
 	- Declare buffers
@@ -121,8 +121,8 @@ int main(int argc, char **argv)
 	// which maps each computation to a time and a processor.
 	// --------------------------------------------------------------
 
-	// Generate the time-processor IR of each computation in the library.
-	lib.gen_time_processor_IR();
+	// Generate the time-processor domain of each computation in the library.
+	lib.gen_time_processor_domain();
 	
 	// --------------------------------------------------------------
 	// Part IV: Create the buffers and do the mapping from computations
