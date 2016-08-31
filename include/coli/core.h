@@ -26,27 +26,6 @@ class buffer;
 
 extern std::map<std::string, computation *> computations_list;
 
-/**
-  * A number identifying the root dimension level.
-  * THis should be used with computation::after().
-  */
-extern char root_dimension;
-
-/**
-  * A helper function to split a string.
-  */
-void split_string(std::string str, std::string delimiter,
-		  std::vector<std::string> &vector);
-
-/**
- * Retrieve the access function of the ISL AST leaf node (which represents a
- * computation).  Store the access in computation->access.
- */
-isl_ast_node *stmt_code_generator(isl_ast_node *node,
-		isl_ast_build *build, void *user);
-
-isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
-		isl_ast_build *build, void *user);
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -308,24 +287,7 @@ public:
 	/**
 	  * Generate an isl AST for the library.
 	  */
-	void gen_isl_ast()
-	{
-		// Check that time_processor representation has already been computed,
-		// that the time_processor identity relation can be computed without any
-		// issue and check that the access was provided.
-		assert(this->get_schedule_map() != NULL);
-
-		isl_ctx *ctx = this->get_ctx();
-		isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
-		isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
-		ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
-		ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, NULL);
-
-		this->align_schedules();
-		this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule_map()));
-
-		isl_ast_build_free(ast_build);
-	}
+	void gen_isl_ast();
 
 	/**
 	  * Generate a Halide stmt for each function in the library.
@@ -596,6 +558,12 @@ public:
 	isl_ast_expr *index_expr;
 
 	/**
+  	  * A number identifying the root dimension level.
+  	  * THis should be used with computation::after().
+	  */
+	const static int root_dimension = -1;
+
+	/**
 	  * Create a computation.
 	  * \p expr is an expression representing the computation.
 	  *
@@ -765,7 +733,7 @@ public:
 	/**
 	  * Schedule this computation to run after the comp computation
 	  * at dimension dim of the time-processor space.
-	  * Use coli::root_dimension to indeicate the root dimension
+	  * Use computation::root_dimension to indicate the root dimension
 	  * (i.e. the outermost processor-time dimension).
 	  */
 	void after(computation &comp, int dim);
@@ -1035,12 +1003,7 @@ public:
 	std::vector<std::string> constraints;
 	constraint() { };
 
-	void parse(std::string str)
-	{
-		assert(str.empty() == false);
-
-		split_string(str, "and", this->constraints);
-	};
+	void parse(std::string str);
 
 	void add(std::string str)
 	{

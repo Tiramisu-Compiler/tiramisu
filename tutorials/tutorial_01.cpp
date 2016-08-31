@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
 	computation1.set_schedule("{S1[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
-	computation1.after(computation0, coli::root_dimension);
+	computation1.after(computation0, coli::computation::root_dimension);
 
 	// Generate the time-processor IR of each computation in the library
 	// and dump the time-processor IR on stdout

@@ -1,17 +1,31 @@
 High Priority
 --------------
-- Scheduling
- 5.5- Intersect iteration space with schedule before applying the schedule.
-    - Tiling: support tiling when the loop size is not multiple of tile size.
-    - Add Fusion(), Distribution() commands.
-    - Add duplication().
-    - Unify/clean function names.
+- General
+    1- Cleaning:
+    	- Clean code.
+    	- Unify names.
+	- Document function.
+        - Simplify tutorial_01.
+    2- DEBUG:
+    	- Add DEBUG3
+	- Add indentation to DEBUG.
+	- Organize the output.
 
+
+- Scheduling
+   4- Intersect iteration space with schedule before applying the schedule.
+   5- Tiling: support tiling when the loop size is not multiple of tile size.
+    - Add scheduling commands:
+	- fuse(),
+	- split(),
+	- duplicate()
+
+ 
 - Halide support
 	- Add a vector of parameters to the function class.
 	6- New class parameters:
-		6.1- a class to represent iteration set parameters.
-		6.2- during code generation, parameters are generated before any loops start
+		- a class to represent iteration set parameters.
+		- during code generation, parameters are generated before any loops start
 		  to be generated.  Parameters are supposed to constant throughout the whole
 		  program.
 	7- Changes on the computation class:

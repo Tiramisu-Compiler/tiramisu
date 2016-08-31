@@ -19,13 +19,13 @@ namespace coli
 std::map<std::string, computation *> computations_list;
 bool context::auto_data_mapping;
 
-// A number identifying the root dimension.
-char root_dimension = -1;
-
 // Used for the generation of new variable names.
 int id_counter = 0;
 
 
+/**
+  * A helper function to split a string.
+  */
 // TODO: Test this function
 void split_string(std::string str, std::string delimiter,
 		  std::vector<std::string> &vector)
@@ -40,6 +40,13 @@ void split_string(std::string str, std::string delimiter,
 	token = str.substr(0, pos);
 	vector.push_back(token);
 }
+
+void coli::parser::constraint::parse(std::string str)
+{
+	assert(str.empty() == false);
+
+	split_string(str, "and", this->constraints);
+};
 
 void coli::parser::space::parse(std::string space)
 {
@@ -233,7 +240,7 @@ void computation::after(computation &comp, int dim)
 	assert(sched2 != NULL);
 	std::cout << "dim = " << dim << ",  isl_map_dim(sched1, isl_dim_out) = " << isl_map_dim(sched1, isl_dim_out) << std::endl;
 	assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
-	assert(dim >= coli::root_dimension);
+	assert(dim >= computation::root_dimension);
 	assert(dim < (signed int) isl_map_dim(sched2, isl_dim_out));
 
 	sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
@@ -659,5 +666,6 @@ void halide_IR_dump(Halide::Internal::Stmt s)
 		coli::str_dump("\n\n\n\n");
 	}
 }
+
 
 }
