@@ -17,7 +17,7 @@ namespace coli
 {
 
 std::map<std::string, computation *> computations_list;
-bool context::auto_data_mapping;
+bool global::auto_data_mapping;
 
 // Used for the generation of new variable names.
 int id_counter = 0;

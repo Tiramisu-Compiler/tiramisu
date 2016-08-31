@@ -15,7 +15,7 @@
 int main(int argc, char **argv)
 {
 	// Set default coli options.
-	coli::context::set_default_coli_options();
+	coli::global::set_default_coli_options();
 
 	// Declare a library.  A library is composed of a set of functions.
 	coli::library lib("library0");
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
-	// coli::context::set_auto_data_mapping(false).
+	// coli::global::set_auto_data_mapping(false).
 	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
 	computation1.SetWriteAccess("{S1[i,j]->buf0[i,j]}");
 

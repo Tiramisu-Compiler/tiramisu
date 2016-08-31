@@ -31,7 +31,7 @@ extern std::map<std::string, computation *> computations_list;
   * A class that holds all the global variables necessary for COLi.
   * It also holds COLi options.
   */
-class context
+class global
 {
 private:
 	static bool auto_data_mapping;
@@ -46,7 +46,7 @@ public:
 	  */
 	static void set_auto_data_mapping(bool v)
 	{
-		context::auto_data_mapping = v;
+		global::auto_data_mapping = v;
 	}
 
 	/**
@@ -59,7 +59,7 @@ public:
 	  */
 	static bool get_auto_data_mapping()
 	{
-		return context::auto_data_mapping;
+		return global::auto_data_mapping;
 	}
 
 	static void set_default_coli_options()
@@ -67,7 +67,7 @@ public:
 		set_auto_data_mapping(true);
 	}
 
-	context()
+	global()
 	{
 		set_default_coli_options();
 	}
