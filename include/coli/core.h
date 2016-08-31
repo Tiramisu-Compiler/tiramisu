@@ -524,13 +524,14 @@ class computation {
 	  */
 	isl_set *time_processor_domain;
 
-public:
 	/**
 	  * Iteration domain of the computation.
 	  * In this representation, the order of execution of computations
 	  * is not specified, the computations are also not mapped to memory.
 	 */
-	isl_set *iter_space;
+	isl_set *iteration_domain;
+
+public:
 
 	/**
 	  * Schedule of the computation.
@@ -624,8 +625,8 @@ public:
 
 		this->ctx = fct->get_library()->get_ctx();
 
-		iter_space = isl_set_read_from_str(ctx, iteration_space_str.c_str());
-		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iter_space), isl_dim_type::isl_dim_set));
+		iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
 		this->expression = expr;
 		function = fct;
 		function->add_computation(this);
@@ -656,9 +657,9 @@ public:
 	isl_set *get_iteration_domain()
 	{
 		// Every computation should have an iteration space.
-		assert(iter_space != NULL);
+		assert(iteration_domain != NULL);
 
-		return iter_space;
+		return iteration_domain;
 	}
 
 	/**

@@ -96,7 +96,7 @@ void computation::dump_iteration_domain()
 {
 	if (DEBUG)
 	{
-		isl_set_dump(this->iter_space);
+		isl_set_dump(this->get_iteration_domain());
 	}
 }
 
@@ -153,7 +153,7 @@ void computation::dump()
 	if (DEBUG)
 	{
 		std::cout << "computation \"" << this->name << "\"" << std::endl;
-		isl_set_dump(this->iter_space);
+		isl_set_dump(this->get_iteration_domain());
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
 		coli::str_dump("Halide statement:\n");
@@ -237,7 +237,7 @@ void computation::tile(int inDim0, int inDim1,
 	assert(sizeY > 0);
 	assert(inDim0 >= 0);
 	assert(inDim1 >= 0);
-	assert(this->iter_space != NULL);
+	assert(this->get_iteration_domain() != NULL);
 	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
 							isl_dim_out));
 
@@ -549,7 +549,7 @@ isl_union_set * coli::library::get_time_processor_domain()
 	if ((this->functions.empty() == false)
 			&& (this->functions[0]->body.empty() == false))
 	{
-		space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
+		space = isl_set_get_space(this->functions[0]->body[0]->get_iteration_domain());
 	}
 	else
 		return NULL;
@@ -576,7 +576,7 @@ isl_union_set * coli::library::get_iteration_domain()
 	if ((this->functions.empty() == false)
 			&& (this->functions[0]->body.empty() == false))
 	{
-		space = isl_set_get_space(this->functions[0]->body[0]->iter_space);
+		space = isl_set_get_space(this->functions[0]->body[0]->get_iteration_domain());
 	}
 	else
 		return NULL;
@@ -587,7 +587,7 @@ isl_union_set * coli::library::get_iteration_domain()
 	for (const auto &fct : this->functions)
 		for (const auto &cpt : fct->body)
 		{
-			isl_set *cpt_iter_space = isl_set_copy(cpt->iter_space);
+			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
 			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
 		}
 
