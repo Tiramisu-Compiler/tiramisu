@@ -27,6 +27,12 @@ class buffer;
 extern std::map<std::string, computation *> computations_list;
 
 /**
+  * A number identifying the root dimension level.
+  * THis should be used with computation::after().
+  */
+extern char root_dimension;
+
+/**
   * A helper function to split a string.
   */
 void split_string(std::string str, std::string delimiter,
@@ -756,6 +762,13 @@ public:
 				isl_map_copy(this->get_schedule()));
 	}
 
+	/**
+	  * Schedule this computation to run after the comp computation
+	  * at dimension dim of the time-processor space.
+	  * Use coli::root_dimension to indeicate the root dimension
+	  * (i.e. the outermost processor-time dimension).
+	  */
+	void after(computation &comp, int dim);
 
 	void SetWriteAccess(std::string access_str)
 	{

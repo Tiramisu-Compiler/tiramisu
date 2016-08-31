@@ -19,6 +19,9 @@ namespace coli
 std::map<std::string, computation *> computations_list;
 bool context::auto_data_mapping;
 
+// A number identifying the root dimension.
+char root_dimension = -1;
+
 // Used for the generation of new variable names.
 int id_counter = 0;
 
@@ -193,6 +196,51 @@ void computation::set_schedule(std::string map_str)
 	assert(map != NULL);
 
 	this->set_schedule(map);
+}
+
+/**
+  * Add a dimension to the map in the specified position.
+  * A constraint that indicates that the dim is equal to a constant
+  * is added.
+  */
+isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map,
+		int dim_pos, int constant)
+{
+	assert(map != NULL);
+	assert(dim_pos+1 >= 0);
+	assert(dim_pos < (signed int) isl_map_dim(map, isl_dim_out));
+
+	map = isl_map_insert_dims(map, isl_dim_out, dim_pos+1, 1);
+
+	isl_space *sp = isl_map_get_space(map);
+	isl_local_space *lsp =
+		isl_local_space_from_space(isl_space_copy(sp));
+	isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+	cst = isl_constraint_set_coefficient_si(cst,
+			isl_dim_out, dim_pos+1, 1);
+	cst = isl_constraint_set_constant_si(cst, (-1)*constant);
+	map = isl_map_add_constraint(map, cst);
+
+	return map;
+}
+
+void computation::after(computation &comp, int dim)
+{
+	isl_map *sched1 = comp.get_schedule();
+	isl_map *sched2 = this->get_schedule();
+
+	assert(sched1 != NULL);
+	assert(sched2 != NULL);
+	std::cout << "dim = " << dim << ",  isl_map_dim(sched1, isl_dim_out) = " << isl_map_dim(sched1, isl_dim_out) << std::endl;
+	assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
+	assert(dim >= coli::root_dimension);
+	assert(dim < (signed int) isl_map_dim(sched2, isl_dim_out));
+
+	sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+	sched2 = isl_map_add_dim_and_eq_constraint(sched2, dim, 1);
+
+	comp.set_schedule(sched1);
+	this->set_schedule(sched2);
 }
 
 void computation::tile(int inDim0, int inDim1,

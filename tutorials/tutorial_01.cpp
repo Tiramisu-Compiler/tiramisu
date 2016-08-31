@@ -52,9 +52,10 @@ int main(int argc, char **argv)
 	// Set the schedule of each computation.
 	// The identity schedule means that the program order is not modified
 	// (i.e. no optimization is applied).
-	computation0.set_schedule("{S0[i,j]->[0,i,j]: 0<=i<10 and 0<=j<10}");
+	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
-	computation1.set_schedule("{S1[i,j]->[1,i,j]: 0<=i<10 and 0<=j<10}");
+	computation1.set_schedule("{S1[i,j]->[i,j]: 0<=i<10 and 0<=j<10}");
+	computation1.after(computation0, coli::root_dimension);
 
 	// Generate the time-processor IR of each computation in the library
 	// and dump the time-processor IR on stdout
