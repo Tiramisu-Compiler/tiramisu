@@ -1,12 +1,11 @@
 High Priority
 --------------
 - Scheduling
-    4- All schedules should be aligned before scheduling otherwise shorter
-    times will be considered small lexicographically.
     5- Currently, when multiple computations are declared, users can specify the
     order between these computations only when the explicit schedule time is
     specified.  Enable users to express the order between computations if the
     .Tile(), .Split(), ... is used.
+ 5.5- Intersect iteration space with schedule before applying the schedule.
     - Tiling: support tiling when the loop size is not multiple of tile size.
     - Add Fusion(), Distribution() commands.
     - Add duplication().
