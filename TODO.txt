@@ -1,12 +1,6 @@
 High Priority
 --------------
 - General
-    1- Cleaning:
-	- Fix iterators.
-    	- Clean code.
-    	- Unify names.
-	- Document function.
-        - Simplify tutorial_01.
     2- DEBUG:
     	- Add DEBUG3
 	- Add indentation to DEBUG.
