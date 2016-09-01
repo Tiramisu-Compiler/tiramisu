@@ -45,7 +45,14 @@ void library::gen_isl_ast()
 	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
 
 	this->align_schedules();
-	this->ast = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_copy(this->get_schedule()));
+
+	// Intersect the iteration domain with the domain of the schedule.
+	isl_union_map *umap =
+		isl_union_map_intersect_domain(
+			isl_union_map_copy(this->get_schedule()),
+			isl_union_set_copy(this->get_iteration_domain()));
+
+	this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
 
 	isl_ast_build_free(ast_build);
 }

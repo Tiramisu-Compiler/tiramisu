@@ -8,7 +8,6 @@ High Priority
 
 
 - Scheduling
-   4- Intersect iteration space with schedule before applying the schedule.
    5- Tiling: support tiling when the loop size is not multiple of tile size.
     - Add scheduling commands:
 	- fuse(),
