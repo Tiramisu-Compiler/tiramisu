@@ -259,12 +259,73 @@ void computation::interchange(int inDim0, int inDim1)
 	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
 				          		isl_dim_out));
 
-	coli::parser::map map(isl_map_to_str(this->schedule));
+	IF_DEBUG2(str_dump("\nDebugging interchange()"));
 
-	std::iter_swap(map.range.dimensions.begin()+inDim0,
-			map.range.dimensions.begin()+inDim1);
+	isl_map *schedule = this->get_schedule();
 
-	this->schedule = isl_map_read_from_str(this->ctx, map.get_str().c_str());
+	IF_DEBUG2(coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
+
+	int n_dims = isl_map_dim(schedule, isl_dim_out);
+	std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out,
+			inDim0);
+	std::string inDim1_str = isl_map_get_dim_name(schedule, isl_dim_out,
+			inDim1);
+
+	std::vector<isl_id *> dimensions;
+
+	std::string map = "{[";
+
+	for (int i=0; i<n_dims; i++)
+	{
+		map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+		if (i != n_dims-1)
+			map = map + ",";
+	}
+
+	map = map + "] -> [";
+
+	for (int i=0; i<n_dims; i++)
+	{
+		if ((i != inDim0) && (i != inDim1))
+		{
+			map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+			dimensions.push_back(isl_map_get_dim_id(schedule,
+						isl_dim_out, i));
+		}
+		else if (i == inDim0)
+		{
+			map = map + inDim1_str;
+			isl_id *id1 = isl_id_alloc(this->get_ctx(),
+					inDim1_str.c_str(), NULL);
+			dimensions.push_back(id1);
+		}
+		else if (i == inDim1)
+		{
+			map = map + inDim0_str;
+			isl_id *id1 = isl_id_alloc(this->get_ctx(),
+					inDim0_str.c_str(), NULL);
+			dimensions.push_back(id1);
+		}
+
+		if (i != n_dims-1)
+			map = map + ",";
+	}
+
+	map = map + "]}";
+
+	IF_DEBUG2(coli::str_dump("\nTransformation map = ", map.c_str()));
+
+	isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+	transformation_map = isl_map_set_tuple_id(transformation_map,
+			isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+	isl_id *id_range = isl_id_alloc(this->get_ctx(), "", NULL);
+	transformation_map = isl_map_set_tuple_id(transformation_map,
+			isl_dim_out, id_range);
+	schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+	IF_DEBUG2(coli::str_dump("\nSchedule after interchange: ", isl_map_to_str(schedule)));
+
+	this->set_schedule(schedule);
 }
 
 /**
@@ -284,14 +345,21 @@ void computation::split(int inDim0, int sizeX)
 
 	isl_map *schedule = this->get_schedule();
 
+	std::string inDim0_str(isl_map_get_dim_name(schedule,
+				isl_dim_out, inDim0)); 
+	std::string outDim0_str = generate_new_variable_name();
+	std::string outDim1_str = generate_new_variable_name();
+
 	IF_DEBUG2(coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
 
 	int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
 	std::string map = "{[";
 
+	std::vector<isl_id *> dimensions;
+
 	for (int i=0; i<n_dims; i++)
 	{
-		map = map + "i" + std::to_string(i);
+		map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
 		if (i != n_dims-1)
 			map = map + ",";
 	}
@@ -301,24 +369,41 @@ void computation::split(int inDim0, int sizeX)
 	for (int i=0; i<n_dims; i++)
 	{
 		if (i != inDim0)
-			map = map + "i" + std::to_string(i);
+		{
+			map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+			dimensions.push_back(isl_map_get_dim_id(schedule,
+						isl_dim_out, i));
+		}
 		else
-			map = map + "c0,c1";
+		{
+			map = map + outDim0_str + "," + outDim1_str;
+			isl_id *id0 = isl_id_alloc(this->get_ctx(),
+					outDim0_str.c_str(), NULL);
+			isl_id *id1 = isl_id_alloc(this->get_ctx(),
+					outDim1_str.c_str(), NULL);
+			dimensions.push_back(id0);
+			dimensions.push_back(id1);
+		}
 
 		if (i != n_dims-1)
 			map = map + ",";
 	}
 
-	map = map + "] : c0 = floor(i" + std::to_string(inDim0) + "/" +
-		std::to_string(sizeX) + ") and c1 = (i" +
-		std::to_string(inDim0) + "%" + std::to_string(sizeX) +
-		")}";
+	map = map + "] : " + outDim0_str + " = floor(" + inDim0_str + "/" +
+		std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
+		inDim0_str + "%" + std::to_string(sizeX) + ")}";
 
-	std::cout << "\nmap = " << map << std::endl;
+	IF_DEBUG2(coli::str_dump("\nTransformation map = ", map.c_str()));
+
 	isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+	for (int i=0; i< dimensions.size(); i++)
+		transformation_map = isl_map_set_dim_id(transformation_map,
+				isl_dim_out, i, isl_id_copy(dimensions[i]));
+
 	transformation_map = isl_map_set_tuple_id(transformation_map,
 			isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
-	isl_id *id_range = isl_id_alloc(this->get_ctx(), "", NULL);
+	isl_id *id_range = isl_id_alloc(this->get_ctx(), " ", NULL);
 	transformation_map = isl_map_set_tuple_id(transformation_map,
 			isl_dim_out, id_range);
 	schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));

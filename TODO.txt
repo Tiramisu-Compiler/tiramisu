@@ -1,28 +1,29 @@
 High Priority
 --------------
 - General
-     - DEBUG:
+    1- DEBUG:
     	- Add DEBUG3
 	- Add indentation to DEBUG.
 	- Organize the output.
 
 
 - Scheduling
-   5- Tiling: support tiling when the loop size is not multiple of tile size.
+   3- Test multiple successive transformations to test the split() and
+   interchange() regourously.
     - Add scheduling commands:
 	- fuse(),
 	- split(),
 	- duplicate()
     - split() and interchange() should be done regourously.  Now setting the space names is flicky.
-
+    - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
  
 - Halide support
-	- Add a vector of parameters to the function class.
 	6- New class parameters:
 		- a class to represent iteration set parameters.
 		- during code generation, parameters are generated before any loops start
 		  to be generated.  Parameters are supposed to constant throughout the whole
 		  program.
+		- Add a vector of parameters to the function class.
 	7- Changes on the computation class:
       		- The constructor should not take a Halide expression, the Halide expression
 		  is now set using a separate function.
