@@ -1,20 +1,20 @@
 High Priority
 --------------
 - General
-    2- DEBUG:
+     - DEBUG:
     	- Add DEBUG3
 	- Add indentation to DEBUG.
 	- Organize the output.
 
 
 - Scheduling
-   3- Set iterator names correctly.
    4- Intersect iteration space with schedule before applying the schedule.
    5- Tiling: support tiling when the loop size is not multiple of tile size.
     - Add scheduling commands:
 	- fuse(),
 	- split(),
 	- duplicate()
+    - split() and interchange() should be done regourously.  Now setting the space names is flicky.
 
  
 - Halide support

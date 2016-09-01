@@ -742,7 +742,7 @@ public:
 		this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 	}
 
-	void create_halide_assignement(std::vector<std::string> &iterators);
+	void create_halide_assignement();
 
 	/**
 	  * Set the identity schedule.
@@ -1131,15 +1131,6 @@ public:
 // Halide IR specific functions
 
 void halide_stmt_dump(Halide::Internal::Stmt s);
-
-/**
-  * Generate a Halide statement from an ISL ast node object in the ISL ast
-  * tree.
-  * Level represents the level of the node in the schedule.  0 means root.
-  */
-Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
-		int level, std::vector<std::string> &generated_stmts,
-		std::vector<std::string> &iterators);
 
 }
 

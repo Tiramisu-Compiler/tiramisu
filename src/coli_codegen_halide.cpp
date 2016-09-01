@@ -143,17 +143,6 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	return node;
 }
 
-void library::gen_halide_stmt()
-{
-	std::vector<std::string> generated_stmts;
-	std::vector<std::string> iterators;
-
-	for (auto func: this->get_functions())
-	{
-		func->halide_stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, iterators);
-	}
-}
-
 Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 {
 	Halide::Expr result;
@@ -240,15 +229,13 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 	return result;
 }
 
-isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
-{
-
-	return node;
-}
-
-// Level represents the level of the node in the schedule.  0 means root.
+/**
+  * Generate a Halide statement from an ISL ast node object in the ISL ast
+  * tree.
+  * Level represents the level of the node in the schedule.  0 means root.
+  */
 Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
-		int level, std::vector<std::string> &generated_stmts, std::vector<std::string> &iterators)
+		int level, std::vector<std::string> &generated_stmts)
 {
 	assert(node != NULL);
 	assert(level >= 0);
@@ -270,13 +257,13 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 			child = isl_ast_node_list_get_ast_node(list, 0);
 			child2 = isl_ast_node_list_get_ast_node(list, 1);
 
-			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators),
-					*coli::generate_Halide_stmt_from_isl_node(lib, child2, level+1, generated_stmts, iterators));
+			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts),
+					*coli::generate_Halide_stmt_from_isl_node(lib, child2, level+1, generated_stmts));
 
 			for (i = 2; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts, iterators));
+				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts));
 			}
 		}
 		else
@@ -290,11 +277,6 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 		isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
 		char *iterator_str = isl_ast_expr_to_C_str(iter);
-
-		// Add this iterator to the list of iterators.
-		// This list is used later when generating access of inner
-		// statements.
-		iterators.push_back(std::string(iterator_str));
 
 		isl_ast_expr *init = isl_ast_node_for_get_init(node);
 		isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
@@ -334,7 +316,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(lib, body, level+1, generated_stmts, iterators);
+		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(lib, body, level+1, generated_stmts);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
 
 		// Change the type from Serial to parallel or vector if the
@@ -362,7 +344,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 		coli::computation *comp = lib.get_computation_by_name(computation_name);
 
-		comp->create_halide_assignement(iterators);
+		comp->create_halide_assignement();
 
 		*result = comp->stmt;
 	}
@@ -376,12 +358,28 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 		*result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
 				*coli::generate_Halide_stmt_from_isl_node(lib, if_stmt,
-					level+1, generated_stmts, iterators),
+					level+1, generated_stmts),
 				*coli::generate_Halide_stmt_from_isl_node(lib, else_stmt,
-					level+1, generated_stmts, iterators));
+					level+1, generated_stmts));
 	}
 
 	return result;
+}
+
+void library::gen_halide_stmt()
+{
+	std::vector<std::string> generated_stmts;
+
+	for (auto func: this->get_functions())
+	{
+		func->halide_stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+	}
+}
+
+isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
+{
+
+	return node;
 }
 
 /**
@@ -426,7 +424,7 @@ Halide::Expr linearize_access(Halide::Buffer *buffer,
  * The statement will assign the computations to a memory buffer based on the
  * access function provided in access.
  */
-void computation::create_halide_assignement(std::vector<std::string> &iterators)
+void computation::create_halide_assignement()
 {
 	   assert(this->access != NULL);
 
@@ -452,18 +450,6 @@ void computation::create_halide_assignement(std::vector<std::string> &iterators)
 
 	   auto index_expr = this->index_expr;
 	   assert(index_expr != NULL);
-
-	   //TODO: Currently the names of the iterators in the ISL AST and
-	   //the names that are generated when creating the Halide IR are
-	   //equivalent by chance.  They should be made always equivalent.
-
-	   if (DEBUG2)
-	   {
-		   std::cout << "List of iterators: ";
-		   for (auto iter: iterators)
-			   std::cout << iter << ", ";
-		   std::cout << std::endl;
-	   }
 
 	   Halide::Expr index = coli::linearize_access(buffer, index_expr);
 
