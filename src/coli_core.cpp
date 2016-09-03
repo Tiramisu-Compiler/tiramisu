@@ -22,6 +22,46 @@ bool global::auto_data_mapping;
 // Used for the generation of new variable names.
 int id_counter = 0;
 
+/**
+ * Retrieve the access function of the ISL AST leaf node (which represents a
+ * computation).  Store the access in computation->access.
+ */
+isl_ast_node *stmt_code_generator(isl_ast_node *node,
+		isl_ast_build *build, void *user);
+
+isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
+		isl_ast_build *build, void *user);
+
+
+/**
+  * Generate an isl AST for the library.
+  */
+void library::gen_isl_ast()
+{
+	// Check that time_processor representation has already been computed,
+	// that the time_processor identity relation can be computed without any
+	// issue and check that the access was provided.
+	assert(this->get_schedule() != NULL);
+
+	isl_ctx *ctx = this->get_ctx();
+	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
+	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
+	ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
+	ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
+
+	this->align_schedules();
+
+	// Intersect the iteration domain with the domain of the schedule.
+	isl_union_map *umap =
+		isl_union_map_intersect_domain(
+			isl_union_map_copy(this->get_schedule()),
+			isl_union_set_copy(this->get_iteration_domain()));
+
+	this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
+
+	isl_ast_build_free(ast_build);
+}
+
 
 /**
   * A helper function to split a string.
