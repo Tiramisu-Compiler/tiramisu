@@ -19,7 +19,6 @@ High Priority
 
  
 - Halide support
-	6- Align parameters.
 	7- Changes on the computation class:
       		- The constructor should not take a Halide expression, the Halide expression
 		  is now set using a separate function.

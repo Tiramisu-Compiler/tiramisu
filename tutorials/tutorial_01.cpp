@@ -27,6 +27,7 @@ int main(int argc, char **argv)
 	// constant or a variable that does not change value during the
 	// execution of the function.
 	coli::parameter p0("N", Halide::Expr((int32_t) 10), &fct);
+	coli::parameter p1("M", Halide::Expr((int32_t) 10), &fct);
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:
@@ -34,7 +35,7 @@ int main(int argc, char **argv)
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0(Halide::Expr((uint8_t) 3), "[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &fct);
-	coli::computation computation1(Halide::Expr((uint8_t) 3), "[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", &fct);
+	coli::computation computation1(Halide::Expr((uint8_t) 3), "[M]->{S1[i,j]: 0<=i<M and 0<=j<M}", &fct);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
@@ -59,7 +60,7 @@ int main(int argc, char **argv)
 	// (i.e. no optimization is applied).
 	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
-	computation1.set_schedule("[N]->{S1[i,j]->[i,j]: 0<=i<N and 0<=j<N}");
+	computation1.set_schedule("{S1[i,j]->[i,j]}");
 	computation1.after(computation0, coli::computation::root_dimension);
 
 	// Generate the time-processor domain of each computation in the library
