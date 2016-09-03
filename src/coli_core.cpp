@@ -471,6 +471,11 @@ void coli::function::align_schedules()
 	}
 }
 
+void coli::function::add_parameter(coli::parameter param)
+{
+	parameters.push_back(param);
+}
+
 void coli::function::add_computation(computation *cpt)
 {
 	assert(cpt != NULL);

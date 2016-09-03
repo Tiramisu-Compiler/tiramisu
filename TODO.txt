@@ -16,14 +16,10 @@ High Priority
 	- duplicate()
     - split() and interchange() should be done regourously.  Now setting the space names is flicky.
     - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
+
  
 - Halide support
-	6- New class parameters:
-		- a class to represent iteration set parameters.
-		- during code generation, parameters are generated before any loops start
-		  to be generated.  Parameters are supposed to constant throughout the whole
-		  program.
-		- Add a vector of parameters to the function class.
+	6- Align parameters.
 	7- Changes on the computation class:
       		- The constructor should not take a Halide expression, the Halide expression
 		  is now set using a separate function.

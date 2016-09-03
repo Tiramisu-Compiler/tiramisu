@@ -216,7 +216,7 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 				break;
 			case isl_ast_op_fdiv_q:
 			case isl_ast_op_pdiv_q:
-				result = Halide::floor(op0);
+				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(op0));
 				break;
 			case isl_ast_op_pdiv_r:
 				result = Halide::Internal::Mod::make(op0, op1);
@@ -394,17 +394,30 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 
 void library::gen_halide_stmt()
 {
+	// This vector is used in generate_Halide_stmt_from_isl_node to figure
+	// out what are the statements that have already been visited in the
+	// AST tree.
 	std::vector<std::string> generated_stmts;
+	Halide::Internal::Stmt *stmt = new Halide::Internal::Stmt();
 
 	for (auto func: this->get_functions())
 	{
-		func->halide_stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+		stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+
+		// Generate the parameters of the function.
+		for (auto param: func->get_parameters())
+		{
+			 *stmt = Halide::Internal::LetStmt::make(
+					 param.get_name(),
+					 param.get_expr(), *stmt);
+		}
+
+		func->halide_stmt = stmt;
 	}
 }
 
 isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-
 	return node;
 }
 
