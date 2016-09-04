@@ -364,8 +364,8 @@ void library::gen_halide_stmt()
 	{
 		stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
 
-		// Generate the parameters of the function.
-		for (auto param: func->get_parameters())
+		// Generate the invariants of the function.
+		for (auto param: func->get_invariants())
 		{
 			 *stmt = Halide::Internal::LetStmt::make(
 					 param.get_name(),

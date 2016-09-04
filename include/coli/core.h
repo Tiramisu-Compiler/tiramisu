@@ -23,7 +23,7 @@ class library;
 class function;
 class computation;
 class buffer;
-class parameter;
+class invariant;
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -385,12 +385,13 @@ private:
 	std::vector<Halide::Argument> arguments;
 
 	/**
-	  * A vector representing the parameters of the function.
-	  * A parameter is usually used to repsent symbolic constants or
-	  * variables that are invariant to the function (i.e. do not change
+	  * A vector representing the invariants of the function.
+	  * An object of the invariant class is usually used to repsent
+	  * function invariants (symbolic constants or
+	  * variables that are invariant to the function i.e. do not change
 	  * their value during the execution of the function).
 	  */
-	std::vector<coli::parameter> parameters;
+	std::vector<coli::invariant> invariants;
 
 public:
 	/**
@@ -452,11 +453,11 @@ public:
 	}
 
 	/**
-	  * Return a vector representing the parameters of the function.
+	  * Return a vector representing the invariants of the function.
 	  */
-	std::vector<coli::parameter> get_parameters()
+	std::vector<coli::invariant> get_invariants()
 	{
-		return parameters;
+		return invariants;
 	}
 
 	/**
@@ -480,9 +481,9 @@ public:
 	}
 
 	/**
-	  * Add a parameter to the function.
+	  * Add an invariant to the function.
 	  */
-	void add_parameter(coli::parameter param);
+	void add_invariant(coli::invariant param);
 
 	/**
 	  * Add a computation to the function.  The order in which
@@ -938,33 +939,28 @@ public:
 
 
 /**
-  * A class that represents loop parameters.
-  * A parameter can be an expression, a symbolic constant or
-  * a variable that is invariant to all the loops of the function.
-  * Parameters should be used exclusively in expressions that define
-  * loop bounds and should not be used in other expressions.
-  * If you want to represent a variable that is not used in the loop
-  * bound, you should represent that variable as a computation and add
-  * a command to store that computation in a scalar.
+  * A class that represents loop invariants.
+  * An object of the invariant class can be an expression, a symbolic constant
+  * or a variable that is invariant to all the loops of the function.
   */
-class parameter
+class invariant
 {
 private:
-	// An expression that represents the parameter.
+	// An expression that represents the invariant.
 	Halide::Expr expr;
 
-	// The name fo the parameter.
+	// The name of the variable holding the invariant.
 	std::string name;
 
 public:
 	/**
-	  * Create a parameter where \p param_name is the name of
-	  * the variable that will hold the value of the parameter.
+	  * Create an invariant where \p param_name is the name of
+	  * the variable that will hold the value of the invariant.
 	  * \p param_expr is the expression that defines the value
-	  * of the parameter.
-	  * \p func is the function in which the parameter is defined.
+	  * of the invariant.
+	  * \p func is the function in which the invariant is defined.
 	  */
-	parameter(std::string param_name, Halide::Expr param_expr,
+	invariant(std::string param_name, Halide::Expr param_expr,
 			coli::function *func)
 	{
 		assert((param_name.length() > 0) && "Parameter name empty");
@@ -973,12 +969,12 @@ public:
 
 		this->name = param_name;
 		this->expr = param_expr;
-		func->add_parameter(*this);
+		func->add_invariant(*this);
 	}
 
 	/**
-	  * Return the name of the parameter. i.e. the name of the variable
-	  * that is used to store the value of the value of the parameter.
+	  * Return the name of the invariant. i.e. the name of the variable
+	  * that is used to store the value of the value of the invariant.
 	  */
 	std::string get_name()
 	{
@@ -986,7 +982,7 @@ public:
 	}
 
 	/**
-	  * Return the expression that represents the value of the parameter.
+	  * Return the expression that represents the value of the invariant.
 	  */
 	Halide::Expr get_expr()
 	{

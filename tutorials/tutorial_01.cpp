@@ -23,11 +23,11 @@ int main(int argc, char **argv)
 	// Declare a function in the library lib.
 	coli::function fct("function0", &lib);
 
-	// Declare the parameters of the function.  A parameter can be a symbolic
+	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change value during the
 	// execution of the function.
-	coli::parameter p0("N", Halide::Expr((int32_t) 10), &fct);
-	coli::parameter p1("M", Halide::Expr((int32_t) 10), &fct);
+	coli::invariant p0("N", Halide::Expr((int32_t) 10), &fct);
+	coli::invariant p1("M", Halide::Expr((int32_t) 10), &fct);
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:

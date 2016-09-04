@@ -511,9 +511,9 @@ void coli::function::align_schedules()
 	}
 }
 
-void coli::function::add_parameter(coli::parameter param)
+void coli::function::add_invariant(coli::invariant invar)
 {
-	parameters.push_back(param);
+	invariants.push_back(invar);
 }
 
 void coli::function::add_computation(computation *cpt)
