@@ -8,26 +8,35 @@ High Priority
 
 
 - Scheduling
-   3- Test multiple successive transformations to test the split() and
-   interchange() regourously.
+    - Test multiple successive transformations to test the split() and
+      interchange() regourously.
     - Add scheduling commands:
 	- fuse(),
 	- split(),
 	- duplicate()
     - split() and interchange() should be done regourously.  Now setting the space names is flicky.
     - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
-
+    - Rename SetWriteAccess.
+    - All the library functions should be duplicated to the function class.
  
 - Halide support
+	6- Add a class coli::argument
+		- It has a computation field
+		- It has 3 possible types
 	7- Changes on the computation class:
       		- The constructor should not take a Halide expression, the Halide expression
 		  is now set using a separate function.
+		- Function arguments should be transformed into computations.
+		- During code generation, set the type of Halide::Arguments
+		  according to the type of coli arguments.
+	8- Data binding: Think about binding:
+		- Should we have binding.
 		- Add the binding function which simply sets the access function of a
 		  computation to a buffer (one-to-one).
 		- Add flag is_binded to a computation to check if it binded to a variable.  When generating code,
 		  check that the arguments are all binded.  Currently we do not support unbinded arguments.
-		- Function arguments should be transformed into computations.
-	8- Add a computation to the outputs of a function. function.add_output().
+	9- The computation expression should become an ISL expression.
+	10- Try blurxy.
 	- compute_halide_call_graph().
 
 
