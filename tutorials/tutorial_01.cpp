@@ -40,15 +40,14 @@ int main(int argc, char **argv)
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
 
-	// Add the buffer as an argument to the function fct.
-	fct.add_argument(buf0);
+	// Create two output arguments and add them to the function fct.
+	coli::argument argument0(&computation0, coli::argument::output, &fct, &buf0);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
 	computation1.SetWriteAccess("{S1[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input)

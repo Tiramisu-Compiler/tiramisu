@@ -24,6 +24,7 @@ class function;
 class computation;
 class buffer;
 class invariant;
+class argument;
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -497,7 +498,7 @@ public:
 	  * The order in which the arguments are added is important.
 	  * (the first added argument is the first function argument, ...).
 	  */
-	void add_argument(coli::buffer buf);
+	void add_argument(coli::argument *arg);
 
 	/**
 	  * This functions applies to the schedule of each computation
@@ -532,6 +533,101 @@ public:
 	  */
 	void dump();
 };
+
+
+/**
+  * A class that represents a buffer.  The result of a computation
+  * can be stored in a buffer.  A computation can also be a binding
+  * to a buffer (i.e. a buffer element is represented as a computation).
+  */
+class buffer
+{
+	/**
+	  * The name of the buffer.
+	  */
+	std::string name;
+
+	/**
+	  * The number of dimensions of the buffer.
+	  */
+	int nb_dims;
+
+	/**
+	  * The size of buffer dimensions.  Assuming the following
+	  * buffer: buf[N0][N1][N2].  The first vector element represents the
+	  * leftmost dimension of the buffer (N0), the second vector element
+	  * represents N1, ...
+	  */
+	std::vector<int> dim_sizes;
+
+	/**
+	  * The type of the elements of the buffer.
+	  */
+	Halide::Type type;
+
+	/**
+	  * Buffer data.
+	  */
+	uint8_t *data;
+
+	/**
+	  * The coli function where this buffer is declared or where the
+	  * buffer is an argument.
+	  */
+	coli::function *fct;
+
+public:
+	/**
+	  * Create a coli buffer where computations can be stored
+	  * or buffers bound to computation.
+	  * \p name is the name of the buffer.
+	  * \p nb_dims is the number of dimensions of the buffer.
+	  * A scalar is a one dimensional buffer with one element.
+	  * \p dim_sizes is a vector of integers that represent the size
+	  * of each dimension in the buffer.
+	  * \p type is the type of the buffer.
+	  * \p data is the data stored in the buffer.  This is useful
+	  * for binding a computation to an already existing buffer.
+	  * \p fct is i a pointer to a coli function where the buffer is
+	  * declared/used.
+	  */
+	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
+			Halide::Type type, uint8_t *data, coli::function *fct):
+		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
+		data(data), fct(fct)
+		{
+			assert(name.length()>0 && "Empty buffer name");
+			assert(nb_dims>0 && "Buffer dimensions <= 0");
+			assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
+			assert(fct != NULL && "Input function is NULL");
+
+			Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
+			fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
+		};
+
+	/**
+	  * Return the name of the buffer.
+	  */
+	std::string get_name()
+	{
+		return name;
+	}
+
+	Halide::Type get_type()
+	{
+		return type;
+	}
+
+	/**
+	  * Get the number of dimensions of the buffer.
+	  */
+	int get_n_dims()
+	{
+		return nb_dims;
+	}
+};
+
+
 
 /**
   * A class that represents computations.
@@ -820,6 +916,27 @@ public:
 		this->schedule = map;
 	}
 
+	/**
+	  * Bind the computation to a buffer.
+	  * i.e. create a one-to-one data mapping between the computation
+	  * the buffer.
+	  */
+	void bind_to(buffer *buff)
+	{
+		assert(buff != NULL);
+
+		isl_space *sp = isl_set_get_space(this->get_iteration_domain());
+		isl_map *map = isl_map_identity(isl_space_map_from_set(sp));
+		map = isl_map_intersect_domain(map,
+				isl_set_copy(this->get_iteration_domain()));
+		map = isl_map_set_tuple_name(map, isl_dim_out,
+						buff->get_name().c_str());
+		map = isl_map_coalesce(map);
+		IF_DEBUG2(coli::str_dump("\nBinding.  The following access function is set: ",
+					isl_map_to_str(map)));
+		this->SetWriteAccess(isl_map_to_str(map));
+	}
+
 
 	/**
 	  * Dump the iteration domain of the computation.
@@ -843,98 +960,6 @@ public:
 	  * This is mainly useful for debugging.
 	  */
 	void dump();
-};
-
-/**
-  * A class that represents a buffer.  The result of a computation
-  * can be stored in a buffer.  A computation can also be a binding
-  * to a buffer (i.e. a buffer element is represented as a computation).
-  */
-class buffer
-{
-	/**
-	  * The name of the buffer.
-	  */
-	std::string name;
-
-	/**
-	  * The number of dimensions of the buffer.
-	  */
-	int nb_dims;
-
-	/**
-	  * The size of buffer dimensions.  Assuming the following
-	  * buffer: buf[N0][N1][N2].  The first vector element represents the
-	  * leftmost dimension of the buffer (N0), the second vector element
-	  * represents N1, ...
-	  */
-	std::vector<int> dim_sizes;
-
-	/**
-	  * The type of the elements of the buffer.
-	  */
-	Halide::Type type;
-
-	/**
-	  * Buffer data.
-	  */
-	uint8_t *data;
-
-	/**
-	  * The coli function where this buffer is declared or where the
-	  * buffer is an argument.
-	  */
-	coli::function *fct;
-
-public:
-	/**
-	  * Create a coli buffer where computations can be stored
-	  * or buffers bound to computation.
-	  * \p name is the name of the buffer.
-	  * \p nb_dims is the number of dimensions of the buffer.
-	  * A scalar is a one dimensional buffer with one element.
-	  * \p dim_sizes is a vector of integers that represent the size
-	  * of each dimension in the buffer.
-	  * \p type is the type of the buffer.
-	  * \p data is the data stored in the buffer.  This is useful
-	  * for binding a computation to an already existing buffer.
-	  * \p fct is i a pointer to a coli function where the buffer is
-	  * declared/used.
-	  */
-	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-			Halide::Type type, uint8_t *data, coli::function *fct):
-		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
-		data(data), fct(fct)
-		{
-			assert(name.length()>0 && "Empty buffer name");
-			assert(nb_dims>0 && "Buffer dimensions <= 0");
-			assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
-			assert(fct != NULL && "Input function is NULL");
-
-			Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
-			fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
-		};
-
-	/**
-	  * Return the name of the buffer.
-	  */
-	std::string get_name()
-	{
-		return name;
-	}
-
-	Halide::Type get_type()
-	{
-		return type;
-	}
-
-	/**
-	  * Get the number of dimensions of the buffer.
-	  */
-	int get_n_dims()
-	{
-		return nb_dims;
-	}
 };
 
 
@@ -988,6 +1013,77 @@ public:
 	{
 		return expr;
 	}
+};
+
+
+/**
+  * A class to represent function arguments.
+  * A function argument is a computation that hase one of the following
+  * three types: input argument or output argument.
+  */
+class argument
+{
+public:
+	/**
+ 	 * Types of function arguments.
+	 */
+	enum argtype {input, output};
+
+
+	/**
+	  * Initiate an argument to the function \p fct.
+	  * \p cp is the computation passed as an argument and
+	  * \p comptype is the type of the computation (input or output)
+	  * The computation is bound to the buffer \p buf (i.e. one to one
+	  * mapping between the computation and the buffer).
+	  */
+	argument(computation *cp, argtype comptype, function *fct, buffer *buf)
+	{
+		assert(cp != NULL);
+		assert(fct != NULL);
+		assert(buf != NULL);
+
+		this->comp = cp;
+		this->type = comptype;
+		this->buff = buf;
+		fct->add_argument(this);
+		cp->bind_to(buf);
+	}
+
+	/**
+	  * Return the computation associated with the argument.
+	  */
+	computation *get_computation()
+	{
+		return comp;
+	}
+
+	/**
+	  * Return the type of the argument.
+	  */
+	argtype get_type()
+	{
+		return type;
+	}
+
+	/**
+	  * Return the coli buffer associated with this argument.
+	  */
+	buffer *get_buffer()
+	{
+		return buff;
+	}
+
+
+private:
+	// The computation passed as argument.
+	computation *comp;
+
+	// Type of the argument.
+	argtype type;
+
+	// coli::buffer associated with the argument.
+	buffer *buff;
 };
 
 

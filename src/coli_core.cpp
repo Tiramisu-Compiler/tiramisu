@@ -567,10 +567,22 @@ void coli::function::dump_schedule()
 	}
 }
 
-void coli::function::add_argument(coli::buffer buf)
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument::argtype type)
 {
-	Halide::Argument buffer_arg(buf.get_name(), Halide::Argument::OutputBuffer,
-			buf.get_type(), buf.get_n_dims());
+	if (type == coli::argument::input)
+		return Halide::Argument::InputBuffer;
+	else
+		return Halide::Argument::OutputBuffer;
+}
+
+void coli::function::add_argument(coli::argument *arg)
+{
+	coli::buffer *buf = arg->get_buffer();
+
+	Halide::Argument buffer_arg(buf->get_name(),
+			coli_argtype_to_halide_argtype(arg->get_type()),
+			buf->get_type(), buf->get_n_dims());
+
 	arguments.push_back(buffer_arg);
 }
 
