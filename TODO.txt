@@ -19,6 +19,8 @@ High Priority
     applied for all the values of i and j.
 
 - Halide support
+	7- Make the interface easier to use.
+	8- Add tutorial_02
 	9- The computation expression should become an ISL expression.
 	10- Try blurxy.
 	- compute_halide_call_graph().
