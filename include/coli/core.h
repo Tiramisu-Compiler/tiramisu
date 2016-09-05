@@ -564,10 +564,16 @@ private:
 	isl_set *iteration_domain;
 
 	/**
+	  * An argument associated to this computation.
+	  */
+	coli::argument *argument;
+
+	/**
 	  * A boolean indicating whether the computation represents a function
 	  * argument.
 	  */
 	bool is_arg;
+
 public:
 
 	/**
@@ -969,6 +975,13 @@ public:
   */
 class argument
 {
+private:
+	// Type of the argument.
+	argtype type;
+
+	// coli::buffer associated with the argument.
+	buffer *buff;
+
 public:
 	/**
 	  * Initiate an argument to the function \p fct.
@@ -977,27 +990,30 @@ public:
 	  * The computation is bound to the buffer \p buf (i.e. one to one
 	  * mapping between the computation and the buffer).
 	  */
-	argument(computation *cp, argtype comptype, function *fct, buffer *buf)
+	argument(function *fct, argtype comptype, buffer *buf)
 	{
-		assert(cp != NULL);
 		assert(fct != NULL);
 		assert(buf != NULL);
 
-		this->comp = cp;
 		this->type = comptype;
 		this->buff = buf;
 		fct->add_argument(this);
-		cp->bind_to(buf);
 	}
 
-	/**
-	  * Return the computation associated with the argument.
-	  */
-	computation *get_computation()
+	argument(function *fct, argtype comptype, std::string buff_name,
+			int buff_nb_dims, std::vector<int> buff_dim_sizes,
+			Halide::Type buff_type, uint8_t *buff_data)
 	{
-		return comp;
-	}
+		assert(fct != NULL);
 
+		coli::buffer *buf = new coli::buffer(buff_name, buff_nb_dims,
+				buff_dim_sizes, buff_type, buff_data, fct);
+
+		this->type = comptype;
+		this->buff = buf;
+		fct->add_argument(this);
+	}
+ 
 	/**
 	  * Return the type of the argument.
 	  */
@@ -1013,17 +1029,6 @@ public:
 	{
 		return buff;
 	}
-
-
-private:
-	// The computation passed as argument.
-	computation *comp;
-
-	// Type of the argument.
-	argtype type;
-
-	// coli::buffer associated with the argument.
-	buffer *buff;
 };
 
 

@@ -113,7 +113,8 @@ void coli::computation::set_as_argument(coli::buffer *buff, coli::argtype type)
 {
 	// Create a new argument that is represented by this
 	// computation and add it to the function.
-	coli::argument *argument0 = new coli::argument(this, type, this->get_function(), buff);
+	coli::argument *argument0 = new coli::argument(this->get_function(), type,  buff);
+	this->argument = argument0;
 
 	is_arg = true;
 }
