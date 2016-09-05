@@ -121,8 +121,8 @@ int main(int argc, char **argv)
 	// which maps each computation to a time and a processor.
 	// --------------------------------------------------------------
 
-	// Generate the time-processor domain of each computation in the library.
-	lib.gen_time_processor_domain();
+	// Generate the time-processor domain of each computation.
+	func.gen_time_processor_domain();
 	
 	// --------------------------------------------------------------
 	// Part IV: Create the buffers and do the mapping from computations
@@ -151,18 +151,18 @@ int main(int argc, char **argv)
 	// --------------------------------------------------------------
 
 	// Generate an AST (abstract Syntax Tree)
-	lib.gen_isl_ast();
+	func.gen_isl_ast();
 
 	// --------------------------------------------------------------
 	// Part VI: Generate a Halide Stmt and an obj file representing
 	// the whole function.
 	// --------------------------------------------------------------
 
-	// Generate Halide statement for each function in the library.
-	lib.gen_halide_stmt();
+	// Generate Halide statement for the function.
+	func.gen_halide_stmt();
 
-	// Generate an object file from the library lib. 
-	lib.gen_halide_obj("build/generated_lib_tutorial_01.o");
+	// Generate an object file from the function. 
+	func.gen_halide_obj("build/generated_lib_tutorial_01.o");
 
 	return 0;
 }

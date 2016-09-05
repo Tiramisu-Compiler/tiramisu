@@ -14,11 +14,8 @@
 
 int main(int argc, char **argv)
 {
-	// Declare a library.  A library is composed of a set of functions.
-	coli::library lib("library0");
-
-	// Declare a function in the library lib.
-	coli::function fct("function0", &lib);
+	// Declare a function.
+	coli::function fct("function0");
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:
@@ -51,19 +48,19 @@ int main(int argc, char **argv)
 //	computation1.tag_vector_dimension(5);
 
 	// Generate an AST (abstract Syntax Tree)
-	lib.gen_isl_ast();
+	func.gen_isl_ast();
 
-	// Generate Halide statement for each function in the library.
-	lib.gen_halide_stmt();
+	// Generate a Halide statement representing the function.
+	func.gen_halide_stmt();
 
 	// Dump IRs
-	lib.dump_iteration_space_IR();
-	lib.dump_schedule();
-	lib.dump_time_processor_IR();
-	lib.dump_halide_IR();
+	func.dump_iteration_space_IR();
+	func.dump_schedule();
+	func.dump_time_processor_IR();
+	func.dump_halide_IR();
 
-	// Generate an object file from the library lib. 
-	lib.gen_halide_obj("build/generated_lib_tutorial_01.o");
+	// Generate an object file. 
+	func.gen_halide_obj("build/generated_lib_tutorial_01.o");
 
 	return 0;
 }

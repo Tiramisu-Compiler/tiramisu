@@ -5,7 +5,6 @@ High Priority
     	- Add DEBUG3
 	- Add indentation to DEBUG.
 	- Organize the output.
-    - Remove the class library. All the library functions should be duplicated to the function class.
     - Rename SetWriteAccess.
     - Add scheduling commands:
 	- fuse(),

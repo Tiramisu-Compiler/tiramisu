@@ -18,14 +18,13 @@ namespace coli
 extern int id_counter;
 
 
-computation *library::get_computation_by_name(std::string name)
+computation *function::get_computation_by_name(std::string name)
 {
 	coli::computation *res_comp = NULL;
 
-	for (auto fct: this->get_functions())
-		for (auto comp: fct->get_computations())
-			if (name.compare(comp->get_name()) == 0)
-				res_comp = comp;
+	for (auto comp: this->get_computations())
+		if (name.compare(comp->get_name()) == 0)
+			res_comp = comp;
 
 	assert((res_comp != NULL) && "Computation not found");
 	return	res_comp;
@@ -34,7 +33,7 @@ computation *library::get_computation_by_name(std::string name)
 /**
   * Get the computation associated with a node.
   */
-coli::computation *get_computation_by_node(coli::library *lib, isl_ast_node *node)
+coli::computation *get_computation_by_node(coli::function *fct, isl_ast_node *node)
 {
 	isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
 	isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -43,7 +42,7 @@ coli::computation *get_computation_by_node(coli::library *lib, isl_ast_node *nod
 	std::string computation_name(isl_id_get_name(id));
 	isl_id_free(id);
 	coli::computation *comp =
-		lib->get_computation_by_name(computation_name);
+		fct->get_computation_by_name(computation_name);
 
 	assert((comp != NULL) && "Computation not found for this node.");
 
@@ -60,12 +59,12 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
-	coli::library *lib = (coli::library *) user;
+	coli::function *func = (coli::function *) user;
 
 	IF_DEBUG2(coli::str_dump("\n\nDebugging stmt_code_generator():"));
 
 	// Find the name of the computation associated to this AST leaf node.
-	coli::computation *comp = get_computation_by_node(lib, node);
+	coli::computation *comp = get_computation_by_node(func, node);
 
 	IF_DEBUG2(coli::str_dump("\n\tComputation:", comp->get_name().c_str()));
 
@@ -222,7 +221,7 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
   * tree.
   * Level represents the level of the node in the schedule.  0 means root.
   */
-Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, isl_ast_node *node,
+Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, isl_ast_node *node,
 		int level, std::vector<std::string> &generated_stmts)
 {
 	assert(node != NULL);
@@ -245,13 +244,13 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 			child = isl_ast_node_list_get_ast_node(list, 0);
 			child2 = isl_ast_node_list_get_ast_node(list, 1);
 
-			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts),
-					*coli::generate_Halide_stmt_from_isl_node(lib, child2, level+1, generated_stmts));
+			*result = Halide::Internal::Block::make(*coli::generate_Halide_stmt_from_isl_node(fct, child, level+1, generated_stmts),
+					*coli::generate_Halide_stmt_from_isl_node(fct, child2, level+1, generated_stmts));
 
 			for (i = 2; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(lib, child, level+1, generated_stmts));
+				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(fct, child, level+1, generated_stmts));
 			}
 		}
 		else
@@ -304,15 +303,15 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(lib, body, level+1, generated_stmts);
+		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(fct, body, level+1, generated_stmts);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
 
 		// Change the type from Serial to parallel or vector if the
 		// current level was marked as such.
 		for (auto generated_stmt: generated_stmts)
-			if (lib.should_parallelize(generated_stmt, level))
+			if (fct.should_parallelize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Parallel;
-			else if (lib.should_vectorize(generated_stmt, level))
+			else if (fct.should_vectorize(generated_stmt, level))
 				fortype = Halide::Internal::ForType::Vectorized;
 
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
@@ -330,7 +329,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		isl_id_free(id);
 		generated_stmts.push_back(computation_name);
 
-		coli::computation *comp = lib.get_computation_by_name(computation_name);
+		coli::computation *comp = fct.get_computation_by_name(computation_name);
 
 		comp->create_halide_assignement();
 
@@ -345,16 +344,16 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::library lib, is
 		isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
 
 		*result = Halide::Internal::IfThenElse::make(create_halide_expr_from_isl_ast_expr(cond),
-				*coli::generate_Halide_stmt_from_isl_node(lib, if_stmt,
+				*coli::generate_Halide_stmt_from_isl_node(fct, if_stmt,
 					level+1, generated_stmts),
-				*coli::generate_Halide_stmt_from_isl_node(lib, else_stmt,
+				*coli::generate_Halide_stmt_from_isl_node(fct, else_stmt,
 					level+1, generated_stmts));
 	}
 
 	return result;
 }
 
-void library::gen_halide_stmt()
+void function::gen_halide_stmt()
 {
 	// This vector is used in generate_Halide_stmt_from_isl_node to figure
 	// out what are the statements that have already been visited in the
@@ -362,20 +361,17 @@ void library::gen_halide_stmt()
 	std::vector<std::string> generated_stmts;
 	Halide::Internal::Stmt *stmt = new Halide::Internal::Stmt();
 
-	for (auto func: this->get_functions())
+	stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+
+	// Generate the invariants of the function.
+	for (auto param: this->get_invariants())
 	{
-		stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
-
-		// Generate the invariants of the function.
-		for (auto param: func->get_invariants())
-		{
-			 *stmt = Halide::Internal::LetStmt::make(
-					 param.get_name(),
-					 param.get_expr(), *stmt);
-		}
-
-		func->halide_stmt = stmt;
+		 *stmt = Halide::Internal::LetStmt::make(
+				 param.get_name(),
+				 param.get_expr(), *stmt);
 	}
+
+	this->halide_stmt = stmt;
 }
 
 isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
@@ -460,7 +456,7 @@ void computation::create_halide_assignement()
 	   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, index, param);
 }
 
-void library::gen_halide_obj(std::string obj_file_name,
+void function::gen_halide_obj(std::string obj_file_name,
 		Halide::Target::OS os,
 		Halide::Target::Arch arch, int bits)
 {
@@ -475,10 +471,7 @@ void library::gen_halide_obj(std::string obj_file_name,
 
 	Halide::Module m(obj_file_name, target);
 
-	for (auto func: this->get_functions())
-	{
-		m.append(Halide::Internal::LoweredFunc(func->get_name(), func->get_arguments(), func->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
-	}
+	m.append(Halide::Internal::LoweredFunc(this->get_name(), this->get_arguments(), this->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
 
 	Halide::Outputs output = Halide::Outputs().object(obj_file_name);
 	m.compile(output);

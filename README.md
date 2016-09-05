@@ -50,12 +50,11 @@ How To Use COLi
 COLi provides few classes to enable users to represent their program:
 - The `coli::computation` class: a computation is composed of an expression and an iteration space but is not associated with any memory location.
 - The `coli::function` class: a function is composed of multiple computations and a vector of arguments (functions arguments).
-- The `coli::library` class: a library is composed of multiple functions (`coli::function`objects).
 - The `coli::buffer`: a class to represent memory buffers.
 
 In general, in order to use COLi to optimize, all what a user needs to do is the following:
 - Represent the program that needs to be optimized
-    - Instantiate a `cori::library` object and a set of `cori::function` objects associated with it,
+    - Instantiate a `cori::function`,
     - Instantiate a set of `cori::computation` objects for each function,
 - Provide the list of optimizations (memory mapping and schedule)
     - Provide the mapping of each `cori::computation` to memory (i.e. where each computation should be stored in memory),

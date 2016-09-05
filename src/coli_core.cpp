@@ -34,9 +34,9 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
 
 
 /**
-  * Generate an isl AST for the library.
+  * Generate an isl AST for the function.
   */
-void library::gen_isl_ast()
+void function::gen_isl_ast()
 {
 	// Check that time_processor representation has already been computed,
 	// that the time_processor identity relation can be computed without any
@@ -128,9 +128,8 @@ void coli::computation::tag_parallel_dimension(int par_dim)
 	assert(par_dim >= 0);
 	assert(this->get_name().length() > 0);
 	assert(this->get_function() != NULL);
-	assert(this->get_function()->get_library() != NULL);
 
-	this->get_function()->get_library()->add_parallel_dimension(this->get_name(), par_dim);
+	this->get_function()->add_parallel_dimension(this->get_name(), par_dim);
 }
 
 void coli::computation::tag_vector_dimension(int par_dim)
@@ -138,9 +137,9 @@ void coli::computation::tag_vector_dimension(int par_dim)
 	assert(par_dim >= 0);
 	assert(this->get_name().length() > 0);
 	assert(this->get_function() != NULL);
-	assert(this->get_function()->get_library() != NULL);
+	assert(this->get_function() != NULL);
 
-	this->get_function()->get_library()->add_vector_dimension(this->get_name(), par_dim);
+	this->get_function()->add_vector_dimension(this->get_name(), par_dim);
 }
 
 void computation::dump_iteration_domain()
@@ -151,20 +150,19 @@ void computation::dump_iteration_domain()
 	}
 }
 
-void library::dump_halide_stmt()
+void function::dump_halide_stmt()
 {
-	for (auto func: this->get_functions())
-		if (DEBUG)
-		{
-			coli::str_dump("\n\n");
-			coli::str_dump("\nGenerated Halide Low Level IR:\n");
-			std::cout << func->get_halide_stmt();
-			coli::str_dump("\n\n\n\n");
-		}
+	if (DEBUG)
+	{
+		coli::str_dump("\n\n");
+		coli::str_dump("\nGenerated Halide Low Level IR:\n");
+		std::cout << this->get_halide_stmt();
+		coli::str_dump("\n\n\n\n");
+	}
 }
 
 
-void library::dump_time_processor_domain()
+void function::dump_time_processor_domain()
 {
 	// Create time space domain
 
@@ -172,23 +170,19 @@ void library::dump_time_processor_domain()
 	{
 		coli::str_dump("\n\nTime-processor domain:\n");
 
-		for (auto func: this->get_functions())
-		{
-			coli::str_dump("Function " + func->get_name() + ":\n");
-			for (auto comp: func->get_computations())
-				isl_set_dump(
-					comp->get_time_processor_domain());
-		}
+		coli::str_dump("Function " + this->get_name() + ":\n");
+		for (auto comp: this->get_computations())
+			isl_set_dump(
+				comp->get_time_processor_domain());
 
 		coli::str_dump("\n\n");
 	}
 }
 
-void library::gen_time_processor_domain()
+void function::gen_time_processor_domain()
 {
-	for (auto func: this->get_functions())
-		for (auto comp: func->get_computations())
-			comp->gen_time_processor_domain();
+	for (auto comp: this->get_computations())
+		comp->gen_time_processor_domain();
 }
 
 void computation::dump_schedule()
@@ -557,6 +551,19 @@ void coli::function::dump()
 				<< std::endl;
 
 		std::cout << std::endl;
+
+		std::cout << "Parallel dimensions: ";
+		for (auto par_dim: parallel_dimensions)
+			std::cout << par_dim.first << "(" << par_dim.second << ") ";
+
+		std::cout << std::endl;
+
+		std::cout << "Vector dimensions: ";
+		for (auto vec_dim: vector_dimensions)
+			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+
+		std::cout<< std::endl << std::endl;
+
 	}
 }
 
@@ -564,8 +571,10 @@ void coli::function::dump_iteration_domain()
 {
 	if (DEBUG)
 	{
+		coli::str_dump("\nIteration domain:\n");
 		for (auto cpt : this->body)
 		       cpt->dump_iteration_domain();
+		coli::str_dump("\n");
 	}
 }
 
@@ -573,8 +582,22 @@ void coli::function::dump_schedule()
 {
 	if (DEBUG)
 	{
+		coli::str_dump("\nSchedule:\n");
+
 		for (auto cpt : this->body)
 		       cpt->dump_schedule();
+
+		std::cout << "Parallel dimensions: ";
+		for (auto par_dim: parallel_dimensions)
+			std::cout << par_dim.first << "(" << par_dim.second << ") ";
+
+		std::cout << std::endl;
+
+		std::cout << "Vector dimensions: ";
+		for (auto vec_dim: vector_dimensions)
+			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+
+		std::cout<< std::endl << std::endl << std::endl;
 	}
 }
 
@@ -598,15 +621,8 @@ void coli::function::add_argument(coli::argument *arg)
 }
 
 
-// Library related methods
 
-void coli::library::align_schedules()
-{
-	for (auto fct: this->get_functions())
-		fct->align_schedules();
-}
-
-void coli::library::add_vector_dimension(std::string stmt_name,
+void coli::function::add_vector_dimension(std::string stmt_name,
 		int vec_dim)
 {
 	assert(vec_dim >= 0);
@@ -616,7 +632,7 @@ void coli::library::add_vector_dimension(std::string stmt_name,
 		std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::library::add_parallel_dimension(std::string stmt_name,
+void coli::function::add_parallel_dimension(std::string stmt_name,
 		int vec_dim)
 {
 	assert(vec_dim >= 0);
@@ -626,83 +642,14 @@ void coli::library::add_parallel_dimension(std::string stmt_name,
 		std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::library::dump_iteration_domain()
-{
-	if (DEBUG)
-	{
-		coli::str_dump("\nIteration domain:\n");
-		for (const auto &fct : this->functions)
-		{
-			coli::str_dump("Function " + fct->get_name() + ":\n");
-			fct->dump_iteration_domain();
-		}
-		coli::str_dump("\n");
-	}
-}
-
-void coli::library::dump_schedule()
-{
-	if (DEBUG)
-	{
-		coli::str_dump("\nSchedule:\n");
-		for (const auto &fct : this->functions)
-		       fct->dump_schedule();
-
-		std::cout << "Parallel dimensions: ";
-		for (auto par_dim: parallel_dimensions)
-			std::cout << par_dim.first << "(" << par_dim.second << ") ";
-
-		std::cout << std::endl;
-
-		std::cout << "Vector dimensions: ";
-		for (auto vec_dim: vector_dimensions)
-			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
-
-		std::cout<< std::endl << std::endl << std::endl;
-	}
-}
-
-void coli::library::dump()
-{
-	if (DEBUG)
-	{
-		std::cout << "Program \"" << this->name << "\"" << std::endl
-			  <<
-			std::endl;
-
-		for (const auto &fct : this->functions)
-		       fct->dump();
-
-		std::cout << "Parallel dimensions: ";
-		for (auto par_dim: parallel_dimensions)
-			std::cout << par_dim.first << "(" << par_dim.second << ") ";
-
-		std::cout << std::endl;
-
-		std::cout << "Vector dimensions: ";
-		for (auto vec_dim: vector_dimensions)
-			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
-
-		std::cout<< std::endl << std::endl;
-	}
-}
-
-void coli::library::add_function(coli::function *fct)
-{
-	assert(fct != NULL);
-
-	this->functions.push_back(fct);
-}
-
-isl_union_set * coli::library::get_time_processor_domain()
+isl_union_set * coli::function::get_time_processor_domain()
 {
 	isl_union_set *result = NULL;
 	isl_space *space = NULL;
 
-	if ((this->functions.empty() == false)
-			&& (this->functions[0]->body.empty() == false))
+	if (this->body.empty() == false)
 	{
-		space = isl_set_get_space(this->functions[0]->body[0]->get_iteration_domain());
+		space = isl_set_get_space(this->body[0]->get_iteration_domain());
 	}
 	else
 		return NULL;
@@ -710,65 +657,51 @@ isl_union_set * coli::library::get_time_processor_domain()
 	assert(space != NULL);
 	result = isl_union_set_empty(isl_space_copy(space));
 
-	for (const auto &fct : this->functions)
-		for (const auto &cpt : fct->body)
+	for (const auto &cpt : this->body)
+	{
+		isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_domain());
+		result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+	}
+
+	return result;
+}
+
+
+isl_union_set * coli::function::get_iteration_domain()
+{
+	isl_union_set *result = NULL;
+	isl_space *space = NULL;
+
+	if (this->body.empty() == false)
+	{
+		space = isl_set_get_space(this->body[0]->get_iteration_domain());
+	}
+	else
+		return NULL;
+
+	assert(space != NULL);
+	result = isl_union_set_empty(isl_space_copy(space));
+
+	for (const auto &cpt : this->body)
+	{
+		if (cpt->is_argument() == false)
 		{
-			isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_domain());
+			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
 			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
 		}
-
-	return result;
-}
-
-
-isl_union_set * coli::library::get_iteration_domain()
-{
-	isl_union_set *result = NULL;
-	isl_space *space = NULL;
-
-	if ((this->functions.empty() == false)
-			&& (this->functions[0]->body.empty() == false))
-	{
-		space = isl_set_get_space(this->functions[0]->body[0]->get_iteration_domain());
 	}
-	else
-		return NULL;
-
-	assert(space != NULL);
-	result = isl_union_set_empty(isl_space_copy(space));
-
-	for (const auto &fct : this->functions)
-		for (const auto &cpt : fct->body)
-		{
-			if (cpt->is_argument() == false)
-			{
-				isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
-				result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
-			}
-		}
 
 	return result;
 }
 
-std::vector<Halide::Internal::Stmt> library::get_halide_stmts()
-{
-	std::vector<Halide::Internal::Stmt> stmts;
-
-	for (auto func: this->get_functions())
-		stmts.push_back(func->get_halide_stmt());
-
-	return stmts;
-}
-
-isl_union_map * coli::library::get_schedule()
+isl_union_map * coli::function::get_schedule()
 {
 	isl_union_map *result = NULL;
 	isl_space *space = NULL;
 
-	if ((this->functions.empty() == false)
-		&& (this->functions[0]->body.empty() == false))
+	if (this->body.empty() == false)
 	{
-		space = isl_map_get_space(this->functions[0]->body[0]->schedule);
+		space = isl_map_get_space(this->body[0]->schedule);
 	}
 	else
 		return NULL;
@@ -776,16 +709,15 @@ isl_union_map * coli::library::get_schedule()
 	assert(space != NULL);
 	result = isl_union_map_empty(isl_space_copy(space));
 
-	for (const auto &fct : this->functions)
-		for (const auto &cpt : fct->body)
+	for (const auto &cpt : this->body)
+	{
+		// If this computation is not an argument.
+		if (cpt->is_argument() == false)
 		{
-			// If this computation is not an argument.
-			if (cpt->is_argument() == false)
-			{
-				isl_map *m = isl_map_copy(cpt->schedule);
-				result = isl_union_map_union(isl_union_map_from_map(m), result);
-			}
+			isl_map *m = isl_map_copy(cpt->schedule);
+			result = isl_union_map_union(isl_union_map_from_map(m), result);
 		}
+	}
 
 	return result;
 }
