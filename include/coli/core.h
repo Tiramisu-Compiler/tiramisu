@@ -26,6 +26,13 @@ class buffer;
 class invariant;
 class argument;
 
+
+/**
+ * Types of function arguments.
+ */
+enum argtype {inputarg, outputarg};
+
+
 /**
   * A class that holds all the global variables necessary for COLi.
   * It also holds COLi options.
@@ -633,6 +640,7 @@ public:
   * A class that represents computations.
   */
 class computation {
+private:
 	isl_ctx *ctx;
 
 	/**
@@ -650,6 +658,11 @@ class computation {
 	 */
 	isl_set *iteration_domain;
 
+	/**
+	  * A boolean indicating whether the computation represents a function
+	  * argument.
+	  */
+	bool is_arg;
 public:
 
 	/**
@@ -697,7 +710,6 @@ public:
 
 	/**
 	  * Create a computation.
-	  * \p expr is an expression representing the computation.
 	  *
 	  * \p iteration_space_str is a string that represents the iteration
 	  * space of the computation.  The iteration space should be encoded
@@ -727,9 +739,7 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	computation(Halide::Expr expr,
-		    std::string iteration_space_str, coli::function *fct) {
-
+	computation(std::string iteration_space_str, coli::function *fct) {
 		assert(fct != NULL);
 		assert(iteration_space_str.length()>0 && ("Empty iteration space"));
 
@@ -746,7 +756,6 @@ public:
 
 		iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
 		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
-		this->expression = expr;
 		function = fct;
 		function->add_computation(this);
 		this->set_identity_schedule();
@@ -817,6 +826,14 @@ public:
 	}
 
 	/**
+	  * Return true if the computation is a function argument.
+	  */
+	bool is_argument()
+	{
+		return is_arg;
+	}
+
+	/**
 	  * Tag the dimension \p dim of the computation to be parallelized.
 	  * The outermost loop level (which corresponds to the leftmost
 	  * dimension in the iteration space) is 0.
@@ -829,6 +846,32 @@ public:
 	  * dimension in the iteration space) is 0.
 	  */
 	void tag_vector_dimension(int dim);
+
+	/**
+	  * Set the expression associated with the computation.
+	  */
+	void set_expression(Halide::Expr expr)
+	{
+		this->expression = expr;
+		is_arg = false;
+	}
+
+	/**
+	  * Make the computation represent an argument.
+	  * All function arguments should be represented as computations, these
+	  * computation are bound to buffers (i.e. there is a one-to-one
+	  * mapping between the computation and a buffer).
+	  * Computation are used to represent function arguments
+	  * because in a coli function, the only kind of expression that
+	  * is allowed is expressions over computations.  Expression of a mix
+	  * of computations and buffers is not allowed.  Thus any buffer passed
+	  * to the function as an argument needs first to be bound to a
+	  * computation (i.e. to be represented as a computation) and only then
+	  * it can be used within the coli function.
+	  * A computation that represents an argument cannot be used to
+	  * represent an expression.
+	  */
+	void set_as_argument(coli::buffer *buff, coli::argtype type);
 
 	/**
 	  * Generate the time-processor domain of the computation.
@@ -1024,12 +1067,6 @@ public:
 class argument
 {
 public:
-	/**
- 	 * Types of function arguments.
-	 */
-	enum argtype {input, output};
-
-
 	/**
 	  * Initiate an argument to the function \p fct.
 	  * \p cp is the computation passed as an argument and

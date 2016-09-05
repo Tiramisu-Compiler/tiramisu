@@ -27,28 +27,26 @@ int main(int argc, char **argv)
 	// constant or a variable that does not change value during the
 	// execution of the function.
 	coli::invariant p0("N", Halide::Expr((int32_t) 10), &fct);
-	coli::invariant p1("M", Halide::Expr((int32_t) 10), &fct);
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:
 	// (1) a Halide expression that represents the computation,
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
-	coli::computation computation0(Halide::Expr((uint8_t) 3), "[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &fct);
-	coli::computation computation1(Halide::Expr((uint8_t) 3), "[M]->{S1[i,j]: 0<=i<M and 0<=j<M}", &fct);
+	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &fct);
+	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", &fct);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
-
-	// Create two output arguments and add them to the function fct.
-	coli::argument argument0(&computation0, coli::argument::output, &fct, &buf0);
+	computation1.set_as_argument(&buf0, coli::outputarg);
+	computation0.set_expression(Halide::Expr((uint8_t) 3));
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation1.SetWriteAccess("{S1[i,j]->buf0[i,j]}");
+	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input)
 	// for each function in the library.

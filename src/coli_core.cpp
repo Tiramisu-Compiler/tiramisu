@@ -108,6 +108,17 @@ std::string generate_new_variable_name()
 	return "c" + std::to_string(id_counter++);
 }
 
+
+void coli::computation::set_as_argument(coli::buffer *buff, coli::argtype type)
+{
+	// Create a new argument that is represented by this
+	// computation and add it to the function.
+	coli::argument *argument0 = new coli::argument(this, type, this->get_function(), buff);
+
+	is_arg = true;
+}
+
+
 /**
   * Methods for the computation class.
   */
@@ -567,9 +578,9 @@ void coli::function::dump_schedule()
 	}
 }
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument::argtype type)
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argtype type)
 {
-	if (type == coli::argument::input)
+	if (type == coli::inputarg)
 		return Halide::Argument::InputBuffer;
 	else
 		return Halide::Argument::OutputBuffer;
@@ -729,8 +740,11 @@ isl_union_set * coli::library::get_iteration_domain()
 	for (const auto &fct : this->functions)
 		for (const auto &cpt : fct->body)
 		{
-			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
-			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+			if (cpt->is_argument() == false)
+			{
+				isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
+				result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+			}
 		}
 
 	return result;
@@ -765,8 +779,12 @@ isl_union_map * coli::library::get_schedule()
 	for (const auto &fct : this->functions)
 		for (const auto &cpt : fct->body)
 		{
-			isl_map *m = isl_map_copy(cpt->schedule);
-			result = isl_union_map_union(isl_union_map_from_map(m), result);
+			// If this computation is not an argument.
+			if (cpt->is_argument() == false)
+			{
+				isl_map *m = isl_map_copy(cpt->schedule);
+				result = isl_union_map_union(isl_union_map_from_map(m), result);
+			}
 		}
 
 	return result;

@@ -67,6 +67,8 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	// Find the name of the computation associated to this AST leaf node.
 	coli::computation *comp = get_computation_by_node(lib, node);
 
+	IF_DEBUG2(coli::str_dump("\n\tComputation:", comp->get_name().c_str()));
+
 	assert((comp != NULL) && "Computation not found!");;
 
 	isl_map *schedule;

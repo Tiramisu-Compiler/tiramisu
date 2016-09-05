@@ -14,20 +14,14 @@ High Priority
     - split() and interchange() should be done regourously using real ISL constraint (floor should be expressed as ISL constraints). 
       Now setting the space names is flicky.
     - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
- 
-- Halide support
-	7- Changes on the computation class:
-      		- The constructor should not take a Halide expression, the Halide expression
-		  is now set using a separate function.
-	9- The computation expression should become an ISL expression.
-	10- Try blurxy.
-	- compute_halide_call_graph().
-
-
-- Data layout
     - Currently if you specify an access function that has constraints,
     the constraints are not taken in consideration.  The access function is
     applied for all the values of i and j.
+
+- Halide support
+	9- The computation expression should become an ISL expression.
+	10- Try blurxy.
+	- compute_halide_call_graph().
 
 
 Low Priority
