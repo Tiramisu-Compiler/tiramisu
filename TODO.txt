@@ -17,7 +17,9 @@ High Priority
     the constraints are not taken in consideration.  The access function is
     applied for all the values of i and j.
 
+
 - Halide support
+	6- Retrieve name automatically.
 	7- Make the interface easier to use:	
 		- Think about invariants.  How can I simplify invariants.
 		- Think about computation binding: how cna I simplify it.

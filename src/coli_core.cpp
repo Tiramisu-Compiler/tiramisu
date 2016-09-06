@@ -109,17 +109,6 @@ std::string generate_new_variable_name()
 }
 
 
-void coli::computation::set_as_argument(coli::buffer *buff, coli::argtype type)
-{
-	// Create a new argument that is represented by this
-	// computation and add it to the function.
-	coli::argument *argument0 = new coli::argument(this->get_function(), type,  buff);
-	this->argument = argument0;
-
-	is_arg = true;
-}
-
-
 /**
   * Methods for the computation class.
   */
@@ -685,7 +674,7 @@ isl_union_set * coli::function::get_iteration_domain()
 
 	for (const auto &cpt : this->body)
 	{
-		if (cpt->is_argument() == false)
+		if (cpt->should_be_scheduled() == true)
 		{
 			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
 			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
@@ -713,7 +702,7 @@ isl_union_map * coli::function::get_schedule()
 	for (const auto &cpt : this->body)
 	{
 		// If this computation is not an argument.
-		if (cpt->is_argument() == false)
+		if (cpt->should_be_scheduled() == true)
 		{
 			isl_map *m = isl_map_copy(cpt->schedule);
 			result = isl_union_map_union(isl_union_map_from_map(m), result);

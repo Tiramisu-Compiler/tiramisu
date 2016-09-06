@@ -572,7 +572,32 @@ private:
 	  * A boolean indicating whether the computation represents a function
 	  * argument.
 	  */
-	bool is_arg;
+	bool should_be_sched;
+
+	/**
+	  * Initialize a computation.
+	  * This is a private function that should not be called explicitely
+	  * by users.
+	  */
+	void init_computation(std::string iteration_space_str, coli::function *fct) {
+		assert(fct != NULL);
+		assert(iteration_space_str.length()>0 && ("Empty iteration space"));
+
+		// Initialize all the fields to NULL (useful for later asserts)
+		index_expr = NULL;
+		access = NULL;
+		schedule = NULL;
+		stmt = Halide::Internal::Stmt();
+		time_processor_domain = NULL;
+
+		this->ctx = fct->get_ctx();
+
+		iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
+		function = fct;
+		function->add_computation(this);
+		this->set_identity_schedule();
+	}
 
 public:
 
@@ -620,7 +645,7 @@ public:
 	const static int root_dimension = -1;
 
 	/**
-	  * Create a computation.
+	  * Create a computation and make it represent an expression.
 	  *
 	  * \p iteration_space_str is a string that represents the iteration
 	  * space of the computation.  The iteration space should be encoded
@@ -650,25 +675,48 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	computation(std::string iteration_space_str, coli::function *fct) {
-		assert(fct != NULL);
-		assert(iteration_space_str.length()>0 && ("Empty iteration space"));
+	//@
+	computation(std::string iteration_space_str, Halide::Expr expr, coli::function *fct) {
+		init_computation(iteration_space_str, fct);
 
-		// Initialize all the fields to NULL (useful for later asserts)
-		index_expr = NULL;
-		access = NULL;
-		schedule = NULL;
-		stmt = Halide::Internal::Stmt();
-		time_processor_domain = NULL;
-
-		this->ctx = fct->get_ctx();
-
-		iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
-		name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
-		function = fct;
-		function->add_computation(this);
-		this->set_identity_schedule();
+		this->expression = expr;
+		should_be_sched = true;
 	}
+
+	/**
+	  * Create a computation and make it represent an argument.
+	  * Each argument of a coli function should be represented as computations, these
+	  * computation are bound to buffers (i.e. there is a one-to-one
+	  * mapping between the computation and a buffer).
+	  * Computation are used to represent function arguments
+	  * because in a coli function, the only kind of expression that
+	  * is allowed is expressions over computations.  Expression of a mix
+	  * of computations and buffers is not allowed.  Thus any buffer passed
+	  * to the function as an argument needs first to be bound to a
+	  * computation (i.e. to be represented as a computation) and only then
+	  * it can be used within the coli function.
+	  * A computation that represents an argument cannot be used to
+	  * represent an expression.
+	  */
+	computation(std::string iteration_space_str, coli::argument *argument0, coli::function *fct) {
+		init_computation(iteration_space_str, fct);
+
+		assert(argument0 != NULL);
+
+		this->argument = argument0;
+		should_be_sched = false;
+	}
+
+	computation(std::string iteration_space_str, Halide::Expr expr, coli::argument *argument0, coli::function *fct) {
+		init_computation(iteration_space_str, fct);
+
+		assert(argument0 != NULL);
+
+		this->argument = argument0;
+		this->expression = expr;
+		should_be_sched = true;
+	}
+	//@
 
 	/**
 	  * Return the access function of the computation.
@@ -735,11 +783,15 @@ public:
 	}
 
 	/**
-	  * Return true if the computation is a function argument.
+	  * Return true if the computation should be scheduled.
+	  * Computations that are input arguments usually are marked so that
+	  * they are not scheduled since they only exist so that the user
+	  * can create expressions of computations only rather than creating
+	  * expressions of computation and input buffers.
 	  */
-	bool is_argument()
+	bool should_be_scheduled()
 	{
-		return is_arg;
+		return should_be_sched;
 	}
 
 	/**
@@ -755,32 +807,6 @@ public:
 	  * dimension in the iteration space) is 0.
 	  */
 	void tag_vector_dimension(int dim);
-
-	/**
-	  * Set the expression associated with the computation.
-	  */
-	void set_expression(Halide::Expr expr)
-	{
-		this->expression = expr;
-		is_arg = false;
-	}
-
-	/**
-	  * Make the computation represent an argument.
-	  * All function arguments should be represented as computations, these
-	  * computation are bound to buffers (i.e. there is a one-to-one
-	  * mapping between the computation and a buffer).
-	  * Computation are used to represent function arguments
-	  * because in a coli function, the only kind of expression that
-	  * is allowed is expressions over computations.  Expression of a mix
-	  * of computations and buffers is not allowed.  Thus any buffer passed
-	  * to the function as an argument needs first to be bound to a
-	  * computation (i.e. to be represented as a computation) and only then
-	  * it can be used within the coli function.
-	  * A computation that represents an argument cannot be used to
-	  * represent an expression.
-	  */
-	void set_as_argument(coli::buffer *buff, coli::argtype type);
 
 	/**
 	  * Generate the time-processor domain of the computation.
@@ -990,7 +1016,7 @@ public:
 	  * The computation is bound to the buffer \p buf (i.e. one to one
 	  * mapping between the computation and the buffer).
 	  */
-	argument(function *fct, argtype comptype, buffer *buf)
+	argument(argtype comptype, buffer *buf, function *fct)
 	{
 		assert(fct != NULL);
 		assert(buf != NULL);
@@ -1000,9 +1026,9 @@ public:
 		fct->add_argument(this);
 	}
 
-	argument(function *fct, argtype comptype, std::string buff_name,
-			int buff_nb_dims, std::vector<int> buff_dim_sizes,
-			Halide::Type buff_type, uint8_t *buff_data)
+	argument(argtype comptype, std::string buff_name,
+		int buff_nb_dims, std::vector<int> buff_dim_sizes,
+		Halide::Type buff_type, uint8_t *buff_data, function *fct)
 	{
 		assert(fct != NULL);
 

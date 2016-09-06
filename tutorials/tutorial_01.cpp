@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 
 	// Declare a function.
 	coli::function fct("function0");
+	coli::argument buf0(coli::inputarg, "buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
 
 	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change value during the
@@ -30,13 +31,8 @@ int main(int argc, char **argv)
 	// (1) a Halide expression that represents the computation,
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
-	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &fct);
-	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", &fct);
-
-	// Create a memory buffer (2 dimensional).
-	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
-	computation1.set_as_argument(&buf0, coli::outputarg);
-	computation0.set_expression(Halide::Expr((uint8_t) 3));
+	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 3), &fct);
+	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", &buf0, &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
@@ -53,8 +49,6 @@ int main(int argc, char **argv)
 	// (i.e. no optimization is applied).
 	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
-	computation1.set_schedule("{S1[i,j]->[i,j]}");
-	computation1.after(computation0, coli::computation::root_dimension);
 
 	// Generate the time-processor domain of the computation
 	// and dump it on stdout.
