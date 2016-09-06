@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	// In this particular case we have also a one-to-one mapping but
 	// it can be anything else. whereas a binding can only be
 	// a one-to-one mapping.
-	c_blur_x.SetWriteAccess("{c_blur_x[i,j]->b_blur_x[i, j]}");
+	c_blur_x.set_access("{c_blur_x[i,j]->b_blur_x[i, j]}");
 
 	// --------------------------------------------------------------
 	// Part V: Generate an ISL AST.

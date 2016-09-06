@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation0.SetWriteAccess("{S0[i,j]->buf0[i,j]}");
+	computation0.set_access("{S0[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();

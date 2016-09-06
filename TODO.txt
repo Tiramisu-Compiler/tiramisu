@@ -5,7 +5,6 @@ High Priority
     	- Add DEBUG3
 	- Add indentation to DEBUG.
 	- Organize the output.
-    - Rename SetWriteAccess.
     - Add scheduling commands:
 	- fuse(),
 	- split(),

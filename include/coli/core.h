@@ -832,7 +832,7 @@ public:
 	  */
 	void after(computation &comp, int dim);
 
-	void SetWriteAccess(std::string access_str)
+	void set_access(std::string access_str)
 	{
 		assert(access_str.length() > 0);
 
@@ -912,7 +912,7 @@ public:
 		map = isl_map_coalesce(map);
 		IF_DEBUG2(coli::str_dump("\nBinding.  The following access function is set: ",
 					isl_map_to_str(map)));
-		this->SetWriteAccess(isl_map_to_str(map));
+		this->set_access(isl_map_to_str(map));
 	}
 
 

@@ -55,9 +55,9 @@ int main(int argc, char **argv)
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation0.SetWriteAccess("{c_input[i,j]->b_input[i,j]}");
-	computation0.SetWriteAccess("{c_blurx[i,j]->b_blurx[i,j]}");
-	computation0.SetWriteAccess("{c_blury[i,j]->b_blury[i,j]}");
+	computation0.set_access("{c_input[i,j]->b_input[i,j]}");
+	computation0.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
+	computation0.set_access("{c_blury[i,j]->b_blury[i,j]}");
 
 
 	// Dump the iteration domain (input) for the function.

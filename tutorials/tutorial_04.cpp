@@ -34,9 +34,9 @@ int main(int argc, char **argv)
 
 	// Map the computations to the buffers (i.e. where each computation
 	// should be stored in the buffer).
-	computation0.SetWriteAccess("{S0[i,j]->buf0[i, j]}");
-	computation1.SetWriteAccess("{S1[i,j]->buf0[0, 0]}");
-	computation2.SetWriteAccess("{S2[i,j]->buf0[i, j]}");
+	computation0.set_access("{S0[i,j]->buf0[i, j]}");
+	computation1.set_access("{S1[i,j]->buf0[0, 0]}");
+	computation2.set_access("{S2[i,j]->buf0[i, j]}");
 
 	// Set the schedule of each computation.
 	computation0.tile(0,1,32,32);
