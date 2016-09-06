@@ -37,10 +37,10 @@ int main(int argc, char **argv)
 	 * Declare two arguments (coli buffers) for the function: input and blur_y
 	 * Declare an invariant for the function.
 	 */
-	coli::function fct("blurxy");
+	coli::function blurxy("blurxy");
 	coli::argument a_input(coli::inputarg, "a_input", 2, {100,100}, Halide::Int(8), NULL, &fct);
 	coli::argument a_blury(coli::outputarg, "a_blury", 2, {100,100}, Halide::Int(8), NULL, &fct);
-	coli::invariant p0("N", Halide::Expr((int32_t) 100), &fct);
+	coli::invariant N("N", Halide::Expr((int32_t) 100), &fct);
 
 	// Declare the computations of the function fct.
 	coli::computation computation0("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", &a_input, &fct);
@@ -58,7 +58,6 @@ int main(int argc, char **argv)
 	computation0.set_access("{c_input[i,j]->b_input[i,j]}");
 	computation0.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
 	computation0.set_access("{c_blury[i,j]->b_blury[i,j]}");
-
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();
