@@ -591,23 +591,32 @@ void coli::function::dump_schedule()
 	}
 }
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argtype type)
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument::type type)
 {
-	if (type == coli::inputarg)
-		return Halide::Argument::InputBuffer;
+	Halide::Argument::Kind res;
+
+	if (type == coli::argument::internal)
+		coli::error("The buffer type internal should not be used for"
+			    " buffers passed as argument.\n", true);
+
+	if (type == coli::argument::input)
+		res = Halide::Argument::InputBuffer;
 	else
-		return Halide::Argument::OutputBuffer;
+		res = Halide::Argument::OutputBuffer;
+
+	return res;
 }
 
-void coli::function::add_argument(coli::argument *arg)
+void coli::function::set_arguments(std::vector<coli::buffer *> buffer_vec)
 {
-	coli::buffer *buf = arg->get_buffer();
-
-	Halide::Argument buffer_arg(buf->get_name(),
-			coli_argtype_to_halide_argtype(arg->get_type()),
+	for (auto buf : buffer_vec)
+	{
+		Halide::Argument buffer_arg(buf->get_name(),
+			coli_argtype_to_halide_argtype(buf->get_argument_type()),
 			buf->get_type(), buf->get_n_dims());
 
-	arguments.push_back(buffer_arg);
+		arguments.push_back(buffer_arg);
+	}
 }
 
 
@@ -674,11 +683,8 @@ isl_union_set * coli::function::get_iteration_domain()
 
 	for (const auto &cpt : this->body)
 	{
-		if (cpt->should_be_scheduled() == true)
-		{
-			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
-			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
-		}
+		isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
+		result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
 	}
 
 	return result;
@@ -701,12 +707,8 @@ isl_union_map * coli::function::get_schedule()
 
 	for (const auto &cpt : this->body)
 	{
-		// If this computation is not an argument.
-		if (cpt->should_be_scheduled() == true)
-		{
-			isl_map *m = isl_map_copy(cpt->schedule);
-			result = isl_union_map_union(isl_union_map_from_map(m), result);
-		}
+		isl_map *m = isl_map_copy(cpt->schedule);
+		result = isl_union_map_union(isl_union_map_from_map(m), result);
 	}
 
 	return result;

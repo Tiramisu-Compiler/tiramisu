@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
 	// Declare a function.
 	coli::function fct("function0");
-	coli::argument buf0(coli::inputarg, "buf0", 2, {10,10}, Halide::Int(8), NULL, &fct);
+	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, true, coli::argument::output, &fct);
 
 	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change value during the
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
 	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 3), &fct);
-	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", &buf0, &fct);
+	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 7), &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
@@ -40,6 +40,7 @@ int main(int argc, char **argv)
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
 	computation0.set_access("{S0[i,j]->buf0[i,j]}");
+	computation1.set_access("{S1[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();
@@ -49,6 +50,9 @@ int main(int argc, char **argv)
 	// (i.e. no optimization is applied).
 	computation0.tile(0,1,2,2);
 	computation0.tag_parallel_dimension(0);
+
+	// Add buf0 as an argument to the function.
+	fct.set_arguments({&buf0});
 
 	// Generate the time-processor domain of the computation
 	// and dump it on stdout.

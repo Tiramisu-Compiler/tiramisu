@@ -38,26 +38,24 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	coli::function blurxy("blurxy");
-	coli::argument a_input(coli::inputarg, "a_input", 2, {100,100}, Halide::Int(8), NULL, &fct);
-	coli::argument a_blury(coli::outputarg, "a_blury", 2, {100,100}, Halide::Int(8), NULL, &fct);
+	coli::buffer b_input("b_input", 2, {100,100}, Halide::Int(8), NULL, true, coli::argument::input, &fct);
+	coli::buffer b_blury("b_blury", 2, {100,100}, Halide::Int(8), NULL, true, coli::argument::output, &fct);
 	coli::invariant N("N", Halide::Expr((int32_t) 100), &fct);
 
 	// Declare the computations of the function fct.
-	coli::computation computation0("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", &a_input, &fct);
-	coli::computation computation1("[N]->{c_blurx[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 3), &fct);
-	coli::computation computation2("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 7), &a_blury, &fct);
+	coli::computation c_blurx("[N]->{c_blurx[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 3), &fct);
+	coli::computation c_blury("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 7), &fct);
 
 	// Create a memory buffer (2 dimensional).
-	coli::buffer buf0("b_blurx", 2, {100,100}, Halide::Int(8), NULL, &fct);
+	coli::buffer b_blurx("b_blurx", 2, {100,100}, Halide::Int(8), NULL, false, coli::argument::internal, &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation0.set_access("{c_input[i,j]->b_input[i,j]}");
-	computation0.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
-	computation0.set_access("{c_blury[i,j]->b_blury[i,j]}");
+	c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
+	c_blury.set_access("{c_blury[i,j]->b_blury[i,j]}");
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();

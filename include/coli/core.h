@@ -23,13 +23,15 @@ class function;
 class computation;
 class buffer;
 class invariant;
-class argument;
 
 
-/**
- * Types of function arguments.
- */
-enum argtype {inputarg, outputarg};
+namespace argument
+{
+	/**
+	 * Types of function arguments.
+	 */
+	enum type {input, output, internal};
+}
 
 
 /**
@@ -230,11 +232,11 @@ public:
 	void add_computation(computation *cpt);
 
 	/**
-	  * Add an argument to the list of arguments of the function.
-	  * The order in which the arguments are added is important.
-	  * (the first added argument is the first function argument, ...).
+	  * Set the arguments of the function.
+	  * The arguments in the vector will be the arguments of the function
+	  * (with the order of their appearance in the vector).
 	  */
-	void add_argument(coli::argument *arg);
+	void set_arguments(std::vector<coli::buffer *> buffer_vec);
 
 	/**
 	  * This functions applies to the schedule of each computation
@@ -488,6 +490,16 @@ class buffer
 	  */
 	coli::function *fct;
 
+	/**
+	  * Is the buffer passed as an argument to the function ?
+	  */
+	bool is_arg;
+
+	/**
+	 * Type of the argument.
+	 */
+	coli::argument::type argtype;
+
 public:
 	/**
 	  * Create a coli buffer where computations can be stored
@@ -502,20 +514,32 @@ public:
 	  * for binding a computation to an already existing buffer.
 	  * \p fct is i a pointer to a coli function where the buffer is
 	  * declared/used.
+	  * \p is_argument indicates whether the buffer is passed to the
+	  * function as an argument.  All the buffers passed as arguments
+	  * to the function should be allocated by the user outside the
+	  * function.  Buffers that are allocated within the function cannot
+	  * be used outside the function.
 	  */
 	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-			Halide::Type type, uint8_t *data, coli::function *fct):
+		Halide::Type type, uint8_t *data, bool is_argument,
+		coli::argument::type argt, coli::function *fct):
 		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
 		data(data), fct(fct)
-		{
-			assert(name.length()>0 && "Empty buffer name");
-			assert(nb_dims>0 && "Buffer dimensions <= 0");
-			assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
-			assert(fct != NULL && "Input function is NULL");
+	{
+		assert(name.length()>0 && "Empty buffer name");
+		assert(nb_dims>0 && "Buffer dimensions <= 0");
+		assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
+		assert(fct != NULL && "Input function is NULL");
 
-			Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
-			fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
-		};
+		Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
+		fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
+
+		this->is_arg = is_argument;
+		if (this->is_arg == true)
+			argtype = argt;
+		else
+			argtype = coli::argument::internal;
+	};
 
 	/**
 	  * Return the name of the buffer.
@@ -536,6 +560,14 @@ public:
 	int get_n_dims()
 	{
 		return nb_dims;
+	}
+
+	/**
+	  * Return the type of the argument.
+	  */
+	coli::argument::type get_argument_type()
+	{
+		return argtype;
 	}
 };
 
@@ -562,17 +594,6 @@ private:
 	  * is not specified, the computations are also not mapped to memory.
 	 */
 	isl_set *iteration_domain;
-
-	/**
-	  * An argument associated to this computation.
-	  */
-	coli::argument *argument;
-
-	/**
-	  * A boolean indicating whether the computation represents a function
-	  * argument.
-	  */
-	bool should_be_sched;
 
 	/**
 	  * Initialize a computation.
@@ -675,48 +696,11 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	//@
 	computation(std::string iteration_space_str, Halide::Expr expr, coli::function *fct) {
 		init_computation(iteration_space_str, fct);
 
 		this->expression = expr;
-		should_be_sched = true;
 	}
-
-	/**
-	  * Create a computation and make it represent an argument.
-	  * Each argument of a coli function should be represented as computations, these
-	  * computation are bound to buffers (i.e. there is a one-to-one
-	  * mapping between the computation and a buffer).
-	  * Computation are used to represent function arguments
-	  * because in a coli function, the only kind of expression that
-	  * is allowed is expressions over computations.  Expression of a mix
-	  * of computations and buffers is not allowed.  Thus any buffer passed
-	  * to the function as an argument needs first to be bound to a
-	  * computation (i.e. to be represented as a computation) and only then
-	  * it can be used within the coli function.
-	  * A computation that represents an argument cannot be used to
-	  * represent an expression.
-	  */
-	computation(std::string iteration_space_str, coli::argument *argument0, coli::function *fct) {
-		init_computation(iteration_space_str, fct);
-
-		assert(argument0 != NULL);
-
-		this->argument = argument0;
-		should_be_sched = false;
-	}
-
-	computation(std::string iteration_space_str, Halide::Expr expr, coli::argument *argument0, coli::function *fct) {
-		init_computation(iteration_space_str, fct);
-
-		assert(argument0 != NULL);
-
-		this->argument = argument0;
-		this->expression = expr;
-		should_be_sched = true;
-	}
-	//@
 
 	/**
 	  * Return the access function of the computation.
@@ -780,18 +764,6 @@ public:
 	isl_ctx *get_ctx()
 	{
 		return ctx;
-	}
-
-	/**
-	  * Return true if the computation should be scheduled.
-	  * Computations that are input arguments usually are marked so that
-	  * they are not scheduled since they only exist so that the user
-	  * can create expressions of computations only rather than creating
-	  * expressions of computation and input buffers.
-	  */
-	bool should_be_scheduled()
-	{
-		return should_be_sched;
 	}
 
 	/**
@@ -990,70 +962,6 @@ public:
 	Halide::Expr get_expr()
 	{
 		return expr;
-	}
-};
-
-
-/**
-  * A class to represent function arguments.
-  * A function argument is a computation that hase one of the following
-  * three types: input argument or output argument.
-  */
-class argument
-{
-private:
-	// Type of the argument.
-	argtype type;
-
-	// coli::buffer associated with the argument.
-	buffer *buff;
-
-public:
-	/**
-	  * Initiate an argument to the function \p fct.
-	  * \p cp is the computation passed as an argument and
-	  * \p comptype is the type of the computation (input or output)
-	  * The computation is bound to the buffer \p buf (i.e. one to one
-	  * mapping between the computation and the buffer).
-	  */
-	argument(argtype comptype, buffer *buf, function *fct)
-	{
-		assert(fct != NULL);
-		assert(buf != NULL);
-
-		this->type = comptype;
-		this->buff = buf;
-		fct->add_argument(this);
-	}
-
-	argument(argtype comptype, std::string buff_name,
-		int buff_nb_dims, std::vector<int> buff_dim_sizes,
-		Halide::Type buff_type, uint8_t *buff_data, function *fct)
-	{
-		assert(fct != NULL);
-
-		coli::buffer *buf = new coli::buffer(buff_name, buff_nb_dims,
-				buff_dim_sizes, buff_type, buff_data, fct);
-
-		this->type = comptype;
-		this->buff = buf;
-		fct->add_argument(this);
-	}
- 
-	/**
-	  * Return the type of the argument.
-	  */
-	argtype get_type()
-	{
-		return type;
-	}
-
-	/**
-	  * Return the coli buffer associated with this argument.
-	  */
-	buffer *get_buffer()
-	{
-		return buff;
 	}
 };
 
