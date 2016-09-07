@@ -24,7 +24,13 @@ namespace type {
 	*/
 	enum class expr {
 		val,
-		id,
+		op,
+	};
+
+	/**
+	  * Types of coli operators.
+	  */
+	enum class op {
 		logical_and,
 		logical_or,
 		max,
@@ -34,12 +40,15 @@ namespace type {
 		sub,
 		mul,
 		div,
+		mod,
 		cond,
 		eq,
+		le,
 		lt,
 		ge,
 		gt,
 		call,
+		access,
 		computation
 	};
 

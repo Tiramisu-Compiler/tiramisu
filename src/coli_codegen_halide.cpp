@@ -132,100 +132,76 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::expr coli_expr)
 		else if (coli_expr.get_data_type() == coli::type::primitive::int64)
 			result = Halide::Expr(coli_expr.get_int64_value());
 	}
-
-/*	if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
-	{
-		isl_id *identifier = isl_ast_expr_get_id(isl_expr);
-		std::string name_str(isl_id_get_name(identifier));
-		result = Halide::Internal::Variable::make(Halide::Int(32), name_str);
-	}
-	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
+	else if (coli_expr.get_expr_type() == coli::type::expr::op)
 	{
 		Halide::Expr op0, op1, op2;
 
-		op0 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
+		op0 = create_halide_expr_from_coli_expr(coli_expr.get_operator(0));
 
-		if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
-			op1 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 1));
+		if (coli_expr.get_n_arg() > 1)
+			op1 = create_halide_expr_from_coli_expr(coli_expr.get_operator(1));
 
-		if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
-			op2 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 2));
+		if (coli_expr.get_n_arg() > 2)
+			op2 = create_halide_expr_from_coli_expr(coli_expr.get_operator(2));
 
-		switch(isl_ast_expr_get_op_type(isl_expr))
+		switch(coli_expr.get_op_type())
 		{
-			case isl_ast_op_and:
+			case coli::type::op::logical_and:
 				result = Halide::Internal::And::make(op0, op1);
 				break;
-			case isl_ast_op_and_then:
-				result = Halide::Internal::And::make(op0, op1);
-				coli::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
-				break;
-			case isl_ast_op_or:
+			case coli::type::op::logical_or:
 				result = Halide::Internal::Or::make(op0, op1);
 				break;
-			case isl_ast_op_or_else:
-				result = Halide::Internal::Or::make(op0, op1);
-				coli::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
-				break;
-			case isl_ast_op_max:
+			case coli::type::op::max:
 				result = Halide::Internal::Max::make(op0, op1);
 				break;
-			case isl_ast_op_min:
+			case coli::type::op::min:
 				result = Halide::Internal::Min::make(op0, op1);
 				break;
-			case isl_ast_op_minus:
+			case coli::type::op::minus:
 				result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
 				break;
-			case isl_ast_op_add:
+			case coli::type::op::add:
 				result = Halide::Internal::Add::make(op0, op1);
 				break;
-			case isl_ast_op_sub:
+			case coli::type::op::sub:
 				result = Halide::Internal::Sub::make(op0, op1);
 				break;
-			case isl_ast_op_mul:
+			case coli::type::op::mul:
 				result = Halide::Internal::Mul::make(op0, op1);
 				break;
-			case isl_ast_op_div:
+			case coli::type::op::div:
 				result = Halide::Internal::Div::make(op0, op1);
 				break;
-			case isl_ast_op_fdiv_q:
-			case isl_ast_op_pdiv_q:
-				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(op0));
-				break;
-			case isl_ast_op_pdiv_r:
+			case coli::type::op::mod:
 				result = Halide::Internal::Mod::make(op0, op1);
 				break;
-			case isl_ast_op_cond:
+			case coli::type::op::cond:
 				result = Halide::Internal::Select::make(op0, op1, op2);
 				break;
-			case isl_ast_op_le:
+			case coli::type::op::le:
 				result = Halide::Internal::LE::make(op0, op1);
 				break;
-			case isl_ast_op_lt:
+			case coli::type::op::lt:
 				result = Halide::Internal::LT::make(op0, op1);
 				break;
-			case isl_ast_op_ge:
+			case coli::type::op::ge:
 				result = Halide::Internal::GE::make(op0, op1);
 				break;
-			case isl_ast_op_gt:
+			case coli::type::op::gt:
 				result = Halide::Internal::GT::make(op0, op1);
 				break;
-			case isl_ast_op_eq:
+			case coli::type::op::eq:
 				result = Halide::Internal::EQ::make(op0, op1);
 				break;
 			default:
-				coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
-				coli::str_dump("\n");
 				coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 		}
 	}
 	else
 	{
-		coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
-		coli::str_dump("\n");
 		coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 	}
-	*/
 
 	return result;
 }

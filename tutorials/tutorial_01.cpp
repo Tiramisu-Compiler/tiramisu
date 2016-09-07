@@ -26,12 +26,16 @@ int main(int argc, char **argv)
 	// execution of the function.
 	coli::invariant p0("N", coli::expr((int32_t) 10), &fct);
 
+	// Declare the expressions that will be associated with the
+	// computations.
+	coli::expr e1(coli::type::op::add, coli::expr((uint8_t) 3), coli::expr((uint8_t) 4));
+
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:
-	// (1) a Halide expression that represents the computation,
-	// (2) an isl set representing the iteration space of the computation, and
-	// (3) an isl context (which will be used by the ISL library calls).
-	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", coli::expr((uint8_t) 3), &fct);
+	// (1) an isl set representing the iteration space of the computation, and
+	// (2) a coli expression that represents the computation,
+	// (3) the function in which the computation will be declared.
+	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, &fct);
 	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", coli::expr((uint8_t) 7), &fct);	
 
 	// Map the computations to a buffer (i.e. where each computation

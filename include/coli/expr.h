@@ -38,6 +38,11 @@ class expr
 	coli::type::expr etype;
 
 	/**
+	  * The type of the operator.
+	  */
+	coli::type::op _operator;
+
+	/**
 	  * The value of the expression. 
 	  */
 	union {
@@ -54,43 +59,58 @@ class expr
 	  */
 	coli::type::primitive dtype;
 
+	/**
+	  * Number of operator arguments.
+	  */
+	int n_arg;
+
 public:
 
 	/**
 	  * Create a expression of type \p t (a uniary operator).
 	  */
-	expr(coli::type::expr t, coli::expr expr0)
+	expr(coli::type::op o, coli::expr expr0)
 	{
-		assert((t == coli::type::expr::minus) && "The only unary operator is the minus operator.");
+		assert((o == coli::type::op::minus) && "The only unary operator is the minus operator.");
 
-		this->set_expr_type(t);
-		op = (coli::expr *) malloc(sizeof(coli::expr));
-		op[0] = expr0;
+		this->set_op_type(o);
+		this->set_expr_type(coli::type::expr::op);
+
+		this->op = (coli::expr *) malloc(sizeof(coli::expr));
+		this->op[0] = expr0;
+		this->n_arg = 1;
 	}
 
-	expr(coli::type::expr t, coli::expr expr0, coli::expr expr1)
+	expr(coli::type::op o, coli::expr expr0, coli::expr expr1)
 	{
-		assert((t != coli::type::expr::minus) &&
-			(t != coli::type::expr::call) &&
-			(t != coli::type::expr::computation) &&
-			(t != coli::type::expr::cond) &&
+		assert((o != coli::type::op::minus) &&
+			(o != coli::type::op::call) &&
+			(o != coli::type::op::computation) &&
+			(o != coli::type::op::access) &&
+			(o != coli::type::op::cond) &&
 			"The operator is not an binay operator.");
 
-		this->set_expr_type(t);
-		op = (coli::expr *) malloc(2*sizeof(coli::expr));
-		op[0] = expr0;
-		op[1] = expr1;
+		this->set_op_type(o);
+		this->set_expr_type(coli::type::expr::op);
+
+		this->op = (coli::expr *) malloc(2*sizeof(coli::expr));
+		this->op[0] = expr0;
+		this->op[1] = expr1;
+		this->n_arg = 2;
 	}
 
-	expr(coli::type::expr t, coli::expr expr0, coli::expr expr1, coli::expr expr2)
+	expr(coli::type::op o, coli::expr expr0, coli::expr expr1, coli::expr expr2)
 	{
-		assert((t == coli::type::expr::cond) && "The operator is not a ternary operator.");
+		assert((o == coli::type::op::cond) && "The operator is not a ternary operator.");
 
-		this->set_expr_type(t);
-		op = (coli::expr *) malloc(2*sizeof(coli::expr));
-		op[0] = expr0;
-		op[1] = expr1;
-		op[2] = expr2;
+		this->set_op_type(o);
+		this->set_expr_type(coli::type::expr::op);
+
+		this->op = (coli::expr *) malloc(2*sizeof(coli::expr));
+		this->op[0] = expr0;
+		this->op[1] = expr1;
+		this->op[2] = expr2;
+		this->n_arg = 3;
 	}
 
 	/**
@@ -192,10 +212,18 @@ public:
 	  * Return the value of the \p i 'th operator of the expression.
 	  * \p i can be 0, 1 or 2.
 	  */
-	coli::expr get_op(int i)
+	coli::expr get_operator(int i)
 	{
 		assert((i<3) && "The expression has only 3 operators.");
 		return op[i];
+	}
+
+	/**
+	  * Return the number of arguments of the operator.
+	  */
+	int get_n_arg()
+	{
+		return n_arg;
 	}
 
 	/**
@@ -213,12 +241,29 @@ public:
 	{
 		return dtype;
 	}
+
+	/**
+	  * Get the type of the operator (coli::type::op).
+	  */
+	coli::type::op get_op_type()
+	{
+		return _operator;
+	}
+
 	/**
 	  * Set the type of the expression (coli::expr_type).
 	  */
 	void set_expr_type(coli::type::expr t)
 	{
 		etype = t;
+	}
+
+	/**
+	  * Set the type of the operator (coli::type::op).
+	  */
+	void set_op_type(coli::type::op op)
+	{
+		_operator = op;
 	}
 
 	/**
