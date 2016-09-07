@@ -591,15 +591,14 @@ void coli::function::dump_schedule()
 	}
 }
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument::type type)
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type)
 {
 	Halide::Argument::Kind res;
 
-	if (type == coli::argument::internal)
-		coli::error("The buffer type internal should not be used for"
-			    " buffers passed as argument.\n", true);
+	if (type == coli::type::argument::none)
+		coli::error("The buffer of type none should not be used as an argument.\n", true);
 
-	if (type == coli::argument::input)
+	if (type == coli::type::argument::input)
 		res = Halide::Argument::InputBuffer;
 	else
 		res = Halide::Argument::OutputBuffer;

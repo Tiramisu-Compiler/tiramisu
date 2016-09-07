@@ -9,6 +9,8 @@
 
 #include <coli/debug.h>
 #include <coli/core.h>
+#include <coli/type.h>
+#include <coli/expr.h>
 
 #include <string>
 
@@ -109,6 +111,123 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
+}
+
+Halide::Expr create_halide_expr_from_coli_expr(coli::expr coli_expr)
+{
+	Halide::Expr result;
+
+	if (coli_expr.get_expr_type() == coli::type::expr::val)
+	{
+		if (coli_expr.get_data_type() == coli::type::primitive::uint8)
+			result = Halide::Expr(coli_expr.get_uint8_value());
+		else if (coli_expr.get_data_type() == coli::type::primitive::int8)
+			result = Halide::Expr(coli_expr.get_int8_value());
+		else if (coli_expr.get_data_type() == coli::type::primitive::uint32)
+			result = Halide::Expr(coli_expr.get_uint32_value());
+		else if (coli_expr.get_data_type() == coli::type::primitive::int32)
+			result = Halide::Expr(coli_expr.get_int32_value());
+		else if (coli_expr.get_data_type() == coli::type::primitive::uint64)
+			result = Halide::Expr(coli_expr.get_uint64_value());
+		else if (coli_expr.get_data_type() == coli::type::primitive::int64)
+			result = Halide::Expr(coli_expr.get_int64_value());
+	}
+
+/*	if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
+	{
+		isl_id *identifier = isl_ast_expr_get_id(isl_expr);
+		std::string name_str(isl_id_get_name(identifier));
+		result = Halide::Internal::Variable::make(Halide::Int(32), name_str);
+	}
+	else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
+	{
+		Halide::Expr op0, op1, op2;
+
+		op0 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
+
+		if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
+			op1 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 1));
+
+		if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
+			op2 = create_halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 2));
+
+		switch(isl_ast_expr_get_op_type(isl_expr))
+		{
+			case isl_ast_op_and:
+				result = Halide::Internal::And::make(op0, op1);
+				break;
+			case isl_ast_op_and_then:
+				result = Halide::Internal::And::make(op0, op1);
+				coli::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
+				break;
+			case isl_ast_op_or:
+				result = Halide::Internal::Or::make(op0, op1);
+				break;
+			case isl_ast_op_or_else:
+				result = Halide::Internal::Or::make(op0, op1);
+				coli::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
+				break;
+			case isl_ast_op_max:
+				result = Halide::Internal::Max::make(op0, op1);
+				break;
+			case isl_ast_op_min:
+				result = Halide::Internal::Min::make(op0, op1);
+				break;
+			case isl_ast_op_minus:
+				result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
+				break;
+			case isl_ast_op_add:
+				result = Halide::Internal::Add::make(op0, op1);
+				break;
+			case isl_ast_op_sub:
+				result = Halide::Internal::Sub::make(op0, op1);
+				break;
+			case isl_ast_op_mul:
+				result = Halide::Internal::Mul::make(op0, op1);
+				break;
+			case isl_ast_op_div:
+				result = Halide::Internal::Div::make(op0, op1);
+				break;
+			case isl_ast_op_fdiv_q:
+			case isl_ast_op_pdiv_q:
+				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(op0));
+				break;
+			case isl_ast_op_pdiv_r:
+				result = Halide::Internal::Mod::make(op0, op1);
+				break;
+			case isl_ast_op_cond:
+				result = Halide::Internal::Select::make(op0, op1, op2);
+				break;
+			case isl_ast_op_le:
+				result = Halide::Internal::LE::make(op0, op1);
+				break;
+			case isl_ast_op_lt:
+				result = Halide::Internal::LT::make(op0, op1);
+				break;
+			case isl_ast_op_ge:
+				result = Halide::Internal::GE::make(op0, op1);
+				break;
+			case isl_ast_op_gt:
+				result = Halide::Internal::GT::make(op0, op1);
+				break;
+			case isl_ast_op_eq:
+				result = Halide::Internal::EQ::make(op0, op1);
+				break;
+			default:
+				coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
+				coli::str_dump("\n");
+				coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
+		}
+	}
+	else
+	{
+		coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
+		coli::str_dump("\n");
+		coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
+	}
+	*/
+
+	return result;
 }
 
 Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
@@ -368,7 +487,8 @@ void function::gen_halide_stmt()
 	{
 		 *stmt = Halide::Internal::LetStmt::make(
 				 param.get_name(),
-				 param.get_expr(), *stmt);
+				 create_halide_expr_from_coli_expr(param.get_expr()),
+				 *stmt);
 	}
 
 	this->halide_stmt = stmt;
@@ -453,7 +573,11 @@ void computation::create_halide_assignement()
 	   Halide::Internal::Parameter param(buffer->type(), true,
 			buffer->dimensions(), buffer->name());
 	   param.set_buffer(*buffer);
-	   this->stmt = Halide::Internal::Store::make(buffer_name, this->expression, index, param);
+
+	   if (this->expression.get_data_type() == coli::type::primitive::uint8)
+	   {
+		   this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this->expression), index, param);
+	   }
 }
 
 void function::gen_halide_obj(std::string obj_file_name,

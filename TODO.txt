@@ -5,6 +5,7 @@ High Priority
     	- Add DEBUG3
 	- Add indentation to DEBUG.
 	- Organize the output.
+	- Print all the information of a function.
     - Add scheduling commands:
 	- fuse(),
 	- split(),
@@ -18,12 +19,8 @@ High Priority
 
 
 - Halide support
-	6- Retrieve name automatically.
-	7- Make the interface easier to use:	
-		- Think about invariants.  How can I simplify invariants.
-		- Think about computation binding: how cna I simplify it.
-	8- Add tutorial_02
-	9- The computation expression should become an ISL expression.
+	8- The computation expression should become an ISL expression.
+	9- Add tutorial_02
 	10- Try blurxy.
 	- compute_halide_call_graph().
 

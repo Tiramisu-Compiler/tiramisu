@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	coli::function blurxy("blurxy");
-	coli::buffer b_input("b_input", 2, {100,100}, Halide::Int(8), NULL, true, coli::argument::input, &fct);
-	coli::buffer b_blury("b_blury", 2, {100,100}, Halide::Int(8), NULL, true, coli::argument::output, &fct);
+	coli::buffer b_input("b_input", 2, {100,100}, Halide::Int(8), NULL, true, coli::input_argument, &fct);
+	coli::buffer b_blury("b_blury", 2, {100,100}, Halide::Int(8), NULL, true, coli::output_argument, &fct);
 	coli::invariant N("N", Halide::Expr((int32_t) 100), &fct);
 
 	// Declare the computations of the function fct.
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	coli::computation c_blury("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 7), &fct);
 
 	// Create a memory buffer (2 dimensional).
-	coli::buffer b_blurx("b_blurx", 2, {100,100}, Halide::Int(8), NULL, false, coli::argument::internal, &fct);
+	coli::buffer b_blurx("b_blurx", 2, {100,100}, Halide::Int(8), NULL, false, coli::not_argument, &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).

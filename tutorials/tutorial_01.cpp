@@ -19,20 +19,20 @@ int main(int argc, char **argv)
 
 	// Declare a function.
 	coli::function fct("function0");
-	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, true, coli::argument::output, &fct);
+	coli::buffer buf0("buf0", 2, {10,10}, Halide::Int(8), NULL, true, coli::type::argument::output, &fct);
 
 	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change value during the
 	// execution of the function.
-	coli::invariant p0("N", Halide::Expr((int32_t) 10), &fct);
+	coli::invariant p0("N", coli::expr((int32_t) 10), &fct);
 
 	// Declare the computations of the function fct.
 	// To declare a computation, you need to provide:
 	// (1) a Halide expression that represents the computation,
 	// (2) an isl set representing the iteration space of the computation, and
 	// (3) an isl context (which will be used by the ISL library calls).
-	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 3), &fct);
-	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", Halide::Expr((uint8_t) 7), &fct);
+	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", coli::expr((uint8_t) 3), &fct);
+	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", coli::expr((uint8_t) 7), &fct);	
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).

@@ -12,9 +12,12 @@
 
 #include <map>
 #include <string.h>
+#include <stdint.h>
 
 #include <Halide.h>
 #include <coli/debug.h>
+#include <coli/expr.h>
+#include <coli/type.h>
 
 namespace coli
 {
@@ -23,15 +26,6 @@ class function;
 class computation;
 class buffer;
 class invariant;
-
-
-namespace argument
-{
-	/**
-	 * Types of function arguments.
-	 */
-	enum type {input, output, internal};
-}
 
 
 /**
@@ -498,7 +492,7 @@ class buffer
 	/**
 	 * Type of the argument.
 	 */
-	coli::argument::type argtype;
+	coli::type::argument argtype;
 
 public:
 	/**
@@ -522,7 +516,7 @@ public:
 	  */
 	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
 		Halide::Type type, uint8_t *data, bool is_argument,
-		coli::argument::type argt, coli::function *fct):
+		coli::type::argument argt, coli::function *fct):
 		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
 		data(data), fct(fct)
 	{
@@ -538,7 +532,7 @@ public:
 		if (this->is_arg == true)
 			argtype = argt;
 		else
-			argtype = coli::argument::internal;
+			argtype = coli::type::argument::none;
 	};
 
 	/**
@@ -565,7 +559,7 @@ public:
 	/**
 	  * Return the type of the argument.
 	  */
-	coli::argument::type get_argument_type()
+	coli::type::argument get_argument_type()
 	{
 		return argtype;
 	}
@@ -594,6 +588,11 @@ private:
 	  * is not specified, the computations are also not mapped to memory.
 	 */
 	isl_set *iteration_domain;
+
+	/**
+	  * An expression representing the computation. 
+	  */
+	coli::expr expression;
 
 	/**
 	  * Initialize a computation.
@@ -636,11 +635,6 @@ public:
 	  * The name of this computation.
 	  */
 	std::string name;
-
-	/**
-	  * Halide expression that represents the computation.
-	  */
-	Halide::Expr expression;
 
 	/**
 	  * Halide statement that assigns the computation to a buffer location.
@@ -696,10 +690,8 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	computation(std::string iteration_space_str, Halide::Expr expr, coli::function *fct) {
+	computation(std::string iteration_space_str, coli::expr e, coli::function *fct): expression(e) {
 		init_computation(iteration_space_str, fct);
-
-		this->expression = expr;
 	}
 
 	/**
@@ -922,7 +914,7 @@ class invariant
 {
 private:
 	// An expression that represents the invariant.
-	Halide::Expr expr;
+	coli::expr expr;
 
 	// The name of the variable holding the invariant.
 	std::string name;
@@ -935,15 +927,13 @@ public:
 	  * of the invariant.
 	  * \p func is the function in which the invariant is defined.
 	  */
-	invariant(std::string param_name, Halide::Expr param_expr,
-			coli::function *func)
+	invariant(std::string param_name, coli::expr param_expr,
+			coli::function *func): expr(param_expr)
 	{
 		assert((param_name.length() > 0) && "Parameter name empty");
-		assert((param_expr.defined()) && "Parameter undefined");
 		assert((func != NULL) && "Function undefined");
 
 		this->name = param_name;
-		this->expr = param_expr;
 		func->add_invariant(*this);
 	}
 
@@ -959,7 +949,7 @@ public:
 	/**
 	  * Return the expression that represents the value of the invariant.
 	  */
-	Halide::Expr get_expr()
+	coli::expr get_expr()
 	{
 		return expr;
 	}
