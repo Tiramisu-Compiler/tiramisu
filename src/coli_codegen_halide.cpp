@@ -550,10 +550,7 @@ void computation::create_halide_assignement()
 			buffer->dimensions(), buffer->name());
 	   param.set_buffer(*buffer);
 
-	   if (this->expression.get_data_type() == coli::type::primitive::uint8)
-	   {
-		   this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this->expression), index, param);
-	   }
+	   this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this->expression), index, param);
 }
 
 void function::gen_halide_obj(std::string obj_file_name,

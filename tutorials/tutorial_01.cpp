@@ -36,7 +36,6 @@ int main(int argc, char **argv)
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
 	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, &fct);
-	coli::computation computation1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", coli::expr((uint8_t) 7), &fct);	
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
@@ -44,7 +43,6 @@ int main(int argc, char **argv)
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
 	computation0.set_access("{S0[i,j]->buf0[i,j]}");
-	computation1.set_access("{S1[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();

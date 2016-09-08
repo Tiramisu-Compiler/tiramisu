@@ -64,6 +64,22 @@ class expr
 	  */
 	int n_arg;
 
+	/**
+	  * Identifier expression.
+	  * This is the identifier of the buffer, function, or computation
+	  * if the operator is a buffer access, a function call or a
+	  * computation access.
+	  */
+	coli::expr *id_expr;
+
+	/**
+	  * A vector of expressions representing buffer accesses,
+	  * or computation accesses.
+	  * For example for the computation C0(i,j), the access is
+	  * the vector {i, j}.
+	  */
+	std::vector<coli::expr*> access_vector;
+
 public:
 
 	/**
@@ -85,7 +101,6 @@ public:
 	{
 		assert((o != coli::type::op::minus) &&
 			(o != coli::type::op::call) &&
-			(o != coli::type::op::computation) &&
 			(o != coli::type::op::access) &&
 			(o != coli::type::op::cond) &&
 			"The operator is not an binay operator.");
@@ -111,6 +126,20 @@ public:
 		this->op[1] = expr1;
 		this->op[2] = expr2;
 		this->n_arg = 3;
+	}
+
+	expr(coli::type::op o, coli::expr id_expr, std::vector<coli::expr*> access_expressions)
+	{
+		assert((o == coli::type::op::access) && "The operator is not an access operator.");
+		assert(access_expressions.size() > 0);
+		assert(id_expr.get_expr_type() ==
+				coli::type::expr::id);
+
+		this->set_op_type(coli::type::op::access);
+		this->set_expr_type(coli::type::expr::op);
+
+		this->set_identifier(id_expr);
+		this->set_access(access_expressions);
 	}
 
 	/**
@@ -189,21 +218,29 @@ public:
 
 	uint32_t get_uint32_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return uint32_value;
 	}
 
 	int32_t get_int32_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return int32_value;
 	}
 
 	uint64_t get_uint64_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return uint64_value;
 	}
 
 	int64_t get_int64_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return int64_value;
 	}	
 	//@
@@ -214,6 +251,8 @@ public:
 	  */
 	coli::expr get_operator(int i)
 	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+
 		assert((i<3) && "The expression has only 3 operators.");
 		return op[i];
 	}
@@ -223,6 +262,8 @@ public:
 	  */
 	int get_n_arg()
 	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+
 		return n_arg;
 	}
 
@@ -239,6 +280,8 @@ public:
 	  */
 	coli::type::primitive get_data_type()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return dtype;
 	}
 
@@ -248,6 +291,73 @@ public:
 	coli::type::op get_op_type()
 	{
 		return _operator;
+	}
+
+	/**
+	  * Return a vector of the access of the computation
+	  * or array.
+	  * For example, for the computation C0(i,j), this
+	  * function will return the vector {i, j} where i and j
+	  * are both coli expressions.
+	  * For a buffer access A[i+1,j], it will return also {i+1, j}.
+	  */
+	std::vector<coli::expr*> get_access()
+	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+		assert(this->get_op_type() == coli::type::op::access);
+
+		return access_vector;
+	}
+
+	/**
+	  * Get the number of dimensions in the access vector.
+	  */
+	int get_n_dim_access()
+	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+		assert(this->get_op_type() == coli::type::op::access);
+
+		return access_vector.size();
+	}
+
+	/**
+	  * Get the identifier of the access operator or the
+	  * call operator.
+	  */
+	coli::expr get_identifier()
+	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+		assert(this->get_op_type() == coli::type::op::access ||
+			this->get_op_type() == coli::type::op::call);
+
+		return *(this->id_expr);
+	}
+
+	// TODO: Tes this function
+	/**
+	  * Set the identifier of the access operator or the
+	  * call operator.
+	  */
+	void set_identifier(coli::expr identifier)
+	{
+		assert(this->get_expr_type() == coli::type::expr::op);
+		assert(this->get_op_type() == coli::type::op::access ||
+			this->get_op_type() == coli::type::op::call);
+
+		this->id_expr = (coli::expr *) malloc(sizeof(coli::expr));
+		*this->id_expr = identifier;
+	}
+
+	/**
+	  * Set the access of a computation or an array.
+	  * For example, for the computation C0(i,j), this
+	  * function will return the vector {i, j} where i and j
+	  * are both coli expressions.
+	  * For a buffer access A[i+1,j], it will return also {i+1, j}.
+	  */
+	void set_access(std::vector<coli::expr*> vector)
+	{
+		access_vector = vector;
 	}
 
 	/**

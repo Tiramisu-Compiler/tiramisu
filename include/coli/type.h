@@ -24,6 +24,7 @@ namespace type {
 	*/
 	enum class expr {
 		val,
+		id,
 		op,
 	};
 
@@ -48,8 +49,7 @@ namespace type {
 		ge,
 		gt,
 		call,
-		access,
-		computation
+		access
 	};
 
 	/**
