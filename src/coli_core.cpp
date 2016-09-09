@@ -1,3 +1,4 @@
+#include <isl/ctx.h>
 #include <isl/aff.h>
 #include <isl/set.h>
 #include <isl/map.h>
@@ -518,42 +519,56 @@ void coli::function::add_computation(computation *cpt)
 	this->body.push_back(cpt);
 }
 
-void coli::function::dump()
+void coli::invariant::dump(bool exhaustive)
+{
+	if (DEBUG)
+	{
+		std::cout << "Invariant \"" << this->name << "\"" << std::endl;
+
+		std::cout << "Expression: ";
+		this->expr.dump(exhaustive);
+		std::cout << std::endl;
+	}
+}
+
+void coli::function::dump(bool exhaustive)
 {
 	if (DEBUG)
 	{
 		std::cout << "Function \"" << this->name << "\"" << std::endl;
-		std::cout << "Body " << std::endl;
 
-		for (auto cpt : this->body)
-		       cpt->dump();
+		std::cout << "Function arguments (coli buffers):" << std::endl;
+		for (auto buf : this->function_arguments)
+			buf->dump(exhaustive);
+		std::cout << std::endl;
 
-		std::cout << "Buffers" << std::endl;
-
-		for (auto buf : this->buffers_list)
-		       std::cout << "Buffer name: " << buf.second->name()
-				<< std::endl;
-
-		std::cout << "Arguments" << std::endl;
-
-		for (auto arg : this->get_arguments())
-		       std::cout << "Argument name: " << arg.name
-				<< std::endl;
-
+		std::cout << "Function invariants:" << std::endl;
+		for (auto inv : this->invariants)
+			inv.dump(exhaustive);
 		std::cout << std::endl;
 
 		std::cout << "Parallel dimensions: ";
 		for (auto par_dim: parallel_dimensions)
 			std::cout << par_dim.first << "(" << par_dim.second << ") ";
-
 		std::cout << std::endl;
 
 		std::cout << "Vector dimensions: ";
 		for (auto vec_dim: vector_dimensions)
 			std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
-
 		std::cout<< std::endl << std::endl;
 
+		std::cout << "Body " << std::endl;
+		for (auto cpt : this->body)
+		       cpt->dump();
+
+		std::cout << "Halide stmt " << *(this->halide_stmt) << std::endl;
+
+		std::cout << "Buffers" << std::endl;
+		for (auto buf : this->buffers_list)
+		       std::cout << "Buffer name: " << buf.second->name()
+				<< std::endl;
+
+		std::cout << std::endl << std::endl;
 	}
 }
 
@@ -608,17 +623,8 @@ Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type)
 
 void coli::function::set_arguments(std::vector<coli::buffer *> buffer_vec)
 {
-	for (auto buf : buffer_vec)
-	{
-		Halide::Argument buffer_arg(buf->get_name(),
-			coli_argtype_to_halide_argtype(buf->get_argument_type()),
-			buf->get_type(), buf->get_n_dims());
-
-		arguments.push_back(buffer_arg);
-	}
+	this->function_arguments = buffer_vec;
 }
-
-
 
 void coli::function::add_vector_dimension(std::string stmt_name,
 		int vec_dim)
@@ -711,6 +717,163 @@ isl_union_map * coli::function::get_schedule()
 	}
 
 	return result;
+}
+
+// Function for the buffer class
+
+std::string coli_type_op_to_str(coli::type::op type)
+{
+	switch (type)
+	{
+		case coli::type::op::logical_and:
+			return "and";
+		case coli::type::op::logical_or:
+			return "or";
+		case coli::type::op::max:
+			return "max";
+		case coli::type::op::min:
+			return "min";
+		case coli::type::op::minus:
+			return "mins";
+		case coli::type::op::add:
+			return "add";
+		case coli::type::op::sub:
+			return "sub";
+		case coli::type::op::mul:
+			return "mul";
+		case coli::type::op::div:
+			return "div";
+		case coli::type::op::mod:
+			return "mod";
+		case coli::type::op::cond:
+			return "cond";
+		case coli::type::op::eq:
+			return "eq";
+		case coli::type::op::le:
+			return "le";
+		case coli::type::op::lt:
+			return "lt";
+		case coli::type::op::ge:
+			return "ge";
+		case coli::type::op::call:
+			return "call";
+		case coli::type::op::access:
+			return "access";
+		default:
+			coli::error("coli op not supported.", true);
+			return "";
+	}
+}
+
+std::string coli_type_expr_to_str(coli::type::expr type)
+{
+	switch (type)
+	{
+		case coli::type::expr::id:
+			return "id";
+		case coli::type::expr::val:
+			return "val";
+		case coli::type::expr::op:
+			return "op";
+		default:
+			coli::error("Coli type not supported.", true);
+	}
+}
+
+std::string coli_type_argument_to_str(coli::type::argument type)
+{
+	switch (type)
+	{
+		case coli::type::argument::input:
+			return "input";
+		case coli::type::argument::output:
+			return "output";
+		case coli::type::argument::none:
+			return "none";
+		default:
+			coli::error("Coli type not supported.", true);
+	}
+}
+
+std::string coli_type_primitive_to_str(coli::type::primitive type)
+{
+	switch (type)
+	{
+		case coli::type::primitive::uint8:
+			return "uint8";
+		case coli::type::primitive::int8:
+			return "int8";
+		case coli::type::primitive::uint32:
+			return "uin32";
+		case coli::type::primitive::int32:
+			return "int32";
+		case coli::type::primitive::uint64:
+			return "uint64";
+		case coli::type::primitive::int64:
+			return "int64";
+		default:
+			coli::error("Coli type not supported.", true);
+	}
+}
+
+std::string is_null_to_str(void *ptr)
+{
+	return ((ptr != NULL) ? "Not NULL" : "NULL");
+}
+
+void coli::buffer::dump(bool exhaustive)
+{
+	if (DEBUG)
+	{
+		std::cout << "Buffer \"" << this->name
+			<< "\", Number of dimensions: " << this->nb_dims
+			<< std::endl;
+	
+		std::cout << "Dimension sizes: ";
+		for (auto size: dim_sizes)
+			std::cout << size << ", ";
+
+		std::cout << std::endl;
+
+		std::cout << "Elements type: " <<
+			coli_type_primitive_to_str(this->type) << std::endl;
+
+		std::cout << "Data field: " <<
+			is_null_to_str(this->data) << std::endl;
+
+		std::cout << "Function field: " <<
+			is_null_to_str(this->fct) << std::endl;
+
+		std::cout << "Buffer is argument ? " <<
+			this->is_arg << std::endl;
+
+		std::cout << "Argument type: " <<
+			coli_type_argument_to_str(this->argtype) << std::endl;
+
+		std::cout<< std::endl << std::endl;
+
+	}
+}
+
+Halide::Type coli_type_to_halide_type(coli::type::primitive type)
+{
+	switch (type)
+	{
+		case coli::type::primitive::uint8:
+			return Halide::UInt(8);
+		case coli::type::primitive::int8:
+			return Halide::Int(8);
+		case coli::type::primitive::uint32:
+			return Halide::UInt(32);
+		case coli::type::primitive::int32:
+			return Halide::Int(32);
+		case coli::type::primitive::uint64:
+			return Halide::UInt(64);
+		case coli::type::primitive::int64:
+			return Halide::Int(64);
+		default:
+			coli::error("Coli type cannot be translated to Halide type.", true);
+	}
 }
 
 }

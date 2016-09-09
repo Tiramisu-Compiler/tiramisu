@@ -27,6 +27,7 @@ class computation;
 class buffer;
 class invariant;
 
+Halide::Type coli_type_to_halide_type(coli::type::primitive type);
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -91,7 +92,7 @@ private:
 	  * Function arguments.  These are the buffers or scalars that are
 	  * passed to the function.
 	  */
-	std::vector<Halide::Argument> arguments;
+	std::vector<coli::buffer *> function_arguments;
 
 	/**
 	  * A vector representing the invariants of the function.
@@ -133,7 +134,6 @@ private:
 	  */
 	std::map<std::string, int> vector_dimensions;
 
-
 public:
 	/**
 	  * Body of the function (a vector of computations).
@@ -172,9 +172,9 @@ public:
 	/**
 	  * Get the arguments of the function.
 	  */
-	std::vector<Halide::Argument> get_arguments()
+	std::vector<coli::buffer *> get_arguments()
 	{
-		return arguments;
+		return function_arguments;
 	}
 
 	/**
@@ -266,11 +266,14 @@ public:
 	void dump_schedule();
 
 	/**
-	  * Dump the function on stdard output (dump most of the fields of
+	  * Dump the function on standard output (dump most of the fields of
 	  * the function class).
 	  * This is mainly useful for debugging.
+	  * If \p exhaustive is set to true, all the fields of the function
+	  * class are printed.  This is useful to find potential initialization
+	  * problems.
 	  */
-	void dump();
+	void dump(bool exhaustive);
 
 	// ----------------------------------
 	// ----------------------------------
@@ -471,7 +474,7 @@ class buffer
 	/**
 	  * The type of the elements of the buffer.
 	  */
-	Halide::Type type;
+	coli::type::primitive type;
 
 	/**
 	  * Buffer data.
@@ -515,7 +518,7 @@ public:
 	  * be used outside the function.
 	  */
 	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-		Halide::Type type, uint8_t *data, bool is_argument,
+		coli::type::primitive type, uint8_t *data, bool is_argument,
 		coli::type::argument argt, coli::function *fct):
 		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
 		data(data), fct(fct)
@@ -525,7 +528,7 @@ public:
 		assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
 		assert(fct != NULL && "Input function is NULL");
 
-		Halide::Buffer *buf = new Halide::Buffer(type, dim_sizes, data, name);
+		Halide::Buffer *buf = new Halide::Buffer(coli_type_to_halide_type(type), dim_sizes, data, name);
 		fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
 
 		this->is_arg = is_argument;
@@ -543,7 +546,7 @@ public:
 		return name;
 	}
 
-	Halide::Type get_type()
+	coli::type::primitive get_type()
 	{
 		return type;
 	}
@@ -563,6 +566,16 @@ public:
 	{
 		return argtype;
 	}
+
+	/**
+	  * Dump the function on standard output (dump most of the fields of
+	  * the buffer class).
+	  * This is mainly useful for debugging.
+	  * If \p exhaustive is set to true, all the fields of the buffer
+	  * class are printed.  This is useful to find potential initialization
+	  * problems.
+	  */
+	void dump(bool exhaustive);
 };
 
 
@@ -913,11 +926,11 @@ public:
 class invariant
 {
 private:
-	// An expression that represents the invariant.
-	coli::expr expr;
-
 	// The name of the variable holding the invariant.
 	std::string name;
+
+	// An expression that represents the invariant.
+	coli::expr expr;
 
 public:
 	/**
@@ -953,6 +966,16 @@ public:
 	{
 		return expr;
 	}
+
+	/**
+	  * Dump the invariant on standard output (dump most of the fields of
+	  * the invariant class).
+	  * This is mainly useful for debugging.
+	  * If \p exhaustive is set to true, all the fields of the invaraint
+	  * class are printed.  This is useful to find potential initialization
+	  * problems.
+	  */
+	void dump(bool exhaustive);
 };
 
 

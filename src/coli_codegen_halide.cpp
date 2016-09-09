@@ -19,6 +19,8 @@ namespace coli
 
 extern int id_counter;
 
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type);
+
 
 computation *function::get_computation_by_name(std::string name)
 {
@@ -568,7 +570,18 @@ void function::gen_halide_obj(std::string obj_file_name,
 
 	Halide::Module m(obj_file_name, target);
 
-	m.append(Halide::Internal::LoweredFunc(this->get_name(), this->get_arguments(), this->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
+	std::vector<Halide::Argument> fct_arguments;
+
+	for (auto buf : this->function_arguments)
+	{
+		Halide::Argument buffer_arg(buf->get_name(),
+			coli_argtype_to_halide_argtype(buf->get_argument_type()),
+			coli_type_to_halide_type(buf->get_type()), buf->get_n_dims());
+
+		fct_arguments.push_back(buffer_arg);
+	}
+
+	m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, this->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
 
 	Halide::Outputs output = Halide::Outputs().object(obj_file_name);
 	m.compile(output);

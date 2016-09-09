@@ -21,17 +21,15 @@
 namespace coli
 {
 
+std::string coli_type_expr_to_str(coli::type::expr type);
+std::string coli_type_op_to_str(coli::type::op type);
+std::string coli_type_primitive_to_str(coli::type::primitive type);
+
 /**
   * A class to represent coli expressions.
   */
 class expr
 {
-	/**
-	  * The value of the 1st, 2nd and 3rd operators of the expression.
-	  * op[0] is the 1st operator, op[1] is the 2nd, ...
-	  */
-	coli::expr *op;
-
 	/**
 	  * The type of the expression.
 	  */
@@ -41,6 +39,22 @@ class expr
 	  * The type of the operator.
 	  */
 	coli::type::op _operator;
+
+	/**
+	  * Number of operator arguments.
+	  */
+	int n_arg;
+
+	/**
+	  * The value of the 1st, 2nd and 3rd operators of the expression.
+	  * op[0] is the 1st operator, op[1] is the 2nd, ...
+	  */
+	coli::expr *op;
+
+	/**
+	  * Data type.
+	  */
+	coli::type::primitive dtype;
 
 	/**
 	  * The value of the expression. 
@@ -53,25 +67,7 @@ class expr
 		uint64_t	uint64_value;
 		int64_t		int64_value;
 	};
-
-	/**
-	  * Data type.
-	  */
-	coli::type::primitive dtype;
-
-	/**
-	  * Number of operator arguments.
-	  */
-	int n_arg;
-
-	/**
-	  * Identifier expression.
-	  * This is the identifier of the buffer, function, or computation
-	  * if the operator is a buffer access, a function call or a
-	  * computation access.
-	  */
-	coli::expr *id_expr;
-
+	
 	/**
 	  * A vector of expressions representing buffer accesses,
 	  * or computation accesses.
@@ -138,8 +134,10 @@ public:
 		this->set_op_type(coli::type::op::access);
 		this->set_expr_type(coli::type::expr::op);
 
-		this->set_identifier(id_expr);
 		this->set_access(access_expressions);
+		this->op = (coli::expr *) malloc(sizeof(coli::expr));
+		this->op[0] = id_expr;
+		this->n_arg = 1;
 	}
 
 	/**
@@ -321,34 +319,6 @@ public:
 	}
 
 	/**
-	  * Get the identifier of the access operator or the
-	  * call operator.
-	  */
-	coli::expr get_identifier()
-	{
-		assert(this->get_expr_type() == coli::type::expr::op);
-		assert(this->get_op_type() == coli::type::op::access ||
-			this->get_op_type() == coli::type::op::call);
-
-		return *(this->id_expr);
-	}
-
-	// TODO: Tes this function
-	/**
-	  * Set the identifier of the access operator or the
-	  * call operator.
-	  */
-	void set_identifier(coli::expr identifier)
-	{
-		assert(this->get_expr_type() == coli::type::expr::op);
-		assert(this->get_op_type() == coli::type::op::access ||
-			this->get_op_type() == coli::type::op::call);
-
-		this->id_expr = (coli::expr *) malloc(sizeof(coli::expr));
-		*this->id_expr = identifier;
-	}
-
-	/**
 	  * Set the access of a computation or an array.
 	  * For example, for the computation C0(i,j), this
 	  * function will return the vector {i, j} where i and j
@@ -382,6 +352,67 @@ public:
 	void set_data_type(coli::type::primitive t)
 	{
 		dtype = t;
+	}
+
+	/**
+	  * Dump the object on standard output (dump most of the fields of
+	  * the expression class).  This is mainly useful for debugging.
+	  * If \p exhaustive is set to true, all the fields of the class are
+	  * printed.  This is useful to find potential initialization problems.
+	  */
+	void dump(bool exhaustive)
+	{
+		if (DEBUG)
+		{
+			std::cout << "Expression:" << std::endl;
+			std::cout << "Expression type:" << coli_type_expr_to_str(this->etype) << std::endl;
+			switch (this->etype)
+			{
+				case coli::type::expr::op:
+				{
+					std::cout << "Expression operator type:" << coli_type_op_to_str(this->_operator) << std::endl;
+					std::cout << "Number of operands:" << this->n_arg << std::endl;
+					for (int i = 0; i < this->n_arg; i++)
+						this->op[i].dump(exhaustive);
+					if ((this->get_op_type() == coli::type::op::access) || (this->get_op_type() == coli::type::op::call))
+					{
+						std::cout << "Access expressions:" << std::endl;
+						for (auto e: this->get_access())
+							e->dump(exhaustive);
+					}
+					break;
+				}
+				case (coli::type::expr::val):
+				{
+					std::cout << "Expression value type:" << coli_type_primitive_to_str(this->dtype) << std::endl;
+
+					if (this->get_data_type() == coli::type::primitive::uint8)
+						std::cout << "Value:" << this->get_uint8_value() << std::endl;
+					else if (this->get_data_type() == coli::type::primitive::int8)
+						std::cout << "Value:" << this->get_int8_value() << std::endl;
+					else if (this->get_data_type() == coli::type::primitive::uint32)
+						std::cout << "Value:" << this->get_uint32_value() << std::endl;
+					else if (this->get_data_type() == coli::type::primitive::int32)
+						std::cout << "Value:" << this->get_int32_value() << std::endl;
+					else if (this->get_data_type() == coli::type::primitive::uint64)
+						std::cout << "Value:" << this->get_uint64_value() << std::endl;
+					else if (this->get_data_type() == coli::type::primitive::int64)
+						std::cout << "Value:" << this->get_int64_value() << std::endl;
+
+					break;
+				}
+				case (coli::type::expr::id):
+				{
+					//std::cout << "Id name:" << this->id_name << std::endl;
+					coli::error("ID expressions still not supported.", true);
+				}
+				default:
+					coli::error("Expression type not supported.", true);
+
+			}
+
+			std::cout << std::endl;
+		}
 	}
 };
 
