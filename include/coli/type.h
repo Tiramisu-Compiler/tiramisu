@@ -16,7 +16,8 @@ namespace type {
 		uint32,
 		int32,
 		uint64,
-		int64
+		int64,
+		none
 	};
 
 	/**
@@ -26,6 +27,7 @@ namespace type {
 		val,
 		id,
 		op,
+		none
 	};
 
 	/**
@@ -49,7 +51,8 @@ namespace type {
 		ge,
 		gt,
 		call,
-		access
+		access,
+		none
 	};
 
 	/**

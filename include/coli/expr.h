@@ -11,6 +11,7 @@
 #include <isl/space.h>
 
 #include <map>
+#include <vector>
 #include <string.h>
 #include <stdint.h>
 
@@ -41,15 +42,10 @@ class expr
 	coli::type::op _operator;
 
 	/**
-	  * Number of operator arguments.
-	  */
-	int n_arg;
-
-	/**
 	  * The value of the 1st, 2nd and 3rd operators of the expression.
 	  * op[0] is the 1st operator, op[1] is the 2nd, ...
 	  */
-	coli::expr *op;
+	std::vector<coli::expr*> op;
 
 	/**
 	  * Data type.
@@ -76,24 +72,32 @@ class expr
 	  */
 	std::vector<coli::expr*> access_vector;
 
+	/**
+	  * Identifier name.
+	  */
+	std::string id_name;
+
 public:
 
 	/**
-	  * Create a expression of type \p t (a uniary operator).
+	  * Create a expression of type \p t (a unary operator).
 	  */
-	expr(coli::type::op o, coli::expr expr0)
+	static coli::expr *make(coli::type::op o, coli::expr *expr0)
 	{
 		assert((o == coli::type::op::minus) && "The only unary operator is the minus operator.");
 
-		this->set_op_type(o);
-		this->set_expr_type(coli::type::expr::op);
+		coli::expr *new_expression = new coli::expr();
 
-		this->op = (coli::expr *) malloc(sizeof(coli::expr));
-		this->op[0] = expr0;
-		this->n_arg = 1;
+		new_expression->_operator = o;
+		new_expression->etype = coli::type::expr::op;
+		new_expression->dtype = coli::type::primitive::none;
+
+		new_expression->op.push_back(expr0);
+
+		return new_expression;
 	}
 
-	expr(coli::type::op o, coli::expr expr0, coli::expr expr1)
+	static coli::expr *make(coli::type::op o, coli::expr *expr0, coli::expr *expr1)
 	{
 		assert((o != coli::type::op::minus) &&
 			(o != coli::type::op::call) &&
@@ -101,103 +105,165 @@ public:
 			(o != coli::type::op::cond) &&
 			"The operator is not an binay operator.");
 
-		this->set_op_type(o);
-		this->set_expr_type(coli::type::expr::op);
+		coli::expr *new_expression = new coli::expr();
 
-		this->op = (coli::expr *) malloc(2*sizeof(coli::expr));
-		this->op[0] = expr0;
-		this->op[1] = expr1;
-		this->n_arg = 2;
+		new_expression->_operator = o;
+		new_expression->etype = coli::type::expr::op;
+		new_expression->dtype = coli::type::primitive::none;
+
+		new_expression->op.push_back(expr0);
+		new_expression->op.push_back(expr1);
+
+		return new_expression;
 	}
 
-	expr(coli::type::op o, coli::expr expr0, coli::expr expr1, coli::expr expr2)
+	static coli::expr *make(coli::type::op o, coli::expr *expr0, coli::expr *expr1, coli::expr *expr2)
 	{
 		assert((o == coli::type::op::cond) && "The operator is not a ternary operator.");
 
-		this->set_op_type(o);
-		this->set_expr_type(coli::type::expr::op);
+		coli::expr *new_expression = new coli::expr();
 
-		this->op = (coli::expr *) malloc(2*sizeof(coli::expr));
-		this->op[0] = expr0;
-		this->op[1] = expr1;
-		this->op[2] = expr2;
-		this->n_arg = 3;
+		new_expression->_operator = o;
+		new_expression->etype = coli::type::expr::op;
+		new_expression->dtype = coli::type::primitive::none;
+
+		new_expression->op.push_back(expr0);
+		new_expression->op.push_back(expr1);
+		new_expression->op.push_back(expr2);
+
+		return new_expression;
 	}
 
-	expr(coli::type::op o, coli::expr id_expr, std::vector<coli::expr*> access_expressions)
+	static coli::expr *make(coli::type::op o, coli::expr *id_expr, std::vector<coli::expr*> access_expressions)
 	{
 		assert((o == coli::type::op::access) && "The operator is not an access operator.");
 		assert(access_expressions.size() > 0);
-		assert(id_expr.get_expr_type() ==
+		assert(id_expr->get_expr_type() ==
 				coli::type::expr::id);
 
-		this->set_op_type(coli::type::op::access);
-		this->set_expr_type(coli::type::expr::op);
+		coli::expr *new_expression = new coli::expr();
 
-		this->set_access(access_expressions);
-		this->op = (coli::expr *) malloc(sizeof(coli::expr));
-		this->op[0] = id_expr;
-		this->n_arg = 1;
+		new_expression->_operator = coli::type::op::access;
+		new_expression->etype = coli::type::expr::op;
+		new_expression->dtype = coli::type::primitive::none;
+
+		new_expression->set_access(access_expressions);
+		new_expression->op.push_back(id_expr);
+
+		return new_expression;
+	}
+
+	/**
+	* Construct an expression that represents an id.
+	*/
+	static coli::expr *make(std::string name)
+	{
+		assert(name.length() > 0);
+
+		coli::expr *new_expression = new coli::expr();
+		new_expression->etype = coli::type::expr::id;
+		new_expression->id_name = name;
+
+		new_expression->_operator = coli::type::op::none;
+		new_expression->dtype = coli::type::primitive::none;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct an unsigned 8bit integer expression.
 	  */
-	expr(uint8_t val)
+	static coli::expr *make(uint8_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::uint8);
-		uint8_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::uint8;
+		new_expression->uint8_value = val;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct a signed 8bit integer expression.
 	  */
-	expr(int8_t val)
+	static coli::expr *make(int8_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::int8);
-		int8_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::int8;
+		new_expression->int8_value = val;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct an unsigned 32bit integer expression.
 	  */
-	expr(uint32_t val)
+	static coli::expr *make(uint32_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::uint32);
-		uint32_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::uint32;
+		new_expression->uint32_value = val;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct a signed 32bit integer expression.
 	  */
-	expr(int32_t val)
+	static coli::expr *make(int32_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::int32);
-		int32_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::int32;
+		new_expression->int32_value = val;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct an unsigned 64bit integer expression.
 	  */
-	expr(uint64_t val)
+	static coli::expr *make(uint64_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::uint64);
-		uint64_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::uint64;
+		new_expression->uint64_value = val;
+
+		return new_expression;
 	}
 
 	/**
 	  * Construct a signed 64bit integer expression.
 	  */
-	expr(int64_t val)
+	static coli::expr *make(int64_t val)
 	{
-		this->set_expr_type(coli::type::expr::val);
-		this->set_data_type(coli::type::primitive::int64);
-		int64_value = val;
+		coli::expr *new_expression = new coli::expr();
+
+		new_expression->etype = coli::type::expr::val;
+		new_expression->_operator = coli::type::op::none;
+
+		new_expression->dtype = coli::type::primitive::int64;
+		new_expression->int64_value = val;
+
+		return new_expression;
 	}
 
 	/**
@@ -206,11 +272,15 @@ public:
 	//@
 	uint8_t get_uint8_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return uint8_value;
 	}
 
 	int8_t get_int8_value()
 	{
+		assert(this->get_expr_type() == coli::type::expr::val);
+
 		return int8_value;
 	}
 
@@ -247,12 +317,12 @@ public:
 	  * Return the value of the \p i 'th operator of the expression.
 	  * \p i can be 0, 1 or 2.
 	  */
-	coli::expr get_operator(int i)
+	coli::expr *get_operator(int i)
 	{
 		assert(this->get_expr_type() == coli::type::expr::op);
 
 		assert((i<3) && "The expression has only 3 operators.");
-		return op[i];
+		return this->op[i];
 	}
 
 	/**
@@ -262,7 +332,7 @@ public:
 	{
 		assert(this->get_expr_type() == coli::type::expr::op);
 
-		return n_arg;
+		return this->op.size();
 	}
 
 	/**
@@ -281,6 +351,16 @@ public:
 		assert(this->get_expr_type() == coli::type::expr::val);
 
 		return dtype;
+	}
+
+ 	/**
+	  * Get the name of the ID.
+	  */
+	std::string get_id_name()
+	{
+		assert(this->get_expr_type() == coli::type::expr::id);
+
+		return id_name;
 	}
 
 	/**
@@ -371,9 +451,9 @@ public:
 				case coli::type::expr::op:
 				{
 					std::cout << "Expression operator type:" << coli_type_op_to_str(this->_operator) << std::endl;
-					std::cout << "Number of operands:" << this->n_arg << std::endl;
-					for (int i = 0; i < this->n_arg; i++)
-						this->op[i].dump(exhaustive);
+					std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
+					for (int i = 0; i < this->get_n_arg(); i++)
+						this->op[i]->dump(exhaustive);
 					if ((this->get_op_type() == coli::type::op::access) || (this->get_op_type() == coli::type::op::call))
 					{
 						std::cout << "Access expressions:" << std::endl;
@@ -405,6 +485,7 @@ public:
 				{
 					//std::cout << "Id name:" << this->id_name << std::endl;
 					coli::error("ID expressions still not supported.", true);
+					break;
 				}
 				default:
 					coli::error("Expression type not supported.", true);

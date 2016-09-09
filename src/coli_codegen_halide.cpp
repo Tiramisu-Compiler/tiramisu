@@ -17,10 +17,7 @@
 namespace coli
 {
 
-extern int id_counter;
-
 Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type);
-
 
 computation *function::get_computation_by_name(std::string name)
 {
@@ -89,64 +86,66 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
 
-	IF_DEBUG2(coli::str_dump("\n\tThe iterator map of an AST leaf (after scheduling):", isl_pw_multi_aff_to_str(iterator_map)));
-
+	IF_DEBUG2(coli::str_dump("\n\tThe iterator map of an AST leaf (after scheduling):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
 	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
 
 	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
 
-	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_from_map(access):", isl_pw_multi_aff_to_str(index_aff)));
+	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_from_map(access):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(index_aff));
 
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
 
-	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):", isl_pw_multi_aff_to_str(iterator_map)));
+	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
 
 	isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(build,
 			isl_pw_multi_aff_copy(iterator_map));
 
-	IF_DEBUG2(coli::str_dump("\n\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):", isl_ast_expr_to_C_str(index_expr)));
+	IF_DEBUG2(coli::str_dump("\n\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):", (const char *) isl_ast_expr_to_C_str(index_expr)));
 
 	comp->index_expr = index_expr;
 
-	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):",
+	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):", (const char *)
 				isl_ast_expr_to_C_str(index_expr)));
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
 }
 
-Halide::Expr create_halide_expr_from_coli_expr(coli::expr coli_expr)
+Halide::Expr create_halide_expr_from_coli_expr(coli::expr *coli_expr)
 {
 	Halide::Expr result;
 
-	if (coli_expr.get_expr_type() == coli::type::expr::val)
+	if (coli_expr->get_expr_type() == coli::type::expr::val)
 	{
-		if (coli_expr.get_data_type() == coli::type::primitive::uint8)
-			result = Halide::Expr(coli_expr.get_uint8_value());
-		else if (coli_expr.get_data_type() == coli::type::primitive::int8)
-			result = Halide::Expr(coli_expr.get_int8_value());
-		else if (coli_expr.get_data_type() == coli::type::primitive::uint32)
-			result = Halide::Expr(coli_expr.get_uint32_value());
-		else if (coli_expr.get_data_type() == coli::type::primitive::int32)
-			result = Halide::Expr(coli_expr.get_int32_value());
-		else if (coli_expr.get_data_type() == coli::type::primitive::uint64)
-			result = Halide::Expr(coli_expr.get_uint64_value());
-		else if (coli_expr.get_data_type() == coli::type::primitive::int64)
-			result = Halide::Expr(coli_expr.get_int64_value());
+		if (coli_expr->get_data_type() == coli::type::primitive::uint8)
+			result = Halide::Expr(coli_expr->get_uint8_value());
+		else if (coli_expr->get_data_type() == coli::type::primitive::int8)
+			result = Halide::Expr(coli_expr->get_int8_value());
+		else if (coli_expr->get_data_type() == coli::type::primitive::uint32)
+			result = Halide::Expr(coli_expr->get_uint32_value());
+		else if (coli_expr->get_data_type() == coli::type::primitive::int32)
+			result = Halide::Expr(coli_expr->get_int32_value());
+		else if (coli_expr->get_data_type() == coli::type::primitive::uint64)
+			result = Halide::Expr(coli_expr->get_uint64_value());
+		else if (coli_expr->get_data_type() == coli::type::primitive::int64)
+			result = Halide::Expr(coli_expr->get_int64_value());
 	}
-	else if (coli_expr.get_expr_type() == coli::type::expr::op)
+	else if (coli_expr->get_expr_type() == coli::type::expr::op)
 	{
 		Halide::Expr op0, op1, op2;
 
-		op0 = create_halide_expr_from_coli_expr(coli_expr.get_operator(0));
+		op0 = create_halide_expr_from_coli_expr(coli_expr->get_operator(0));
 
-		if (coli_expr.get_n_arg() > 1)
-			op1 = create_halide_expr_from_coli_expr(coli_expr.get_operator(1));
+		if (coli_expr->get_n_arg() > 1)
+			op1 = create_halide_expr_from_coli_expr(coli_expr->get_operator(1));
 
-		if (coli_expr.get_n_arg() > 2)
-			op2 = create_halide_expr_from_coli_expr(coli_expr.get_operator(2));
+		if (coli_expr->get_n_arg() > 2)
+			op2 = create_halide_expr_from_coli_expr(coli_expr->get_operator(2));
 
-		switch(coli_expr.get_op_type())
+		switch(coli_expr->get_op_type())
 		{
 			case coli::type::op::logical_and:
 				result = Halide::Internal::And::make(op0, op1);
@@ -298,14 +297,16 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 				result = Halide::Internal::EQ::make(op0, op1);
 				break;
 			default:
-				coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
+				coli::str_dump("Transforming the following expression",
+						(const char *) isl_ast_expr_to_C_str(isl_expr));
 				coli::str_dump("\n");
 				coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 		}
 	}
 	else
 	{
-		coli::str_dump("Transforming the following expression", isl_ast_expr_to_C_str(isl_expr));
+		coli::str_dump("Transforming the following expression",
+				(const char *) isl_ast_expr_to_C_str(isl_expr));
 		coli::str_dump("\n");
 		coli::error("Translating an unsupported ISL expression in a Halide expression.", 1);
 	}

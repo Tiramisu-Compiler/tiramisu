@@ -163,6 +163,7 @@ public:
 		assert((name.length()>0) && ("Empty function name"));
 
 		halide_stmt = NULL;
+		ast = NULL;
 
 		// Allocate an isl context.  This isl context will be used by
 		// the isl library calls within coli.
@@ -605,7 +606,7 @@ private:
 	/**
 	  * An expression representing the computation. 
 	  */
-	coli::expr expression;
+	coli::expr *expression;
 
 	/**
 	  * Initialize a computation.
@@ -703,7 +704,7 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	computation(std::string iteration_space_str, coli::expr e, coli::function *fct): expression(e) {
+	computation(std::string iteration_space_str, coli::expr *e, coli::function *fct): expression(e) {
 		init_computation(iteration_space_str, fct);
 	}
 
@@ -930,7 +931,7 @@ private:
 	std::string name;
 
 	// An expression that represents the invariant.
-	coli::expr expr;
+	coli::expr *expr;
 
 public:
 	/**
@@ -940,7 +941,7 @@ public:
 	  * of the invariant.
 	  * \p func is the function in which the invariant is defined.
 	  */
-	invariant(std::string param_name, coli::expr param_expr,
+	invariant(std::string param_name, coli::expr *param_expr,
 			coli::function *func): expr(param_expr)
 	{
 		assert((param_name.length() > 0) && "Parameter name empty");
@@ -962,7 +963,7 @@ public:
 	/**
 	  * Return the expression that represents the value of the invariant.
 	  */
-	coli::expr get_expr()
+	coli::expr *get_expr()
 	{
 		return expr;
 	}
