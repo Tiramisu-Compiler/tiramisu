@@ -561,11 +561,13 @@ void coli::function::dump(bool exhaustive)
 		for (auto cpt : this->body)
 		       cpt->dump();
 
+		std::cout<< std::endl;
+
 		std::cout << "Halide stmt " << *(this->halide_stmt) << std::endl;
 
 		std::cout << "Buffers" << std::endl;
 		for (auto buf : this->buffers_list)
-		       std::cout << "Buffer name: " << buf.second->name()
+		       std::cout << "Buffer name: " << buf.second->get_name()
 				<< std::endl;
 
 		std::cout << std::endl << std::endl;
