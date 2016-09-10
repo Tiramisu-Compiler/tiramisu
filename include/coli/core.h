@@ -155,7 +155,7 @@ public:
 	  * to the function as arguments and some are declared and allocated
 	  * within the function itself.
 	  */
-	std::map<std::string, Halide::Buffer *> buffers_list;
+	std::map<std::string, Halide::Internal::BufferPtr *> buffers_list;
 
 public:
 
@@ -529,8 +529,19 @@ public:
 		assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
 		assert(fct != NULL && "Input function is NULL");
 
-		Halide::Buffer *buf = new Halide::Buffer(coli_type_to_halide_type(type), dim_sizes, data, name);
-		fct->buffers_list.insert(std::pair<std::string, Halide::Buffer *>(buf->name(), buf));
+		halide_dimension_t shape[dim_sizes.size()];
+		int stride = 1;
+		for (int i = 0; i < dim_sizes.size(); i++) {
+        	shape[i].min = 0;
+        	shape[i].extent = dim_sizes[i];
+        	shape[i].stride = stride;
+        	stride *= dim_sizes[i];
+    	}
+
+		Halide::Internal::BufferPtr *buf = new Halide::Internal::BufferPtr(
+			Halide::Image<>(coli_type_to_halide_type(type), data, dim_sizes.size(), shape),
+			name);
+		fct->buffers_list.insert(std::pair<std::string, Halide::Internal::BufferPtr *>(buf->name(), buf));
 
 		this->is_arg = is_argument;
 		if (this->is_arg == true)
@@ -604,7 +615,7 @@ private:
 	isl_set *iteration_domain;
 
 	/**
-	  * An expression representing the computation. 
+	  * An expression representing the computation.
 	  */
 	coli::expr *expression;
 

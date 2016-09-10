@@ -485,7 +485,7 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr linearize_access(Halide::Buffer *buffer,
+Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer,
 		isl_ast_expr *index_expr)
 {
 	assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
@@ -537,7 +537,7 @@ void computation::create_halide_assignement()
 	   // Fetch the actual buffer.
 	   auto buffer_entry = this->function->buffers_list.find(buffer_name);
 	   assert(buffer_entry != this->function->buffers_list.end());
-	   Halide::Buffer *buffer = buffer_entry->second;
+	   Halide::Internal::BufferPtr *buffer = buffer_entry->second;
 	   int buf_dims = buffer->dimensions();
 
 	   // The number of dimensions in the Halide buffer should be equal to
@@ -575,9 +575,11 @@ void function::gen_halide_obj(std::string obj_file_name,
 
 	for (auto buf : this->function_arguments)
 	{
-		Halide::Argument buffer_arg(buf->get_name(),
+		Halide::Argument buffer_arg(
+			buf->get_name(),
 			coli_argtype_to_halide_argtype(buf->get_argument_type()),
-			coli_type_to_halide_type(buf->get_type()), buf->get_n_dims());
+			coli_type_to_halide_type(buf->get_type()),
+			buf->get_n_dims());
 
 		fct_arguments.push_back(buffer_arg);
 	}
