@@ -1,8 +1,8 @@
 # Set the following PATHs before compiling COLi
-ISL_INCLUDE_DIRECTORY=
-ISL_LIB_DIRECTORY=
-HALIDE_SOURCE_DIRECTORY=
-HALIDE_LIB_DIRECTORY=
+ISL_INCLUDE_DIRECTORY=/usr/local/include
+ISL_LIB_DIRECTORY=/usr/local/lib
+HALIDE_SOURCE_DIRECTORY=/Users/psuriana/Halide
+HALIDE_LIB_DIRECTORY=/Users/psuriana/Halide/lib
 
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
@@ -38,7 +38,7 @@ tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
 build/tutorial_%_lib_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o tutorials/wrapper_tutorial_%.h 
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o tutorials/wrapper_tutorial_%.h
 	$(CXX) ${CXXFLAGS} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 
