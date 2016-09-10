@@ -74,9 +74,6 @@ int main(int argc, char **argv)
 	// for the function.
 	fct.dump_halide_stmt();
 
-	// Dump all the fields of fct.
-	fct.dump(true);
-
 	// Generate an object file from the function.
 	fct.gen_halide_obj("build/generated_lib_tutorial_01.o");
 
