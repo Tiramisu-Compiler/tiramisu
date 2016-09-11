@@ -84,6 +84,15 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 }
 
 /**
+ * Compute the accesses of the RHS of the computation
+ * \p comp and store them in the accesses vector.
+ */
+void get_rhs_access(coli::computation *comp, std::vector<isl_map *> &accesses)
+{
+
+}
+
+/**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
  */
@@ -102,13 +111,28 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	IF_DEBUG2(coli::str_dump("\n\tComputation:", comp->get_name().c_str()));
 
-	isl_map *access = comp->get_access();
-	assert((access != NULL) && "An access function should be provided before generating code.");;
+	// Get the accesses of the computation.  The first access is the access
+	// for the LHS.  The following accesses are for the RHS.
+	std::vector<isl_map *> accesses;
+	accesses.push_back(comp->get_access());
+	// Add the accesses of the RHS to the accesses vector
+	get_rhs_access(comp, accesses);
 
-	comp->index_expr.push_back(create_isl_ast_index_expression(build, access));
+	// For each access in accesses (i.e. for each access in the computation),
+	// compute the corresponding isl_ast expression.
+	for(auto access: accesses)
+	{
+		assert((access != NULL) && "An access function should be provided before generating code.");;
 
-	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):", (const char *)
-				isl_ast_expr_to_C_str(comp->index_expr[0])));
+		// Compute the isl_ast index expression for the LHS
+		comp->index_expr.push_back(create_isl_ast_index_expression(build, access));
+	}
+
+	for (auto i_expr: comp->index_expr)
+	{
+		IF_DEBUG2(coli::str_dump("\n\tGenerated Index expression:", (const char *)
+							isl_ast_expr_to_C_str(i_expr)));
+	}
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
