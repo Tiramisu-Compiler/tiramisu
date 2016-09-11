@@ -483,8 +483,7 @@ public:
 				}
 				case (coli::type::expr::id):
 				{
-					//std::cout << "Id name:" << this->id_name << std::endl;
-					coli::error("ID expressions still not supported.", true);
+					std::cout << "Id name:" << this->get_id_name() << std::endl;
 					break;
 				}
 				default:
