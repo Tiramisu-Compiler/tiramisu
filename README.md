@@ -1,4 +1,4 @@
-Code Optimization Library (COLi)
+Computation Optimization Library (COLi)
 ----------------------------------
 COLi is a library that is designed to simplify code optimization and code generation.  The user can express his code in the COLi intermediate representation (COLi IR), he can use the COLi API to perform different optimizations and finaly he can generate an LLVM code from the optimized COLi IR.
 
