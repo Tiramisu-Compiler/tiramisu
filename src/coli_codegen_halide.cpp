@@ -105,10 +105,10 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	isl_map *access = comp->get_access();
 	assert((access != NULL) && "An access function should be provided before generating code.");;
 
-	comp->index_expr = create_isl_ast_index_expression(build, access);
+	comp->index_expr.push_back(create_isl_ast_index_expression(build, access));
 
 	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):", (const char *)
-				isl_ast_expr_to_C_str(comp->index_expr)));
+				isl_ast_expr_to_C_str(comp->index_expr[0])));
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
@@ -591,7 +591,7 @@ void computation::create_halide_assignement()
 	   // the number of dimensions of the access function.
 	   assert(buf_dims == access_dims);
 
-	   auto index_expr = this->index_expr;
+	   auto index_expr = this->index_expr[0];
 	   assert(index_expr != NULL);
 
 	   Halide::Expr index = coli::linearize_access(buffer, index_expr);

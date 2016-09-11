@@ -650,7 +650,6 @@ private:
 		assert(iteration_space_str.length()>0 && ("Empty iteration space"));
 
 		// Initialize all the fields to NULL (useful for later asserts)
-		index_expr = NULL;
 		access = NULL;
 		schedule = NULL;
 		stmt = Halide::Internal::Stmt();
@@ -697,7 +696,7 @@ public:
 	  * An isl_ast_expr representing the index of the array where
 	  * the computation will be stored.  This index is computed after the scheduling is done.
 	  */
-	isl_ast_expr *index_expr;
+	std::vector<isl_ast_expr *> index_expr;
 
 	/**
   	  * A number identifying the root dimension level.
