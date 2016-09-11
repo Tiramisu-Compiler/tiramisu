@@ -155,7 +155,7 @@ public:
 	  * to the function as arguments and some are declared and allocated
 	  * within the function itself.
 	  */
-	std::map<std::string, Halide::Internal::BufferPtr *> buffers_list;
+	std::map<std::string, coli::buffer *> buffers_list;
 
 public:
 
@@ -529,25 +529,14 @@ public:
 		assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
 		assert(fct != NULL && "Input function is NULL");
 
-		halide_dimension_t shape[dim_sizes.size()];
-		int stride = 1;
-		for (int i = 0; i < dim_sizes.size(); i++) {
-        	shape[i].min = 0;
-        	shape[i].extent = dim_sizes[i];
-        	shape[i].stride = stride;
-        	stride *= dim_sizes[i];
-    	}
-
-		Halide::Internal::BufferPtr *buf = new Halide::Internal::BufferPtr(
-			Halide::Image<>(coli_type_to_halide_type(type), data, dim_sizes.size(), shape),
-			name);
-		fct->buffers_list.insert(std::pair<std::string, Halide::Internal::BufferPtr *>(buf->name(), buf));
 
 		this->is_arg = is_argument;
 		if (this->is_arg == true)
 			argtype = argt;
 		else
 			argtype = coli::type::argument::none;
+
+		fct->buffers_list.insert(std::pair<std::string, coli::buffer *>(name, this));
 	};
 
 	/**
@@ -558,6 +547,17 @@ public:
 		return name;
 	}
 
+	/**
+	* Return the buffer data.
+	*/
+	uint8_t *get_data()
+	{
+		return data;
+	}
+
+	/**
+	* Return the type of buffer.
+	*/
 	coli::type::primitive get_type()
 	{
 		return type;
@@ -577,6 +577,27 @@ public:
 	coli::type::argument get_argument_type()
 	{
 		return argtype;
+	}
+
+ 	/**
+	  * Return the size of buffer dimensions.  Assuming the following
+	  * buffer: buf[N0][N1][N2].  The first vector element represents the
+	  * leftmost dimension of the buffer (N0), the second vector element
+	  * represents N1, ...
+	  */
+	std::vector<int> get_dim_sizes()
+	{
+		return dim_sizes;
+	}
+
+	/**
+	 * Return true if the buffer is a function argument.
+	 * We assume that all the buffers passed as arguments to the
+	 * function are allocated outside the function.
+	 */
+	bool is_argument()
+	{
+		return is_arg;
 	}
 
 	/**

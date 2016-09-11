@@ -459,7 +459,35 @@ void function::gen_halide_stmt()
 	std::vector<std::string> generated_stmts;
 	Halide::Internal::Stmt *stmt = new Halide::Internal::Stmt();
 
+	// Generate code to free buffers that are not passed as an argument to the function
+	// TODO: Add Free().
+	/*	for (auto b: this->buffers_list)
+	{
+		coli::buffer *buf = b.second;
+		// Allocate only arrays that are not passed to the function as arguments.
+		if (buf->is_argument() == false)
+			*stmt = Halide::Internal::Block::make(Halide::Internal::Free::make(buf->get_name()), *stmt);
+	}*/
+
+	// Generate the statement that represents the whole function
 	stmt = coli::generate_Halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+
+	// Allocate buffers that are not passed as an argument to the function
+	for (auto b: this->buffers_list)
+	{
+		coli::buffer *buf = b.second;
+		// Allocate only arrays that are not passed to the function as arguments.
+		if (buf->is_argument() == false)
+		{
+			std::vector<Halide::Expr> halide_dim_sizes;
+			// Create a vector indicating the size that should be allocated.
+			for (auto sz: buf->get_dim_sizes())
+				halide_dim_sizes.push_back(Halide::Expr((uint32_t) sz));
+			*stmt = Halide::Internal::Allocate::make(buf->get_name(),
+					coli_type_to_halide_type(buf->get_type()),
+					halide_dim_sizes, Halide::Internal::const_true(), *stmt);
+		}
+	}
 
 	// Generate the invariants of the function.
 	for (auto param: this->get_invariants())
@@ -537,7 +565,26 @@ void computation::create_halide_assignement()
 	   // Fetch the actual buffer.
 	   auto buffer_entry = this->function->buffers_list.find(buffer_name);
 	   assert(buffer_entry != this->function->buffers_list.end());
-	   Halide::Internal::BufferPtr *buffer = buffer_entry->second;
+
+	   auto coli_buffer = buffer_entry->second;
+
+	   halide_dimension_t shape[coli_buffer->get_dim_sizes().size()];
+	   		int stride = 1;
+	   		for (int i = 0; i < coli_buffer->get_dim_sizes().size(); i++) {
+	           	shape[i].min = 0;
+	           	shape[i].extent = coli_buffer->get_dim_sizes()[i];
+	           	shape[i].stride = stride;
+	           	stride *= coli_buffer->get_dim_sizes()[i];
+	       	}
+
+	   Halide::Internal::BufferPtr *buffer =
+			   new Halide::Internal::BufferPtr(
+	   					Halide::Image<>(coli_type_to_halide_type(coli_buffer->get_type()),
+	   									coli_buffer->get_data(),
+										coli_buffer->get_dim_sizes().size(),
+										shape),
+						coli_buffer->get_name());
+
 	   int buf_dims = buffer->dimensions();
 
 	   // The number of dimensions in the Halide buffer should be equal to
@@ -588,6 +635,7 @@ void function::gen_halide_obj(std::string obj_file_name,
 
 	Halide::Outputs output = Halide::Outputs().object(obj_file_name);
 	m.compile(output);
+	m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
 }
 
 }
