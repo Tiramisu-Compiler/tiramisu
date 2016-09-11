@@ -51,6 +51,38 @@ coli::computation *get_computation_by_node(coli::function *fct, isl_ast_node *no
 }
 
 
+isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
+		isl_map* access)
+{
+	isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
+	IF_DEBUG2(coli::str_dump("\n\tSchedule:", isl_map_to_str(schedule)));
+	isl_map* map = isl_map_reverse(isl_map_copy(schedule));
+	IF_DEBUG2(coli::str_dump("\n\tSchedule reversed:", isl_map_to_str(map)));
+	isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
+	IF_DEBUG2(
+			coli::str_dump(
+					"\n\tThe iterator map of an AST leaf (after scheduling):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
+	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
+	isl_pw_multi_aff* index_aff = isl_pw_multi_aff_from_map(
+			isl_map_copy(access));
+	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_from_map(access):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(index_aff));
+	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,
+			iterator_map);
+	IF_DEBUG2(
+			coli::str_dump(
+					"\n\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
+	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
+	isl_ast_expr* index_expr = isl_ast_build_access_from_pw_multi_aff(build,
+			isl_pw_multi_aff_copy(iterator_map));
+	IF_DEBUG2(
+			coli::str_dump(
+					"\n\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
+					(const char * ) isl_ast_expr_to_C_str(index_expr)));
+	return index_expr;
+}
+
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
@@ -60,55 +92,23 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
-	coli::function *func = (coli::function *) user;
-
 	IF_DEBUG2(coli::str_dump("\n\nDebugging stmt_code_generator():"));
+
+	coli::function *func = (coli::function *) user;
 
 	// Find the name of the computation associated to this AST leaf node.
 	coli::computation *comp = get_computation_by_node(func, node);
+	assert((comp != NULL) && "Computation not found!");;
 
 	IF_DEBUG2(coli::str_dump("\n\tComputation:", comp->get_name().c_str()));
 
-	assert((comp != NULL) && "Computation not found!");;
-
-	isl_map *schedule;
 	isl_map *access = comp->get_access();
-
 	assert((access != NULL) && "An access function should be provided before generating code.");;
 
-	schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
-
-	IF_DEBUG2(coli::str_dump("\n\tSchedule:", isl_map_to_str(schedule)));
-
-	isl_map *map = isl_map_reverse(isl_map_copy(schedule));
-
-	IF_DEBUG2(coli::str_dump("\n\tSchedule reversed:", isl_map_to_str(map)));
-
-	isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
-
-	IF_DEBUG2(coli::str_dump("\n\tThe iterator map of an AST leaf (after scheduling):"));
-	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
-	IF_DEBUG2(coli::str_dump("\n\tAccess:", isl_map_to_str(access)));
-
-	isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
-
-	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_from_map(access):"));
-	IF_DEBUG2(isl_pw_multi_aff_dump(index_aff));
-
-	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
-
-	IF_DEBUG2(coli::str_dump("\n\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
-	IF_DEBUG2(isl_pw_multi_aff_dump(iterator_map));
-
-	isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(build,
-			isl_pw_multi_aff_copy(iterator_map));
-
-	IF_DEBUG2(coli::str_dump("\n\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):", (const char *) isl_ast_expr_to_C_str(index_expr)));
-
-	comp->index_expr = index_expr;
+	comp->index_expr = create_isl_ast_index_expression(build, access);
 
 	IF_DEBUG2(coli::str_dump("\n\tIndex expression (for an AST leaf):", (const char *)
-				isl_ast_expr_to_C_str(index_expr)));
+				isl_ast_expr_to_C_str(comp->index_expr)));
 	IF_DEBUG2(coli::str_dump("\n\n"));
 
 	return node;
