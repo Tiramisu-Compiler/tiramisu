@@ -200,6 +200,13 @@ void computation::dump()
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
 		std::cout << "Computation to be scheduled ? " << (this->schedule_this_computation) << std::endl;
+
+		for (auto e: this->index_expr)
+		{
+			coli::str_dump("Access expression:", (const char * ) isl_ast_expr_to_C_str(e));
+			coli::str_dump("\n");
+		}
+
 		coli::str_dump("Halide statement:\n");
 		if (this->stmt.defined())
 		{

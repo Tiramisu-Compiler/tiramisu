@@ -375,6 +375,9 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	{
 		assert((access != NULL) && "An access function should be provided before generating code.");;
 
+		IF_DEBUG2(coli::str_dump("Access (isl_map *):", isl_map_to_str(access)));
+		IF_DEBUG2(coli::str_dump("\n"));
+
 		// Compute the isl_ast index expression for the LHS
 		comp->index_expr.push_back(create_isl_ast_index_expression(build, access));
 	}
@@ -389,7 +392,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	return node;
 }
 
-Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vector<isl_ast_expr *> index_expr, coli::expr *coli_expr)
+Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vector<isl_ast_expr *> &index_expr, coli::expr *coli_expr)
 {
 	Halide::Expr result;
 
@@ -816,9 +819,10 @@ void function::gen_halide_stmt()
 	// Generate the invariants of the function.
 	for (auto param: this->get_invariants())
 	{
-		 *stmt = Halide::Internal::LetStmt::make(
+		std::vector<isl_ast_expr *> ie = {};
+		*stmt = Halide::Internal::LetStmt::make(
 				 param.get_name(),
-				 create_halide_expr_from_coli_expr(NULL, {}, param.get_expr()),
+				 create_halide_expr_from_coli_expr(NULL, ie, param.get_expr()),
 				 *stmt);
 	}
 
