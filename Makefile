@@ -17,7 +17,7 @@ LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide 
 HEADER_FILES=include/coli/core.h include/coli/debug.h
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
 TUTO_GEN=build/tutorial_01_lib_generator build/tutorial_02_lib_generator
-TUTO_BIN=build/tutorial_01 build/tutorial_02
+TUTO_BIN=build/tutorial_01
 
 all: builddir tutorial
 
