@@ -44,6 +44,8 @@ void function::gen_isl_ast()
 	// issue and check that the access was provided.
 	assert(this->get_schedule() != NULL);
 
+	IF_DEBUG2(coli::str_dump("\n\nDebugging gen_isl_ast()"));
+
 	isl_ctx *ctx = this->get_ctx();
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
 	isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
@@ -57,6 +59,11 @@ void function::gen_isl_ast()
 		isl_union_map_intersect_domain(
 			isl_union_map_copy(this->get_schedule()),
 			isl_union_set_copy(this->get_iteration_domain()));
+
+	IF_DEBUG2(coli::str_dump("\n\n\n\tSchedule:", isl_union_map_to_str(this->get_schedule())));
+	IF_DEBUG2(coli::str_dump("\n\tIteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
+	IF_DEBUG2(coli::str_dump("\n\tSchedule intersect Iteration domain:", isl_union_map_to_str(umap)));
+	IF_DEBUG2(coli::str_dump("\n"));
 
 	this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
 
@@ -192,6 +199,7 @@ void computation::dump()
 		isl_set_dump(this->get_iteration_domain());
 		std::cout << "Schedule " << std::endl;
 		isl_map_dump(this->schedule);
+		std::cout << "Computation to be scheduled ? " << (this->schedule_this_computation) << std::endl;
 		coli::str_dump("Halide statement:\n");
 		if (this->stmt.defined())
 		{
@@ -470,8 +478,8 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 	int mdim = isl_map_dim(map, isl_dim_out);
 	assert(max_dim >= mdim);
 
-	IF_DEBUG2(coli::str_dump("\n\tDebugging isl_map_align_range_dims()."));
-	IF_DEBUG2(coli::str_dump("\n\tInput map:", isl_map_to_str(map)));
+	IF_DEBUG2(coli::str_dump("\n\t\tDebugging isl_map_align_range_dims()."));
+	IF_DEBUG2(coli::str_dump("\n\t\tInput map:", isl_map_to_str(map)));
 
 	map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
 
@@ -486,7 +494,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 		map = isl_map_add_constraint(map, cst);
 	}
 
-	IF_DEBUG2(coli::str_dump("\n\tAfter alignement, map:",
+	IF_DEBUG2(coli::str_dump("\n\t\tAfter alignement, map:",
 				isl_map_to_str(map)));
 
 	return map;
@@ -494,7 +502,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 
 void coli::function::align_schedules()
 {
-	IF_DEBUG2(coli::str_dump("\nDebugging align_schedules()."));
+	IF_DEBUG2(coli::str_dump("\n\tDebugging align_schedules()."));
 
 	int max_dim = this->get_max_schedules_range_dim();
 
@@ -535,7 +543,7 @@ void coli::function::dump(bool exhaustive)
 {
 	if (DEBUG)
 	{
-		std::cout << "Function \"" << this->name << "\"" << std::endl;
+		std::cout << "\n\nFunction \"" << this->name << "\"" << std::endl;
 
 		std::cout << "Function arguments (coli buffers):" << std::endl;
 		for (auto buf : this->function_arguments)
@@ -563,7 +571,8 @@ void coli::function::dump(bool exhaustive)
 
 		std::cout<< std::endl;
 
-		std::cout << "Halide stmt " << *(this->halide_stmt) << std::endl;
+		if (this->halide_stmt != NULL)
+			std::cout << "Halide stmt " << *(this->halide_stmt) << std::endl;
 
 		std::cout << "Buffers" << std::endl;
 		for (auto buf : this->buffers_list)
@@ -690,8 +699,11 @@ isl_union_set * coli::function::get_iteration_domain()
 
 	for (const auto &cpt : this->body)
 	{
-		isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
-		result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+		if (cpt->schedule_this_computation == true)
+		{
+			isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
+			result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+		}
 	}
 
 	return result;
@@ -717,6 +729,8 @@ isl_union_map * coli::function::get_schedule()
 		isl_map *m = isl_map_copy(cpt->schedule);
 		result = isl_union_map_union(isl_union_map_from_map(m), result);
 	}
+
+	result = isl_union_map_intersect_domain(result, this->get_iteration_domain());
 
 	return result;
 }

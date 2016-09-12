@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 	// (1) an isl set representing the iteration space of the computation, and
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
-	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, &fct);
+	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).

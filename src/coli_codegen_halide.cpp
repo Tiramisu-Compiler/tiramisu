@@ -80,6 +80,7 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 			isl_pw_multi_aff_copy(iterator_map));
 	IF_DEBUG2(coli::str_dump("\t\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
 					(const char * ) isl_ast_expr_to_C_str(index_expr)));
+	IF_DEBUG2(coli::str_dump("\n"));
 	return index_expr;
 }
 
@@ -100,6 +101,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 		coli::computation *comp = fct->get_computation_by_name(id->get_id_name());
 
 		isl_map *access_function = isl_map_copy(comp->get_access());
+
 		isl_set *domain = isl_set_universe(
 								isl_space_domain(
 									isl_map_get_space(
@@ -107,6 +109,9 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 		isl_map *identity = isl_map_identity(
 								isl_space_map_from_set(
 										isl_set_get_space(domain)));
+
+		identity = isl_map_universe(isl_map_get_space(identity));
+
 
 		int dim = 0;
 		for (auto access: exp->get_access())
@@ -116,22 +121,25 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 												isl_map_copy(identity)));
 			isl_constraint *cst = isl_constraint_alloc_equality(
 										isl_local_space_copy(ls));
+
 			cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim, 1);
 
 			if (access->get_expr_type() == coli::type::expr::val)
 			{
 				if (access->get_data_type() == coli::type::primitive::int32)
+				{
 					cst = isl_constraint_set_constant_si(cst, (-1)*access->get_int32_value());
+				}
 				else
 					coli::error("Access values can only be of type coli::type::primitive::int32" , true);
 			}
 			else if (access->get_expr_type() == coli::type::expr::id)
 			{
 				int dim0 = isl_space_find_dim_by_name(
-								isl_map_get_space(identity),
-								isl_dim_out,
+								isl_map_get_space(access_function),
+								isl_dim_in,
 								access->get_id_name().c_str());
-				cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
+				cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 														dim0, -1);
 			}
 			else if (access->get_expr_type() == coli::type::expr::op)
@@ -147,35 +155,87 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 					if (op0->get_expr_type() == coli::type::expr::id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(identity),
-				                		isl_dim_out,
+										isl_map_get_space(access_function),
+				                		isl_dim_in,
 										op0->get_id_name().c_str());
-						cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
+						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
 					}
 					if (op1->get_expr_type() == coli::type::expr::id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(identity),
-										isl_dim_out,
+										isl_map_get_space(access_function),
+										isl_dim_in,
 										op1->get_id_name().c_str());
-						cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
+						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
 					}
 					if (op0->get_expr_type() == coli::type::expr::val)
 					{
 						if (op0->get_data_type() == coli::type::primitive::int32)
+						{
 							cst = isl_constraint_set_constant_si(cst, (-1)*op0->get_int32_value());
+						}
 						else
 							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
 					}
 					if (op1->get_expr_type() == coli::type::expr::val)
 					{
 						if (op1->get_data_type() == coli::type::primitive::int32)
+						{
 							cst = isl_constraint_set_constant_si(cst, (-1)*op1->get_int32_value());
+						}
 						else
 							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
 					}
+					std::cout << "\n";
+
+				}
+				else if (access->get_op_type() == coli::type::op::sub)
+				{
+					coli::expr *op0 = access->get_operator(0);
+					coli::expr *op1 = access->get_operator(1);
+
+					assert(op0 != NULL);
+					assert(op1 != NULL);
+
+					if (op0->get_expr_type() == coli::type::expr::id)
+					{
+						int dim0 = isl_space_find_dim_by_name(
+										isl_map_get_space(access_function),
+				                		isl_dim_in,
+										op0->get_id_name().c_str());
+						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
+																dim0, -1);
+					}
+					if (op1->get_expr_type() == coli::type::expr::id)
+					{
+						int dim0 = isl_space_find_dim_by_name(
+										isl_map_get_space(access_function),
+										isl_dim_in,
+										op1->get_id_name().c_str());
+						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
+																dim0, -1);
+					}
+					if (op0->get_expr_type() == coli::type::expr::val)
+					{
+						if (op0->get_data_type() == coli::type::primitive::int32)
+						{
+							cst = isl_constraint_set_constant_si(cst, op0->get_int32_value());
+						}
+						else
+							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
+					}
+					if (op1->get_expr_type() == coli::type::expr::val)
+					{
+						if (op1->get_data_type() == coli::type::primitive::int32)
+						{
+							cst = isl_constraint_set_constant_si(cst, op1->get_int32_value());
+						}
+						else
+							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
+					}
+					std::cout << "\n";
 				}
 				else
 					coli::error("Currently only Add and Sub operations for accesses are supported." , true);
@@ -185,7 +245,9 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 
 			identity = isl_map_add_constraint(identity, cst);
 		}
-		access_function = isl_map_apply_domain(access_function, identity);
+		access_function = isl_map_apply_domain(access_function, isl_map_copy(identity));
+		IF_DEBUG2(coli::str_dump("\nUpdated access function:", isl_map_to_str(access_function)));
+		IF_DEBUG2(coli::str_dump("\n"));
 		accesses.push_back(access_function);
 	}
 	else if (exp->get_expr_type() == coli::type::expr::op)

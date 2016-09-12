@@ -667,6 +667,12 @@ private:
 public:
 
 	/**
+	 * If set to true, the computation is scheduled, otherwise it is
+	 * not scheduled and is only used as a binding to input arrays.
+	 */
+	bool schedule_this_computation;
+
+	/**
 	  * Schedule of the computation.
 	  */
 	isl_map *schedule;
@@ -735,8 +741,9 @@ public:
 	  * \p fct is a pointer to the coli function where this computation
 	  * should be added.
 	  */
-	computation(std::string iteration_space_str, coli::expr *e, coli::function *fct): expression(e) {
+	computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation,coli::function *fct): expression(e) {
 		init_computation(iteration_space_str, fct);
+		this->schedule_this_computation = schedule_this_computation;
 	}
 
 	/**
