@@ -7,6 +7,16 @@
 namespace coli {
 namespace type {
 
+/**
+* The possible types of an expression.
+*/
+	enum class expr {
+		val,
+		id,
+		op,
+		none
+	};
+
 	/**
 	  * coli data types.
 	  */
@@ -17,16 +27,6 @@ namespace type {
 		int32,
 		uint64,
 		int64,
-		none
-	};
-
-	/**
-	* The possible types of an expression.
-	*/
-	enum class expr {
-		val,
-		id,
-		op,
 		none
 	};
 

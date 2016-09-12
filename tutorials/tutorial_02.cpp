@@ -46,8 +46,10 @@ int main(int argc, char **argv)
 
 	// Declare the computations c_blurx and c_blury.
 	coli::expr *e1 = coli::expr::make(coli::type::op::add, coli::expr::make((uint8_t) 1), coli::expr::make((uint8_t) 1));
+	coli::expr *e2 = coli::expr::make(coli::type::op::access, coli::expr::make("c_blurx"), {coli::expr::make((int32_t) 0), coli::expr::make((int32_t) 0)});
+
 	coli::computation c_blurx("[N]->{c_blurx[i,j]: 0<=i<N and 0<=j<N}", e1, &blurxy);
-	coli::computation c_blury("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", coli::expr::make((int8_t) 7), &blurxy);
+	coli::computation c_blury("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", e2, &blurxy);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer b_blurx("b_blurx", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, false, coli::type::argument::none, &blurxy);

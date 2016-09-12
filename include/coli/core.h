@@ -748,6 +748,15 @@ public:
 	}
 
 	/**
+	 * Return the coli expression associated with the computation
+	 * (RHS).
+	 */
+	coli::expr *get_expr()
+	{
+		return expression;
+	}
+
+	/**
 	  * Return the function where the computation is declared.
 	  */
 	coli::function *get_function()
