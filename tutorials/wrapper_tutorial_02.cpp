@@ -44,7 +44,7 @@ int main(int, char**)
    Halide::Image<uint8_t> image = Halide::Tools::load_image("./tutorials/images/rgb.png");
 
    buffer_t input_buf = {0};
-   input_buf.host = (unsigned char *) malloc(image.extent(0)*image.extent(1)*sizeof(unsigned char));
+   input_buf.host = (unsigned char *) image.data();
    input_buf.stride[0] = 1;
    input_buf.stride[1] = image.extent(0);
    input_buf.extent[0] = image.extent(0);
@@ -62,8 +62,6 @@ int main(int, char**)
    output_buf.min[0] = 0;
    output_buf.min[1] = 0;
    output_buf.elem_size = 1;
-
-   copy_array(input_buf.host, image.extent(0), image.extent(1), image.data());
 
    blurxy(&input_buf, &output_buf);
 
