@@ -1,28 +1,49 @@
 High Priority
 --------------
 - General
+	- Enhance the tutorials.
     - DEBUG:
-    	- Add DEBUG3
-	- Add indentation to DEBUG.
-	- Organize the output.
-	- Print all the information of a function.
-    - Add scheduling commands:
-	- fuse(),
-	- split(),
-	- duplicate()
-    - split() and interchange() should be done regourously using real ISL constraint (floor should be expressed as ISL constraints). 
-      Now setting the space names is flicky.
-    - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
-    - Currently if you specify an access function that has constraints,
-    the constraints are not taken in consideration.  The access function is
-    applied for all the values of i and j.
+		- Add indentation to DEBUG1 and DEBUG2.
+		- Organize the output.
+		- Print all the information of a classes.
+	- Add correctness tests.
+	- Add asserts to check my assumptions.
 
+
+- Robust implementation:
+    - split() and interchange() should be done regourously using real ISL
+      constraint (floor should be expressed as ISL constraints).
+      Now setting the space names is flicky.
+    - Work on robust translation from coli accesses into an access function.
+      Currently I support only very simple accesses (add, sub).
+    - Currently if you specify an access function that has constraints, the
+      constraints are not taken in consideration.  The access function is
+      applied for all the values of i and j.
+
+
+- Features:
+	- Add GPU support.
+	- Support reductions.
+	- Support .inline() which inlines computations.    
+    - Add scheduling commands: .fuse(), .split(), and .duplicate().
+	- Non affine code:
+		- Support non affine loop bounds, conditionals.
+		- Support non affine array accesses.
 
 - Halide support
-	8- The computation expression should become an ISL expression.
-	9- Add tutorial_02
-	10- Try blurxy.
 	- compute_halide_call_graph().
+
+
+- Benchmarks:
+	- Image processing (Halide)
+		- Blur,
+		- Sobel edge detection,
+		- Bilateral grid,
+		- Camera pipeline,
+		- Local Laplacian filters,
+		- Multi-scale interpolation,
+	- TensorFlow.
+
 
 
 Low Priority
@@ -31,8 +52,7 @@ Low Priority
     - Test buffer access linearization for buffers with more than 3 dimensions.
      Buffer access linearization is now done in
      Computation::create_halide_assignement(std::vector<std::string> &iterators).
-    - Check if the declaration of an array with a symbolic constant size is
-    possible.
+
 
 - General
    - Currently all loop iterators have an Int32 type.  Users should be able to
@@ -42,6 +62,8 @@ Low Priority
    class.  The Halide::Buffer class should only be used during code
    generation.  Currently Halide can only handle 3D arrays, make sure you
    check for this during code generation.
+   - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
+
 
 - Building and compiling
    - ISL, Halide should be distributed with COLi and should be
