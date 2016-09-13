@@ -8,6 +8,7 @@ High Priority
 		- Print all the information of a classes.
 	- Add correctness tests.
 	- Add asserts to check my assumptions.
+	- Use operator overloading.
 
 
 - Robust implementation:
@@ -22,14 +23,19 @@ High Priority
 
 
 - Features:
-	- Add GPU support.
 	- Support reductions.
+	- Add GPU support.
 	- Support .inline() which inlines computations.    
     - Add scheduling commands: .fuse(), .split(), and .duplicate().
 	- Non affine code:
 		- Support non affine loop bounds, conditionals.
 		- Support non affine array accesses.
-	- Support type casting.	
+	- Support type casting.
+	- Advantages over Halide:
+		- All what min could not do,
+		- Fuse/distribute,
+		- Mapping to data,
+
 
 
 - Halide support
@@ -69,6 +75,11 @@ Low Priority
      to be declared explicitely to be "int32_t" in order to have the same
      type as the loop iterator, but in the future automatic data conversion
      should be done.
+   - Mark the getter method as const and the returned type of constant (especially
+   if you return a pointer) if you don't mean for the user to modify it. For
+   example, buffer::get_data returns pointer to data, but I can't really tell
+   whether you expect the user to not modify it or if it is okay if I
+   re-write the data.
 
 
 - Building and compiling
