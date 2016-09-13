@@ -41,8 +41,8 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	coli::function blurxy("blurxy");
-	coli::buffer b_input("b_input", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, true, coli::type::argument::input, &blurxy);
-	coli::buffer b_blury("b_blury", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, true, coli::type::argument::output, &blurxy);
+	coli::buffer b_input("b_input", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::input, &blurxy);
+	coli::buffer b_blury("b_blury", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::output, &blurxy);
 	coli::invariant p0("N", coli::expr::make((int32_t) SIZE), &blurxy);
 
 	// Declare the computations c_blurx and c_blury.
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	coli::computation c_blury("[N]->{c_blury[i,j]: 1<i<N-1 and 1<j<N-1}", e2,   true,  &blurxy);
 
 	// Create a memory buffer (2 dimensional).
-	coli::buffer b_blurx("b_blurx", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, false, coli::type::argument::none, &blurxy);
+	coli::buffer b_blurx("b_blurx", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::temporary, &blurxy);
 
 	// Map the computations to a buffer.
 	c_input.set_access("{c_input[i,j]->b_input[i,j]}");
@@ -83,8 +83,6 @@ int main(int argc, char **argv)
 	// Set the arguments to blurxy
 	blurxy.set_arguments({&b_input, &b_blury});
 
-	blurxy.dump(true);
-
 	// Generate code
 	blurxy.gen_isl_ast();
 	blurxy.gen_halide_stmt();
@@ -94,6 +92,7 @@ int main(int argc, char **argv)
 	blurxy.dump_iteration_domain();
 	blurxy.dump_halide_stmt();
 
+	// Dump all the fields of the blurxy class.
 	blurxy.dump(true);
 
 	return 0;

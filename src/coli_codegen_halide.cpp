@@ -804,7 +804,7 @@ void function::gen_halide_stmt()
 	{
 		coli::buffer *buf = b.second;
 		// Allocate only arrays that are not passed to the function as arguments.
-		if (buf->is_argument() == false)
+		if (buf->get_argument_type() == coli::type::argument::temporary)
 		{
 			std::vector<Halide::Expr> halide_dim_sizes;
 			// Create a vector indicating the size that should be allocated.

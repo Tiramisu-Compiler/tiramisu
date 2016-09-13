@@ -24,8 +24,13 @@ int main(int argc, char **argv)
 
 	// Create a buffer buf0.  This buffer is supposed to be allocated outside
 	// the function "function0" and passed to it as an argument.
+	// Buffers of type coli::type::argument::output or coli::type::argument::input
+	// should be allocated outside the function and passed as arguments to the
+	// function.  Buffers of type coli::type::argument::temporary are
+	// allocated automatically by coli within the function and thus should
+	// not be passed as arguments to the function.
 	coli::buffer buf0("buf0", 2, {10,10}, coli::type::primitive::uint8, NULL,
-						true, coli::type::argument::output, &function0);
+						coli::type::argument::output, &function0);
 
 	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change during the execution of the

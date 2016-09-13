@@ -489,11 +489,6 @@ class buffer
 	coli::function *fct;
 
 	/**
-	  * Is the buffer passed as an argument to the function ?
-	  */
-	bool is_arg;
-
-	/**
 	 * Type of the argument.
 	 */
 	coli::type::argument argtype;
@@ -522,7 +517,7 @@ public:
 	  * function cannot be used outside the function.
 	  */
 	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-		coli::type::primitive type, uint8_t *data, bool is_argument,
+		coli::type::primitive type, uint8_t *data,
 		coli::type::argument argt, coli::function *fct):
 		name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
 		data(data), fct(fct)
@@ -533,11 +528,8 @@ public:
 		assert(fct != NULL && "Input function is NULL");
 
 
-		this->is_arg = is_argument;
-		if (this->is_arg == true)
-			argtype = argt;
-		else
-			argtype = coli::type::argument::none;
+
+		argtype = argt;
 
 		fct->buffers_list.insert(std::pair<std::string, coli::buffer *>(name, this));
 	};
@@ -591,16 +583,6 @@ public:
 	std::vector<int> get_dim_sizes()
 	{
 		return dim_sizes;
-	}
-
-	/**
-	 * Return true if the buffer is a function argument.
-	 * We assume that all the buffers passed as arguments to the
-	 * function are allocated outside the function.
-	 */
-	bool is_argument()
-	{
-		return is_arg;
 	}
 
 	/**

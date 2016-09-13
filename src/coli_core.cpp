@@ -628,8 +628,8 @@ Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type)
 {
 	Halide::Argument::Kind res;
 
-	if (type == coli::type::argument::none)
-		coli::error("The buffer of type none should not be used as an argument.\n", true);
+	if (type == coli::type::argument::temporary)
+		coli::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
 
 	if (type == coli::type::argument::input)
 		res = Halide::Argument::InputBuffer;
@@ -834,8 +834,8 @@ std::string coli_type_argument_to_str(coli::type::argument type)
 		case coli::type::argument::output:
 			return "output";
 			break;
-		case coli::type::argument::none:
-			return "none";
+		case coli::type::argument::temporary:
+			return "temporary";
 			break;
 		default:
 			coli::error("Coli type not supported.", true);
@@ -898,9 +898,6 @@ void coli::buffer::dump(bool exhaustive)
 
 		std::cout << "Function field: " <<
 			is_null_to_str(this->fct) << std::endl;
-
-		std::cout << "Buffer is argument ? " <<
-			this->is_arg << std::endl;
 
 		std::cout << "Argument type: " <<
 			coli_type_argument_to_str(this->argtype) << std::endl;

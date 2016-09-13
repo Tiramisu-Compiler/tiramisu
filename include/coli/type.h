@@ -61,7 +61,7 @@ namespace type {
 	enum class argument {
 		input,
 		output,
-		none
+		temporary
 	};
 } }
 
