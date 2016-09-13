@@ -4,7 +4,7 @@
 #include <iostream>
 
 #define DEBUG 1
-#define DEBUG2 2
+#define DEBUG2 0
 
 #define IF_DEBUG2(x) {if (DEBUG2) {x;}};
 #define IF_DEBUG(x)  {if (DEBUG || DEBUG2) {x;}};

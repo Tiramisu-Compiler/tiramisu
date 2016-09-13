@@ -42,7 +42,9 @@ int main(int argc, char **argv)
 	// To declare a computation, you need to provide:
 	// (1) an ISL set representing the iteration space of the computation,
 	// coli uses the ISL syntax for sets and maps.  This syntax is described
-	// in http://barvinok.gforge.inria.fr/barvinok.pdf
+	// in http://barvinok.gforge.inria.fr/barvinok.pdf (Sections
+	// 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
+	// relations),
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
 	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &function0);
@@ -62,6 +64,9 @@ int main(int argc, char **argv)
 	// (i.e. no optimization is applied).
 	S0.tile(0,1,2,2);
 	S0.tag_parallel_dimension(0);
+
+	// Dump the schedule.
+	function0.dump_schedule();
 
 	// Add buf0 as an argument to the function.
 	function0.set_arguments({&buf0});
