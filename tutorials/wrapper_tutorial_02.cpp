@@ -43,16 +43,6 @@ int main(int, char**)
 {
    Halide::Image<uint8_t> image = Halide::Tools::load_image("./tutorials/images/rgb.png");
 
-   buffer_t input_buf = {0};
-   input_buf.host = (unsigned char *) image.data();
-   input_buf.stride[0] = 1;
-   input_buf.stride[1] = image.extent(0);
-   input_buf.extent[0] = image.extent(0);
-   input_buf.extent[1] = image.extent(1);
-   input_buf.min[0] = 0;
-   input_buf.min[1] = 0;
-   input_buf.elem_size = 1;
-
    buffer_t output_buf = {0};
    output_buf.host = (unsigned char *) malloc(image.extent(0)*image.extent(1)*sizeof(unsigned char));
    output_buf.stride[0] = 1;
@@ -63,7 +53,10 @@ int main(int, char**)
    output_buf.min[1] = 0;
    output_buf.elem_size = 1;
 
-   blurxy(&input_buf, &output_buf);
+   // The blurxy takes a buffer_t * argument, when "image"
+   // is passed, its buffer is actually extracted and passed
+   // to the function (c++ operator overloading).
+   blurxy(image, &output_buf);
 
    copy_array(image.data(), image.extent(0), image.extent(1), output_buf.host);
 

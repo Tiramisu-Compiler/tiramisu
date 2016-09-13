@@ -515,8 +515,11 @@ public:
 	  * \p is_argument indicates whether the buffer is passed to the
 	  * function as an argument.  All the buffers passed as arguments
 	  * to the function should be allocated by the user outside the
-	  * function.  Buffers that are allocated within the function cannot
-	  * be used outside the function.
+	  * function.  Buffers that are not passed to the function as
+	  * arguments are allocated automatically at the beginning of
+	  * the function and deallocated at the end of the function.
+	  * This means that the buffers that are allocated within the
+	  * function cannot be used outside the function.
 	  */
 	buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
 		coli::type::primitive type, uint8_t *data, bool is_argument,

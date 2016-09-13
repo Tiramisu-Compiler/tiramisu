@@ -29,6 +29,8 @@ High Priority
 	- Non affine code:
 		- Support non affine loop bounds, conditionals.
 		- Support non affine array accesses.
+	- Support type casting.	
+
 
 - Halide support
 	- compute_halide_call_graph().
@@ -62,10 +64,15 @@ Low Priority
    class.  The Halide::Buffer class should only be used during code
    generation.  Currently Halide can only handle 3D arrays, make sure you
    check for this during code generation.
-   - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr
+   - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr.
+   - Support data type conversion.  Currently the loop bound (invariant) has
+     to be declared explicitely to be "int32_t" in order to have the same
+     type as the loop iterator, but in the future automatic data conversion
+     should be done.
 
 
 - Building and compiling
    - ISL, Halide should be distributed with COLi and should be
    compiled automatically.
    - Compile COLi into one shared library.
+
