@@ -19,7 +19,7 @@ Func blurxy(Func input, Func blur_y) {
 
 	// The algorithm - no storage or order
 	blur_x(x, y) = (input(x-1, y) + input(x, y) + input(x+1, y))/3;
-    blur_y(x, y) = (blur_x(x, y-1) + blur_x(x, y) + blur_x(x, y+1))/3;
+	blur_y(x, y) = (blur_x(x, y-1) + blur_x(x, y) + blur_x(x, y+1))/3;
 
 	// The schedule - defines order, locality; implies storage
 	blur_y.tile(x, y, xi, yi, 256, 32)
@@ -32,8 +32,6 @@ Func blurxy(Func input, Func blur_y) {
 
 int main(int argc, char **argv)
 {
-    Halide::Image<uint8_t> input_image = Halide::Tools::load_image("./tutorials/images/rgb.png");
-
 	// Set default coli options.
 	coli::global::set_default_coli_options();
 
@@ -43,7 +41,7 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	coli::function blurxy("blurxy");
-	coli::buffer b_input("b_input", 2, {SIZE,SIZE}, coli::type::primitive::uint8, input_image.data(), true, coli::type::argument::input, &blurxy);
+	coli::buffer b_input("b_input", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, true, coli::type::argument::input, &blurxy);
 	coli::buffer b_blury("b_blury", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, true, coli::type::argument::output, &blurxy);
 	coli::invariant p0("N", coli::expr::make((int32_t) SIZE), &blurxy);
 
@@ -63,8 +61,8 @@ int main(int argc, char **argv)
 	coli::expr *e2         = coli::expr::make(coli::type::op::div, e2_add2,    coli::expr::make((uint8_t) 3));
 
 	coli::computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, &blurxy);
-	coli::computation c_blurx("[N]->{c_blurx[i,j]: 0<=i<N and 0<=j<N}", e1,   true,  &blurxy);
-	coli::computation c_blury("[N]->{c_blury[i,j]: 0<=i<N and 0<=j<N}", e2,   true,  &blurxy);
+	coli::computation c_blurx("[N]->{c_blurx[i,j]: 0<i<N and 0<j<N}", e1,   true,  &blurxy);
+	coli::computation c_blury("[N]->{c_blury[i,j]: 1<i<N-1 and 1<j<N-1}", e2,   true,  &blurxy);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer b_blurx("b_blurx", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, false, coli::type::argument::none, &blurxy);

@@ -35,14 +35,14 @@ int main(int argc, char **argv)
 	// (1) an isl set representing the iteration space of the computation, and
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
-	coli::computation computation0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &fct);
+	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &fct);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
 	// This mapping will be updated automaticall when the schedule
 	// is applied.  To disable automatic data mapping updates use
 	// coli::global::set_auto_data_mapping(false).
-	computation0.set_access("{S0[i,j]->buf0[i,j]}");
+	S0.set_access("{S0[i,j]->buf0[i,j]}");
 
 	// Dump the iteration domain (input) for the function.
 	fct.dump_iteration_domain();
@@ -50,8 +50,8 @@ int main(int argc, char **argv)
 	// Set the schedule of each computation.
 	// The identity schedule means that the program order is not modified
 	// (i.e. no optimization is applied).
-	computation0.tile(0,1,2,2);
-	computation0.tag_parallel_dimension(0);
+	S0.tile(0,1,2,2);
+	S0.tag_parallel_dimension(0);
 
 	// Add buf0 as an argument to the function.
 	fct.set_arguments({&buf0});

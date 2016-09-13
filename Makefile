@@ -5,8 +5,8 @@ HALIDE_SOURCE_DIRECTORY=/Users/psuriana/Halide
 HALIDE_LIB_DIRECTORY=/Users/psuriana/Halide/lib
 
 # Examples
-#ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/include/
-#ISL_LIB_DIRECTORY=/Users/b/Documents/src/MIT/IR/isl_jan_2016_prefix/lib/
+#ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
+#ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
 #HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
 #HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
 
@@ -17,7 +17,7 @@ LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide 
 HEADER_FILES=include/coli/core.h include/coli/debug.h
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
 TUTO_GEN=build/tutorial_01_lib_generator build/tutorial_02_lib_generator
-TUTO_BIN=build/tutorial_01
+TUTO_BIN=build/tutorial_01 build/tutorial_02
 
 all: builddir tutorial
 
