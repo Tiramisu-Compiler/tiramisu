@@ -3,11 +3,10 @@
 
 #include <iostream>
 
+#define DEBUG_LEVEL 2
 #define DEBUG 1
-#define DEBUG2 0
 
-#define IF_DEBUG2(x) {if (DEBUG2) {x;}};
-#define IF_DEBUG(x)  {if (DEBUG || DEBUG2) {x;}};
+#define IF_DEBUG(LEVEL,x) {if (DEBUG && DEBUG_LEVEL>=LEVEL) {x;}};
 
 namespace coli
 {

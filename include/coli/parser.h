@@ -215,11 +215,8 @@ public:
 			constraints.parse(constraints_str);
 		}
 
-		if (DEBUG2)
-		{
-			coli::str_dump("Parsing the map : " + map_str + "\n");
-			coli::str_dump("The parsed map  : " + this->get_str() + "\n");
-		}
+		IF_DEBUG(2, coli::str_dump("Parsing the map : " + map_str + "\n"));
+		IF_DEBUG(2, coli::str_dump("The parsed map  : " + this->get_str() + "\n"));
 	};
 
 	std::string get_str()

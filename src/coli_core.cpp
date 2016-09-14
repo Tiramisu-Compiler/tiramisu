@@ -45,7 +45,7 @@ void function::gen_isl_ast()
 	// issue and check that the access was provided.
 	assert(this->get_schedule() != NULL);
 
-	IF_DEBUG2(coli::str_dump("\n\nDebugging gen_isl_ast()"));
+	IF_DEBUG(2, coli::str_dump("\n\nDebugging gen_isl_ast()"));
 
 	isl_ctx *ctx = this->get_ctx();
 	isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
@@ -61,10 +61,10 @@ void function::gen_isl_ast()
 			isl_union_map_copy(this->get_schedule()),
 			isl_union_set_copy(this->get_iteration_domain()));
 
-	IF_DEBUG2(coli::str_dump("\n\n\n\tSchedule:", isl_union_map_to_str(this->get_schedule())));
-	IF_DEBUG2(coli::str_dump("\n\tIteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
-	IF_DEBUG2(coli::str_dump("\n\tSchedule intersect Iteration domain:", isl_union_map_to_str(umap)));
-	IF_DEBUG2(coli::str_dump("\n"));
+	IF_DEBUG(2, coli::str_dump("\n\n\n\tSchedule:", isl_union_map_to_str(this->get_schedule())));
+	IF_DEBUG(2, coli::str_dump("\n\tIteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
+	IF_DEBUG(2, coli::str_dump("\n\tSchedule intersect Iteration domain:", isl_union_map_to_str(umap)));
+	IF_DEBUG(2, coli::str_dump("\n"));
 
 	this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
 
@@ -311,11 +311,11 @@ void computation::interchange(int inDim0, int inDim1)
 	assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
 				          		isl_dim_out));
 
-	IF_DEBUG2(str_dump("\nDebugging interchange()"));
+	IF_DEBUG(2, str_dump("\nDebugging interchange()"));
 
 	isl_map *schedule = this->get_schedule();
 
-	IF_DEBUG2(coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
+	IF_DEBUG(2, coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
 
 	int n_dims = isl_map_dim(schedule, isl_dim_out);
 	std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out,
@@ -365,7 +365,7 @@ void computation::interchange(int inDim0, int inDim1)
 
 	map = map + "]}";
 
-	IF_DEBUG2(coli::str_dump("\nTransformation map = ", map.c_str()));
+	IF_DEBUG(2, coli::str_dump("\nTransformation map = ", map.c_str()));
 
 	isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 	transformation_map = isl_map_set_tuple_id(transformation_map,
@@ -375,7 +375,7 @@ void computation::interchange(int inDim0, int inDim1)
 			isl_dim_out, id_range);
 	schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
-	IF_DEBUG2(coli::str_dump("\nSchedule after interchange: ", isl_map_to_str(schedule)));
+	IF_DEBUG(2, coli::str_dump("\nSchedule after interchange: ", isl_map_to_str(schedule)));
 
 	this->set_schedule(schedule);
 }
@@ -393,7 +393,7 @@ void computation::split(int inDim0, int sizeX)
 					isl_dim_out));
 	assert(sizeX >= 1);
 
-	IF_DEBUG2(str_dump("\nDebugging split()"));
+	IF_DEBUG(2, str_dump("\nDebugging split()"));
 
 	isl_map *schedule = this->get_schedule();
 
@@ -402,7 +402,7 @@ void computation::split(int inDim0, int sizeX)
 	std::string outDim0_str = generate_new_variable_name();
 	std::string outDim1_str = generate_new_variable_name();
 
-	IF_DEBUG2(coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
+	IF_DEBUG(2, coli::str_dump("\nOriginal schedule: ", isl_map_to_str(schedule)));
 
 	int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
 	std::string map = "{[";
@@ -445,7 +445,7 @@ void computation::split(int inDim0, int sizeX)
 		std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
 		inDim0_str + "%" + std::to_string(sizeX) + ")}";
 
-	IF_DEBUG2(coli::str_dump("\nTransformation map = ", map.c_str()));
+	IF_DEBUG(2, coli::str_dump("\nTransformation map = ", map.c_str()));
 
 	isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 
@@ -460,7 +460,7 @@ void computation::split(int inDim0, int sizeX)
 			isl_dim_out, id_range);
 	schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
-	IF_DEBUG2(coli::str_dump("\nSchedule after splitting: ", isl_map_to_str(schedule)));
+	IF_DEBUG(2, coli::str_dump("\nSchedule after splitting: ", isl_map_to_str(schedule)));
 
 	this->set_schedule(schedule);
 }
@@ -486,8 +486,8 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 	int mdim = isl_map_dim(map, isl_dim_out);
 	assert(max_dim >= mdim);
 
-	IF_DEBUG2(coli::str_dump("\n\t\tDebugging isl_map_align_range_dims()."));
-	IF_DEBUG2(coli::str_dump("\n\t\tInput map:", isl_map_to_str(map)));
+	IF_DEBUG(2, coli::str_dump("\n\t\tDebugging isl_map_align_range_dims()."));
+	IF_DEBUG(2, coli::str_dump("\n\t\tInput map:", isl_map_to_str(map)));
 
 	map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
 
@@ -502,7 +502,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 		map = isl_map_add_constraint(map, cst);
 	}
 
-	IF_DEBUG2(coli::str_dump("\n\t\tAfter alignement, map:",
+	IF_DEBUG(2, coli::str_dump("\n\t\tAfter alignement, map:",
 				isl_map_to_str(map)));
 
 	return map;
@@ -510,7 +510,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 
 void coli::function::align_schedules()
 {
-	IF_DEBUG2(coli::str_dump("\n\tDebugging align_schedules()."));
+	IF_DEBUG(2, coli::str_dump("\n\tDebugging align_schedules()."));
 
 	int max_dim = this->get_max_schedules_range_dim();
 
