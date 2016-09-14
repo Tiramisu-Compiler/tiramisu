@@ -3,6 +3,8 @@
 namespace coli
 {
 
+int coli_indentation = 0;
+
 void str_dump(std::string str)
 {
 	std::cout << str;
