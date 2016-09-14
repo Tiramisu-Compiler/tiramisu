@@ -442,7 +442,7 @@ public:
 	  */
 	void dump(bool exhaustive)
 	{
-		if (DEBUG)
+		if (ENABLE_DEBUG)
 		{
 			std::cout << "Expression:" << std::endl;
 			std::cout << "Expression type:" << coli_type_expr_to_str(this->etype) << std::endl;

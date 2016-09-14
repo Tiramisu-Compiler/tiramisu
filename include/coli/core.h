@@ -856,15 +856,20 @@ public:
 	  */
 	void set_identity_schedule()
 	{
+		DEBUG_FCT_NAME(3);
+		DEBUG_INDENT(4);
+
 		isl_space *sp = isl_set_get_space(this->get_iteration_domain());
 		isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
 		sched = isl_map_intersect_domain(sched,
 				isl_set_copy(this->get_iteration_domain()));
 		sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
 		sched = isl_map_coalesce(sched);
-		IF_DEBUG(2, coli::str_dump("\nThe following identity schedule is set: ",
+		DEBUG(3, coli::str_dump("The following identity schedule is set: ",
 					isl_map_to_str(sched)));
 		this->set_schedule(sched);
+
+		DEBUG_INDENT(-4);
 	}
 
 	/**
@@ -920,7 +925,7 @@ public:
 		map = isl_map_set_tuple_name(map, isl_dim_out,
 						buff->get_name().c_str());
 		map = isl_map_coalesce(map);
-		IF_DEBUG(2, coli::str_dump("\nBinding.  The following access function is set: ",
+		DEBUG(2, coli::str_dump("\nBinding.  The following access function is set: ",
 					isl_map_to_str(map)));
 		this->set_access(isl_map_to_str(map));
 	}

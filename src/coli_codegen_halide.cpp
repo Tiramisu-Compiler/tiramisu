@@ -57,30 +57,34 @@ coli::computation *get_computation_by_node(coli::function *fct, isl_ast_node *no
 isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 		isl_map* access)
 {
-	IF_DEBUG(2, coli::str_dump("\n\n\tDebugging create_isl_ast_index_expression()"));
+	DEBUG_FCT_NAME(3);
+	DEBUG_INDENT(4);
+
 	isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
-	IF_DEBUG(2, coli::str_dump("\n\t\tSchedule:", isl_map_to_str(schedule)));
+	DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(schedule)));
 	schedule = isl_map_set_tuple_name(schedule, isl_dim_in, isl_map_get_tuple_name(access, isl_dim_in));
-	IF_DEBUG(2, coli::str_dump("\n\t\tAfter renaming the Schedule:", isl_map_to_str(schedule)));
+	DEBUG(3, coli::str_dump("After renaming the Schedule:", isl_map_to_str(schedule)));
 	isl_map* map = isl_map_reverse(isl_map_copy(schedule));
-	IF_DEBUG(2, coli::str_dump("\n\t\tSchedule reversed:", isl_map_to_str(map)));
+	DEBUG(3, coli::str_dump("Schedule reversed:", isl_map_to_str(map)));
 	isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
-	IF_DEBUG(2, coli::str_dump("\n\t\tThe iterator map of an AST leaf (after scheduling):"));
-	IF_DEBUG(2, isl_pw_multi_aff_dump(iterator_map));
-	IF_DEBUG(2, coli::str_dump("\t\tAccess:", isl_map_to_str(access)));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("The iterator map of an AST leaf (after scheduling):"));
+	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
+	DEBUG(3, coli::str_dump("Access:", isl_map_to_str(access)));
 	isl_pw_multi_aff* index_aff = isl_pw_multi_aff_from_map(
 			isl_map_copy(access));
-	IF_DEBUG(2, coli::str_dump("\n\t\tisl_pw_multi_aff_from_map(access):"));
-	IF_DEBUG(2, isl_pw_multi_aff_dump(index_aff));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_from_map(access):"));
+	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(index_aff));
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,
 			iterator_map);
-	IF_DEBUG(2, coli::str_dump("\t\tisl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
-	IF_DEBUG(2, isl_pw_multi_aff_dump(iterator_map));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
+	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
 	isl_ast_expr* index_expr = isl_ast_build_access_from_pw_multi_aff(build,
 			isl_pw_multi_aff_copy(iterator_map));
-	IF_DEBUG(2, coli::str_dump("\t\tisl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
+	DEBUG(3, coli::str_dump("isl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
 					(const char * ) isl_ast_expr_to_C_str(index_expr)));
-	IF_DEBUG(2, coli::str_dump("\n"));
+
+	DEBUG_INDENT(-4);
+
 	return index_expr;
 }
 
@@ -91,6 +95,9 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 {
 	assert(exp != NULL);
 	assert(fct != NULL);
+
+	DEBUG_FCT_NAME(3);
+	DEBUG_INDENT(4);
 
 	if ((exp->get_expr_type() == coli::type::expr::op) && (exp->get_op_type() == coli::type::op::access))
 	{
@@ -188,7 +195,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 						else
 							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
 					}
-					std::cout << "\n";
+					DEBUG(3, coli::str_dump("\n"));
 
 				}
 				else if (access->get_op_type() == coli::type::op::sub)
@@ -235,7 +242,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 						else
 							coli::error("Access values can only be of type coli::type::primitive::int32" , true);
 					}
-					std::cout << "\n";
+					DEBUG(3, coli::str_dump("\n"));
 				}
 				else
 					coli::error("Currently only Add and Sub operations for accesses are supported." , true);
@@ -246,8 +253,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 			identity = isl_map_add_constraint(identity, cst);
 		}
 		access_function = isl_map_apply_domain(access_function, isl_map_copy(identity));
-		IF_DEBUG(2, coli::str_dump("\nUpdated access function:", isl_map_to_str(access_function)));
-		IF_DEBUG(2, coli::str_dump("\n"));
+		DEBUG(3, coli::str_dump("Updated access function:", isl_map_to_str(access_function)));
 		accesses.push_back(access_function);
 	}
 	else if (exp->get_expr_type() == coli::type::expr::op)
@@ -331,6 +337,8 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 					coli::error("Extracting access function from an unsupported coli expression.", 1);
 			}
 		}
+
+	DEBUG_INDENT(-4);
 }
 
 /**
@@ -352,7 +360,8 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	assert(build != NULL);
 	assert(node != NULL);
 
-	IF_DEBUG(2, coli::str_dump("\n\nDebugging stmt_code_generator():"));
+	DEBUG_FCT_NAME(3);
+	DEBUG_INDENT(4);
 
 	coli::function *func = (coli::function *) user;
 
@@ -360,7 +369,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	coli::computation *comp = get_computation_by_node(func, node);
 	assert((comp != NULL) && "Computation not found!");;
 
-	IF_DEBUG(2, coli::str_dump("\n\tComputation:", comp->get_name().c_str()));
+	DEBUG(3, coli::str_dump("Computation:", comp->get_name().c_str()));
 
 	// Get the accesses of the computation.  The first access is the access
 	// for the LHS.  The following accesses are for the RHS.
@@ -375,8 +384,8 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	{
 		assert((access != NULL) && "An access function should be provided before generating code.");;
 
-		IF_DEBUG(2, coli::str_dump("Access (isl_map *):", isl_map_to_str(access)));
-		IF_DEBUG(2, coli::str_dump("\n"));
+		DEBUG(3, coli::str_dump("Access (isl_map *):", isl_map_to_str(access)));
+		DEBUG(3, coli::str_dump("\n"));
 
 		// Compute the isl_ast index expression for the LHS
 		comp->index_expr.push_back(create_isl_ast_index_expression(build, access));
@@ -384,10 +393,11 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 
 	for (auto i_expr: comp->index_expr)
 	{
-		IF_DEBUG(2, coli::str_dump("\n\tGenerated Index expression:", (const char *)
+		DEBUG(3, coli::str_dump("Generated Index expression:", (const char *)
 							isl_ast_expr_to_C_str(i_expr)));
 	}
-	IF_DEBUG(2, coli::str_dump("\n\n"));
+	DEBUG(3, coli::str_dump("\n\n"));
+	DEBUG_INDENT(-4);
 
 	return node;
 }
@@ -396,11 +406,12 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 {
 	Halide::Expr result;
 
-	IF_DEBUG(2, coli::str_dump("\tDebugging create_halide_expr_from_coli_expr()"));
+	DEBUG_FCT_NAME(3);
+	DEBUG_INDENT(4);
 
 	if (coli_expr->get_expr_type() == coli::type::expr::val)
 	{
-		IF_DEBUG(2, coli::str_dump("\n\t\tcoli expression of type coli::type::expr::val\n"));
+		DEBUG(3, coli::str_dump("coli expression of type coli::type::expr::val"));
 		if (coli_expr->get_data_type() == coli::type::primitive::uint8)
 			result = Halide::Expr(coli_expr->get_uint8_value());
 		else if (coli_expr->get_data_type() == coli::type::primitive::int8)
@@ -418,7 +429,7 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 	{
 		Halide::Expr op0, op1, op2;
 
-		IF_DEBUG(2, coli::str_dump("\n\t\tcoli expression of type coli::type::expr::op\n"));
+		DEBUG(3, coli::str_dump("coli expression of type coli::type::expr::op"));
 
 		op0 = create_halide_expr_from_coli_expr(comp, index_expr, coli_expr->get_operator(0));
 
@@ -530,6 +541,8 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 		coli::str_dump("coli type of expr: ", coli_type_expr_to_str(coli_expr->get_expr_type()).c_str());
 		coli::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
 	}
+
+	DEBUG_INDENT(-4);
 
 	return result;
 }
@@ -656,10 +669,12 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, i
 	Halide::Internal::Stmt *result = new Halide::Internal::Stmt();
 	int i;
 
-	IF_DEBUG(2, str_dump("Debugging generate_Halide_stmt_from_isl_node(): "));
+	DEBUG_FCT_NAME(3);
+	DEBUG_INDENT(4);
+
 	if (isl_ast_node_get_type(node) == isl_ast_node_block)
 	{
-		IF_DEBUG(2, coli::str_dump("Generating code for a block\n"));
+		DEBUG(3, coli::str_dump("Generating code for a block"));
 
 		isl_ast_node_list *list = isl_ast_node_block_get_children(node);
 		isl_ast_node *child, *child2;
@@ -685,7 +700,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, i
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_for)
 	{
-		IF_DEBUG(2, coli::str_dump("Generating code for Halide::For\n"));
+		DEBUG(3, coli::str_dump("Generating code for Halide::For"));
 
 		isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
 		char *iterator_str = isl_ast_expr_to_C_str(iter);
@@ -744,7 +759,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, i
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{
-		IF_DEBUG(2, coli::str_dump("Generating code for user node\n"));
+		DEBUG(3, coli::str_dump("Generating code for user node"));
 
 		isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
 		isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -762,7 +777,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, i
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_if)
 	{
-		IF_DEBUG(2, coli::str_dump("Generating code for conditional\n"));
+		DEBUG(3, coli::str_dump("Generating code for conditional"));
 
 		isl_ast_expr *cond = isl_ast_node_if_get_cond(node);
 		isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
@@ -774,6 +789,8 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(coli::function fct, i
 				*coli::generate_Halide_stmt_from_isl_node(fct, else_stmt,
 					level+1, generated_stmts));
 	}
+
+	DEBUG_INDENT(-4);
 
 	return result;
 }
