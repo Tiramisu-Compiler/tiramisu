@@ -1,7 +1,6 @@
 High Priority
 --------------
 - General
-	- Enhance the tutorials.
     - DEBUG:
 		- Add indentation to DEBUG1 and DEBUG2.
 		- Organize the output.

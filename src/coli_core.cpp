@@ -11,6 +11,7 @@
 
 #include <coli/debug.h>
 #include <coli/core.h>
+#include <coli/parser.h>
 
 #include <string>
 
