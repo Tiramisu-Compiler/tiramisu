@@ -19,14 +19,14 @@ int main(int, char**)
    input_buf.min[1] = 0;
    input_buf.elem_size = 1;
 
-   init_array_1D(&input_buf, NN*MM, 9);
+   init_1D_buffer(&input_buf, NN*MM, 9);
    std::cout << "Array (after initialization)" << std::endl;
-   print_array_1D(&input_buf, NN*MM);
+   print_1D_buffer(&input_buf, NN*MM);
 
    function0(&input_buf);
 
    std::cout << "Array after the Halide pipeline" << std::endl;
-   print_array_1D(&input_buf, NN*MM);
+   print_1D_buffer(&input_buf, NN*MM);
 
    return 0;
 }

@@ -41,9 +41,14 @@ To build documentation (doxygen required)
 
     make doc
 
-#### Run Hello World Example
+#### Run tutorials
 
-    make tutorial
+    make tutorials
+
+#### Run tests
+
+    make tests
+
 
 How To Use COLi
 -----------------

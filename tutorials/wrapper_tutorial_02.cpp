@@ -26,7 +26,7 @@ int main(int, char**)
    // to the function (c++ operator overloading).
    blurxy(image, &output_buf);
 
-   copy_array_2D(image.data(), image.extent(0), image.extent(1), output_buf.host);
+   copy_2D_buffer(image.data(), image.extent(0), image.extent(1), output_buf.host);
 
    Halide::Tools::save_image(image, "./build/tutorial_02.png");
 

@@ -1,7 +1,6 @@
 High Priority
 --------------
 - General
-	- Add correctness tests.
 	- Add asserts to check my assumptions.
 	- Use operator overloading.
 
