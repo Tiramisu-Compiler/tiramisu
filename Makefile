@@ -14,9 +14,9 @@ CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
-HEADER_FILES=include/coli/core.h include/coli/debug.h
-OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o
-TUTO_GEN=build/tutorial_01_lib_generator build/tutorial_02_lib_generator
+HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
+OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o
+TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02
 
 all: builddir tutorial
@@ -35,11 +35,11 @@ build/coli_codegen_%.o: src/coli_codegen_%.cpp include/coli/*.h
 # the libraries), then the wrapper should be built (wrapper are programs that call the
 # library functions).
 tutorial: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
-build/tutorial_%_lib_generator: tutorials/tutorial_%.cpp
+build/tutorial_%_fct_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_lib_tutorial_%.o tutorials/wrapper_tutorial_%.h
-	$(CXX) ${CXXFLAGS} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_fct_tutorial_%.o tutorials/wrapper_tutorial_%.h
+	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 	@DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 
 doc:

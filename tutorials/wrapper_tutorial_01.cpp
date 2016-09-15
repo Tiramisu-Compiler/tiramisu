@@ -1,29 +1,11 @@
 #include "Halide.h"
 #include "wrapper_tutorial_01.h"
+#include "coli/utils.h"
 #include <cstdlib>
 #include <iostream>
 
 #define NN 10
 #define MM 10
-
-void print_array(buffer_t buf, int N)
-{
-	int i;
-
-	for (i=0; i<N; i++)
-	{
-	   printf("%u, ", buf.host[i]);
-	}
-	printf("\n");
-}
-
-void init_array(buffer_t *buf, int N, uint8_t val)
-{
-	int i;
-
-	for (i=0; i<N; i++)
-	    buf->host[i] = val;
-}
 
 int main(int, char**)
 {
@@ -37,14 +19,14 @@ int main(int, char**)
    input_buf.min[1] = 0;
    input_buf.elem_size = 1;
 
-   init_array(&input_buf, NN*MM, 9);
+   init_array_1D(&input_buf, NN*MM, 9);
    std::cout << "Array (after initialization)" << std::endl;
-   print_array(input_buf, NN*MM);
+   print_array_1D(&input_buf, NN*MM);
 
    function0(&input_buf);
 
    std::cout << "Array after the Halide pipeline" << std::endl;
-   print_array(input_buf, NN*MM);
+   print_array_1D(&input_buf, NN*MM);
 
    return 0;
 }

@@ -40,8 +40,8 @@ int main(int argc, char **argv)
 	// Declare a expressions that will be associated with the
 	// computations.
 	coli::expr *e1 = coli::expr::make(coli::type::op::add,
-										coli::expr::make((uint8_t) 3),
-										coli::expr::make((uint8_t) 4));
+						coli::expr::make((uint8_t) 3),
+						coli::expr::make((uint8_t) 4));
 
 	// Declare a computation within function0.
 	// To declare a computation, you need to provide:
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 	function0.dump_halide_stmt();
 
 	// Generate an object file from the function.
-	function0.gen_halide_obj("build/generated_lib_tutorial_01.o");
+	function0.gen_halide_obj("build/generated_fct_tutorial_01.o");
 
 	return 0;
 }
