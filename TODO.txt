@@ -1,10 +1,6 @@
 High Priority
 --------------
 - General
-    - DEBUG:
-		- Add indentation to DEBUG1 and DEBUG2.
-		- Organize the output.
-		- Print all the information of a classes.
 	- Add correctness tests.
 	- Add asserts to check my assumptions.
 	- Use operator overloading.
@@ -79,6 +75,7 @@ Low Priority
    example, buffer::get_data returns pointer to data, but I can't really tell
    whether you expect the user to not modify it or if it is okay if I
    re-write the data.
+   - Print all the information of a classes.
 
 
 - Building and compiling
