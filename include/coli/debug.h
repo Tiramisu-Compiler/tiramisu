@@ -15,32 +15,32 @@
 
 namespace coli
 {
-	void str_dump(std::string str);
-	void str_dump(std::string str, const char * str2);
-	void str_dump(const char * str, const char * str2);
-	void print_indentation();
+    void str_dump(std::string str);
+    void str_dump(std::string str, const char * str2);
+    void str_dump(const char * str, const char * str2);
+    void print_indentation();
 
-	void error(std::string str, bool exit);
+    void error(std::string str, bool exit);
 
-	extern int coli_indentation;
+    extern int coli_indentation;
 }
 
 /**
  * Print function name.
  */
 #define DEBUG_FCT_NAME(LEVEL) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-								coli::print_indentation();\
-								coli::str_dump("[");\
-								coli::str_dump(__FUNCTION__);\
-								coli::str_dump(" function]:\n");}}
+                                coli::print_indentation();\
+                                coli::str_dump("[");\
+                                coli::str_dump(__FUNCTION__);\
+                                coli::str_dump(" function]:\n");}}
 
 /**
  * Run \p STMT if the debugging level is above \p LEVEL.
  */
 #define DEBUG(LEVEL,STMT) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-								coli::print_indentation();\
-								STMT;\
-								coli::str_dump("\n");}};
+                                coli::print_indentation();\
+                                STMT;\
+                                coli::str_dump("\n");}};
 
 /**
  * Run \p STMT if the debugging level is above \p LEVEL.
@@ -48,8 +48,8 @@ namespace coli
  * the end of DEBUG.
  */
 #define DEBUG_NO_NEWLINE(LEVEL,STMT) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-								coli::print_indentation();\
-								STMT;}};
+                                coli::print_indentation();\
+                                STMT;}};
 
 /**
  * Change the indentation printed before running IF_DEBUG.

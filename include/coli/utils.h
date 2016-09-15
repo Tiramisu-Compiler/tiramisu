@@ -2,11 +2,11 @@
 #define _COLI_UTILS
 
 #ifndef HALIDE_ATTRIBUTE_ALIGN
-  #ifdef _MSC_VER
-    #define HALIDE_ATTRIBUTE_ALIGN(x) __declspec(align(x))
-  #else
-    #define HALIDE_ATTRIBUTE_ALIGN(x) __attribute__((aligned(x)))
-  #endif
+    #ifdef _MSC_VER
+        #define HALIDE_ATTRIBUTE_ALIGN(x) __declspec(align(x))
+    #else
+        #define HALIDE_ATTRIBUTE_ALIGN(x) __attribute__((aligned(x)))
+    #endif
 #endif
 #ifndef BUFFER_T_DEFINED
 #define BUFFER_T_DEFINED
