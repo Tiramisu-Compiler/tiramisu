@@ -258,7 +258,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, coli::expr *exp, st
 	}
 	else if (exp->get_expr_type() == coli::type::expr::op)
 	{
-			coli::expr *expr0, *expr1, *expr2;
+			coli::expr *expr0 = NULL, *expr1 = NULL, *expr2 = NULL;
 			expr0 = exp->get_operator(0);
 
 			if (exp->get_n_arg() > 1)
@@ -978,7 +978,8 @@ void function::gen_halide_obj(std::string obj_file_name,
 		fct_arguments.push_back(buffer_arg);
 	}
 
-	m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, this->get_halide_stmt(), Halide::Internal::LoweredFunc::External));
+	Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt());
+	m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered, Halide::Internal::LoweredFunc::External));
 
 	Halide::Outputs output = Halide::Outputs().object(obj_file_name);
 	m.compile(output);

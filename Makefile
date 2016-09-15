@@ -1,8 +1,8 @@
 # Set the following PATHs before compiling COLi
-ISL_INCLUDE_DIRECTORY=/usr/local/include
-ISL_LIB_DIRECTORY=/usr/local/lib
-HALIDE_SOURCE_DIRECTORY=/Users/psuriana/Halide
-HALIDE_LIB_DIRECTORY=/Users/psuriana/Halide/lib
+ISL_INCLUDE_DIRECTORY=
+ISL_LIB_DIRECTORY=
+HALIDE_SOURCE_DIRECTORY=
+HALIDE_LIB_DIRECTORY=
 
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
@@ -11,11 +11,11 @@ HALIDE_LIB_DIRECTORY=/Users/psuriana/Halide/lib
 #HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
 
 CXX=g++
-CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare
+CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
 HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
-OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o
+OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02
 
