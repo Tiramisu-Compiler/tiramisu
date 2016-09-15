@@ -19,7 +19,9 @@ void init_1D_buffer(buffer_t *buf, int N, uint8_t val)
     int i;
 
     for (i=0; i<N; i++)
+    {
         buf->host[i] = val;
+    }
 }
 
 void print_2D_buffer(buffer_t *buf, int N, int M)
@@ -42,8 +44,12 @@ void init_2D_buffer_val(buffer_t *buf, int N, int M, uint8_t val)
     int i, j;
 
     for (i=0; i<N; i++)
+    {
         for (j=0; j<M; j++)
+        {
             buf->host[i*M+j] = val;
+        }
+    }
 }
 
 /**
@@ -51,16 +57,24 @@ void init_2D_buffer_val(buffer_t *buf, int N, int M, uint8_t val)
  * val2, ...}.
  */
 void init_2D_buffer_interleaving(buffer_t *buf, int N, int M,
-								uint8_t val1, uint8_t val2)
+								 uint8_t val1, uint8_t val2)
 {
 	int i, j;
 
 	for (i=0; i<N; i++)
+    {
 		for (j=0; j<M; j++)
+        {
 			if (j%2 == 0)
+            {
 				buf->host[i*M+j] = val1;
+            }
 			else
+            {
 				buf->host[i*M+j] = val2;
+            }
+        }
+    }
 }
 
 void copy_2D_buffer(uint8_t* buf, int N, int M, uint8_t* array)
@@ -68,8 +82,12 @@ void copy_2D_buffer(uint8_t* buf, int N, int M, uint8_t* array)
     int i, j;
 
     for (i=0; i<N; i++)
+    {
         for (j=0; j<M; j++)
+        {
             buf[i*M+j] = array[i*M+j];
+        }
+    }
 }
 
 buffer_t allocate_2D_buffer(int NN, int MM)
@@ -90,9 +108,15 @@ buffer_t allocate_2D_buffer(int NN, int MM)
 void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int N, int M)
 {
 	for (int i=0; i<N; i++)
+    {
 		for (int j=0; j<M; j++)
+        {
 			if (array1[i*M+j] != array2[i*M+j])
+            {
 				coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+            }
+        }
+    }
 
 	coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
 }

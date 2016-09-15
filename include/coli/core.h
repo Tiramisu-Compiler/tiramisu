@@ -134,7 +134,6 @@ private:
       */
     std::map<std::string, int> vector_dimensions;
 
-public:
     /**
       * Body of the function (a vector of computations).
       * The order of the computations in the vector do not have any
@@ -173,15 +172,21 @@ public:
     /**
       * Get the arguments of the function.
       */
-    std::vector<coli::buffer *> get_arguments()
+    // @{
+    const std::vector<coli::buffer *> &get_arguments() const
     {
         return function_arguments;
     }
+    std::vector<coli::buffer *> &get_arguments()
+    {
+        return function_arguments;
+    }
+    // @}
 
     /**
       * Get the name of the function.
       */
-    std::string get_name()
+    const std::string &get_name() const
     {
         return name;
     }
@@ -189,10 +194,30 @@ public:
     /**
       * Return a vector representing the invariants of the function.
       */
-    std::vector<coli::invariant> get_invariants()
+    // @{
+    const std::vector<coli::invariant> &get_invariants() const
     {
         return invariants;
     }
+    std::vector<coli::invariant> &get_invariants()
+    {
+        return invariants;
+    }
+    // @}
+
+    /**
+      * Return list of the buffers.
+      */
+    // @{
+    const std::map<std::string, coli::buffer *> &get_buffers_list() const
+    {
+        return buffers_list;
+    }
+    std::map<std::string, coli::buffer *> &get_buffers_list()
+    {
+        return buffers_list;
+    }
+    // @}
 
     /**
       * Return the Halide statement that represents the whole
@@ -209,10 +234,16 @@ public:
     /**
       * Return the computations of the function.
       */
-    std::vector<computation *> get_computations()
+    // @{
+    const std::vector<computation *> get_computations() const
     {
         return body;
     }
+    std::vector<computation *> &get_computations()
+    {
+        return body;
+    }
+    // @}
 
     /**
       * Add an invariant to the function.
@@ -274,7 +305,7 @@ public:
       * class are printed.  This is useful to find potential initialization
       * problems.
       */
-    void dump(bool exhaustive);
+    void dump(bool exhaustive) const;
 
     // ----------------------------------
     // ----------------------------------
@@ -291,7 +322,7 @@ public:
       * Return true if the computation \p comp should be parallelized
       * at the loop level \p lev.
       */
-    bool should_parallelize(std::string comp, int lev)
+    bool should_parallelize(std::string comp, int lev) const
     {
         assert(comp.length() > 0);
         assert(lev >= 0);
@@ -308,7 +339,7 @@ public:
       * Return true if the computation \p comp should be vectorized
       * at the loop level \p lev.
       */
-    bool should_vectorize(std::string comp, int lev)
+    bool should_vectorize(std::string comp, int lev) const
     {
         assert(comp.length() > 0);
         assert(lev >= 0);
@@ -331,7 +362,7 @@ public:
 
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
-      * be parallelized.
+      * be vectorized.
       * The outermost loop level (which corresponds to the leftmost
       * dimension in the iteration space) is 0.
       */
@@ -341,18 +372,18 @@ public:
       * Return the union of all the iteration domains
       * of the computations of the function.
       */
-    isl_union_set *get_iteration_domain();
+    isl_union_set *get_iteration_domain() const;
 
     /**
       * Return the union of all the schedules
       * of the computations of the function.
       */
-    isl_union_map *get_schedule();
+    isl_union_map *get_schedule() const;
 
     /**
       * Return the isl context associated with this function.
       */
-    isl_ctx *get_ctx()
+    isl_ctx *get_ctx() const
     {
         return ctx;
     }
@@ -360,7 +391,7 @@ public:
     /**
       * Return the isl ast associated with this function.
       */
-    isl_ast_node *get_isl_ast()
+    isl_ast_node *get_isl_ast() const
     {
         assert((ast != NULL) && ("You should generate an ISL ast first (gen_isl_ast())."));
 
@@ -391,7 +422,7 @@ public:
       */
     // @{
     void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
-            Halide::Target::Arch arch, int bits);
+                        Halide::Target::Arch arch, int bits);
 
     void gen_halide_obj(std::string obj_file_name) {
         Halide::Target target = Halide::get_host_target();
@@ -424,14 +455,6 @@ public:
       * specified.
       */
     void gen_time_processor_domain();
-
-    /**
-      * Set the isl context associated with this class.
-      */
-    void set_ctx(isl_ctx *ctx)
-    {
-        this->ctx = ctx;
-    }
 
     /**
       * Dump (on stdout) the time processor domain of the function.
@@ -517,8 +540,8 @@ public:
       * function cannot be used outside the function.
       */
     buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-        coli::type::primitive type, uint8_t *data,
-        coli::type::argument argt, coli::function *fct):
+           coli::type::primitive type, uint8_t *data,
+           coli::type::argument argt, coli::function *fct):
         name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
         data(data), fct(fct)
     {
@@ -527,17 +550,15 @@ public:
         assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
         assert(fct != NULL && "Input function is NULL");
 
-
-
         argtype = argt;
 
-        fct->buffers_list.insert(std::pair<std::string, coli::buffer *>(name, this));
+        fct->get_buffers_list().insert(std::pair<std::string, coli::buffer *>(name, this));
     };
 
     /**
       * Return the name of the buffer.
       */
-    std::string get_name()
+    const std::string &get_name() const
     {
         return name;
     }
@@ -593,7 +614,7 @@ public:
       * class are printed.  This is useful to find potential initialization
       * problems.
       */
-    void dump(bool exhaustive);
+    void dump(bool exhaustive) const;
 };
 
 
@@ -649,8 +670,6 @@ private:
         this->set_identity_schedule();
     }
 
-public:
-
     /**
      * If set to true, the computation is scheduled, otherwise it is
      * not scheduled and is only used as a binding to input arrays.
@@ -689,6 +708,7 @@ public:
       */
     std::vector<isl_ast_expr *> index_expr;
 
+public:
     /**
       * A number identifying the root dimension level.
       * THis should be used with computation::after().
@@ -732,6 +752,14 @@ public:
     }
 
     /**
+      * Should we schedule this computation?
+      */
+    bool should_schedule_this_computation() const
+    {
+        return schedule_this_computation;
+    }
+
+    /**
       * Return the access function of the computation.
       */
     isl_map *get_access()
@@ -743,7 +771,7 @@ public:
      * Return the coli expression associated with the computation
      * (RHS).
      */
-    coli::expr *get_expr()
+    const coli::expr *get_expr() const
     {
         return expression;
     }
@@ -757,11 +785,26 @@ public:
     }
 
     /**
+      * Return vector of isl_ast_expr representing the indices of the array where
+      * the computation will be stored.
+      */
+    // @{
+    const std::vector<isl_ast_expr *> &get_index_expr() const
+    {
+        return index_expr;
+    }
+    std::vector<isl_ast_expr *> &get_index_expr()
+    {
+        return index_expr;
+    }
+    // @}
+
+    /**
       * Return the iteration domain of the computation.
       * In this representation, the order of execution of computations
       * is not specified, the computations are also not mapped to memory.
       */
-    isl_set *get_iteration_domain()
+    isl_set *get_iteration_domain() const
     {
         // Every computation should have an iteration space.
         assert(iteration_domain != NULL);
@@ -775,7 +818,7 @@ public:
       * processor where the computation will be executed are both
       * specified.
       */
-    isl_set *get_time_processor_domain()
+    isl_set *get_time_processor_domain() const
     {
         return time_processor_domain;
     }
@@ -791,7 +834,7 @@ public:
     /**
       * Return the name of the computation.
       */
-    std::string get_name()
+    const std::string &get_name() const
     {
         return name;
     }
@@ -802,6 +845,14 @@ public:
     isl_ctx *get_ctx()
     {
         return ctx;
+    }
+
+    /**
+      * Return the Halide statement that assigns the computation to a buffer location.
+      */
+    Halide::Internal::Stmt get_halide_stmt()
+    {
+        return stmt;
     }
 
     /**
@@ -830,8 +881,8 @@ public:
         assert(this->get_schedule() != NULL);
 
         time_processor_domain = isl_set_apply(
-                isl_set_copy(this->get_iteration_domain()),
-                isl_map_copy(this->get_schedule()));
+            isl_set_copy(this->get_iteration_domain()),
+            isl_map_copy(this->get_schedule()));
     }
 
     /**
@@ -861,12 +912,12 @@ public:
 
         isl_space *sp = isl_set_get_space(this->get_iteration_domain());
         isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
-        sched = isl_map_intersect_domain(sched,
-                isl_set_copy(this->get_iteration_domain()));
+        sched = isl_map_intersect_domain(
+            sched, isl_set_copy(this->get_iteration_domain()));
         sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
         sched = isl_map_coalesce(sched);
         DEBUG(3, coli::str_dump("The following identity schedule is set: ",
-                    isl_map_to_str(sched)));
+                                isl_map_to_str(sched)));
         this->set_schedule(sched);
 
         DEBUG_INDENT(-4);
@@ -920,13 +971,12 @@ public:
 
         isl_space *sp = isl_set_get_space(this->get_iteration_domain());
         isl_map *map = isl_map_identity(isl_space_map_from_set(sp));
-        map = isl_map_intersect_domain(map,
-                isl_set_copy(this->get_iteration_domain()));
-        map = isl_map_set_tuple_name(map, isl_dim_out,
-                        buff->get_name().c_str());
+        map = isl_map_intersect_domain(
+            map, isl_set_copy(this->get_iteration_domain()));
+        map = isl_map_set_tuple_name(map, isl_dim_out, buff->get_name().c_str());
         map = isl_map_coalesce(map);
         DEBUG(2, coli::str_dump("\nBinding.  The following access function is set: ",
-                    isl_map_to_str(map)));
+                                isl_map_to_str(map)));
         this->set_access(isl_map_to_str(map));
     }
 
@@ -952,7 +1002,7 @@ public:
       * computation class).
       * This is mainly useful for debugging.
       */
-    void dump();
+    void dump() const;
 };
 
 
@@ -979,7 +1029,7 @@ public:
       * \p func is the function in which the invariant is defined.
       */
     invariant(std::string param_name, coli::expr *param_expr,
-            coli::function *func): expr(param_expr)
+              coli::function *func): expr(param_expr)
     {
         assert((param_name.length() > 0) && "Parameter name empty");
         assert((func != NULL) && "Function undefined");
@@ -992,7 +1042,7 @@ public:
       * Return the name of the invariant. i.e. the name of the variable
       * that is used to store the value of the value of the invariant.
       */
-    std::string get_name()
+    const std::string &get_name() const
     {
         return name;
     }
@@ -1000,7 +1050,7 @@ public:
     /**
       * Return the expression that represents the value of the invariant.
       */
-    coli::expr *get_expr()
+    const coli::expr *get_expr() const
     {
         return expr;
     }
@@ -1013,7 +1063,7 @@ public:
       * class are printed.  This is useful to find potential initialization
       * problems.
       */
-    void dump(bool exhaustive);
+    void dump(bool exhaustive) const;
 };
 
 // Halide IR specific functions

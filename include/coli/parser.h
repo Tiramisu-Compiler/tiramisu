@@ -60,7 +60,7 @@ public:
     /**
       * Return a string that represents the parsed string.
       */
-    std::string get_str()
+    std::string get_str() const
     {
         std::string result;
 
@@ -88,9 +88,9 @@ public:
     {
         std::vector<std::string> new_dimensions;
 
-        for (auto dim:dimensions)
+        for (const auto &dim : dimensions)
         {
-            if (dim.compare(in) == 0)
+            if (dim == in)
             {
                 new_dimensions.push_back(out1);
                 new_dimensions.push_back(out2);
@@ -126,11 +126,13 @@ public:
 
     void add_constraints(std::vector<std::string> vec)
     {
-        for (auto cst:vec)
+        for (const auto &cst : vec)
+        {
             constraints.push_back(cst);
+        }
     }
 
-    std::string get_str()
+    std::string get_str() const
     {
         std::string result;
 
@@ -176,12 +178,12 @@ public:
         assert(domain_space_begin != std::string::npos);
         assert(domain_space_end != std::string::npos);
 
-        domain_name = map_str.substr(map_begin,
-                             domain_space_begin_pre_bracket-map_begin+1);
+        domain_name = map_str.substr(
+            map_begin, domain_space_begin_pre_bracket-map_begin+1);
 
         std::string domain_space_str =
             map_str.substr(domain_space_begin,
-                       domain_space_end-domain_space_begin+1);
+                           domain_space_end-domain_space_begin+1);
 
         domain.parse(domain_space_str);
 
@@ -197,8 +199,9 @@ public:
         assert(range_space_begin != std::string::npos);
         assert(range_space_end != std::string::npos);
 
-        range_name = map_str.substr(first_char_after_arrow,
-                             range_space_begin_pre_bracket-first_char_after_arrow+1);
+        range_name = map_str.substr(
+            first_char_after_arrow,
+            range_space_begin_pre_bracket-first_char_after_arrow+1);
         std::string range_space_str = map_str.substr(range_space_begin,
                              range_space_end-range_space_begin+1);
         range.parse(range_space_str);
@@ -208,8 +211,8 @@ public:
 
         if (column_pos != std::string::npos)
         {
-            std::string constraints_str = map_str.substr(column_pos,
-                                     map_end-column_pos+1);
+            std::string constraints_str = map_str.substr(
+                column_pos, map_end-column_pos+1);
             constraints.parse(constraints_str);
         }
 
@@ -222,8 +225,7 @@ public:
         std::string result;
 
         result = "{" + domain_name + "[" + domain.get_str() + "] ->" +
-              range_name + "[" +
-              range.get_str() + "]";
+                 range_name + "[" + range.get_str() + "]";
 
         if (constraints.empty() == false)
             result = result + " : " + constraints.get_str();

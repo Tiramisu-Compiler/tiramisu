@@ -28,11 +28,11 @@ int id_counter = 0;
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation).  Store the access in computation->access.
  */
-isl_ast_node *stmt_code_generator(isl_ast_node *node,
-        isl_ast_build *build, void *user);
+isl_ast_node *stmt_code_generator(
+    isl_ast_node *node, isl_ast_build *build, void *user);
 
-isl_ast_node *for_code_generator_after_for(isl_ast_node *node,
-        isl_ast_build *build, void *user);
+isl_ast_node *for_code_generator_after_for(
+    isl_ast_node *node, isl_ast_build *build, void *user);
 
 
 /**
@@ -107,10 +107,12 @@ void coli::parser::space::parse(std::string space)
 
     // Check if the vector has constraints
     for (int i=0; i<vector.size(); i++)
+    {
         if (vector[i].find("=") != std::string::npos)
         {
             vector[i] = vector[i].erase(0, vector[i].find("=")+1);
         }
+    }
 
     this->dimensions = vector;
 }
@@ -173,9 +175,8 @@ void function::dump_time_processor_domain()
         coli::str_dump("\n\nTime-processor domain:\n");
 
         coli::str_dump("Function " + this->get_name() + ":\n");
-        for (auto comp: this->get_computations())
-            isl_set_dump(
-                comp->get_time_processor_domain());
+        for (const auto &comp : this->get_computations())
+            isl_set_dump(comp->get_time_processor_domain());
 
         coli::str_dump("\n\n");
     }
@@ -183,8 +184,10 @@ void function::dump_time_processor_domain()
 
 void function::gen_time_processor_domain()
 {
-    for (auto comp: this->get_computations())
+    for (auto &comp: this->get_computations())
+    {
         comp->gen_time_processor_domain();
+    }
 }
 
 void computation::dump_schedule()
@@ -195,7 +198,7 @@ void computation::dump_schedule()
     }
 }
 
-void computation::dump()
+void computation::dump() const
 {
     if (ENABLE_DEBUG)
     {
@@ -229,8 +232,7 @@ void computation::set_schedule(std::string map_str)
     assert(map_str.length() > 0);
     assert(this->ctx != NULL);
 
-    isl_map *map = isl_map_read_from_str(this->ctx,
-            map_str.c_str());
+    isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
 
     assert(map != NULL);
 
@@ -242,8 +244,7 @@ void computation::set_schedule(std::string map_str)
   * A constraint that indicates that the dim is equal to a constant
   * is added.
   */
-isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map,
-        int dim_pos, int constant)
+isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant)
 {
     assert(map != NULL);
     assert(dim_pos+1 >= 0);
@@ -255,8 +256,7 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map,
     isl_local_space *lsp =
         isl_local_space_from_space(isl_space_copy(sp));
     isl_constraint *cst = isl_constraint_alloc_equality(lsp);
-    cst = isl_constraint_set_coefficient_si(cst,
-            isl_dim_out, dim_pos+1, 1);
+    cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim_pos+1, 1);
     cst = isl_constraint_set_constant_si(cst, (-1)*constant);
     map = isl_map_add_constraint(map, cst);
 
@@ -301,8 +301,7 @@ void computation::tile(int inDim0, int inDim1,
     assert(inDim0 >= 0);
     assert(inDim1 >= 0);
     assert(this->get_iteration_domain() != NULL);
-    assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
-                            isl_dim_out));
+    assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -322,10 +321,10 @@ void computation::interchange(int inDim0, int inDim1)
 {
     assert(inDim0 >= 0);
     assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
-                            isl_dim_out));
+                                  isl_dim_out));
     assert(inDim1 >= 0);
     assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule),
-                                isl_dim_out));
+                                  isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -335,10 +334,8 @@ void computation::interchange(int inDim0, int inDim1)
     DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
 
     int n_dims = isl_map_dim(schedule, isl_dim_out);
-    std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out,
-            inDim0);
-    std::string inDim1_str = isl_map_get_dim_name(schedule, isl_dim_out,
-            inDim1);
+    std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out, inDim0);
+    std::string inDim1_str = isl_map_get_dim_name(schedule, isl_dim_out, inDim1);
 
     std::vector<isl_id *> dimensions;
 
@@ -358,21 +355,18 @@ void computation::interchange(int inDim0, int inDim1)
         if ((i != inDim0) && (i != inDim1))
         {
             map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
-            dimensions.push_back(isl_map_get_dim_id(schedule,
-                        isl_dim_out, i));
+            dimensions.push_back(isl_map_get_dim_id(schedule, isl_dim_out, i));
         }
         else if (i == inDim0)
         {
             map = map + inDim1_str;
-            isl_id *id1 = isl_id_alloc(this->get_ctx(),
-                    inDim1_str.c_str(), NULL);
+            isl_id *id1 = isl_id_alloc(this->get_ctx(), inDim1_str.c_str(), NULL);
             dimensions.push_back(id1);
         }
         else if (i == inDim1)
         {
             map = map + inDim0_str;
-            isl_id *id1 = isl_id_alloc(this->get_ctx(),
-                    inDim0_str.c_str(), NULL);
+            isl_id *id1 = isl_id_alloc(this->get_ctx(), inDim0_str.c_str(), NULL);
             dimensions.push_back(id1);
         }
 
@@ -385,11 +379,11 @@ void computation::interchange(int inDim0, int inDim1)
     DEBUG(3, coli::str_dump("Transformation map = ", map.c_str()));
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
-    transformation_map = isl_map_set_tuple_id(transformation_map,
-            isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    transformation_map = isl_map_set_tuple_id(
+        transformation_map, isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
     isl_id *id_range = isl_id_alloc(this->get_ctx(), "", NULL);
-    transformation_map = isl_map_set_tuple_id(transformation_map,
-            isl_dim_out, id_range);
+    transformation_map = isl_map_set_tuple_id(
+        transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
     DEBUG(3, coli::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
@@ -408,8 +402,7 @@ void computation::split(int inDim0, int sizeX)
 {
     assert(this->get_schedule() != NULL);
     assert(inDim0 >= 0);
-    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()),
-                    isl_dim_out));
+    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
     assert(sizeX >= 1);
 
     DEBUG_FCT_NAME(3);
@@ -444,15 +437,15 @@ void computation::split(int inDim0, int sizeX)
         {
             map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
             dimensions.push_back(isl_map_get_dim_id(schedule,
-                        isl_dim_out, i));
+                                                    isl_dim_out, i));
         }
         else
         {
             map = map + outDim0_str + "," + outDim1_str;
             isl_id *id0 = isl_id_alloc(this->get_ctx(),
-                    outDim0_str.c_str(), NULL);
+                                       outDim0_str.c_str(), NULL);
             isl_id *id1 = isl_id_alloc(this->get_ctx(),
-                    outDim1_str.c_str(), NULL);
+                                       outDim1_str.c_str(), NULL);
             dimensions.push_back(id0);
             dimensions.push_back(id1);
         }
@@ -470,14 +463,14 @@ void computation::split(int inDim0, int sizeX)
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 
     for (int i=0; i< dimensions.size(); i++)
-        transformation_map = isl_map_set_dim_id(transformation_map,
-                isl_dim_out, i, isl_id_copy(dimensions[i]));
+        transformation_map = isl_map_set_dim_id(
+            transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
 
-    transformation_map = isl_map_set_tuple_id(transformation_map,
-            isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    transformation_map = isl_map_set_tuple_id(
+        transformation_map, isl_dim_in,
+        isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
     isl_id *id_range = isl_id_alloc(this->get_ctx(), " ", NULL);
-    transformation_map = isl_map_set_tuple_id(transformation_map,
-            isl_dim_out, id_range);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
     DEBUG(3, coli::str_dump("Schedule after splitting: ", isl_map_to_str(schedule)));
@@ -522,8 +515,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
         isl_local_space *lsp =
             isl_local_space_from_space(isl_space_copy(sp));
         isl_constraint *cst = isl_constraint_alloc_equality(lsp);
-        cst = isl_constraint_set_coefficient_si(cst,
-                isl_dim_out, i, 1);
+        cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, i, 1);
         map = isl_map_add_constraint(map, cst);
     }
 
@@ -541,7 +533,7 @@ void coli::function::align_schedules()
 
     int max_dim = this->get_max_schedules_range_dim();
 
-    for (auto &comp: this->get_computations())
+    for (auto &comp : this->get_computations())
     {
         isl_map *sched = comp->get_schedule();
         assert((sched != NULL) && "Schedules should be set before calling align_schedules");
@@ -561,10 +553,15 @@ void coli::function::add_computation(computation *cpt)
 {
     assert(cpt != NULL);
 
+    assert(std::find_if(this->body.begin(), this->body.end(),
+                        [&cpt](const computation *c) { return (c->get_name() == cpt->get_name()); }) ==
+           this->body.end() &&
+           "Found duplicate of cpt.");
+
     this->body.push_back(cpt);
 }
 
-void coli::invariant::dump(bool exhaustive)
+void coli::invariant::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
@@ -576,45 +573,56 @@ void coli::invariant::dump(bool exhaustive)
     }
 }
 
-void coli::function::dump(bool exhaustive)
+void coli::function::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
         std::cout << "\n\nFunction \"" << this->name << "\"" << std::endl;
 
         std::cout << "Function arguments (coli buffers):" << std::endl;
-        for (auto buf : this->function_arguments)
+        for (const auto &buf : this->function_arguments)
+        {
             buf->dump(exhaustive);
+        }
         std::cout << std::endl;
 
         std::cout << "Function invariants:" << std::endl;
-        for (auto inv : this->invariants)
+        for (const auto &inv : this->invariants)
+        {
             inv.dump(exhaustive);
+        }
         std::cout << std::endl;
 
         std::cout << "Parallel dimensions: ";
-        for (auto par_dim: parallel_dimensions)
+        for (const auto &par_dim : parallel_dimensions)
+        {
             std::cout << par_dim.first << "(" << par_dim.second << ") ";
+        }
         std::cout << std::endl;
 
         std::cout << "Vector dimensions: ";
-        for (auto vec_dim: vector_dimensions)
+        for (const auto &vec_dim : vector_dimensions)
+        {
             std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+        }
         std::cout<< std::endl << std::endl;
 
         std::cout << "Body " << std::endl;
-        for (auto cpt : this->body)
-               cpt->dump();
+        for (const auto &cpt : this->body)
+            cpt->dump();
 
         std::cout<< std::endl;
 
         if (this->halide_stmt != NULL)
+        {
             std::cout << "Halide stmt " << *(this->halide_stmt) << std::endl;
+        }
 
         std::cout << "Buffers" << std::endl;
-        for (auto buf : this->buffers_list)
-               std::cout << "Buffer name: " << buf.second->get_name()
-                << std::endl;
+        for (const auto &buf : this->buffers_list)
+        {
+            std::cout << "Buffer name: " << buf.second->get_name() << std::endl;
+        }
 
         std::cout << std::endl << std::endl;
     }
@@ -625,8 +633,8 @@ void coli::function::dump_iteration_domain()
     if (ENABLE_DEBUG)
     {
         coli::str_dump("\nIteration domain:\n");
-        for (auto cpt : this->body)
-               cpt->dump_iteration_domain();
+        for (const auto &cpt : this->body)
+            cpt->dump_iteration_domain();
         coli::str_dump("\n");
     }
 }
@@ -637,18 +645,24 @@ void coli::function::dump_schedule()
     {
         coli::str_dump("\nSchedule:\n");
 
-        for (auto cpt : this->body)
-               cpt->dump_schedule();
+        for (const auto &cpt : this->body)
+        {
+            cpt->dump_schedule();
+        }
 
         std::cout << "Parallel dimensions: ";
-        for (auto par_dim: parallel_dimensions)
+        for (const auto &par_dim : parallel_dimensions)
+        {
             std::cout << par_dim.first << "(" << par_dim.second << ") ";
+        }
 
         std::cout << std::endl;
 
         std::cout << "Vector dimensions: ";
-        for (auto vec_dim: vector_dimensions)
+        for (const auto &vec_dim : vector_dimensions)
+        {
             std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+        }
 
         std::cout<< std::endl << std::endl << std::endl;
     }
@@ -662,9 +676,13 @@ Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type)
         coli::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
 
     if (type == coli::type::argument::input)
+    {
         res = Halide::Argument::InputBuffer;
+    }
     else
+    {
         res = Halide::Argument::OutputBuffer;
+    }
 
     return res;
 }
@@ -674,24 +692,20 @@ void coli::function::set_arguments(std::vector<coli::buffer *> buffer_vec)
     this->function_arguments = buffer_vec;
 }
 
-void coli::function::add_vector_dimension(std::string stmt_name,
-        int vec_dim)
+void coli::function::add_vector_dimension(std::string stmt_name, int vec_dim)
 {
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
 
-    this->vector_dimensions.insert(
-        std::pair<std::string,int>(stmt_name, vec_dim));
+    this->vector_dimensions.insert(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::function::add_parallel_dimension(std::string stmt_name,
-        int vec_dim)
+void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
 {
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
 
-    this->parallel_dimensions.insert(
-        std::pair<std::string,int>(stmt_name, vec_dim));
+    this->parallel_dimensions.insert(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
 isl_union_set * coli::function::get_time_processor_domain()
@@ -704,7 +718,9 @@ isl_union_set * coli::function::get_time_processor_domain()
         space = isl_set_get_space(this->body[0]->get_iteration_domain());
     }
     else
+    {
         return NULL;
+    }
 
     assert(space != NULL);
     result = isl_union_set_empty(isl_space_copy(space));
@@ -719,7 +735,7 @@ isl_union_set * coli::function::get_time_processor_domain()
 }
 
 
-isl_union_set * coli::function::get_iteration_domain()
+isl_union_set *coli::function::get_iteration_domain() const
 {
     isl_union_set *result = NULL;
     isl_space *space = NULL;
@@ -729,14 +745,16 @@ isl_union_set * coli::function::get_iteration_domain()
         space = isl_set_get_space(this->body[0]->get_iteration_domain());
     }
     else
+    {
         return NULL;
+    }
 
     assert(space != NULL);
     result = isl_union_set_empty(isl_space_copy(space));
 
     for (const auto &cpt : this->body)
     {
-        if (cpt->schedule_this_computation == true)
+        if (cpt->should_schedule_this_computation())
         {
             isl_set *cpt_iter_space = isl_set_copy(cpt->get_iteration_domain());
             result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
@@ -746,24 +764,26 @@ isl_union_set * coli::function::get_iteration_domain()
     return result;
 }
 
-isl_union_map * coli::function::get_schedule()
+isl_union_map *coli::function::get_schedule() const
 {
     isl_union_map *result = NULL;
     isl_space *space = NULL;
 
     if (this->body.empty() == false)
     {
-        space = isl_map_get_space(this->body[0]->schedule);
+        space = isl_map_get_space(this->body[0]->get_schedule());
     }
     else
+    {
         return NULL;
+    }
 
     assert(space != NULL);
     result = isl_union_map_empty(isl_space_copy(space));
 
     for (const auto &cpt : this->body)
     {
-        isl_map *m = isl_map_copy(cpt->schedule);
+        isl_map *m = isl_map_copy(cpt->get_schedule());
         result = isl_union_map_union(isl_union_map_from_map(m), result);
     }
 
@@ -780,55 +800,38 @@ std::string coli_type_op_to_str(coli::type::op type)
     {
         case coli::type::op::logical_and:
             return "and";
-            break;
         case coli::type::op::logical_or:
             return "or";
-            break;
         case coli::type::op::max:
             return "max";
-            break;
         case coli::type::op::min:
             return "min";
-            break;
         case coli::type::op::minus:
             return "mins";
-            break;
         case coli::type::op::add:
             return "add";
-            break;
         case coli::type::op::sub:
             return "sub";
-            break;
         case coli::type::op::mul:
             return "mul";
-            break;
         case coli::type::op::div:
             return "div";
-            break;
         case coli::type::op::mod:
             return "mod";
-            break;
         case coli::type::op::cond:
             return "cond";
-            break;
         case coli::type::op::eq:
             return "eq";
-            break;
         case coli::type::op::le:
             return "le";
-            break;
         case coli::type::op::lt:
             return "lt";
-            break;
         case coli::type::op::ge:
             return "ge";
-            break;
         case coli::type::op::call:
             return "call";
-            break;
         case coli::type::op::access:
             return "access";
-            break;
         default:
             coli::error("coli op not supported.", true);
             return "";
@@ -841,13 +844,10 @@ std::string coli_type_expr_to_str(coli::type::expr type)
     {
         case coli::type::expr::id:
             return "id";
-            break;
         case coli::type::expr::val:
             return "val";
-            break;
         case coli::type::expr::op:
             return "op";
-            break;
         default:
             coli::error("Coli type not supported.", true);
             return "";
@@ -860,13 +860,10 @@ std::string coli_type_argument_to_str(coli::type::argument type)
     {
         case coli::type::argument::input:
             return "input";
-            break;
         case coli::type::argument::output:
             return "output";
-            break;
         case coli::type::argument::temporary:
             return "temporary";
-            break;
         default:
             coli::error("Coli type not supported.", true);
             return "";
@@ -879,22 +876,16 @@ std::string coli_type_primitive_to_str(coli::type::primitive type)
     {
         case coli::type::primitive::uint8:
             return "uint8";
-            break;
         case coli::type::primitive::int8:
             return "int8";
-            break;
         case coli::type::primitive::uint32:
             return "uin32";
-            break;
         case coli::type::primitive::int32:
             return "int32";
-            break;
         case coli::type::primitive::uint64:
             return "uint64";
-            break;
         case coli::type::primitive::int64:
             return "int64";
-            break;
         default:
             coli::error("Coli type not supported.", true);
             return "";
@@ -906,34 +897,35 @@ std::string is_null_to_str(void *ptr)
     return ((ptr != NULL) ? "Not NULL" : "NULL");
 }
 
-void coli::buffer::dump(bool exhaustive)
+void coli::buffer::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
         std::cout << "Buffer \"" << this->name
-            << "\", Number of dimensions: " << this->nb_dims
-            << std::endl;
+                  << "\", Number of dimensions: " << this->nb_dims
+                  << std::endl;
 
         std::cout << "Dimension sizes: ";
         for (auto size: dim_sizes)
+        {
             std::cout << size << ", ";
+        }
 
         std::cout << std::endl;
 
-        std::cout << "Elements type: " <<
-            coli_type_primitive_to_str(this->type) << std::endl;
+        std::cout << "Elements type: "
+                  << coli_type_primitive_to_str(this->type) << std::endl;
 
-        std::cout << "Data field: " <<
-            is_null_to_str(this->data) << std::endl;
+        std::cout << "Data field: "
+                  << is_null_to_str(this->data) << std::endl;
 
-        std::cout << "Function field: " <<
-            is_null_to_str(this->fct) << std::endl;
+        std::cout << "Function field: "
+                  << is_null_to_str(this->fct) << std::endl;
 
-        std::cout << "Argument type: " <<
-            coli_type_argument_to_str(this->argtype) << std::endl;
+        std::cout << "Argument type: "
+                  << coli_type_argument_to_str(this->argtype) << std::endl;
 
         std::cout<< std::endl << std::endl;
-
     }
 }
 
@@ -964,7 +956,6 @@ Halide::Type coli_type_to_halide_type(coli::type::primitive type)
         default:
             coli::error("Coli type cannot be translated to Halide type.", true);
     }
-
     return t;
 }
 

@@ -1,8 +1,8 @@
 # Set the following PATHs before compiling COLi
-ISL_INCLUDE_DIRECTORY=
-ISL_LIB_DIRECTORY=
-HALIDE_SOURCE_DIRECTORY=
-HALIDE_LIB_DIRECTORY=
+ISL_INCLUDE_DIRECTORY=/usr/local/include
+ISL_LIB_DIRECTORY=/usr/local/lib
+HALIDE_SOURCE_DIRECTORY=/Users/psuriana/halide
+HALIDE_LIB_DIRECTORY=/Users/psuriana/halide/lib
 
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
