@@ -63,6 +63,7 @@ namespace type {
         output,
         temporary
     };
-} }
+}
+}
 
 #endif

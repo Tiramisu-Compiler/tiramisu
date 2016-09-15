@@ -79,7 +79,7 @@ public:
         constraints.push_back(cst);
     }
 
-    std::vector<std::string> get_constraints()
+    const std::vector<std::string> &get_constraints() const
     {
         return constraints;
     }
@@ -103,7 +103,7 @@ public:
     }
 
     void parse(std::string space);
-    bool empty() {return dimensions.empty();};
+    bool empty() const {return dimensions.empty();};
 };
 
 
@@ -146,7 +146,7 @@ public:
         return result;
     };
 
-    bool empty() {return constraints.empty();};
+    bool empty() const {return constraints.empty();};
 };
 
 
@@ -202,8 +202,8 @@ public:
         range_name = map_str.substr(
             first_char_after_arrow,
             range_space_begin_pre_bracket-first_char_after_arrow+1);
-        std::string range_space_str = map_str.substr(range_space_begin,
-                             range_space_end-range_space_begin+1);
+        std::string range_space_str = map_str.substr(
+            range_space_begin, range_space_end-range_space_begin+1);
         range.parse(range_space_str);
         constraints.add_constraints(range.get_constraints());
 
@@ -220,7 +220,7 @@ public:
         DEBUG(2, coli::str_dump("The parsed map  : " + this->get_str() + "\n"));
     };
 
-    std::string get_str()
+    std::string get_str() const
     {
         std::string result;
 
@@ -235,7 +235,7 @@ public:
         return result;
     };
 
-    isl_map *get_isl_map(isl_ctx *ctx)
+    isl_map *get_isl_map(isl_ctx *ctx) const
     {
         return isl_map_read_from_str(ctx, this->get_str().c_str());
     };
@@ -243,6 +243,5 @@ public:
 
 }
 }
-
 
 #endif /* INCLUDE_COLI_PARSER_H_ */

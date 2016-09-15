@@ -22,16 +22,20 @@ namespace coli
 Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type);
 Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer, isl_ast_expr *index_expr);
 
-computation *function::get_computation_by_name(std::string name)
+computation *function::get_computation_by_name(std::string name) const
 {
 	coli::computation *res_comp = NULL;
 
 	for (const auto &comp : this->get_computations())
+	{
 		if (name == comp->get_name())
+		{
 			res_comp = comp;
+		}
+	}
 
 	assert((res_comp != NULL) && "Computation not found");
-	return	res_comp;
+	return res_comp;
 }
 
 /**
@@ -960,9 +964,9 @@ void computation::create_halide_assignement()
 	this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this, index_expr_cp, this->expression), index, param);
 }
 
-void function::gen_halide_obj(std::string obj_file_name,
-		Halide::Target::OS os,
-		Halide::Target::Arch arch, int bits)
+void function::gen_halide_obj(
+	std::string obj_file_name, Halide::Target::OS os,
+	Halide::Target::Arch arch, int bits) const
 {
 	Halide::Target target;
 	target.os = os;

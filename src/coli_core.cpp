@@ -146,7 +146,7 @@ void coli::computation::tag_vector_dimension(int par_dim)
     this->get_function()->add_vector_dimension(this->get_name(), par_dim);
 }
 
-void computation::dump_iteration_domain()
+void computation::dump_iteration_domain() const
 {
     if (ENABLE_DEBUG)
     {
@@ -154,7 +154,7 @@ void computation::dump_iteration_domain()
     }
 }
 
-void function::dump_halide_stmt()
+void function::dump_halide_stmt() const
 {
     if (ENABLE_DEBUG)
     {
@@ -166,7 +166,7 @@ void function::dump_halide_stmt()
 }
 
 
-void function::dump_time_processor_domain()
+void function::dump_time_processor_domain() const
 {
     // Create time space domain
 
@@ -176,7 +176,9 @@ void function::dump_time_processor_domain()
 
         coli::str_dump("Function " + this->get_name() + ":\n");
         for (const auto &comp : this->get_computations())
+        {
             isl_set_dump(comp->get_time_processor_domain());
+        }
 
         coli::str_dump("\n\n");
     }
@@ -190,7 +192,7 @@ void function::gen_time_processor_domain()
     }
 }
 
-void computation::dump_schedule()
+void computation::dump_schedule() const
 {
     if (ENABLE_DEBUG)
     {
@@ -482,11 +484,11 @@ void computation::split(int inDim0, int sizeX)
 
 // Methods related to the coli::function class.
 
-int coli::function::get_max_schedules_range_dim()
+int coli::function::get_max_schedules_range_dim() const
 {
     int max_dim = 0;
 
-    for (auto comp: this->get_computations())
+    for (const auto &comp : this->get_computations())
     {
         int m = isl_map_dim(comp->get_schedule(), isl_dim_out);
         max_dim = std::max(max_dim, m);
@@ -628,7 +630,7 @@ void coli::function::dump(bool exhaustive) const
     }
 }
 
-void coli::function::dump_iteration_domain()
+void coli::function::dump_iteration_domain() const
 {
     if (ENABLE_DEBUG)
     {
@@ -639,7 +641,7 @@ void coli::function::dump_iteration_domain()
     }
 }
 
-void coli::function::dump_schedule()
+void coli::function::dump_schedule() const
 {
     if (ENABLE_DEBUG)
     {

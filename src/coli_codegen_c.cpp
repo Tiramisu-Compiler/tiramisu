@@ -13,7 +13,7 @@
 #include <string>
 
 
-void coli::function::gen_c_code()
+void coli::function::gen_c_code() const
 {
     coli::str_dump("\n\n");
     coli::str_dump("\nC like code:\n");

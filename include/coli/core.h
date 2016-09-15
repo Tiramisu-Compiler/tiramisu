@@ -226,7 +226,7 @@ public:
       * before calling this function you should first generate the
       * Halide statement.
       */
-    Halide::Internal::Stmt get_halide_stmt()
+    Halide::Internal::Stmt get_halide_stmt() const
     {
         return *halide_stmt;
     }
@@ -254,6 +254,7 @@ public:
       * Add a computation to the function.  The order in which
       * computations are added to the function is not important.
       * The order of execution is specified using the schedule.
+      * This doesn't allow computations with duplicate names.
       */
     void add_computation(computation *cpt);
 
@@ -280,12 +281,12 @@ public:
      * dimension among the dimensions of the ranges of all the
      * schedules.
      */
-    int get_max_schedules_range_dim();
+    int get_max_schedules_range_dim() const;
 
     /**
       * Dump the iteration domain of the function.
       */
-    void dump_iteration_domain();
+    void dump_iteration_domain() const;
 
     /**
       * Dump the schedule of the computations of the function.
@@ -295,7 +296,7 @@ public:
       * each point in the iteration space.
       * The schedule needs first to be set before calling this function.
       */
-    void dump_schedule();
+    void dump_schedule() const;
 
     /**
       * Dump the function on standard output (dump most of the fields of
@@ -313,10 +314,8 @@ public:
 
     /**
       * Return the computation that has the name \p str.
-      * This function assumes that the function has only one computation
-      * that has that name.
       */
-    computation *get_computation_by_name(std::string str);
+    computation *get_computation_by_name(std::string str) const;
 
     /**
       * Return true if the computation \p comp should be parallelized
@@ -422,9 +421,9 @@ public:
       */
     // @{
     void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
-                        Halide::Target::Arch arch, int bits);
+                        Halide::Target::Arch arch, int bits) const;
 
-    void gen_halide_obj(std::string obj_file_name) {
+    void gen_halide_obj(std::string obj_file_name) const {
         Halide::Target target = Halide::get_host_target();
         gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
     }
@@ -435,7 +434,7 @@ public:
       * Currently C code code generation is very basic and does not
       * support many features compared to the Halide code generator.
       */
-    void gen_c_code();
+    void gen_c_code() const;
 
     /**
       * Generate an isl AST for the function.
@@ -460,13 +459,13 @@ public:
       * Dump (on stdout) the time processor domain of the function.
       * This is mainly useful for debugging.
       */
-    void dump_time_processor_domain();
+    void dump_time_processor_domain() const;
 
     /**
       * Dump the Halide stmt of the function.
       * gen_halide_stmt should be called before calling this function.
       */
-    void dump_halide_stmt();
+    void dump_halide_stmt() const;
 };
 
 
@@ -574,7 +573,7 @@ public:
     /**
     * Return the type of buffer.
     */
-    coli::type::primitive get_type()
+    coli::type::primitive get_type() const
     {
         return type;
     }
@@ -582,7 +581,7 @@ public:
     /**
       * Get the number of dimensions of the buffer.
       */
-    int get_n_dims()
+    int get_n_dims() const
     {
         return nb_dims;
     }
@@ -590,7 +589,7 @@ public:
     /**
       * Return the type of the argument.
       */
-    coli::type::argument get_argument_type()
+    coli::type::argument get_argument_type() const
     {
         return argtype;
     }
@@ -601,7 +600,7 @@ public:
       * leftmost dimension of the buffer (N0), the second vector element
       * represents N1, ...
       */
-    std::vector<int> get_dim_sizes()
+    const std::vector<int> &get_dim_sizes() const
     {
         return dim_sizes;
     }
@@ -762,7 +761,7 @@ public:
     /**
       * Return the access function of the computation.
       */
-    isl_map *get_access()
+    isl_map *get_access() const
     {
         return access;
     }
@@ -779,7 +778,7 @@ public:
     /**
       * Return the function where the computation is declared.
       */
-    coli::function *get_function()
+    coli::function *get_function() const
     {
         return function;
     }
@@ -826,7 +825,7 @@ public:
     /**
       * Return the schedule of the computation.
       */
-    isl_map *get_schedule()
+    isl_map *get_schedule() const
     {
         return this->schedule;
     }
@@ -842,7 +841,7 @@ public:
     /**
       * Return the context of the computations.
       */
-    isl_ctx *get_ctx()
+    isl_ctx *get_ctx() const
     {
         return ctx;
     }
@@ -850,7 +849,7 @@ public:
     /**
       * Return the Halide statement that assigns the computation to a buffer location.
       */
-    Halide::Internal::Stmt get_halide_stmt()
+    Halide::Internal::Stmt get_halide_stmt() const
     {
         return stmt;
     }
@@ -985,7 +984,7 @@ public:
       * Dump the iteration domain of the computation.
       * This is useful for debugging.
       */
-    void dump_iteration_domain();
+    void dump_iteration_domain() const;
 
     /**
       * Dump the schedule of the computation.
@@ -995,7 +994,7 @@ public:
       * each point in the iteration space.
       * The schedule needs first to be set before calling this function.
       */
-    void dump_schedule();
+    void dump_schedule() const;
 
     /**
       * Dump (on stdout) the computation (dump most of the fields of the
