@@ -27,6 +27,7 @@ namespace type {
         int32,
         uint64,
         int64,
+		boolean,
         none
     };
 
