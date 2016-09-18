@@ -816,12 +816,14 @@ void function::gen_halide_stmt()
 
 	// Generate code to free buffers that are not passed as an argument to the function
 	// TODO: Add Free().
-	/*	for (auto b: this->get_buffers_list())
+	/*	for (const auto &b: this->get_buffers_list())
 	{
-		coli::buffer *buf = b.second;
+		const coli::buffer *buf = b.second;
 		// Allocate only arrays that are not passed to the function as arguments.
 		if (buf->is_argument() == false)
+		{
 			*stmt = Halide::Internal::Block::make(Halide::Internal::Free::make(buf->get_name()), *stmt);
+		}
 	}*/
 
 	// Generate the statement that represents the whole function
@@ -830,7 +832,7 @@ void function::gen_halide_stmt()
 	// Allocate buffers that are not passed as an argument to the function
 	for (const auto &b : this->get_buffers_list())
 	{
-		coli::buffer *buf = b.second;
+		const coli::buffer *buf = b.second;
 		// Allocate only arrays that are not passed to the function as arguments.
 		if (buf->get_argument_type() == coli::type::argument::temporary)
 		{

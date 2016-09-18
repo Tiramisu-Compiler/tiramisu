@@ -138,8 +138,8 @@ public:
         return new_expression;
     }
 
-    static coli::expr *make(coli::type::op o, coli::expr *id_expr, std::vector<coli::expr*> access_expressions,
-                            coli::type::primitive type = coli::type::primitive::none)
+    static coli::expr *make(coli::type::primitive type, coli::type::op o, coli::expr *id_expr,
+                            std::vector<coli::expr*> access_expressions)
     {
         assert((o == coli::type::op::access) && "The operator is not an access operator.");
         assert(access_expressions.size() > 0);
@@ -160,7 +160,7 @@ public:
     /**
     * Construct an expression that represents an id.
     */
-    static coli::expr *make(std::string name, coli::type::primitive type = coli::type::primitive::none)
+    static coli::expr *make(coli::type::primitive type, std::string name)
     {
         assert(name.length() > 0);
 
@@ -358,8 +358,6 @@ public:
       */
     coli::type::primitive get_data_type() const
     {
-        assert(this->get_expr_type() == coli::type::expr::val);
-
         return dtype;
     }
 
