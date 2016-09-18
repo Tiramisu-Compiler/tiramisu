@@ -3,6 +3,7 @@ High Priority
 - General
 	- Add asserts to check my assumptions.
 	- Use operator overloading.
+	- Add boolean data type.
 
 
 - Robust implementation:
