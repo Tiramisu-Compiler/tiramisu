@@ -28,7 +28,8 @@ Func blurxy(Func input, Func blur_y) {
   }
 */
 
-#define SIZE 10
+#define SIZE0 1280
+#define SIZE1 768
 
 int main(int argc, char **argv)
 {
@@ -44,9 +45,10 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	coli::function blurxy("blurxy");
-	coli::buffer b_input("b_input", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::input, &blurxy);
-	coli::buffer b_blury("b_blury", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::output, &blurxy);
-	coli::invariant p0("N", coli::expr::make((int32_t) SIZE), &blurxy);
+	coli::buffer b_input("b_input", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::input, &blurxy);
+	coli::buffer b_blury("b_blury", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::output, &blurxy);
+	coli::invariant p0("N", coli::expr::make((int32_t) SIZE0), &blurxy);
+	coli::invariant p1("M", coli::expr::make((int32_t) SIZE1), &blurxy);
 
 	// Declare the computations c_blurx and c_blury.
 	coli::expr *e1_access1 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_input"),
@@ -70,11 +72,11 @@ int main(int argc, char **argv)
 	coli::expr *e2         = coli::expr::make(coli::type::op::div, e2_add2,    coli::expr::make((uint8_t) 3));
 
 	coli::computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, &blurxy);
-	coli::computation c_blurx("[N]->{c_blurx[i,j]: 0<i<N and 0<j<N}", e1,   true,  &blurxy);
-	coli::computation c_blury("[N]->{c_blury[i,j]: 1<i<N-1 and 1<j<N-1}", e2,   true,  &blurxy);
+	coli::computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", e1,   true,  &blurxy);
+	coli::computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2,   true,  &blurxy);
 
 	// Create a memory buffer (2 dimensional).
-	coli::buffer b_blurx("b_blurx", 2, {SIZE,SIZE}, coli::type::primitive::uint8, NULL, coli::type::argument::temporary, &blurxy);
+	coli::buffer b_blurx("b_blurx", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::temporary, &blurxy);
 
 	// Map the computations to a buffer.
 	c_input.set_access("{c_input[i,j]->b_input[i,j]}");
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
 	// The identity schedule means that the program order is not modified
 	// (i.e. no optimization is applied).
 	c_blurx.tile(0,1,2,2);
-	c_blurx.tag_parallel_dimension(0);
+	c_blurx.tag_gpu_dimensions(0,1);
 	c_blury.set_schedule("{c_blury[i,j]->[i,j]}");
 	c_blury.after(c_blurx, coli::computation::root_dimension);
 

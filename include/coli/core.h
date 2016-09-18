@@ -134,6 +134,18 @@ private:
       */
     std::map<std::string, int> vector_dimensions;
 
+
+    /**
+      * A vector representing the gpu dimensions.
+      * GPU dimensions are identified using the tuple
+      * <computation_name, level0, level1>, for example the tupe
+      * <S0, 0, 1> indicates that the loops with level 0 and 1
+      * (i.e. the two outermost loops) around the computation S0
+      * should be mapped to GPU.
+      */
+    std::map<std::string, std::pair<int, int>> gpu_dimensions;
+
+
     /**
       * Body of the function (a vector of computations).
       * The order of the computations in the vector do not have any
@@ -352,6 +364,19 @@ public:
     }
 
     /**
+      * Return true if the computation \p comp should be mapped to GPU
+      * at the loop levels \p lev0.
+      */
+    bool should_map_to_gpu(std::string comp, int lev0) const;
+
+    /**
+       * Return a string representing the name of the iterator at
+       * dimension \p lev0 if the computation \p comp is mapped to
+       * GPU at the dimension \p lev0.
+       */
+     std::string get_gpu_iterator(std::string comp, int lev0) const;
+
+    /**
       * Tag the dimension \p dim of the computation \p computation_name to
       * be parallelized.
       * The outermost loop level (which corresponds to the leftmost
@@ -366,6 +391,14 @@ public:
       * dimension in the iteration space) is 0.
       */
     void add_vector_dimension(std::string computation_name, int vec_dim);
+
+    /**
+      * Tag the dimensions \p dim0 and \p dim1 of the computation
+      * \p computation_name to be mapped to GPU.
+      * The outermost loop level (which corresponds to the leftmost
+      * dimension in the iteration space) is 0.
+      */
+      void add_gpu_dimensions(std::string computation_name, int dim0, int dim1);
 
     /**
       * Return the union of all the iteration domains
@@ -847,6 +880,14 @@ public:
     }
 
     /**
+     * Get the number of dimensions of the computation.
+     */
+    int get_n_dimensions()
+    {
+      return isl_set_n_dim(this->iteration_domain);
+    }
+
+    /**
       * Return the Halide statement that assigns the computation to a buffer location.
       */
     Halide::Internal::Stmt get_halide_stmt() const
@@ -867,6 +908,14 @@ public:
       * dimension in the iteration space) is 0.
       */
     void tag_vector_dimension(int dim);
+
+    /**
+      * Tag the dimension \p dim0 and \p dim1 of the computation to
+      * be mapped to GPU.
+      * The outermost loop level (which corresponds to the leftmost
+      * dimension in the iteration space) is 0.
+      */
+    void tag_gpu_dimensions(int dim0, int dim1);
 
     /**
       * Generate the time-processor domain of the computation.

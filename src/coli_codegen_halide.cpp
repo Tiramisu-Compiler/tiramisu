@@ -663,7 +663,7 @@ Halide::Expr create_halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
   */
 Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 	coli::function fct, isl_ast_node *node,
-	int level, std::vector<std::string> &generated_stmts)
+	int level, std::vector<std::string> &tagged_stmts)
 {
 	assert(node != NULL);
 	assert(level >= 0);
@@ -688,13 +688,13 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 			child2 = isl_ast_node_list_get_ast_node(list, 1);
 
 			*result = Halide::Internal::Block::make(
-						*coli::generate_Halide_stmt_from_isl_node(fct, child, level+1, generated_stmts),
-						*coli::generate_Halide_stmt_from_isl_node(fct, child2, level+1, generated_stmts));
+						*coli::generate_Halide_stmt_from_isl_node(fct, child, level, tagged_stmts),
+						*coli::generate_Halide_stmt_from_isl_node(fct, child2, level, tagged_stmts));
 
 			for (i = 2; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
 				child = isl_ast_node_list_get_ast_node(list, i);
-				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(fct, child, level+1, generated_stmts));
+				*result = Halide::Internal::Block::make(*result, *coli::generate_Halide_stmt_from_isl_node(fct, child, level, tagged_stmts));
 			}
 		}
 		else
@@ -707,7 +707,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 		DEBUG(3, coli::str_dump("Generating code for Halide::For"));
 
 		isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
-		char *iterator_str = isl_ast_expr_to_C_str(iter);
+		std::string iterator_str = std::string(isl_ast_expr_to_C_str(iter));
 
 		isl_ast_expr *init = isl_ast_node_for_get_init(node);
 		isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
@@ -747,25 +747,47 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 		assert(cond_upper_bound_isl_format != NULL);
 		Halide::Expr init_expr = create_halide_expr_from_isl_ast_expr(init);
 		Halide::Expr cond_upper_bound_halide_format =  create_halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(fct, body, level+1, generated_stmts);
+		Halide::Internal::Stmt *halide_body = coli::generate_Halide_stmt_from_isl_node(fct, body, level+1, tagged_stmts);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
+		Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
 		// Change the type from Serial to parallel or vector if the
 		// current level was marked as such.
-		for (const auto &generated_stmt: generated_stmts)
+		for (int tt = 0; tt < tagged_stmts.size(); tt++)
 		{
-			if (fct.should_parallelize(generated_stmt, level))
+			if (fct.should_parallelize(tagged_stmts[tt], level))
 			{
 				fortype = Halide::Internal::ForType::Parallel;
+				tagged_stmts.erase(tagged_stmts.begin() + tt);
 			}
-			else if (fct.should_vectorize(generated_stmt, level))
+			else if (fct.should_vectorize(tagged_stmts[tt], level))
 			{
 				fortype = Halide::Internal::ForType::Vectorized;
+				tagged_stmts.erase(tagged_stmts.begin() + tt);
 			}
+			else if (fct.should_map_to_gpu(tagged_stmts[tt], level))
+	                {
+	                        fortype = Halide::Internal::ForType::Parallel;
+	                        dev_api = Halide::DeviceAPI::OpenCL;
+	                        std::string gpu_iter = fct.get_gpu_iterator(
+	                            tagged_stmts[tt], level);
+	                        Halide::Expr new_iterator_var =
+	                            Halide::Internal::Variable::make(
+	                                Halide::Int(32),
+	                                gpu_iter);
+	                        *halide_body = Halide::Internal::LetStmt::make(
+	                            iterator_str,
+	                            new_iterator_var,
+	                            *halide_body);
+                                iterator_str = gpu_iter;
+                                DEBUG(3, coli::str_dump("Loop over " + gpu_iter +
+                                     " created.\n"));
+                                tagged_stmts.erase(tagged_stmts.begin() + tt);
+	                }
 		}
 
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
-				Halide::DeviceAPI::Host, *halide_body);
+				dev_api, *halide_body);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{
@@ -777,7 +799,17 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 		isl_ast_expr_free(arg);
 		std::string computation_name(isl_id_get_name(id));
 		isl_id_free(id);
-		generated_stmts.push_back(computation_name);
+
+		// Check if any loop around this statement should be
+		// parallelized, vectorized or mapped to GPU.
+		for (int l = 0; l < level; l++)
+		{
+		    if (fct.should_parallelize(computation_name, l) ||
+		        fct.should_vectorize(computation_name, l) ||
+		        fct.should_map_to_gpu(computation_name, l))
+
+		    tagged_stmts.push_back(computation_name);
+		}
 
 		coli::computation *comp = fct.get_computation_by_name(computation_name);
 
@@ -796,9 +828,9 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 		*result = Halide::Internal::IfThenElse::make(
 					create_halide_expr_from_isl_ast_expr(cond),
 					*coli::generate_Halide_stmt_from_isl_node(fct, if_stmt,
-						level+1, generated_stmts),
+						level, tagged_stmts),
 					*coli::generate_Halide_stmt_from_isl_node(fct, else_stmt,
-						level+1, generated_stmts));
+						level, tagged_stmts));
 	}
 
 	DEBUG_INDENT(-4);

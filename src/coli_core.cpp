@@ -136,6 +136,19 @@ void coli::computation::tag_parallel_dimension(int par_dim)
     this->get_function()->add_parallel_dimension(this->get_name(), par_dim);
 }
 
+
+void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
+}
+
+
 void coli::computation::tag_vector_dimension(int par_dim)
 {
     assert(par_dim >= 0);
@@ -484,6 +497,61 @@ void computation::split(int inDim0, int sizeX)
 
 // Methods related to the coli::function class.
 
+std::string coli::function::get_gpu_iterator(std::string comp, int lev0) const
+{
+   assert(comp.length() > 0);
+   assert(lev0 >=0 );
+
+   DEBUG_FCT_NAME(3);
+   DEBUG_INDENT(4);
+
+   std::string res = std::string("");;
+
+   const auto &levels = this->gpu_dimensions.find(comp);
+   assert(levels != this->gpu_dimensions.end());
+
+   if (lev0 == levels->second.first)
+     res = std::string("__thread_id_x");
+   else if (lev0 == levels->second.second)
+     res = std::string("__thread_id_y");
+   else
+     coli::error("Level not mapped to GPU.", true);
+
+   std::string str = std::string("Dimension ") + std::to_string(lev0)
+       + std::string(" should be mapped to iterator ") + res;
+   str = str + ". It was compared against: " + std::to_string(levels->second.first)
+         + " and " + std::to_string(levels->second.second);
+   DEBUG(3, coli::str_dump(str));
+
+   DEBUG_INDENT(-4);
+   return res;
+}
+
+bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
+{
+      assert(comp.length() > 0);
+      assert(lev0 >=0 );
+
+      DEBUG_FCT_NAME(3);
+      DEBUG_INDENT(4);
+
+      bool res;
+
+      const auto &levels = this->gpu_dimensions.find(comp);
+      if (levels == this->gpu_dimensions.end())
+          res = false;
+      else
+          res = ((lev0 == levels->second.first) || (lev0 == levels->second.second));
+
+      std::string str = std::string("Dimension ") + std::to_string(lev0)
+          + std::string(res?" should":" should not")
+          + std::string(" be mapped to GPU.");
+      DEBUG(3, coli::str_dump(str));
+
+      DEBUG_INDENT(-4);
+      return res;
+}
+
 int coli::function::get_max_schedules_range_dim() const
 {
     int max_dim = 0;
@@ -708,6 +776,19 @@ void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
     assert(stmt_name.length() > 0);
 
     this->parallel_dimensions.insert(std::pair<std::string,int>(stmt_name, vec_dim));
+}
+
+void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
+                                        int dim1)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(stmt_name.length() > 0);
+
+    this->gpu_dimensions.insert(std::pair<std::string, std::pair<int,int>>
+                                          (stmt_name,  std::pair<int,int>
+                                                         (dim0, dim1)));
 }
 
 isl_union_set * coli::function::get_time_processor_domain()
