@@ -10,6 +10,7 @@ High Priority
 
 - General:
     - Add asserts to check my assumptions.
+    - Check the correctness of tutorial_02.
     - split() and interchange() should be done regourously using real ISL
       constraint (floor should be expressed as ISL constraints).
       Now setting the space names is flicky.
