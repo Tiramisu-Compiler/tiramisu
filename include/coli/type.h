@@ -6,10 +6,10 @@
 
 namespace coli {
 
-/**
-* The possible types of an expression.
-* "e_" stands for expression.
-*/
+    /**
+     * The possible types of an expression.
+     * "e_" stands for expression.
+     */
     enum expr_t {
         e_val,
         e_id,
@@ -19,7 +19,7 @@ namespace coli {
 
     /**
       * coli data types.
-      * * "p_" stands for primitive.
+      * "p_" stands for primitive.
       */
     enum primitive_t {
         p_uint8,
@@ -59,9 +59,9 @@ namespace coli {
     };
 
     /**
-    * Types of function arguments.
-    * "a_" stands for argument.
-    */
+     * Types of function arguments.
+     * "a_" stands for argument.
+     */
     enum argument_t {
         a_input,
         a_output,

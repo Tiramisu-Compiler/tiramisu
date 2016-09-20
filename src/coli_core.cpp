@@ -126,7 +126,6 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
-
 void coli::computation::tag_parallel_dimension(int par_dim)
 {
     assert(par_dim >= 0);
@@ -147,7 +146,6 @@ void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
 
     this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
 }
-
 
 void coli::computation::tag_vector_dimension(int par_dim)
 {

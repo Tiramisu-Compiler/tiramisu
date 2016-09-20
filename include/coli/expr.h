@@ -369,20 +369,24 @@ public:
      */
     template<typename T> coli::expr operator+(T val) const
     {
-      if ((std::is_same<T, coli::expr>::value))
-        return coli::expr(coli::o_add, *this, val);
-      else if ((std::is_same<T, uint8_t>::value) ||
-          (std::is_same<T, int8_t>::value) ||
-          (std::is_same<T, uint16_t>::value) ||
-          (std::is_same<T, int16_t>::value) ||
-          (std::is_same<T, int32_t>::value) ||
-          (std::is_same<T, uint32_t>::value))
-        return coli::expr(coli::o_add, *this, coli::expr((T) val));
-      else
-      {
-        coli::error("Adding a coli expression to a non supported type.\n",
-                    true);
-      }
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_add, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_add, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Adding a coli expression to a non supported type.\n",
+                        true);
+        }
     }
 
     /**
@@ -390,20 +394,24 @@ public:
      */
     template<typename T> coli::expr operator-(T val) const
     {
-      if ((std::is_same<T, coli::expr>::value))
-        return coli::expr(coli::o_sub, *this, val);
-      else if ((std::is_same<T, uint8_t>::value) ||
-          (std::is_same<T, int8_t>::value) ||
-          (std::is_same<T, uint16_t>::value) ||
-          (std::is_same<T, int16_t>::value) ||
-          (std::is_same<T, int32_t>::value) ||
-          (std::is_same<T, uint32_t>::value))
-        return coli::expr(coli::o_sub, *this, coli::expr((T) val));
-      else
-      {
-        coli::error("Substructing a coli expression from a non supported type.\n",
-                    true);
-      }
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_sub, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_sub, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Substructing a coli expression from a non supported type.\n",
+                        true);
+        }
     }
 
     /**
@@ -411,20 +419,24 @@ public:
      */
     template<typename T> coli::expr operator/(T val) const
     {
-      if ((std::is_same<T, coli::expr>::value))
-        return coli::expr(coli::o_div, *this, val);
-      else if ((std::is_same<T, uint8_t>::value) ||
-          (std::is_same<T, int8_t>::value) ||
-          (std::is_same<T, uint16_t>::value) ||
-          (std::is_same<T, int16_t>::value) ||
-          (std::is_same<T, int32_t>::value) ||
-          (std::is_same<T, uint32_t>::value))
-        return coli::expr(coli::o_div, *this, coli::expr((T) val));
-      else
-      {
-        coli::error("Dividing a coli expression by a non supported type.\n",
-                    true);
-      }
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_div, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_div, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Dividing a coli expression by a non supported type.\n",
+                        true);
+        }
     }
 
     /**
@@ -432,20 +444,24 @@ public:
      */
     template<typename T> coli::expr operator*(T val) const
     {
-      if ((std::is_same<T, coli::expr>::value))
-        return coli::expr(coli::o_mul, *this, val);
-      else if ((std::is_same<T, uint8_t>::value) ||
-          (std::is_same<T, int8_t>::value) ||
-          (std::is_same<T, uint16_t>::value) ||
-          (std::is_same<T, int16_t>::value) ||
-          (std::is_same<T, int32_t>::value) ||
-          (std::is_same<T, uint32_t>::value))
-        return coli::expr(coli::o_mul, *this, coli::expr((T) val));
-      else
-      {
-        coli::error("Multiplying a coli expression by a non supported type.\n",
-                    true);
-      }
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_mul, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_mul, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Multiplying a coli expression by a non supported type.\n",
+                        true);
+        }
     }
 
     /**
@@ -453,20 +469,24 @@ public:
      */
     template<typename T> coli::expr operator%(T val) const
     {
-      if ((std::is_same<T, coli::expr>::value))
-        return coli::expr(coli::o_mod, *this, val);
-      else if ((std::is_same<T, uint8_t>::value) ||
-          (std::is_same<T, int8_t>::value) ||
-          (std::is_same<T, uint16_t>::value) ||
-          (std::is_same<T, int16_t>::value) ||
-          (std::is_same<T, int32_t>::value) ||
-          (std::is_same<T, uint32_t>::value))
-        return coli::expr(coli::o_mod, *this, coli::expr((T) val));
-      else
-      {
-        coli::error("Modulo of a coli expression by a non supported type.\n",
-                    true);
-      }
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_mod, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_mod, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Modulo of a coli expression by a non supported type.\n",
+                        true);
+        }
     }
 
     /**
@@ -482,7 +502,7 @@ public:
      */
     coli::expr operator||(coli::expr e1) const
     {
-      return coli::expr(coli::o_logical_or, *this, e1);
+        return coli::expr(coli::o_logical_or, *this, e1);
     }
 
     /**
@@ -490,7 +510,7 @@ public:
      */
     coli::expr operator-() const
     {
-      return coli::expr(coli::o_minus, *this);
+        return coli::expr(coli::o_minus, *this);
     }
 
     /**
@@ -498,7 +518,7 @@ public:
      */
     coli::expr operator==(coli::expr e1) const
     {
-      return coli::expr(coli::o_eq, *this, e1);
+        return coli::expr(coli::o_eq, *this, e1);
     }
 
     /**
@@ -506,7 +526,7 @@ public:
      */
     coli::expr operator<(coli::expr e1) const
     {
-      return coli::expr(coli::o_lt, *this, e1);
+        return coli::expr(coli::o_lt, *this, e1);
     }
 
     /**
@@ -514,7 +534,7 @@ public:
      */
     coli::expr operator<=(coli::expr e1) const
     {
-      return coli::expr(coli::o_le, *this, e1);
+        return coli::expr(coli::o_le, *this, e1);
     }
 
     /**
@@ -522,7 +542,7 @@ public:
      */
     coli::expr operator>(coli::expr e1) const
     {
-      return coli::expr(coli::o_gt, *this, e1);
+        return coli::expr(coli::o_gt, *this, e1);
     }
 
     /**
@@ -530,7 +550,7 @@ public:
      */
     coli::expr operator>=(coli::expr e1) const
     {
-      return coli::expr(coli::o_ge, *this, e1);
+        return coli::expr(coli::o_ge, *this, e1);
     }
 
     /**
@@ -617,16 +637,15 @@ public:
 class idx: public coli::expr
 {
 public:
-  /**
-  * Construct an expression that represents an id.
-  */
-  idx(std::string name): expr(name)
-  {
-    assert(name.length() > 0);
+    /**
+     * Construct an expression that represents an id.
+     */
+    idx(std::string name): expr(name)
+    {
+        assert(name.length() > 0);
 
-    this->dtype = coli::p_int32;
-  }
-
+        this->dtype = coli::p_int32;
+    }
 };
 
 }

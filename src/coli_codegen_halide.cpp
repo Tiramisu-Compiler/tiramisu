@@ -713,7 +713,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 			iter <= bound
 		   We need to transform the two ISL loop bounds into the Halide
 		   format.
-		   */
+		*/
 		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
 			cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
 		else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)
