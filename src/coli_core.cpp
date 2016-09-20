@@ -971,8 +971,12 @@ std::string coli_type_primitive_to_str(coli::primitive_t type)
             return "uint64";
         case coli::p_int64:
             return "int64";
+        case coli::p_float32:
+            return "float32";
+        case coli::p_float64:
+            return "float64";
         case coli::p_boolean:
-                    return "bool";
+            return "bool";
         default:
             coli::error("Coli type not supported.", true);
             return "";
@@ -1045,6 +1049,12 @@ Halide::Type coli_type_to_halide_type(coli::primitive_t type)
             break;
         case coli::p_int64:
             t = Halide::Int(64);
+            break;
+        case coli::p_float32:
+            t = Halide::Float(32);
+            break;
+        case coli::p_float64:
+            t = Halide::Float(64);
             break;
         case coli::p_boolean:
             t = Halide::Bool();

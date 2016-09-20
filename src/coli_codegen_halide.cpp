@@ -414,6 +414,10 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 			result = Halide::Expr(coli_expr.get_uint64_value());
 		else if (coli_expr.get_data_type() == coli::p_int64)
 			result = Halide::Expr(coli_expr.get_int64_value());
+		else if (coli_expr.get_data_type() == coli::p_float32)
+			result = Halide::Expr(coli_expr.get_float32_value());
+		else if (coli_expr.get_data_type() == coli::p_float64)
+			result = Halide::Expr(coli_expr.get_float64_value());
 	}
 	else if (coli_expr.get_expr_type() == coli::e_op)
 	{
