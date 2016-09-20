@@ -72,6 +72,11 @@ class expr
       */
     std::string id_name;
 
+    /**
+     * Is this expression defined ?
+     */
+    bool defined;
+
 protected:
     /**
       * Data type.
@@ -79,6 +84,18 @@ protected:
     coli::primitive_t dtype;
 
 public:
+
+    /**
+      * Create an undefined expression.
+      */
+      expr()
+      {
+         this->defined = false;
+
+         this->_operator = coli::o_none;
+         this->etype = coli::e_none;
+         this->dtype = coli::p_none;
+      }
 
     /**
       * Create a expression of type \p t (a unary operator).
@@ -90,6 +107,7 @@ public:
         this->_operator = o;
         this->etype = coli::e_op;
         this->dtype = expr0.get_data_type();
+        this->defined = true;
 
         this->op.push_back(expr0);
     }
@@ -107,6 +125,7 @@ public:
         this->_operator = o;
         this->etype = coli::e_op;
         this->dtype = expr0.get_data_type();
+        this->defined = true;
 
         this->op.push_back(expr0);
         this->op.push_back(expr1);
@@ -121,6 +140,7 @@ public:
         this->_operator = o;
         this->etype = coli::e_op;
         this->dtype = expr1.get_data_type();
+        this->defined = true;
 
         this->op.push_back(expr0);
         this->op.push_back(expr1);
@@ -137,6 +157,7 @@ public:
         this->_operator = coli::o_access;
         this->etype = coli::e_op;
         this->dtype = type;
+        this->defined = true;
 
         this->set_access(access_expressions);
         this->op.push_back(id_expr);
@@ -151,6 +172,7 @@ public:
 
         this->etype = coli::e_id;
         this->id_name = name;
+        this->defined = true;
 
         this->_operator = coli::o_none;
         this->dtype = coli::p_none;
@@ -163,6 +185,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_uint8;
         this->uint8_value = val;
@@ -175,6 +198,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_int8;
         this->int8_value = val;
@@ -187,6 +211,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_uint32;
         this->uint32_value = val;
@@ -199,6 +224,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_int32;
         this->int32_value = val;
@@ -211,6 +237,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_uint64;
         this->uint64_value = val;
@@ -223,10 +250,19 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_int64;
         this->int64_value = val;
     }
+
+    /**
+      * Return true if the expression is defined.
+      */
+      bool is_defined() const
+      {
+          return defined;
+      }
 
     /**
       * Return the actual value of the expression.
