@@ -1,7 +1,6 @@
 High Priority
 --------------
 - Features:
-	- Add GPU support.
 	- Use operator overloading.
 	- Support reductions.
 	- Support type casting.

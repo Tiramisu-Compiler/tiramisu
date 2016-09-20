@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	// Set default coli options.
 	coli::global::set_default_coli_options();
 
-	const coli::type::primitive type = coli::type::primitive::uint8;
+	const coli::type::primitive data_type = coli::type::primitive::uint8;
 	const coli::type::primitive index_type = coli::type::primitive::int32;
 
 	/*
@@ -47,33 +47,29 @@ int main(int argc, char **argv)
 	coli::function blurxy("blurxy");
 	coli::buffer b_input("b_input", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::input, &blurxy);
 	coli::buffer b_blury("b_blury", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::output, &blurxy);
-	coli::invariant p0("N", coli::expr::make((int32_t) SIZE0), &blurxy);
-	coli::invariant p1("M", coli::expr::make((int32_t) SIZE1), &blurxy);
+	coli::invariant p0("N", coli::expr((int32_t) SIZE0), &blurxy);
+	coli::invariant p1("M", coli::expr((int32_t) SIZE1), &blurxy);
 
 	// Declare the computations c_blurx and c_blury.
-	coli::expr *e1_access1 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_input"),
-		{coli::expr::make(coli::type::op::sub, coli::expr::make(index_type, "i"), coli::expr::make((int32_t) 1)), coli::expr::make(index_type, "j")});
-	coli::expr *e1_access2 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_input"),
-		{coli::expr::make(index_type, "i"), coli::expr::make(index_type, "j")});
-	coli::expr *e1_access3 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_input"),
-		{coli::expr::make(coli::type::op::add, coli::expr::make(index_type, "i"), coli::expr::make((int32_t) 1)), coli::expr::make(index_type, "j")});
-	coli::expr *e1_add1    = coli::expr::make(coli::type::op::add, e1_access1, e1_access2);
-	coli::expr *e1_add2    = coli::expr::make(coli::type::op::add, e1_add1, e1_access3);
-	coli::expr *e1         = coli::expr::make(coli::type::op::div, e1_add2, coli::expr::make((uint8_t) 3));
+	coli::expr e1_access1 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
+		{coli::expr(index_type, "i") - coli::expr((int32_t) 1), coli::expr(index_type, "j")});
+	coli::expr e1_access2 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
+		{coli::expr(index_type, "i"), coli::expr(index_type, "j")});
+	coli::expr e1_access3 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
+		{coli::expr(index_type, "i") + coli::expr((int32_t) 1), coli::expr(index_type, "j")});
+	coli::expr e1         = (e1_access1 + e1_access2 + e1_access3)/coli::expr((uint8_t) 3);
 
-	coli::expr *e2_access1 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_blurx"),
-		{coli::expr::make(index_type, "i"), coli::expr::make(coli::type::op::sub, coli::expr::make(index_type, "j"), coli::expr::make((int32_t) 1))});
-	coli::expr *e2_access2 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_blurx"),
-		{coli::expr::make(index_type, "i"), coli::expr::make(index_type, "j")});
-	coli::expr *e2_access3 = coli::expr::make(type, coli::type::op::access, coli::expr::make(type, "c_blurx"),
-		{coli::expr::make(index_type, "i"), coli::expr::make(coli::type::op::add, coli::expr::make(index_type, "j"), coli::expr::make((int32_t) 1))});
-	coli::expr *e2_add1    = coli::expr::make(coli::type::op::add, e2_access1, e2_access2);
-	coli::expr *e2_add2    = coli::expr::make(coli::type::op::add, e2_add1,    e2_access3);
-	coli::expr *e2         = coli::expr::make(coli::type::op::div, e2_add2,    coli::expr::make((uint8_t) 3));
+	coli::expr e2_access1 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
+		{coli::expr(index_type, "i"), coli::expr(index_type, "j") - coli::expr((int32_t) 1)});
+	coli::expr e2_access2 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
+		{coli::expr(index_type, "i"), coli::expr(index_type, "j")});
+	coli::expr e2_access3 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
+		{coli::expr(index_type, "i"), coli::expr(index_type, "j") + coli::expr((int32_t) 1)});
+	coli::expr e2         = (e2_access1 + e2_access2 + e2_access3) / coli::expr((uint8_t) 3);
 
 	coli::computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, &blurxy);
-	coli::computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", e1,   true,  &blurxy);
-	coli::computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2,   true,  &blurxy);
+	coli::computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1,   true,  &blurxy);
+	coli::computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2,   true,  &blurxy);
 
 	// Create a memory buffer (2 dimensional).
 	coli::buffer b_blurx("b_blurx", 2, {SIZE0,SIZE1}, coli::type::primitive::uint8, NULL, coli::type::argument::temporary, &blurxy);

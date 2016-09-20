@@ -638,7 +638,7 @@ void coli::invariant::dump(bool exhaustive) const
         std::cout << "Invariant \"" << this->name << "\"" << std::endl;
 
         std::cout << "Expression: ";
-        this->expr->dump(exhaustive);
+        this->expr.dump(exhaustive);
         std::cout << std::endl;
     }
 }

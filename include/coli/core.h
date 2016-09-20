@@ -1066,7 +1066,7 @@ private:
     std::string name;
 
     // An expression that represents the invariant.
-    coli::expr *expr;
+    coli::expr expr;
 
 public:
     /**
@@ -1076,7 +1076,7 @@ public:
       * of the invariant.
       * \p func is the function in which the invariant is defined.
       */
-    invariant(std::string param_name, coli::expr *param_expr,
+    invariant(std::string param_name, coli::expr param_expr,
               coli::function *func): expr(param_expr)
     {
         assert((param_name.length() > 0) && "Parameter name empty");
@@ -1098,7 +1098,7 @@ public:
     /**
       * Return the expression that represents the value of the invariant.
       */
-    const coli::expr *get_expr() const
+    const coli::expr get_expr() const
     {
         return expr;
     }

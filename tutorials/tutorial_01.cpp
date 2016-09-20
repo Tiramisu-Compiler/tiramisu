@@ -35,14 +35,11 @@ int main(int argc, char **argv)
 	// Declare the invariants of the function.  An invariant can be a symbolic
 	// constant or a variable that does not change during the execution of the
 	// function.
-	coli::invariant N("N", coli::expr::make((int32_t) 10), &function0);
+	coli::invariant N("N", coli::expr((int32_t) 10), &function0);
 
 	// Declare a expressions that will be associated with the
 	// computations.
-	coli::expr *e1 = coli::expr::make(coli::type::op::add,
-						coli::expr::make((uint8_t) 3),
-						coli::expr::make((uint8_t) 4));
-
+	coli::expr e3 = coli::expr((uint8_t) 3) + coli::expr((uint8_t) 4);
 	// Declare a computation within function0.
 	// To declare a computation, you need to provide:
 	// (1) an ISL set representing the iteration space of the computation,
@@ -52,7 +49,7 @@ int main(int argc, char **argv)
 	// relations),
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
-	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &function0);
+	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &e3, true, &function0);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).
