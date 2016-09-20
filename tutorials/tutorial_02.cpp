@@ -51,24 +51,20 @@ int main(int argc, char **argv)
 	coli::invariant p1("M", coli::expr((int32_t) SIZE1), &blurxy);
 
 	// Declare the computations c_blurx and c_blury.
-	coli::expr e1_access1 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
-		{coli::expr(index_type, "i") - coli::expr((int32_t) 1), coli::expr(index_type, "j")});
-	coli::expr e1_access2 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
-		{coli::expr(index_type, "i"), coli::expr(index_type, "j")});
-	coli::expr e1_access3 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_input"),
-		{coli::expr(index_type, "i") + coli::expr((int32_t) 1), coli::expr(index_type, "j")});
-	coli::expr e1         = (e1_access1 + e1_access2 + e1_access3)/coli::expr((uint8_t) 3);
-
-	coli::expr e2_access1 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
-		{coli::expr(index_type, "i"), coli::expr(index_type, "j") - coli::expr((int32_t) 1)});
-	coli::expr e2_access2 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
-		{coli::expr(index_type, "i"), coli::expr(index_type, "j")});
-	coli::expr e2_access3 = coli::expr(data_type, coli::type::op::access, coli::expr(data_type, "c_blurx"),
-		{coli::expr(index_type, "i"), coli::expr(index_type, "j") + coli::expr((int32_t) 1)});
-	coli::expr e2         = (e2_access1 + e2_access2 + e2_access3) / coli::expr((uint8_t) 3);
-
 	coli::computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, &blurxy);
+
+        coli::expr e1_access1 = c_input[{coli::expr(index_type, "i") - coli::expr((int32_t) 1), coli::expr(index_type, "j")}];
+        coli::expr e1_access2 = c_input[{coli::expr(index_type, "i"), coli::expr(index_type, "j")}];
+        coli::expr e1_access3 = c_input[{coli::expr(index_type, "i") + coli::expr((int32_t) 1), coli::expr(index_type, "j")}];
+        coli::expr e1 = (e1_access1 + e1_access2 + e1_access3)/coli::expr((uint8_t) 3);
+
 	coli::computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1,   true,  &blurxy);
+
+	coli::expr e2_access1 = c_blurx[{coli::expr(index_type, "i"), coli::expr(index_type, "j") - coli::expr((int32_t) 1)}];
+	coli::expr e2_access2 = c_blurx[{coli::expr(index_type, "i"), coli::expr(index_type, "j")}];
+	coli::expr e2_access3 = c_blurx[{coli::expr(index_type, "i"), coli::expr(index_type, "j") + coli::expr((int32_t) 1)}];
+	coli::expr e2 = (e2_access1 + e2_access2 + e2_access3) / coli::expr((uint8_t) 3);
+
 	coli::computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2,   true,  &blurxy);
 
 	// Create a memory buffer (2 dimensional).

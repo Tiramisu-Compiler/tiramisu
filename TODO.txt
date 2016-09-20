@@ -1,9 +1,16 @@
 High Priority
 --------------
+
+
 - Features:
 	- Use operator overloading.
-	- Support reductions.
-	- Support type casting.
+	- Add a type to computations.
+	- Halide features:
+		- Support reductions.
+		- Support type casting.
+		- Support updates.
+		- Support ramp, broadcast.
+		- Create a free and allocate IR nodes.
 	- Support affine and non-affine predicates.
 
 

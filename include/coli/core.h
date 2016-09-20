@@ -896,6 +896,19 @@ public:
     }
 
     /**
+     * Access operator: C0[i,j] represents an access to
+     * the elements [i,j] of the computation C0.
+     */
+    coli::expr operator[](std::vector<coli::expr> access_expressions)
+    {
+      const coli::type::primitive data_type = coli::type::primitive::uint8;
+
+      return coli::expr(data_type, coli::type::op::access,
+                        coli::expr(data_type, this->get_name()),
+                        access_expressions);
+    }
+
+    /**
       * Tag the dimension \p dim of the computation to be parallelized.
       * The outermost loop level (which corresponds to the leftmost
       * dimension in the iteration space) is 0.
