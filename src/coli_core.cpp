@@ -126,7 +126,6 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
-
 void coli::computation::tag_parallel_dimension(int par_dim)
 {
     assert(par_dim >= 0);
@@ -147,7 +146,6 @@ void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
 
     this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
 }
-
 
 void coli::computation::tag_vector_dimension(int par_dim)
 {
@@ -961,6 +959,10 @@ std::string coli_type_primitive_to_str(coli::primitive_t type)
             return "uint8";
         case coli::p_int8:
             return "int8";
+        case coli::p_uint16:
+            return "uint16";
+        case coli::p_int16:
+            return "int16";
         case coli::p_uint32:
             return "uin32";
         case coli::p_int32:
@@ -1025,6 +1027,12 @@ Halide::Type coli_type_to_halide_type(coli::primitive_t type)
             break;
         case coli::p_int8:
             t = Halide::Int(8);
+            break;
+        case coli::p_uint16:
+            t = Halide::UInt(16);
+            break;
+        case coli::p_int16:
+            t = Halide::Int(16);
             break;
         case coli::p_uint32:
             t = Halide::UInt(32);

@@ -402,6 +402,10 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 			result = Halide::Expr(coli_expr.get_uint8_value());
 		else if (coli_expr.get_data_type() == coli::p_int8)
 			result = Halide::Expr(coli_expr.get_int8_value());
+		else if (coli_expr.get_data_type() == coli::p_uint16)
+			result = Halide::Expr(coli_expr.get_uint16_value());
+		else if (coli_expr.get_data_type() == coli::p_int16)
+			result = Halide::Expr(coli_expr.get_int16_value());
 		else if (coli_expr.get_data_type() == coli::p_uint32)
 			result = Halide::Expr(coli_expr.get_uint32_value());
 		else if (coli_expr.get_data_type() == coli::p_int32)
@@ -713,7 +717,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 			iter <= bound
 		   We need to transform the two ISL loop bounds into the Halide
 		   format.
-		   */
+		*/
 		if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
 			cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
 		else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)

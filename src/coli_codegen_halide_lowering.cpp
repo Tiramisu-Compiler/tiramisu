@@ -132,7 +132,6 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     DEBUG(3, coli::str_dump("Simplifying...\n"));
     s = common_subexpression_elimination(s);
 
-    //TODO(psuriana): debug this in Halide (they are not included in Halide.h for some reasons)
     if (t.has_feature(Target::OpenGL)) {
         DEBUG(3, coli::str_dump("Detecting varying attributes...\n"));
         s = find_linear_expressions(s);
