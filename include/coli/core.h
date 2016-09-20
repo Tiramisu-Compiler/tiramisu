@@ -27,7 +27,7 @@ class computation;
 class buffer;
 class invariant;
 
-Halide::Type coli_type_to_halide_type(coli::type::primitive type);
+Halide::Type coli_type_to_halide_type(coli::primitive_t type);
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -530,7 +530,7 @@ class buffer
     /**
       * The type of the elements of the buffer.
       */
-    coli::type::primitive type;
+    coli::primitive_t type;
 
     /**
       * Buffer data.
@@ -546,7 +546,7 @@ class buffer
     /**
      * Type of the argument.
      */
-    coli::type::argument argtype;
+    coli::argument_t argtype;
 
 public:
     /**
@@ -572,8 +572,8 @@ public:
       * function cannot be used outside the function.
       */
     buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
-           coli::type::primitive type, uint8_t *data,
-           coli::type::argument argt, coli::function *fct):
+           coli::primitive_t type, uint8_t *data,
+           coli::argument_t argt, coli::function *fct):
         name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
         data(data), fct(fct)
     {
@@ -606,7 +606,7 @@ public:
     /**
     * Return the type of buffer.
     */
-    coli::type::primitive get_type() const
+    coli::primitive_t get_type() const
     {
         return type;
     }
@@ -622,7 +622,7 @@ public:
     /**
       * Return the type of the argument.
       */
-    coli::type::argument get_argument_type() const
+    coli::argument_t get_argument_type() const
     {
         return argtype;
     }
@@ -743,7 +743,7 @@ private:
     /**
      * Data type of the computation.
      */
-    coli::type::primitive data_type;
+    coli::primitive_t data_type;
 
 public:
     /**
@@ -785,7 +785,7 @@ public:
       * \p fct is a pointer to the coli function where this computation
       * should be added.
       */
-    computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation, coli::type::primitive t, coli::function *fct): expression(e) {
+    computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation, coli::primitive_t t, coli::function *fct): expression(e) {
         init_computation(iteration_space_str, fct);
         this->schedule_this_computation = schedule_this_computation;
         this->data_type = t;
@@ -898,7 +898,7 @@ public:
     /**
      * Get the data type of the computation.
      */
-    coli::type::primitive get_data_type() const
+    coli::primitive_t get_data_type() const
     {
       return data_type;
     }
@@ -917,7 +917,7 @@ public:
      */
     coli::expr operator[](std::vector<coli::expr> access_expressions)
     {
-      return coli::expr(this->get_data_type(), coli::type::op::access,
+      return coli::expr(this->get_data_type(), coli::o_access,
                         coli::expr(this->get_name()),
                         access_expressions);
     }

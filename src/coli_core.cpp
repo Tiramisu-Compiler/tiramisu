@@ -738,14 +738,14 @@ void coli::function::dump_schedule() const
     }
 }
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::type::argument type)
+Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument_t type)
 {
     Halide::Argument::Kind res;
 
-    if (type == coli::type::argument::temporary)
+    if (type == coli::a_temporary)
         coli::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
 
-    if (type == coli::type::argument::input)
+    if (type == coli::a_input)
     {
         res = Halide::Argument::InputBuffer;
     }
@@ -877,43 +877,43 @@ isl_union_map *coli::function::get_schedule() const
 
 // Function for the buffer class
 
-std::string coli_type_op_to_str(coli::type::op type)
+std::string coli_type_op_to_str(coli::op_t type)
 {
     switch (type)
     {
-        case coli::type::op::logical_and:
+        case coli::o_logical_and:
             return "and";
-        case coli::type::op::logical_or:
+        case coli::o_logical_or:
             return "or";
-        case coli::type::op::max:
+        case coli::o_max:
             return "max";
-        case coli::type::op::min:
+        case coli::o_min:
             return "min";
-        case coli::type::op::minus:
+        case coli::o_minus:
             return "mins";
-        case coli::type::op::add:
+        case coli::o_add:
             return "add";
-        case coli::type::op::sub:
+        case coli::o_sub:
             return "sub";
-        case coli::type::op::mul:
+        case coli::o_mul:
             return "mul";
-        case coli::type::op::div:
+        case coli::o_div:
             return "div";
-        case coli::type::op::mod:
+        case coli::o_mod:
             return "mod";
-        case coli::type::op::cond:
+        case coli::o_cond:
             return "cond";
-        case coli::type::op::eq:
+        case coli::o_eq:
             return "eq";
-        case coli::type::op::le:
+        case coli::o_le:
             return "le";
-        case coli::type::op::lt:
+        case coli::o_lt:
             return "lt";
-        case coli::type::op::ge:
+        case coli::o_ge:
             return "ge";
-        case coli::type::op::call:
+        case coli::o_call:
             return "call";
-        case coli::type::op::access:
+        case coli::o_access:
             return "access";
         default:
             coli::error("coli op not supported.", true);
@@ -921,15 +921,15 @@ std::string coli_type_op_to_str(coli::type::op type)
     }
 }
 
-std::string coli_type_expr_to_str(coli::type::expr type)
+std::string coli_type_expr_to_str(coli::expr_t type)
 {
     switch (type)
     {
-        case coli::type::expr::id:
+        case coli::e_id:
             return "id";
-        case coli::type::expr::val:
+        case coli::e_val:
             return "val";
-        case coli::type::expr::op:
+        case coli::e_op:
             return "op";
         default:
             coli::error("Coli type not supported.", true);
@@ -937,15 +937,15 @@ std::string coli_type_expr_to_str(coli::type::expr type)
     }
 }
 
-std::string coli_type_argument_to_str(coli::type::argument type)
+std::string coli_type_argument_to_str(coli::argument_t type)
 {
     switch (type)
     {
-        case coli::type::argument::input:
+        case coli::a_input:
             return "input";
-        case coli::type::argument::output:
+        case coli::a_output:
             return "output";
-        case coli::type::argument::temporary:
+        case coli::a_temporary:
             return "temporary";
         default:
             coli::error("Coli type not supported.", true);
@@ -953,23 +953,23 @@ std::string coli_type_argument_to_str(coli::type::argument type)
     }
 }
 
-std::string coli_type_primitive_to_str(coli::type::primitive type)
+std::string coli_type_primitive_to_str(coli::primitive_t type)
 {
     switch (type)
     {
-        case coli::type::primitive::uint8:
+        case coli::p_uint8:
             return "uint8";
-        case coli::type::primitive::int8:
+        case coli::p_int8:
             return "int8";
-        case coli::type::primitive::uint32:
+        case coli::p_uint32:
             return "uin32";
-        case coli::type::primitive::int32:
+        case coli::p_int32:
             return "int32";
-        case coli::type::primitive::uint64:
+        case coli::p_uint64:
             return "uint64";
-        case coli::type::primitive::int64:
+        case coli::p_int64:
             return "int64";
-        case coli::type::primitive::boolean:
+        case coli::p_boolean:
                     return "bool";
         default:
             coli::error("Coli type not supported.", true);
@@ -1014,31 +1014,31 @@ void coli::buffer::dump(bool exhaustive) const
     }
 }
 
-Halide::Type coli_type_to_halide_type(coli::type::primitive type)
+Halide::Type coli_type_to_halide_type(coli::primitive_t type)
 {
     Halide::Type t;
 
     switch (type)
     {
-        case coli::type::primitive::uint8:
+        case coli::p_uint8:
             t = Halide::UInt(8);
             break;
-        case coli::type::primitive::int8:
+        case coli::p_int8:
             t = Halide::Int(8);
             break;
-        case coli::type::primitive::uint32:
+        case coli::p_uint32:
             t = Halide::UInt(32);
             break;
-        case coli::type::primitive::int32:
+        case coli::p_int32:
             t = Halide::Int(32);
             break;
-        case coli::type::primitive::uint64:
+        case coli::p_uint64:
             t = Halide::UInt(64);
             break;
-        case coli::type::primitive::int64:
+        case coli::p_int64:
             t = Halide::Int(64);
             break;
-        case coli::type::primitive::boolean:
+        case coli::p_boolean:
             t = Halide::Bool();
             break;
         default:

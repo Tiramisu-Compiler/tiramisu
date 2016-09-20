@@ -44,30 +44,30 @@ int main(int argc, char **argv)
 	 * Declare an invariant for the function.
 	 */
 	function blurxy("blurxy");
-	buffer b_input("b_input", 2, {SIZE0,SIZE1}, type::primitive::uint8, NULL, type::argument::input, &blurxy);
-	buffer b_blury("b_blury", 2, {SIZE0,SIZE1}, type::primitive::uint8, NULL, type::argument::output, &blurxy);
+	buffer b_input("b_input", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_input, &blurxy);
+	buffer b_blury("b_blury", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_output, &blurxy);
 	invariant p0("N", expr((int32_t) SIZE0), &blurxy);
 	invariant p1("M", expr((int32_t) SIZE1), &blurxy);
 
 	// Declare the computations c_blurx and c_blury.
-	computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, type::primitive::uint8, &blurxy);
+	computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);
 
         expr e1_access1 = c_input[{expr::idx("i") - 1, expr::idx("j")}];
         expr e1_access2 = c_input[{expr::idx("i"), expr::idx("j")}];
         expr e1_access3 = c_input[{expr::idx("i") + 1, expr::idx("j")}];
         expr e1 = (e1_access1 + e1_access2 + e1_access3)/((uint8_t) 3);
 
-	computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1, true, type::primitive::uint8, &blurxy);
+	computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1, true, p_uint8, &blurxy);
 
 	expr e2_access1 = c_blurx[{expr::idx("i"), expr::idx("j") - 1}];
 	expr e2_access2 = c_blurx[{expr::idx("i"), expr::idx("j")}];
 	expr e2_access3 = c_blurx[{expr::idx("i"), expr::idx("j") + 1}];
 	expr e2 = (e2_access1 + e2_access2 + e2_access3)/((uint8_t) 3);
 
-	computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2, true, type::primitive::uint8, &blurxy);
+	computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2, true, p_uint8, &blurxy);
 
 	// Create a memory buffer (2 dimensional).
-	buffer b_blurx("b_blurx", 2, {SIZE0,SIZE1}, type::primitive::uint8, NULL, type::argument::temporary, &blurxy);
+	buffer b_blurx("b_blurx", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_temporary, &blurxy);
 
 	// Map the computations to a buffer.
 	c_input.set_access("{c_input[i,j]->b_input[i,j]}");
