@@ -48,11 +48,6 @@ class expr
     std::vector<coli::expr> op;
 
     /**
-      * Data type.
-      */
-    coli::primitive_t dtype;
-
-    /**
       * The value of the expression.
       */
     union {
@@ -76,6 +71,12 @@ class expr
       * Identifier name.
       */
     std::string id_name;
+
+protected:
+    /**
+      * Data type.
+      */
+    coli::primitive_t dtype;
 
 public:
 
@@ -153,19 +154,6 @@ public:
 
         this->_operator = coli::o_none;
         this->dtype = coli::p_none;
-    }
-
-    /**
-    * Construct an expression that represents an id.
-    */
-    static coli::expr idx(std::string name)
-    {
-        assert(name.length() > 0);
-
-        coli::expr *new_expression = new coli::expr(name);
-        new_expression->dtype = coli::p_int32;
-
-        return *new_expression;
     }
 
     /**
@@ -621,6 +609,24 @@ public:
             std::cout << std::endl;
         }
     }
+};
+
+/**
+ * A class that represents index expressions
+ */
+class idx: public coli::expr
+{
+public:
+  /**
+  * Construct an expression that represents an id.
+  */
+  idx(std::string name): expr(name)
+  {
+    assert(name.length() > 0);
+
+    this->dtype = coli::p_int32;
+  }
+
 };
 
 }

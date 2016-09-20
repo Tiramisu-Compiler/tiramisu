@@ -5,66 +5,68 @@
 #include <stdint.h>
 
 namespace coli {
-namespace type {
 
 /**
 * The possible types of an expression.
+* "e_" stands for expression.
 */
-    enum class expr {
-        val,
-        id,
-        op,
-        none
+    enum expr_t {
+        e_val,
+        e_id,
+        e_op,
+        e_none
     };
 
     /**
       * coli data types.
+      * * "p_" stands for primitive.
       */
-    enum class primitive {
-        uint8,
-        int8,
-        uint32,
-        int32,
-        uint64,
-        int64,
-        boolean,
-        none
+    enum primitive_t {
+        p_uint8,
+        p_int8,
+        p_uint32,
+        p_int32,
+        p_uint64,
+        p_int64,
+        p_boolean,
+        p_none
     };
 
     /**
       * Types of coli operators.
+      * "o_" stands for operator.
       */
-    enum class op {
-        logical_and,
-        logical_or,
-        max,
-        min,
-        minus,
-        add,
-        sub,
-        mul,
-        div,
-        mod,
-        cond,
-        eq,
-        le,
-        lt,
-        ge,
-        gt,
-        call,
-        access,
-        none
+    enum op_t {
+        o_logical_and,
+        o_logical_or,
+        o_max,
+        o_min,
+        o_minus,
+        o_add,
+        o_sub,
+        o_mul,
+        o_div,
+        o_mod,
+        o_cond,
+        o_eq,
+        o_le,
+        o_lt,
+        o_ge,
+        o_gt,
+        o_call,
+        o_access,
+        o_none
     };
 
     /**
     * Types of function arguments.
+    * "a_" stands for argument.
     */
-    enum class argument {
-        input,
-        output,
-        temporary
+    enum argument_t {
+        a_input,
+        a_output,
+        a_temporary
     };
-}
 }
 
 #endif
