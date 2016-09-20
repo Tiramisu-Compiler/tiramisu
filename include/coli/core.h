@@ -918,7 +918,7 @@ public:
     coli::expr operator[](std::vector<coli::expr> access_expressions)
     {
       return coli::expr(this->get_data_type(), coli::o_access,
-                        coli::expr(this->get_name()),
+                        coli::expr(this->get_data_type(), this->get_name()),
                         access_expressions);
     }
 

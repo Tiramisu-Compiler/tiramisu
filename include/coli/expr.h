@@ -132,7 +132,7 @@ public:
     }
 
     expr(coli::primitive_t type, coli::op_t o, coli::expr id_expr,
-                            std::vector<coli::expr> access_expressions)
+         std::vector<coli::expr> access_expressions)
     {
         assert((o == coli::o_access) && "The operator is not an access operator.");
         assert(access_expressions.size() > 0);
@@ -149,7 +149,7 @@ public:
     /**
     * Construct an expression that represents an id.
     */
-    expr(std::string name)
+    expr(coli::primitive_t type, std::string name)
     {
         assert(name.length() > 0);
 
@@ -157,7 +157,7 @@ public:
         this->id_name = name;
 
         this->_operator = coli::o_none;
-        this->dtype = coli::p_none;
+        this->dtype = type;
     }
 
     /**
@@ -283,7 +283,7 @@ public:
     /**
       * Return the actual value of the expression.
       */
-    //@
+    // @{
     uint8_t get_uint8_value() const
     {
         assert(this->get_expr_type() == coli::e_val);
@@ -363,7 +363,7 @@ public:
 
         return float64_value;
     }
-    //@
+    // @}
 
     /**
       * Return the value of the \p i 'th operand of the expression.
@@ -598,12 +598,26 @@ public:
     }
 
     /**
+     * Logical NOT of an expression.
+     */
+    coli::expr operator!() const
+    {
+        return coli::expr(coli::o_not, *this);
+    }
+
+    /**
      * Comparison operator.
      */
+    // @{
     coli::expr operator==(coli::expr e1) const
     {
         return coli::expr(coli::o_eq, *this, e1);
     }
+    coli::expr operator!=(coli::expr e1) const
+    {
+        return coli::expr(coli::o_ne, *this, e1);
+    }
+    // @}
 
     /**
      * Less than operator.
@@ -731,11 +745,9 @@ public:
     /**
      * Construct an expression that represents an id.
      */
-    idx(std::string name): expr(name)
+    idx(std::string name): expr(p_int32, name)
     {
         assert(name.length() > 0);
-
-        this->dtype = coli::p_int32;
     }
 };
 

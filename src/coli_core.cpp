@@ -901,8 +901,12 @@ std::string coli_type_op_to_str(coli::op_t type)
             return "mod";
         case coli::o_cond:
             return "cond";
+        case coli::o_not:
+            return "not";
         case coli::o_eq:
             return "eq";
+        case coli::o_ne:
+            return "ne";
         case coli::o_le:
             return "le";
         case coli::o_lt:
