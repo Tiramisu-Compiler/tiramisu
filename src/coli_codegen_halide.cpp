@@ -402,6 +402,10 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 			result = Halide::Expr(coli_expr.get_uint8_value());
 		else if (coli_expr.get_data_type() == coli::p_int8)
 			result = Halide::Expr(coli_expr.get_int8_value());
+		else if (coli_expr.get_data_type() == coli::p_uint16)
+			result = Halide::Expr(coli_expr.get_uint16_value());
+		else if (coli_expr.get_data_type() == coli::p_int16)
+			result = Halide::Expr(coli_expr.get_int16_value());
 		else if (coli_expr.get_data_type() == coli::p_uint32)
 			result = Halide::Expr(coli_expr.get_uint32_value());
 		else if (coli_expr.get_data_type() == coli::p_int32)

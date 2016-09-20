@@ -23,10 +23,12 @@ namespace coli {
       */
     enum primitive_t {
         p_uint8,
-        p_int8,
+        p_uint16,
         p_uint32,
-        p_int32,
         p_uint64,
+        p_int8,
+        p_int16,
+        p_int32,
         p_int64,
         p_boolean,
         p_none

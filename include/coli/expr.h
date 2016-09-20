@@ -157,7 +157,7 @@ public:
     }
 
     /**
-      * Construct an unsigned 8bit integer expression.
+      * Construct an unsigned 8-bit integer expression.
       */
     expr(uint8_t val)
     {
@@ -169,7 +169,7 @@ public:
     }
 
     /**
-      * Construct a signed 8bit integer expression.
+      * Construct a signed 8-bit integer expression.
       */
     expr(int8_t val)
     {
@@ -181,7 +181,31 @@ public:
     }
 
     /**
-      * Construct an unsigned 32bit integer expression.
+      * Construct an unsigned 16-bit integer expression.
+      */
+    expr(uint16_t val)
+    {
+        this->etype = coli::e_val;
+        this->_operator = coli::o_none;
+
+        this->dtype = coli::p_uint16;
+        this->uint8_value = val;
+    }
+
+    /**
+      * Construct a signed 16-bit integer expression.
+      */
+    expr(int16_t val)
+    {
+        this->etype = coli::e_val;
+        this->_operator = coli::o_none;
+
+        this->dtype = coli::p_int16;
+        this->int8_value = val;
+    }
+
+    /**
+      * Construct an unsigned 32-bit integer expression.
       */
     expr(uint32_t val)
     {
@@ -193,7 +217,7 @@ public:
     }
 
     /**
-      * Construct a signed 32bit integer expression.
+      * Construct a signed 32-bit integer expression.
       */
     expr(int32_t val)
     {
@@ -205,7 +229,7 @@ public:
     }
 
     /**
-      * Construct an unsigned 64bit integer expression.
+      * Construct an unsigned 64-bit integer expression.
       */
     expr(uint64_t val)
     {
@@ -217,7 +241,7 @@ public:
     }
 
     /**
-      * Construct a signed 64bit integer expression.
+      * Construct a signed 64-bit integer expression.
       */
     expr(int64_t val)
     {
@@ -244,6 +268,22 @@ public:
     {
         assert(this->get_expr_type() == coli::e_val);
         assert(this->get_data_type() == coli::p_int8);
+
+        return int8_value;
+    }
+
+    uint16_t get_uint16_value() const
+    {
+        assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_data_type() == coli::p_uint16);
+
+        return uint8_value;
+    }
+
+    int8_t get_int16_value() const
+    {
+        assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_data_type() == coli::p_int16);
 
         return int8_value;
     }
@@ -605,6 +645,10 @@ public:
                         std::cout << "Value:" << this->get_uint8_value() << std::endl;
                     else if (this->get_data_type() == coli::p_int8)
                         std::cout << "Value:" << this->get_int8_value() << std::endl;
+                    else if (this->get_data_type() == coli::p_uint16)
+                        std::cout << "Value:" << this->get_uint16_value() << std::endl;
+                    else if (this->get_data_type() == coli::p_int16)
+                        std::cout << "Value:" << this->get_int16_value() << std::endl;
                     else if (this->get_data_type() == coli::p_uint32)
                         std::cout << "Value:" << this->get_uint32_value() << std::endl;
                     else if (this->get_data_type() == coli::p_int32)
