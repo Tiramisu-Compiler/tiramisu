@@ -53,10 +53,14 @@ class expr
     union {
         uint8_t     uint8_value;
         int8_t      int8_value;
+        uint16_t    uint16_value;
+        int16_t     int16_value;
         uint32_t    uint32_value;
         int32_t     int32_value;
         uint64_t    uint64_value;
         int64_t     int64_value;
+        float       float32_value;
+        double      float64_value;
     };
 
     /**
@@ -213,7 +217,7 @@ public:
         this->_operator = coli::o_none;
 
         this->dtype = coli::p_uint16;
-        this->uint8_value = val;
+        this->uint16_value = val;
     }
 
     /**
@@ -225,7 +229,7 @@ public:
         this->_operator = coli::o_none;
 
         this->dtype = coli::p_int16;
-        this->int8_value = val;
+        this->int16_value = val;
     }
 
     /**
@@ -288,6 +292,30 @@ public:
           return defined;
       }
 
+      /**
+      * Construct a 32-bit float expression.
+      */
+    expr(float val)
+    {
+        this->etype = coli::e_val;
+        this->_operator = coli::o_none;
+
+        this->dtype = coli::p_float32;
+        this->float32_value = val;
+    }
+
+    /**
+      * Construct a 64-bit float expression.
+      */
+    expr(double val)
+    {
+        this->etype = coli::e_val;
+        this->_operator = coli::o_none;
+
+        this->dtype = coli::p_float64;
+        this->float64_value = val;
+    }
+
     /**
       * Return the actual value of the expression.
       */
@@ -313,15 +341,15 @@ public:
         assert(this->get_expr_type() == coli::e_val);
         assert(this->get_data_type() == coli::p_uint16);
 
-        return uint8_value;
+        return uint16_value;
     }
 
-    int8_t get_int16_value() const
+    int16_t get_int16_value() const
     {
         assert(this->get_expr_type() == coli::e_val);
         assert(this->get_data_type() == coli::p_int16);
 
-        return int8_value;
+        return int16_value;
     }
 
     uint32_t get_uint32_value() const
@@ -354,6 +382,22 @@ public:
         assert(this->get_data_type() == coli::p_int64);
 
         return int64_value;
+    }
+
+    float get_float32_value() const
+    {
+        assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_data_type() == coli::p_float32);
+
+        return float32_value;
+    }
+
+    double get_float64_value() const
+    {
+        assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_data_type() == coli::p_float64);
+
+        return float64_value;
     }
     //@
 
@@ -693,7 +737,10 @@ public:
                         std::cout << "Value:" << this->get_uint64_value() << std::endl;
                     else if (this->get_data_type() == coli::p_int64)
                         std::cout << "Value:" << this->get_int64_value() << std::endl;
-
+                    else if (this->get_data_type() == coli::p_float32)
+                        std::cout << "Value:" << this->get_float32_value() << std::endl;
+                    else if (this->get_data_type() == coli::p_float64)
+                        std::cout << "Value:" << this->get_float64_value() << std::endl;
                     break;
                 }
                 case (coli::e_id):

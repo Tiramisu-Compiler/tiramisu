@@ -30,6 +30,8 @@ namespace coli {
         p_int16,
         p_int32,
         p_int64,
+        p_float32,
+        p_float64,
         p_boolean,
         p_none
     };
