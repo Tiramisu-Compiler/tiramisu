@@ -740,6 +740,11 @@ private:
       */
     std::vector<isl_ast_expr *> index_expr;
 
+    /**
+     * Data type of the computation.
+     */
+    coli::type::primitive data_type;
+
 public:
     /**
       * A number identifying the root dimension level.
@@ -775,12 +780,15 @@ public:
       * THis should be read as: the set of point (i,j) such that
       * 0<=i<N and 0<=j<N.
       *
+      * \t is the type of the computation, i.e. the type of the elements of
+      * the computation.
       * \p fct is a pointer to the coli function where this computation
       * should be added.
       */
-    computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation,coli::function *fct): expression(e) {
+    computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation, coli::type::primitive t, coli::function *fct): expression(e) {
         init_computation(iteration_space_str, fct);
         this->schedule_this_computation = schedule_this_computation;
+        this->data_type = t;
     }
 
     /**
@@ -888,6 +896,14 @@ public:
     }
 
     /**
+     * Get the data type of the computation.
+     */
+    coli::type::primitive get_data_type() const
+    {
+      return data_type;
+    }
+
+    /**
       * Return the Halide statement that assigns the computation to a buffer location.
       */
     Halide::Internal::Stmt get_halide_stmt() const
@@ -901,10 +917,8 @@ public:
      */
     coli::expr operator[](std::vector<coli::expr> access_expressions)
     {
-      const coli::type::primitive data_type = coli::type::primitive::uint8;
-
-      return coli::expr(data_type, coli::type::op::access,
-                        coli::expr(data_type, this->get_name()),
+      return coli::expr(this->get_data_type(), coli::type::op::access,
+                        coli::expr(this->get_name()),
                         access_expressions);
     }
 

@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	// relations),
 	// (2) a coli expression that represents the computation,
 	// (3) the function in which the computation will be declared.
-	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &e3, true, &function0);
+	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &e3, true, coli::type::primitive::uint8, &function0);
 
 	// Map the computations to a buffer (i.e. where each computation
 	// should be stored in the buffer).

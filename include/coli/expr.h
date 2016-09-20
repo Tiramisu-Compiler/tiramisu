@@ -144,7 +144,7 @@ public:
     /**
     * Construct an expression that represents an id.
     */
-    expr(coli::type::primitive type, std::string name)
+    expr(std::string name)
     {
         assert(name.length() > 0);
 
@@ -152,7 +152,20 @@ public:
         this->id_name = name;
 
         this->_operator = coli::type::op::none;
-        this->dtype = type;
+        this->dtype = coli::type::primitive::none;
+    }
+
+    /**
+    * Construct an expression that represents an id.
+    */
+    static coli::expr idx(std::string name)
+    {
+        assert(name.length() > 0);
+
+        coli::expr *new_expression = new coli::expr(name);
+        new_expression->dtype = coli::type::primitive::int32;
+
+        return *new_expression;
     }
 
     /**

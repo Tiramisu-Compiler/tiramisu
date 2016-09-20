@@ -11,16 +11,18 @@
 #include <string.h>
 #include <Halide.h>
 
+using namespace coli;
+
 void generate_function_1(std::string name, int size, int val0, int val1)
 {
 	coli::global::set_default_coli_options();
 
 	coli::function function0(name);
-	coli::invariant N("N", coli::expr::make((int32_t) size), &function0);
-	coli::expr *e1 = coli::expr::make(coli::type::op::add,
-						coli::expr::make((uint8_t) val0),
-						coli::expr::make((uint8_t) val1));
-	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, &function0);
+	coli::invariant N("N", coli::expr((int32_t) size), &function0);
+	coli::expr e1 = coli::expr(coli::type::op::add,
+						coli::expr((uint8_t) val0),
+						coli::expr((uint8_t) val1));
+	coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &e1, true, type::primitive::uint8, &function0);
 
 	coli::buffer buf0("buf0", 2, {size,size}, coli::type::primitive::uint8, NULL,
 						coli::type::argument::output, &function0);
