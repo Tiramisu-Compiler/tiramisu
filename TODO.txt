@@ -1,22 +1,20 @@
 High Priority
 --------------
-
-
 - Features:
-	- Use operator overloading.
-	- Add a type to computations.
+	- Test correctness of blurxy.
+    - Add asserts to check my assumptions.
+    - Check the correctness of tutorial_02.
+
 	- Halide features:
 		- Support reductions.
 		- Support type casting.
 		- Support updates.
 		- Support ramp, broadcast.
 		- Create a free and allocate IR nodes.
-	- Support affine and non-affine predicates.
+	- Support non-affine predicates.
 
 
 - General:
-    - Add asserts to check my assumptions.
-    - Check the correctness of tutorial_02.
     - split() and interchange() should be done regourously using real ISL
       constraint (floor should be expressed as ISL constraints).
       Now setting the space names is flicky.

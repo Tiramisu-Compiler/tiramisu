@@ -52,15 +52,15 @@ int main(int argc, char **argv)
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);
 
-    expr e1 = (c_input[{idx("i") - 1, idx("j")}] +
-               c_input[{idx("i"), idx("j")}] +
-               c_input[{idx("i") + 1, idx("j")}])/((uint8_t) 3);
+    expr e1 = (c_input(idx("i") - 1, idx("j")) +
+               c_input(idx("i")    , idx("j")) +
+               c_input(idx("i") + 1, idx("j")))/((uint8_t) 3);
 
     computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1, true, p_uint8, &blurxy);
 
-    expr e2 = (c_blurx[{idx("i"), idx("j") - 1}] +
-               c_blurx[{idx("i"), idx("j")}] +
-               c_blurx[{idx("i"), idx("j") + 1}])/((uint8_t) 3);
+    expr e2 = (c_blurx(idx("i"), idx("j") - 1) +
+               c_blurx(idx("i"), idx("j")) +
+               c_blurx(idx("i"), idx("j") + 1))/((uint8_t) 3);
 
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2, true, p_uint8, &blurxy);
 
@@ -82,7 +82,6 @@ int main(int argc, char **argv)
 
     // Set the arguments to blurxy
     blurxy.set_arguments({&b_input, &b_blury});
-
     // Generate code
     blurxy.gen_isl_ast();
     blurxy.gen_halide_stmt();
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
     // Some debugging
     blurxy.dump_iteration_domain();
     blurxy.dump_halide_stmt();
-
+    
     // Dump all the fields of the blurxy class.
     blurxy.dump(true);
 
