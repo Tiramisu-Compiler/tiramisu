@@ -941,9 +941,10 @@ public:
       if (e9.is_defined()) access_expressions.push_back(e9);
       if (e10.is_defined()) access_expressions.push_back(e10);
 
-      return coli::expr(this->get_data_type(), coli::o_access,
+      return coli::expr(coli::o_access,
                         coli::expr(this->get_name()),
-                        access_expressions);
+                        access_expressions,
+                        this->get_data_type());
     }
 
     /**

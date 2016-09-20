@@ -151,8 +151,9 @@ public:
         this->op.push_back(expr2);
     }
 
-    expr(coli::primitive_t type, coli::op_t o, coli::expr id_expr,
-                            std::vector<coli::expr> access_expressions)
+    expr(coli::op_t o, coli::expr id_expr,
+         std::vector<coli::expr> access_expressions,
+         coli::primitive_t type)
     {
         assert((o == coli::o_access) && "The operator is not an access operator.");
         assert(access_expressions.size() > 0);
