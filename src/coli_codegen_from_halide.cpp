@@ -286,8 +286,8 @@ void HalideToColi::visit(const Let *op) {
                         halide_type_to_coli_type(op->value.type()),
                         fct_ptr);
     //TODO(psuriana): not sure???
-    coli::buffer scalar_t("scalar_t", 1, {coli::expr(1)}, ....)
-    t.set_access("{t[0] -> scalar_t[0]}")
+    /*coli::buffer scalar_t("scalar_t", 1, {coli::expr(1)}, ....)
+    t.set_access("{t[0] -> scalar_t[0]}")*/
 
     computation_list.emplace(op->name, t);
     coli::expr body = mutate(op->body);
@@ -325,7 +325,7 @@ void HalideToColi::visit(const Call *op) {
         for (size_t i = 0; i < op->args.size(); ++i) {
             args[i] = mutate(op->args[i]);
         }
-        expr = iter->second(args);
+        //expr = iter->second(args);
     } else {
         coli::error("Call to " + op->name + " is undefined." , true);
     }
