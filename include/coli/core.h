@@ -28,6 +28,8 @@ class buffer;
 class invariant;
 
 Halide::Type coli_type_to_halide_type(coli::primitive_t type);
+Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vector<isl_ast_expr *> &index_expr, const coli::expr coli_expr);
+
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -525,7 +527,7 @@ class buffer
       * leftmost dimension of the buffer (N0), the second vector element
       * represents N1, ...
       */
-    std::vector<int> dim_sizes;
+    std::vector<coli::expr> dim_sizes;
 
     /**
       * The type of the elements of the buffer.
@@ -571,7 +573,7 @@ public:
       * This means that the buffers that are allocated within the
       * function cannot be used outside the function.
       */
-    buffer(std::string name, int nb_dims, std::vector<int> dim_sizes,
+    buffer(std::string name, int nb_dims, std::vector<coli::expr> dim_sizes,
            coli::primitive_t type, uint8_t *data,
            coli::argument_t argt, coli::function *fct):
         name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
@@ -633,7 +635,7 @@ public:
       * leftmost dimension of the buffer (N0), the second vector element
       * represents N1, ...
       */
-    const std::vector<int> &get_dim_sizes() const
+    const std::vector<coli::expr> &get_dim_sizes() const
     {
         return dim_sizes;
     }
@@ -911,6 +913,14 @@ public:
         return stmt;
     }
 
+    bool operator==(coli::computation comp1)
+    {
+      if (this->get_name() == comp1.get_name())
+        return true;
+      else
+        return false;
+    }
+
     /**
      * Access operator: C0[i,j] represents an access to
      * the elements [i,j] of the computation C0.
@@ -1000,7 +1010,7 @@ public:
         this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
     }
 
-    void create_halide_assignement();
+    void create_halide_stmt();
 
     /**
       * Set the identity schedule.

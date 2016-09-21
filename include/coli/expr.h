@@ -26,6 +26,8 @@ std::string coli_type_expr_to_str(coli::expr_t type);
 std::string coli_type_op_to_str(coli::op_t type);
 std::string coli_type_primitive_to_str(coli::primitive_t type);
 
+class buffer;
+
 /**
   * A class to represent coli expressions.
   */
@@ -214,6 +216,7 @@ public:
       */
     expr(uint16_t val)
     {
+        this->defined = true;
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
 
@@ -226,6 +229,7 @@ public:
       */
     expr(int16_t val)
     {
+        this->defined = true;
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
 
@@ -300,6 +304,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_float32;
         this->float32_value = val;
@@ -312,6 +317,7 @@ public:
     {
         this->etype = coli::e_val;
         this->_operator = coli::o_none;
+        this->defined = true;
 
         this->dtype = coli::p_float64;
         this->float64_value = val;
@@ -401,6 +407,54 @@ public:
         return float64_value;
     }
     // @}
+
+    int64_t get_int_val() const
+    {
+      assert(this->get_expr_type() == coli::e_val);
+
+      int64_t result = 0;
+
+      if (this->get_data_type() == coli::p_uint8)
+          result = this->get_uint8_value();
+      else if (this->get_data_type() == coli::p_int8)
+          result = this->get_int8_value();
+      else if (this->get_data_type() == coli::p_uint16)
+          result = this->get_uint16_value();
+      else if (this->get_data_type() == coli::p_int16)
+          result = this->get_int16_value();
+      else if (this->get_data_type() == coli::p_uint32)
+        result = this->get_uint32_value();
+      else if (this->get_data_type() == coli::p_int32)
+        result = this->get_int32_value();
+      else if (this->get_data_type() == coli::p_uint64)
+        result = this->get_uint64_value();
+      else if (this->get_data_type() == coli::p_int64)
+        result = this->get_int64_value();
+      else if (this->get_data_type() == coli::p_float32)
+        result = this->get_float32_value();
+      else if (this->get_data_type() == coli::p_float64)
+        result = this->get_float64_value();
+      else
+        coli::error("Calling get_int_val() on a non integer expression.", true);
+
+      return result;
+    }
+
+    double get_double_val() const
+    {
+      assert(this->get_expr_type() == coli::e_val);
+
+      int64_t result = 0;
+
+      if (this->get_data_type() == coli::p_float32)
+        result = this->get_float32_value();
+      else if (this->get_data_type() == coli::p_float64)
+        result = this->get_float64_value();
+      else
+        coli::error("Calling get_double_val() on a non double expression.", true);
+
+      return result;
+    }
 
     /**
       * Return the value of the \p i 'th operand of the expression.

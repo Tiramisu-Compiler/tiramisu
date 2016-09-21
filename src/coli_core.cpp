@@ -278,27 +278,34 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int consta
 
 void computation::after(computation &comp, int dim)
 {
-    isl_map *sched1 = comp.get_schedule();
-    isl_map *sched2 = this->get_schedule();
+    isl_map *sched1;
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(sched1 != NULL);
-    assert(sched2 != NULL);
-    DEBUG(3, coli::str_dump("dim = "));
-    DEBUG(3, coli::str_dump(std::to_string(dim)));
-    DEBUG(3, coli::str_dump(", isl_map_dim(sched1, isl_dim_out) = "));
-    DEBUG(3, coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
-    assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
-    assert(dim >= computation::root_dimension);
-    assert(dim < (signed int) isl_map_dim(sched2, isl_dim_out));
+    // Go through all the computations.
+    for (auto c: this->get_function()->get_computations())
+    {
+        sched1 = c->get_schedule();
 
-    sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
-    sched2 = isl_map_add_dim_and_eq_constraint(sched2, dim, 1);
+        DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
-    comp.set_schedule(sched1);
-    this->set_schedule(sched2);
+        assert(sched1 != NULL);
+        DEBUG(3, coli::str_dump("Dimension level after which ordering dimensions will be inserted : ");
+                 coli::str_dump(std::to_string(dim)));
+        DEBUG(3, coli::str_dump("Number of dimensions of the schedule to be adjusted : ");
+                 coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
+        assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
+        assert(dim >= computation::root_dimension);
+
+        if (c == this)
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+        else
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+
+        c->set_schedule(sched1);
+        DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
+    }
 
     DEBUG_INDENT(-4);
 }
@@ -1003,7 +1010,10 @@ void coli::buffer::dump(bool exhaustive) const
         std::cout << "Dimension sizes: ";
         for (auto size: dim_sizes)
         {
-            std::cout << size << ", ";
+          // TODO: create_halide_expr_from_coli_expr does not support
+          // the case where the buffer size is a computation access.
+            std::vector<isl_ast_expr *> ie = {};
+            std::cout << create_halide_expr_from_coli_expr(NULL, ie, size) << ", ";
         }
 
         std::cout << std::endl;

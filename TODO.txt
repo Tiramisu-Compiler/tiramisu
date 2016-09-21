@@ -1,9 +1,10 @@
 High Priority
 --------------
 - Features:
-	- Test correctness of blurxy.
-    - Add asserts to check my assumptions.
-    - Check the correctness of tutorial_02.
+    - Non affine:
+        - Non affine loop bounds,
+        - Non affine array accesses,
+        - Vectorize a non-affine loop (split with the innermost being constant),
 
 	- Halide features:
 		- Support reductions.
@@ -11,7 +12,15 @@ High Priority
 		- Support updates.
 		- Support ramp, broadcast.
 		- Create a free and allocate IR nodes.
-	- Support non-affine predicates.
+		- Support two types of conditionals.
+		- Call external functions.
+
+	- Test correctness of blurxy.
+    - Add asserts to check my assumptions.
+
+
+- Assumptions:
+	- No computation should be added after scheduling.
 
 
 - General:

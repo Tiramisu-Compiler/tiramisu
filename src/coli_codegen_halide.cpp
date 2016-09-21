@@ -70,15 +70,15 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 	isl_map* map = isl_map_reverse(isl_map_copy(schedule));
 	DEBUG(3, coli::str_dump("Schedule reversed:", isl_map_to_str(map)));
 	isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
-	DEBUG_NO_NEWLINE(3, coli::str_dump("The iterator map of an AST leaf (after scheduling):"));
-	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("The iterator map of an AST leaf (after scheduling):");
+	                    isl_pw_multi_aff_dump(iterator_map));
 	DEBUG(3, coli::str_dump("Access:", isl_map_to_str(access)));
 	isl_pw_multi_aff* index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
-	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_from_map(access):"));
-	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(index_aff));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_from_map(access):");
+	                    isl_pw_multi_aff_dump(index_aff));
 	iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
-	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
-	DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
+	DEBUG_NO_NEWLINE(3, coli::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):");
+	                    isl_pw_multi_aff_dump(iterator_map));
 	isl_ast_expr* index_expr = isl_ast_build_access_from_pw_multi_aff(
 									build,
 									isl_pw_multi_aff_copy(iterator_map));
@@ -375,7 +375,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	// compute the corresponding isl_ast expression.
 	for (const auto &access: accesses)
 	{
-		assert((access != NULL) && "An access function should be provided before generating code.");;
+	    assert((access != NULL) && "An access function should be provided before generating code.");
 
 		DEBUG(3, coli::str_dump("Access (isl_map *):", isl_map_to_str(access)));
 		DEBUG(3, coli::str_dump("\n"));
@@ -513,9 +513,9 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 				int stride = 1;
 				for (int i = 0; i < coli_buffer->get_dim_sizes().size(); i++) {
 		           	shape[i].min = 0;
-		           	shape[i].extent = coli_buffer->get_dim_sizes()[i];
+		           	shape[i].extent = (int) coli_buffer->get_dim_sizes()[i].get_int_val();
 		           	shape[i].stride = stride;
-		           	stride *= coli_buffer->get_dim_sizes()[i];
+		           	stride *= (int) coli_buffer->get_dim_sizes()[i].get_int_val();
 			   	}
 
 			   	Halide::Internal::BufferPtr *buffer =
@@ -549,6 +549,8 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 		coli::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
 	}
 
+	DEBUG(3, coli::str_dump("Generated stmt: "); std::cout << result);
+	DEBUG(3, coli::str_dump("End of function create_halide_expr_from_coli_expr."));
 	DEBUG_INDENT(-4);
 
 	return result;
@@ -692,9 +694,11 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 			child = isl_ast_node_list_get_ast_node(list, 0);
 			child2 = isl_ast_node_list_get_ast_node(list, 1);
 
+			DEBUG_INDENT(-4);
+
 			*result = Halide::Internal::Block::make(
-						*coli::generate_Halide_stmt_from_isl_node(fct, child, level, tagged_stmts),
-						*coli::generate_Halide_stmt_from_isl_node(fct, child2, level, tagged_stmts));
+			            *coli::generate_Halide_stmt_from_isl_node(fct, child, level, tagged_stmts),
+			            *coli::generate_Halide_stmt_from_isl_node(fct, child2, level, tagged_stmts));
 
 			for (i = 2; i < isl_ast_node_list_n_ast_node(list); i++)
 			{
@@ -703,7 +707,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 			}
 		}
 		else
-			// The above code expects the isl ast block to have at least two statemenets so that the
+			// The above code expects the isl ast block to have at least two statements so that the
 			// Halide::Internal::Block::make works (because that function expects its two inputs to be define).
 			coli::error("Expecting the block to have at least 2 statements but it does not.", true);
 	}
@@ -804,6 +808,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 		isl_ast_expr_free(arg);
 		std::string computation_name(isl_id_get_name(id));
 		isl_id_free(id);
+		DEBUG(3, coli::str_dump("Computation name:");coli::str_dump(computation_name));
 
 		// Check if any loop around this statement should be
 		// parallelized, vectorized or mapped to GPU.
@@ -818,7 +823,7 @@ Halide::Internal::Stmt *generate_Halide_stmt_from_isl_node(
 
 		coli::computation *comp = fct.get_computation_by_name(computation_name);
 
-		comp->create_halide_assignement();
+		comp->create_halide_stmt();
 
 		*result = comp->get_halide_stmt();
 	}
@@ -877,7 +882,13 @@ void function::gen_halide_stmt()
 			// Create a vector indicating the size that should be allocated.
 			for (const auto &sz: buf->get_dim_sizes())
 			{
-				halide_dim_sizes.push_back(Halide::Expr((uint32_t) sz));
+			  // TODO: if the size of an array is a computation access
+			  // this is not supported yet. Mainly because in the code below
+			  // we pass NULL pointers for parameters that are necessary
+			  // in case we are computing the halide expression from a coli expression
+			  // that represents a computation access.
+			  std::vector<isl_ast_expr *> ie = {};
+			  halide_dim_sizes.push_back(create_halide_expr_from_coli_expr(NULL, ie, sz));
 			}
 			*stmt = Halide::Internal::Allocate::make(
 						buf->get_name(),
@@ -946,61 +957,68 @@ Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer,
  * The statement will assign the computations to a memory buffer based on the
  * access function provided in access.
  */
-void computation::create_halide_assignement()
+void computation::create_halide_stmt()
 {
-	assert(this->access != NULL);
+      DEBUG_FCT_NAME(3);
+      DEBUG_INDENT(4);
 
-	const char *buffer_name = isl_space_get_tuple_name(
-				isl_map_get_space(this->access), isl_dim_out);
-	assert(buffer_name != NULL);
+    DEBUG(3, coli::str_dump("Generating stmt for assignement."));
+    const char *buffer_name = isl_space_get_tuple_name(
+                          isl_map_get_space(this->access), isl_dim_out);
+    assert(buffer_name != NULL);
 
-	isl_map *access = this->access;
-	isl_space *space = isl_map_get_space(access);
-	// Get the number of dimensions of the ISL map representing
-	// the access.
-	int access_dims = isl_space_dim(space, isl_dim_out);
+    isl_map *access = this->access;
+    isl_space *space = isl_map_get_space(access);
+    // Get the number of dimensions of the ISL map representing
+    // the access.
+    int access_dims = isl_space_dim(space, isl_dim_out);
 
-   	// Fetch the actual buffer.
-   	auto buffer_entry = this->function->get_buffers_list().find(buffer_name);
-   	assert(buffer_entry != this->function->get_buffers_list().end());
+    // Fetch the actual buffer.
+    auto buffer_entry = this->function->get_buffers_list().find(buffer_name);
+    assert(buffer_entry != this->function->get_buffers_list().end());
 
-   	auto coli_buffer = buffer_entry->second;
+    auto coli_buffer = buffer_entry->second;
 
-   	halide_dimension_t shape[coli_buffer->get_dim_sizes().size()];
-	int stride = 1;
-	for (int i = 0; i < coli_buffer->get_dim_sizes().size(); i++) {
-       	shape[i].min = 0;
-       	shape[i].extent = coli_buffer->get_dim_sizes()[i];
-       	shape[i].stride = stride;
-       	stride *= coli_buffer->get_dim_sizes()[i];
-   	}
+    halide_dimension_t shape[coli_buffer->get_dim_sizes().size()];
+    int stride = 1;
+    for (int i = 0; i < coli_buffer->get_dim_sizes().size(); i++) {
+    shape[i].min = 0;
+    shape[i].extent = (int) coli_buffer->get_dim_sizes()[i].get_int_val();
+    shape[i].stride = stride;
+    stride *= (int) coli_buffer->get_dim_sizes()[i].get_int_val();
+    }
 
-	Halide::Internal::BufferPtr *buffer =
-		new Halide::Internal::BufferPtr(
-				Halide::Image<>(coli_type_to_halide_type(coli_buffer->get_type()),
-								coli_buffer->get_data(),
-								coli_buffer->get_dim_sizes().size(),
-								shape),
-				coli_buffer->get_name());
+    Halide::Internal::BufferPtr *buffer =
+          new Halide::Internal::BufferPtr(
+                          Halide::Image<>(coli_type_to_halide_type(coli_buffer->get_type()),
+                                                          coli_buffer->get_data(),
+                                                          coli_buffer->get_dim_sizes().size(),
+                                                          shape),
+                          coli_buffer->get_name());
 
-	int buf_dims = buffer->dimensions();
+    int buf_dims = buffer->dimensions();
 
-	// The number of dimensions in the Halide buffer should be equal to
-	// the number of dimensions of the access function.
-	assert(buf_dims == access_dims);
+    // The number of dimensions in the Halide buffer should be equal to
+    // the number of dimensions of the access function.
+    assert(buf_dims == access_dims);
 
-	auto index_expr = this->index_expr[0];
-	assert(index_expr != NULL);
+    auto index_expr = this->index_expr[0];
+    assert(index_expr != NULL);
 
-	Halide::Expr index = coli::linearize_access(buffer, index_expr);
+    Halide::Expr index = coli::linearize_access(buffer, index_expr);
 
-	Halide::Internal::Parameter param(
-		buffer->type(), true, buffer->dimensions(), buffer->name());
-	param.set_buffer(*buffer);
+    Halide::Internal::Parameter param(
+          buffer->type(), true, buffer->dimensions(), buffer->name());
+    param.set_buffer(*buffer);
 
-	std::vector<isl_ast_expr *> index_expr_cp = this->index_expr;
-	index_expr_cp.erase(index_expr_cp.begin());
-	this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this, index_expr_cp, *(this->expression)), index, param);
+    std::vector<isl_ast_expr *> index_expr_cp = this->index_expr;
+    index_expr_cp.erase(index_expr_cp.begin());
+    this->stmt = Halide::Internal::Store::make(buffer_name, create_halide_expr_from_coli_expr(this, index_expr_cp, *(this->expression)), index, param);
+
+    DEBUG(3, coli::str_dump("End of create_halide_stmt. Generated statement is: ");
+             std::cout << this->stmt);
+
+    DEBUG_INDENT(-4);
 }
 
 void function::gen_halide_obj(
