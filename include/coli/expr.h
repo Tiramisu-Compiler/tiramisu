@@ -94,14 +94,14 @@ public:
     /**
       * Create an undefined expression.
       */
-      expr()
-      {
-         this->defined = false;
+    expr()
+    {
+        this->defined = false;
 
-         this->_operator = coli::o_none;
-         this->etype = coli::e_none;
-         this->dtype = coli::p_none;
-      }
+        this->_operator = coli::o_none;
+        this->etype = coli::e_none;
+        this->dtype = coli::p_none;
+    }
 
     /**
       * Create a expression of type \p t (a unary operator).
@@ -326,7 +326,7 @@ public:
     /**
       * Return the actual value of the expression.
       */
-    //@
+    // @{
     uint8_t get_uint8_value() const
     {
         assert(this->get_expr_type() == coli::e_val);
@@ -406,6 +406,7 @@ public:
 
         return float64_value;
     }
+    // @}
 
     int64_t get_int_val() const
     {
@@ -454,7 +455,6 @@ public:
 
       return result;
     }
-    //@
 
     /**
       * Return the value of the \p i 'th operand of the expression.
@@ -689,12 +689,26 @@ public:
     }
 
     /**
+     * Logical NOT of an expression.
+     */
+    coli::expr operator!() const
+    {
+        return coli::expr(coli::o_not, *this);
+    }
+
+    /**
      * Comparison operator.
      */
+    // @{
     coli::expr operator==(coli::expr e1) const
     {
         return coli::expr(coli::o_eq, *this, e1);
     }
+    coli::expr operator!=(coli::expr e1) const
+    {
+        return coli::expr(coli::o_ne, *this, e1);
+    }
+    // @}
 
     /**
      * Less than operator.

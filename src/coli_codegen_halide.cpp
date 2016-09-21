@@ -315,7 +315,14 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
 					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
 					break;
+				case coli::o_not:
+					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
+					break;
 				case coli::o_eq:
+					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					break;
+				case coli::o_ne:
 					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
 					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
 					break;
@@ -480,8 +487,14 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vec
 			case coli::o_gt:
 				result = Halide::Internal::GT::make(op0, op1);
 				break;
+			case coli::o_not:
+				result = Halide::Internal::Not::make(op0);
+				break;
 			case coli::o_eq:
 				result = Halide::Internal::EQ::make(op0, op1);
+				break;
+			case coli::o_ne:
+				result = Halide::Internal::NE::make(op0, op1);
 				break;
 			case coli::o_access:
 			{

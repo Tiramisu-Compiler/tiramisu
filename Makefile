@@ -15,7 +15,7 @@ CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
 HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
-OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o
+OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02
 TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator
