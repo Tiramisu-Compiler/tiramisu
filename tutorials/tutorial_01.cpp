@@ -30,7 +30,7 @@ int main(int argc, char **argv)
     // function.  Buffers of type type::argument::temporary are
     // allocated automatically by coli within the function and thus should
     // not be passed as arguments to the function.
-    buffer buf0("buf0", 2, {10,10}, p_uint8, NULL, a_output, &function0);
+    buffer buf0("buf0", 2, {coli::expr(10),coli::expr(10)}, p_uint8, NULL, a_output, &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the

@@ -44,8 +44,8 @@ int main(int argc, char **argv)
      * Declare an invariant for the function.
      */
     function blurxy("blurxy");
-    buffer b_input("b_input", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_input, &blurxy);
-    buffer b_blury("b_blury", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_output, &blurxy);
+    buffer b_input("b_input", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
+    buffer b_blury("b_blury", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
     invariant p0("N", expr((int32_t) SIZE0), &blurxy);
     invariant p1("M", expr((int32_t) SIZE1), &blurxy);
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2, true, p_uint8, &blurxy);
 
     // Create a memory buffer (2 dimensional).
-    buffer b_blurx("b_blurx", 2, {SIZE0,SIZE1}, p_uint8, NULL, a_temporary, &blurxy);
+    buffer b_blurx("b_blurx", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_temporary, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     // Some debugging
     blurxy.dump_iteration_domain();
     blurxy.dump_halide_stmt();
-    
+
     // Dump all the fields of the blurxy class.
     blurxy.dump(true);
 
