@@ -92,14 +92,14 @@ public:
     /**
       * Create an undefined expression.
       */
-      expr()
-      {
-         this->defined = false;
+    expr()
+    {
+        this->defined = false;
 
-         this->_operator = coli::o_none;
-         this->etype = coli::e_none;
-         this->dtype = coli::p_none;
-      }
+        this->_operator = coli::o_none;
+        this->etype = coli::e_none;
+        this->dtype = coli::p_none;
+    }
 
     /**
       * Create a expression of type \p t (a unary operator).
@@ -171,7 +171,7 @@ public:
     /**
     * Construct an expression that represents an id.
     */
-    expr(coli::primitive_t type, std::string name)
+    expr(std::string name)
     {
         assert(name.length() > 0);
 
@@ -180,7 +180,7 @@ public:
         this->defined = true;
 
         this->_operator = coli::o_none;
-        this->dtype = type;
+        this->dtype = coli::p_none;
     }
 
     /**
@@ -782,9 +782,11 @@ public:
     /**
      * Construct an expression that represents an id.
      */
-    idx(std::string name): expr(p_int32, name)
+    idx(std::string name): expr(name)
     {
         assert(name.length() > 0);
+
+        this->dtype = coli::p_int32;
     }
 };
 

@@ -12,6 +12,7 @@ using namespace Halide::Internal;
 
 using std::string;
 using std::map;
+using std::vector;
 
 namespace coli
 {
@@ -44,12 +45,12 @@ coli::primitive_t halide_type_to_coli_type(Type type)
         } else if (type.bits() == 64) {
             return coli::p_float64;
         } else {
-            coli::error("Floats other than 32 *and 64 *bits *are not suppored in Coli.", true);
+            coli::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
         }
     } else if (type.is_bool()) {
         return coli::p_boolean;
     } else {
-        coli::error("Halide type cannot *be translated to Coli type.", true);
+        coli::error("Halide type cannot be translated to Coli type.", true);
     }
     return coli::p_none;
 }
@@ -64,13 +65,15 @@ private:
     }
 
 public:
-    coli::expr *expr;
+    coli::expr expr;
+    map<string, coli::computation> computation_list;
+    coli::function *fct_ptr;
 
     HalideToColi() {}
 
-    ~HalideToColi() {}
+    ~HalideToColi() { fct_ptr = nullptr; }
 
-    coli::expr *mutate(Expr e) {
+    coli::expr mutate(Expr e) {
         assert(e.defined() && "HalideToColi can't convert undefined expr\n");
         return expr;
     }
@@ -104,53 +107,54 @@ protected:
     void visit(const Evaluate *)            { error(); }
     void visit(const Ramp *)                { error(); }
     void visit(const Broadcast *)           { error(); }
-
-    void visit(const Load *)                { error(); }
-    void visit(const Call *)                { error(); }
-    void visit(const ProducerConsumer *)    { error(); }
-    void visit(const For *)                 { error(); }
-    void visit(const Store *)               { error(); }
-    void visit(const Provide *)             { error(); }
-    void visit(const Allocate *)            { error(); }
-    void visit(const Realize *)             { error(); }
-    void visit(const Block *)               { error(); }
     void visit(const IfThenElse *)          { error(); }
     void visit(const Free *)                { error(); }
-    void visit(const Let *)                 { error(); }
-    void visit(const LetStmt *)             { error(); }
+
+    void visit(const Let *);
+    void visit(const LetStmt *);
+    void visit(const For *);
+    void visit(const Load *);
+    void visit(const Store *);
+    void visit(const Call *);
+    void visit(const ProducerConsumer *);
+    void visit(const Block *);
+    void visit(const Allocate *);
+
+    void visit(const Provide *)             { error(); }
+    void visit(const Realize *)             { error(); }
 };
 
 void HalideToColi::visit(const IntImm *op) {
     if (op->type.bits() == 8) {
-        *expr = coli::expr((int8_t)op->value);
+        expr = coli::expr((int8_t)op->value);
     } else if (op->type.bits() == 16) {
-        *expr = coli::expr((int16_t)op->value);
+        expr = coli::expr((int16_t)op->value);
     } else if (op->type.bits() == 32) {
-        *expr = coli::expr((int32_t)op->value);
+        expr = coli::expr((int32_t)op->value);
     } else {
         // 64-bit signed integer
-        *expr = coli::expr(op->value);
+        expr = coli::expr(op->value);
     }
 }
 
 void HalideToColi::visit(const UIntImm *op) {
     if (op->type.bits() == 8) {
-        *expr = coli::expr((uint8_t)op->value);
+        expr = coli::expr((uint8_t)op->value);
     } else if (op->type.bits() == 16) {
-        *expr = coli::expr((uint16_t)op->value);
+        expr = coli::expr((uint16_t)op->value);
     } else if (op->type.bits() == 32) {
-        *expr = coli::expr((uint32_t)op->value);
+        expr = coli::expr((uint32_t)op->value);
     } else {
         // 64-bit unsigned integer
-        *expr = coli::expr(op->value);
+        expr = coli::expr(op->value);
     }
 }
 
 void HalideToColi::visit(const FloatImm *op) {
     if (op->type.bits() == 32) {
-        *expr = coli::expr((float)op->value);
+        expr = coli::expr((float)op->value);
     } else if (op->type.bits() == 64) {
-        *expr = coli::expr(op->value);
+        expr = coli::expr(op->value);
     } else {
         error();
     }
@@ -161,111 +165,181 @@ void HalideToColi::visit(const Cast *op) {
 }
 
 void HalideToColi::visit(const Variable *op) {
-    *expr = coli::expr(halide_type_to_coli_type(op->type), op->name);
+    //TODO(psuriana)
+    error();
+    const auto &iter = computation_list.find(op->name);
+    if (iter != computation_list.end()) {
+        // It is a reference to variable defined in Let/LetStmt or a reference
+        // to a buffer
+        expr = iter->second(0);
+    } else {
+        // It is presumably a reference to loop variable
+
+    }
 }
 
 void HalideToColi::visit(const Add *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = *a + *b;
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = a + b;
 }
 
 void HalideToColi::visit(const Sub *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = *a - *b;
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = a - b;
 }
 
 void HalideToColi::visit(const Mul *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = *a * *b;
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = a * b;
 }
 
 void HalideToColi::visit(const Div *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = *a / *b;
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = a / b;
 }
 
 void HalideToColi::visit(const Mod *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = *a % *b;
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = a % b;
 }
 
 void HalideToColi::visit(const Min *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = coli::expr(coli::o_min, *a, *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = coli::expr(coli::o_min, a, b);
 }
 
 void HalideToColi::visit(const Max *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = coli::expr(coli::o_max, *a, *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = coli::expr(coli::o_max, a, b);
 }
 
 void HalideToColi::visit(const EQ *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a == *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a == b);
 }
 
 void HalideToColi::visit(const NE *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a != *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a != b);
 }
 
 void HalideToColi::visit(const LT *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a < *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a < b);
 }
 
 void HalideToColi::visit(const LE *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a <= *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a <= b);
 }
 
 void HalideToColi::visit(const GT *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a > *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a > b);
 }
 
 void HalideToColi::visit(const GE *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a >= *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a >= b);
 }
 
 void HalideToColi::visit(const And *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a && *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a && b);
 }
 
 void HalideToColi::visit(const Or *op) {
-    coli::expr *a = mutate(op->a);
-    coli::expr *b = mutate(op->b);
-    *expr = (*a || *b);
+    coli::expr a = mutate(op->a);
+    coli::expr b = mutate(op->b);
+    expr = (a || b);
 }
 
 void HalideToColi::visit(const Not *op) {
-    coli::expr *a = mutate(op->a);
-    *expr = !(*a);
+    coli::expr a = mutate(op->a);
+    expr = !a;
 }
 
 void HalideToColi::visit(const Select *op) {
-    coli::expr *cond = mutate(op->condition);
-    coli::expr *t = mutate(op->true_value);
-    coli::expr *f = mutate(op->false_value);
-    *expr = coli::expr(coli::o_cond, *cond, *t, *f);
+    coli::expr cond = mutate(op->condition);
+    coli::expr t = mutate(op->true_value);
+    coli::expr f = mutate(op->false_value);
+    expr = coli::expr(coli::o_cond, cond, t, f);
 }
 
-} // *anonymous namespace
+void HalideToColi::visit(const Let *op) {
+    coli::expr value = mutate(op->value);
+    coli::computation t("{" + op->name + "[0]}", &value, true,
+                        halide_type_to_coli_type(op->value.type()),
+                        fct_ptr);
+    //TODO(psuriana): not sure???
+    coli::buffer scalar_t("scalar_t", 1, {coli::expr(1)}, ....)
+    t.set_access("{t[0] -> scalar_t[0]}")
+
+    computation_list.emplace(op->name, t);
+    coli::expr body = mutate(op->body);
+    expr = body;
+}
+
+void HalideToColi::visit(const LetStmt *op) {
+    error();
+}
+
+void HalideToColi::visit(const For *op) {
+    //TODO(psuriana)
+    error();
+    //computation f("{f[x,y]: 0<x<N and 0<y<M}", coli::idx("x") + coli::idx("y"), ....);
+}
+
+void HalideToColi::visit(const ProducerConsumer *op) {
+    error();
+}
+
+void HalideToColi::visit(const Load *op) {
+    error();
+}
+
+void HalideToColi::visit(const Store *op) {
+    error();
+}
+
+void HalideToColi::visit(const Call *op) {
+    //TODO(psuriana): handle call to extern functions, e.g. sin, cos, etc.
+    const auto &iter = computation_list.find(op->name);
+
+    if (iter != computation_list.end()) {
+        vector<coli::expr> args(op->args.size());
+        for (size_t i = 0; i < op->args.size(); ++i) {
+            args[i] = mutate(op->args[i]);
+        }
+        expr = iter->second(args);
+    } else {
+        coli::error("Call to " + op->name + " is undefined." , true);
+    }
+}
+
+void HalideToColi::visit(const Block *op) {
+    error();
+}
+
+void HalideToColi::visit(const Allocate *op) {
+    error();
+    //computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);
+}
+
+} // anonymous namespace
 
 }
