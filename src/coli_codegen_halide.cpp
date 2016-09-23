@@ -64,11 +64,66 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 	DEBUG_INDENT(4);
 
 	isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
-	DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(schedule)));
-	schedule = isl_map_set_tuple_name(schedule, isl_dim_in, isl_map_get_tuple_name(access, isl_dim_in));
-	DEBUG(3, coli::str_dump("After renaming the Schedule:", isl_map_to_str(schedule)));
+    DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(schedule)));
+
 	isl_map* map = isl_map_reverse(isl_map_copy(schedule));
 	DEBUG(3, coli::str_dump("Schedule reversed:", isl_map_to_str(map)));
+
+	// Create a universe map that transforms the range of the reversed
+	// schedule to be equal to the domain of the access (because the
+	// domain of the accesses is different from the range of the schedule,
+	// and without this we cannot apply the schedule on the access.
+	isl_set *sched_range = isl_map_range(isl_map_copy(map));
+	isl_set *access_domain = isl_map_domain(isl_map_copy(access));
+
+    DEBUG(3, coli::str_dump("Sched range:", isl_set_to_str(sched_range)));
+    DEBUG(3, coli::str_dump("Access domain:", isl_set_to_str(access_domain)));
+
+	// Extracting the spaces and aligning them
+	isl_space *sp1 = isl_set_get_space(sched_range);
+	isl_space *sp2 = isl_set_get_space(access_domain);
+    sp1 = isl_space_align_params(sp1, isl_space_copy(sp2));
+    sp2 = isl_space_align_params(sp2, isl_space_copy(sp1));
+
+    // Create the space access_domain -> sched_range.
+    isl_space *sp = isl_space_map_from_domain_and_range(isl_space_copy(sp1),
+                                                        isl_space_copy(sp2));
+    isl_map *adapter = isl_map_universe(sp);
+    DEBUG(3, coli::str_dump("Adapter:", isl_map_to_str(adapter)));
+
+    isl_space *sp_map = isl_map_get_space(adapter);
+    isl_local_space *l_sp = isl_local_space_from_space(sp_map);
+
+    // Add equality constraints.
+	for (int i=0; i<isl_space_dim(sp1, isl_dim_set); i++)
+	    for (int j=0; j<isl_space_dim(sp2, isl_dim_set); j++)
+	    {
+	        isl_id *id1 = isl_space_get_dim_id(sp1, isl_dim_set, i);
+	        isl_id *id2 = isl_space_get_dim_id(sp2, isl_dim_set, j);
+
+	        if (strcmp(isl_id_get_name(id1), isl_id_get_name(id2)) == 0)
+	        {
+	            isl_constraint *cst = isl_equality_alloc(
+	                                    isl_local_space_copy(l_sp));
+	            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, i, 1);
+	            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, j, -1);
+
+	            adapter = isl_map_add_constraint(adapter, cst);
+	        }
+	    }
+    DEBUG(3, coli::str_dump("Adapter after adding equality constraints:",
+                            isl_map_to_str(adapter)));
+
+    DEBUG(3, coli::str_dump("Applying adapter to range(map)."));
+    DEBUG(3, coli::str_dump("Adapter:", isl_map_to_str(adapter)));
+    DEBUG(3, coli::str_dump("map:", isl_map_to_str(map)));
+
+    // Apply the adapter on the range of map (which is the reversed schedule)
+    map = isl_map_apply_range(map, adapter);
+    DEBUG(3,
+          coli::str_dump("After applying adapter to range(reversed schedule):",
+          isl_map_to_str(map)));
+
 	isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
 	DEBUG_NO_NEWLINE(3, coli::str_dump("The iterator map of an AST leaf (after scheduling):");
 	                    isl_pw_multi_aff_dump(iterator_map));
@@ -102,6 +157,8 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 
 	if ((exp.get_expr_type() == coli::e_op) && (exp.get_op_type() == coli::o_access))
 	{
+        DEBUG(3, coli::str_dump("Extracting access from o_access."));
+
 		// Create the access map for this access node.
 		coli::expr id = exp.get_operand(0);
 
@@ -253,6 +310,8 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 	}
 	else if (exp.get_expr_type() == coli::e_op)
 	{
+	        DEBUG(3, coli::str_dump("Extracting access from e_op."));
+
 			switch(exp.get_op_type())
 			{
 				case coli::o_logical_and:
@@ -332,6 +391,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 		}
 
 	DEBUG_INDENT(-4);
+    DEBUG_FCT_NAME_END(3);
 }
 
 /**
@@ -340,8 +400,13 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
  */
 void get_rhs_accesses(coli::function *func, coli::computation *comp, std::vector<isl_map *> &accesses)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
 	const coli::expr *rhs = comp->get_expr();
 	traverse_expr_and_extract_accesses(func, *rhs, accesses);
+
+    DEBUG_INDENT(-4);
 }
 
 /**
@@ -377,8 +442,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	{
 	    assert((access != NULL) && "An access function should be provided before generating code.");
 
-		DEBUG(3, coli::str_dump("Access (isl_map *):", isl_map_to_str(access)));
-		DEBUG(3, coli::str_dump("\n"));
+		DEBUG(3, coli::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):", isl_map_to_str(access)));
 
 		// Compute the isl_ast index expression for the LHS
 		comp->get_index_expr().push_back(create_isl_ast_index_expression(build, access));
