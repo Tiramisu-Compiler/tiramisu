@@ -2,7 +2,7 @@ High Priority
 --------------
 - Urgent features:
     - Halide features:
-		- Check the k problem in tutorial_03 and why do we need to use k ?
+		- Add variable class (let stmt).
 		- Create three types for computations: definition, update, reductions.
 		- Support type casting.
     - Non affine support:
@@ -12,7 +12,6 @@ High Priority
 	- Testing:
         - Test correctness of blurxy.
         - Add asserts to check my assumptions.
-        - Write matrix multiplication.
         - Write basic tests.
 
 	- Robustness:
@@ -23,6 +22,7 @@ High Priority
         applied for all the values of i and j.
 
 - Low priority:
+		- Dfferentiate between select and ifTheElse.
 		- Support ramp, broadcast.
 		- Create a free and allocate IR nodes.
 		- Support two types of conditionals.
@@ -84,7 +84,15 @@ Low Priority
 	- No computation should be added after scheduling.
 	- Check that the space of the domain of the access is equal to the
 	space of the dmain of the corresponding computation.
+	- While in ISL the names of dimensions is not important, the dimension
+	names in COLi is important (this is because we need to match the indices
+	of coli access expressions to the dimensions of the access function).
 - Advantages over Halide:
 	- All what min could not do,
 	- Fuse/distribute,
 	- Mapping to data,
+
+
+Design questions
+------------------
+- Do we need binding of data to computations ?

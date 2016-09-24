@@ -52,15 +52,14 @@ int main(int argc, char **argv)
     computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
     // Declare a computation c_B that represents a binding to the buffer b_B
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
+
     // Declare a computation c_C
-
     expr e1 = c_A(idx("i"), idx("k")) * c_B(idx("k"), idx("j"));
-
     computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", &e1, true, p_uint8, &matmul);
 
     // Map the computations to a buffer.
-    c_A.set_access("{c_A[i,k]->b_A[i,k]}");
-    c_B.set_access("{c_B[k,j]->b_B[k,j]}");
+    c_A.set_access("{c_A[i,j]->b_A[i,j]}");
+    c_B.set_access("{c_B[i,j]->b_B[i,j]}");
     c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
 
     // Set the schedule of each computation.

@@ -56,6 +56,45 @@ coli::computation *get_computation_by_node(coli::function *fct, isl_ast_node *no
 	return comp;
 }
 
+isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
+{
+    DEBUG(3, coli::str_dump ("Domain:", isl_set_to_str(domain)));
+    DEBUG(3, coli::str_dump ("Range:", isl_set_to_str(range)));
+    // Extracting the spaces and aligning them
+    isl_space* sp1 = isl_set_get_space (domain);
+    isl_space* sp2 = isl_set_get_space (range);
+    sp1 = isl_space_align_params (sp1, isl_space_copy (sp2));
+    sp2 = isl_space_align_params (sp2, isl_space_copy (sp1));
+    // Create the space access_domain -> sched_range.
+    isl_space* sp = isl_space_map_from_domain_and_range (
+            isl_space_copy (sp1), isl_space_copy (sp2));
+    isl_map* adapter = isl_map_universe (sp);
+    DEBUG(3, coli::str_dump ("Transformation map:", isl_map_to_str (adapter)));
+    isl_space* sp_map = isl_map_get_space (adapter);
+    isl_local_space* l_sp = isl_local_space_from_space (sp_map);
+    // Add equality constraints.
+    for (int i = 0; i < isl_space_dim (sp1, isl_dim_set); i++)
+        for (int j = 0; j < isl_space_dim (sp2, isl_dim_set); j++)
+        {
+            isl_id* id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
+            isl_id* id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
+            if (strcmp (isl_id_get_name (id1), isl_id_get_name (id2)) == 0)
+            {
+                isl_constraint* cst = isl_equality_alloc (
+                                isl_local_space_copy (l_sp));
+                cst = isl_constraint_set_coefficient_si (cst,
+                                                         isl_dim_in,
+                                                         i, 1);
+                cst = isl_constraint_set_coefficient_si (
+                                cst, isl_dim_out, j, -1);
+                adapter = isl_map_add_constraint (adapter, cst);
+            }
+        }
+    DEBUG(3, coli::str_dump(
+            "Transformation map after adding equality constraints:",
+            isl_map_to_str (adapter)));
+    return adapter;
+}
 
 isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 		isl_map* access)
@@ -68,61 +107,6 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 
 	isl_map* map = isl_map_reverse(isl_map_copy(schedule));
 	DEBUG(3, coli::str_dump("Schedule reversed:", isl_map_to_str(map)));
-
-	// Create a universe map that transforms the range of the reversed
-	// schedule to be equal to the domain of the access (because the
-	// domain of the accesses is different from the range of the schedule,
-	// and without this we cannot apply the schedule on the access.
-	isl_set *sched_range = isl_map_range(isl_map_copy(map));
-	isl_set *access_domain = isl_map_domain(isl_map_copy(access));
-
-    DEBUG(3, coli::str_dump("Sched range:", isl_set_to_str(sched_range)));
-    DEBUG(3, coli::str_dump("Access domain:", isl_set_to_str(access_domain)));
-
-	// Extracting the spaces and aligning them
-	isl_space *sp1 = isl_set_get_space(sched_range);
-	isl_space *sp2 = isl_set_get_space(access_domain);
-    sp1 = isl_space_align_params(sp1, isl_space_copy(sp2));
-    sp2 = isl_space_align_params(sp2, isl_space_copy(sp1));
-
-    // Create the space access_domain -> sched_range.
-    isl_space *sp = isl_space_map_from_domain_and_range(isl_space_copy(sp1),
-                                                        isl_space_copy(sp2));
-    isl_map *adapter = isl_map_universe(sp);
-    DEBUG(3, coli::str_dump("Adapter:", isl_map_to_str(adapter)));
-
-    isl_space *sp_map = isl_map_get_space(adapter);
-    isl_local_space *l_sp = isl_local_space_from_space(sp_map);
-
-    // Add equality constraints.
-	for (int i=0; i<isl_space_dim(sp1, isl_dim_set); i++)
-	    for (int j=0; j<isl_space_dim(sp2, isl_dim_set); j++)
-	    {
-	        isl_id *id1 = isl_space_get_dim_id(sp1, isl_dim_set, i);
-	        isl_id *id2 = isl_space_get_dim_id(sp2, isl_dim_set, j);
-
-	        if (strcmp(isl_id_get_name(id1), isl_id_get_name(id2)) == 0)
-	        {
-	            isl_constraint *cst = isl_equality_alloc(
-	                                    isl_local_space_copy(l_sp));
-	            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, i, 1);
-	            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, j, -1);
-
-	            adapter = isl_map_add_constraint(adapter, cst);
-	        }
-	    }
-    DEBUG(3, coli::str_dump("Adapter after adding equality constraints:",
-                            isl_map_to_str(adapter)));
-
-    DEBUG(3, coli::str_dump("Applying adapter to range(map)."));
-    DEBUG(3, coli::str_dump("Adapter:", isl_map_to_str(adapter)));
-    DEBUG(3, coli::str_dump("map:", isl_map_to_str(map)));
-
-    // Apply the adapter on the range of map (which is the reversed schedule)
-    map = isl_map_apply_range(map, adapter);
-    DEBUG(3,
-          coli::str_dump("After applying adapter to range(reversed schedule):",
-          isl_map_to_str(map)));
 
 	isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
 	DEBUG_NO_NEWLINE(3, coli::str_dump("The iterator map of an AST leaf (after scheduling):");
@@ -148,7 +132,9 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 /**
  * Traverse the coli expression and extract accesses.
  */
-void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr exp, std::vector<isl_map *> &accesses)
+void traverse_expr_and_extract_accesses(coli::function *fct,
+                                        coli::computation *comp,
+                                        const coli::expr exp, std::vector<isl_map *> &accesses)
 {
 	assert(fct != NULL);
 
@@ -163,22 +149,35 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 		coli::expr id = exp.get_operand(0);
 
 		// Get the corresponding computation
-		coli::computation *comp = fct->get_computation_by_name(id.get_id_name());
+		coli::computation *comp2 = fct->get_computation_by_name(id.get_id_name());
+        DEBUG(3, coli::str_dump("The computation corresponding to the access: "
+                                + comp2->get_name()));
 
-		isl_map *access_function = isl_map_copy(comp->get_access());
+		isl_map *access_function = isl_map_copy(comp2->get_access());
+
+        DEBUG(3, coli::str_dump("The access function of this computation: ",
+                                isl_map_to_str(access_function)));
 
 		isl_set *domain = isl_set_universe(
-								isl_space_domain(
-									isl_map_get_space(
-											isl_map_copy(access_function))));
-		isl_map *identity = isl_map_identity(
-								isl_space_map_from_set(
-										isl_set_get_space(domain)));
+		            isl_set_get_space(
+					    isl_set_copy(comp->get_iteration_domain())));
 
+		isl_set *range = isl_set_universe(
+		                    isl_set_get_space(
+		                        isl_set_copy(comp2->get_iteration_domain())));
+
+		isl_map* identity = create_map_from_domain_and_range (domain, range);
 		identity = isl_map_universe(isl_map_get_space(identity));
 
+        DEBUG(3, coli::str_dump("Transformation map before adding constraints:",
+                                isl_map_to_str(identity)));
 
-		int dim = 0;
+		//TODO: make the following a recursive function that translates the access
+		// into proper constraints.
+
+        // The dimension_number is a counter that indicates to which dimension
+        // is the access associated.
+        int dimension_number = 0;
 		for (const auto &access: exp.get_access())
 		{
 			isl_local_space *ls = isl_local_space_from_space(
@@ -187,25 +186,30 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 			isl_constraint *cst = isl_constraint_alloc_equality(
 										isl_local_space_copy(ls));
 
-			cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim, 1);
+            DEBUG(3, coli::str_dump(
+                    "Assigning 1 to the coefficient of output dimension " +
+                    std::to_string(dimension_number)));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
+                                                    dimension_number, 1);
 
 			if (access.get_expr_type() == coli::e_val)
 			{
-				if (access.get_data_type() == coli::p_int32)
-				{
-					cst = isl_constraint_set_constant_si(cst, (-1)*access.get_int32_value());
-				}
-				else
-					coli::error("Access values can only be of type coli::p_int32" , true);
+			    cst = isl_constraint_set_constant_si(cst, (-1)*access.get_int_val());
+			    DEBUG(3, coli::str_dump(
+			     "Assigning (-1)*access.get_int_val() to the cst dimension "));
 			}
 			else if (access.get_expr_type() == coli::e_id)
 			{
 				int dim0 = isl_space_find_dim_by_name(
-								isl_map_get_space(access_function),
+								isl_map_get_space(identity),
 								isl_dim_in,
 								access.get_id_name().c_str());
+	            assert((dim0 >= 0) && "Dimension not found");
 				cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 														dim0, -1);
+		        DEBUG(3, coli::str_dump(
+		                 "Assigning -1 to the input coefficient of dimension " +
+		                  std::to_string(dim0)));
 			}
 			else if (access.get_expr_type() == coli::e_op)
 			{
@@ -217,41 +221,41 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 					if (op0.get_expr_type() == coli::e_id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(access_function),
+										isl_map_get_space(identity),
 				                		isl_dim_in,
 										op0.get_id_name().c_str());
+		                assert((dim0 >= 0) && "Dimension not found");
 						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
+		                DEBUG(3, coli::str_dump(
+		                 "Assigning -1 to the input coefficient of dimension " +
+		                 std::to_string(dim0)));
 					}
 					if (op1.get_expr_type() == coli::e_id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(access_function),
+										isl_map_get_space(identity),
 										isl_dim_in,
 										op1.get_id_name().c_str());
+		                assert((dim0 >= 0) && "Dimension not found");
 						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
+						DEBUG(3, coli::str_dump(
+						 "Assigning -1 to the input coefficient of dimension " +
+						 std::to_string(dim0)));
 					}
 					if (op0.get_expr_type() == coli::e_val)
 					{
-						if (op0.get_data_type() == coli::p_int32)
-						{
-							cst = isl_constraint_set_constant_si(cst, (-1)*op0.get_int32_value());
-						}
-						else
-							coli::error("Access values can only be of type coli::p_int32" , true);
-					}
+						cst = isl_constraint_set_constant_si(cst, (-1)*op0.get_int_val());
+		                DEBUG(3, coli::str_dump(
+		                 "Assigning (-1)*op0.get_int_val() to the cst dimension "));
+		            }
 					if (op1.get_expr_type() == coli::e_val)
 					{
-						if (op1.get_data_type() == coli::p_int32)
-						{
-							cst = isl_constraint_set_constant_si(cst, (-1)*op1.get_int32_value());
-						}
-						else
-							coli::error("Access values can only be of type coli::p_int32" , true);
-					}
-					DEBUG(3, coli::str_dump("\n"));
-
+						cst = isl_constraint_set_constant_si(cst, (-1)*op1.get_int_val());
+		                DEBUG(3, coli::str_dump(
+		                 "Assigning (-1)*op1.get_int_val() to the cst dimension "));
+		            }
 				}
 				else if (access.get_op_type() == coli::o_sub)
 				{
@@ -261,51 +265,56 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 					if (op0.get_expr_type() == coli::e_id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(access_function),
+										isl_map_get_space(identity),
 				                		isl_dim_in,
 										op0.get_id_name().c_str());
+		                assert((dim0 >= 0) && "Dimension not found");
 						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
+						DEBUG(3, coli::str_dump(
+						 "Assigning -1 to the input coefficient of dimension " +
+						 std::to_string(dim0)));
 					}
 					if (op1.get_expr_type() == coli::e_id)
 					{
 						int dim0 = isl_space_find_dim_by_name(
-										isl_map_get_space(access_function),
+										isl_map_get_space(identity),
 										isl_dim_in,
 										op1.get_id_name().c_str());
+		                assert((dim0 >= 0) && "Dimension not found");
 						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
+						DEBUG(3, coli::str_dump(
+						 "Assigning -1 to the input coefficient of dimension " +
+						 std::to_string(dim0)));
 					}
 					if (op0.get_expr_type() == coli::e_val)
 					{
-						if (op0.get_data_type() == coli::p_int32)
-						{
-							cst = isl_constraint_set_constant_si(cst, op0.get_int32_value());
-						}
-						else
-							coli::error("Access values can only be of type coli::p_int32" , true);
-					}
+						cst = isl_constraint_set_constant_si(cst, op0.get_int_val());
+		                DEBUG(3, coli::str_dump(
+		                 "Assigning (-1)*op0.get_int_val() to the cst dimension "));
+		            }
 					if (op1.get_expr_type() == coli::e_val)
 					{
-						if (op1.get_data_type() == coli::p_int32)
-						{
-							cst = isl_constraint_set_constant_si(cst, op1.get_int32_value());
-						}
-						else
-							coli::error("Access values can only be of type coli::p_int32" , true);
-					}
-					DEBUG(3, coli::str_dump("\n"));
+						cst = isl_constraint_set_constant_si(cst, op1.get_int_val());
+		                DEBUG(3, coli::str_dump(
+		                 "Assigning (-1)*op1.get_int_val() to the cst dimension "));
+		            }
 				}
 				else
 					coli::error("Currently only Add and Sub operations for accesses are supported." , true);
 			}
-
-			dim++;
-
+			dimension_number++;
 			identity = isl_map_add_constraint(identity, cst);
 		}
-		access_function = isl_map_apply_domain(access_function, isl_map_copy(identity));
-		DEBUG(3, coli::str_dump("Updated access function:", isl_map_to_str(access_function)));
+        DEBUG(3, coli::str_dump("Access function:",
+                                isl_map_to_str(access_function)));
+        DEBUG(3, coli::str_dump("Transformation function after adding constraints:",
+                                isl_map_to_str(identity)));
+		access_function = isl_map_apply_range(isl_map_copy(identity),access_function);
+		DEBUG(3, coli::str_dump(
+		        "Applying access function on the range of transformation function:",
+		        isl_map_to_str(access_function)));
 		accesses.push_back(access_function);
 	}
 	else if (exp.get_expr_type() == coli::e_op)
@@ -315,75 +324,75 @@ void traverse_expr_and_extract_accesses(coli::function *fct, const coli::expr ex
 			switch(exp.get_op_type())
 			{
 				case coli::o_logical_and:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_logical_or:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_max:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_min:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_minus:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
 					break;
 				case coli::o_add:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_sub:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_mul:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_div:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_mod:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_cond:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(2), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses);
 					break;
 				case coli::o_le:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_lt:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_ge:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_gt:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_not:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
 					break;
 				case coli::o_eq:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				case coli::o_ne:
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(0), accesses);
-					traverse_expr_and_extract_accesses(fct, exp.get_operand(1), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
 				default:
 					coli::error("Extracting access function from an unsupported coli expression.", 1);
@@ -404,7 +413,7 @@ void get_rhs_accesses(coli::function *func, coli::computation *comp, std::vector
     DEBUG_INDENT(4);
 
 	const coli::expr *rhs = comp->get_expr();
-	traverse_expr_and_extract_accesses(func, *rhs, accesses);
+	traverse_expr_and_extract_accesses(func, comp, *rhs, accesses);
 
     DEBUG_INDENT(-4);
 }
