@@ -1071,6 +1071,14 @@ public:
     }
 
     /**
+     * Set the expression associated to the computation.
+     */
+    void set_expression(coli::expr *e)
+    {
+        this->expression = e;
+    }
+
+    /**
       * Bind the computation to a buffer.
       * i.e. create a one-to-one data mapping between the computation
       * the buffer.

@@ -1,14 +1,14 @@
 High Priority
 --------------
 - Urgent features:
-    - Halide features:
-		- Add variable class (let stmt).
-		- Create three types for computations: definition, update, reductions.
-		- Support type casting.
     - Non affine support:
         - Non affine loop bounds,
         - Non affine array accesses,
         - Vectorize a non-affine loop (split with the innermost being constant),
+    - Halide features:
+		- Add variable class (let stmt).
+		- Create three types for computations: definition, update, reductions.
+		- Support type casting.
 	- Testing:
         - Test correctness of blurxy.
         - Add asserts to check my assumptions.

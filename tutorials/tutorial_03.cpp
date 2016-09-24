@@ -17,10 +17,6 @@ Func matmul(Input A, Input B, Output C) {
     Halide::Func A, B, C;
     Halide::Var x, y;
 
-    A(x,y) = 1;
-    B(x,y) = 1;
-    C(x,y) = 0;
-
     Halide::RDom r(0, N);
     C(x,y) = C(x,y) + A(x,r) * B(r,y);
 
@@ -54,8 +50,9 @@ int main(int argc, char **argv)
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
 
     // Declare a computation c_C
-    expr e1 = c_A(idx("i"), idx("k")) * c_B(idx("k"), idx("j"));
-    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", &e1, true, p_uint8, &matmul);
+    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", NULL, true, p_uint8, &matmul);
+    expr e1 = c_C(idx("i"), idx("j")) + (c_A(idx("i"), idx("k")) * c_B(idx("k"), idx("j")));
+    c_C.set_expression(&e1);
 
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");
