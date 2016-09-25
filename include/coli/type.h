@@ -13,6 +13,7 @@ namespace coli {
     enum expr_t {
         e_val,
         e_id,
+        e_var,
         e_op,
         e_none
     };

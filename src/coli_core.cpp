@@ -310,6 +310,16 @@ void computation::after(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
+void computation::before(computation &comp, int dim)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    comp.after(*this, dim);
+
+    DEBUG_INDENT(-4);
+}
+
 void computation::tile(int inDim0, int inDim1,
             int sizeX, int sizeY)
 {
@@ -619,7 +629,7 @@ void coli::function::align_schedules()
     DEBUG_INDENT(-4);
 }
 
-void coli::function::add_invariant(coli::invariant invar)
+void coli::function::add_invariant(coli::constant invar)
 {
     invariants.push_back(invar);
 }
@@ -636,14 +646,14 @@ void coli::function::add_computation(computation *cpt)
     this->body.push_back(cpt);
 }
 
-void coli::invariant::dump(bool exhaustive) const
+void coli::constant::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
         std::cout << "Invariant \"" << this->name << "\"" << std::endl;
 
         std::cout << "Expression: ";
-        this->expr.dump(exhaustive);
+        this->get_expr()->dump(exhaustive);
         std::cout << std::endl;
     }
 }

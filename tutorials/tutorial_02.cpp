@@ -46,8 +46,10 @@ int main(int argc, char **argv)
     function blurxy("blurxy");
     buffer b_input("b_input", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
     buffer b_blury("b_blury", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
-    invariant p0("N", expr((int32_t) SIZE0), &blurxy);
-    invariant p1("M", expr((int32_t) SIZE1), &blurxy);
+    expr e_p0 = expr((int32_t) SIZE0);
+    expr e_p1 = expr((int32_t) SIZE1);
+    constant p0("N", &e_p0, p_int32, true, NULL, 0, &blurxy);
+    constant p1("M", &e_p1, p_int32, true, NULL, 0, &blurxy);
 
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);

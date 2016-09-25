@@ -18,7 +18,8 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     coli::global::set_default_coli_options();
 
     coli::function function0(name);
-    coli::invariant N("N", coli::expr((int32_t) size), &function0);
+    coli::expr e_N = coli::expr((int32_t) size);
+    coli::constant N("N", &e_N, p_int32, true, NULL, 0, &function0);
     coli::expr e1 = coli::expr(coli::o_add,
                                coli::expr((uint8_t) val0),
                                coli::expr((uint8_t) val1));

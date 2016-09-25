@@ -25,10 +25,12 @@ namespace coli
 class function;
 class computation;
 class buffer;
-class invariant;
+class constant;
 
 Halide::Type coli_type_to_halide_type(coli::primitive_t type);
-Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp, std::vector<isl_ast_expr *> &index_expr, const coli::expr coli_expr);
+Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp,
+                                               std::vector<isl_ast_expr *> index_expr,
+                                               const coli::expr coli_expr);
 
 
 /**
@@ -103,7 +105,7 @@ private:
       * variables that are invariant to the function i.e. do not change
       * their value during the execution of the function).
       */
-    std::vector<coli::invariant> invariants;
+    std::vector<coli::constant> invariants;
 
     /**
       * An isl context associate with the function.
@@ -209,11 +211,11 @@ public:
       * Return a vector representing the invariants of the function.
       */
     // @{
-    const std::vector<coli::invariant> &get_invariants() const
+    const std::vector<coli::constant> &get_invariants() const
     {
         return invariants;
     }
-    std::vector<coli::invariant> &get_invariants()
+    std::vector<coli::constant> &get_invariants()
     {
         return invariants;
     }
@@ -262,7 +264,7 @@ public:
     /**
       * Add an invariant to the function.
       */
-    void add_invariant(coli::invariant param);
+    void add_invariant(coli::constant param);
 
     /**
       * Add a computation to the function.  The order in which
@@ -676,41 +678,6 @@ private:
     isl_set *iteration_domain;
 
     /**
-      * An expression representing the computation.
-      */
-    coli::expr *expression;
-
-    /**
-      * Initialize a computation.
-      * This is a private function that should not be called explicitely
-      * by users.
-      */
-    void init_computation(std::string iteration_space_str, coli::function *fct) {
-        assert(fct != NULL);
-        assert(iteration_space_str.length()>0 && ("Empty iteration space"));
-
-        // Initialize all the fields to NULL (useful for later asserts)
-        access = NULL;
-        schedule = NULL;
-        stmt = Halide::Internal::Stmt();
-        time_processor_domain = NULL;
-
-        this->ctx = fct->get_ctx();
-
-        iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
-        name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
-        function = fct;
-        function->add_computation(this);
-        this->set_identity_schedule();
-    }
-
-    /**
-     * If set to true, the computation is scheduled, otherwise it is
-     * not scheduled and is only used as a binding to input arrays.
-     */
-    bool schedule_this_computation;
-
-    /**
       * Schedule of the computation.
       */
     isl_map *schedule;
@@ -719,11 +686,6 @@ private:
       * The function where this computation is declared.
       */
     coli::function *function;
-
-    /**
-      * The name of this computation.
-      */
-    std::string name;
 
     /**
       * Halide statement that assigns the computation to a buffer location.
@@ -746,6 +708,82 @@ private:
      * Data type of the computation.
      */
     coli::primitive_t data_type;
+
+protected:
+    /**
+      * The name of this computation.
+      */
+    std::string name;
+
+    /**
+      * An expression representing the computation.
+      */
+    coli::expr *expression;
+
+    /**
+     * If set to true, the computation is scheduled, otherwise it is
+     * not scheduled and is only used as a binding to input arrays.
+     */
+    bool schedule_this_computation;
+
+    /**
+     * Does this computation represent a let statement ?
+     */
+    bool _is_let_stmt;
+
+    /**
+      * Initialize a computation.
+      * This is a private function that should not be called explicitly
+      * by users.
+      */
+    void init_computation(std::string iteration_space_str,
+                          coli::function *fct,
+                          coli::expr *e,
+                          bool schedule_this_computation,
+                          coli::primitive_t t) {
+        assert(fct != NULL);
+        assert(iteration_space_str.length()>0 && ("Empty iteration space"));
+
+        // Initialize all the fields to NULL (useful for later asserts)
+        access = NULL;
+        schedule = NULL;
+        stmt = Halide::Internal::Stmt();
+        time_processor_domain = NULL;
+
+        this->schedule_this_computation = schedule_this_computation;
+        this->data_type = t;
+        this->expression = e;
+
+        this->ctx = fct->get_ctx();
+
+        iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+        name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
+        function = fct;
+        function->add_computation(this);
+        this->set_identity_schedule();
+    }
+
+    /**
+     * Dummy constructor for derived classes.
+     */
+    computation()
+    {
+        access = NULL;
+        schedule = NULL;
+        stmt = Halide::Internal::Stmt();
+        time_processor_domain = NULL;
+
+        this->schedule_this_computation = false;
+        this->data_type = p_none;
+        this->expression = NULL;
+
+        this->ctx = NULL;
+
+        iteration_domain = NULL;
+        name = "";
+        function = NULL;
+        _is_let_stmt = false;
+    }
 
 public:
     /**
@@ -787,10 +825,12 @@ public:
       * \p fct is a pointer to the coli function where this computation
       * should be added.
       */
-    computation(std::string iteration_space_str, coli::expr *e, bool schedule_this_computation, coli::primitive_t t, coli::function *fct): expression(e) {
-        init_computation(iteration_space_str, fct);
-        this->schedule_this_computation = schedule_this_computation;
-        this->data_type = t;
+    computation(std::string iteration_space_str, coli::expr *e,
+                bool schedule_this_computation, coli::primitive_t t,
+                coli::function *fct) {
+        init_computation(iteration_space_str, fct, e,
+                         schedule_this_computation, t);
+        _is_let_stmt = false;
     }
 
     /**
@@ -871,6 +911,14 @@ public:
     isl_map *get_schedule() const
     {
         return this->schedule;
+    }
+
+    /**
+     * Return if this computation represents a let statement.
+     */
+    bool is_let_stmt()
+    {
+        return _is_let_stmt;
     }
 
     /**
@@ -1000,8 +1048,18 @@ public:
       * at dimension dim of the time-processor space.
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
+      * The first loop level is 0.
       */
     void after(computation &comp, int dim);
+
+    /**
+      * Schedule this computation to run before the comp computation
+      * at dimension dim of the time-processor space.
+      * Use computation::root_dimension to indicate the root dimension
+      * (i.e. the outermost processor-time dimension).
+      * The first loop level is 0.
+      */
+    void before(computation &comp, int dim);
 
     void set_access(std::string access_str)
     {
@@ -1129,48 +1187,87 @@ public:
   * An object of the invariant class can be an expression, a symbolic constant
   * or a variable that is invariant to all the loops of the function.
   */
-class invariant
+class constant: public computation
 {
-private:
-    // The name of the variable holding the invariant.
-    std::string name;
-
-    // An expression that represents the invariant.
-    coli::expr expr;
-
 public:
     /**
-      * Create an invariant where \p param_name is the name of
-      * the variable that will hold the value of the invariant.
+      * Create a constant where \p param_name is the name of
+      * the constant that will hold the value of the constant.
       * \p param_expr is the expression that defines the value
-      * of the invariant.
-      * \p func is the function in which the invariant is defined.
+      * of the constant.
+      * \p t indicates the coli type of the constant.
+      * \p function_wide should be set to true if the constant is
+      * defined at the entry of the function and is visible to all
+      * the computations.
+      * This is an invariant to the function where it is declared.
+      * \p with_computation if the constant is not function wide,
+      * the user should indicate where this constant should be
+      * assigned in the coli function.  This is done using the
+      * \p with_computation and \p at_loop_level arguments.
+      * The assignment should be in the loop nest that computes
+      * the computation \p with_computation at the loop level
+      * indicated by \p at_loop_level.
+      * The root level is computation::root_dimension.
+      * 0 represents the first loop level and 1 represents the second
+      * loop level, ...
+      * \p func is the function in which the constant is defined.
       */
-    invariant(std::string param_name, coli::expr param_expr,
-              coli::function *func): expr(param_expr)
+    constant(std::string param_name, coli::expr *param_expr,
+             coli::primitive_t t,
+             bool function_wide,
+             coli::computation *with_computation,
+             int at_loop_level,
+             coli::function *func): coli::computation()
     {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
         assert((param_name.length() > 0) && "Parameter name empty");
         assert((func != NULL) && "Function undefined");
 
-        this->name = param_name;
-        func->add_invariant(*this);
-    }
+        DEBUG(3, coli::str_dump("Declaring a constant."));
 
-    /**
-      * Return the name of the invariant. i.e. the name of the variable
-      * that is used to store the value of the value of the invariant.
-      */
-    const std::string &get_name() const
-    {
-        return name;
-    }
+        if (function_wide)
+        {
+            this->name = param_name;
+            this->expression = param_expr;
+            func->add_invariant(*this);
+            _is_let_stmt = true;
+        }
+        else
+        {
+            assert((with_computation != NULL) &&
+                   "A valid computation should be provided.");
+            assert((at_loop_level >= computation::root_dimension) &&
+                   "Invalid root dimension.");
 
-    /**
-      * Return the expression that represents the value of the invariant.
-      */
-    const coli::expr get_expr() const
-    {
-        return expr;
+            isl_set *iter = with_computation->get_iteration_domain();
+            int projection_dimension = at_loop_level+1;
+            iter = isl_set_project_out(isl_set_copy(iter),
+                                       isl_dim_set,
+                                       projection_dimension,
+                                       isl_set_dim(iter, isl_dim_set)
+                                       -projection_dimension);
+            iter = isl_set_set_tuple_name(iter, param_name.c_str());
+            std::string iteration_space_str = isl_set_to_str(iter);
+
+            DEBUG(3, coli::str_dump(
+                        "Computed iteration space for the constant assignment",
+                        isl_set_to_str(iter)));
+
+            init_computation(iteration_space_str, func, param_expr,
+                                   true, t);
+            _is_let_stmt = true;
+
+            DEBUG_NO_NEWLINE(3,
+                     coli::str_dump("The computation representing the assignment:");
+                     this->dump(true));
+
+            // Set the schedule of this computation to be executed
+            // before the computation.
+            this->before(*with_computation, at_loop_level);
+        }
+        DEBUG_INDENT(-4);
     }
 
     /**

@@ -27,17 +27,13 @@ std::string coli_type_op_to_str(coli::op_t type);
 std::string coli_type_primitive_to_str(coli::primitive_t type);
 
 class buffer;
+class var;
 
 /**
   * A class to represent coli expressions.
   */
 class expr
 {
-    /**
-      * The type of the expression.
-      */
-    coli::expr_t etype;
-
     /**
       * The type of the operator.
       */
@@ -76,7 +72,7 @@ class expr
     /**
       * Identifier name.
       */
-    std::string id_name;
+    std::string name;
 
     /**
      * Is this expression defined ?
@@ -88,6 +84,11 @@ protected:
       * Data type.
       */
     coli::primitive_t dtype;
+
+    /**
+      * The type of the expression.
+      */
+    coli::expr_t etype;
 
 public:
 
@@ -178,7 +179,7 @@ public:
         assert(name.length() > 0);
 
         this->etype = coli::e_id;
-        this->id_name = name;
+        this->name = name;
         this->defined = true;
 
         this->_operator = coli::o_none;
@@ -289,14 +290,6 @@ public:
         this->int64_value = val;
     }
 
-    /**
-      * Return true if the expression is defined.
-      */
-      bool is_defined() const
-      {
-          return defined;
-      }
-
       /**
       * Construct a 32-bit float expression.
       */
@@ -322,6 +315,14 @@ public:
         this->dtype = coli::p_float64;
         this->float64_value = val;
     }
+
+    /**
+      * Return true if the expression is defined.
+      */
+      bool is_defined() const
+      {
+          return defined;
+      }
 
     /**
       * Return the actual value of the expression.
@@ -495,13 +496,14 @@ public:
     }
 
     /**
-      * Get the name of the ID.
+      * Get the name of the ID or the variable represented by this expressions.
       */
-    std::string get_id_name() const
+    std::string get_name() const
     {
-        assert(this->get_expr_type() == coli::e_id);
+        assert((this->get_expr_type() == coli::e_id) ||
+               (this->get_expr_type() == coli::e_var));
 
-        return id_name;
+        return name;
     }
 
     /**
@@ -544,7 +546,8 @@ public:
      */
     template<typename T> coli::expr operator+(T val) const
     {
-        if ((std::is_same<T, coli::expr>::value))
+        if ((std::is_same<T, coli::expr>::value) ||
+            (std::is_same<T, coli::var>::value))
         {
             return coli::expr(coli::o_add, *this, val);
         }
@@ -814,7 +817,7 @@ public:
                 }
                 case (coli::e_id):
                 {
-                    std::cout << "Id name:" << this->get_id_name() << std::endl;
+                    std::cout << "Id name:" << this->get_name() << std::endl;
                     break;
                 }
                 default:
@@ -841,6 +844,26 @@ public:
         assert(name.length() > 0);
 
         this->dtype = coli::p_int32;
+    }
+};
+
+
+/**
+ * A class that represents constant variable references
+ */
+class var: public coli::expr
+{
+public:
+    /**
+     * Construct an expression that represents an id.
+     */
+    var(coli::primitive_t type,
+        std::string name): expr(name)
+    {
+        assert(name.length() > 0);
+
+        this->etype = coli::e_var;
+        this->dtype = type;
     }
 };
 

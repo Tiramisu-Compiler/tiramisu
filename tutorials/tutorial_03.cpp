@@ -42,7 +42,8 @@ int main(int argc, char **argv)
     buffer b_A("b_A", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
     buffer b_B("b_B", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
     buffer b_C("b_C", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
-    invariant p0("N", expr((int32_t) SIZE0), &matmul);
+    expr e_p0 = expr((int32_t) SIZE0);
+    constant p0("N", &e_p0, p_int32, true, NULL, 0, &matmul);
 
     // Declare a computation c_A that represents a binding to the buffer b_A
     computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);

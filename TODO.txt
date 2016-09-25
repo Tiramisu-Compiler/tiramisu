@@ -1,28 +1,29 @@
 High Priority
---------------
+---------------
 - Urgent features:
-    - Non affine support:
-        - Non affine loop bounds,
-        - Non affine array accesses,
-        - Vectorize a non-affine loop (split with the innermost being constant),
     - Halide features:
-		- Add variable class (let stmt).
-		- Create three types for computations: definition, update, reductions.
-		- Support type casting.
+		- Non affine array accesses,
+        - Vectorize a non-affine loop (split with the innermost being constant).
+	- Non affine support:
+        - Non affine conditionals,
 	- Testing:
-        - Test correctness of blurxy.
-        - Add asserts to check my assumptions.
+        - Test correctness of blurxy,
+        - Add asserts to check my assumptions,
         - Write basic tests.
-
 	- Robustness:
         - Work on robust translation from coli accesses into an access function.
         Currently I support only very simple accesses (add, sub).
         - Currently if you specify an access function that has constraints, the
         constraints are not taken in consideration.  The access function is
         applied for all the values of i and j.
+	- Light:
+		- Create three types for computations:
+			- Tyes: definition, update, reductions (indicating the reduction dimension),
+		- Support automatic binding,
 
 - Low priority:
-		- Dfferentiate between select and ifTheElse.
+		- Support type casting.
+		- Differentiate between select and ifTheElse.
 		- Support ramp, broadcast.
 		- Create a free and allocate IR nodes.
 		- Support two types of conditionals.
@@ -33,6 +34,9 @@ High Priority
         Now setting the space names is flicky.
         - Support .inline() which inlines computations.
         - Add scheduling commands: .fuse(), .split(), and .duplicate().
+        - Whether a given optimization (parallelization, ...) can be applied or not,
+        depends on the type of the computation.  Reduction for example cannot be
+        parallelized on the reduction dimension.
 
 
 - Benchmarks:

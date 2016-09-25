@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the
     // function.
-    invariant N("N", expr((int32_t) 10), &function0);
+    coli::expr e_N = expr((int32_t) 10);
+    constant N("N", &e_N, p_int32, true, NULL, 0, &function0);
 
     // Declare a expressions that will be associated with the
     // computations.
