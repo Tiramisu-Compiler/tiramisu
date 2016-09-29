@@ -60,22 +60,45 @@ namespace
 
 class HalideToColi : public IRVisitor {
 private:
+    const vector<Function> &outputs;
+    const map<string, Function> &env;
+
     void error() {
         coli::error("Can't convert to coli expr.", true);
+    }
+
+    void push_loop_dim(const For *op) {
+        loop_dims.push_back({op->name, op->min, op->extent});
+    }
+
+    void pop_loop_dim() {
+        loop_dims.pop_back();
     }
 
 public:
     coli::expr expr;
     map<string, coli::computation> computation_list;
-    coli::function *fct_ptr;
+    coli::function func;
 
-    HalideToColi() {}
+    struct Loop {
+        std::string name;
+        Expr min, extent;
+    };
 
-    ~HalideToColi() { fct_ptr = nullptr; }
+    vector<Loop> loop_dims;
+
+    HalideToColi(const vector<Function> &outputs, const map<string, Function> &env)
+        : outputs(outputs), env(env), func("func") {}
 
     coli::expr mutate(Expr e) {
         assert(e.defined() && "HalideToColi can't convert undefined expr\n");
+        e.accept(this);
         return expr;
+    }
+
+    void mutate(Stmt s) {
+        assert(s.defined() && "HalideToColi can't convert undefined stmt\n");
+        s.accept(this);
     }
 
 protected:
@@ -281,63 +304,93 @@ void HalideToColi::visit(const Select *op) {
 }
 
 void HalideToColi::visit(const Let *op) {
-    coli::expr value = mutate(op->value);
-    coli::computation t("{" + op->name + "[0]}", &value, true,
-                        halide_type_to_coli_type(op->value.type()),
-                        fct_ptr);
-    //TODO(psuriana): not sure???
-    /*coli::buffer scalar_t("scalar_t", 1, {coli::expr(1)}, ....)
-    t.set_access("{t[0] -> scalar_t[0]}")*/
+    assert(is_const(op->value) && "Only support let of constant for now.\n");
 
-    computation_list.emplace(op->name, t);
+    coli::expr value = mutate(op->value);
+    //TODO(psuriana): potential segfault here since we're passing stack pointer
+    coli::constant c_const(op->name, &value, halide_type_to_coli_type(op->value.type()), true, NULL, 0, &func);
+    computation_list.emplace(op->name, c_const);
+
     coli::expr body = mutate(op->body);
     expr = body;
 }
 
 void HalideToColi::visit(const LetStmt *op) {
-    error();
-}
+    assert(is_const(op->value) && "Only support let of constant for now.\n");
 
-void HalideToColi::visit(const For *op) {
-    //TODO(psuriana)
-    error();
-    //computation f("{f[x,y]: 0<x<N and 0<y<M}", coli::idx("x") + coli::idx("y"), ....);
+    coli::expr value = mutate(op->value);
+    //TODO(psuriana): potential segfault here since we're passing stack pointer
+    coli::constant c_const(op->name, &value, halide_type_to_coli_type(op->value.type()), true, NULL, 0, &func);
+    computation_list.emplace(op->name, c_const);
+
+    mutate(op->body);
 }
 
 void HalideToColi::visit(const ProducerConsumer *op) {
-    error();
+    assert(!op->update.defined() && "Does not currently handle update.\n");
+    assert((computation_list.count(op->name) == 0) && "Find another computation with the same name.\n");
+
+    vector<Loop> old_loop_dims = loop_dims;
+    mutate(op->produce);
+    loop_dims = old_loop_dims;
+}
+
+void HalideToColi::visit(const For *op) {
+    push_loop_dim(op);
+    mutate(op->body);
+    pop_loop_dim();
 }
 
 void HalideToColi::visit(const Load *op) {
+    //TODO(psuriana): doesn't handle this right now
     error();
 }
 
 void HalideToColi::visit(const Store *op) {
-    error();
+    //TODO(psuriana)
+    /*string iter_space_str = "[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}";
+    coli::computation compute(iter_space_str, NULL, false, halide_type_to_coli_type(op->value.type()), &func);
+    // Map to buffer
+    compute.set_access("{" + op->name + "[i,j]->" + "b_" + op->name + "[i,j]}");
+
+    computation_list.emplace(op->name, compute);*/
 }
 
 void HalideToColi::visit(const Call *op) {
-    //TODO(psuriana): handle call to extern functions, e.g. sin, cos, etc.
-    const auto &iter = computation_list.find(op->name);
+    assert((op->call_type == Call::CallType::Halide) && "Only handle call to halide func for now.\n");
+    assert(computation_list.count(op->name) && "Computation does not exist.\n");
 
-    if (iter != computation_list.end()) {
-        vector<coli::expr> args(op->args.size());
-        for (size_t i = 0; i < op->args.size(); ++i) {
-            args[i] = mutate(op->args[i]);
-        }
-        //expr = iter->second(args);
-    } else {
-        coli::error("Call to " + op->name + " is undefined." , true);
+    vector<coli::expr> args(op->args.size());
+    for (size_t i = 0; i < op->args.size(); ++i) {
+        args[i] = mutate(op->args[i]);
     }
+    //TODO(psuriana)
+    //expr = computation_list[op->name](args[i]);
 }
 
 void HalideToColi::visit(const Block *op) {
-    error();
+    mutate(op->first);
+    mutate(op->rest);
 }
 
 void HalideToColi::visit(const Allocate *op) {
-    error();
-    //computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);
+    Function f = env.find(op->name)->second;
+    bool is_output = false;
+    for (Function o : outputs) {
+        is_output |= o.same_as(f);
+    }
+
+    if (!is_output) {
+        // Create temporary buffer if it's not an output
+        vector<coli::expr> extents(op->extents.size());
+        for (size_t i = 0; i < op->extents.size(); ++i) {
+            extents[i] = mutate(op->extents[i]);
+        }
+
+        coli::buffer produce_buffer(
+            "b_" + op->name, extents.size(), extents,
+            halide_type_to_coli_type(op->type), NULL, a_temporary, &func);
+    }
 }
 
 } // anonymous namespace
