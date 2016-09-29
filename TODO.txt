@@ -1,20 +1,16 @@
 High Priority
 ---------------
 - Urgent features:
-    - Halide features:
-    	- Fix: before/after.
-    	- Fix: buffer size should be an int.
-		- Non affine array accesses,
+	- API interface:
         - Vectorize a non-affine loop (split with the innermost being constant),
         - Fix matmul error,
-        - Fix tiling of unnested loops,
-	- API interface:
-		- Light API change:
-			- Create three types for computations:
-				- definition, update, reductions (indicating the reduction dimension),
-			- Support automatic binding,
-		- Simplify the interface and make it stable,
-		- Document API,
+	   	- Fix: before/after.
+    	- Fix: buffer size should be an int.
+        - Fix: tiling of unnested loops,
+		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
+		- API: support automatic binding,
+		- API: simplify the interface and make it stable,
+		- API: documentation,
 		- Write one page latex document describing COLi,
 		- Write test cases,
 		- Fix dumping,
@@ -37,18 +33,20 @@ High Priority
 		- Support type casting.
 		- Differentiate between select and ifTheElse.
 		- Support ramp, broadcast.
-		- Create a free and allocate IR nodes.
-		- Support two types of conditionals.
+		- Create a free and allocate IR nodes:
+			- The function that creates a let stmt should return a structure with the stmt
+			and the type of the stmt.  If the statement is empty but its type is let, free
+			or alloc then generate these.  
 		- Call external functions.
-		- compute_halide_call_graph().
+		- Support .inline() which inlines computations.
+        - Add scheduling commands: .fuse(), .split(), and .duplicate().
         - split() and interchange() should be done regourously using real ISL
         constraint (floor should be expressed as ISL constraints).
         Now setting the space names is flicky.
-        - Support .inline() which inlines computations.
-        - Add scheduling commands: .fuse(), .split(), and .duplicate().
         - Whether a given optimization (parallelization, ...) can be applied or not,
         depends on the type of the computation.  Reduction for example cannot be
         parallelized on the reduction dimension.
+        - compute_halide_call_graph().
 
 
 - Benchmarks:
