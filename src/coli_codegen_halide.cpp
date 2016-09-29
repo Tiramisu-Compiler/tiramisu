@@ -19,7 +19,7 @@
 namespace coli
 {
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument_t type);
+Halide::Argument::Kind halide_argtype_from_coli_argtype(coli::argument_t type);
 Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer, isl_ast_expr *index_expr);
 
 computation *function::get_computation_by_name(std::string name) const
@@ -713,7 +713,7 @@ Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
 	        coli_expr.get_name());
 	else if (coli_expr.get_expr_type() != coli::e_id)// Do not signal an error for expressions of type coli::e_id
 	{
-		coli::str_dump("coli type of expr: ", coli_type_expr_to_str(coli_expr.get_expr_type()).c_str());
+		coli::str_dump("coli type of expr: ", str_from_coli_type_expr(coli_expr.get_expr_type()).c_str());
 		coli::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
 	}
 
@@ -1334,7 +1334,7 @@ void function::gen_halide_obj(
 	{
 		Halide::Argument buffer_arg(
 			buf->get_name(),
-			coli_argtype_to_halide_argtype(buf->get_argument_type()),
+			halide_argtype_from_coli_argtype(buf->get_argument_type()),
 			halide_type_from_coli_type(buf->get_type()),
 			buf->get_n_dims());
 

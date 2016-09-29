@@ -769,7 +769,7 @@ void coli::function::dump_schedule() const
     }
 }
 
-Halide::Argument::Kind coli_argtype_to_halide_argtype(coli::argument_t type)
+Halide::Argument::Kind halide_argtype_from_coli_argtype(coli::argument_t type)
 {
     Halide::Argument::Kind res;
 
@@ -908,7 +908,7 @@ isl_union_map *coli::function::get_schedule() const
 
 // Function for the buffer class
 
-std::string coli_type_op_to_str(coli::op_t type)
+std::string str_coli_type_op(coli::op_t type)
 {
     switch (type)
     {
@@ -956,7 +956,7 @@ std::string coli_type_op_to_str(coli::op_t type)
     }
 }
 
-std::string coli_type_expr_to_str(coli::expr_t type)
+std::string str_from_coli_type_expr(coli::expr_t type)
 {
     switch (type)
     {
@@ -972,7 +972,7 @@ std::string coli_type_expr_to_str(coli::expr_t type)
     }
 }
 
-std::string coli_type_argument_to_str(coli::argument_t type)
+std::string str_from_coli_type_argument(coli::argument_t type)
 {
     switch (type)
     {
@@ -988,7 +988,7 @@ std::string coli_type_argument_to_str(coli::argument_t type)
     }
 }
 
-std::string coli_type_primitive_to_str(coli::primitive_t type)
+std::string str_from_coli_type_primitive(coli::primitive_t type)
 {
     switch (type)
     {
@@ -1020,7 +1020,7 @@ std::string coli_type_primitive_to_str(coli::primitive_t type)
     }
 }
 
-std::string is_null_to_str(void *ptr)
+std::string str_from_is_null(void *ptr)
 {
     return ((ptr != NULL) ? "Not NULL" : "NULL");
 }
@@ -1045,16 +1045,16 @@ void coli::buffer::dump(bool exhaustive) const
         std::cout << std::endl;
 
         std::cout << "Elements type: "
-                  << coli_type_primitive_to_str(this->type) << std::endl;
+                  << str_from_coli_type_primitive(this->type) << std::endl;
 
         std::cout << "Data field: "
-                  << is_null_to_str(this->data) << std::endl;
+                  << str_from_is_null(this->data) << std::endl;
 
         std::cout << "Function field: "
-                  << is_null_to_str(this->fct) << std::endl;
+                  << str_from_is_null(this->fct) << std::endl;
 
         std::cout << "Argument type: "
-                  << coli_type_argument_to_str(this->argtype) << std::endl;
+                  << str_from_coli_type_argument(this->argtype) << std::endl;
 
         std::cout<< std::endl << std::endl;
     }

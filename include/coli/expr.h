@@ -22,9 +22,9 @@
 namespace coli
 {
 
-std::string coli_type_expr_to_str(coli::expr_t type);
-std::string coli_type_op_to_str(coli::op_t type);
-std::string coli_type_primitive_to_str(coli::primitive_t type);
+std::string str_from_coli_type_expr(coli::expr_t type);
+std::string str_coli_type_op(coli::op_t type);
+std::string str_from_coli_type_primitive(coli::primitive_t type);
 
 class buffer;
 class var;
@@ -768,12 +768,12 @@ public:
         if (ENABLE_DEBUG && (this->is_defined()))
         {
             std::cout << "Expression:" << std::endl;
-            std::cout << "Expression type:" << coli_type_expr_to_str(this->etype) << std::endl;
+            std::cout << "Expression type:" << str_from_coli_type_expr(this->etype) << std::endl;
             switch (this->etype)
             {
                 case coli::e_op:
                 {
-                    std::cout << "Expression operator type:" << coli_type_op_to_str(this->_operator) << std::endl;
+                    std::cout << "Expression operator type:" << str_coli_type_op(this->_operator) << std::endl;
                     std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
                     std::cout << "Dumping the operands:" << std::endl;
                     for (int i = 0; i < this->get_n_arg(); i++)
@@ -793,7 +793,7 @@ public:
                 }
                 case (coli::e_val):
                 {
-                    std::cout << "Expression value type:" << coli_type_primitive_to_str(this->dtype) << std::endl;
+                    std::cout << "Expression value type:" << str_from_coli_type_primitive(this->dtype) << std::endl;
 
                     if (this->get_data_type() == coli::p_uint8)
                         std::cout << "Value:" << this->get_uint8_value() << std::endl;
