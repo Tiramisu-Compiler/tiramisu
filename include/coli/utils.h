@@ -35,6 +35,8 @@ extern "C" {
 
 void init_1D_buffer(buffer_t *buf, int N, uint8_t val);
 void print_1D_buffer(buffer_t *buf, int N);
+void init_1D_buffer_val(buffer_t *buf, int N, uint8_t val);
+buffer_t allocate_1D_buffer(int NN);
 void print_2D_array(buffer_t buf, int N, int M);
 void init_2D_buffer_val(buffer_t *buf, int N, int M, uint8_t val);
 void copy_2D_buffer(uint8_t* buf, int N, int M, uint8_t* array);

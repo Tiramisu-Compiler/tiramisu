@@ -27,11 +27,12 @@ class computation;
 class buffer;
 class constant;
 
-Halide::Type coli_type_to_halide_type(coli::primitive_t type);
-Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp,
-                                               std::vector<isl_ast_expr *> index_expr,
+Halide::Type halide_type_from_coli_type(coli::primitive_t type);
+Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
+                                               std::vector<isl_ast_expr *> &index_expr,
                                                const coli::expr coli_expr);
 
+#define LET_STMT_PREFIX "_coli_"
 
 /**
   * A class that holds all the global variables necessary for COLi.
@@ -40,6 +41,9 @@ Halide::Expr create_halide_expr_from_coli_expr(coli::computation *comp,
 class global
 {
 private:
+    /**
+     * Perform automatic data mapping ?
+     */
     static bool auto_data_mapping;
 
 public:
@@ -172,6 +176,12 @@ private:
       */
     std::map<std::string, coli::buffer *> buffers_list;
 
+    /**
+     * The context set of the function.  i.e. a set representing the
+     * constraints over the parameters.
+     */
+    isl_set *context_set;
+
 public:
 
     function(std::string name): name(name) {
@@ -179,6 +189,7 @@ public:
 
         halide_stmt = NULL;
         ast = NULL;
+        context_set = NULL;
 
         // Allocate an isl context.  This isl context will be used by
         // the isl library calls within coli.
@@ -205,6 +216,20 @@ public:
     const std::string &get_name() const
     {
         return name;
+    }
+
+    /**
+     * Return the context of the function. i.e. an ISL set that
+     * represents constraints over the parameters of the functions
+     * (a parameter is an invariant variable for the function).
+     * An example of a context set is the following:
+     *          "[N,M]->{: M>0 and N>0}"
+     * This context set indicates that the two parameters N and M
+     * are strictly positive.
+     */
+    isl_set *get_context_set() const
+    {
+        return context_set;
     }
 
     /**
@@ -280,6 +305,21 @@ public:
       * (with the order of their appearance in the vector).
       */
     void set_arguments(std::vector<coli::buffer *> buffer_vec);
+
+    /**
+     * Set the context of the function. A context is an ISL set that
+     * represents constraints over the parameters of the functions
+     * (a parameter is an invariant variable for the function).
+     * An example of a context set is the following:
+     *          "[N,M]->{: M>0 and N>0}"
+     * This context set indicates that the two parameters N and M
+     * are strictly positive.
+     */
+    void set_context_set(std::string context_str)
+    {
+        context_set = isl_set_read_from_str(this->get_ctx(),
+                                            context_str.c_str());
+    }
 
     /**
       * This functions applies to the schedule of each computation
@@ -709,6 +749,15 @@ private:
      */
     coli::primitive_t data_type;
 
+
+    /**
+     * Update the domain name of the schedule of a let statement.
+     * If the computation is a let statement, and if the name of
+     * the domain of map does not start with the LET_STMT_PREFIX,
+     * add the LET_STMT_PREFIX to the name.
+     */
+    isl_map* update_let_stmt_schedule_domain_name(isl_map* map);
+
 protected:
     /**
       * The name of this computation.
@@ -1125,6 +1174,10 @@ public:
       */
     void set_schedule(isl_map *map)
     {
+        // Get the computation,
+        // Check if the computation is a let stmt, if it is the case
+        // check if it starts with LET_STMT_PREFIX, if not add it automatically.
+        map = this->update_let_stmt_schedule_domain_name(map);
         this->schedule = map;
     }
 
@@ -1248,7 +1301,8 @@ public:
                                        projection_dimension,
                                        isl_set_dim(iter, isl_dim_set)
                                        -projection_dimension);
-            iter = isl_set_set_tuple_name(iter, param_name.c_str());
+            std::string new_param_name = LET_STMT_PREFIX + param_name;
+            iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
             std::string iteration_space_str = isl_set_to_str(iter);
 
             DEBUG(3, coli::str_dump(
@@ -1259,7 +1313,7 @@ public:
                                    true, t);
             _is_let_stmt = true;
 
-            DEBUG_NO_NEWLINE(3,
+            DEBUG_NO_NEWLINE(10,
                      coli::str_dump("The computation representing the assignment:");
                      this->dump(true));
 

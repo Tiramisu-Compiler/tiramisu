@@ -24,6 +24,14 @@ void init_1D_buffer(buffer_t *buf, int N, uint8_t val)
     }
 }
 
+void init_1D_buffer_val(buffer_t *buf, int N, uint8_t val)
+{
+    int i;
+
+    for (i=0; i<N; i++)
+        buf->host[i] = val;
+}
+
 void print_2D_buffer(buffer_t *buf, int N, int M)
 {
     int i,j;
@@ -88,6 +96,21 @@ void copy_2D_buffer(uint8_t* buf, int N, int M, uint8_t* array)
             buf[i*M+j] = array[i*M+j];
         }
     }
+}
+
+buffer_t allocate_1D_buffer(int NN)
+{
+    buffer_t input_buf = {0};
+    input_buf.host = (unsigned char *) malloc(NN*sizeof(unsigned char));
+    input_buf.stride[0] = 1;
+    input_buf.stride[1] = 1;
+    input_buf.extent[0] = NN;
+    input_buf.extent[1] = 1;
+    input_buf.min[0] = 0;
+    input_buf.min[1] = 0;
+    input_buf.elem_size = 1;
+
+    return input_buf;
 }
 
 buffer_t allocate_2D_buffer(int NN, int MM)

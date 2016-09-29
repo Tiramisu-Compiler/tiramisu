@@ -32,16 +32,7 @@ namespace coli
                                 coli::print_indentation();\
                                 coli::str_dump("[");\
                                 coli::str_dump(__FUNCTION__);\
-                                coli::str_dump(" function]:\n");}}
-
-/**
- * Print function name.
- */
-#define DEBUG_FCT_NAME_END(LEVEL) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-                                coli::print_indentation();\
-                                coli::str_dump("[");\
-                                coli::str_dump(__FUNCTION__);\
-                                coli::str_dump(" function end].\n");}}
+                                coli::str_dump(" function]\n");}}
 
 /**
  * Run \p STMT if the debugging level is above \p LEVEL.

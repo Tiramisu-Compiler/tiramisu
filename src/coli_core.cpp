@@ -49,7 +49,13 @@ void function::gen_isl_ast()
     DEBUG_INDENT(4);
 
     isl_ctx *ctx = this->get_ctx();
-    isl_ast_build *ast_build = isl_ast_build_alloc(ctx);
+    isl_ast_build *ast_build;
+
+    if (this->get_context_set() == NULL)
+        ast_build = isl_ast_build_alloc(ctx);
+    else
+        ast_build = isl_ast_build_from_context(this->get_context_set());
+
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
@@ -221,6 +227,9 @@ void computation::dump() const
         isl_map_dump(this->schedule);
         std::cout << "Computation to be scheduled ? " << (this->schedule_this_computation) << std::endl;
 
+        // std::cout << "Computation expression: " << std::endl;
+        // this->expression->dump(true);
+
         for (auto e: this->index_expr)
         {
             coli::str_dump("Access expression:", (const char * ) isl_ast_expr_to_C_str(e));
@@ -246,6 +255,7 @@ void computation::set_schedule(std::string map_str)
     assert(this->ctx != NULL);
 
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
+    map = update_let_stmt_schedule_domain_name(map);
 
     assert(map != NULL);
 
@@ -282,6 +292,8 @@ void computation::after(computation &comp, int dim)
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    comp.get_function()->align_schedules();
 
     // Go through all the computations.
     for (auto c: this->get_function()->get_computations())
@@ -547,7 +559,7 @@ bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
       assert(comp.length() > 0);
       assert(lev0 >=0 );
 
-      DEBUG_FCT_NAME(3);
+      DEBUG_FCT_NAME(10);
       DEBUG_INDENT(4);
 
       bool res;
@@ -561,7 +573,7 @@ bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
       std::string str = std::string("Dimension ") + std::to_string(lev0)
           + std::string(res?" should":" should not")
           + std::string(" be mapped to GPU.");
-      DEBUG(3, coli::str_dump(str));
+      DEBUG(10, coli::str_dump(str));
 
       DEBUG_INDENT(-4);
       return res;
@@ -676,6 +688,10 @@ void coli::function::dump(bool exhaustive) const
         {
             inv.dump(exhaustive);
         }
+        std::cout << std::endl;
+
+        std::cout << "Function context set:";
+        isl_set_dump(this->get_context_set());
         std::cout << std::endl;
 
         std::cout << "Parallel dimensions: ";
@@ -1023,7 +1039,7 @@ void coli::buffer::dump(bool exhaustive) const
           // TODO: create_halide_expr_from_coli_expr does not support
           // the case where the buffer size is a computation access.
             std::vector<isl_ast_expr *> ie = {};
-            std::cout << create_halide_expr_from_coli_expr(NULL, ie, size) << ", ";
+            std::cout << halide_expr_from_coli_expr(NULL, ie, size) << ", ";
         }
 
         std::cout << std::endl;
@@ -1044,7 +1060,7 @@ void coli::buffer::dump(bool exhaustive) const
     }
 }
 
-Halide::Type coli_type_to_halide_type(coli::primitive_t type)
+Halide::Type halide_type_from_coli_type(coli::primitive_t type)
 {
     Halide::Type t;
 
@@ -1087,6 +1103,55 @@ Halide::Type coli_type_to_halide_type(coli::primitive_t type)
             coli::error("Coli type cannot be translated to Halide type.", true);
     }
     return t;
+}
+
+isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, coli::str_dump ("Updating the domain of schedule."));
+    DEBUG(3, coli::str_dump ("Input schedule: ", isl_map_to_str(map)));
+
+    // Get the computation,
+    // Check if the computation is a let stmt, if it is the case
+    // check if it starts with LET_STMT_PREFIX, if not add it automatically.
+    std::string comp_name = isl_map_get_tuple_name(map, isl_dim_in);
+    assert(comp_name.size() > 0);
+
+    coli::computation* let_comp =
+            this->get_function()->get_computation_by_name(comp_name);
+
+    if (let_comp == NULL)    // i.e. if let computation not found
+    {
+        DEBUG(3, coli::str_dump ("Computation used in the domain not found."));
+
+        // Find the LET_STMT_PREFIX in the name,
+        int pos = comp_name.find(LET_STMT_PREFIX);
+
+        // if LET_STMT_PREFIX is not found or is not in the beginning
+        // of comp_name, add the prefix.
+        if ((pos == std::string::npos) || (pos != 0))
+        {
+            DEBUG(3, coli::str_dump ("Computation does not have LET_STMT_PREFIX."));
+            comp_name = LET_STMT_PREFIX + comp_name;
+
+            // Does adding LET_STMT_PREFIX allow finding the stmt ?
+            if (this->get_function()->get_computation_by_name(comp_name) != NULL)
+            {
+                DEBUG(3, coli::str_dump ("Replacing computation domain."));
+                map = isl_map_set_tuple_name(map, isl_dim_in,
+                                             comp_name.c_str ());
+            }
+            else
+                coli::error("Scheduling an undeclared computation.", true);
+        }
+    }
+
+    DEBUG(3, coli::str_dump ("Output schedule: ", isl_map_to_str(map)));
+    DEBUG_INDENT(-4);
+
+    return map;
 }
 
 }

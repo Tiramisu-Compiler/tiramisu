@@ -26,6 +26,9 @@ void str_dump(const char * str, const char * str2)
 void print_indentation()
 {
     for (int coli_indent=0; coli_indent<coli::coli_indentation; coli_indent++)
+        if (coli_indent%4 == 0)
+            str_dump("|");
+        else
                 str_dump(" ");
 }
 

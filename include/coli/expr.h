@@ -765,7 +765,7 @@ public:
       */
     void dump(bool exhaustive) const
     {
-        if (ENABLE_DEBUG)
+        if (ENABLE_DEBUG && (this->is_defined()))
         {
             std::cout << "Expression:" << std::endl;
             std::cout << "Expression type:" << coli_type_expr_to_str(this->etype) << std::endl;
@@ -775,8 +775,10 @@ public:
                 {
                     std::cout << "Expression operator type:" << coli_type_op_to_str(this->_operator) << std::endl;
                     std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
+                    std::cout << "Dumping the operands:" << std::endl;
                     for (int i = 0; i < this->get_n_arg(); i++)
                     {
+                        std::cout << "Operand " << std::to_string(i) << "." << std::endl;
                         this->op[i].dump(exhaustive);
                     }
                     if ((this->get_op_type() == coli::o_access) || (this->get_op_type() == coli::o_call))
@@ -824,8 +826,6 @@ public:
                     coli::error("Expression type not supported.", true);
 
             }
-
-            std::cout << std::endl;
         }
     }
 };
