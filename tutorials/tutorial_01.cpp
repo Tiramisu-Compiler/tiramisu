@@ -13,6 +13,13 @@
 
 using namespace coli;
 
+/*
+int N = 10;
+for (int i=0; i<N; i++)
+  for (int j=0; j<N; j++)
+     buf0[i,j] = 3 + 4;
+*/
+
 int main(int argc, char **argv)
 {
     // Set default coli options.
