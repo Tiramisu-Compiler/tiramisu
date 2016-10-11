@@ -2,14 +2,20 @@ High Priority
 ---------------
 - Urgent features:
 	- API interface:
-        - Vectorize a non-affine loop (split with the innermost being constant),
+		- Fix: buffer size should be an int.
+		- Fix: before/after.
         - Fix matmul error,
-	   	- Fix: before/after.
-    	- Fix: buffer size should be an int.
         - Fix: tiling of unnested loops,
+        - Add the ability to access buffers directly from coli expressions,
+		- API: simplify the interface and make it stable,
+
+        - Vectorize a non-affine loop (split with the innermost being constant),
+        - Patricia:
+			- API: solve the problem of the order of computation declaration,
+			- API: create a map from iterator names to iterator numbers and update that map automatically with the schedule updates,
 		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
 		- API: support automatic binding,
-		- API: simplify the interface and make it stable,
+
 		- API: documentation,
 		- Write one page latex document describing COLi,
 		- Write test cases,

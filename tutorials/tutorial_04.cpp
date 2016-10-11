@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
     computation c_y("[M,b0,b1]->{c_y[i,j]: 0<=i<M and b0<=j<b1}", NULL, true, p_uint8, &spmv);
 
-    spmv.set_context_set("[M,b0,b1]->{: M>0 and b0>0 and b1>0 and b1>b0}");
+    spmv.set_context_set("[M,b0,b1]->{: M>0 and b0>0 and b1>0 and b1>b0 and b1%4=0}");
 
     expr e_t = c_col_idx(idx("j"));
     constant t("t", &e_t, p_int32, false, &c_y, 1, &spmv);
@@ -79,11 +79,20 @@ int main(int argc, char **argv)
 
      b0.set_schedule(      "[M]->{b0[i]->[i,0,0,0]: 0<=i<M}");
      b1.set_schedule("      [M]->{b1[i]->[i,1,0,0]: 0<=i<M}");
-      t.set_schedule("[M,b0,b1]->{t[i,j]->[i,2,j,0]: 0<=i<M and b0<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1}");
-    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->[i,2,j,1]: 0<=i<M and b0<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1}");
+      t.set_schedule("[M,b0,b1]->{  t[i,j]->[i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->[i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->[i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->[i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
 
-    //c_C.tile(0,1,32,32);
-    //c_C.tag_parallel_dimension(0);
+     c_y.tag_vector_dimension(2);
+     t.tag_vector_dimension(2);
+
+    /*
+    c_y.split(2, 4);
+    c_y.tag_vector_dimension(2);
+    t.split(2, 4);
+    t.tag_vector_dimension(2);
+    c_y.tile(0,1,32,32);
+    */
+    c_y.tag_parallel_dimension(0);
 
     spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
 

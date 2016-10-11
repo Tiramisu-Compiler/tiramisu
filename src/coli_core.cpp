@@ -57,6 +57,7 @@ void function::gen_isl_ast()
         ast_build = isl_ast_build_from_context(this->get_context_set());
 
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
+    isl_options_get_ast_build_exploit_nested_bounds(ctx);
     ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
 
@@ -153,14 +154,13 @@ void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
     this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
 }
 
-void coli::computation::tag_vector_dimension(int par_dim)
+void coli::computation::tag_vector_dimension(int dim)
 {
-    assert(par_dim >= 0);
+    assert(dim >= 0);
     assert(this->get_name().length() > 0);
     assert(this->get_function() != NULL);
-    assert(this->get_function() != NULL);
 
-    this->get_function()->add_vector_dimension(this->get_name(), par_dim);
+    this->get_function()->add_vector_dimension(this->get_name(), dim);
 }
 
 void computation::dump_iteration_domain() const
@@ -451,22 +451,35 @@ void computation::split(int inDim0, int sizeX)
     DEBUG_INDENT(4);
 
     isl_map *schedule = this->get_schedule();
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), " ", NULL));
 
-    std::string inDim0_str(isl_map_get_dim_name(schedule,
-                isl_dim_out, inDim0));
-    std::string outDim0_str = generate_new_variable_name();
-    std::string outDim1_str = generate_new_variable_name();
 
     DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, coli::str_dump("Splitting dimension " + std::to_string(inDim0)
+                            + " with split size " + std::to_string(sizeX)));
+
+    std::string inDim0_str;
+
+    std::string outDim0_str = generate_new_variable_name();
+    std::string outDim1_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::string map = "{[";
 
     std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
 
     for (int i=0; i<n_dims; i++)
     {
-        map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+        std::string dim_str = generate_new_variable_name();
+        dimensions_str.push_back(dim_str);
+        map = map + dim_str;
+
+        if (i == inDim0)
+            inDim0_str = dim_str;
+
         if (i != n_dims-1)
             map = map + ",";
     }
@@ -477,9 +490,11 @@ void computation::split(int inDim0, int sizeX)
     {
         if (i != inDim0)
         {
-            map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
-            dimensions.push_back(isl_map_get_dim_id(schedule,
-                                                    isl_dim_out, i));
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                    this->get_ctx(),
+                                    dimensions_str[i].c_str(),
+                                    NULL));
         }
         else
         {

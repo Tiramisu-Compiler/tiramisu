@@ -792,7 +792,8 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 				break;
 			case isl_ast_op_fdiv_q:
 			case isl_ast_op_pdiv_q:
-				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(op0));
+			    result = Halide::Internal::Div::make(op0, op1);
+				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(result));
 				break;
 			case isl_ast_op_pdiv_r:
 				result = Halide::Internal::Mod::make(op0, op1);
@@ -984,34 +985,40 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 			}
 			else if (fct.should_vectorize(tagged_stmts[tt], level))
 			{
-				fortype = Halide::Internal::ForType::Vectorized;
-				tagged_stmts.erase(tagged_stmts.begin() + tt);
+			    const Halide::Internal::IntImm *extent = cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+			    if (extent) {
+			        fortype = Halide::Internal::ForType::Vectorized;
+			        tagged_stmts.erase(tagged_stmts.begin() + tt);
+			    }
+			    else
+			        DEBUG(3, coli::str_dump("Loop not vectorized because it does not have a constant extent"));
 			}
 			else if (fct.should_map_to_gpu(tagged_stmts[tt], level))
-	                {
-	                        fortype = Halide::Internal::ForType::Parallel;
-	                        dev_api = Halide::DeviceAPI::OpenCL;
-	                        std::string gpu_iter = fct.get_gpu_iterator(
-	                            tagged_stmts[tt], level);
-	                        Halide::Expr new_iterator_var =
-	                            Halide::Internal::Variable::make(
-	                                Halide::Int(32),
-	                                gpu_iter);
-	                        *halide_body = Halide::Internal::LetStmt::make(
-	                            iterator_str,
-	                            new_iterator_var,
-	                            *halide_body);
-                                iterator_str = gpu_iter;
-                                DEBUG(3, coli::str_dump("Loop over " + gpu_iter +
-                                     " created.\n"));
-                                tagged_stmts.erase(tagged_stmts.begin() + tt);
-	                }
+            {
+                    fortype = Halide::Internal::ForType::Parallel;
+                    dev_api = Halide::DeviceAPI::OpenCL;
+                    std::string gpu_iter = fct.get_gpu_iterator(
+                        tagged_stmts[tt], level);
+                    Halide::Expr new_iterator_var =
+                        Halide::Internal::Variable::make(
+                            Halide::Int(32),
+                            gpu_iter);
+                    *halide_body = Halide::Internal::LetStmt::make(
+                        iterator_str,
+                        new_iterator_var,
+                        *halide_body);
+                        iterator_str = gpu_iter;
+                        DEBUG(3, coli::str_dump("Loop over " + gpu_iter +
+                             " created.\n"));
+                        tagged_stmts.erase(tagged_stmts.begin() + tt);
+            }
 		}
 
 		DEBUG(3, coli::str_dump("Creating the for loop."));
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
 				dev_api, *halide_body);
         DEBUG(3, coli::str_dump("For loop created."));
+        DEBUG(3, std::cout<< *result);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{

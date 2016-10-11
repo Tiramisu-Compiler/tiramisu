@@ -1065,6 +1065,9 @@ public:
       * Tag the dimension \p dim of the computation to be vectorized.
       * The outermost loop level (which corresponds to the leftmost
       * dimension in the iteration space) is 0.
+      * The user can only tag dimensions that have constant extent as
+      * to be vectorized.  If a loop dimension does not have a constant
+      * extent, it first has to be split.
       */
     void tag_vector_dimension(int dim);
 
