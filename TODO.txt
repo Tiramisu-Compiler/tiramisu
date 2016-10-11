@@ -2,7 +2,6 @@ High Priority
 ---------------
 - Urgent features:
 	- API interface:
-		- Fix: buffer size should be an int.
 		- Fix: before/after.
         - Fix matmul error,
         - Fix: tiling of unnested loops,
