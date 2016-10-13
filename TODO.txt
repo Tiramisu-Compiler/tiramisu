@@ -2,19 +2,24 @@ High Priority
 ---------------
 - Urgent features:
 	- API interface:
-		- Fix: before/after.
         - Fix matmul error,
-        - Fix: tiling of unnested loops,
         - Add the ability to access buffers directly from coli expressions,
 		- API: simplify the interface and make it stable,
+        - Vectorize a non-affine loop (split with the innermost being constant):
+        	- Add the isolate option which isolates the full loops.
+		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
+	- Performance:
+		- Matmul,
+		- Blurxy,
+	- Non affine support:
+        - Non affine conditionals,
 
-        - Vectorize a non-affine loop (split with the innermost being constant),
-        - Patricia:
+
+    - Patricia:
 			- API: solve the problem of the order of computation declaration,
 			- API: create a map from iterator names to iterator numbers and update that map automatically with the schedule updates,
-		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
-		- API: support automatic binding,
 
+	- Optional
 		- API: documentation,
 		- Write one page latex document describing COLi,
 		- Write test cases,
@@ -31,8 +36,6 @@ High Priority
         - Currently if you specify an access function that has constraints, the
         constraints are not taken in consideration.  The access function is
         applied for all the values of i and j.
-	- Non affine support:
-        - Non affine conditionals,
 
 - Low priority:
 		- Support type casting.

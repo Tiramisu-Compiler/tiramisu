@@ -871,7 +871,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             Halide::Internal::Stmt *block1 =
                 coli::halide_stmt_from_isl_node(fct, child1, level, tagged_stmts);
 
-            DEBUG_NO_NEWLINE(3, coli::str_dump("Generated block: "); std::cout << *block1);
+            DEBUG_NO_NEWLINE(10, coli::str_dump("Generated block: "); std::cout << *block1);
 
             if (block1->defined() == false) // Probably block1 is a let stmt.
             {
@@ -892,8 +892,8 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                                                 l_stmt.second,
                                                 *result);
 
-                            DEBUG(3, coli::str_dump("Generated let stmt:"));
-                            DEBUG_NO_NEWLINE(3, std::cout << *result);
+                            DEBUG(10, coli::str_dump("Generated let stmt:"));
+                            DEBUG_NO_NEWLINE(10, std::cout << *result);
                         }
                         let_stmts_vector.clear();
                     }
@@ -1018,7 +1018,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 		*result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
 				dev_api, *halide_body);
         DEBUG(3, coli::str_dump("For loop created."));
-        DEBUG(3, std::cout<< *result);
+        DEBUG(10, std::cout<< *result);
 	}
 	else if (isl_ast_node_get_type(node) == isl_ast_node_user)
 	{

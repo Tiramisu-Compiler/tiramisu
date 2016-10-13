@@ -286,6 +286,7 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int consta
     return map;
 }
 
+
 void computation::after(computation &comp, int dim)
 {
     isl_map *sched1;
@@ -293,27 +294,57 @@ void computation::after(computation &comp, int dim)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(3, coli::str_dump("Setting the schedule of ");
+             coli::str_dump(this->get_name());
+             coli::str_dump(" after ");
+             coli::str_dump(comp.get_name());
+             coli::str_dump(" at dimension ");
+             coli::str_dump(std::to_string(dim)));
+
     comp.get_function()->align_schedules();
+    int comp_order = comp.relative_order*10;
 
     // Go through all the computations.
     for (auto c: this->get_function()->get_computations())
     {
         sched1 = c->get_schedule();
 
+        DEBUG(3, coli::str_dump("Adjusting the schedule of a computation ");
+                 coli::str_dump(c->get_name()));
         DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
         assert(sched1 != NULL);
         DEBUG(3, coli::str_dump("Dimension level after which ordering dimensions will be inserted : ");
                  coli::str_dump(std::to_string(dim)));
-        DEBUG(3, coli::str_dump("Number of dimensions of the schedule to be adjusted : ");
+        DEBUG(3, coli::str_dump("Original number of dimensions of the schedule : ");
                  coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
         assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
         assert(dim >= computation::root_dimension);
 
+        // Update relative orders.
+        c->relative_order = c->relative_order*10;
+        if ((c != this))
+            c->relative_order = c->relative_order + 1;
+
+        DEBUG(3, coli::str_dump("Relative order: ");
+                 coli::str_dump(std::to_string(c->relative_order)));
+
         if (c == this)
+        {
             sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+            DEBUG(3, coli::str_dump("Inserting 1."));
+        }
         else
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+            if (c == &comp || c->relative_order <= comp_order)
+            {
+                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+                DEBUG(3, coli::str_dump("Inserting 0."));
+            }
+            else
+            {
+                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+                DEBUG(3, coli::str_dump("Inserting 1."));
+            }
 
         c->set_schedule(sched1);
         DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
@@ -321,6 +352,59 @@ void computation::after(computation &comp, int dim)
 
     DEBUG_INDENT(-4);
 }
+
+
+void computation::first(int dim)
+{
+    isl_map *sched1;
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    this->get_function()->align_schedules();
+
+    // Go through all the computations.
+    for (auto c: this->get_function()->get_computations())
+    {
+        sched1 = c->get_schedule();
+
+        DEBUG(3, coli::str_dump("Adjusting the schedule of a computation ");
+                 coli::str_dump(c->get_name()));
+        DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
+
+        assert(sched1 != NULL);
+        DEBUG(3, coli::str_dump("Dimension level after which the ordering dimension will be inserted : ");
+                 coli::str_dump(std::to_string(dim)));
+        DEBUG(3, coli::str_dump("Original number of dimensions of the schedule : ");
+                 coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
+        assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
+        assert(dim >= computation::root_dimension);
+
+        // Update relative orders.
+        if (c != this)
+            c->relative_order = c->relative_order + 1;
+
+        DEBUG(3, coli::str_dump("Relative order: ");
+                 coli::str_dump(std::to_string(c->relative_order)));
+
+        if (c == this)
+        {
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+            DEBUG(3, coli::str_dump("Inserting 0."));
+        }
+        else
+        {
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+            DEBUG(3, coli::str_dump("Inserting 1."));
+        }
+
+        c->set_schedule(sched1);
+        DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
+    }
+
+    DEBUG_INDENT(-4);
+}
+
 
 void computation::before(computation &comp, int dim)
 {
@@ -609,15 +693,15 @@ int coli::function::get_max_schedules_range_dim() const
 
 isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 {
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
     assert(map != NULL);
     int mdim = isl_map_dim(map, isl_dim_out);
     assert(max_dim >= mdim);
 
-    DEBUG(3, coli::str_dump("Debugging isl_map_align_range_dims()."));
-    DEBUG(3, coli::str_dump("Input map:", isl_map_to_str(map)));
+    DEBUG(10, coli::str_dump("Debugging isl_map_align_range_dims()."));
+    DEBUG(10, coli::str_dump("Input map:", isl_map_to_str(map)));
 
     map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
 
@@ -631,7 +715,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
         map = isl_map_add_constraint(map, cst);
     }
 
-    DEBUG(3, coli::str_dump("After alignment, map = ",
+    DEBUG(10, coli::str_dump("After alignment, map = ",
                 isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
@@ -709,19 +793,7 @@ void coli::function::dump(bool exhaustive) const
         isl_set_dump(this->get_context_set());
         std::cout << std::endl;
 
-        std::cout << "Parallel dimensions: ";
-        for (const auto &par_dim : parallel_dimensions)
-        {
-            std::cout << par_dim.first << "(" << par_dim.second << ") ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "Vector dimensions: ";
-        for (const auto &vec_dim : vector_dimensions)
-        {
-            std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
-        }
-        std::cout<< std::endl << std::endl;
+        this->dump_schedule();
 
         std::cout << "Body " << std::endl;
         for (const auto &cpt : this->body)

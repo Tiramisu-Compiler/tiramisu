@@ -758,6 +758,13 @@ private:
      */
     isl_map* update_let_stmt_schedule_domain_name(isl_map* map);
 
+    /**
+     * Relative order of this computation compared to other computations.
+     * This should only be used by the .after() function and should not be
+     * used directly by users.
+     */
+    unsigned long relative_order;
+
 protected:
     /**
       * The name of this computation.
@@ -798,6 +805,7 @@ protected:
         schedule = NULL;
         stmt = Halide::Internal::Stmt();
         time_processor_domain = NULL;
+        relative_order = 0;
 
         this->schedule_this_computation = schedule_this_computation;
         this->data_type = t;
@@ -821,6 +829,7 @@ protected:
         schedule = NULL;
         stmt = Halide::Internal::Stmt();
         time_processor_domain = NULL;
+        relative_order = 0;
 
         this->schedule_this_computation = false;
         this->data_type = p_none;
@@ -837,7 +846,7 @@ protected:
 public:
     /**
       * A number identifying the root dimension level.
-      * THis should be used with computation::after().
+      * This should be used with computation::after().
       */
     const static int root_dimension = -1;
 
@@ -1097,12 +1106,21 @@ public:
 
     /**
       * Schedule this computation to run after the comp computation
-      * at dimension dim of the time-processor space.
+      * at dimension \p dim of the time-processor space.
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
-      * The first loop level is 0.
+      * The first loop level corresponds to dimension 0.
       */
     void after(computation &comp, int dim);
+
+    /**
+      * Schedule this computation to run first at dimension
+      * \p dim of the time-processor space.
+      * Use computation::root_dimension to indicate the root dimension
+      * (i.e. the outermost processor-time dimension).
+      * The first loop level corresponds to dimension 0.
+      */
+    void first(int dim);
 
     /**
       * Schedule this computation to run before the comp computation
