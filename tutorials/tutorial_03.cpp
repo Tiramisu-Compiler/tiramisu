@@ -50,9 +50,14 @@ int main(int argc, char **argv)
     // Declare a computation c_B that represents a binding to the buffer b_B
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
 
+    // Indices
+    idx i = idx("i");
+    idx j = idx("j");
+    idx k = idx("k");
+
     // Declare a computation c_C
     computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", NULL, true, p_uint8, &matmul);
-    expr e1 = c_C(idx("i"), idx("j")) + (c_A(idx("i"), idx("k")) * c_B(idx("k"), idx("j")));
+    expr e1 = c_C(i,j,k-1) + c_A(i,k) * c_B(k,j);
     c_C.set_expression(&e1);
 
     // Map the computations to a buffer.
