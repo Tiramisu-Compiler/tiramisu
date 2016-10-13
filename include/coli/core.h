@@ -1110,6 +1110,29 @@ public:
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
       * The first loop level corresponds to dimension 0.
+      * Few assumptions about how you should call these functions:
+        - Call .first() before calling any .after()
+        - Call .after() in the order of appearance of stmts, that is
+        is in the program you have S0, then S1 then S2, you should call
+        .after() for each pair:
+              S1.after(S0, ...);
+              S2.after(S1, ...);
+          and not:
+              S2.after(S1, ...);
+              S1.after(S0, ...);
+        - When you call S1.after() it adds one dimension to the time-space domain.
+        In general, any call to one of the scheduling commands such as .tile(), .split(),
+        .after(), .first(), ... changes the dimensions of the time-space domain so any
+        other call should take that in consideration.  For example, if we have a 2
+        dimensional domain (dimensions 0 and 1 only) and tile that domain using the command
+        .tile(0,1,4,4) which tiles the dimensions 0 and 1 by a 4x4 tile, two new dimensions
+        in the time-space domain are created.  Now we have the dimensions: 0, 1, 2 and 3.
+        So any call to scheduling commands like .split(), .vectorize(), .after(), ...
+        should take in consideration that the dimensions have changed.
+        This should disappear if we use names for the dimensions and manage the mapping
+        from names to numbers automatically (for example dimension 0 is called "i" an
+        the mapping "i"->0 changes as appropriate whenever we call one of the scheduling
+        commands).
       */
     void after(computation &comp, int dim);
 
