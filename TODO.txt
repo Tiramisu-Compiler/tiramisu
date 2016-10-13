@@ -2,7 +2,6 @@ High Priority
 ---------------
 - Urgent features:
 	- API interface:
-        - Fix matmul error,
         - Add the ability to access buffers directly from coli expressions,
 		- API: simplify the interface and make it stable,
         - Vectorize a non-affine loop (split with the innermost being constant):
