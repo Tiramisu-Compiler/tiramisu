@@ -2,28 +2,30 @@ High Priority
 ---------------
 - Urgent features:
 	- API interface:
+		- Performance:
+			- Matmul,
+	    - Fix the .after() problem,
         - Add the ability to access buffers directly from coli expressions,
+        - Add is_defined() to all the classes,
+        - Do some assumption checking,
 		- API: simplify the interface and make it stable,
-        - Vectorize a non-affine loop (split with the innermost being constant):
-        	- Add the isolate option which isolates the full loops.
-		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
-	- Performance:
-		- Matmul,
-		- Blurxy,
-	- Non affine support:
-        - Non affine conditionals,
-
-
+		- Support .inline() which inlines computations.
+		- Optimizations:
+			- Reductions,
+			- Redundant computations,
+			- Skewing,
+			- Fusion,
     - Patricia:
 			- API: solve the problem of the order of computation declaration,
 			- API: create a map from iterator names to iterator numbers and update that map automatically with the schedule updates,
 
+----------------------------------------
+
 	- Optional
-		- API: documentation,
 		- Write one page latex document describing COLi,
+		- API: documentation,
 		- Write test cases,
 		- Fix dumping,
-		- Add is_defined() to all the classes,
 		- Dump should respect the indentation.
 	- Testing:
         - Test correctness of blurxy,
@@ -37,15 +39,17 @@ High Priority
         applied for all the values of i and j.
 
 - Low priority:
+		- Non affine support:
+    	    - Non affine conditionals,
 		- Support type casting.
 		- Differentiate between select and ifTheElse.
+		- API: create three types for computations: definition, update, reductions (indicating the reduction dimension),
 		- Support ramp, broadcast.
 		- Create a free and allocate IR nodes:
 			- The function that creates a let stmt should return a structure with the stmt
 			and the type of the stmt.  If the statement is empty but its type is let, free
 			or alloc then generate these.  
 		- Call external functions.
-		- Support .inline() which inlines computations.
         - Add scheduling commands: .fuse(), .split(), and .duplicate().
         - split() and interchange() should be done regourously using real ISL
         constraint (floor should be expressed as ISL constraints).
@@ -54,7 +58,8 @@ High Priority
         depends on the type of the computation.  Reduction for example cannot be
         parallelized on the reduction dimension.
         - compute_halide_call_graph().
-
+        - Vectorize a non-affine loop (split with the innermost being constant):
+        	- Add the isolate option which isolates the full loops.
 
 - Benchmarks:
 	- Image processing (Halide)
@@ -65,7 +70,6 @@ High Priority
 		- Local Laplacian filters,
 		- Multi-scale interpolation,
 	- TensorFlow.
-	- Simit.
 
 
 Low Priority
@@ -80,10 +84,6 @@ Low Priority
    - Currently all loop iterators have an Int32 type.  Users should be able to
    choose which data type they can use (this is important to support loops over
    very large datasets).
-   - Create a class "Buffer" to be used instead of using the Halide buffer
-   class.  The Halide::Buffer class should only be used during code
-   generation.  Currently Halide can only handle 3D arrays, make sure you
-   check for this during code generation.
    - Support more isl_ast expressions in create_halide_expr_from_isl_ast_expr.
    - Support data type conversion.  Currently the loop bound (invariant) has
      to be declared explicitely to be "int32_t" in order to have the same

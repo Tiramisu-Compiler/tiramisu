@@ -1,6 +1,10 @@
 #ifndef _COLI_UTILS
 #define _COLI_UTILS
 
+#include <string>
+#include <chrono>
+#include <vector>
+
 #ifndef HALIDE_ATTRIBUTE_ALIGN
     #ifdef _MSC_VER
         #define HALIDE_ATTRIBUTE_ALIGN(x) __declspec(align(x))
@@ -33,6 +37,10 @@ struct halide_filter_metadata_t;
 extern "C" {
 #endif
 
+double median(std::vector<std::chrono::duration<double,std::milli>> scores);
+void print_time(std::string file_name, std::string kernel_name,
+                std::vector<std::string> header_text,
+                std::vector<double>      time_vector);
 void init_1D_buffer(buffer_t *buf, int N, uint8_t val);
 void print_1D_buffer(buffer_t *buf, int N);
 void init_1D_buffer_val(buffer_t *buf, int N, uint8_t val);

@@ -12,7 +12,7 @@ HALIDE_LIB_DIRECTORY=/Users/psuriana/halide/lib
 
 CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
-INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools
+INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
 HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
@@ -20,7 +20,9 @@ TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/t
 TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
 TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator
 TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04
-
+BENCH_REF_GEN=build/bench_halide_blurxy_generator
+BENCH_COLI_GEN=build/bench_coli_blurxy_generator
+BENCH_BIN=build/bench_halide_blurxy
 
 all: builddir ${OBJ}
 
@@ -58,6 +60,19 @@ build/test_%: tests/wrapper_test_%.cpp build/generated_fct_test_%.o tests/wrappe
 	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 run_tests:
 	@for tt in ${TEST_BIN}; do LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
+
+
+benchmarks: $(OBJ) $(BENCH_COLI_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmarks
+build/bench_coli_%_generator: benchmarks/halide/%_coli.cpp
+	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
+	@LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
+build/bench_halide_%_generator: benchmarks/halide/%_ref.cpp
+	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
+	@LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
+build/bench_halide_% : benchmarks/halide/wrapper_%.cpp build/generated_fct_%.o build/generated_fct_%_ref.o benchmarks/halide/wrapper_%.h
+	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+run_benchmarks:
+	@for tt in ${BENCH_BIN}; do LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
 doc:
