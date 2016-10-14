@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
     // Map the computations to a buffer (i.e. where each computation
     // should be stored in the buffer).
-    // This mapping will be updated automaticall when the schedule
+    // This mapping will be updated automatically when the schedule
     // is applied.  To disable automatic data mapping updates use
     // global::set_auto_data_mapping(false).
     S0.set_access("{S0[i,j]->buf0[i,j]}");

@@ -1031,32 +1031,10 @@ public:
      * Access operator: C0[i,j] represents an access to
      * the elements [i,j] of the computation C0.
      */
-    coli::expr operator()(coli::expr e0,
-                          coli::expr e1 = coli::expr(),
-                          coli::expr e2 = coli::expr(),
-                          coli::expr e3 = coli::expr(),
-                          coli::expr e4 = coli::expr(),
-                          coli::expr e5 = coli::expr(),
-                          coli::expr e6 = coli::expr(),
-                          coli::expr e7 = coli::expr(),
-                          coli::expr e8 = coli::expr(),
-                          coli::expr e9 = coli::expr(),
-                          coli::expr e10 = coli::expr())
+    template<typename... Args>
+    coli::expr operator()(Args... args)
     {
-        std::vector<coli::expr> access_expressions;
-
-        access_expressions.push_back(e0);
-        if (e1.is_defined()) access_expressions.push_back(e1);
-        if (e2.is_defined()) access_expressions.push_back(e2);
-        if (e3.is_defined()) access_expressions.push_back(e3);
-        if (e4.is_defined()) access_expressions.push_back(e4);
-        if (e5.is_defined()) access_expressions.push_back(e5);
-        if (e6.is_defined()) access_expressions.push_back(e6);
-        if (e7.is_defined()) access_expressions.push_back(e7);
-        if (e8.is_defined()) access_expressions.push_back(e8);
-        if (e9.is_defined()) access_expressions.push_back(e9);
-        if (e10.is_defined()) access_expressions.push_back(e10);
-
+        std::vector<coli::expr> access_expressions{std::forward<Args>(args)...};
         return coli::expr(coli::o_access,
                           coli::expr(this->get_name()),
                           access_expressions,
