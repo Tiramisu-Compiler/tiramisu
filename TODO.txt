@@ -64,7 +64,6 @@ High Priority
 - Benchmarks:
 	- Image processing (Halide)
 		- Blur,
-		- Sobel edge detection,
 		- Bilateral grid,
 		- Camera pipeline,
 		- Local Laplacian filters,

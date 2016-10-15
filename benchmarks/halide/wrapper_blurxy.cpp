@@ -7,21 +7,18 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 1000
-
 int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint8_t> output1(input.width()-8, input.height()-2);
-    Halide::Image<uint8_t> output2(input.width()-8, input.height()-2);
+    Halide::Image<uint16_t> output1(input.width()-8, input.height()-2);
+    Halide::Image<uint16_t> output2(input.width()-8, input.height()-2);
 
     // Warm up
-    for (int i=0; i<10; i++)
-       blurxy_coli(input, output1);
+    blurxy_coli(input, output1);
 
     // Reference
     for (int i=0; i<NB_TESTS; i++)
@@ -49,7 +46,8 @@ int main(int, char**)
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
 
-    Halide::Tools::save_image(output1, "./build/blurxy.png");
+    Halide::Tools::save_image(output1, "./build/blurxy_coli.png");
+    Halide::Tools::save_image(output2, "./build/blurxy_ref.png");
 
     return 0;
 }
