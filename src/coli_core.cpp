@@ -270,16 +270,16 @@ void computation::set_schedule(std::string map_str)
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant)
 {
     assert(map != NULL);
-    assert(dim_pos+1 >= 0);
-    assert(dim_pos < (signed int) isl_map_dim(map, isl_dim_out));
+    assert(dim_pos >= 0);
+    assert(dim_pos <= (signed int) isl_map_dim(map, isl_dim_out));
 
-    map = isl_map_insert_dims(map, isl_dim_out, dim_pos+1, 1);
+    map = isl_map_insert_dims(map, isl_dim_out, dim_pos, 1);
 
     isl_space *sp = isl_map_get_space(map);
     isl_local_space *lsp =
         isl_local_space_from_space(isl_space_copy(sp));
     isl_constraint *cst = isl_constraint_alloc_equality(lsp);
-    cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim_pos+1, 1);
+    cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim_pos, 1);
     cst = isl_constraint_set_constant_si(cst, (-1)*constant);
     map = isl_map_add_constraint(map, cst);
 
@@ -331,18 +331,18 @@ void computation::after(computation &comp, int dim)
 
         if (c == this)
         {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
             DEBUG(3, coli::str_dump("Inserting 1."));
         }
         else
             if (c == &comp || c->relative_order <= comp_order)
             {
-                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 0);
                 DEBUG(3, coli::str_dump("Inserting 0."));
             }
             else
             {
-                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
                 DEBUG(3, coli::str_dump("Inserting 1."));
             }
 
@@ -389,12 +389,12 @@ void computation::first(int dim)
 
         if (c == this)
         {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 0);
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 0);
             DEBUG(3, coli::str_dump("Inserting 0."));
         }
         else
         {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim, 1);
+            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
             DEBUG(3, coli::str_dump("Inserting 1."));
         }
 
