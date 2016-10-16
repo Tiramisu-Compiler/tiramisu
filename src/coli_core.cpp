@@ -14,6 +14,7 @@
 #include <coli/parser.h>
 
 #include <string>
+#include <algorithm>
 
 namespace coli
 {
@@ -256,11 +257,66 @@ void computation::set_schedule(std::string map_str)
 
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
     map = update_let_stmt_schedule_domain_name(map);
-
     assert(map != NULL);
 
     this->set_schedule(map);
 }
+
+
+isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(map != NULL);
+    assert(dim_pos >= 0);
+    assert(dim_pos <= (signed int) isl_map_dim(map, isl_dim_out));
+
+    DEBUG(3, coli::str_dump("Setting the constant coefficient of ",
+                            isl_map_to_str(map));
+             coli::str_dump(" at dimension ");
+             coli::str_dump(std::to_string(dim_pos));
+             coli::str_dump(" into ");
+             coli::str_dump(std::to_string(val)));
+
+    isl_space *sp = isl_map_get_space(map);
+    isl_local_space *lsp =
+        isl_local_space_from_space(isl_space_copy(sp));
+
+    isl_map *identity = isl_set_identity(isl_map_range(isl_map_copy(map)));
+    identity = isl_map_universe(isl_map_get_space(identity));
+
+    sp = isl_map_get_space(identity);
+    lsp = isl_local_space_from_space(isl_space_copy(sp));
+
+    for (int i=0; i<isl_map_dim(identity, isl_dim_out); i++)
+        if (i == dim_pos)
+        {
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim_pos, 1);
+            cst = isl_constraint_set_constant_si(cst, (-1)*(val));
+            identity = isl_map_add_constraint(identity, cst);
+        }
+        else
+        {
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+            identity = isl_map_add_constraint(identity, cst2);
+        }
+
+    DEBUG(3, coli::str_dump("Transformation map ", isl_map_to_str(identity)));
+
+    map = isl_map_apply_range(map, identity);
+
+    DEBUG(3, coli::str_dump("After applying the transformation map: ",
+                            isl_map_to_str(map)));
+
+    DEBUG_INDENT(-4);
+
+    return map;
+}
+
 
 /**
   * Add a dimension to the map in the specified position.
@@ -301,15 +357,16 @@ void computation::after(computation &comp, int dim)
              coli::str_dump(" at dimension ");
              coli::str_dump(std::to_string(dim)));
 
+    std::vector<std::pair<int, coli::computation *>> ordered_computations;
+
     comp.get_function()->align_schedules();
-    int comp_order = comp.relative_order*10;
 
     // Go through all the computations.
     for (auto c: this->get_function()->get_computations())
     {
         sched1 = c->get_schedule();
 
-        DEBUG(3, coli::str_dump("Adjusting the schedule of a computation ");
+        DEBUG(3, coli::str_dump("Preparing to adjust the schedule of the computation ");
                  coli::str_dump(c->get_name()));
         DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
@@ -323,30 +380,30 @@ void computation::after(computation &comp, int dim)
 
         // Update relative orders.
         c->relative_order = c->relative_order*10;
-        if ((c != this))
+        if ((c != &comp))
             c->relative_order = c->relative_order + 1;
 
-        DEBUG(3, coli::str_dump("Relative order: ");
+        DEBUG(3, coli::str_dump("Calculated relative order: ");
                  coli::str_dump(std::to_string(c->relative_order)));
 
-        if (c == this)
-        {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
-            DEBUG(3, coli::str_dump("Inserting 1."));
-        }
-        else
-            if (c == &comp || c->relative_order <= comp_order)
-            {
-                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 0);
-                DEBUG(3, coli::str_dump("Inserting 0."));
-            }
-            else
-            {
-                sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
-                DEBUG(3, coli::str_dump("Inserting 1."));
-            }
+        DEBUG(3, coli::str_dump("Adding the computation to the vector of ordered computations."));
 
-        c->set_schedule(sched1);
+        ordered_computations.push_back(std::pair<int, coli::computation *>(c->relative_order, c));
+    }
+
+    std::sort(ordered_computations.begin(), ordered_computations.end());
+
+    DEBUG(3, coli::str_dump("Setting the schedules according to their orders."));
+
+    int order = 0;
+    for (auto c: ordered_computations)
+    {
+        sched1 = c.second->get_schedule();
+
+        sched1 = isl_map_set_const_dim(sched1, dim+1, order);
+        order++;
+
+        c.second->set_schedule(sched1);
         DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
     }
 
@@ -389,13 +446,14 @@ void computation::first(int dim)
 
         if (c == this)
         {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 0);
-            DEBUG(3, coli::str_dump("Inserting 0."));
+            sched1 = isl_map_set_const_dim(sched1, dim+1, 0);
+            DEBUG(3, coli::str_dump("Setting dimension to 0."));
         }
         else
+        if (c != this)
         {
-            sched1 = isl_map_add_dim_and_eq_constraint(sched1, dim+1, 1);
-            DEBUG(3, coli::str_dump("Inserting 1."));
+            sched1 = isl_map_set_const_dim(sched1, dim+1, 1);
+            DEBUG(3, coli::str_dump("Setting dimension to 1."));
         }
 
         c->set_schedule(sched1);
@@ -421,7 +479,7 @@ void computation::tile(int inDim0, int inDim1,
 {
     // Check that the two dimensions are consecutive.
     // Tiling only applies on a consecutive band of loop dimensions.
-    assert((inDim0 == inDim1+1) || (inDim1 == inDim0+1));
+    assert((inDim0 == inDim1+2) || (inDim1 == inDim0+2));
     assert(sizeX > 0);
     assert(sizeY > 0);
     assert(inDim0 >= 0);
@@ -432,9 +490,10 @@ void computation::tile(int inDim0, int inDim1,
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    int new_inDim1 = inDim1 + 2;
     this->split(inDim0, sizeX);
-    this->split(inDim1+1, sizeY);
-    this->interchange(inDim0+1, inDim1+1);
+    this->split(new_inDim1, sizeY);
+    this->interchange(inDim0+2, new_inDim1);
 
     DEBUG_INDENT(-4);
 }
@@ -460,6 +519,7 @@ void computation::interchange(int inDim0, int inDim1)
     DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
 
     int n_dims = isl_map_dim(schedule, isl_dim_out);
+
     std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out, inDim0);
     std::string inDim1_str = isl_map_get_dim_name(schedule, isl_dim_out, inDim1);
 
@@ -469,6 +529,11 @@ void computation::interchange(int inDim0, int inDim1)
 
     for (int i=0; i<n_dims; i++)
     {
+        if (isl_map_get_dim_name(schedule, isl_dim_out, i) == NULL)
+        {
+            isl_id *new_id = isl_id_alloc(this->get_ctx(), generate_new_variable_name().c_str(), NULL);
+            schedule = isl_map_set_dim_id(schedule, isl_dim_out, i,new_id);
+        }
         map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
         if (i != n_dims-1)
             map = map + ",";
@@ -582,7 +647,7 @@ void computation::split(int inDim0, int sizeX)
         }
         else
         {
-            map = map + outDim0_str + "," + outDim1_str;
+            map = map + outDim0_str + ", 0, " + outDim1_str;
             isl_id *id0 = isl_id_alloc(this->get_ctx(),
                                        outDim0_str.c_str(), NULL);
             isl_id *id1 = isl_id_alloc(this->get_ctx(),
@@ -738,6 +803,7 @@ void coli::function::align_schedules()
     }
 
     DEBUG_INDENT(-4);
+    DEBUG(3, coli::str_dump("End of function"));
 }
 
 void coli::function::add_invariant(coli::constant invar)
@@ -1194,11 +1260,11 @@ Halide::Type halide_type_from_coli_type(coli::primitive_t type)
 
 isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
 {
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    DEBUG(3, coli::str_dump ("Updating the domain of schedule."));
-    DEBUG(3, coli::str_dump ("Input schedule: ", isl_map_to_str(map)));
+    DEBUG(10, coli::str_dump ("Updating the domain of schedule."));
+    DEBUG(10, coli::str_dump ("Input schedule: ", isl_map_to_str(map)));
 
     // Get the computation,
     // Check if the computation is a let stmt, if it is the case
@@ -1211,7 +1277,7 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
 
     if (let_comp == NULL)    // i.e. if let computation not found
     {
-        DEBUG(3, coli::str_dump ("Computation used in the domain not found."));
+        DEBUG(10, coli::str_dump ("Computation used in the domain not found."));
 
         // Find the LET_STMT_PREFIX in the name,
         int pos = comp_name.find(LET_STMT_PREFIX);
@@ -1220,13 +1286,13 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
         // of comp_name, add the prefix.
         if ((pos == std::string::npos) || (pos != 0))
         {
-            DEBUG(3, coli::str_dump ("Computation does not have LET_STMT_PREFIX."));
+            DEBUG(10, coli::str_dump ("Computation does not have LET_STMT_PREFIX."));
             comp_name = LET_STMT_PREFIX + comp_name;
 
             // Does adding LET_STMT_PREFIX allow finding the stmt ?
             if (this->get_function()->get_computation_by_name(comp_name) != NULL)
             {
-                DEBUG(3, coli::str_dump ("Replacing computation domain."));
+                DEBUG(10, coli::str_dump ("Replacing computation domain."));
                 map = isl_map_set_tuple_name(map, isl_dim_in,
                                              comp_name.c_str ());
             }
@@ -1235,7 +1301,7 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
         }
     }
 
-    DEBUG(3, coli::str_dump ("Output schedule: ", isl_map_to_str(map)));
+    DEBUG(10, coli::str_dump ("Output schedule: ", isl_map_to_str(map)));
     DEBUG_INDENT(-4);
 
     return map;

@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_C.tile(0,1,32,32);
+    c_C.tile(1,3,32,32);
     c_C.tag_parallel_dimension(0);
 
     // Set the arguments to blurxy

@@ -178,16 +178,21 @@ buffer_t allocate_2D_buffer(int NN, int MM)
 
 void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int N, int M)
 {
+    bool error = false;
+
 	for (int i=0; i<N; i++)
     {
 		for (int j=0; j<M; j++)
         {
 			if (array1[i*M+j] != array2[i*M+j])
             {
-				coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+				error = true;
             }
         }
     }
 
-	coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
+	if (error)
+	    coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+	else
+	    coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
 }

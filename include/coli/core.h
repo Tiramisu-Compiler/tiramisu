@@ -31,6 +31,7 @@ Halide::Type halide_type_from_coli_type(coli::primitive_t type);
 Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
                                                std::vector<isl_ast_expr *> &index_expr,
                                                const coli::expr coli_expr);
+isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
 #define LET_STMT_PREFIX "_coli_"
 
@@ -1042,16 +1043,20 @@ public:
     }
 
     /**
-      * Tag the dimension \p dim of the computation to be parallelized.
+      * Tag the dimension \p dim of the iteration space to be parallelized.
       * The outermost loop level (which corresponds to the leftmost
       * dimension in the iteration space) is 0.
+      * Note that \p dim is a dimension of the iteration space
+      * not a dimension of the time-processor space.
       */
     void tag_parallel_dimension(int dim);
 
     /**
-      * Tag the dimension \p dim of the computation to be vectorized.
+      * Tag the dimension \p dim of the iteration space to be vectorized.
       * The outermost loop level (which corresponds to the leftmost
       * dimension in the iteration space) is 0.
+      * Note that \p dim is a dimension of the iteration space
+      * not a dimension of the time-processor space.
       * The user can only tag dimensions that have constant extent as
       * to be vectorized.  If a loop dimension does not have a constant
       * extent, it first has to be split.
@@ -1059,10 +1064,12 @@ public:
     void tag_vector_dimension(int dim);
 
     /**
-      * Tag the dimension \p dim0 and \p dim1 of the computation to
+      * Tag the dimension \p dim0 and \p dim1 of the iteration space to
       * be mapped to GPU.
-      * The outermost loop level (which corresponds to the leftmost
-      * dimension in the iteration space) is 0.
+      * Note that \p dim0 and \p dim1 are dimensions of the iteration space
+      * not dimensions of the time-processor space.
+      * The outermost loop dimension of the iterations pace (which corresponds
+      * to the leftmost dimension) is 0.
       */
     void tag_gpu_dimensions(int dim0, int dim1);
 
@@ -1155,6 +1162,11 @@ public:
             sched, isl_set_copy(this->get_iteration_domain()));
         sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
         sched = isl_map_coalesce(sched);
+
+        // Add Beta dimensions.
+        for (int i=0; i<isl_space_dim(sp, isl_dim_out)+1; i++)
+            sched = isl_map_add_dim_and_eq_constraint(sched, 2*i, 0);
+
         DEBUG(3, coli::str_dump("The following identity schedule is set: ",
                                 isl_map_to_str(sched)));
         this->set_schedule(sched);
@@ -1280,8 +1292,8 @@ public:
       * assigned in the coli function.  This is done using the
       * \p with_computation and \p at_loop_level arguments.
       * The assignment should be in the loop nest that computes
-      * the computation \p with_computation at the loop level
-      * indicated by \p at_loop_level.
+      * the computation \p with_computation at the iteration space
+      * dimension indicated by \p at_iteration_space_dimension.
       * The root level is computation::root_dimension.
       * 0 represents the first loop level and 1 represents the second
       * loop level, ...
@@ -1291,7 +1303,7 @@ public:
              coli::primitive_t t,
              bool function_wide,
              coli::computation *with_computation,
-             int at_loop_level,
+             int at_iteration_space_dimension,
              coli::function *func): coli::computation()
     {
         DEBUG_FCT_NAME(3);
@@ -1313,11 +1325,11 @@ public:
         {
             assert((with_computation != NULL) &&
                    "A valid computation should be provided.");
-            assert((at_loop_level >= computation::root_dimension) &&
+            assert((at_iteration_space_dimension >= computation::root_dimension) &&
                    "Invalid root dimension.");
 
             isl_set *iter = with_computation->get_iteration_domain();
-            int projection_dimension = at_loop_level+1;
+            int projection_dimension = at_iteration_space_dimension+1;
             iter = isl_set_project_out(isl_set_copy(iter),
                                        isl_dim_set,
                                        projection_dimension,
@@ -1341,7 +1353,7 @@ public:
 
             // Set the schedule of this computation to be executed
             // before the computation.
-            this->before(*with_computation, at_loop_level);
+            this->before(*with_computation, 2*at_iteration_space_dimension+1);
         }
         DEBUG_INDENT(-4);
     }
