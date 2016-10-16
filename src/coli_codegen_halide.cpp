@@ -146,7 +146,7 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
  */
 void traverse_expr_and_extract_accesses(coli::function *fct,
                                         coli::computation *comp,
-                                        const coli::expr exp,
+                                        const coli::expr &exp,
                                         std::vector<isl_map *> &accesses)
 {
 	assert(fct != NULL);
@@ -460,8 +460,8 @@ void get_rhs_accesses(coli::function *func, coli::computation *comp, std::vector
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-	const coli::expr *rhs = comp->get_expr();
-	traverse_expr_and_extract_accesses(func, comp, *rhs, accesses);
+	const coli::expr &rhs = comp->get_expr();
+	traverse_expr_and_extract_accesses(func, comp, rhs, accesses);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -536,7 +536,7 @@ void print_isl_ast_expr_vector(
 
 Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
                                         std::vector<isl_ast_expr *> &index_expr,
-                                        const coli::expr coli_expr)
+                                        const coli::expr &coli_expr)
 {
 	Halide::Expr result;
 
@@ -1148,7 +1148,7 @@ void function::gen_halide_stmt()
 	    std::vector<isl_ast_expr *> ie = {};
 		*stmt = Halide::Internal::LetStmt::make(
 					param.get_name(),
-				 	halide_expr_from_coli_expr(NULL, ie, *param.get_expr()),
+				 	halide_expr_from_coli_expr(NULL, ie, param.get_expr()),
 				 	*stmt);
 	}
 
@@ -1223,11 +1223,11 @@ void computation::create_halide_stmt()
     {
         DEBUG(3, coli::str_dump("This is a let statement."));
         DEBUG(10, coli::str_dump("The expression associated with the let statement."));
-        DEBUG(10, this->expression->dump(true));
+        DEBUG(10, this->expression.dump(true));
 
         Halide::Expr result = halide_expr_from_coli_expr(this,
                                                          this->get_index_expr(),
-                                                         *(this->expression));
+                                                         this->expression);
 
         Halide::Type l_type = halide_type_from_coli_type(this->get_data_type());
 
@@ -1311,7 +1311,7 @@ void computation::create_halide_stmt()
         this->stmt = Halide::Internal::Store::make (
                         buffer_name,
                         halide_expr_from_coli_expr(this, index_expr_cp,
-                                                   *(this->expression)), index, param);
+                                                   this->expression), index, param);
     }
 
     DEBUG_NO_NEWLINE(3, coli::str_dump("End of create_halide_stmt. Generated statement is: ");

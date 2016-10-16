@@ -19,13 +19,13 @@ void generate_function_1(std::string name, int size, int val0, int val1)
 
     coli::function function0(name);
     coli::expr e_N = coli::expr((int32_t) size);
-    coli::constant N("N", &e_N, p_int32, true, NULL, 0, &function0);
+    coli::constant N("N", e_N, p_int32, true, NULL, 0, &function0);
 
-    coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", NULL, true, p_uint8, &function0);
+    coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", expr(), true, p_uint8, &function0);
     coli::expr e_M = coli::expr((uint8_t) val1);
-    coli::constant M("M", &e_M, p_uint8, false, &S0, 0, &function0);
+    coli::constant M("M", e_M, p_uint8, false, &S0, 0, &function0);
     coli::expr e1 = coli::expr((uint8_t) val0) + coli::var(p_uint8, "M");
-    S0.set_expression(&e1);
+    S0.set_expression(e1);
 
     coli::buffer buf0("buf0", 2, {size,size}, coli::p_uint8, NULL,
                         a_output, &function0);

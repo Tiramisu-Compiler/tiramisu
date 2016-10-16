@@ -60,8 +60,7 @@ coli::primitive_t halide_type_to_coli_type(Type type)
 namespace
 {
 
-template<typename T>
-std::string to_string(const std::vector<T>& v) {
+std::string to_string(const std::vector<Expr>& v) {
     std::ostringstream stream;
     stream << "[";
     for (size_t i = 0; i < v.size(); ++i) {
@@ -79,11 +78,11 @@ private:
     const vector<Function> &outputs;
     const map<string, Function> &env;
     const map<string, coli::buffer> &output_buffers;
-    set<string> seen_lets;
     set<string> seen_buffer;
     map<string, coli::buffer> temporary_buffers;
+    Scope<Expr> scope; // Scope of the variables
 
-    void error() {
+    void error() const {
         coli::error("Can't convert to coli expr.", true);
     }
 
@@ -95,21 +94,57 @@ private:
         loop_dims.pop_back();
     }
 
+    string get_loop_dims() const {
+        std::ostringstream stream;
+        stream << "[";
+        for (size_t i = 0; i < loop_dims.size(); ++i) {
+            stream << loop_dims[i].name;
+            if (i != loop_dims.size() - 1) {
+                stream << ", ";
+            }
+        }
+        stream << "]";
+        return stream.str();
+    }
+
+    string get_loop_bounds() const {
+        std::ostringstream stream;
+        stream << "(";
+        for (size_t i = 0; i < loop_dims.size(); ++i) {
+            stream << loop_dims[i].to_string();
+            if (i != loop_dims.size() - 1) {
+                stream << ") and (";
+            }
+        }
+        stream << ")";
+        return stream.str();
+    }
+
+    void define_constant(const string &name, Expr value);
+
 public:
+    coli::function func; // Represent one Halide pipeline
     coli::expr expr;
     map<string, coli::computation> computation_list;
-    coli::function &func; // Represent one Halide pipeline
+    map<string, coli::constant> constant_list;
 
     struct Loop {
         std::string name;
         Expr min, extent;
+
+        string to_string() const {
+            std::ostringstream stream;
+            Expr max = simplify(min + extent - 1);
+            stream << min << " <= " << name << " <= " << max;
+            return stream.str();
+        }
     };
 
     vector<Loop> loop_dims;
 
     HalideToColi(const vector<Function> &outputs, const map<string, Function> &env,
-                 const map<string, coli::buffer> &output_buffers, coli::function &f)
-        : outputs(outputs), env(env), output_buffers(output_buffers), func(f) {}
+                 const map<string, coli::buffer> &output_buffers, const string &pipeline_name)
+        : outputs(outputs), env(env), output_buffers(output_buffers), func(pipeline_name) {}
 
     coli::expr mutate(Expr e) {
         assert(e.defined() && "HalideToColi can't convert undefined expr\n");
@@ -158,15 +193,16 @@ protected:
     void visit(const IfThenElse *)          { error(); }
     void visit(const Free *)                { error(); }
 
+    void visit(const Store *);
+    void visit(const Allocate *);
+
+    void visit(const Load *);
     void visit(const Let *);
     void visit(const LetStmt *);
     void visit(const For *);
-    void visit(const Load *);
-    void visit(const Store *);
     void visit(const Call *);
     void visit(const ProducerConsumer *);
     void visit(const Block *);
-    void visit(const Allocate *);
 
     void visit(const Provide *);
     void visit(const Realize *);
@@ -214,12 +250,13 @@ void HalideToColi::visit(const Cast *op) {
 }
 
 void HalideToColi::visit(const Variable *op) {
-    //TODO(psuriana)
-    error();
-    const auto &iter = computation_list.find(op->name);
-    if (iter != computation_list.end()) {
-        // It is a reference to variable defined in Let/LetStmt or a reference
-        // to a buffer
+    assert(!op->param.defined() && "Can only handle simple variable for now.\n");
+    assert(!op->image.defined() && "Can only handle simple variable for now.\n");
+
+    const auto &iter = constant_list.find(op->name);
+    if (iter != constant_list.end()) {
+        // It is a reference to variable defined in Let/LetStmt
+        //TODO(psuriana): when do we actually generate constant???
         expr = iter->second(0);
     } else {
         // It is presumably a reference to loop variable
@@ -330,78 +367,87 @@ void HalideToColi::visit(const Select *op) {
 }
 
 void HalideToColi::visit(const Let *op) {
-    assert(is_const(op->value) && "Only support let of constant for now.\n");
-    assert((seen_lets.find(op->name) != seen_lets.end()) && "Redefinition of lets is not supported right now.\n");
-    seen_lets.insert(op->name);
-
-
-    coli::expr value = mutate(op->value);
-    //TODO(psuriana): potential segfault here since we're passing stack pointer
-    coli::constant c_const(op->name, &value, halide_type_to_coli_type(op->value.type()), true, NULL, 0, &func);
-    computation_list.emplace(op->name, c_const);
-
-    coli::expr body = mutate(op->body);
-    expr = body;
+    error(); // Should not have encountered this since we called substitute_in_all_lets before mutating
 }
 
 void HalideToColi::visit(const LetStmt *op) {
-    assert(is_const(op->value) && "Only support let of constant for now.\n");
-    assert((seen_lets.find(op->name) != seen_lets.end()) && "Redefinition of lets is not supported right now.\n");
-    seen_lets.insert(op->name);
-
-    coli::expr value = mutate(op->value);
-    //TODO(psuriana): potential segfault here since we're passing stack pointer
-    coli::constant c_const(op->name, &value, halide_type_to_coli_type(op->value.type()), true, NULL, 0, &func);
-    computation_list.emplace(op->name, c_const);
-
+    scope.push(op->name, op->value);
     mutate(op->body);
+    scope.pop(op->name);
 }
 
 void HalideToColi::visit(const ProducerConsumer *op) {
     assert((op->body.as<Block>() == NULL) && "Does not currently handle update.\n");
-    assert((computation_list.count(op->name) == 0) && "Find another computation with the same name.\n");
-
-    //TODO(psuriana): ideally should create the computation here, but what to pass as iter dom and expr?
+    assert((computation_list.find(op->name) == computation_list.end()) && "Found another computation with the same name.\n");
 
     vector<Loop> old_loop_dims = loop_dims;
     mutate(op->body);
     loop_dims = old_loop_dims;
 }
 
+void HalideToColi::define_constant(const string &name, Expr val) {
+    assert((constant_list.find(name) == constant_list.end()) && "Redefinition of lets is not supported right now.\n");
+
+    coli::expr value = mutate(val);
+    //TODO(psuriana): potential segfault here since we're passing stack pointer
+    coli::constant c_const(name, value, halide_type_to_coli_type(val.type()), true, NULL, 0, &func);
+    constant_list.emplace(name, c_const);
+}
+
 void HalideToColi::visit(const For *op) {
     push_loop_dim(op);
+
+    const Variable *min = op->min.as<Variable>();
+    assert((min != NULL) && "Min value of a loop should have been a variable.\n");
+    const Variable *extent = op->extent.as<Variable>();
+    assert((extent != NULL) && "Extent of a loop should have been a variable.\n");
+
+    Expr min_val = scope.get(min->name);
+    Expr extent_val = scope.get(extent->name);
+
+    // Substitute it in all references to some other variables in the min/extent val
+    map<string, Expr> replacements;
+    typename Scope<Expr>::const_iterator iter;
+    for (iter = scope.cbegin(); iter != scope.cend(); ++iter) {
+        replacements.emplace(iter.name(), iter.value());
+    }
+    min_val = substitute(replacements, min_val);
+    extent_val = substitute(replacements, extent_val);
+
+    define_constant(min->name, min_val);
+    define_constant(extent->name, extent_val);
+
     mutate(op->body);
     pop_loop_dim();
 }
 
 void HalideToColi::visit(const Load *op) {
-    //TODO(psuriana): doesn't handle load to image or some external buffer right now
-    error();
+    error(); // Load to external buffer is not currently supported
 }
 
 void HalideToColi::visit(const Provide *op) {
-    //TODO(psuriana): depending on which lowering stage we're passing, this might still exist in the IR
-    assert((computation_list.count(op->name) == 0) && "Find another computation with the same name.\n");
+    assert((computation_list.find(op->name) == computation_list.end())
+           && "Duplicate computation is not currently supported.\n");
     assert((temporary_buffers.count("buff_" + op->name) || output_buffers.count("buff_" + op->name))
            && "The buffer should have been allocated previously.\n");
 
     vector<coli::expr> args(op->args.size());
     for (size_t i = 0; i < op->args.size(); ++i) {
-        assert((op->args[i].as<Variable>() != NULL) && "Expect args of provide to be loop index for now.\n");
+        assert((op->args[i].as<Variable>() != NULL)
+               && "Expect args of provide to be loop dims for now (doesn't currently handle update).\n");
         args[i] = mutate(op->args[i]);
     }
 
-    assert((op->values.size() == 1) && "Expect 1D store in the Provide node for now.\n");
+    assert((op->values.size() == 1) && "Expect 1D store (no tuple) in the Provide node for now.\n");
     vector<coli::expr> values(op->values.size());
     for (size_t i = 0; i < op->values.size(); ++i) {
         values[i] = mutate(op->values[i]);
     }
 
     string dims_str = to_string(op->args);
-    //TODO(psuriana): determine the loop bound
-    string iter_space_str = "[N]->{" + op->name + dims_str + ": 0<=i<N and 0<=j<N}";
+    string iter_space_str = get_loop_dims() + "->{" + op->name + dims_str + ": " + get_loop_bounds();
     //TODO(psuriana): potential segfault here since we're passing stack pointer
-    coli::computation compute(iter_space_str, &values[0], false, halide_type_to_coli_type(op->values[0].type()), &func);
+    coli::computation compute(iter_space_str, values[0], false, halide_type_to_coli_type(op->values[0].type()), &func);
 
     // Map to buffer
     string access_str = "{" + op->name + dims_str + "->" + "buff_" + op->name + dims_str + "}";
@@ -411,20 +457,49 @@ void HalideToColi::visit(const Provide *op) {
 }
 
 void HalideToColi::visit(const Realize *op) {
-    //TODO(psuriana): depending on which lowering stage we're passing, this might still exist in the IR
-    error();
-}
+    // We will ignore the condition on the Realize node for now.
 
-void HalideToColi::visit(const Store *op) {
-    //TODO(psuriana): not sure if COLi expect things in 1D???
-    error();
+    assert((temporary_buffers.find("buff_" + op->name) == temporary_buffers.end())
+           && "Duplicate allocation (i.e. duplicate compute) is not currently supported.\n");
+
+    const auto iter = env.find(op->name);
+    assert((iter != env.end()) && "Cannot find function in env.\n");
+    bool is_output = false;
+    for (Function o : outputs) {
+        is_output |= o.same_as(iter->second);
+    }
+    assert(!is_output && "Realize should have been temporary buffer.\n");
+
+    // Assert that the types of all buffer dimensions are the same for now.
+    for (size_t i = 1; i < op->types.size(); ++i) {
+        assert((op->types[i-1] == op->types[i]) && "Realize node should have the same types for all dimensions.\n");
+    }
+
+    // Assert that the bounds on the dimensions start from 0 for now.
+    for (size_t i = 0; i < op->bounds.size(); ++i) {
+        assert(is_zero(op->bounds[i].min) && "Bound of realize node should start from 0.\n");
+    }
+
+    // Create a temporary buffer
+    vector<coli::expr> extents(op->bounds.size());
+    for (size_t i = 0; i < op->bounds.size(); ++i) {
+        extents[i] = mutate(op->bounds[i].extent);
+    }
+
+    string buffer_name = "buff_" + op->name;
+    coli::buffer produce_buffer(
+        buffer_name, extents.size(), extents,
+        halide_type_to_coli_type(op->types[0]), NULL, a_temporary, &func);
+    temporary_buffers.emplace(buffer_name, std::move(produce_buffer));
+
+    mutate(op->body);
 }
 
 void HalideToColi::visit(const Call *op) {
     assert((op->call_type == Call::CallType::Halide) && "Only handle call to halide func for now.\n");
 
     const auto iter = computation_list.find(op->name);
-    assert(iter != computation_list.end() && "Computation does not exist.\n");
+    assert(iter != computation_list.end() && "Call to computation that does not exist.\n");
 
     vector<coli::expr> args(op->args.size());
     for (size_t i = 0; i < op->args.size(); ++i) {
@@ -438,31 +513,33 @@ void HalideToColi::visit(const Block *op) {
     mutate(op->rest);
 }
 
+void HalideToColi::visit(const Store *op) {
+    error(); // Should pass the unflatten version to COLi
+}
+
 void HalideToColi::visit(const Allocate *op) {
-    //TODO(psuriana): how do you express duplicate Allocate (e.g. compute_at at different func defs)?
-    assert((temporary_buffers.count("buff_" + op->name) == 0) && "Find duplicate temporary buffer allocation.\n");
-
-    const auto iter = env.find(op->name);
-    assert((iter != env.end()) && "Cannot find function in env.\n");
-    bool is_output = false;
-    for (Function o : outputs) {
-        is_output |= o.same_as(iter->second);
-    }
-    assert(!is_output && "Allocate should have been temporary buffer.\n");
-
-    // Create temporary buffer if it's not an output
-    vector<coli::expr> extents(op->extents.size());
-    for (size_t i = 0; i < op->extents.size(); ++i) {
-        extents[i] = mutate(op->extents[i]);
-    }
-
-    string buffer_name = "buff_" + op->name;
-    coli::buffer produce_buffer(
-        buffer_name, extents.size(), extents,
-        halide_type_to_coli_type(op->type), NULL, a_temporary, &func);
-    temporary_buffers.emplace(buffer_name, std::move(produce_buffer));
+    error(); // Should pass the unflatten version to COLi
 }
 
 } // anonymous namespace
+
+coli::function halide_pipeline_to_coli_function(
+        Stmt s, const vector<Function> &outputs, const map<string, Function> &env,
+        const string &pipeline_name, map<string, coli::buffer> &output_buffers) {
+
+    // Allocate the output buffers
+    output_buffers.clear();
+    for (Function f : outputs) {
+        //TODO(psuriana): allocate the output buffer
+        /*string buffer_name = "buff_" + f.name();
+        coli::buffer output_buffer(buffer_name, f.args().size(), {coli::expr(SIZE0),coli::expr(SIZE1)},
+            halide_type_to_coli_type(op->type), NULL, a_output, &blurxy);
+        output_buffers.emplace(buffer_name, std::move(output_buffer));*/
+    }
+
+    HalideToColi converter(outputs, env, output_buffers, pipeline_name);
+    converter.mutate(s);
+    return std::move(converter.func);
+}
 
 }

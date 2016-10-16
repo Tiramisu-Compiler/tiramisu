@@ -48,23 +48,23 @@ int main(int argc, char **argv)
     buffer b_blury("b_blury", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
     expr e_p0 = expr((int32_t) SIZE0);
     expr e_p1 = expr((int32_t) SIZE1);
-    constant p0("N", &e_p0, p_int32, true, NULL, 0, &blurxy);
-    constant p1("M", &e_p1, p_int32, true, NULL, 0, &blurxy);
+    constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
+    constant p1("M", e_p1, p_int32, true, NULL, 0, &blurxy);
 
     // Declare the computations c_blurx and c_blury.
-    computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &blurxy);
+    computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &blurxy);
 
     expr e1 = (c_input(idx("i") - 1, idx("j")) +
                c_input(idx("i")    , idx("j")) +
                c_input(idx("i") + 1, idx("j")))/((uint8_t) 3);
 
-    computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", &e1, true, p_uint8, &blurxy);
+    computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", e1, true, p_uint8, &blurxy);
 
     expr e2 = (c_blurx(idx("i"), idx("j") - 1) +
                c_blurx(idx("i"), idx("j")) +
                c_blurx(idx("i"), idx("j") + 1))/((uint8_t) 3);
 
-    computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", &e2, true, p_uint8, &blurxy);
+    computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2, true, p_uint8, &blurxy);
 
     // Create a memory buffer (2 dimensional).
     buffer b_blurx("b_blurx", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_temporary, &blurxy);
