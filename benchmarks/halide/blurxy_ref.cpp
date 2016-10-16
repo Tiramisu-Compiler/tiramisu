@@ -3,7 +3,7 @@ using namespace Halide;
 
 int main(int argc, char **argv) {
 
-    ImageParam input(UInt(8), 2);
+    ImageParam input(UInt(16), 2);
     Func blur_x("blur_x"), blur_y("blur_y");
     Var x("x"), y("y"), xi("xi"), yi("yi");
 
@@ -20,8 +20,6 @@ int main(int argc, char **argv) {
                              {input},
                              "blurxy_ref",
                              target);
-
-//    blurxy_ref.compile_to_static_library("blurxy_ref", {input});
 
     return 0;
 }
