@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     // constant or a variable that does not change during the execution of the
     // function.
     coli::expr e_N = expr((int32_t) 10);
-    constant N("N", &e_N, p_int32, true, NULL, 0, &function0);
+    constant N("N", e_N, p_int32, true, NULL, 0, &function0);
 
     // Declare a expressions that will be associated with the
     // computations.
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     // relations),
     // (2) a coli expression that represents the computation,
     // (3) the function in which the computation will be declared.
-    computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", &e3, true, p_uint8, &function0);
+    computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e3, true, p_uint8, &function0);
 
     // Map the computations to a buffer (i.e. where each computation
     // should be stored in the buffer).

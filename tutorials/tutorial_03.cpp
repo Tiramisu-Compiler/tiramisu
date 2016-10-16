@@ -43,12 +43,12 @@ int main(int argc, char **argv)
     buffer b_B("b_B", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
     buffer b_C("b_C", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
     expr e_p0 = expr((int32_t) SIZE0);
-    constant p0("N", &e_p0, p_int32, true, NULL, 0, &matmul);
+    constant p0("N", e_p0, p_int32, true, NULL, 0, &matmul);
 
     // Declare a computation c_A that represents a binding to the buffer b_A
-    computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
+    computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
     // Declare a computation c_B that represents a binding to the buffer b_B
-    computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", NULL, false, p_uint8, &matmul);
+    computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
 
     // Indices
     idx i = idx("i");
@@ -56,9 +56,9 @@ int main(int argc, char **argv)
     idx k = idx("k");
 
     // Declare a computation c_C
-    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", NULL, true, p_uint8, &matmul);
+    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
     expr e1 = c_C(i,j,k-1) + c_A(i,k) * c_B(k,j);
-    c_C.set_expression(&e1);
+    c_C.set_expression(e1);
 
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");

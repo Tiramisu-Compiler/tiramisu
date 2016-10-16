@@ -764,7 +764,7 @@ void coli::constant::dump(bool exhaustive) const
         std::cout << "Invariant \"" << this->name << "\"" << std::endl;
 
         std::cout << "Expression: ";
-        this->get_expr()->dump(exhaustive);
+        this->get_expr().dump(exhaustive);
         std::cout << std::endl;
     }
 }

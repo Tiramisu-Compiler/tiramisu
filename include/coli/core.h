@@ -29,8 +29,16 @@ class constant;
 
 Halide::Type halide_type_from_coli_type(coli::primitive_t type);
 Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
-                                               std::vector<isl_ast_expr *> &index_expr,
-                                               const coli::expr coli_expr);
+                                        std::vector<isl_ast_expr *> &index_expr,
+                                        const coli::expr &coli_expr);
+
+coli::primitive_t halide_type_to_coli_type(Halide::Type type);
+coli::function halide_pipeline_to_coli_function(
+    Halide::Internal::Stmt s,
+    const std::vector<Halide::Internal::Function> &outputs,
+    const std::map<std::string, Halide::Internal::Function> &env,
+    const std::string &pipeline_name,
+    std::map<std::string, coli::buffer> &output_buffers);
 
 #define LET_STMT_PREFIX "_coli_"
 
@@ -774,7 +782,7 @@ protected:
     /**
       * An expression representing the computation.
       */
-    coli::expr *expression;
+    coli::expr expression;
 
     /**
      * If set to true, the computation is scheduled, otherwise it is
@@ -794,7 +802,7 @@ protected:
       */
     void init_computation(std::string iteration_space_str,
                           coli::function *fct,
-                          coli::expr *e,
+                          const coli::expr &e,
                           bool schedule_this_computation,
                           coli::primitive_t t) {
         assert(fct != NULL);
@@ -833,7 +841,7 @@ protected:
 
         this->schedule_this_computation = false;
         this->data_type = p_none;
-        this->expression = NULL;
+        this->expression = coli::expr();
 
         this->ctx = NULL;
 
@@ -883,7 +891,7 @@ public:
       * \p fct is a pointer to the coli function where this computation
       * should be added.
       */
-    computation(std::string iteration_space_str, coli::expr *e,
+    computation(std::string iteration_space_str, coli::expr e,
                 bool schedule_this_computation, coli::primitive_t t,
                 coli::function *fct) {
         init_computation(iteration_space_str, fct, e,
@@ -911,7 +919,7 @@ public:
      * Return the coli expression associated with the computation
      * (RHS).
      */
-    const coli::expr *get_expr() const
+    const coli::expr &get_expr() const
     {
         return expression;
     }
@@ -1206,7 +1214,7 @@ public:
     /**
      * Set the expression associated to the computation.
      */
-    void set_expression(coli::expr *e)
+    void set_expression(const coli::expr &e)
     {
         this->expression = e;
     }
@@ -1287,7 +1295,7 @@ public:
       * loop level, ...
       * \p func is the function in which the constant is defined.
       */
-    constant(std::string param_name, coli::expr *param_expr,
+    constant(std::string param_name, const coli::expr &param_expr,
              coli::primitive_t t,
              bool function_wide,
              coli::computation *with_computation,
