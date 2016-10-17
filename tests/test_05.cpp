@@ -89,16 +89,18 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     vector<int32_t> f_size = {100, 100};
     map<string, vector<int32_t>> output_buffers_size = { {"f", f_size} };
     map<string, coli::buffer> output_buffers;
+
+    coli::buffer buff_f("buff_" + f.function().name(), f_size.size(), {coli::expr(100), coli::expr(100)},
+                        coli::p_int32, NULL, coli::a_output, &func);
+    output_buffers.emplace("buff_" + f.function().name(), buff_f);
+
     halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, func, output_buffers);
 
-    const auto iter = output_buffers.find("buff_f");
-    assert(iter != output_buffers.end());
+    func.set_arguments({&buff_f});
 
+    func.dump(true);
     func.dump_schedule();
-    func.gen_time_processor_domain();
-    func.dump_time_processor_domain();
 
-    func.set_arguments({&iter->second});
     func.gen_isl_ast();
     std::cout << "GENERATING HALIDE STMT\n";
     func.gen_halide_stmt();

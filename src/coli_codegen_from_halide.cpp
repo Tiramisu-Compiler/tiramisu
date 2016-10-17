@@ -539,7 +539,7 @@ void halide_pipeline_to_coli_function(
     Scope<Expr> scope;
 
     // Allocate the output buffers
-    output_buffers.clear();
+    /*output_buffers.clear();
     for (Function f : outputs) {
         const auto iter = output_buffers_size.find(f.name());
         assert(iter != output_buffers_size.end());
@@ -556,7 +556,7 @@ void halide_pipeline_to_coli_function(
         coli::buffer output_buffer(buffer_name, f.args().size(), sizes,
                                    p_int32, NULL, a_output, &func);
         output_buffers.emplace(buffer_name, std::move(output_buffer));
-    }
+    }*/
 
     HalideToColi converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);
