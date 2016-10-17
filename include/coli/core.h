@@ -29,18 +29,29 @@ class constant;
 
 Halide::Type halide_type_from_coli_type(coli::primitive_t type);
 Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
-                                               std::vector<isl_ast_expr *> &index_expr,
-                                               const coli::expr &coli_expr);
+                                        std::vector<isl_ast_expr *> &index_expr,
+                                        const coli::expr &coli_expr);
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
 coli::primitive_t halide_type_to_coli_type(Halide::Type type);
-void halide_pipeline_to_coli_function(
+
+struct HalideCodegenOutput {
+    std::map<std::string, coli::computation *> computation_list;
+    std::map<std::string, coli::constant *> constant_list;
+    std::map<std::string, coli::buffer *> output_buffers;
+
+    HalideCodegenOutput(const std::map<std::string, coli::computation *> &computations,
+                        const std::map<std::string, coli::constant *> &constants,
+                        const std::map<std::string, coli::buffer *> &buffers)
+        : computation_list(computations), constant_list(constants), output_buffers(buffers) {}
+};
+
+HalideCodegenOutput halide_pipeline_to_coli_function(
     Halide::Internal::Stmt s,
     const std::vector<Halide::Internal::Function> &outputs,
     const std::map<std::string, Halide::Internal::Function> &env,
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
-    coli::function *func,
-    std::map<std::string, coli::buffer *> &output_buffers);
+    coli::function *func);
 
 #define LET_STMT_PREFIX "_coli_"
 

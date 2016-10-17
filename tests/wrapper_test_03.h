@@ -1,5 +1,5 @@
-#ifndef HALIDE__generated_pgm_h
-#define HALIDE__generated_pgm_h
+#ifndef HALIDE__generated_pgm_03_h
+#define HALIDE__generated_pgm_03_h
 
 #include <coli/utils.h>
 

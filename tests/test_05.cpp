@@ -39,13 +39,13 @@ consume f {
     0
 }*/
 
-void generate_function_1(std::string name, int size, int val0, int val1)
+void generate_function_1(int size)
 {
     coli::global::set_default_coli_options();
 
     Var x("x"), y("y");
     Func f("f");
-    f(x, y) = 10;
+    f(x, y) = 13;
 
     Expr f_min_0 = Variable::make(Int(32), "f_min_0");
     Expr f_extent_0 = Variable::make(Int(32), "f_extent_0");
@@ -62,7 +62,10 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     Expr x_max = Variable::make(Int(32), "f_s0_x_max");
     Expr x_min = Variable::make(Int(32), "f_s0_x_min");
 
-    Stmt producer = Provide::make("f", {make_const(Int(32), 10)}, {Variable::make(Int(32), "f_s0_x"), Variable::make(Int(32), "f_s0_y")});
+    Expr f_s0_x = Variable::make(Int(32), "f_s0_x");
+    Expr f_s0_y = Variable::make(Int(32), "f_s0_y");
+
+    Stmt producer = Provide::make("f", {make_const(Int(32), 13)}, {f_s0_x, f_s0_y});
     producer = For::make("f_s0_y", y_loop_min, y_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = For::make("f_s0_x", x_loop_min, x_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = LetStmt::make("f_s0_x_loop_extent", ((x_max + 1) - x_min), producer);
@@ -86,17 +89,17 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     coli::function func("f");
 
     map<string, Function> env = { {"f", f.function()} };
-    vector<int32_t> f_size = {100, 100};
+    vector<int32_t> f_size = {size, size};
     map<string, vector<int32_t>> output_buffers_size = { {"f", f_size} };
-    map<string, coli::buffer *> output_buffers;
-    halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, &func, output_buffers);
+    coli::HalideCodegenOutput codegen_output =
+        halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, &func);
 
-    const auto iter = output_buffers.find("buff_f");
-    assert(iter != output_buffers.end());
+    const auto iter = codegen_output.output_buffers.find("buff_f");
+    assert(iter != codegen_output.output_buffers.end());
 
     func.set_arguments({iter->second});
-    func.dump(true);
-    func.dump_schedule();
+    //func.dump(true);
+    //func.dump_schedule();
     func.gen_isl_ast();
     func.gen_halide_stmt();
     func.dump_halide_stmt();
@@ -106,7 +109,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
 
 int main(int argc, char **argv)
 {
-    generate_function_1("test_let_stmt", 1000, 3, 17);
+    generate_function_1(10);
 
     return 0;
 }

@@ -531,16 +531,15 @@ void HalideToColi::visit(const Block *op) {
 
 } // anonymous namespace
 
-void halide_pipeline_to_coli_function(
+coli::HalideCodegenOutput halide_pipeline_to_coli_function(
         Stmt s, const vector<Function> &outputs, const map<string, Function> &env,
         const map<string, vector<int32_t>> &output_buffers_size,
-        coli::function *func,
-        map<string, coli::buffer *> &output_buffers) {
+        coli::function *func) {
 
+    map<string, coli::buffer *> output_buffers;
     Scope<Expr> scope;
 
     // Allocate the output buffers
-    output_buffers.clear();
     for (Function f : outputs) {
         const auto iter = output_buffers_size.find(f.name());
         assert(iter != output_buffers_size.end());
@@ -561,6 +560,9 @@ void halide_pipeline_to_coli_function(
 
     HalideToColi converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);
+    return coli::HalideCodegenOutput(std::move(converter.computation_list),
+                                     std::move(converter.constant_list),
+                                     std::move(output_buffers));
 }
 
 }
