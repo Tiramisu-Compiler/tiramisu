@@ -78,9 +78,11 @@ private:
     const vector<Function> &outputs;
     const map<string, Function> &env;
     const map<string, coli::buffer> &output_buffers;
+    coli::function &func; // Represent one Halide pipeline
+    Scope<Expr> &scope; // Scope of the variables
+
     set<string> seen_buffer;
     map<string, coli::buffer> temporary_buffers;
-    Scope<Expr> scope; // Scope of the variables
 
     void error() const {
         coli::error("Can't convert to coli expr.", true);
@@ -94,11 +96,11 @@ private:
         loop_dims.pop_back();
     }
 
-    string get_loop_dims() const {
+    string get_loop_bound_vars() const {
         std::ostringstream stream;
         stream << "[";
         for (size_t i = 0; i < loop_dims.size(); ++i) {
-            stream << loop_dims[i].name;
+            stream << loop_dims[i].min << ", " << loop_dims[i].extent;
             if (i != loop_dims.size() - 1) {
                 stream << ", ";
             }
@@ -123,7 +125,6 @@ private:
     void define_constant(const string &name, Expr value);
 
 public:
-    coli::function func; // Represent one Halide pipeline
     coli::expr expr;
     map<string, coli::computation> computation_list;
     map<string, coli::constant> constant_list;
@@ -142,9 +143,12 @@ public:
 
     vector<Loop> loop_dims;
 
-    HalideToColi(const vector<Function> &outputs, const map<string, Function> &env,
-                 const map<string, coli::buffer> &output_buffers, const string &pipeline_name)
-        : outputs(outputs), env(env), output_buffers(output_buffers), func(pipeline_name) {}
+    HalideToColi(Scope<Expr> &s,
+                 const vector<Function> &outputs,
+                 const map<string, Function> &env,
+                 const map<string, coli::buffer> &output_buffers,
+                 coli::function &f)
+           : outputs(outputs), env(env), output_buffers(output_buffers), func(f), scope(s) {}
 
     coli::expr mutate(Expr e) {
         assert(e.defined() && "HalideToColi can't convert undefined expr\n");
@@ -185,17 +189,17 @@ protected:
     void visit(const Not *);
     void visit(const Select *);
 
-    void visit(const StringImm *)           { error(); }
-    void visit(const AssertStmt *)          { error(); }
-    void visit(const Evaluate *)            { error(); }
-    void visit(const Ramp *)                { error(); }
-    void visit(const Broadcast *)           { error(); }
-    void visit(const IfThenElse *)          { error(); }
-    void visit(const Free *)                { error(); }
+    void visit(const StringImm *)   { error(); }
+    void visit(const AssertStmt *)  { error(); }
+    void visit(const Ramp *)        { error(); }
+    void visit(const Broadcast *)   { error(); }
+    void visit(const IfThenElse *)  { error(); }
+    void visit(const Free *)        { error(); }
 
-    void visit(const Store *);
-    void visit(const Allocate *);
+    void visit(const Store *)       { error(); } // Should pass the unflatten version to COLi
+    void visit(const Allocate *)    { error(); } // Should pass the unflatten version to COLi
 
+    void visit(const Evaluate *);
     void visit(const Load *);
     void visit(const Let *);
     void visit(const LetStmt *);
@@ -378,7 +382,8 @@ void HalideToColi::visit(const LetStmt *op) {
 
 void HalideToColi::visit(const ProducerConsumer *op) {
     assert((op->body.as<Block>() == NULL) && "Does not currently handle update.\n");
-    assert((computation_list.find(op->name) == computation_list.end()) && "Found another computation with the same name.\n");
+    assert((!op->is_producer || (computation_list.find(op->name) == computation_list.end())) &&
+           "Found another computation with the same name.\n");
 
     vector<Loop> old_loop_dims = loop_dims;
     mutate(op->body);
@@ -388,8 +393,8 @@ void HalideToColi::visit(const ProducerConsumer *op) {
 void HalideToColi::define_constant(const string &name, Expr val) {
     assert((constant_list.find(name) == constant_list.end()) && "Redefinition of lets is not supported right now.\n");
 
+    val = simplify(val);
     coli::expr value = mutate(val);
-    //TODO(psuriana): potential segfault here since we're passing stack pointer
     coli::constant c_const(name, value, halide_type_to_coli_type(val.type()), true, NULL, 0, &func);
     constant_list.emplace(name, c_const);
 }
@@ -409,9 +414,16 @@ void HalideToColi::visit(const For *op) {
     map<string, Expr> replacements;
     typename Scope<Expr>::const_iterator iter;
     for (iter = scope.cbegin(); iter != scope.cend(); ++iter) {
-        replacements.emplace(iter.name(), iter.value());
+        if ((iter.name() != min->name) || (iter.name() != extent->name)) {
+            replacements.emplace(iter.name(), iter.value());
+        }
     }
+
+    // Do it twice, to make sure we substitute in all variables properly
     min_val = substitute(replacements, min_val);
+    min_val = substitute(replacements, min_val);
+
+    extent_val = substitute(replacements, extent_val);
     extent_val = substitute(replacements, extent_val);
 
     define_constant(min->name, min_val);
@@ -419,6 +431,10 @@ void HalideToColi::visit(const For *op) {
 
     mutate(op->body);
     pop_loop_dim();
+}
+
+void HalideToColi::visit(const Evaluate *op) {
+    IRVisitor::visit(op);
 }
 
 void HalideToColi::visit(const Load *op) {
@@ -445,11 +461,10 @@ void HalideToColi::visit(const Provide *op) {
     }
 
     string dims_str = to_string(op->args);
-    string iter_space_str = get_loop_dims() + "->{" + op->name + dims_str + ": " + get_loop_bounds();
-    //TODO(psuriana): potential segfault here since we're passing stack pointer
+    string iter_space_str = get_loop_bound_vars() + "->{" + op->name + dims_str + ": " + get_loop_bounds() + "}";
     coli::computation compute(iter_space_str, values[0], false, halide_type_to_coli_type(op->values[0].type()), &func);
 
-    // Map to buffer
+    // 1-to-1 mapping to buffer
     string access_str = "{" + op->name + dims_str + "->" + "buff_" + op->name + dims_str + "}";
     compute.set_access(access_str);
 
@@ -472,12 +487,12 @@ void HalideToColi::visit(const Realize *op) {
 
     // Assert that the types of all buffer dimensions are the same for now.
     for (size_t i = 1; i < op->types.size(); ++i) {
-        assert((op->types[i-1] == op->types[i]) && "Realize node should have the same types for all dimensions.\n");
+        assert((op->types[i-1] == op->types[i]) && "Realize node should have the same types for all dimensions for now.\n");
     }
 
     // Assert that the bounds on the dimensions start from 0 for now.
     for (size_t i = 0; i < op->bounds.size(); ++i) {
-        assert(is_zero(op->bounds[i].min) && "Bound of realize node should start from 0.\n");
+        assert(is_zero(op->bounds[i].min) && "Bound of realize node should start from 0 for now.\n");
     }
 
     // Create a temporary buffer
@@ -513,33 +528,38 @@ void HalideToColi::visit(const Block *op) {
     mutate(op->rest);
 }
 
-void HalideToColi::visit(const Store *op) {
-    error(); // Should pass the unflatten version to COLi
-}
-
-void HalideToColi::visit(const Allocate *op) {
-    error(); // Should pass the unflatten version to COLi
-}
-
 } // anonymous namespace
 
-coli::function halide_pipeline_to_coli_function(
+void halide_pipeline_to_coli_function(
         Stmt s, const vector<Function> &outputs, const map<string, Function> &env,
-        const string &pipeline_name, map<string, coli::buffer> &output_buffers) {
+        const map<string, vector<int32_t>> &output_buffers_size,
+        coli::function &func,
+        map<string, coli::buffer> &output_buffers) {
+
+    Scope<Expr> scope;
 
     // Allocate the output buffers
     output_buffers.clear();
     for (Function f : outputs) {
-        //TODO(psuriana): allocate the output buffer
-        /*string buffer_name = "buff_" + f.name();
-        coli::buffer output_buffer(buffer_name, f.args().size(), {coli::expr(SIZE0),coli::expr(SIZE1)},
-            halide_type_to_coli_type(op->type), NULL, a_output, &blurxy);
-        output_buffers.emplace(buffer_name, std::move(output_buffer));*/
+        const auto iter = output_buffers_size.find(f.name());
+        assert(iter != output_buffers_size.end());
+
+        vector<coli::expr> sizes(iter->second.size());
+        for (size_t i = 0; i < iter->second.size(); ++i) {
+            sizes[i] = coli::expr(iter->second[i]);
+            scope.push(f.name() + "_min_" + std::to_string(i), make_const(Int(32), 0));
+            scope.push(f.name() + "_extent_" + std::to_string(i), make_const(Int(32), iter->second[i]));
+        }
+        assert(sizes.size() == f.args().size());
+
+        string buffer_name = "buff_" + f.name();
+        coli::buffer output_buffer(buffer_name, f.args().size(), sizes,
+                                   p_int32, NULL, a_output, &func);
+        output_buffers.emplace(buffer_name, std::move(output_buffer));
     }
 
-    HalideToColi converter(outputs, env, output_buffers, pipeline_name);
+    HalideToColi converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);
-    return std::move(converter.func);
 }
 
 }

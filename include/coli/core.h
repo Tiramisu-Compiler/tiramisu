@@ -34,11 +34,12 @@ Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
 coli::primitive_t halide_type_to_coli_type(Halide::Type type);
-coli::function halide_pipeline_to_coli_function(
+void halide_pipeline_to_coli_function(
     Halide::Internal::Stmt s,
     const std::vector<Halide::Internal::Function> &outputs,
     const std::map<std::string, Halide::Internal::Function> &env,
-    const std::string &pipeline_name,
+    const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
+    coli::function &func,
     std::map<std::string, coli::buffer> &output_buffers);
 
 #define LET_STMT_PREFIX "_coli_"
