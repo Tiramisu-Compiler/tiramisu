@@ -77,12 +77,12 @@ class HalideToColi : public IRVisitor {
 private:
     const vector<Function> &outputs;
     const map<string, Function> &env;
-    const map<string, coli::buffer> &output_buffers;
-    coli::function &func; // Represent one Halide pipeline
+    const map<string, coli::buffer *> &output_buffers;
+    coli::function *func; // Represent one Halide pipeline
     Scope<Expr> &scope; // Scope of the variables
 
     set<string> seen_buffer;
-    map<string, coli::buffer> temporary_buffers;
+    map<string, coli::buffer *> temporary_buffers;
 
     void error() const {
         coli::error("Can't convert to coli expr.", true);
@@ -126,8 +126,8 @@ private:
 
 public:
     coli::expr expr;
-    map<string, coli::computation> computation_list;
-    map<string, coli::constant> constant_list;
+    map<string, coli::computation *> computation_list;
+    map<string, coli::constant *> constant_list;
 
     struct Loop {
         std::string name;
@@ -146,8 +146,8 @@ public:
     HalideToColi(Scope<Expr> &s,
                  const vector<Function> &outputs,
                  const map<string, Function> &env,
-                 const map<string, coli::buffer> &output_buffers,
-                 coli::function &f)
+                 const map<string, coli::buffer *> &output_buffers,
+                 coli::function *f)
            : outputs(outputs), env(env), output_buffers(output_buffers), func(f), scope(s) {}
 
     coli::expr mutate(Expr e) {
@@ -261,7 +261,7 @@ void HalideToColi::visit(const Variable *op) {
     if (iter != constant_list.end()) {
         // It is a reference to variable defined in Let/LetStmt
         //TODO(psuriana): when do we actually generate constant???
-        expr = iter->second(0);
+        expr = (*iter->second)(0);
     } else {
         // It is presumably a reference to loop variable
         expr = coli::idx(op->name);
@@ -395,7 +395,7 @@ void HalideToColi::define_constant(const string &name, Expr val) {
 
     val = simplify(val);
     coli::expr value = mutate(val);
-    coli::constant c_const(name, value, halide_type_to_coli_type(val.type()), true, NULL, 0, &func);
+    coli::constant *c_const = new coli::constant(name, value, halide_type_to_coli_type(val.type()), true, NULL, 0, func);
     constant_list.emplace(name, c_const);
 }
 
@@ -462,11 +462,12 @@ void HalideToColi::visit(const Provide *op) {
 
     string dims_str = to_string(op->args);
     string iter_space_str = get_loop_bound_vars() + "->{" + op->name + dims_str + ": " + get_loop_bounds() + "}";
-    coli::computation compute(iter_space_str, values[0], false, halide_type_to_coli_type(op->values[0].type()), &func);
+    coli::computation *compute = new coli::computation(
+        iter_space_str, values[0], true, halide_type_to_coli_type(op->values[0].type()), func);
 
     // 1-to-1 mapping to buffer
     string access_str = "{" + op->name + dims_str + "->" + "buff_" + op->name + dims_str + "}";
-    compute.set_access(access_str);
+    compute->set_access(access_str);
 
     computation_list.emplace(op->name, compute);
 }
@@ -502,10 +503,10 @@ void HalideToColi::visit(const Realize *op) {
     }
 
     string buffer_name = "buff_" + op->name;
-    coli::buffer produce_buffer(
+    coli::buffer *produce_buffer = new coli::buffer(
         buffer_name, extents.size(), extents,
-        halide_type_to_coli_type(op->types[0]), NULL, a_temporary, &func);
-    temporary_buffers.emplace(buffer_name, std::move(produce_buffer));
+        halide_type_to_coli_type(op->types[0]), NULL, a_temporary, func);
+    temporary_buffers.emplace(buffer_name, produce_buffer);
 
     mutate(op->body);
 }
@@ -520,7 +521,7 @@ void HalideToColi::visit(const Call *op) {
     for (size_t i = 0; i < op->args.size(); ++i) {
         args[i] = mutate(op->args[i]);
     }
-    expr = iter->second(args);
+    expr = (*iter->second)(args);
 }
 
 void HalideToColi::visit(const Block *op) {
@@ -533,13 +534,13 @@ void HalideToColi::visit(const Block *op) {
 void halide_pipeline_to_coli_function(
         Stmt s, const vector<Function> &outputs, const map<string, Function> &env,
         const map<string, vector<int32_t>> &output_buffers_size,
-        coli::function &func,
-        map<string, coli::buffer> &output_buffers) {
+        coli::function *func,
+        map<string, coli::buffer *> &output_buffers) {
 
     Scope<Expr> scope;
 
     // Allocate the output buffers
-    /*output_buffers.clear();
+    output_buffers.clear();
     for (Function f : outputs) {
         const auto iter = output_buffers_size.find(f.name());
         assert(iter != output_buffers_size.end());
@@ -553,10 +554,10 @@ void halide_pipeline_to_coli_function(
         assert(sizes.size() == f.args().size());
 
         string buffer_name = "buff_" + f.name();
-        coli::buffer output_buffer(buffer_name, f.args().size(), sizes,
-                                   p_int32, NULL, a_output, &func);
-        output_buffers.emplace(buffer_name, std::move(output_buffer));
-    }*/
+        coli::buffer *output_buffer = new coli::buffer(
+            buffer_name, f.args().size(), sizes, p_int32, NULL, a_output, func);
+        output_buffers.emplace(buffer_name, output_buffer);
+    }
 
     HalideToColi converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);

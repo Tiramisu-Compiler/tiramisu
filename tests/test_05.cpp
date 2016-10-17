@@ -88,24 +88,18 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     map<string, Function> env = { {"f", f.function()} };
     vector<int32_t> f_size = {100, 100};
     map<string, vector<int32_t>> output_buffers_size = { {"f", f_size} };
-    map<string, coli::buffer> output_buffers;
+    map<string, coli::buffer *> output_buffers;
+    halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, &func, output_buffers);
 
-    coli::buffer buff_f("buff_" + f.function().name(), f_size.size(), {coli::expr(100), coli::expr(100)},
-                        coli::p_int32, NULL, coli::a_output, &func);
-    output_buffers.emplace("buff_" + f.function().name(), buff_f);
+    const auto iter = output_buffers.find("buff_f");
+    assert(iter != output_buffers.end());
 
-    halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, func, output_buffers);
-
-    func.set_arguments({&buff_f});
-
+    func.set_arguments({iter->second});
     func.dump(true);
     func.dump_schedule();
-
     func.gen_isl_ast();
-    std::cout << "GENERATING HALIDE STMT\n";
     func.gen_halide_stmt();
     func.dump_halide_stmt();
-    std::cout << "GENERATING HALIDE OBJ\n";
     func.gen_halide_obj("build/generated_fct_test_05.o");
 }
 

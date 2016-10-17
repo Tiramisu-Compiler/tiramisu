@@ -39,8 +39,8 @@ void halide_pipeline_to_coli_function(
     const std::vector<Halide::Internal::Function> &outputs,
     const std::map<std::string, Halide::Internal::Function> &env,
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
-    coli::function &func,
-    std::map<std::string, coli::buffer> &output_buffers);
+    coli::function *func,
+    std::map<std::string, coli::buffer *> &output_buffers);
 
 #define LET_STMT_PREFIX "_coli_"
 
