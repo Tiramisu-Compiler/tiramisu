@@ -795,6 +795,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 			    result = Halide::Internal::Div::make(op0, op1);
 				result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(result));
 				break;
+			case isl_ast_op_zdiv_r:
 			case isl_ast_op_pdiv_r:
 				result = Halide::Internal::Mod::make(op0, op1);
 				break;

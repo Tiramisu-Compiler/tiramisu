@@ -21,5 +21,10 @@ int main(int argc, char **argv) {
                              "blurxy_ref",
                              target);
 
+    blur_y.compile_to_lowered_stmt("build/generated_fct_blurxy_ref.txt",
+                                   {input},
+                                   Text,
+                                   target);
+
     return 0;
 }

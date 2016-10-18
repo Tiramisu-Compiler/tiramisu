@@ -250,7 +250,7 @@ public:
      */
     isl_set *get_context_set() const
     {
-        return context_set;
+        return isl_set_copy(context_set);
     }
 
     /**
