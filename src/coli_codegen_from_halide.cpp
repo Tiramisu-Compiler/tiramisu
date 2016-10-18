@@ -553,8 +553,9 @@ coli::HalideCodegenOutput halide_pipeline_to_coli_function(
         assert(sizes.size() == f.args().size());
 
         string buffer_name = "buff_" + f.name();
+        //TODO(psuriana): should make the buffer data type variable instead of uint8_t always
         coli::buffer *output_buffer = new coli::buffer(
-            buffer_name, f.args().size(), sizes, p_int32, NULL, a_output, func);
+            buffer_name, f.args().size(), sizes, p_uint8, NULL, a_output, func);
         output_buffers.emplace(buffer_name, output_buffer);
     }
 
