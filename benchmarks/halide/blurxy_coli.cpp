@@ -35,8 +35,8 @@ int main(int argc, char **argv)
     // A hack to represent the image size.  TODO: this should be retrieved from
     // the function arguments.
     Halide::Image<uint16_t> in_image = Halide::Tools::load_image("./images/rgb.png");
-    int  SIZE0 = in_image.extent(0);
-    int  SIZE1 = in_image.extent(1);
+    int  SIZE0 = in_image.extent(0) - 8;
+    int  SIZE1 = in_image.extent(1) - 2;
 
     /*
      * Declare a function blurxy.
