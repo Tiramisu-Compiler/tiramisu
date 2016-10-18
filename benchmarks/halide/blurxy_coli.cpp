@@ -58,10 +58,10 @@ int main(int argc, char **argv)
     idx j = idx("j");
 
     expr e1 = (c_input(i-1, j) + c_input(i, j) + c_input(i+1, j))/((uint16_t) 3);
-    computation c_blurx("[N,M]->{c_blurx[i,j]: 1<i<N-2 and 1<j<M-2}", e1, true, p_uint16, &blurxy);
+    computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N-1 and 1<j<M-2}", e1, true, p_uint16, &blurxy);
 
     expr e2 = (c_blurx(i, j-1) + c_blurx(i, j) + c_blurx(i, j+1))/((uint16_t) 3);
-    computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-2 and 1<j<M-2}", e2, true, p_uint16, &blurxy);
+    computation c_blury("[N,M]->{c_blury[i,j]: 0<i<N-1 and 1<j<M-2}", e2, true, p_uint16, &blurxy);
 
     // Create a memory buffer (2 dimensional).
     buffer b_blurx("b_blurx", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint16, NULL, a_temporary, &blurxy);
@@ -77,12 +77,11 @@ int main(int argc, char **argv)
     c_blury.split(5, 8);
     c_blury.tag_vector_dimension(3);
     */
-    c_blury.after(c_blurx, 1);
+    // c_blury.after(c_blurx, 1);
 
-    /*
-    c_blurx.set_schedule("[N,M]->{c_blurx[i,j]->[i1,j1,0,i2,j2]: 0<i<N-1 and 0<j<M-1 and i1=floor(i/8) and i2=i%8 and j1=floor(j/8) and j2=j%8}");
-    c_blury.set_schedule("[N,M]->{c_blury[i,j]->[i1,j1,1,i2,j2]: 0<i<N-1 and 0<j<M-1 and i1=floor(i/8) and i2=i%8 and j1=floor(j/8) and j2=j%8}");
-    */
+    c_blurx.set_schedule("[N,M]->{c_blurx[i,j]->[i,0,j1,j2]: 0<i<N-1 and 0<j<M-1 and j1=floor(j/8) and j2=j%8}");
+    c_blury.set_schedule("[N,M]->{c_blury[i,j]->[i,1,j1,j2]: 0<i<N-1 and 0<j<M-1 and j1=floor(j/8) and j2=j%8}");
+
     c_blury.tag_parallel_dimension(0);
 
 
