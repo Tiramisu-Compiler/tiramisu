@@ -63,11 +63,16 @@ High Priority
 
 - Benchmarks:
 	- Image processing (Halide)
-		- Blur,
-		- Bilateral grid,
-		- Camera pipeline,
-		- Local Laplacian filters,
-		- Multi-scale interpolation,
+		- blur:
+			- Skewing ? or advanced tiling shapes.
+		- cvt_color,
+		- dilate,
+		- filter2D,
+		- gaussian,
+		- histogram:
+			- Advanced histogram implementation,
+		- resize,
+		- warpAffine,
 	- TensorFlow.
 
 
