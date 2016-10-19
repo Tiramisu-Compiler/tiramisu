@@ -15,11 +15,11 @@ CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
 HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
-OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
+OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o build/coli_codegen_halide_to_c.o
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
-TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator
-TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05
+TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator
+TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06
 BENCH_REF_GEN=build/bench_halide_blurxy_generator
 BENCH_COLI_GEN=build/bench_coli_blurxy_generator
 BENCH_BIN=build/bench_halide_blurxy
