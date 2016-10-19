@@ -45,7 +45,7 @@ void generate_function_1(std::string name, int size)
 
     Var x("x"), y("y");
     Func halide_f("f");
-    halide_f(x, y) = cast<uint8_t>(size);
+    halide_f(x, y) = cast<uint8_t>(13);
 
     Expr f_min_0 = Variable::make(Int(32), "f_min_0");
     Expr f_extent_0 = Variable::make(Int(32), "f_extent_0");
@@ -65,7 +65,7 @@ void generate_function_1(std::string name, int size)
     Expr f_s0_x = Variable::make(Int(32), "f_s0_x");
     Expr f_s0_y = Variable::make(Int(32), "f_s0_y");
 
-    Stmt producer = Provide::make("f", {make_const(UInt(8), size)}, {f_s0_x, f_s0_y});
+    Stmt producer = Provide::make("f", {make_const(UInt(8), 13)}, {f_s0_x, f_s0_y});
     producer = For::make("f_s0_y", y_loop_min, y_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = For::make("f_s0_x", x_loop_min, x_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = LetStmt::make("f_s0_x_loop_extent", ((x_max + 1) - x_min), producer);
@@ -94,11 +94,11 @@ void generate_function_1(std::string name, int size)
 
     // Generated COLi
     /*coli::function test_c_gen("test_c_gen");
-    coli::buffer buff_f("buff_f", 2, {coli::expr(13), coli::expr(13)}, coli::p_uint8, NULL, coli::a_output, &test_c_gen);
+    coli::buffer buff_f("buff_f", 2, {coli::expr(10), coli::expr(10)}, coli::p_uint8, NULL, coli::a_output, &test_c_gen);
     coli::constant f_s0_x_loop_min("f_s0_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &test_c_gen);
-    coli::constant f_s0_x_loop_extent("f_s0_x_loop_extent", coli::expr((int32_t)13), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::constant f_s0_x_loop_extent("f_s0_x_loop_extent", coli::expr((int32_t)10), coli::p_int32, true, NULL, 0, &test_c_gen);
     coli::constant f_s0_y_loop_min("f_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &test_c_gen);
-    coli::constant f_s0_y_loop_extent("f_s0_y_loop_extent", coli::expr((int32_t)13), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::constant f_s0_y_loop_extent("f_s0_y_loop_extent", coli::expr((int32_t)10), coli::p_int32, true, NULL, 0, &test_c_gen);
     coli::computation f("[f_s0_x_loop_min, f_s0_x_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent]->{f[f_s0_x, f_s0_y]: (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1)) and (f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1))}", coli::expr((uint8_t)13), true, coli::p_uint8, &test_c_gen);
     f.set_access("{f[f_s0_x, f_s0_y]->buff_f[f_s0_x, f_s0_y]}");
     test_c_gen.set_arguments({&buff_f});
@@ -111,7 +111,7 @@ void generate_function_1(std::string name, int size)
 
 int main(int argc, char **argv)
 {
-    generate_function_1("test_c_gen", 13);
+    generate_function_1("test_c_gen", 10);
 
     return 0;
 }

@@ -45,7 +45,7 @@ void generate_function_1(int size)
 
     Var x("x"), y("y");
     Func f("f");
-    f(x, y) = cast<uint8_t>(size);
+    f(x, y) = cast<uint8_t>(13);
 
     Expr f_min_0 = Variable::make(Int(32), "f_min_0");
     Expr f_extent_0 = Variable::make(Int(32), "f_extent_0");
@@ -65,7 +65,7 @@ void generate_function_1(int size)
     Expr f_s0_x = Variable::make(Int(32), "f_s0_x");
     Expr f_s0_y = Variable::make(Int(32), "f_s0_y");
 
-    Stmt producer = Provide::make("f", {make_const(UInt(8), size)}, {f_s0_x, f_s0_y});
+    Stmt producer = Provide::make("f", {make_const(UInt(8), 13)}, {f_s0_x, f_s0_y});
     producer = For::make("f_s0_y", y_loop_min, y_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = For::make("f_s0_x", x_loop_min, x_loop_extent, ForType::Serial, DeviceAPI::None, producer);
     producer = LetStmt::make("f_s0_x_loop_extent", ((x_max + 1) - x_min), producer);
@@ -107,7 +107,7 @@ void generate_function_1(int size)
 
 int main(int argc, char **argv)
 {
-    generate_function_1(13);
+    generate_function_1(10);
 
     return 0;
 }
