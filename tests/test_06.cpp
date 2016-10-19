@@ -39,13 +39,13 @@ consume f {
     0
 }*/
 
-void generate_function_1(int size)
+void generate_function_1(std::string name, int size)
 {
     coli::global::set_default_coli_options();
 
     Var x("x"), y("y");
-    Func f("f");
-    f(x, y) = cast<uint8_t>(size);
+    Func halide_f("f");
+    halide_f(x, y) = cast<uint8_t>(size);
 
     Expr f_min_0 = Variable::make(Int(32), "f_min_0");
     Expr f_extent_0 = Variable::make(Int(32), "f_extent_0");
@@ -86,28 +86,32 @@ void generate_function_1(int size)
 
     std::cout << "Test Halide Stmt:\n" << s << "\n\n";
 
-    coli::function func("f");
-
-    map<string, Function> env = { {"f", f.function()} };
+    map<string, Function> env = { {"f", halide_f.function()} };
     vector<int32_t> f_size = {size, size};
     map<string, vector<int32_t>> output_buffers_size = { {"f", f_size} };
-    coli::HalideCodegenOutput codegen_output =
-        halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, &func);
 
-    const auto iter = codegen_output.output_buffers.find("buff_f");
-    assert(iter != codegen_output.output_buffers.end());
+    coli::halide_pipeline_to_c(s, {halide_f.function()}, env, output_buffers_size, name);
 
-    func.set_arguments({iter->second});
-    func.gen_isl_ast();
-    func.gen_halide_stmt();
-    func.dump_halide_stmt();
-    func.gen_halide_obj("build/generated_fct_test_05.o");
+    // Generated COLi
+    /*coli::function test_c_gen("test_c_gen");
+    coli::buffer buff_f("buff_f", 2, {coli::expr(13), coli::expr(13)}, coli::p_uint8, NULL, coli::a_output, &test_c_gen);
+    coli::constant f_s0_x_loop_min("f_s0_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::constant f_s0_x_loop_extent("f_s0_x_loop_extent", coli::expr((int32_t)13), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::constant f_s0_y_loop_min("f_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::constant f_s0_y_loop_extent("f_s0_y_loop_extent", coli::expr((int32_t)13), coli::p_int32, true, NULL, 0, &test_c_gen);
+    coli::computation f("[f_s0_x_loop_min, f_s0_x_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent]->{f[f_s0_x, f_s0_y]: (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1)) and (f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1))}", coli::expr((uint8_t)13), true, coli::p_uint8, &test_c_gen);
+    f.set_access("{f[f_s0_x, f_s0_y]->buff_f[f_s0_x, f_s0_y]}");
+    test_c_gen.set_arguments({&buff_f});
+    test_c_gen.gen_isl_ast();
+    test_c_gen.gen_halide_stmt();
+    test_c_gen.dump_halide_stmt();
+    test_c_gen.gen_halide_obj("build/generated_fct_test_06.o");*/
 }
 
 
 int main(int argc, char **argv)
 {
-    generate_function_1(13);
+    generate_function_1("test_c_gen", 13);
 
     return 0;
 }
