@@ -46,10 +46,13 @@ int main(int argc, char **argv)
     function blurxy("blurxy_coli");
     buffer b_input("b_input", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint16, NULL, a_input, &blurxy);
     buffer b_blury("b_blury", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint16, NULL, a_output, &blurxy);
-    expr e_p0 = expr((int32_t) SIZE0);
-    expr e_p1 = expr((int32_t) SIZE1);
+    expr e_p0 = expr((int32_t) SIZE0 - 1);
+    expr e_p1 = expr((int32_t) SIZE1 - 1);
     constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
     constant p1("M", e_p1, p_int32, true, NULL, 0, &blurxy);
+    expr e_p2 = (expr((int32_t) SIZE1 - 1)/expr((int32_t) 8))*expr((int32_t) 8);
+    constant p2("NM", e_p2, p_int32, true, NULL, 0, &blurxy);
+
 
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint16, &blurxy);
@@ -75,15 +78,19 @@ int main(int argc, char **argv)
     /*c_blury.split(1, 8);
     c_blury.tag_parallel_dimension(0);
     c_blury.split(5, 8);
-    c_blury.tag_vector_dimension(3);
     c_blury.after(c_blurx, 1);
     */
 
-    blurxy.set_context_set("[N,M->{: N>1 and M>1}]");
+    blurxy.set_context_set("[N,M]->{: N>1 and M>1}]");
 
-    c_blurx.set_schedule("[N,M]->{c_blurx[i,j]->[i,0,j1,j2]: 0<i<N-1 and 0<j<M-1 and j1=floor(j/8) and j2=j%8}");
-    c_blury.set_schedule("[N,M]->{c_blury[i,j]->[i,1,j1,j2]: 0<i<N-1 and 0<j<M-1 and j1=floor(j/8) and j2=j%8}");
+    c_blurx.set_schedule("[N,M,NM]->{c_blurx[i,j]->[i,0,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blurx[i,j]->[i,2,j,0]: 0<i<N and NM<j<M}");
+    c_blury.set_schedule("[N,M,NM]->{c_blury[i,j]->[i,1,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blury[i,j]->[i,3,j,0]: 0<i<N and NM<j<M}");
     c_blury.tag_parallel_dimension(0);
+    c_blury.tag_vector_dimension(2);
+    c_blurx.tag_vector_dimension(2);
+
+
+
 
     // Set the arguments to blurxy
     blurxy.set_arguments({&b_input, &b_blury});

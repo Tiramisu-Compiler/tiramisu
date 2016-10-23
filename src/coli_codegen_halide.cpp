@@ -967,6 +967,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         DEBUG(3, coli::str_dump("init expression: "); std::cout << init_expr);
 		Halide::Expr cond_upper_bound_halide_format =
 		        halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
+		cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
 		if (cond_upper_bound_halide_format.type() != Halide::Int(32))
 		    cond_upper_bound_halide_format =
 		        Halide::Internal::Cast::make(Halide::Int(32), cond_upper_bound_halide_format);
@@ -986,13 +987,16 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 			}
 			else if (fct.should_vectorize(tagged_stmts[tt], level))
 			{
+                DEBUG(3, coli::str_dump("Trying to vectorize at level "); coli::str_dump(std::to_string(level)));
+
 			    const Halide::Internal::IntImm *extent = cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
 			    if (extent) {
 			        fortype = Halide::Internal::ForType::Vectorized;
 			        tagged_stmts.erase(tagged_stmts.begin() + tt);
+                    DEBUG(3, coli::str_dump("Loop vectorized"));
 			    }
 			    else
-			        DEBUG(3, coli::str_dump("Loop not vectorized because it does not have a constant extent"));
+			        DEBUG(3, coli::str_dump("Loop not vectorized (extent is non constant)"));
 			}
 			else if (fct.should_map_to_gpu(tagged_stmts[tt], level))
             {

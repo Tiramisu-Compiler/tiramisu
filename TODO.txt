@@ -1,15 +1,6 @@
 High Priority
 ---------------
-- Urgent features:
-	- API interface:
-		- Performance:
-			- Matmul,
-	    - Fix the .after() problem,
-        - Add the ability to access buffers directly from coli expressions,
-        - Add is_defined() to all the classes,
-        - Do some assumption checking,
-		- API: simplify the interface and make it stable,
-		- Support .inline() which inlines computations.
+- TODO:
 		- Optimizations:
 			- Reductions,
 			- Redundant computations,
@@ -22,6 +13,11 @@ High Priority
 ----------------------------------------
 
 	- Optional
+	    - Add the ability to access buffers directly from coli expressions,
+        - Add is_defined() to all the classes,
+        - Do some assumption checking,
+		- API: simplify the interface and make it stable,
+		- Support .inline() which inlines computations.
 		- Write one page latex document describing COLi,
 		- API: documentation,
 		- Write test cases,
