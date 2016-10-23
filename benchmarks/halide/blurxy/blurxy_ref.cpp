@@ -16,6 +16,10 @@ int main(int argc, char **argv) {
     blur_x.store_at(blur_y, y).compute_at(blur_y, yi).vectorize(x, 8);
 
     Halide::Target target = Halide::get_host_target();
+
+    // blur_y.compile_to_coli("halide/blurxy/blurxy_algorithm.cpp",
+    //                        {input}, target);
+
     blur_y.compile_to_object("build/generated_fct_blurxy_ref.o",
                              {input},
                              "blurxy_ref",
