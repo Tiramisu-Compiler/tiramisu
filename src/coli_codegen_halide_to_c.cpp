@@ -510,7 +510,7 @@ void HalideToC::visit(const Provide *op) {
     string iter_space_str = get_loop_bound_vars() + "->{" + op->name + dims_str + ": " + get_loop_bounds() + "}";
 
     stream << "coli::computation " << op->name << "(\"" << iter_space_str << "\", ";
-    std::cout << "op->values[0]: " << op->values[0] << "\n";
+    print(op->values[0]);
     stream << ", true, " << halide_type_to_coli_type_str(op->values[0].type())
            << ", &" << func << ");\n";
 
