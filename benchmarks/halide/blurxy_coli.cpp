@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     int  SIZE0 = in_image.extent(0) - 8;
     int  SIZE1 = in_image.extent(1) - 2;
 
-    #include "blurxy_algorithm.cpp";
+    #include "blurxy_algorithm.cpp"
 
     blurxy.set_context_set("[N,M]->{: N>1 and M>1}]");
     c_blurx.set_schedule("[N,M,NM]->{c_blurx[i,j]->[i,0,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blurx[i,j]->[i,2,j,0]: 0<i<N and NM<j<M}");

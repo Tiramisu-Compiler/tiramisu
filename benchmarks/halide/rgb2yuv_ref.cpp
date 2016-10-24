@@ -4,9 +4,12 @@ using namespace Halide;
 
 int main(int argc, char **argv) {
 
-    ImageParam rgb(UInt(8), 3);
+    ImageParam rgb(Int(32), 3);
 
-    Image<int> y_im(rgb.width(), rgb.height()), u_im(rgb.width()/2, rgb.height()/2), v_im(rgb.width()/2, rgb.height()/2);
+    const int size = 100;
+
+    Image<int> y_im(size, size), u_im(size/2, size/2), v_im(size/2, size/2);
+    //Image<int> y_im(rgb.width(), rgb.height()), u_im(rgb.width()/2, rgb.height()/2), v_im(rgb.width()/2, rgb.height()/2);
 
     Var x("x"), y("y");
     Func y_part("y_part"), u_part("u_part"), v_part("v_part");
@@ -18,8 +21,6 @@ int main(int argc, char **argv) {
     // u_part.compute_with(y_part, y);
     // v_part.compute_with(u_part, y);
     // rgb.compute_at(y_part, y);
-
-    Pipeline({y_part, u_part, v_part}).realize({y_im, u_im, v_im});
 
     Halide::Target target = Halide::get_host_target();
     Pipeline({y_part, u_part, v_part}).compile_to_object("build/generated_fct_rgb2yuv_ref.o",
