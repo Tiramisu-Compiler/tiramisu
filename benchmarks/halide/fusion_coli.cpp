@@ -20,9 +20,6 @@ int main(int argc, char **argv)
     // Set default coli options.
     global::set_default_coli_options();
 
-    //int  SIZE0 = 0;
-    //int  SIZE1 = 0;
-
     // COLi generated code here.
     coli::function fusion_coli("fusion_coli");
     coli::buffer buff_f("buff_f", 2, {coli::expr(100), coli::expr(100)}, coli::p_int32, NULL, coli::a_output, &fusion_coli);
