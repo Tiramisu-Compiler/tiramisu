@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     coli::constant _f_s0_x_loop_extent("_f_s0_x_loop_extent", coli::expr((int32_t)100), coli::p_int32, true, NULL, 0, &fusion_coli);
     coli::computation f("[_f_s0_y_loop_min, _f_s0_y_loop_extent, _f_s0_x_loop_min, _f_s0_x_loop_extent]->{f[_f_s0_x, _f_s0_y]: (_f_s0_y_loop_min <= _f_s0_y <= ((_f_s0_y_loop_min + _f_s0_y_loop_extent) + -1)) and (_f_s0_x_loop_min <= _f_s0_x <= ((_f_s0_x_loop_min + _f_s0_x_loop_extent) + -1))}", b0(coli::idx("_f_s0_x"), coli::idx("_f_s0_y")), true, coli::p_int32, &fusion_coli);
     f.set_access("{f[_f_s0_x, _f_s0_y]->buff_f[_f_s0_x, _f_s0_y]}");
-    fusion_coli.set_arguments({&buff_f});
+    fusion_coli.set_arguments({&buff_f, &buff_b0});
+
 
     fusion_coli.gen_isl_ast();
     fusion_coli.gen_halide_stmt();

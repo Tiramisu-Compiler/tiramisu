@@ -1,4 +1,5 @@
 #include "wrapper_blurxy.h"
+#include "wrapper_fusion.h"
 #include "../benchmarks.h"
 
 #include "Halide.h"
