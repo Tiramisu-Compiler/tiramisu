@@ -1,5 +1,5 @@
-#ifndef HALIDE__build___generated_lib_tutorial_02_o_h
-#define HALIDE__build___generated_lib_tutorial_02_o_h
+#ifndef HALIDE__build___wrapper_fusion_o_h
+#define HALIDE__build___wrapper_fusion_o_h
 
 #include <coli/utils.h>
 
