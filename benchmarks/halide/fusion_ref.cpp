@@ -3,8 +3,8 @@
 using namespace Halide;
 
 int main(int argc, char **argv) {
-    const int f_size = 30;
-    const int g_size = 40;
+    const int f_size = 1024;
+    const int g_size = 1024;
     Image<int> f_im(f_size, f_size), g_im(g_size, g_size);
 
     Var x("x"), y("y");

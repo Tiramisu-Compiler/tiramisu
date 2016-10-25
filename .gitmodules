@@ -1,0 +1,3 @@
+[submodule "Halide"]
+	path = Halide
+	url = git@github.com:halide/Halide.git

@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
 
     ImageParam rgb(Int(32), 3);
 
-    const int size = 100;
+    const int size = 1024;
 
     Image<int> y_im(size, size), u_im(size/2, size/2), v_im(size/2, size/2);
     //Image<int> y_im(rgb.width(), rgb.height()), u_im(rgb.width()/2, rgb.height()/2), v_im(rgb.width()/2, rgb.height()/2);
