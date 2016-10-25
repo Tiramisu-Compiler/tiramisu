@@ -19,7 +19,7 @@ int main(int, char**)
     Halide::Image<uint16_t> output2(input.width()-8, input.height()-2);
 
     // Warm up
-    blurxy_coli(input, output1);
+    //blurxy_coli(input, output1);
 
     // Reference
     for (int i=0; i<NB_TESTS; i++)
