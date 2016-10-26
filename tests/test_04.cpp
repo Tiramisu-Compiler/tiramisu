@@ -28,7 +28,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     S0.set_expression(e1);
 
     coli::buffer buf0("buf0", 2, {size,size}, coli::p_uint8, NULL,
-                        a_output, &function0);
+                      a_output, &function0);
     S0.set_access("{S0[i,j]->buf0[i,j]}");
     S0.tag_parallel_dimension(0);
 

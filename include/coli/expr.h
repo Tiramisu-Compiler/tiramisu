@@ -411,50 +411,50 @@ public:
 
     int64_t get_int_val() const
     {
-      assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_expr_type() == coli::e_val);
 
-      int64_t result = 0;
+        int64_t result = 0;
 
-      if (this->get_data_type() == coli::p_uint8)
-          result = this->get_uint8_value();
-      else if (this->get_data_type() == coli::p_int8)
-          result = this->get_int8_value();
-      else if (this->get_data_type() == coli::p_uint16)
-          result = this->get_uint16_value();
-      else if (this->get_data_type() == coli::p_int16)
-          result = this->get_int16_value();
-      else if (this->get_data_type() == coli::p_uint32)
-        result = this->get_uint32_value();
-      else if (this->get_data_type() == coli::p_int32)
-        result = this->get_int32_value();
-      else if (this->get_data_type() == coli::p_uint64)
-        result = this->get_uint64_value();
-      else if (this->get_data_type() == coli::p_int64)
-        result = this->get_int64_value();
-      else if (this->get_data_type() == coli::p_float32)
-        result = this->get_float32_value();
-      else if (this->get_data_type() == coli::p_float64)
-        result = this->get_float64_value();
-      else
-        coli::error("Calling get_int_val() on a non integer expression.", true);
+        if (this->get_data_type() == coli::p_uint8)
+            result = this->get_uint8_value();
+        else if (this->get_data_type() == coli::p_int8)
+            result = this->get_int8_value();
+        else if (this->get_data_type() == coli::p_uint16)
+            result = this->get_uint16_value();
+        else if (this->get_data_type() == coli::p_int16)
+            result = this->get_int16_value();
+        else if (this->get_data_type() == coli::p_uint32)
+            result = this->get_uint32_value();
+        else if (this->get_data_type() == coli::p_int32)
+            result = this->get_int32_value();
+        else if (this->get_data_type() == coli::p_uint64)
+            result = this->get_uint64_value();
+        else if (this->get_data_type() == coli::p_int64)
+            result = this->get_int64_value();
+        else if (this->get_data_type() == coli::p_float32)
+            result = this->get_float32_value();
+        else if (this->get_data_type() == coli::p_float64)
+            result = this->get_float64_value();
+        else
+            coli::error("Calling get_int_val() on a non integer expression.", true);
 
-      return result;
+        return result;
     }
 
     double get_double_val() const
     {
-      assert(this->get_expr_type() == coli::e_val);
+        assert(this->get_expr_type() == coli::e_val);
 
-      int64_t result = 0;
+        int64_t result = 0;
 
-      if (this->get_data_type() == coli::p_float32)
-        result = this->get_float32_value();
-      else if (this->get_data_type() == coli::p_float64)
-        result = this->get_float64_value();
-      else
-        coli::error("Calling get_double_val() on a non double expression.", true);
+        if (this->get_data_type() == coli::p_float32)
+            result = this->get_float32_value();
+        else if (this->get_data_type() == coli::p_float64)
+            result = this->get_float64_value();
+        else
+            coli::error("Calling get_double_val() on a non double expression.", true);
 
-      return result;
+        return result;
     }
 
     /**
@@ -668,11 +668,61 @@ public:
     }
 
     /**
+     * Right shift operator.
+     */
+    template<typename T> coli::expr operator>>(T val) const
+    {
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_right_shift, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_right_shift, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Right shift of a coli expression by a non supported type.\n",
+                        true);
+        }
+    }
+
+    /**
+     * Left shift operator.
+     */
+    template<typename T> coli::expr operator<<(T val) const
+    {
+        if ((std::is_same<T, coli::expr>::value))
+        {
+            return coli::expr(coli::o_left_shift, *this, val);
+        }
+        else if ((std::is_same<T, uint8_t>::value) ||
+                 (std::is_same<T, int8_t>::value) ||
+                 (std::is_same<T, uint16_t>::value) ||
+                 (std::is_same<T, int16_t>::value) ||
+                 (std::is_same<T, int32_t>::value) ||
+                 (std::is_same<T, uint32_t>::value))
+        {
+            return coli::expr(coli::o_left_shift, *this, coli::expr((T) val));
+        }
+        else
+        {
+            coli::error("Left shift of a coli expression by a non supported type.\n",
+                        true);
+        }
+    }
+
+    /**
      * Logical and of two expressions.
      */
     coli::expr operator&&(coli::expr e1) const
     {
-      return coli::expr(coli::o_logical_and, *this, e1);
+        return coli::expr(coli::o_logical_and, *this, e1);
     }
 
     /**

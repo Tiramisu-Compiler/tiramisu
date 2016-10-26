@@ -1074,7 +1074,7 @@ std::string str_coli_type_op(coli::op_t type)
         case coli::o_min:
             return "min";
         case coli::o_minus:
-            return "mins";
+            return "minus";
         case coli::o_add:
             return "add";
         case coli::o_sub:
@@ -1103,6 +1103,10 @@ std::string str_coli_type_op(coli::op_t type)
             return "call";
         case coli::o_access:
             return "access";
+        case coli::o_right_shift:
+            return "right-shift";
+        case coli::o_left_shift:
+            return "left-shift";
         default:
             coli::error("coli op not supported.", true);
             return "";

@@ -62,6 +62,8 @@ namespace coli {
         o_gt,
         o_call,
         o_access,
+        o_right_shift,
+        o_left_shift,
         o_none
     };
 
