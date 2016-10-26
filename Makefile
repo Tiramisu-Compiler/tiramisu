@@ -7,8 +7,6 @@ HALIDE_LIB_DIRECTORY=Halide/lib
 # Examples
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
 #ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
-#HALIDE_SOURCE_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/
-#HALIDE_LIB_DIRECTORY=/Users/b/Documents/src/MIT/halide/halide_src/bin/
 
 CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden

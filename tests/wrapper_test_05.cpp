@@ -17,7 +17,7 @@ int main(int, char**)
 
     init_2D_buffer_val(&output_buf, NN, MM, 0);
     f(&output_buf);
-    compare_2_2D_arrays("f",
+    compare_2_2D_arrays("Halide code generation and execution for f",
                         output_buf.host, reference_buf.host, NN, MM);
 
    return 0;
