@@ -18,8 +18,8 @@ Compiling the COLi Library
 
 - [ISL] (http://repo.or.cz/w/isl.git) Library.
   Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.
-- LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework).
-  Check the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it.
+- LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Compiling COLi
 You need to specify the following paths
