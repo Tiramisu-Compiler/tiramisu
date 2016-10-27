@@ -18,24 +18,26 @@ Compiling the COLi Library
 
 - [ISL] (http://repo.or.cz/w/isl.git) Library.
   Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.
-- [Halide] (https://github.com/halide/Halide) compiler.
-  Halide itself requires llvm-3.7 or greater. Check the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details.
+- LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Compiling COLi
 You need to specify the following paths
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
-    HALIDE_SOURCE_DIRECTORY: path to the Halide source code directory
-    HALIDE_LIB_DIRECTORY: path to the Halide library (bin/)
 
-You need also to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+To get Halide
 
-    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<HALIDE_LIB_DIRECTORY>
+    git submodule update --init --remote
 
 To build COLi
 
     make
+
+You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<COLI_ROOT>/Halide/lib/
 
 To build documentation (doxygen required)
 
