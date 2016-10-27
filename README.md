@@ -22,7 +22,7 @@ Compiling the COLi Library
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Compiling COLi
-You need to specify the following paths
+You need to specify the following paths in the Makefile
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
