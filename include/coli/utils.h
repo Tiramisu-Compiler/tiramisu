@@ -50,6 +50,7 @@ void init_2D_buffer_val(buffer_t *buf, int N, int M, uint8_t val);
 void copy_2D_buffer(uint8_t* buf, int N, int M, uint8_t* array);
 buffer_t allocate_2D_buffer(int NN, int MM);
 void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int N, int M);
+void compare_2_1D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int N);
 
 #ifdef __cplusplus
 }  // extern "C"

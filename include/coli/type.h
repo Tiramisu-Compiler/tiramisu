@@ -74,7 +74,6 @@ namespace coli {
     enum argument_t {
         a_input,
         a_output,
-        a_input_output, // input and output buffer.
         a_temporary
     };
 }

@@ -70,6 +70,9 @@ coli::computation *get_computation_by_node(coli::function *fct, isl_ast_node *no
 
 isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     DEBUG(3, coli::str_dump ("Domain:", isl_set_to_str(domain)));
     DEBUG(3, coli::str_dump ("Range:", isl_set_to_str(range)));
     // Extracting the spaces and aligning them
@@ -105,6 +108,9 @@ isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
     DEBUG(3, coli::str_dump(
             "Transformation map after adding equality constraints:",
             isl_map_to_str (adapter)));
+
+    DEBUG_INDENT(-4);
+
     return adapter;
 }
 
@@ -179,7 +185,7 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
 		                    isl_set_get_space(
 		                        isl_set_copy(comp2->get_iteration_domain())));
 
-		isl_map* identity = create_map_from_domain_and_range (domain, range);
+		isl_map* identity = create_map_from_domain_and_range(domain, range);
 		identity = isl_map_universe(isl_map_get_space(identity));
 
         DEBUG(3, coli::str_dump("Transformation map before adding constraints:",
@@ -213,6 +219,10 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
 			}
 			else if (access.get_expr_type() == coli::e_id)
 			{
+			    DEBUG(3, coli::str_dump("Looking for a dimension named ");
+			             coli::str_dump(access.get_name());
+			             coli::str_dump(" in the domain of ", isl_map_to_str(identity)));
+
 				int dim0 = isl_space_find_dim_by_name(
 								isl_map_get_space(identity),
 								isl_dim_in,

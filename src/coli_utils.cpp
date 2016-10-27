@@ -196,3 +196,23 @@ void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int 
 	else
 	    coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
 }
+
+
+void compare_2_1D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int N)
+{
+    bool error = false;
+
+    for (int i=0; i<N; i++)
+    {
+            if (array1[i] != array2[i])
+            {
+                error = true;
+            }
+
+    }
+
+    if (error)
+        coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+    else
+        coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
+}
