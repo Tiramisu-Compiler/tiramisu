@@ -933,9 +933,13 @@ Halide::Argument::Kind halide_argtype_from_coli_argtype(coli::argument_t type)
     {
         res = Halide::Argument::InputBuffer;
     }
-    else
+    else if (type == coli::a_output)
     {
         res = Halide::Argument::OutputBuffer;
+    }
+    else
+    {
+        res = Halide::Argument::OutputBuffer|Halide::Argument::InputBuffer;
     }
 
     return res;
@@ -1137,6 +1141,8 @@ std::string str_from_coli_type_argument(coli::argument_t type)
             return "input";
         case coli::a_output:
             return "output";
+        case coli::a_input_output:
+            return "input_output";
         case coli::a_temporary:
             return "temporary";
         default:

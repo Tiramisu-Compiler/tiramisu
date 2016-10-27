@@ -16,11 +16,14 @@ HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h inclu
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
-TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator
-TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06
-BENCH_REF_GEN=build/bench_halide_blurxy_generator build/bench_halide_fusion_generator build/bench_halide_rgb2yuv_generator
-BENCH_COLI_GEN=build/bench_coli_blurxy_generator build/bench_coli_fusion_generator build/bench_coli_rgb2yuv_generator
-BENCH_BIN=build/bench_halide_blurxy build/bench_halide_fusion build/bench_halide_rgb2yuv
+TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator build/test_07_fct_generator
+TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06 build/test_07
+BENCH_REF_GEN=build/bench_halide_blurxy_generator
+# build/bench_halide_fusion_generator
+BENCH_COLI_GEN=build/bench_coli_blurxy_generator build/bench_coli_stencil1_generator
+# build/bench_coli_fusion_generator
+BENCH_BIN=build/bench_blurxy build/bench_stencils_stencil1
+# build/bench_fusion
 
 all: builddir ${OBJ}
 
@@ -64,13 +67,19 @@ benchmarks: $(OBJ) $(BENCH_COLI_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmark
 build/bench_coli_%_generator: benchmarks/halide/%_coli.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
+build/bench_coli_%_generator: benchmarks/stencils/%_coli.cpp
+	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
+	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 build/bench_halide_%_generator: benchmarks/halide/%_ref.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/bench_halide_% : benchmarks/halide/wrapper_%.cpp build/generated_fct_%.o build/generated_fct_%_ref.o benchmarks/halide/wrapper_%.h
+build/bench_%: benchmarks/halide/wrapper_%.cpp build/generated_fct_%.o build/generated_fct_%_ref.o benchmarks/halide/wrapper_%.h
 	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+build/bench_stencils_%: benchmarks/halide/stencils/wrapper_%.cpp build/generated_fct_%.o benchmarks/halide/wrapper_%.h
+	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 run_benchmarks:
 	@for tt in ${BENCH_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
+
 
 
 doc:
