@@ -27,7 +27,7 @@ You need to specify the following paths in the Makefile
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
 
-To get Halide
+To get the Halide submodule run the following git command (in the COLi root directory)
 
     git submodule update --init --remote
 
@@ -37,7 +37,7 @@ To build COLi
 
 You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
 
-    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<COLI_ROOT>/Halide/lib/
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<COLI_ROOT_DIRECTORY>/Halide/lib/
 
 To build documentation (doxygen required)
 
