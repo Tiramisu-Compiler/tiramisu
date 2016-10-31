@@ -89,22 +89,30 @@ isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
     isl_local_space* l_sp = isl_local_space_from_space (sp_map);
     // Add equality constraints.
     for (int i = 0; i < isl_space_dim (sp1, isl_dim_set); i++)
-        for (int j = 0; j < isl_space_dim (sp2, isl_dim_set); j++)
+    {
+        if (isl_space_has_dim_id(sp1, isl_dim_set, i) == true)
         {
-            isl_id* id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
-            isl_id* id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
-            if (strcmp (isl_id_get_name (id1), isl_id_get_name (id2)) == 0)
+            for (int j = 0; j < isl_space_dim (sp2, isl_dim_set); j++)
             {
-                isl_constraint* cst = isl_equality_alloc (
-                                isl_local_space_copy (l_sp));
-                cst = isl_constraint_set_coefficient_si (cst,
-                                                         isl_dim_in,
-                                                         i, 1);
-                cst = isl_constraint_set_coefficient_si (
-                                cst, isl_dim_out, j, -1);
-                adapter = isl_map_add_constraint (adapter, cst);
+                if (isl_space_has_dim_id(sp2, isl_dim_set, j) == true)
+                {
+                    isl_id* id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
+                    isl_id* id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
+                    if (strcmp (isl_id_get_name (id1), isl_id_get_name (id2)) == 0)
+                    {
+                        isl_constraint* cst = isl_equality_alloc (
+                                        isl_local_space_copy (l_sp));
+                        cst = isl_constraint_set_coefficient_si (cst,
+                                                                 isl_dim_in,
+                                                                 i, 1);
+                        cst = isl_constraint_set_coefficient_si (
+                                        cst, isl_dim_out, j, -1);
+                        adapter = isl_map_add_constraint (adapter, cst);
+                    }
+                }
             }
         }
+    }
     DEBUG(3, coli::str_dump(
             "Transformation map after adding equality constraints:",
             isl_map_to_str (adapter)));
@@ -172,20 +180,22 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
         DEBUG(3, coli::str_dump("The computation corresponding to the access: "
                                 + comp2->get_name()));
 
-		isl_map *access_function = isl_map_copy(comp2->get_access());
+        isl_map *access_function = isl_map_copy(comp2->get_access());
 
-        DEBUG(3, coli::str_dump("The access function of this computation: ",
+        DEBUG(3, coli::str_dump("The original access function of this computation (before transforming its domain into time-space) : ",
                                 isl_map_to_str(access_function)));
 
-		isl_set *domain = isl_set_universe(
+		isl_set *domain = isl_set_copy(isl_set_universe(
 		            isl_set_get_space(
-					    isl_set_copy(comp->get_iteration_domain())));
+					    isl_set_copy(comp->get_iteration_domain()))));
 
-		isl_set *range = isl_set_universe(
+		isl_set *range = isl_set_copy(isl_set_universe(
 		                    isl_set_get_space(
-		                        isl_set_copy(comp2->get_iteration_domain())));
+		                        isl_set_copy(comp2->get_iteration_domain()))));
 
-		isl_map* identity = create_map_from_domain_and_range(domain, range);
+		isl_map* identity = create_map_from_domain_and_range(isl_set_copy(domain),
+		                                                     isl_set_copy(range));
+
 		identity = isl_map_universe(isl_map_get_space(identity));
 
         DEBUG(3, coli::str_dump("Transformation map before adding constraints:",
@@ -324,6 +334,8 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
 										isl_map_get_space(identity),
 				                		isl_dim_in,
 										op0.get_name().c_str());
+						 DEBUG(3, coli::str_dump("Searching for " + op0.get_name() + " in the range of ");
+						          coli::str_dump(isl_space_to_str(isl_map_get_space(identity))));
 		                assert((dim0 >= 0) && "Dimension not found");
 						cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
 																dim0, -1);
@@ -365,14 +377,24 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
             DEBUG(3, coli::str_dump("After adding a constraint:",
                                           isl_map_to_str(identity)));
 		}
+
         DEBUG(3, coli::str_dump("Access function:",
                                 isl_map_to_str(access_function)));
         DEBUG(3, coli::str_dump("Transformation function after adding constraints:",
                                 isl_map_to_str(identity)));
+
 		access_function = isl_map_apply_range(isl_map_copy(identity),access_function);
 		DEBUG(3, coli::str_dump(
 		        "Applying access function on the range of transformation function:",
 		        isl_map_to_str(access_function)));
+
+		if (global::is_auto_data_mapping_set() == true)
+		{
+		    DEBUG(3, coli::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_function)));
+		    DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(comp->get_schedule())));
+		    access_function = isl_map_apply_domain(access_function,isl_map_copy(comp->get_schedule()));
+		    DEBUG(3, coli::str_dump("Result: ", isl_map_to_str(access_function)));
+		}
 		accesses.push_back(access_function);
 	}
 	else if (exp.get_expr_type() == coli::e_op)
@@ -508,19 +530,18 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 	// Get the accesses of the computation.  The first access is the access
 	// for the LHS.  The following accesses are for the RHS.
 	std::vector<isl_map *> accesses;
-	accesses.push_back(comp->get_access());
+	isl_map *access = comp->get_transformed_access();
+	accesses.push_back(access);
 	// Add the accesses of the RHS to the accesses vector
 	get_rhs_accesses(func, comp, accesses);
 
 	// For each access in accesses (i.e. for each access in the computation),
 	// compute the corresponding isl_ast expression.
-	for (const auto &access: accesses)
+	for (auto &access: accesses)
 	{
 	    if (access != NULL)
 	    {
 	        DEBUG(3, coli::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):", isl_map_to_str(access)));
-
-	        // Compute the isl_ast index expression for the LHS
 	        comp->get_index_expr().push_back(create_isl_ast_index_expression(build, access));
 	    }
 	    else
@@ -680,7 +701,7 @@ Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
                 DEBUG(3, coli::str_dump("Computation being accessed: ");coli::str_dump(access_comp_name));
 				coli::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name);
 				const char *buffer_name = isl_space_get_tuple_name(
-											isl_map_get_space(access_comp->get_access()), isl_dim_out);
+											isl_map_get_space(access_comp->get_transformed_access()), isl_dim_out);
                 DEBUG(3, coli::str_dump("Name of the associated buffer: ");coli::str_dump(buffer_name));
 				assert(buffer_name != NULL);
 
@@ -1285,10 +1306,10 @@ void computation::create_halide_stmt()
         DEBUG(3, coli::str_dump("This is not a let statement."));
 
         const char *buffer_name = isl_space_get_tuple_name(
-                              isl_map_get_space(this->access), isl_dim_out);
+                              isl_map_get_space(this->get_transformed_access()), isl_dim_out);
         assert(buffer_name != NULL);
 
-        isl_map *access = this->access;
+        isl_map *access = this->get_transformed_access();
         isl_space *space = isl_map_get_space(access);
         // Get the number of dimensions of the ISL map representing
         // the access.

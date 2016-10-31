@@ -41,13 +41,14 @@ isl_ast_node *for_code_generator_after_for(
   */
 void function::gen_isl_ast()
 {
-    // Check that time_processor representation has already been computed,
-    // that the time_processor identity relation can be computed without any
-    // issue and check that the access was provided.
-    assert(this->get_schedule() != NULL);
-
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    // Check that time_processor representation has already been computed,
+    // TODO: check that the access was provided.
+    assert(this->get_time_processor_domain() != NULL);
+    assert(this->get_aligned_identity_schedules() != NULL);
+
 
     isl_ctx *ctx = this->get_ctx();
     isl_ast_build *ast_build;
@@ -62,17 +63,17 @@ void function::gen_isl_ast()
     ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
 
-    this->align_schedules();
-
     // Intersect the iteration domain with the domain of the schedule.
     isl_union_map *umap =
         isl_union_map_intersect_domain(
-            isl_union_map_copy(this->get_schedule()),
-            isl_union_set_copy(this->get_iteration_domain()));
+            isl_union_map_copy(this->get_aligned_identity_schedules()),
+            isl_union_set_copy(this->get_time_processor_domain()));
 
     DEBUG(3, coli::str_dump("Schedule:", isl_union_map_to_str(this->get_schedule())));
     DEBUG(3, coli::str_dump("Iteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
-    DEBUG(3, coli::str_dump("Schedule intersect Iteration domain:", isl_union_map_to_str(umap)));
+    DEBUG(3, coli::str_dump("Time-Space domain:", isl_union_set_to_str(this->get_time_processor_domain())));
+    DEBUG(3, coli::str_dump("Time-Space aligned identity schedule:", isl_union_map_to_str(this->get_aligned_identity_schedules())));
+    DEBUG(3, coli::str_dump("Identity schedule intersect Time-Space domain:", isl_union_map_to_str(umap)));
     DEBUG(3, coli::str_dump("\n"));
 
     this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
@@ -140,7 +141,12 @@ void coli::computation::tag_parallel_dimension(int par_dim)
     assert(this->get_name().length() > 0);
     assert(this->get_function() != NULL);
 
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     this->get_function()->add_parallel_dimension(this->get_name(), par_dim);
+
+    DEBUG_INDENT(-4);
 }
 
 
@@ -204,10 +210,17 @@ void function::dump_time_processor_domain() const
 
 void function::gen_time_processor_domain()
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    this->align_schedules();
+
     for (auto &comp: this->get_computations())
     {
         comp->gen_time_processor_domain();
     }
+
+    DEBUG_INDENT(-4);
 }
 
 void computation::dump_schedule() const
@@ -222,10 +235,17 @@ void computation::dump() const
 {
     if (ENABLE_DEBUG)
     {
-        std::cout << "computation \"" << this->name << "\"" << std::endl;
+        std::cout << "Iteration domain \"" << this->name << "\"" << std::endl;
         isl_set_dump(this->get_iteration_domain());
         std::cout << "Schedule " << std::endl;
         isl_map_dump(this->schedule);
+        if (this->get_time_processor_domain() != NULL)
+        {
+            std::cout << "Time-space domain " << std::endl;
+            isl_set_dump(this->get_time_processor_domain());
+        } else
+            std::cout << "Time-space domain : NULL." << std::endl;
+
         std::cout << "Computation to be scheduled ? " << (this->schedule_this_computation) << std::endl;
 
         // std::cout << "Computation expression: " << std::endl;
@@ -330,6 +350,7 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int consta
     assert(dim_pos <= (signed int) isl_map_dim(map, isl_dim_out));
 
     map = isl_map_insert_dims(map, isl_dim_out, dim_pos, 1);
+    map = isl_map_set_tuple_name(map, isl_dim_out, isl_map_get_tuple_name(map, isl_dim_in));
 
     isl_space *sp = isl_map_get_space(map);
     isl_local_space *lsp =
@@ -525,7 +546,7 @@ void computation::interchange(int inDim0, int inDim1)
 
     std::vector<isl_id *> dimensions;
 
-    std::string map = "{[";
+    std::string map = "{ " + this->get_name() + "[";
 
     for (int i=0; i<n_dims; i++)
     {
@@ -539,7 +560,7 @@ void computation::interchange(int inDim0, int inDim1)
             map = map + ",";
     }
 
-    map = map + "] -> [";
+    map = map + "] ->" + this->get_name() + "[";
 
     for (int i=0; i<n_dims; i++)
     {
@@ -572,7 +593,7 @@ void computation::interchange(int inDim0, int inDim1)
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
     transformation_map = isl_map_set_tuple_id(
         transformation_map, isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
-    isl_id *id_range = isl_id_alloc(this->get_ctx(), "", NULL);
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
     transformation_map = isl_map_set_tuple_id(
         transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
@@ -602,7 +623,7 @@ void computation::split(int inDim0, int sizeX)
     isl_map *schedule = this->get_schedule();
     schedule = isl_map_copy(schedule);
     schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
-                                    isl_id_alloc(this->get_ctx(), " ", NULL));
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
 
 
     DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
@@ -615,7 +636,7 @@ void computation::split(int inDim0, int sizeX)
     std::string outDim1_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
-    std::string map = "{[";
+    std::string map = "{" + this->get_name() + "[";
 
     std::vector<isl_id *> dimensions;
     std::vector<std::string> dimensions_str;
@@ -633,7 +654,7 @@ void computation::split(int inDim0, int sizeX)
             map = map + ",";
     }
 
-    map = map + "] -> [";
+    map = map + "] -> " + this->get_name() + "[";
 
     for (int i=0; i<n_dims; i++)
     {
@@ -675,7 +696,7 @@ void computation::split(int inDim0, int sizeX)
     transformation_map = isl_map_set_tuple_id(
         transformation_map, isl_dim_in,
         isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
-    isl_id *id_range = isl_id_alloc(this->get_ctx(), " ", NULL);
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
     transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
@@ -743,6 +764,26 @@ bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
       return res;
 }
 
+int coli::function::get_max_identity_schedules_range_dim() const
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    int max_dim = 0;
+
+    for (const auto &comp : this->get_computations())
+    {
+        isl_map *sched = comp->gen_identity_schedule_for_time_space_domain();
+        int m = isl_map_dim(sched, isl_dim_out);
+        max_dim = std::max(max_dim, m);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return max_dim;
+}
+
+
 int coli::function::get_max_schedules_range_dim() const
 {
     int max_dim = 0;
@@ -765,8 +806,9 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
     int mdim = isl_map_dim(map, isl_dim_out);
     assert(max_dim >= mdim);
 
-    DEBUG(10, coli::str_dump("Debugging isl_map_align_range_dims()."));
     DEBUG(10, coli::str_dump("Input map:", isl_map_to_str(map)));
+
+    const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
 
     map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
 
@@ -780,11 +822,54 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
         map = isl_map_add_constraint(map, cst);
     }
 
+    map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
+
     DEBUG(10, coli::str_dump("After alignment, map = ",
                 isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
     return map;
+}
+
+
+isl_union_map *coli::function::get_aligned_identity_schedules() const
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_union_map *result;
+    isl_space *space;
+
+    if (this->body.empty() == false)
+    {
+        space = isl_map_get_space(this->body[0]->gen_identity_schedule_for_time_space_domain());
+    }
+    else
+    {
+        return NULL;
+    }
+
+    assert(space != NULL);
+    result = isl_union_map_empty(isl_space_copy(space));
+
+    int max_dim = this->get_max_identity_schedules_range_dim();
+
+    for (auto &comp : this->get_computations())
+    {
+        if (comp->should_schedule_this_computation())
+        {
+            isl_map *sched = comp->gen_identity_schedule_for_time_space_domain();
+            DEBUG(3, coli::str_dump("Identity schedule for time space domain: ", isl_map_to_str(sched)));
+            assert((sched != NULL) && "Identity schedule could not be computed");
+            sched = isl_map_align_range_dims(sched, max_dim);
+            result = isl_union_map_union(result, isl_union_map_from_map(sched));
+        }
+    }
+
+    DEBUG_INDENT(-4);
+    DEBUG(3, coli::str_dump("End of function"));
+
+    return result;
 }
 
 void coli::function::align_schedules()
@@ -975,14 +1060,17 @@ void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
                                                          (dim0, dim1)));
 }
 
-isl_union_set * coli::function::get_time_processor_domain()
+isl_union_set * coli::function::get_time_processor_domain() const
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     isl_union_set *result = NULL;
     isl_space *space = NULL;
 
     if (this->body.empty() == false)
     {
-        space = isl_set_get_space(this->body[0]->get_iteration_domain());
+        space = isl_set_get_space(this->body[0]->get_time_processor_domain());
     }
     else
     {
@@ -994,9 +1082,14 @@ isl_union_set * coli::function::get_time_processor_domain()
 
     for (const auto &cpt : this->body)
     {
-        isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_domain());
-        result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+        if (cpt->should_schedule_this_computation())
+        {
+            isl_set *cpt_iter_space = isl_set_copy(cpt->get_time_processor_domain());
+            result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
+        }
     }
+
+    DEBUG_INDENT(-4);
 
     return result;
 }
@@ -1058,6 +1151,7 @@ isl_union_map *coli::function::get_schedule() const
 
     return result;
 }
+
 
 // Function for the buffer class
 
@@ -1298,6 +1392,8 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
             {
                 DEBUG(10, coli::str_dump ("Replacing computation domain."));
                 map = isl_map_set_tuple_name(map, isl_dim_in,
+                                             comp_name.c_str ());
+                map = isl_map_set_tuple_name(map, isl_dim_out,
                                              comp_name.c_str ());
             }
             else

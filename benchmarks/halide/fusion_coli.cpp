@@ -40,6 +40,7 @@ int main(int argc, char **argv)
     f.set_access("{f[_f_s0_x, _f_s0_y]->buff_f[_f_s0_x, _f_s0_y]}");
 
     fusion_coli.set_arguments({&buff_f, &buff_b0});
+    fusion_coli.gen_time_processor_domain();
     fusion_coli.gen_isl_ast();
     fusion_coli.gen_halide_stmt();
     fusion_coli.dump_halide_stmt();

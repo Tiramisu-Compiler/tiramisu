@@ -56,6 +56,8 @@ High Priority
         - compute_halide_call_graph().
         - Vectorize a non-affine loop (split with the innermost being constant):
         	- Add the isolate option which isolates the full loops.
+        - Check that the name of the tuple of the domain of a schedule is equla to the name of the tuple of the range.
+        Because now we have iteration domain to time-space domain and time space domain has a name.
 
 - Benchmarks:
 	- Image processing (Halide)

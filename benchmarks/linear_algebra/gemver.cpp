@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     // Set the arguments to blurxy
     matmul.set_arguments({&b_A, &b_B, &b_C});
     // Generate code
+    matmul.gen_time_processor_domain();
     matmul.gen_isl_ast();
     matmul.gen_halide_stmt();
     matmul.gen_halide_obj("build/generated_fct_tutorial_03.o");

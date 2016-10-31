@@ -59,13 +59,14 @@ int main(int argc, char **argv)
     blurxy.set_arguments({&b_input, &b_blury});
 
     blurxy.set_context_set("[N,M]->{: N>1 and M>1}]");
-    c_blurx.set_schedule("[N,M,NM]->{c_blurx[i,j]->[i,0,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blurx[i,j]->[i,2,j,0]: 0<i<N and NM<j<M}");
-    c_blury.set_schedule("[N,M,NM]->{c_blury[i,j]->[i,1,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blury[i,j]->[i,3,j,0]: 0<i<N and NM<j<M}");
+    c_blurx.set_schedule("[N,M,NM]->{c_blurx[i,j]->c_blurx[i,0,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blurx[i,j]->c_blurx[i,2,j,0]: 0<i<N and NM<j<M}");
+    c_blury.set_schedule("[N,M,NM]->{c_blury[i,j]->c_blury[i,1,j1,j2]: 0<i<N and 0<j<NM and j1=floor(j/8) and j2=j%8 and NM%8=0; c_blury[i,j]->c_blury[i,3,j,0]: 0<i<N and NM<j<M}");
     c_blury.tag_parallel_dimension(0);
    // c_blury.tag_vector_dimension(2);
    // c_blurx.tag_vector_dimension(2);
 
     // Generate code
+    blurxy.gen_time_processor_domain();
     blurxy.gen_isl_ast();
     blurxy.gen_halide_stmt();
     blurxy.gen_halide_obj("build/generated_fct_blurxy.o");

@@ -96,7 +96,7 @@ public:
       * If it is set to false, it is up to the user to set
       * the right data mapping before code generation.
       */
-    static bool get_auto_data_mapping()
+    static bool is_auto_data_mapping_set()
     {
         return global::auto_data_mapping;
     }
@@ -361,12 +361,30 @@ public:
     void align_schedules();
 
     /**
+      * This functions applies to the identity schedule of each computation
+      * in the function.  It return identity schedules that have the following
+      * property: the dimensions of the ranges of
+      * all the identity schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      */
+    isl_union_map *get_aligned_identity_schedules() const;
+
+    /**
      * This functions applies to the schedule of each computation
      * in the function.  It computes the maximal
      * dimension among the dimensions of the ranges of all the
      * schedules.
      */
     int get_max_schedules_range_dim() const;
+
+
+    /**
+      * This functions first computes the identity schedules,
+      * then it computes the maximal dimension among the dimensions
+      * of the ranges of all the identity schedules.
+      */
+    int get_max_identity_schedules_range_dim() const;
+
 
     /**
       * Dump the iteration domain of the function.
@@ -510,7 +528,7 @@ public:
       * execution and the processor where the computation will be
       * executed are both specified.
       */
-    isl_union_set *get_time_processor_domain();
+    isl_union_set *get_time_processor_domain() const;
 
     /**
       * Generate an object file.  This object file will contain the compiled
@@ -937,6 +955,40 @@ public:
     }
 
     /**
+      * Return the transformed access function of the
+      * computation.  First, the domain of the access
+      * function is transformed using the schedule, and
+      * then the transformed access function is returned.
+      */
+      isl_map *get_transformed_access() const
+      {
+          DEBUG_FCT_NAME(3);
+          DEBUG_INDENT(4);
+
+          isl_map *access = this->get_access();
+
+          if (this->is_let_stmt() == false)
+          {
+              DEBUG(3, coli::str_dump("Original access:", isl_map_to_str(access)));
+
+              if (global::is_auto_data_mapping_set() == true)
+              {
+                  DEBUG(3, coli::str_dump("Schedule to apply:", isl_map_to_str(this->get_schedule())));
+                  access = isl_map_apply_domain(
+                              isl_map_copy(access),
+                              isl_map_copy(this->get_schedule()));
+                  DEBUG(3, coli::str_dump("Transformed access:", isl_map_to_str(access)));
+              }
+              else
+                  DEBUG(3, coli::str_dump("Access not transformed"));
+          }
+
+          DEBUG_INDENT(-4);
+
+          return access;
+      }
+
+    /**
      * Return the coli expression associated with the computation
      * (RHS).
      */
@@ -1003,7 +1055,7 @@ public:
     /**
      * Return if this computation represents a let statement.
      */
-    bool is_let_stmt()
+    bool is_let_stmt() const
     {
         return _is_let_stmt;
     }
@@ -1109,12 +1161,21 @@ public:
       */
     void gen_time_processor_domain()
     {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
         assert(this->get_iteration_domain() != NULL);
         assert(this->get_schedule() != NULL);
 
         time_processor_domain = isl_set_apply(
             isl_set_copy(this->get_iteration_domain()),
             isl_map_copy(this->get_schedule()));
+
+        DEBUG(3, coli::str_dump("Iteration domain:", isl_set_to_str(this->get_iteration_domain())));
+        DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(this->get_schedule())));
+        DEBUG(3, coli::str_dump("Generated time-space domain:", isl_set_to_str(time_processor_domain)));
+
+        DEBUG_INDENT(-4);
     }
 
     /**
@@ -1176,10 +1237,12 @@ public:
 
     void create_halide_stmt();
 
+
     /**
-      * Set the identity schedule.
-      */
-    void set_identity_schedule()
+     * Generate the identity schedule
+     * for the iteration domain.
+     */
+    isl_map *gen_identity_schedule_for_iteration_domain()
     {
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
@@ -1188,13 +1251,47 @@ public:
         isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
         sched = isl_map_intersect_domain(
             sched, isl_set_copy(this->get_iteration_domain()));
-        sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
         sched = isl_map_coalesce(sched);
 
         // Add Beta dimensions.
         for (int i=0; i<isl_space_dim(sp, isl_dim_out)+1; i++)
             sched = isl_map_add_dim_and_eq_constraint(sched, 2*i, 0);
 
+        DEBUG_INDENT(-4);
+
+        return sched;
+    }
+
+    /**
+     * Generate the identity schedule
+     * for the time-space domain.
+     */
+    isl_map *gen_identity_schedule_for_time_space_domain()
+    {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
+        isl_space *sp = isl_set_get_space(this->get_time_processor_domain());
+        isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
+        sched = isl_map_intersect_domain(
+            sched, isl_set_copy(this->get_time_processor_domain()));
+        sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
+        sched = isl_map_coalesce(sched);
+
+        DEBUG_INDENT(-4);
+
+        return sched;
+    }
+
+    /**
+      * Set the identity schedule.
+      */
+    void set_identity_schedule()
+    {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
+        isl_map *sched = this->gen_identity_schedule_for_iteration_domain();
         DEBUG(3, coli::str_dump("The following identity schedule is set: ",
                                 isl_map_to_str(sched)));
         this->set_schedule(sched);

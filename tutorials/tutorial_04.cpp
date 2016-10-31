@@ -79,10 +79,10 @@ int main(int argc, char **argv)
     c_x.set_access("{c_x[j]->b_x[j]}");
     c_y.set_access("{c_y[i,j]->b_y[i]}");
 
-     b0.set_schedule(      "[M]->{b0[i]->[0,i,0,0,0]: 0<=i<M}");
-     b1.set_schedule("      [M]->{b1[i]->[0,i,1,0,0]: 0<=i<M}");
-      t.set_schedule("[M,b0,b1]->{t[i,j]->[0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->[0,i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
-    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->[0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->[0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+     b0.set_schedule(      "[M]->{b0[i]->b0[0,i,0,0,0]: 0<=i<M}");
+     b1.set_schedule("      [M]->{b1[i]->b1[0,i,1,0,0]: 0<=i<M}");
+      t.set_schedule("[M,b0,b1]->{t[i,j]->t[0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->t[0,i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->c_y[0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->c_y[0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
 
     c_y.tag_vector_dimension(2);
     t.tag_vector_dimension(2);
@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
 
     // Generate code
+    spmv.gen_time_processor_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();
     spmv.gen_halide_obj("build/generated_fct_tutorial_04.o");

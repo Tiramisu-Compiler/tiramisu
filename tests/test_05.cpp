@@ -98,6 +98,7 @@ void generate_function_1(int size)
     assert(iter != codegen_output.output_buffers.end());
 
     func.set_arguments({iter->second});
+    func.gen_time_processor_domain();
     func.gen_isl_ast();
     func.gen_halide_stmt();
     func.dump_halide_stmt();

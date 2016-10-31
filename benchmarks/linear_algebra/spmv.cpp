@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     constant b0("b0", &e_b0, p_int32, false, &b1, 0, &spmv);
 
     expr e_y = c_y(idx("i")) + c_values(idx("j")) * c_x(idx("t"));
-    c_y.set_expression(&e_y);
+    c_y.set_expression(e_y);
 
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");
@@ -99,6 +99,7 @@ int main(int argc, char **argv)
     spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
 
     // Generate code
+    spmv.gen_time_processor_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();
     spmv.gen_halide_obj("build/generated_fct_tutorial_04.o");

@@ -22,10 +22,10 @@ TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 b
 #build/test_07
 BENCH_REF_GEN=build/bench_halide_blurxy_generator
 # build/bench_halide_fusion_generator
-BENCH_COLI_GEN=build/bench_coli_blurxy_generator
-# build/bench_coli_fusion_generator build/bench_coli_stencil1_generator
-BENCH_BIN=build/bench_blurxy
-# build/bench_fusion build/bench_stencils_stencil1
+BENCH_COLI_GEN=build/bench_coli_blurxy_generator build/bench_coli_stencil1_generator
+# build/bench_coli_fusion_generator
+BENCH_BIN=build/bench_blurxy build/bench_stencils_stencil1
+# build/bench_fusion
 
 all: builddir ${OBJ}
 

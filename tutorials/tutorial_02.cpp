@@ -79,12 +79,13 @@ int main(int argc, char **argv)
     // (i.e. no optimization is applied).
     c_blurx.tile(1,3,2,2);
     c_blurx.tag_gpu_dimensions(0,1);
-    c_blury.set_schedule("{c_blury[i,j]->[0,i,0,j,0]}");
+    c_blury.set_schedule("{c_blury[i,j]->c_blury[0,i,0,j,0]}");
     c_blury.after(c_blurx, computation::root_dimension);
 
     // Set the arguments to blurxy
     blurxy.set_arguments({&b_input, &b_blury});
     // Generate code
+    blurxy.gen_time_processor_domain();
     blurxy.gen_isl_ast();
     blurxy.gen_halide_stmt();
     blurxy.gen_halide_obj("build/generated_fct_tutorial_02.o");
