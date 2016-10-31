@@ -1201,6 +1201,10 @@ std::string str_coli_type_op(coli::op_t type)
             return "right-shift";
         case coli::o_left_shift:
             return "left-shift";
+        case coli::o_floor:
+            return "floor";
+        case coli::o_cast:
+            return "cast";
         default:
             coli::error("coli op not supported.", true);
             return "";

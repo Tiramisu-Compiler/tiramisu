@@ -105,11 +105,32 @@ public:
     }
 
     /**
+      * Create a cast expression to type \p t (a unary operator).
+      */
+    expr(coli::op_t o, coli::primitive_t dtype, coli::expr expr0)
+    {
+        assert((o == coli::o_cast) && "Only support cast operator.");
+
+        this->_operator = o;
+        this->etype = coli::e_op;
+        this->dtype = dtype;
+        this->defined = true;
+
+        this->op.push_back(expr0);
+    }
+
+    /**
       * Create a expression of type \p t (a unary operator).
       */
     expr(coli::op_t o, coli::expr expr0)
     {
-        assert((o == coli::o_minus) && "The only unary operator is the minus operator.");
+        assert(((o == coli::o_minus) || (o == coli::o_floor)) &&
+               "The only unary operators are the minus and floor operator.");
+        if (o == coli::o_floor) {
+            assert((expr0.get_data_type() == coli::p_float32) ||
+                   (expr0.get_data_type() == coli::p_float64) &&
+                   "Can only do floor on float32 or float64.");
+        }
 
         this->_operator = o;
         this->etype = coli::e_op;

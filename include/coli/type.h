@@ -64,6 +64,8 @@ namespace coli {
         o_access,
         o_right_shift,
         o_left_shift,
+        o_floor,
+        o_cast,
         o_none
     };
 

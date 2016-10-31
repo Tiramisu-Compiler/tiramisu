@@ -482,6 +482,12 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
 					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
 					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
 					break;
+				case coli::o_floor:
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					break;
+				case coli::o_cast:
+					traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+					break;
 				default:
 					coli::error("Extracting access function from an unsupported coli expression.", 1);
 			}
@@ -749,6 +755,14 @@ Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
 			case coli::o_left_shift:
 				result = op0 << op1;
                 DEBUG(3, coli::str_dump("op type: o_left_shift"));
+				break;
+			case coli::o_floor:
+				result = Halide::floor(op0);
+                DEBUG(3, coli::str_dump("op type: o_floor"));
+				break;
+			case coli::o_cast:
+				result = Halide::cast(halide_type_from_coli_type(coli_expr.get_data_type()), op0);
+                DEBUG(3, coli::str_dump("op type: o_cast"));
 				break;
 			default:
 				coli::error("Translating an unsupported ISL expression into a Halide expression.", 1);
