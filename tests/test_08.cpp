@@ -20,7 +20,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     coli::function function0(name);
     coli::expr e_N = coli::expr((int32_t) size);
     coli::constant N("N", e_N, p_int32, true, NULL, 0, &function0);
-    coli::expr e1 = coli::expr(coli::o_cast, coli::p_int32,
+    coli::expr e1 = coli::expr(coli::o_cast, coli::p_uint8,
                                coli::expr(coli::o_floor, coli::expr((float) val0)/coli::expr((float) val1)));
     coli::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, p_uint8, &function0);
 

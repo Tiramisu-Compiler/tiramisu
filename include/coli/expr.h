@@ -193,8 +193,8 @@ public:
     }
 
     /**
-    * Construct an expression that represents an id.
-    */
+     * Construct an expression that represents an id.
+     */
     expr(std::string name)
     {
         assert(name.length() > 0);
@@ -311,7 +311,7 @@ public:
         this->int64_value = val;
     }
 
-      /**
+    /**
       * Construct a 32-bit float expression.
       */
     expr(float val)
