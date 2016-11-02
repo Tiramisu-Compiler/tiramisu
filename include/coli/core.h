@@ -1303,6 +1303,14 @@ public:
      * Modify the schedule of this computation so that it splits the
      * dimension inDim0 of the iteration space into two new dimensions.
      * The size of the inner dimension created is sizeX.
+     * If you have a 2D loop with i and j as iterators
+       the dimension number of i is 1 and the dimension number of j is 3
+       and you want to split the dimension i by 16, you can call
+       s0.split(1, 16)
+       This will create two dimensions, let us call them i0 and i1,
+       the dimension number of i0 is 1 and
+       the dimension number of i1 is 3
+       the dimension number of j is now 5 instead of the old value 3.
      */
     void split(int inDim0, int sizeX);
 
