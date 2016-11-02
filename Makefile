@@ -24,7 +24,8 @@ BENCH_REF_GEN=build/bench_halide_blurxy_generator build/bench_halide_fusion_gene
 # build/bench_halide_fusion_generator
 BENCH_COLI_GEN=build/bench_coli_blurxy_generator build/bench_coli_fusion_generator
 # build/bench_coli_fusion_generator
-BENCH_BIN=build/bench_blurxy build/bench_stencils_stencil1
+BENCH_BIN=build/bench_blurxy
+# build/bench_stencils_stencil1
 # build/bench_fusion
 
 all: builddir ${OBJ}
