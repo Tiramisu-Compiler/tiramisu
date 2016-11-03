@@ -1180,33 +1180,25 @@ public:
 
     /**
       * Schedule this computation to run after the comp computation
-      * at dimension \p dim of the time-processor space.
+      * at dimension \p dim of the time-processor domain.
       * Use computation::root_dimension to indicate the root dimension
-      * (i.e. the outermost processor-time dimension).
-      * The first loop level corresponds to dimension 0.
+      * (i.e. the outermost time-processor dimension).
+      * The first static dimension (dimensions used to specify the lexicographical order
+      * in a given loop level) corresponds to dimension 0.
+      * The first dynamic dimension (loop level dimension) corresponds to dimension 1.
       * Few assumptions about how you should call these functions:
         - Call .first() before calling any .after()
         - Call .after() in the order of appearance of stmts, that is
-        is in the program you have S0, then S1 then S2, you should call
-        .after() for each pair:
+        if in the program you have S0, then S1 then S2, you should call
+        .after() as follows:
               S1.after(S0, ...);
               S2.after(S1, ...);
-          and not:
+         In this case, since S1 appears in the program before S2, we set S1 first
+         then we set S2.
+         but you should not call it as follows
               S2.after(S1, ...);
               S1.after(S0, ...);
-        - When you call S1.after() it adds one dimension to the time-space domain.
-        In general, any call to one of the scheduling commands such as .tile(), .split(),
-        .after(), .first(), ... changes the dimensions of the time-space domain so any
-        other call should take that in consideration.  For example, if we have a 2
-        dimensional domain (dimensions 0 and 1 only) and tile that domain using the command
-        .tile(0,1,4,4) which tiles the dimensions 0 and 1 by a 4x4 tile, two new dimensions
-        in the time-space domain are created.  Now we have the dimensions: 0, 1, 2 and 3.
-        So any call to scheduling commands like .split(), .vectorize(), .after(), ...
-        should take in consideration that the dimensions have changed.
-        This should disappear if we use names for the dimensions and manage the mapping
-        from names to numbers automatically (for example dimension 0 is called "i" an
-        the mapping "i"->0 changes as appropriate whenever we call one of the scheduling
-        commands).
+         since this sets S2 and sets S1.
       */
     void after(computation &comp, int dim);
 
@@ -1311,6 +1303,14 @@ public:
      * Modify the schedule of this computation so that it splits the
      * dimension inDim0 of the iteration space into two new dimensions.
      * The size of the inner dimension created is sizeX.
+     * If you have a 2D loop with i and j as iterators
+       the dimension number of i is 1 and the dimension number of j is 3
+       and you want to split the dimension i by 16, you can call
+       s0.split(1, 16)
+       This will create two dimensions, let us call them i0 and i1,
+       the dimension number of i0 is 1 and
+       the dimension number of i1 is 3
+       the dimension number of j is now 5 instead of the old value 3.
      */
     void split(int inDim0, int sizeX);
 
