@@ -496,7 +496,7 @@ void computation::before(computation &comp, int dim)
 }
 
 void computation::tile(int inDim0, int inDim1,
-            int sizeX, int sizeY)
+                       int sizeX, int sizeY)
 {
     // Check that the two dimensions are consecutive.
     // Tiling only applies on a consecutive band of loop dimensions.
