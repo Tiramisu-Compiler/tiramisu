@@ -370,7 +370,9 @@ void traverse_expr_and_extract_accesses(coli::function *fct,
 		            }
 				}
 				else
+				{
 					coli::error("Currently only Add and Sub operations for accesses are supported." , true);
+				}
 			}
 			dimension_number++;
 			identity = isl_map_add_constraint(identity, cst);
