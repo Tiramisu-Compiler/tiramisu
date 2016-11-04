@@ -211,6 +211,11 @@ private:
      */
     isl_set *context_set;
 
+    /**
+     * The names of the iterators.
+     */
+    std::vector<std::string> iterator_names;
+
 public:
 
     function(std::string name): name(name) {
@@ -590,6 +595,32 @@ public:
       * gen_halide_stmt should be called before calling this function.
       */
     void dump_halide_stmt() const;
+
+    /**
+     * Get the iterator names of the function.
+     */
+    const std::vector<std::string>& get_iterator_names() const
+    {
+        return iterator_names;
+    }
+
+    /**
+      * Set the iterator names of the function.
+      */
+    void set_iterator_names(const std::vector<std::string>& iteratorNames)
+    {
+        iterator_names = iteratorNames;
+    }
+
+    /**
+      * Add an iterator to the function.
+      */
+    void add_iterator_name(const std::string iteratorName)
+    {
+        iterator_names.push_back(iteratorName);
+    }
+
+
 };
 
 
@@ -881,6 +912,7 @@ protected:
         this->schedule_this_computation = false;
         this->data_type = p_none;
         this->expression = coli::expr();
+        this->statements_to_compute_before_me = NULL;
 
         this->ctx = NULL;
 
@@ -896,6 +928,11 @@ public:
       * This should be used with computation::after().
       */
     const static int root_dimension = -1;
+
+    /**
+     * Let statements that should be computed before this computation.
+     */
+    coli::computation *statements_to_compute_before_me;
 
     /**
       * Create a computation and make it represent an expression.
@@ -1475,6 +1512,12 @@ public:
             DEBUG_NO_NEWLINE(10,
                      coli::str_dump("The computation representing the assignment:");
                      this->dump(true));
+
+            assert(with_computation != NULL);
+            // Compute this statement before computing the "with_coputation".
+            // Since this statement is a let statement the "with_computation"
+            // will consumer it.
+            with_computation->statements_to_compute_before_me = this;
 
             // Set the schedule of this computation to be executed
             // before the computation.

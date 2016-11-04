@@ -34,11 +34,12 @@ int main(int argc, char **argv)
     // Define loop bounds for dimension "f_s0_x".
     coli::constant f_s0_x_loop_min("f_s0_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
     coli::constant f_s0_x_loop_extent("f_s0_x_loop_extent", coli::expr((int32_t)100), coli::p_int32, true, NULL, 0, &fusion_coli);
-    coli::constant t0("t0", coli::expr(coli::o_max, coli::idx("f_s0_x"), coli::idx("f_s0_y")), coli::p_int32, true, NULL, 0, &fusion_coli);
-    coli::computation f_s0("[f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_x, f_s0_y]: "
+    coli::computation f_s0("[t0,f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_x, f_s0_y]: "
                         "(f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        coli::expr(coli::o_cast, coli::p_float32, (b0(t0(0), coli::idx("f_s0_y")) >> coli::expr((int32_t)2))), true, coli::p_float32, &fusion_coli);
+                        coli::expr(coli::o_cast, coli::p_float32, (b0(coli::expr("t0"), coli::idx("f_s0_y")) >> coli::expr((int32_t)2))), true, coli::p_float32, &fusion_coli);
+    coli::constant t0("t0", coli::expr(coli::o_max, coli::idx("f_s0_x"), coli::idx("f_s0_y")), coli::p_int32, false, &f_s0, 1, &fusion_coli);
     f_s0.set_access("{f_s0[f_s0_x, f_s0_y]->buff_f_s0[f_s0_x, f_s0_y]}");
+    fusion_coli.set_iterator_names({"f_s0_x","f_s0_y"});
 
     // Define compute level for "f".
     f_s0.first(computation::root_dimension);

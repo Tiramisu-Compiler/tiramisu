@@ -36,6 +36,8 @@ isl_ast_node *for_code_generator_after_for(
     isl_ast_node *node, isl_ast_build *build, void *user);
 
 
+std::string generate_new_variable_name();
+
 /**
   * Generate an isl AST for the function.
   */
@@ -62,6 +64,29 @@ void function::gen_isl_ast()
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
     ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
+
+    // Set iterator names
+    isl_id_list *iterators = isl_id_list_alloc(ctx,  this->get_iterator_names().size());
+    if (this->get_iterator_names().size() > 0)
+    {
+
+        std::string name = generate_new_variable_name();
+        isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
+        iterators = isl_id_list_add(iterators, id);
+
+        for (int i = 0; i<this->get_iterator_names().size(); i++)
+        {
+            name = this->get_iterator_names()[i];
+            id = isl_id_alloc(ctx, name.c_str(), NULL);
+            iterators = isl_id_list_add(iterators, id);
+
+            name = generate_new_variable_name();
+            id = isl_id_alloc(ctx, name.c_str(), NULL);
+            iterators = isl_id_list_add(iterators, id);
+        }
+
+        ast_build = isl_ast_build_set_iterators(ast_build, iterators);
+    }
 
     // Intersect the iteration domain with the domain of the schedule.
     isl_union_map *umap =
@@ -455,17 +480,20 @@ void computation::first(int dim)
                  coli::str_dump(std::to_string(dim)));
         DEBUG(3, coli::str_dump("Original number of dimensions of the schedule : ");
                  coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
+        if (this->statements_to_compute_before_me != NULL)
+            DEBUG(3, coli::str_dump("Computation to compute before this computation ");
+                         coli::str_dump(this->statements_to_compute_before_me->get_name()));
         assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
         assert(dim >= computation::root_dimension);
 
         // Update relative orders.
-        if (c != this)
+        if (c != this && c != this->statements_to_compute_before_me)
             c->relative_order = c->relative_order + 1;
 
         DEBUG(3, coli::str_dump("Relative order: ");
                  coli::str_dump(std::to_string(c->relative_order)));
 
-        if (c == this)
+        if (c == this || c == this->statements_to_compute_before_me)
         {
             sched1 = isl_map_set_const_dim(sched1, dim+1, 0);
             DEBUG(3, coli::str_dump("Setting dimension to 0."));

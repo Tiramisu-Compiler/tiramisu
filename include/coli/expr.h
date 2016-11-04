@@ -914,6 +914,7 @@ public:
     {
         assert(name.length() > 0);
 
+        this->etype = coli::e_var;
         this->dtype = coli::p_int32;
     }
 };
