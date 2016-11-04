@@ -1447,15 +1447,18 @@ public:
       * \p t indicates the coli type of the constant.
       * \p function_wide should be set to true if the constant is
       * defined at the entry of the function and is visible to all
-      * the computations.
-      * This is an invariant to the function where it is declared.
-      * \p with_computation if the constant is not function wide,
-      * the user should indicate where this constant should be
-      * assigned in the coli function.  This is done using the
-      * \p with_computation and \p at_loop_level arguments.
-      * The assignment should be in the loop nest that computes
-      * the computation \p with_computation at the iteration space
-      * dimension indicated by \p at_iteration_space_dimension.
+      * the computations. i.e. it is declared the root level.
+      * If function_wide is set to true, then the constant is an
+      * invariant to the whole function where it is declared.
+      * Otherwise, this function_wide should be set to false.
+      * \p with_computation, should be set only if function_wide
+      * is false, i.e. if the constant is not function wide.
+      * In such a case the user should indicate where the
+      * constant should be assigned.
+      * \p with_computation indicates that the assignment should
+      * be in the loop nest that computes the computation
+      * \p with_computation at the dimension indicated
+      * by \p at_iteration_space_dimension.
       * The root level is computation::root_dimension.
       * 0 represents the first loop level and 1 represents the second
       * loop level, ...
