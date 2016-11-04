@@ -17,15 +17,15 @@ int main(int argc, char **argv) {
 
     Halide::Target target = Halide::get_host_target();
 
-    // blur_y.compile_to_coli("halide/blurxy/blurxy_algorithm.cpp",
+    // blur_y.compile_to_coli("halide/wrap_affine/wrap_affine_algorithm.cpp",
     //                        {input}, target);
 
-    blur_y.compile_to_object("build/generated_fct_blurxy_ref.o",
+    blur_y.compile_to_object("build/generated_fct_wrap_affine_ref.o",
                              {input},
-                             "blurxy_ref",
+                             "wrap_affine_ref",
                              target);
 
-    blur_y.compile_to_lowered_stmt("build/generated_fct_blurxy_ref.txt",
+    blur_y.compile_to_lowered_stmt("build/generated_fct_wrap_affine_ref.txt",
                                    {input},
                                    Text,
                                    target);

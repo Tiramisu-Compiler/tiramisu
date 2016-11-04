@@ -1,4 +1,5 @@
-#include "wrapper_fusion.h"
+#include "wrapper_blurxy.h"
+#include "wrapper_cvt_color.h"
 #include "../benchmarks.h"
 
 #include "Halide.h"
@@ -18,7 +19,7 @@ int main(int, char**)
     Halide::Image<uint16_t> output2(input.width()-8, input.height()-2);
 
     // Warm up
-    //fusion_coli(input, output1);
+    //blurxy_coli(input, output1);
 
     // Reference
     for (int i=0; i<NB_TESTS; i++)
@@ -40,14 +41,14 @@ int main(int, char**)
         duration_vector_2.push_back(duration2);
     }
 
-    print_time("performance_CPU.csv", "fusion",
+    print_time("performance_CPU.csv", "cvt_color",
                {"  COLi "," Halide "},
                {median(duration_vector_1), median(duration_vector_2)});
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
 
-    Halide::Tools::save_image(output1, "./build/fusion_coli.png");
-    Halide::Tools::save_image(output2, "./build/fusion_ref.png");
+    Halide::Tools::save_image(output1, "./build/cvt_color_coli.png");
+    Halide::Tools::save_image(output2, "./build/cvt_color_ref.png");
 
     return 0;
 }
