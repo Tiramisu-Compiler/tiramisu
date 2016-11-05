@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
                                 yuv_shift));
 
     RGB2Gray.parallel(y).vectorize(x, 8);
-    in.set_stride(0, 3)  // stride in dimension 0 (x) is three
-      .set_stride(2, 1); // stride in dimension 2 (c) is one
+    //in.set_stride(0, 3)  // stride in dimension 0 (x) is three
+    //  .set_stride(2, 1); // stride in dimension 2 (c) is one
     in.set_bounds(2, 0, 3);
 
     RGB2Gray.compile_to_object("build/generated_fct_cvtcolor_ref.o", {in}, "cvtcolor_ref");
