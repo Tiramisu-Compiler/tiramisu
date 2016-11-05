@@ -22,8 +22,8 @@ int main(int argc, char **argv)
 
     coli::function cvt_color_coli("cvtcolor_coli");
     coli::buffer buff_RGB2Gray("buff_RGB2Gray", 2, {coli::expr(100), coli::expr(100)}, coli::p_uint8, NULL, coli::a_output, &cvt_color_coli);
-    coli::buffer buff_b0("buff_b0", 3, {coli::expr(100), coli::expr(100), coli::expr(3)}, coli::p_int32, NULL, coli::a_input, &cvt_color_coli);
-    coli::computation b0("{b0[i0, i1, i2]: (0 <= i0 <= 99) and (0 <= i1 <= 99) and (0 <= i2 <= 2)}", expr(), false, coli::p_int32, &cvt_color_coli);
+    coli::buffer buff_b0("buff_b0", 3, {coli::expr(100), coli::expr(100), coli::expr(3)}, coli::p_uint8, NULL, coli::a_input, &cvt_color_coli);
+    coli::computation b0("{b0[i0, i1, i2]: (0 <= i0 <= 99) and (0 <= i1 <= 99) and (0 <= i2 <= 2)}", expr(), false, coli::p_uint8, &cvt_color_coli);
     b0.set_access("{b0[i0, i1, i2]->buff_b0[i0, i1, i2]}");
 
 

@@ -12,26 +12,12 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
+    Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint32_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<uint8_t> output1(input.width(), input.height());
+    Halide::Image<uint8_t> output2(input.width(), input.height());
 
-/*    buffer_t input_buf = {0};
-    input_buf.host = (unsigned char *) malloc(NN*NN*NN*sizeof(unsigned char));
-    input_buf.stride[0] = 1;
-    input_buf.stride[1] = 1;
-    input_buf.stride[2] = 1;
-    input_buf.extent[0] = NN;
-    input_buf.extent[1] = NN;
-    input_buf.stride[2] = 3;
-    input_buf.min[0] = 0;
-    input_buf.min[1] = 0;
-    input_buf.elem_size = 1;*/
-
-
-    Halide::Image<uint8_t> output1(input.width(), input.height(), 3);
-    Halide::Image<uint8_t> output2(input.width(), input.height(), 3);
-
-    // Reference
+    // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
@@ -41,7 +27,7 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
-    // COLi
+    // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
