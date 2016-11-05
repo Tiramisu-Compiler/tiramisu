@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     // Set default coli options.
     global::set_default_coli_options();
 
-    coli::function cvt_color_coli("cvt_color_coli");
+    coli::function cvt_color_coli("cvtcolor_coli");
     coli::buffer buff_RGB2Gray("buff_RGB2Gray", 2, {coli::expr(100), coli::expr(100)}, coli::p_uint8, NULL, coli::a_output, &cvt_color_coli);
     coli::buffer buff_b0("buff_b0", 3, {coli::expr(100), coli::expr(100), coli::expr(3)}, coli::p_int32, NULL, coli::a_input, &cvt_color_coli);
     coli::computation b0("{b0[i0, i1, i2]: (0 <= i0 <= 99) and (0 <= i1 <= 99) and (0 <= i2 <= 2)}", expr(), false, coli::p_int32, &cvt_color_coli);
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     cvt_color_coli.gen_isl_ast();
     cvt_color_coli.gen_halide_stmt();
     cvt_color_coli.dump_halide_stmt();
-    cvt_color_coli.gen_halide_obj("build/generated_cvt_color_coli_test.o");
+    cvt_color_coli.gen_halide_obj("build/generated_fct_cvtcolor.o");
 
     return 0;
 }

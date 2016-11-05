@@ -6,7 +6,7 @@ using namespace Halide;
 
 
 int main(int argc, char* argv[]) {
-    ImageParam in{UInt(8), 3, "input"};
+    ImageParam in{UInt(32), 3, "input"};
 
     Func RGB2Gray{"RGB2Gray"};
     Var x,y,c;
@@ -27,9 +27,9 @@ int main(int argc, char* argv[]) {
       .set_stride(2, 1); // stride in dimension 2 (c) is one
     in.set_bounds(2, 0, 3);
 
-    RGB2Gray.compile_to_object("build/generated_fct_cvt_color_ref.o", {in}, "blurxy_ref");
+    RGB2Gray.compile_to_object("build/generated_fct_cvtcolor_ref.o", {in}, "cvtcolor_ref");
 
-    RGB2Gray.compile_to_lowered_stmt("build/generated_fct_cvt_color_ref.txt", {in}, Text);
+    RGB2Gray.compile_to_lowered_stmt("build/generated_fct_cvtcolor_ref.txt", {in}, Text);
 
     return 0;
 }
