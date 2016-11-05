@@ -26,7 +26,6 @@ int main(int argc, char **argv)
     coli::computation b0("{b0[i0, i1, i2]: (0 <= i0 <= 99) and (0 <= i1 <= 99) and (0 <= i2 <= 2)}", expr(), false, coli::p_uint8, &cvt_color_coli);
     b0.set_access("{b0[i0, i1, i2]->buff_b0[i0, i1, i2]}");
 
-
     // Define loop bounds for dimension "RGB2Gray_s0_y".
     coli::constant RGB2Gray_s0_y_loop_min("RGB2Gray_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvt_color_coli);
     coli::constant RGB2Gray_s0_y_loop_extent("RGB2Gray_s0_y_loop_extent", coli::expr((int32_t)100), coli::p_int32, true, NULL, 0, &cvt_color_coli);
@@ -36,7 +35,7 @@ int main(int argc, char **argv)
     coli::constant RGB2Gray_s0_x_loop_extent("RGB2Gray_s0_x_loop_extent", coli::expr((int32_t)100), coli::p_int32, true, NULL, 0, &cvt_color_coli);
     coli::computation RGB2Gray_s0("[RGB2Gray_s0_y_loop_min, RGB2Gray_s0_y_loop_extent, RGB2Gray_s0_x_loop_min, RGB2Gray_s0_x_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_x, RGB2Gray_s0_y]: "
         "(RGB2Gray_s0_y_loop_min <= RGB2Gray_s0_y <= ((RGB2Gray_s0_y_loop_min + RGB2Gray_s0_y_loop_extent) + -1)) and (RGB2Gray_s0_x_loop_min <= RGB2Gray_s0_x <= ((RGB2Gray_s0_x_loop_min + RGB2Gray_s0_x_loop_extent) + -1))}",
-        coli::expr(coli::o_cast, coli::p_uint8, (((((b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((int32_t)2))*coli::expr((int32_t)1868)) + (b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((int32_t)1))*coli::expr((int32_t)9617))) + (b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((int32_t)0))*coli::expr((int32_t)4899))) + coli::expr(coli::o_cast, coli::p_int32, (coli::expr((uint32_t)1) << (coli::expr((uint32_t)14) - coli::expr((uint32_t)1))))) >> coli::expr((int32_t)14))), true, coli::p_uint8, &cvt_color_coli);
+        coli::expr(coli::o_cast, coli::p_uint8, (((((b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((uint8_t)2))*coli::expr((uint8_t)1868)) + (b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((uint8_t)1))*coli::expr((uint8_t)9617))) + (b0(coli::idx("RGB2Gray_s0_x"), coli::idx("RGB2Gray_s0_y"), coli::expr((uint8_t)0))*coli::expr((uint8_t)4899))) + coli::expr(coli::o_cast, coli::p_uint8, (coli::expr((uint8_t)1) << (coli::expr((uint8_t)14) - coli::expr((uint8_t)1))))) >> coli::expr((uint8_t)14))), true, coli::p_uint8, &cvt_color_coli);
     RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_x, RGB2Gray_s0_y]->buff_RGB2Gray[RGB2Gray_s0_x, RGB2Gray_s0_y]}");
 
     // Define compute level for "RGB2Gray".

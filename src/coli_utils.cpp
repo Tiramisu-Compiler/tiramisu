@@ -35,17 +35,17 @@ void print_time(std::string file_name, std::string kernel_name,
 
     file << kernel_name << " ; ";
     for (auto t: time_vector)
-        file << t << " ; ";
+        file << t << " ;";
     file << std::endl;
 
     std::cout << "Kernel : ";
     for (auto t: header_text)
-        std::cout << t << " ; ";
+        std::cout << t << " ;";
     std::cout << std::endl;
 
     std::cout << kernel_name << " : ";
     for (auto t: time_vector)
-        std::cout << t << " ; ";
+        std::cout << t << " ;";
     std::cout << std::endl;
 
     file.close();
