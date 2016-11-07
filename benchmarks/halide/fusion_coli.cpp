@@ -20,37 +20,46 @@ int main(int argc, char **argv)
     // Set default coli options.
     global::set_default_coli_options();
 
-    coli::function fusion_coli("fusion_coli");
-    coli::buffer buff_filter2D_nordom("buff_filter2D_nordom", 2, {coli::expr(1024), coli::expr(1024)}, coli::p_float32, NULL, coli::a_output, &fusion_coli);
-    coli::buffer buff_b0("buff_b0", 2, {coli::expr(1024), coli::expr(1024)}, coli::p_float32, NULL, coli::a_input, &fusion_coli);
-    coli::computation b0("{b0[i0, i1]: (0 <= i0 <= 1023) and (0 <= i1 <= 1023)}", expr(), false, coli::p_float32, &fusion_coli);
-    b0.set_access("{b0[i0, i1]->buff_b0[i0, i1]}");
+    coli::function cvtcolor("cvtcolor");
+
+    // Output buffers.
+    int RGB2Gray_extent_0 = 1024;
+    int RGB2Gray_extent_1 = 1024;
+    coli::buffer buff_RGB2Gray("buff_RGB2Gray", 2, {coli::expr(RGB2Gray_extent_0), coli::expr(RGB2Gray_extent_1)}, coli::p_uint8, NULL, coli::a_output, &cvtcolor);
+
+    // Input buffers.
+    int input_extent_0 = 1024;
+    int input_extent_1 = 1024;
+    int input_extent_2 = 1024;
+    coli::buffer buff_input("buff_input", 3, {coli::expr(input_extent_0), coli::expr(input_extent_1), coli::expr(input_extent_2)}, coli::p_uint8, NULL, coli::a_input, &cvtcolor);
+    coli::computation input("[input_extent_0, input_extent_1, input_extent_2]->{input[i0, i1, i2]: (0 <= i0 <= (input_extent_0 + -1)) and (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i2 <= (input_extent_2 + -1))}", expr(), false, coli::p_uint8, &cvtcolor);
+    input.set_access("{input[i0, i1, i2]->buff_input[i0, i1, i2]}");
 
 
-    // Define loop bounds for dimension "filter2D_nordom_s0_y".
-    coli::constant filter2D_nordom_s0_y_loop_min("filter2D_nordom_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
-    coli::constant filter2D_nordom_s0_y_loop_extent("filter2D_nordom_s0_y_loop_extent", coli::expr((int32_t)1024), coli::p_int32, true, NULL, 0, &fusion_coli);
+    // Define loop bounds for dimension "RGB2Gray_s0_v4".
+    coli::constant RGB2Gray_s0_v4_loop_min("RGB2Gray_s0_v4_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvtcolor);
+    coli::constant RGB2Gray_s0_v4_loop_extent("RGB2Gray_s0_v4_loop_extent", coli::expr(RGB2Gray_extent_1), coli::p_int32, true, NULL, 0, &cvtcolor);
 
-    // Define loop bounds for dimension "filter2D_nordom_s0_x".
-    coli::constant filter2D_nordom_s0_x_loop_min("filter2D_nordom_s0_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
-    coli::constant filter2D_nordom_s0_x_loop_extent("filter2D_nordom_s0_x_loop_extent", coli::expr((int32_t)1024), coli::p_int32, true, NULL, 0, &fusion_coli);
-    coli::computation filter2D_nordom_s0("[filter2D_nordom_s0_y_loop_min, filter2D_nordom_s0_y_loop_extent, filter2D_nordom_s0_x_loop_min, filter2D_nordom_s0_x_loop_extent]->{filter2D_nordom_s0[filter2D_nordom_s0_x, filter2D_nordom_s0_y]: "
-                        "(filter2D_nordom_s0_y_loop_min <= filter2D_nordom_s0_y <= ((filter2D_nordom_s0_y_loop_min + filter2D_nordom_s0_y_loop_extent) + -1)) and (filter2D_nordom_s0_x_loop_min <= filter2D_nordom_s0_x <= ((filter2D_nordom_s0_x_loop_min + filter2D_nordom_s0_x_loop_extent) + -1))}",
-                        ((((((((((((((((((((((((((((((((((((coli::expr((float)0) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)192970))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)4.1051e-41))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)1.08803e+27))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)1.14306e+27))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)0.000710459))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)1.26541e-31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)1.72236e+22))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)0))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)0.000875062))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)7.14284e+31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)7.20648e+31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)-1.08447e-19))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)2979.65))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)0))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)3.07344e+29))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)192970))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)1.5901e+29))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)1.08803e+27))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)0.236757))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)-3.68935e+19))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)1.26903e+31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)1.72236e+22))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)1.26903e+31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)0.000875062))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)0.000710459))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)1.26591e-31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)0.000711031))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)2979.65))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)0))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)3.07344e+29))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-3)))*coli::expr((float)7.20648e+31))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-2)))*coli::expr((float)2.00049))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)-1)))*coli::expr((float)0.000676623))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)0)))*coli::expr((float)0.236757))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)1)))*coli::expr((float)-3.68935e+19))) + (b0(((coli::idx("filter2D_nordom_s0_x") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)), ((coli::idx("filter2D_nordom_s0_y") + coli::expr((int32_t)3)) + coli::expr((int32_t)2)))*coli::expr((float)1.26903e+31))), true, coli::p_float32, &fusion_coli);
-    filter2D_nordom_s0.set_access("{filter2D_nordom_s0[filter2D_nordom_s0_x, filter2D_nordom_s0_y]->buff_filter2D_nordom[filter2D_nordom_s0_x, filter2D_nordom_s0_y]}");
+    // Define loop bounds for dimension "RGB2Gray_s0_v3".
+    coli::constant RGB2Gray_s0_v3_loop_min("RGB2Gray_s0_v3_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvtcolor);
+    coli::constant RGB2Gray_s0_v3_loop_extent("RGB2Gray_s0_v3_loop_extent", coli::expr(RGB2Gray_extent_0), coli::p_int32, true, NULL, 0, &cvtcolor);
+    coli::computation RGB2Gray_s0("[RGB2Gray_s0_v4_loop_min, RGB2Gray_s0_v4_loop_extent, RGB2Gray_s0_v3_loop_min, RGB2Gray_s0_v3_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_v3, RGB2Gray_s0_v4]: "
+                        "(RGB2Gray_s0_v4_loop_min <= RGB2Gray_s0_v4 <= ((RGB2Gray_s0_v4_loop_min + RGB2Gray_s0_v4_loop_extent) + -1)) and (RGB2Gray_s0_v3_loop_min <= RGB2Gray_s0_v3 <= ((RGB2Gray_s0_v3_loop_min + RGB2Gray_s0_v3_loop_extent) + -1))}",
+                        coli::expr(coli::o_cast, coli::p_uint8, (((((coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)2)))*coli::expr((uint32_t)1868)) + (coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)1)))*coli::expr((uint32_t)9617))) + (coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)0)))*coli::expr((uint32_t)4899))) + (coli::expr((uint32_t)1) << (coli::expr((uint32_t)14) - coli::expr((uint32_t)1)))) >> coli::expr((uint32_t)14))), true, coli::p_uint8, &cvtcolor);
+    RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_v3, RGB2Gray_s0_v4]->buff_RGB2Gray[RGB2Gray_s0_v3, RGB2Gray_s0_v4]}");
 
-    // Define compute level for "filter2D_nordom".
-    filter2D_nordom_s0.first(computation::root_dimension);
+    // Define compute level for "RGB2Gray".
+    RGB2Gray_s0.first(computation::root_dimension);
 
     // Add schedules.
-    filter2D_nordom_s0.tag_parallel_dimension(1);
+    RGB2Gray_s0.tag_parallel_dimension(1);
 
-    fusion_coli.set_arguments({&buff_b0, &buff_filter2D_nordom});
-    fusion_coli.gen_time_processor_domain();
-    fusion_coli.gen_isl_ast();
-    fusion_coli.gen_halide_stmt();
-    fusion_coli.dump_halide_stmt();
-    fusion_coli.gen_halide_obj("build/generated_fusion_coli_test.o");
+    cvtcolor.set_arguments({&buff_input, &buff_RGB2Gray});
+    cvtcolor.gen_time_processor_domain();
+    cvtcolor.gen_isl_ast();
+    cvtcolor.gen_halide_stmt();
+    cvtcolor.dump_halide_stmt();
+    cvtcolor.gen_halide_obj("build/generated_fct_cvtcolor_test.o");
 
     return 0;
 }
