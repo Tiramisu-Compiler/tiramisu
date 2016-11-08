@@ -19,8 +19,8 @@ int main(int, char**)
     kernel(1,0) = 1; kernel(1,1) = 1; kernel(1,2) = 1;
     kernel(2,0) = 0; kernel(2,1) = 1; kernel(2,2) = 0;
 
-    Halide::Image<uint16_t> output1(input.width()-8, input.height()-8);
-    Halide::Image<uint16_t> output2(input.width()-8, input.height()-8);
+    Halide::Image<float> output1(input.width()-8, input.height()-8);
+    Halide::Image<float> output2(input.width()-8, input.height()-8);
 
     // Warm up
     filter2D_coli(input, kernel, output1);

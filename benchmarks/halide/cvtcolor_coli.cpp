@@ -21,8 +21,8 @@ int main(int argc, char **argv)
     global::set_default_coli_options();
 
     Halide::Image<uint16_t> in_image = Halide::Tools::load_image("./images/rgb.png");
-    int SIZE0 = in_image.extent(0) - 8;
-    int SIZE1 = in_image.extent(1) - 2;
+    int SIZE0 = in_image.extent(0);
+    int SIZE1 = in_image.extent(1);
 
     coli::function cvtcolor_coli("cvtcolor_coli");
 

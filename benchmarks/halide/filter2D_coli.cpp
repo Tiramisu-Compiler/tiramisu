@@ -22,20 +22,22 @@ int main(int argc, char **argv)
 
     coli::function filter2D_coli("filter2D_coli");
 
+    Halide::Image<uint16_t> in_image = Halide::Tools::load_image("./images/rgb.png");
+
     // Output buffers.
-    int filter2D_nordom_extent_1 = 1024;
-    int filter2D_nordom_extent_0 = 1024;
+    int filter2D_nordom_extent_1 = in_image.extent(1) - 8;
+    int filter2D_nordom_extent_0 = in_image.extent(0) - 8;
     coli::buffer buff_filter2D_nordom("buff_filter2D_nordom", 2, {coli::expr(filter2D_nordom_extent_1), coli::expr(filter2D_nordom_extent_0)}, coli::p_float32, NULL, coli::a_output, &filter2D_coli);
 
     // Input buffers.
-    int input_extent_1 = 1024;
-    int input_extent_0 = 1024;
+    int input_extent_1 = in_image.extent(1) - 8;
+    int input_extent_0 = in_image.extent(0) - 8;
     coli::buffer buff_input("buff_input", 2, {coli::expr(input_extent_1), coli::expr(input_extent_0)}, coli::p_float32, NULL, coli::a_input, &filter2D_coli);
     coli::computation input("[input_extent_1, input_extent_0]->{input[i1, i0]: (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, coli::p_float32, &filter2D_coli);
     input.set_access("{input[i1, i0]->buff_input[i1, i0]}");
 
-    int kernel_extent_1 = 1024;
-    int kernel_extent_0 = 1024;
+    int kernel_extent_1 = in_image.extent(1) - 8;
+    int kernel_extent_0 = in_image.extent(0) - 8;
     coli::buffer buff_kernel("buff_kernel", 2, {coli::expr(kernel_extent_1), coli::expr(kernel_extent_0)}, coli::p_float32, NULL, coli::a_input, &filter2D_coli);
     coli::computation kernel("[kernel_extent_1, kernel_extent_0]->{kernel[i1, i0]: (0 <= i1 <= (kernel_extent_1 + -1)) and (0 <= i0 <= (kernel_extent_0 + -1))}", expr(), false, coli::p_float32, &filter2D_coli);
     kernel.set_access("{kernel[i1, i0]->buff_kernel[i1, i0]}");
