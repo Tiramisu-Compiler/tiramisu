@@ -12,10 +12,10 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint16_t> output1(input.width()-8, input.height()-8);
-    Halide::Image<uint16_t> output2(input.width()-8, input.height()-8);
+    Halide::Image<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
+    Halide::Image<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
     // COLi
     for (int i=0; i<NB_TESTS; i++)
