@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     coli::constant g_s0_x_loop_extent("g_s0_x_loop_extent", coli::expr(g_extent_0), coli::p_int32, true, NULL, 0, &fusion_coli);
     coli::computation g_s0("[g_s0_c_loop_min, g_s0_c_loop_extent, g_s0_y_loop_min, g_s0_y_loop_extent, g_s0_x_loop_min, g_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x]: "
                         "(g_s0_c_loop_min <= g_s0_c <= ((g_s0_c_loop_min + g_s0_c_loop_extent) + -1)) and (g_s0_y_loop_min <= g_s0_y <= ((g_s0_y_loop_min + g_s0_y_loop_extent) + -1)) and (g_s0_x_loop_min <= g_s0_x <= ((g_s0_x_loop_min + g_s0_x_loop_extent) + -1))}",
-                        (coli::expr((uint8_t)100) + input(coli::idx("g_s0_c"), coli::idx("g_s0_y"), coli::idx("g_s0_x"))), true, coli::p_uint8, &fusion_coli);
+                        (coli::expr((uint8_t)2) * input(coli::idx("g_s0_c"), coli::idx("g_s0_y"), coli::idx("g_s0_x"))), true, coli::p_uint8, &fusion_coli);
     g_s0.set_access("{g_s0[g_s0_c, g_s0_y, g_s0_x]->buff_g[g_s0_c, g_s0_y, g_s0_x]}");
 
     // Define compute level for "g".
