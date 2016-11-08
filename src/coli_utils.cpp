@@ -187,6 +187,9 @@ void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int 
 			if (array1[i*M+j] != array2[i*M+j])
             {
 				error = true;
+                std::cout << "At [i, j] = [" + std::to_string(i) + ", " + std::to_string(j) +
+                               "], expect " + std::to_string(array2[i*M+j]) + ", got " +
+                               std::to_string(array1[i*M+j]) + " instead.\n";
             }
         }
     }

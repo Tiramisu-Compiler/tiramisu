@@ -20,46 +20,69 @@ int main(int argc, char **argv)
     // Set default coli options.
     global::set_default_coli_options();
 
-    coli::function cvtcolor("cvtcolor");
+    coli::function fusion_coli("fusion_coli");
 
     // Output buffers.
-    int RGB2Gray_extent_0 = 1024;
-    int RGB2Gray_extent_1 = 1024;
-    coli::buffer buff_RGB2Gray("buff_RGB2Gray", 2, {coli::expr(RGB2Gray_extent_0), coli::expr(RGB2Gray_extent_1)}, coli::p_uint8, NULL, coli::a_output, &cvtcolor);
+    int C_extent_1 = 1024;
+    int C_extent_0 = 1024;
+    coli::buffer buff_C("buff_C", 2, {coli::expr(C_extent_1), coli::expr(C_extent_0)}, coli::p_int8, NULL, coli::a_output, &fusion_coli);
 
     // Input buffers.
-    int input_extent_0 = 1024;
-    int input_extent_1 = 1024;
-    int input_extent_2 = 1024;
-    coli::buffer buff_input("buff_input", 3, {coli::expr(input_extent_0), coli::expr(input_extent_1), coli::expr(input_extent_2)}, coli::p_uint8, NULL, coli::a_input, &cvtcolor);
-    coli::computation input("[input_extent_0, input_extent_1, input_extent_2]->{input[i0, i1, i2]: (0 <= i0 <= (input_extent_0 + -1)) and (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i2 <= (input_extent_2 + -1))}", expr(), false, coli::p_uint8, &cvtcolor);
-    input.set_access("{input[i0, i1, i2]->buff_input[i0, i1, i2]}");
+    int A_extent_1 = 1024;
+    int A_extent_0 = 1024;
+    coli::buffer buff_A("buff_A", 2, {coli::expr(A_extent_1), coli::expr(A_extent_0)}, coli::p_int8, NULL, coli::a_input, &fusion_coli);
+    coli::computation A("[A_extent_1, A_extent_0]->{A[i1, i0]: (0 <= i1 <= (A_extent_1 + -1)) and (0 <= i0 <= (A_extent_0 + -1))}", expr(), false, coli::p_int8, &fusion_coli);
+    A.set_access("{A[i1, i0]->buff_A[i1, i0]}");
+
+    int B_extent_1 = 1024;
+    int B_extent_0 = 1024;
+    coli::buffer buff_B("buff_B", 2, {coli::expr(B_extent_1), coli::expr(B_extent_0)}, coli::p_int8, NULL, coli::a_input, &fusion_coli);
+    coli::computation B("[B_extent_1, B_extent_0]->{B[i1, i0]: (0 <= i1 <= (B_extent_1 + -1)) and (0 <= i0 <= (B_extent_0 + -1))}", expr(), false, coli::p_int8, &fusion_coli);
+    B.set_access("{B[i1, i0]->buff_B[i1, i0]}");
 
 
-    // Define loop bounds for dimension "RGB2Gray_s0_v4".
-    coli::constant RGB2Gray_s0_v4_loop_min("RGB2Gray_s0_v4_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvtcolor);
-    coli::constant RGB2Gray_s0_v4_loop_extent("RGB2Gray_s0_v4_loop_extent", coli::expr(RGB2Gray_extent_1), coli::p_int32, true, NULL, 0, &cvtcolor);
+    // Define loop bounds for dimension "C_s0_y".
+    coli::constant C_s0_y_loop_min("C_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::constant C_s0_y_loop_extent("C_s0_y_loop_extent", coli::expr(C_extent_1), coli::p_int32, true, NULL, 0, &fusion_coli);
 
-    // Define loop bounds for dimension "RGB2Gray_s0_v3".
-    coli::constant RGB2Gray_s0_v3_loop_min("RGB2Gray_s0_v3_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvtcolor);
-    coli::constant RGB2Gray_s0_v3_loop_extent("RGB2Gray_s0_v3_loop_extent", coli::expr(RGB2Gray_extent_0), coli::p_int32, true, NULL, 0, &cvtcolor);
-    coli::computation RGB2Gray_s0("[RGB2Gray_s0_v4_loop_min, RGB2Gray_s0_v4_loop_extent, RGB2Gray_s0_v3_loop_min, RGB2Gray_s0_v3_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_v3, RGB2Gray_s0_v4]: "
-                        "(RGB2Gray_s0_v4_loop_min <= RGB2Gray_s0_v4 <= ((RGB2Gray_s0_v4_loop_min + RGB2Gray_s0_v4_loop_extent) + -1)) and (RGB2Gray_s0_v3_loop_min <= RGB2Gray_s0_v3 <= ((RGB2Gray_s0_v3_loop_min + RGB2Gray_s0_v3_loop_extent) + -1))}",
-                        coli::expr(coli::o_cast, coli::p_uint8, (((((coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)2)))*coli::expr((uint32_t)1868)) + (coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)1)))*coli::expr((uint32_t)9617))) + (coli::expr(coli::o_cast, coli::p_uint32, input(coli::idx("RGB2Gray_s0_v3"), coli::idx("RGB2Gray_s0_v4"), coli::expr((int32_t)0)))*coli::expr((uint32_t)4899))) + (coli::expr((uint32_t)1) << (coli::expr((uint32_t)14) - coli::expr((uint32_t)1)))) >> coli::expr((uint32_t)14))), true, coli::p_uint8, &cvtcolor);
-    RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_v3, RGB2Gray_s0_v4]->buff_RGB2Gray[RGB2Gray_s0_v3, RGB2Gray_s0_v4]}");
+    // Define loop bounds for dimension "C_s0_x".
+    coli::constant C_s0_x_loop_min("C_s0_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::constant C_s0_x_loop_extent("C_s0_x_loop_extent", coli::expr(C_extent_0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::computation C_s0("[C_s0_y_loop_min, C_s0_y_loop_extent, C_s0_x_loop_min, C_s0_x_loop_extent]->{C_s0[C_s0_y, C_s0_x]: "
+                        "(C_s0_y_loop_min <= C_s0_y <= ((C_s0_y_loop_min + C_s0_y_loop_extent) + -1)) and (C_s0_x_loop_min <= C_s0_x <= ((C_s0_x_loop_min + C_s0_x_loop_extent) + -1))}",
+                        coli::expr((int8_t)0), true, coli::p_int8, &fusion_coli);
+    C_s0.set_access("{C_s0[C_s0_y, C_s0_x]->buff_C[C_s0_y, C_s0_x]}");
 
-    // Define compute level for "RGB2Gray".
-    RGB2Gray_s0.first(computation::root_dimension);
+    // Define loop bounds for dimension "C_s1_y".
+    coli::constant C_s1_y_loop_min("C_s1_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::constant C_s1_y_loop_extent("C_s1_y_loop_extent", coli::expr(C_extent_1), coli::p_int32, true, NULL, 0, &fusion_coli);
+
+    // Define loop bounds for dimension "C_s1_x".
+    coli::constant C_s1_x_loop_min("C_s1_x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::constant C_s1_x_loop_extent("C_s1_x_loop_extent", coli::expr(C_extent_0), coli::p_int32, true, NULL, 0, &fusion_coli);
+
+    // Define loop bounds for dimension "C_s1_r4__x".
+    coli::constant C_s1_r4__x_loop_min("C_s1_r4__x_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::constant C_s1_r4__x_loop_extent("C_s1_r4__x_loop_extent", coli::expr((int32_t)100), coli::p_int32, true, NULL, 0, &fusion_coli);
+    coli::computation C_s1("[C_s1_y_loop_min, C_s1_y_loop_extent, C_s1_x_loop_min, C_s1_x_loop_extent, C_s1_r4__x_loop_min, C_s1_r4__x_loop_extent]->{C_s1[C_s1_y, C_s1_x, C_s1_r4__x]: "
+                        "(C_s1_y_loop_min <= C_s1_y <= ((C_s1_y_loop_min + C_s1_y_loop_extent) + -1)) and (C_s1_x_loop_min <= C_s1_x <= ((C_s1_x_loop_min + C_s1_x_loop_extent) + -1)) and (C_s1_r4__x_loop_min <= C_s1_r4__x <= ((C_s1_r4__x_loop_min + C_s1_r4__x_loop_extent) + -1))}",
+                        coli::expr(), true, coli::p_int8, &fusion_coli);
+    C_s1.set_expression((C_s1(coli::idx("C_s1_y"), coli::idx("C_s1_x"), (coli::idx("C_s1_r4__x") - coli::expr((int32_t)1))) + (A(coli::idx("C_s1_r4__x"), coli::idx("C_s1_x"))*B(coli::idx("C_s1_y"), coli::idx("C_s1_r4__x")))));
+    C_s1.set_access("{C_s1[C_s1_y, C_s1_x, C_s1_r4__x]->buff_C[C_s1_y, C_s1_x]}");
+
+    // Define compute level for "C".
+    C_s0.first(computation::root_dimension);
+    C_s1.after(C_s0, computation::root_dimension);
 
     // Add schedules.
-    RGB2Gray_s0.tag_parallel_dimension(1);
 
-    cvtcolor.set_arguments({&buff_input, &buff_RGB2Gray});
-    cvtcolor.gen_time_processor_domain();
-    cvtcolor.gen_isl_ast();
-    cvtcolor.gen_halide_stmt();
-    cvtcolor.dump_halide_stmt();
-    cvtcolor.gen_halide_obj("build/generated_fct_cvtcolor_test.o");
+    fusion_coli.set_arguments({&buff_A, &buff_B, &buff_C});
+    fusion_coli.gen_time_processor_domain();
+    fusion_coli.gen_isl_ast();
+    fusion_coli.gen_halide_stmt();
+    fusion_coli.dump_halide_stmt();
+    fusion_coli.gen_halide_obj("build/generated_fct_fusion_coli_test.o");
 
     return 0;
 }
+
