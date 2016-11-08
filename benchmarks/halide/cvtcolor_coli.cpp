@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 
     global::set_default_coli_options();
 
-
     coli::function cvtcolor("cvtcolor_coli");
 
     Halide::Image<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
@@ -61,7 +60,6 @@ int main(int argc, char **argv)
        b0.set_access("{b0[i0, i1, i2]->buff_b0[i0, i1, i2]}");
 
 
-
        // Define loop bounds for dimension "RGB2Gray_s0_y".
 
        coli::constant RGB2Gray_s0_y_loop_min("RGB2Gray_s0_y_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &cvtcolor);
@@ -83,7 +81,6 @@ int main(int argc, char **argv)
 
        RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_x, RGB2Gray_s0_y]->buff_RGB2Gray[RGB2Gray_s0_x, RGB2Gray_s0_y]}");
 
-
        // Define compute level for "RGB2Gray".
 
     RGB2Gray_s0.first(computation::root_dimension);
@@ -91,7 +88,7 @@ int main(int argc, char **argv)
 
 
     // Add schedules.
-
+    RGB2Gray_s0.tag_parallel_dimension(1);
 
     cvtcolor.set_arguments({&buff_b0, &buff_RGB2Gray});
 
@@ -105,7 +102,7 @@ int main(int argc, char **argv)
 
     cvtcolor.gen_halide_obj("build/generated_fct_cvtcolor.o");
 
-
     return 0;
 
 }
+

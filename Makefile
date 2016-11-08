@@ -16,9 +16,9 @@ HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h inclu
 OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
-TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator build/test_08_fct_generator
+TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator build/test_08_fct_generator build/test_09_fct_generator
 #build/test_07_fct_generator
-TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06 build/test_08
+TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06 build/test_08 build/test_09
 #build/test_07
 BENCH_REF_GEN=build/bench_halide_blurxy_generator build/bench_halide_fusion_generator build/bench_halide_cvtcolor_generator build/bench_halide_filter2D_generator
 BENCH_COLI_GEN=build/bench_coli_blurxy_generator build/bench_coli_fusion_generator build/bench_coli_cvtcolor_generator build/bench_coli_filter2D_generator
