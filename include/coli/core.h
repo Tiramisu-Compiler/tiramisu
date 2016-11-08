@@ -644,7 +644,7 @@ class buffer
     /**
       * The size of buffer dimensions.  Assuming the following
       * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * leftmost dimension of the buffer (N0), the second vector element
+      * rightmost dimension of the buffer (N2), the second vector element
       * represents N1, ...
       */
     std::vector<coli::expr> dim_sizes;
@@ -678,7 +678,7 @@ public:
       * \p nb_dims is the number of dimensions of the buffer.
       * A scalar is a one dimensional buffer with one element.
       * \p dim_sizes is a vector of integers that represent the size
-      * of each dimension in the buffer.
+      * of each dimension in the buffer from outermost to innermost.
       * \p type is the type of the buffer.
       * \p data is the data stored in the buffer.  This is useful
       * for binding a computation to an already existing buffer.
@@ -752,7 +752,7 @@ public:
     /**
       * Return the size of buffer dimensions.  Assuming the following
       * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * leftmost dimension of the buffer (N0), the second vector element
+      * rightmost dimension of the buffer (N2), the second vector element
       * represents N1, ...
       */
     const std::vector<coli::expr> &get_dim_sizes() const

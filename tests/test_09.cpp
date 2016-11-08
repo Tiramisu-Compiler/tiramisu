@@ -28,7 +28,7 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     // Input buffers.
 
     // Define temporary buffers for "input".
-    coli::buffer buff_input("buff_input", 3, {coli::expr(f_extent_0), coli::expr(f_extent_1), coli::expr((int32_t)10)}, coli::p_uint8, NULL, coli::a_temporary, &test_reduction_operator);
+    coli::buffer buff_input("buff_input", 3, {coli::expr((int32_t)10), coli::expr(f_extent_1), coli::expr(f_extent_0)}, coli::p_uint8, NULL, coli::a_temporary, &test_reduction_operator);
 
     // Define loop bounds for dimension "input_s0_z".
     coli::constant input_s0_z_loop_min("input_s0_z_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &test_reduction_operator);

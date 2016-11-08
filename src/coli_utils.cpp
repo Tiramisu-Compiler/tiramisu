@@ -150,14 +150,13 @@ buffer_t allocate_1D_buffer(int NN)
 {
     buffer_t input_buf = {0};
     input_buf.host = (unsigned char *) malloc(NN*sizeof(unsigned char));
-    input_buf.stride[0] = 1;
-    input_buf.stride[1] = 1;
-    input_buf.extent[0] = NN;
-    input_buf.extent[1] = 1;
     input_buf.min[0] = 0;
+    input_buf.stride[0] = 1;
+    input_buf.extent[0] = NN;
     input_buf.min[1] = 0;
+    input_buf.stride[1] = NN;
+    input_buf.extent[1] = 1;
     input_buf.elem_size = 1;
-
     return input_buf;
 }
 
@@ -165,14 +164,13 @@ buffer_t allocate_2D_buffer(int NN, int MM)
 {
 	buffer_t input_buf = {0};
 	input_buf.host = (unsigned char *) malloc(NN*MM*sizeof(unsigned char));
+    input_buf.min[0] = 0;
 	input_buf.stride[0] = 1;
-	input_buf.stride[1] = 1;
-	input_buf.extent[0] = NN;
+    input_buf.extent[0] = NN;
+    input_buf.min[1] = 0;
+	input_buf.stride[1] = NN;
 	input_buf.extent[1] = MM;
-	input_buf.min[0] = 0;
-	input_buf.min[1] = 0;
 	input_buf.elem_size = 1;
-
 	return input_buf;
 }
 
@@ -180,11 +178,11 @@ void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int 
 {
     bool error = false;
 
-	for (int i=0; i<N; i++)
+	for (int j=0; j<M; j++)
     {
-		for (int j=0; j<M; j++)
+        for (int i=0; i<N; i++)
         {
-			if (array1[i*M+j] != array2[i*M+j])
+			if (array1[i+j*N] != array2[i+j*N])
             {
 				error = true;
             }
