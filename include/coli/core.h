@@ -63,55 +63,6 @@ void halide_pipeline_to_c(
 
 #define LET_STMT_PREFIX "_coli_"
 
-/**
-  * A class that holds all the global variables necessary for COLi.
-  * It also holds COLi options.
-  */
-class global
-{
-private:
-    /**
-     * Perform automatic data mapping ?
-     */
-    static bool auto_data_mapping;
-
-public:
-    /**
-      * If this option is set to true, COLi automatically
-      * modifies the computation data mapping whenever a new
-      * schedule is applied to a computation.
-      * If it is set to false, it is up to the user to set
-      * the right data mapping before code generation.
-      */
-    static void set_auto_data_mapping(bool v)
-    {
-        global::auto_data_mapping = v;
-    }
-
-    /**
-      * Return whether auto data mapping is set.
-      * If auto data mapping is set, COLi automatically
-      * modifies the computation data mapping whenever a new
-      * schedule is applied to a computation.
-      * If it is set to false, it is up to the user to set
-      * the right data mapping before code generation.
-      */
-    static bool is_auto_data_mapping_set()
-    {
-        return global::auto_data_mapping;
-    }
-
-    static void set_default_coli_options()
-    {
-        set_auto_data_mapping(true);
-    }
-
-    global()
-    {
-        set_default_coli_options();
-    }
-};
-
 
 /**
   * A class to represent functions.  A function is composed of

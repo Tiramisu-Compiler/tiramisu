@@ -12,8 +12,11 @@ int main(int argc, char **argv) {
     blur_y(x, y) = (blur_x(x, y) + blur_x(x, y+1) + blur_x(x, y+2))/3;
 
     // How to schedule it
-    blur_y.split(y, y, yi, 8).parallel(y).vectorize(x, 8);
-    blur_x.store_at(blur_y, y).compute_at(blur_y, yi).vectorize(x, 8);
+    //blur_y.split(y, y, yi, 8).parallel(y).vectorize(x, 8);
+    //blur_x.store_at(blur_y, y).compute_at(blur_y, yi).vectorize(x, 8);
+
+    blur_y.compute_root().store_root().parallel(y);
+    blur_x.compute_root().store_root().parallel(y);
 
     Halide::Target target = Halide::get_host_target();
 

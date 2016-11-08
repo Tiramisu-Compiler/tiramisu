@@ -1027,16 +1027,17 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
         assert(cond_upper_bound_isl_format != NULL);
         DEBUG(3, coli::str_dump("Creating for loop init expression."));
-        Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
-        if (init_expr.type() != Halide::Int(32))
-            init_expr = Halide::Internal::Cast::make(Halide::Int(32), init_expr);
+
+		Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
+        if (init_expr.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+            init_expr = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), init_expr);
         DEBUG(3, coli::str_dump("init expression: "); std::cout << init_expr);
-        Halide::Expr cond_upper_bound_halide_format =
-                halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-        cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
-        if (cond_upper_bound_halide_format.type() != Halide::Int(32))
-            cond_upper_bound_halide_format =
-                Halide::Internal::Cast::make(Halide::Int(32), cond_upper_bound_halide_format);
+		Halide::Expr cond_upper_bound_halide_format =
+		        halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
+		cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
+		if (cond_upper_bound_halide_format.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+		    cond_upper_bound_halide_format =
+		        Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
         DEBUG(3, coli::str_dump("Upper bound expression: "); std::cout << cond_upper_bound_halide_format);
         Halide::Internal::Stmt *halide_body = coli::halide_stmt_from_isl_node(fct, body, level+1, tagged_stmts);
         Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
