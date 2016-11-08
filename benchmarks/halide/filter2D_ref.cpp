@@ -4,24 +4,22 @@
 using namespace Halide;
 
 int main(int argc, char* argv[]) {
-    ImageParam in{Float(32), 2, "input"};
-    // kernel is 2*radius x 2*radius
-    ImageParam kernel{Float(32), 2, "kernel"};
+    ImageParam in(UInt(8), 3, "input");
+    ImageParam kernel(Float(32), 2, "kernel");
 
-    Func filter2D{"filter2D"};
-    Var x, y;
+    Func filter2D("filter2D");
+    Var x("x"), y("y"), c("c");
 
     Expr e = 0.0f;
-
-    for (int i=-RADIUS; i<RADIUS; i++) {
-        for (int j=-RADIUS; j<RADIUS; j++)  {
-            e += in(x+RADIUS+i, y+RADIUS+j) * kernel(RADIUS+i, RADIUS+j);
+    for (int j = 0; j < 3; j++) {
+        for (int i = 0; i < 3; i++) {
+            e += cast<float>(in(x + i, y + j, c)) * kernel(i, j);
         }
     }
 
-    filter2D(x, y) = e;
+    filter2D(x, y, c) = cast<uint8_t>(e);
 
-    filter2D.parallel(y).vectorize(x, 8);
+    filter2D.parallel(y);//.vectorize(x, 8);
 
     filter2D.compile_to_object("build/generated_fct_filter2D_ref.o", {in, kernel}, "filter2D_ref");
 

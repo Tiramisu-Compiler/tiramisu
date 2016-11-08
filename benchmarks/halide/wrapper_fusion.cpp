@@ -19,21 +19,21 @@ int main(int, char**)
     Halide::Image<uint8_t> output_coli_f(input.width(), input.height(), input.channels());
     Halide::Image<uint8_t> output_coli_g(input.width(), input.height(), input.channels());
 
-    // Reference
+    // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        fusion_coli(input, output_ref_f, output_ref_g);
+        fusion_coli(input, output_coli_f, output_coli_g);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
     }
 
-    // COLi
+    // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
-        fusion_ref(input, output_coli_f, output_coli_g);
+        fusion_ref(input, output_ref_f, output_ref_g);
         auto end2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);

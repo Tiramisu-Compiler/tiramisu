@@ -12,20 +12,17 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<float> kernel(RADIUS, RADIUS);
-    kernel(0,0) = 0; kernel(0,1) = 1; kernel(0,2) = 0;
-    kernel(1,0) = 1; kernel(1,1) = 1; kernel(1,2) = 1;
+    Halide::Image<float> kernel(3, 3);
+    kernel(0,0) = 0; kernel(0,1) = 1.0f/5; kernel(0,2) = 0;
+    kernel(1,0) = 1.0f/5; kernel(1,1) = 1.0f/5; kernel(1,2) = 1.0f/5;
     kernel(2,0) = 0; kernel(2,1) = 1; kernel(2,2) = 0;
 
-    Halide::Image<float> output1(input.width()-8, input.height()-8);
-    Halide::Image<float> output2(input.width()-8, input.height()-8);
+    Halide::Image<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
+    Halide::Image<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
-    // Warm up
-    filter2D_coli(input, kernel, output1);
-
-    // Reference
+    // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
@@ -35,7 +32,7 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
-    // COLi
+    // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();

@@ -17,10 +17,7 @@ int main(int, char**)
     Halide::Image<float> output1(input.width()-8, input.height()-2);
     Halide::Image<float> output2(input.width()-8, input.height()-2);
 
-    // Warm up
-    gaussian3x3_coli(input, output1);
-
-    // Reference
+    // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
@@ -30,7 +27,7 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
-    // COLi
+    // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
