@@ -27,10 +27,6 @@ int main(int argc, char **argv)
     int SIZE1 = in_image.extent(1);
     int SIZE2 = in_image.extent(2);
 
-    std::cout << "INPUT WIDTH: " << in_image.width() << "\n";
-    std::cout << "INPUT HEIGHT: " << in_image.height() << "\n";
-    std::cout << "INPUT CHANNELS: " << in_image.channels() << "\n";
-
     // Output buffers.
     int f_extent_2 = SIZE2;
     int f_extent_1 = SIZE1;
