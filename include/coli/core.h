@@ -836,6 +836,7 @@ protected:
         time_processor_domain = NULL;
         relative_order = 0;
 
+        this->statements_to_compute_before_me = NULL;
         this->schedule_this_computation = schedule_this_computation;
         this->data_type = t;
         this->expression = e;
