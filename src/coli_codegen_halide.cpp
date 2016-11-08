@@ -1025,15 +1025,15 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 		assert(cond_upper_bound_isl_format != NULL);
         DEBUG(3, coli::str_dump("Creating for loop init expression."));
 		Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
-        if (init_expr.type() != Halide::Int(32))
-            init_expr = Halide::Internal::Cast::make(Halide::Int(32), init_expr);
+        if (init_expr.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+            init_expr = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), init_expr);
         DEBUG(3, coli::str_dump("init expression: "); std::cout << init_expr);
 		Halide::Expr cond_upper_bound_halide_format =
 		        halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
 		cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
-		if (cond_upper_bound_halide_format.type() != Halide::Int(32))
+		if (cond_upper_bound_halide_format.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
 		    cond_upper_bound_halide_format =
-		        Halide::Internal::Cast::make(Halide::Int(32), cond_upper_bound_halide_format);
+		        Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
         DEBUG(3, coli::str_dump("Upper bound expression: "); std::cout << cond_upper_bound_halide_format);
 		Halide::Internal::Stmt *halide_body = coli::halide_stmt_from_isl_node(fct, body, level+1, tagged_stmts);
 		Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
@@ -1263,14 +1263,34 @@ Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer,
 	{
 		operand = isl_ast_expr_get_op_arg(index_expr, i);
 		Halide::Expr operand_h = halide_expr_from_isl_ast_expr(operand);
+
+        if (operand_h.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+            operand_h = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), operand_h);
+        if (extents.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+            extents = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), extents);
+
 		Halide::Expr mul = Halide::Internal::Mul::make(operand_h, extents);
+
+        if (index.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+            index = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), index);
 
 		index = Halide::Internal::Add::make(index, mul);
 
-		extents = Halide::Internal::Mul::make(extents, Halide::Expr(buffer->extent(i - 1)));
+		if (index.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+		    index = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), index);
+
+		Halide::Expr new_extent = Halide::Expr(buffer->extent(i - 1));
+
+		if (new_extent.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+		    new_extent = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), new_extent);
+
+		extents = Halide::Internal::Mul::make(extents, new_extent);
 	}
 
     DEBUG_INDENT(-4);
+
+    if (index.type() != halide_type_from_coli_type(global::get_loop_iterator_default_data_type()))
+                index = Halide::Internal::Cast::make(halide_type_from_coli_type(global::get_loop_iterator_default_data_type()), index);
 
 	return index;
 }

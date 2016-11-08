@@ -19,6 +19,8 @@
 #include <coli/debug.h>
 #include <coli/type.h>
 
+
+
 namespace coli
 {
 
@@ -28,6 +30,62 @@ std::string str_from_coli_type_primitive(coli::primitive_t type);
 
 class buffer;
 class var;
+class global;
+
+/**
+  * A class that holds all the global variables necessary for COLi.
+  * It also holds COLi options.
+  */
+class global
+{
+private:
+    /**
+     * Perform automatic data mapping ?
+     */
+    static bool auto_data_mapping;
+
+public:
+    /**
+      * If this option is set to true, COLi automatically
+      * modifies the computation data mapping whenever a new
+      * schedule is applied to a computation.
+      * If it is set to false, it is up to the user to set
+      * the right data mapping before code generation.
+      */
+    static void set_auto_data_mapping(bool v)
+    {
+        global::auto_data_mapping = v;
+    }
+
+    /**
+      * Return whether auto data mapping is set.
+      * If auto data mapping is set, COLi automatically
+      * modifies the computation data mapping whenever a new
+      * schedule is applied to a computation.
+      * If it is set to false, it is up to the user to set
+      * the right data mapping before code generation.
+      */
+    static bool is_auto_data_mapping_set()
+    {
+        return global::auto_data_mapping;
+    }
+
+    static void set_default_coli_options()
+    {
+        set_auto_data_mapping(true);
+    }
+
+    static primitive_t get_loop_iterator_default_data_type()
+    {
+        return coli::p_int32;
+    }
+
+    global()
+    {
+        set_default_coli_options();
+    }
+};
+
 
 /**
   * A class to represent coli expressions.
@@ -127,8 +185,8 @@ public:
         assert(((o == coli::o_minus) || (o == coli::o_floor)) &&
                "The only unary operators are the minus and floor operator.");
         if (o == coli::o_floor) {
-            assert((expr0.get_data_type() == coli::p_float32) ||
-                   (expr0.get_data_type() == coli::p_float64) &&
+            assert(((expr0.get_data_type() == coli::p_float32) ||
+                   (expr0.get_data_type() == coli::p_float64)) &&
                    "Can only do floor on float32 or float64.");
         }
 
@@ -147,8 +205,9 @@ public:
                (o != coli::o_access) &&
                (o != coli::o_cond) &&
                "The operator is not an binary operator.");
-        assert(expr0.get_data_type() == expr1.get_data_type() &&
-               "expr0 and expr1 should be of the same type.");
+
+        assert(expr0.get_data_type() == expr1.get_data_type()
+               && "expr0 and expr1 should be of the same type.");
 
         this->_operator = o;
         this->etype = coli::e_op;
@@ -915,7 +974,7 @@ public:
         assert(name.length() > 0);
 
         //this->etype = coli::e_var;
-        this->dtype = coli::p_int32;
+        this->dtype = global::get_loop_iterator_default_data_type();
     }
 };
 

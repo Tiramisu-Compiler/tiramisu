@@ -14,8 +14,8 @@ int main(int, char**)
 
     Halide::Image<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint16_t> output1(input.width()-8, input.height()-2);
-    Halide::Image<uint16_t> output2(input.width()-8, input.height()-2);
+    Halide::Image<uint16_t> output1(input.width()-8, input.height()-8);
+    Halide::Image<uint16_t> output2(input.width()-8, input.height()-8);
 
     // Warm up
     blurxy_coli(input, output1);
