@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-int fusion_coli(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer) HALIDE_FUNCTION_ATTRS;
+int fusion_coli(buffer_t *_b_input_buffer, buffer_t *_b_output_f_buffer, buffer_t *_b_output_g_buffer) HALIDE_FUNCTION_ATTRS;
 int fusion_coli_argv(void **args) HALIDE_FUNCTION_ATTRS;
-int fusion_ref(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer) HALIDE_FUNCTION_ATTRS;
+int fusion_ref(buffer_t *_b_input_buffer, buffer_t *_b_output_f_buffer, buffer_t *_b_output_g_buffer) HALIDE_FUNCTION_ATTRS;
 int fusion_ref_argv(void **args) HALIDE_FUNCTION_ATTRS;
 // Result is never null and points to constant static data
 const struct halide_filter_metadata_t *fusion_coli_metadata() HALIDE_FUNCTION_ATTRS;

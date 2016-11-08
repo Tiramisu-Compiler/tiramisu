@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 
     for (int i=-RADIUS; i<RADIUS; i++) {
         for (int j=-RADIUS; j<RADIUS; j++)  {
-        e += in(x+RADIUS+i, y+RADIUS+j) * kernel(RADIUS+i, RADIUS+j);
+            e += in(x+RADIUS+i, y+RADIUS+j) * kernel(RADIUS+i, RADIUS+j);
         }
     }
 

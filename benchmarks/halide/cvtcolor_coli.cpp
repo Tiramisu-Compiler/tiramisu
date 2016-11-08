@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     // Set default coli options.
     global::set_default_coli_options();
 
-    Halide::Image<uint16_t> in_image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
     int SIZE0 = in_image.extent(0);
     int SIZE1 = in_image.extent(1);
 

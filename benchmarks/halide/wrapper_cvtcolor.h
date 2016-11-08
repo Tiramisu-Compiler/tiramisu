@@ -1,5 +1,5 @@
-#ifndef HALIDE__build___wrapper_cvt_color_o_h
-#define HALIDE__build___wrapper_cvt_color_o_h
+#ifndef HALIDE__build___wrapper_cvtcolor_o_h
+#define HALIDE__build___wrapper_cvtcolor_o_h
 
 #include <coli/utils.h>
 
