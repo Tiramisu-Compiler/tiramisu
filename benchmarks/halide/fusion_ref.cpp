@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     Func f("f"), g("g");
 
     f(x, y, c) = cast<uint8_t>(255 - in(x, y, c));
-    g(x, y, c) = cast<uint8_t>(100 + in(x, y, c));
+    g(x, y, c) = cast<uint8_t>(2*in(x, y, c));
 
     //g.compute_with(f, y);
 
