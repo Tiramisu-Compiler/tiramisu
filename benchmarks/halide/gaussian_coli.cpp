@@ -71,8 +71,6 @@ int main(int argc, char **argv)
                         (((((coli::expr((float)0) + (coli::expr(coli::o_cast, coli::p_float32, input(coli::idx("gaussian_x_s0_c"), coli::idx("gaussian_x_s0_y"), (coli::idx("gaussian_x_s0_x") + coli::expr((int32_t)0))))*kernelx(coli::expr((int32_t)0)))) + (coli::expr(coli::o_cast, coli::p_float32, input(coli::idx("gaussian_x_s0_c"), coli::idx("gaussian_x_s0_y"), (coli::idx("gaussian_x_s0_x") + coli::expr((int32_t)1))))*kernelx(coli::expr((int32_t)1)))) + (coli::expr(coli::o_cast, coli::p_float32, input(coli::idx("gaussian_x_s0_c"), coli::idx("gaussian_x_s0_y"), (coli::idx("gaussian_x_s0_x") + coli::expr((int32_t)2))))*kernelx(coli::expr((int32_t)2)))) + (coli::expr(coli::o_cast, coli::p_float32, input(coli::idx("gaussian_x_s0_c"), coli::idx("gaussian_x_s0_y"), (coli::idx("gaussian_x_s0_x") + coli::expr((int32_t)3))))*kernelx(coli::expr((int32_t)3)))) + (coli::expr(coli::o_cast, coli::p_float32, input(coli::idx("gaussian_x_s0_c"), coli::idx("gaussian_x_s0_y"), (coli::idx("gaussian_x_s0_x") + coli::expr((int32_t)4))))*kernelx(coli::expr((int32_t)4)))), true, coli::p_float32, &gaussian_coli);
     gaussian_x_s0.set_access("{gaussian_x_s0[gaussian_x_s0_c, gaussian_x_s0_y, gaussian_x_s0_x]->buff_gaussian_x[gaussian_x_s0_c, gaussian_x_s0_y, gaussian_x_s0_x]}");
 
-    // Define compute level for "gaussian_x".
-    gaussian_x_s0.first(computation::root_dimension);
 
     // Define loop bounds for dimension "gaussian_s0_c".
     coli::constant gaussian_s0_c_loop_min("gaussian_s0_c_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &gaussian_coli);
@@ -90,6 +88,9 @@ int main(int argc, char **argv)
                         coli::expr(coli::o_cast, coli::p_uint8, (((((coli::expr((float)0) + (gaussian_x_s0(coli::idx("gaussian_s0_c"), (coli::idx("gaussian_s0_y") + coli::expr((int32_t)0)), coli::idx("gaussian_s0_x"))*kernely(coli::expr((int32_t)0)))) + (gaussian_x_s0(coli::idx("gaussian_s0_c"), (coli::idx("gaussian_s0_y") + coli::expr((int32_t)1)), coli::idx("gaussian_s0_x"))*kernely(coli::expr((int32_t)1)))) + (gaussian_x_s0(coli::idx("gaussian_s0_c"), (coli::idx("gaussian_s0_y") + coli::expr((int32_t)2)), coli::idx("gaussian_s0_x"))*kernely(coli::expr((int32_t)2)))) + (gaussian_x_s0(coli::idx("gaussian_s0_c"), (coli::idx("gaussian_s0_y") + coli::expr((int32_t)3)), coli::idx("gaussian_s0_x"))*kernely(coli::expr((int32_t)3)))) + (gaussian_x_s0(coli::idx("gaussian_s0_c"), (coli::idx("gaussian_s0_y") + coli::expr((int32_t)4)), coli::idx("gaussian_s0_x"))*kernely(coli::expr((int32_t)4))))), true, coli::p_uint8, &gaussian_coli);
     gaussian_s0.set_access("{gaussian_s0[gaussian_s0_c, gaussian_s0_y, gaussian_s0_x]->buff_gaussian[gaussian_s0_c, gaussian_s0_y, gaussian_s0_x]}");
 
+
+    // Define compute level for "gaussian_x".
+    gaussian_x_s0.first(computation::root_dimension);
     // Define compute level for "gaussian".
     gaussian_s0.after(gaussian_x_s0, computation::root_dimension);
 
