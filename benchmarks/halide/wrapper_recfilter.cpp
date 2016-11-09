@@ -14,8 +14,8 @@ int main(int, char**)
 
     Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint8_t> output1(input.width(), input.height());
-    Halide::Image<uint8_t> output2(input.width(), input.height());
+    Halide::Image<uint8_t> output1(input.width(), input.height(), input.channels());
+    Halide::Image<uint8_t> output2(input.width(), input.height(), input.channels());
 
     // COLi
     for (int i=0; i<NB_TESTS; i++)

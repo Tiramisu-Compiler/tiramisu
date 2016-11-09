@@ -25,7 +25,7 @@ int main(int, char**)
 
     std::cout << "START COLI\n";
     // COLi
-    for (int i=0; i<NB_TESTS_2; i++)
+    for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
         gaussian_coli(input, kernelX, kernelY, output1);
@@ -36,7 +36,7 @@ int main(int, char**)
 
     std::cout << "START REFERENCE\n";
     // Reference
-    for (int i=0; i<NB_TESTS_2; i++)
+    for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
         gaussian_ref(input, kernelX, kernelY, output2);
