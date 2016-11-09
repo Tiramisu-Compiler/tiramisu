@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     gaussian_coli.gen_isl_ast();
     gaussian_coli.gen_halide_stmt();
     gaussian_coli.dump_halide_stmt();
-    gaussian_coli.gen_halide_obj("build/generated_fct_gaussian_coli.o");
+    gaussian_coli.gen_halide_obj("build/generated_fct_gaussian.o");
 
     return 0;
 }
