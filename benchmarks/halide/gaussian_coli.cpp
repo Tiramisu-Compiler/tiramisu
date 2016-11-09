@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
 
     // Define temporary buffers for "gaussian_x".
-    coli::buffer buff_gaussian_x("buff_gaussian_x", 3, {coli::expr(gaussian_extent_2), (coli::expr(gaussian_extent_1) + coli::expr((int32_t)4)), coli::expr(gaussian_extent_0)}, coli::p_float32, NULL, coli::a_temporary, &gaussian_coli);
+    coli::buffer buff_gaussian_x("buff_gaussian_x", 3, {coli::expr(gaussian_extent_2), coli::expr(gaussian_extent_1 + 4), coli::expr(gaussian_extent_0)}, coli::p_float32, NULL, coli::a_temporary, &gaussian_coli);
 
     // Define loop bounds for dimension "gaussian_x_s0_c".
     coli::constant gaussian_x_s0_c_loop_min("gaussian_x_s0_c_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &gaussian_coli);

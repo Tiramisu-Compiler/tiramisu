@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
 
     // Define temporary buffers for "blur_x".
-    coli::buffer buff_blur_x("buff_blur_x", 3, {coli::expr(blur_y_extent_2), (coli::expr(blur_y_extent_1) + coli::expr((int32_t)2)), coli::expr(blur_y_extent_0)}, coli::p_uint8, NULL, coli::a_temporary, &blurxy_coli);
+    coli::buffer buff_blur_x("buff_blur_x", 3, {coli::expr(blur_y_extent_2), coli::expr(blur_y_extent_1 + 2), coli::expr(blur_y_extent_0)}, coli::p_uint8, NULL, coli::a_temporary, &blurxy_coli);
 
     // Define loop bounds for dimension "blur_x_s0_c".
     coli::constant blur_x_s0_c_loop_min("blur_x_s0_c_loop_min", coli::expr((int32_t)0), coli::p_int32, true, NULL, 0, &blurxy_coli);
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     blurxy_coli.gen_isl_ast();
     blurxy_coli.gen_halide_stmt();
     blurxy_coli.dump_halide_stmt();
-    blurxy_coli.gen_halide_obj("build/generated_fct_blurxy_coli.o");
+    blurxy_coli.gen_halide_obj("build/generated_fct_blurxy.o");
 
     return 0;
 }
