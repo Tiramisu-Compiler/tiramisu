@@ -14,6 +14,9 @@ int main(int argc, char **argv) {
 
     //u_part.compute_with(y_part, y);
     //v_part.compute_with(u_part, y);
+    y_part.parallel(y).vectorize(x, 8);
+    u_part.parallel(y).vectorize(x, 8);
+    v_part.parallel(y).vectorize(x, 8);
 
     Pipeline({y_part, u_part, v_part}).compile_to_object("build/generated_fct_rgbyuv420_ref.o", {rgb}, "rgbyuv420_ref", target);
 

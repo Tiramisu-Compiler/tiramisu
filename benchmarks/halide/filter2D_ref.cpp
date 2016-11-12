@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     filter2D(x, y, c) = cast<uint8_t>(e);
 
-    filter2D.parallel(y);//.vectorize(x, 8);
+    filter2D.parallel(y).vectorize(x, 8).parallel(c);
 
     filter2D.compile_to_object("build/generated_fct_filter2D_ref.o", {in, kernel}, "filter2D_ref");
 

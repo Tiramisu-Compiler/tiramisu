@@ -12,6 +12,8 @@ int main(int argc, char **argv) {
     g(x, y, c) = cast<uint8_t>(2*in(x, y, c));
 
     //g.compute_with(f, y);
+    f.parallel(y).vectorize(x, 8).parallel(c);
+    g.parallel(y).vectorize(x, 8).parallel(c);
 
     Halide::Target target = Halide::get_host_target();
 
