@@ -110,7 +110,7 @@ private:
       * (i.e. the outermost loop) around the computation S0
       * should be parallelized.
       */
-    std::map<std::string, int> parallel_dimensions;
+    std::vector<std::pair<std::string, int>> parallel_dimensions;
 
     /**
       * A vector representing the vector dimensions.
@@ -120,7 +120,7 @@ private:
       * (i.e. the outermost loop) around the computation S0
       * should be vectorized.
       */
-    std::map<std::string, int> vector_dimensions;
+    std::vector<std::pair<std::string, int>> vector_dimensions;
 
 
     /**
@@ -131,7 +131,7 @@ private:
       * (i.e. the two outermost loops) around the computation S0
       * should be mapped to GPU.
       */
-    std::map<std::string, std::pair<int, int>> gpu_dimensions;
+    std::vector<std::pair<std::string, std::pair<int, int>>> gpu_dimensions;
 
 
     /**
@@ -385,12 +385,17 @@ public:
         assert(comp.length() > 0);
         assert(lev >= 0);
 
-        const auto &iter = this->parallel_dimensions.find(comp);
-        if (iter == this->parallel_dimensions.end())
+        bool found = false;
+
+        for (const auto &pd: this->parallel_dimensions)
         {
-            return false;
+            if ((pd.first == comp) && (pd.second == lev))
+            {
+                found = true;
+            }
         }
-        return (iter->second == lev);
+
+        return found;
     }
 
     /**
@@ -402,12 +407,17 @@ public:
         assert(comp.length() > 0);
         assert(lev >= 0);
 
-        const auto &iter = this->vector_dimensions.find(comp);
-        if (iter == this->vector_dimensions.end())
+        bool found = false;
+
+        for (const auto &pd: this->vector_dimensions)
         {
-            return false;
+            if ((pd.first == comp) && (pd.second == lev))
+            {
+                found = true;
+            }
         }
-        return (iter->second == lev);
+
+        return found;
     }
 
     /**

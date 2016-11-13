@@ -1050,7 +1050,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             if (fct.should_parallelize(tagged_stmts[tt], level))
             {
                 fortype = Halide::Internal::ForType::Parallel;
-                tagged_stmts.erase(tagged_stmts.begin() + tt);
+                //tagged_stmts.erase(tagged_stmts.begin() + tt);
             }
             else if (fct.should_vectorize(tagged_stmts[tt], level))
             {
@@ -1059,7 +1059,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                 const Halide::Internal::IntImm *extent = cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
                 if (extent) {
                     fortype = Halide::Internal::ForType::Vectorized;
-                    tagged_stmts.erase(tagged_stmts.begin() + tt);
+                    //tagged_stmts.erase(tagged_stmts.begin() + tt);
                     DEBUG(3, coli::str_dump("Loop vectorized"));
                 }
                 else
@@ -1082,7 +1082,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                         iterator_str = gpu_iter;
                         DEBUG(3, coli::str_dump("Loop over " + gpu_iter +
                              " created.\n"));
-                        tagged_stmts.erase(tagged_stmts.begin() + tt);
+                        //tagged_stmts.erase(tagged_stmts.begin() + tt);
             }
         }
 

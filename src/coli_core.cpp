@@ -747,21 +747,24 @@ std::string coli::function::get_gpu_iterator(std::string comp, int lev0) const
 
    std::string res = std::string("");;
 
-   const auto &levels = this->gpu_dimensions.find(comp);
-   assert(levels != this->gpu_dimensions.end());
+   for (const auto &pd: this->gpu_dimensions)
+   {
+      if ((pd.first == comp) && ((pd.second.first == lev0) || (pd.second.second == lev0)))
+      {
+          if (lev0 == pd.second.first)
+              res = std::string("__thread_id_x");
+          else if (lev0 == pd.second.second)
+              res = std::string("__thread_id_y");
+          else
+              coli::error("Level not mapped to GPU.", true);
 
-   if (lev0 == levels->second.first)
-     res = std::string("__thread_id_x");
-   else if (lev0 == levels->second.second)
-     res = std::string("__thread_id_y");
-   else
-     coli::error("Level not mapped to GPU.", true);
-
-   std::string str = std::string("Dimension ") + std::to_string(lev0)
-       + std::string(" should be mapped to iterator ") + res;
-   str = str + ". It was compared against: " + std::to_string(levels->second.first)
-         + " and " + std::to_string(levels->second.second);
-   DEBUG(3, coli::str_dump(str));
+          std::string str = std::string("Dimension ") + std::to_string(lev0)
+               + std::string(" should be mapped to iterator ") + res;
+          str = str + ". It was compared against: " + std::to_string(pd.second.first)
+               + " and " + std::to_string(pd.second.second);
+          DEBUG(3, coli::str_dump(str));
+       }
+   }
 
    DEBUG_INDENT(-4);
    return res;
@@ -775,21 +778,23 @@ bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
       DEBUG_FCT_NAME(10);
       DEBUG_INDENT(4);
 
-      bool res;
+      bool found = false;
 
-      const auto &levels = this->gpu_dimensions.find(comp);
-      if (levels == this->gpu_dimensions.end())
-          res = false;
-      else
-          res = ((lev0 == levels->second.first) || (lev0 == levels->second.second));
+      for (const auto &pd: this->gpu_dimensions)
+      {
+          if ((pd.first == comp) && ((pd.second.first == lev0) || (pd.second.second == lev0)))
+          {
+              found = true;
+          }
+      }
 
       std::string str = std::string("Dimension ") + std::to_string(lev0)
-          + std::string(res?" should":" should not")
+          + std::string(found?" should":" should not")
           + std::string(" be mapped to GPU.");
       DEBUG(10, coli::str_dump(str));
 
       DEBUG_INDENT(-4);
-      return res;
+      return found;
 }
 
 int coli::function::get_max_identity_schedules_range_dim() const
@@ -1064,7 +1069,7 @@ void coli::function::add_vector_dimension(std::string stmt_name, int vec_dim)
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
 
-    this->vector_dimensions.insert(std::pair<std::string,int>(stmt_name, vec_dim));
+    this->vector_dimensions.push_back(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
 void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
@@ -1072,7 +1077,7 @@ void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
 
-    this->parallel_dimensions.insert(std::pair<std::string,int>(stmt_name, vec_dim));
+    this->parallel_dimensions.push_back(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
 void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
@@ -1083,7 +1088,7 @@ void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
     assert(dim1 == dim0 + 1);
     assert(stmt_name.length() > 0);
 
-    this->gpu_dimensions.insert(std::pair<std::string, std::pair<int,int>>
+    this->gpu_dimensions.push_back(std::pair<std::string, std::pair<int,int>>
                                           (stmt_name,  std::pair<int,int>
                                                          (dim0, dim1)));
 }

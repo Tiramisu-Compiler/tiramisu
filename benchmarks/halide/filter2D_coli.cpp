@@ -65,9 +65,10 @@ int main(int argc, char **argv)
     filter2D_s0.set_access("{filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->buff_filter2D[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]}");
 
     // Define compute level for "filter2D".
-    filter2D_s0.first(computation::root_dimension);
+    filter2D_s0.set_schedule("[filter2D_s0_c_loop_min, filter2D_s0_c_loop_extent, filter2D_s0_y_loop_min, filter2D_s0_y_loop_extent, filter2D_s0_x_loop_min, filter2D_s0_x_loop_extent]->{filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]}");
 
     // Add schedules.
+    filter2D_s0.tag_parallel_dimension(0);
     filter2D_s0.tag_parallel_dimension(1);
 
     filter2D_coli.set_arguments({&buff_input, &buff_kernel, &buff_filter2D});
