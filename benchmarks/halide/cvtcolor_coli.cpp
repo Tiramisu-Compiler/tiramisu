@@ -53,7 +53,8 @@ int main(int argc, char **argv)
     RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_v4, RGB2Gray_s0_v3]->buff_RGB2Gray[RGB2Gray_s0_v4, RGB2Gray_s0_v3]}");
 
     // Define compute level for "RGB2Gray".
-    RGB2Gray_s0.first(computation::root_dimension);
+    //RGB2Gray_s0.first(computation::root_dimension);
+    RGB2Gray_s0.set_schedule("[RGB2Gray_s0_v4_loop_min, RGB2Gray_s0_v4_loop_extent, RGB2Gray_s0_v3_loop_min, RGB2Gray_s0_v3_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_v4, RGB2Gray_s0_v3]->RGB2Gray_s0[RGB2Gray_s0_v4, RGB2Gray_s0_v3]}");
 
     // Add schedules.
     RGB2Gray_s0.tag_parallel_dimension(0);
