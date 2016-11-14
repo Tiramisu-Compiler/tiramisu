@@ -12,7 +12,14 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<float> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Image<float> input(Halide::Float(32), 10000, 10000);
+    // Init randomly
+    for (int y = 0; y < input.height(); ++y) {
+        for (int x = 0; x < input.width(); ++x) {
+            input(x, y) = random();
+            input(x, y) = random();
+        }
+    }
 
     Halide::Image<float> output1(input.width(), input.height());
     Halide::Image<float> output2(input.width(), input.height());

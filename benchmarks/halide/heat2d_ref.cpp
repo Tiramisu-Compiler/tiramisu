@@ -15,8 +15,8 @@ int main(int argc, char **argv) {
     heat2d(r.x, r.y) = alpha * in(r.x, r.y) +
                        beta * (in(r.x+1, r.y) + in(r.x-1, r.y) + in(r.x, r.y+1) + in(r.x, r.y-1));
 
-    heat2d.parallel(y).vectorize(x, 8);
-    heat2d.update().parallel(r.y).vectorize(r.x, 8);
+    heat2d.parallel(y);//.vectorize(x, 8);
+    heat2d.update().parallel(r.y);//.vectorize(r.x, 8);
 
     Halide::Target target = Halide::get_host_target();
 

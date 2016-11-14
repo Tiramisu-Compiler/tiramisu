@@ -26,9 +26,8 @@ int main(int argc, char **argv)
     float p0 = 0.3;
     float p1 = 0.4;
 
-    Halide::Image<float> in_image = Halide::Tools::load_image("./images/rgb.png");
-    int SIZE0 = in_image.extent(0);
-    int SIZE1 = in_image.extent(1);
+    int SIZE0 = 10000;
+    int SIZE1 = 10000;
 
     // Output buffers.
     int heat2d_extent_1 = SIZE1;
