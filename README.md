@@ -18,6 +18,11 @@ Compiling the COLi Library
 
 - [ISL] (http://repo.or.cz/w/isl.git) Library.
   Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.
+  Be sure to have installed autoconf and libtool installed on your machine before building ISL by running the following commands:
+
+        sudo apt-get install autoconf
+        sudo apt-get install libtool
+
 - LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
@@ -30,6 +35,8 @@ You need to specify the following paths in the Makefile
 To get the Halide submodule run the following git command (in the COLi root directory)
 
     git submodule update --init --remote
+
+You may get an access rights error from git when running this command. To solve this error, be sure to have you machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
 
 To build COLi
 
