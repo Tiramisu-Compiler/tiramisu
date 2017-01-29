@@ -5,8 +5,8 @@
  *      Author: Riyadh.
  */
 
-#ifndef INCLUDE_COLI_PARSER_H_
-#define INCLUDE_COLI_PARSER_H_
+#ifndef INCLUDE_TIRAMISU_PARSER_H_
+#define INCLUDE_TIRAMISU_PARSER_H_
 
 
 #include <isl/set.h>
@@ -244,4 +244,4 @@ public:
 }
 }
 
-#endif /* INCLUDE_COLI_PARSER_H_ */
+#endif /* INCLUDE_TIRAMISU_PARSER_H_ */

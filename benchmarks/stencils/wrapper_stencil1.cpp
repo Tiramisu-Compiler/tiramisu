@@ -23,7 +23,7 @@ int main(int, char**)
     }
 
     print_time("performance_CPU.csv", "stencil1",
-               {"  COLi "},
+               {"  Tiramisu "},
                {median(duration_vector_1)});
 
     return 0;

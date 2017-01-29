@@ -206,8 +206,8 @@ protected:
     void visit(const IfThenElse *)  { error(); }
     void visit(const Free *)        { error(); }
 
-    void visit(const Store *)       { error(); } // Should pass the unflatten version to COLi
-    void visit(const Allocate *)    { error(); } // Should pass the unflatten version to COLi
+    void visit(const Store *)       { error(); } // Should pass the unflatten version to Tiramisu
+    void visit(const Allocate *)    { error(); } // Should pass the unflatten version to Tiramisu
 
     void visit(const Evaluate *);
     void visit(const Load *);
@@ -649,7 +649,7 @@ void halide_pipeline_to_c(
     stream << func << ".dump_halide_stmt();\n";
     stream << func << ".gen_halide_obj(\"build/generated_fct_test_06.o\");\n";
 
-    std::cout << "\nCOLi C output:\n\n" << stream.str() << "\n";
+    std::cout << "\nTiramisu C output:\n\n" << stream.str() << "\n";
 }
 
 }

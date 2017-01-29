@@ -50,7 +50,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     s = simplify(s, false);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after first simplification:\n", s)));
 
-    //TODO(psuriana): might be applicable to COLi?
+    //TODO(psuriana): might be applicable to Tiramisu?
     /*DEBUG(3, tiramisu::str_dump("Dynamically skipping stages...\n"));
     s = skip_stages(s, order);
     DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));*/

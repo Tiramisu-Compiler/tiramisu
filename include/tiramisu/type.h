@@ -1,5 +1,5 @@
-#ifndef _H_COLI_TYPE_
-#define _H_COLI_TYPE_
+#ifndef _H_TIRAMISU_TYPE_
+#define _H_TIRAMISU_TYPE_
 
 #include <string.h>
 #include <stdint.h>

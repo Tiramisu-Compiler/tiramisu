@@ -718,7 +718,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
 
                 auto tiramisu_buffer = buffer_entry->second;
 
-                // COLi buffer is from outermost to innermost, whereas Halide buffer is from innermost
+                // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
                 // to outermost; thus, we need to reverse the order
                 halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
                 int stride = 1;
@@ -1202,7 +1202,7 @@ void function::gen_halide_stmt()
         {
             std::vector<Halide::Expr> halide_dim_sizes;
             // Create a vector indicating the size that should be allocated.
-            // COLi buffer is defined from outermost to innermost, whereas Halide is from
+            // Tiramisu buffer is defined from outermost to innermost, whereas Halide is from
             // innermost to outermost; thus, we need to reverse the order.
             for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
             {
@@ -1342,7 +1342,7 @@ void computation::create_halide_stmt()
 
         DEBUG(10, tiramisu_buffer->dump(true));
 
-        // COLi buffer is from outermost to innermost, whereas Halide buffer is
+        // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is
         // from innermost to outermost; thus, we need to reverse the order
         halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;

@@ -1,5 +1,5 @@
-#ifndef _COLI_UTILS
-#define _COLI_UTILS
+#ifndef _TIRAMISU_UTILS
+#define _TIRAMISU_UTILS
 
 #include <string>
 #include <chrono>

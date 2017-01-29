@@ -195,8 +195,8 @@ protected:
     void visit(const IfThenElse *)  { error(); }
     void visit(const Free *)        { error(); }
 
-    void visit(const Store *)       { error(); } // Should pass the unflatten version to COLi
-    void visit(const Allocate *)    { error(); } // Should pass the unflatten version to COLi
+    void visit(const Store *)       { error(); } // Should pass the unflatten version to Tiramisu
+    void visit(const Allocate *)    { error(); } // Should pass the unflatten version to Tiramisu
 
     void visit(const Evaluate *);
     void visit(const Load *);

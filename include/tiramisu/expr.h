@@ -1,5 +1,5 @@
-#ifndef _H_COLI_EXPR_
-#define _H_COLI_EXPR_
+#ifndef _H_TIRAMISU_EXPR_
+#define _H_TIRAMISU_EXPR_
 
 #include <isl/set.h>
 #include <isl/map.h>
@@ -33,8 +33,8 @@ class var;
 class global;
 
 /**
-  * A class that holds all the global variables necessary for COLi.
-  * It also holds COLi options.
+  * A class that holds all the global variables necessary for Tiramisu.
+  * It also holds Tiramisu options.
   */
 class global
 {
@@ -46,7 +46,7 @@ private:
 
 public:
     /**
-      * If this option is set to true, COLi automatically
+      * If this option is set to true, Tiramisu automatically
       * modifies the computation data mapping whenever a new
       * schedule is applied to a computation.
       * If it is set to false, it is up to the user to set
@@ -59,7 +59,7 @@ public:
 
     /**
       * Return whether auto data mapping is set.
-      * If auto data mapping is set, COLi automatically
+      * If auto data mapping is set, Tiramisu automatically
       * modifies the computation data mapping whenever a new
       * schedule is applied to a computation.
       * If it is set to false, it is up to the user to set

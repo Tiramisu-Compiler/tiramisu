@@ -1,5 +1,5 @@
-#ifndef _H_COLI_CORE_
-#define _H_COLI_CORE_
+#ifndef _H_TIRAMISU_CORE_
+#define _H_TIRAMISU_CORE_
 
 #include <isl/set.h>
 #include <isl/map.h>

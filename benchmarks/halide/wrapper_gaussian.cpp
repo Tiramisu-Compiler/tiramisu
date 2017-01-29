@@ -23,7 +23,7 @@ int main(int, char**)
     Halide::Image<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
     Halide::Image<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
-    // COLi
+    // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
@@ -44,7 +44,7 @@ int main(int, char**)
     }
 
     print_time("performance_CPU.csv", "gaussian",
-               {"  COLi "," Halide "},
+               {"  Tiramisu "," Halide "},
                {median(duration_vector_1), median(duration_vector_2)});
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
