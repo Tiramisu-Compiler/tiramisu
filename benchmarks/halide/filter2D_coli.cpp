@@ -65,11 +65,13 @@ int main(int argc, char **argv)
     filter2D_s0.set_access("{filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->buff_filter2D[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]}");
 
     // Define compute level for "filter2D".
-    filter2D_s0.set_schedule("[filter2D_s0_c_loop_min, filter2D_s0_c_loop_extent, filter2D_s0_y_loop_min, filter2D_s0_y_loop_extent, filter2D_s0_x_loop_min, filter2D_s0_x_loop_extent]->{filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]}");
+    filter2D_s0.set_schedule("[filter2D_s0_c_loop_min, filter2D_s0_c_loop_extent, filter2D_s0_y_loop_min, filter2D_s0_y_loop_extent, filter2D_s0_x_loop_min, filter2D_s0_x_loop_extent]->{filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->filter2D_s0[filter2D_s0_c, filter2D_s0_y, 0, filter2D_s0_x1, filter2D_s0_x2]: filter2D_s0_x_loop_min <= filter2D_s0_x <= floor((filter2D_s0_x_loop_min+filter2D_s0_x_loop_extent-1)/8)*8 and filter2D_s0_x1 = floor(filter2D_s0_x/8) and filter2D_s0_x2 = filter2D_s0_x%8 and (floor((filter2D_s0_x_loop_min-filter2D_s0_x_loop_extent-1)/8)*8)%8=0; }");
+    //   filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->filter2D_s0[filter2D_s0_c, filter2D_s0_y, 1, filter2D_s0_x1, filter2D_s0_x2]: floor((filter2D_s0_x_loop_min+filter2D_s0_x_loop_extent-1)/8)*8 <= filter2D_s0_x <= (filter2D_s0_x_loop_min+filter2D_s0_x_loop_extent-1) and filter2D_s0_x1 = floor(filter2D_s0_x/8) and filter2D_s0_x2 = filter2D_s0_x%8
 
     // Add schedules.
     filter2D_s0.tag_parallel_dimension(0);
     filter2D_s0.tag_parallel_dimension(1);
+    filter2D_s0.tag_vector_dimension(3);
 
     filter2D_coli.set_arguments({&buff_input, &buff_kernel, &buff_filter2D});
     filter2D_coli.gen_time_processor_domain();
