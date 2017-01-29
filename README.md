@@ -12,8 +12,8 @@ Current code generators:
 - LLVM IR for shared memory systems.
 
 
-Compiling the Tiramisu Library
---------------------------------
+Compiling Tiramisu
+----------------------
 #### Prerequisites
 
 - [ISL] (http://repo.or.cz/w/isl.git) Library.
