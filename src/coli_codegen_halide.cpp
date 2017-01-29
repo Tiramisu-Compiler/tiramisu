@@ -1063,7 +1063,12 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                     DEBUG(3, coli::str_dump("Loop vectorized"));
                 }
                 else
+                {
                     DEBUG(3, coli::str_dump("Loop not vectorized (extent is non constant)"));
+		    // Currently we can only print Halide expressions using
+		    // "std::cout << ".
+                    DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                }
             }
             else if (fct.should_map_to_gpu(tagged_stmts[tt], level))
             {
