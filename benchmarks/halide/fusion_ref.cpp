@@ -14,8 +14,8 @@ int main(int argc, char **argv) {
     k(x, y, c) = f(x, y, c) - g(x, y, c);
 
     //g.compute_with(f, y);
-    f.parallel(y).parallel(c).vectorize(x, 8).
-    g.parallel(y).parallel(c).vectorize(x, 8).
+    f.parallel(y).parallel(c).vectorize(x, 8);
+    g.parallel(y).parallel(c).vectorize(x, 8);
     h.parallel(y).parallel(c);
     k.parallel(y).parallel(c);
 
