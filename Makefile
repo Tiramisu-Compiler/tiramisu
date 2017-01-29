@@ -13,7 +13,7 @@ CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
 HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
-OBJ=build/coli_core.o build/coli_codegen_halide.o build/coli_codegen_c.o build/coli_debug.o build/coli_utils.o build/coli_codegen_halide_lowering.o build/coli_codegen_from_halide.o
+OBJ=build/tiramisu_core.o build/tiramisu_codegen_halide.o build/tiramisu_codegen_c.o build/tiramisu_debug.o build/tiramisu_utils.o build/tiramisu_codegen_halide_lowering.o build/tiramisu_codegen_from_halide.o
 
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator
 TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
@@ -25,8 +25,8 @@ TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 b
 
 BENCH_REF_GEN=build/bench_halide_divergence2d_generator build/bench_halide_heat2d_generator build/bench_halide_cvtcolor_generator build/bench_halide_filter2D_generator build/bench_halide_blurxy_generator build/bench_halide_recfilter_generator build/bench_halide_gaussian_generator build/bench_halide_fusion_generator build/bench_halide_recfilter_generator build/bench_halide_heat2d_generator build/bench_halide_divergence2d_generator
 # Not supported yet: build/bench_halide_rgbyuv420_generator
-BENCH_COLI_GEN=build/bench_coli_divergence2d_generator build/bench_coli_heat2d_generator build/bench_coli_cvtcolor_generator build/bench_coli_filter2D_generator build/bench_coli_blurxy_generator build/bench_coli_recfilter_generator build/bench_halide_recfilter_generator build/bench_coli_fusion_generator build/bench_coli_gaussian_generator build/bench_coli_heat2d_generator build/bench_coli_divergence2d_generator
-# Not supported yet: build/bench_coli_rgbyuv420_generator
+BENCH_COLI_GEN=build/bench_tiramisu_divergence2d_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_cvtcolor_generator build/bench_tiramisu_filter2D_generator build/bench_tiramisu_blurxy_generator build/bench_tiramisu_recfilter_generator build/bench_halide_recfilter_generator build/bench_tiramisu_fusion_generator build/bench_tiramisu_gaussian_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_divergence2d_generator
+# Not supported yet: build/bench_tiramisu_rgbyuv420_generator
 BENCH_BIN=build/bench_divergence2d build/bench_heat2d build/bench_cvtcolor build/bench_filter2D build/bench_blurxy build/bench_recfilter build/bench_fusion build/bench_gaussian build/bench_heat2d build/bench_divergence2d
 # Not supported yet: build/bench_rgbyuv420
 
@@ -37,10 +37,10 @@ builddir:
 	@if [ ! -d "build" ]; then mkdir -p build; fi
 
 
-# Build the coli library object files.  The list of these files is in $(OBJ).
-build/coli_%.o: src/coli_%.cpp $(HEADER_FILES)
+# Build the Tiramisu library object files.  The list of these files is in $(OBJ).
+build/tiramisu_%.o: src/tiramisu_%.cpp $(HEADER_FILES)
 	$(CXX) -fPIC ${CXXFLAGS} ${INCLUDES} -c $< -o $@
-build/coli_codegen_%.o: src/coli_codegen_%.cpp $(HEADER_FILES)
+build/tiramisu_codegen_%.o: src/tiramisu_codegen_%.cpp $(HEADER_FILES)
 	$(CXX) -fPIC ${CXXFLAGS} ${INCLUDES} -c $< -o $@
 
 
@@ -69,10 +69,10 @@ run_tests:
 
 
 benchmarks: $(OBJ) $(BENCH_COLI_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmarks
-build/bench_coli_%_generator: benchmarks/halide/%_coli.cpp
+build/bench_tiramisu_%_generator: benchmarks/halide/%_tiramisu.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/bench_coli_%_generator: benchmarks/stencils/%_coli.cpp
+build/bench_tiramisu_%_generator: benchmarks/stencils/%_tiramisu.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 build/bench_halide_%_generator: benchmarks/halide/%_ref.cpp
