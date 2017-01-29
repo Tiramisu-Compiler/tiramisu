@@ -23,7 +23,6 @@ int main(int, char**)
     Halide::Image<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
     Halide::Image<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
-    std::cout << "START COLI\n";
     // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -34,7 +33,6 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
-    std::cout << "START REFERENCE\n";
     // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
