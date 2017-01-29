@@ -2,10 +2,10 @@
 #include <iostream>
 #include <sstream>
 
-#include <coli/debug.h>
-#include <coli/core.h>
-#include <coli/type.h>
-#include <coli/expr.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
+#include <tiramisu/type.h>
+#include <tiramisu/expr.h>
 #include <Halide.h>
 
 using namespace Halide;

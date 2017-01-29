@@ -23,9 +23,9 @@
 #include <stdint.h>
 
 #include <Halide.h>
-#include <coli/debug.h>
-#include <coli/expr.h>
-#include <coli/type.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/expr.h>
+#include <tiramisu/type.h>
 
 namespace coli
 {

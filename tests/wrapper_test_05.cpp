@@ -1,7 +1,7 @@
 #include "Halide.h"
 #include "wrapper_test_05.h"
 
-#include <coli/utils.h>
+#include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
 

@@ -12,7 +12,7 @@ CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
 LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
-HEADER_FILES=include/coli/core.h include/coli/debug.h include/coli/utils.h include/coli/expr.h include/coli/parser.h include/coli/type.h
+HEADER_FILES=include/tiramisu/core.h include/tiramisu/debug.h include/tiramisu/utils.h include/tiramisu/expr.h include/tiramisu/parser.h include/tiramisu/type.h
 OBJ=build/tiramisu_core.o build/tiramisu_codegen_halide.o build/tiramisu_codegen_c.o build/tiramisu_debug.o build/tiramisu_utils.o build/tiramisu_codegen_halide_lowering.o build/tiramisu_codegen_from_halide.o
 
 TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator

@@ -16,8 +16,8 @@
 #include <stdint.h>
 
 #include <Halide.h>
-#include <coli/debug.h>
-#include <coli/type.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/type.h>
 
 
 

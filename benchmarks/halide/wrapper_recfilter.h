@@ -1,7 +1,7 @@
 #ifndef HALIDE__build___wrapper_recfilter_o_h
 #define HALIDE__build___wrapper_recfilter_o_h
 
-#include <coli/utils.h>
+#include <tiramisu/utils.h>
 
 #ifdef __cplusplus
 extern "C" {

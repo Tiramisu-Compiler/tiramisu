@@ -3,7 +3,7 @@
 
 #include "Halide.h"
 #include "halide_image_io.h"
-#include "coli/utils.h"
+#include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
 

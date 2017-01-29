@@ -1,7 +1,7 @@
 #ifndef HALIDE__generated_pgm_02_h
 #define HALIDE__generated_pgm_02_h
 
-#include <coli/utils.h>
+#include <tiramisu/utils.h>
 
 #ifdef __cplusplus
 extern "C" {

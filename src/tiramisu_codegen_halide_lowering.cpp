@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include <coli/debug.h>
+#include <tiramisu/debug.h>
 #include <Halide.h>
 
 using namespace Halide;

@@ -7,8 +7,8 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 
-#include <coli/debug.h>
-#include <coli/core.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
 
 #include <string>
 

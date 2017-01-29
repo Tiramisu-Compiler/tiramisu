@@ -9,9 +9,9 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 
-#include <coli/debug.h>
-#include <coli/core.h>
-#include <coli/parser.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
+#include <tiramisu/parser.h>
 
 #include <string>
 #include <algorithm>

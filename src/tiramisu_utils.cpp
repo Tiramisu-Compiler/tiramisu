@@ -1,6 +1,6 @@
 #include "Halide.h"
-#include "coli/utils.h"
-#include "coli/debug.h"
+#include "tiramisu/utils.h"
+#include "tiramisu/debug.h"
 
 #include <chrono>
 #include <stdexcept>
