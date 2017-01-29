@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 
-namespace coli {
+namespace tiramisu {
 
     /**
      * The possible types of an expression.
@@ -19,7 +19,7 @@ namespace coli {
     };
 
     /**
-      * coli data types.
+      * tiramisu data types.
       * "p_" stands for primitive.
       */
     enum primitive_t {
@@ -38,7 +38,7 @@ namespace coli {
     };
 
     /**
-      * Types of coli operators.
+      * Types of tiramisu operators.
       * "o_" stands for operator.
       */
     enum op_t {

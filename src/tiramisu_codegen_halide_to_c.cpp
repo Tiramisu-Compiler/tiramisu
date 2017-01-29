@@ -16,45 +16,45 @@ using std::map;
 using std::set;
 using std::vector;
 
-namespace coli
+namespace tiramisu
 {
 
-string halide_type_to_coli_type_str(Type type)
+string halide_type_to_tiramisu_type_str(Type type)
 {
     if (type.is_uint()) {
         if (type.bits() == 8) {
-            return "coli::p_uint8";
+            return "tiramisu::p_uint8";
         } else if (type.bits() == 16) {
-            return "coli::p_uint16";
+            return "tiramisu::p_uint16";
         } else if (type.bits() == 32) {
-            return "coli::p_uint32";
+            return "tiramisu::p_uint32";
         } else {
-            return "coli::p_uint64";
+            return "tiramisu::p_uint64";
         }
     } else if (type.is_int()) {
         if (type.bits() == 8) {
-            return "coli::p_int8";
+            return "tiramisu::p_int8";
         } else if (type.bits() == 16) {
-            return "coli::p_int16";
+            return "tiramisu::p_int16";
         } else if (type.bits() == 32) {
-            return "coli::p_int32";
+            return "tiramisu::p_int32";
         } else {
-            return "coli::p_int64";
+            return "tiramisu::p_int64";
         }
     } else if (type.is_float()) {
         if (type.bits() == 32) {
-            return "coli::p_float32";
+            return "tiramisu::p_float32";
         } else if (type.bits() == 64) {
-            return "coli::p_float64";
+            return "tiramisu::p_float64";
         } else {
-            coli::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
+            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
         }
     } else if (type.is_bool()) {
-        return "coli::p_boolean";
+        return "tiramisu::p_boolean";
     } else {
-        coli::error("Halide type cannot be translated to Coli type.", true);
+        tiramisu::error("Halide type cannot be translated to Coli type.", true);
     }
-    return "coli::p_none";
+    return "tiramisu::p_none";
 }
 
 namespace
@@ -84,7 +84,7 @@ private:
     set<string> temporary_buffers;
 
     void error() const {
-        coli::error("Can't convert to coli expr.", true);
+        tiramisu::error("Can't convert to tiramisu expr.", true);
     }
 
     void push_loop_dim(const For *op) {
@@ -227,7 +227,7 @@ void HalideToC::do_indent() {
 }
 
 void HalideToC::visit(const IntImm *op) {
-    stream << "coli::expr(";
+    stream << "tiramisu::expr(";
     if (op->type.bits() == 8) {
         stream << "(int8_t)";
     } else if (op->type.bits() == 16) {
@@ -239,7 +239,7 @@ void HalideToC::visit(const IntImm *op) {
 }
 
 void HalideToC::visit(const UIntImm *op) {
-    stream << "coli::expr(";
+    stream << "tiramisu::expr(";
     if (op->type.bits() == 8) {
         stream << "(uint8_t)";
     } else if (op->type.bits() == 16) {
@@ -252,9 +252,9 @@ void HalideToC::visit(const UIntImm *op) {
 
 void HalideToC::visit(const FloatImm *op) {
     if (op->type.bits() == 32) {
-        stream << "coli::expr((float)op->value);";
+        stream << "tiramisu::expr((float)op->value);";
     } else if (op->type.bits() == 64) {
-        stream << "coli::expr(op->value);";
+        stream << "tiramisu::expr(op->value);";
     } else {
         // Only support 32- and 64-bit integer
         error();
@@ -276,7 +276,7 @@ void HalideToC::visit(const Variable *op) {
         stream << (*iter) << "(0)";
     } else {
         // It is presumably a reference to loop variable
-        stream << "coli::idx(" << op->name << ")";
+        stream << "tiramisu::idx(" << op->name << ")";
     }
 }
 
@@ -321,7 +321,7 @@ void HalideToC::visit(const Mod *op) {
 }
 
 void HalideToC::visit(const Min *op) {
-    stream << "coli::expr(coli::o_min, ";
+    stream << "tiramisu::expr(tiramisu::o_min, ";
     print(op->a);
     stream << ", ";
     print(op->b);
@@ -329,7 +329,7 @@ void HalideToC::visit(const Min *op) {
 }
 
 void HalideToC::visit(const Max *op) {
-    stream << "coli::expr(coli::o_max, ";
+    stream << "tiramisu::expr(tiramisu::o_max, ";
     print(op->a);
     stream << ", ";
     print(op->b);
@@ -406,7 +406,7 @@ void HalideToC::visit(const Not *op) {
 }
 
 void HalideToC::visit(const Select *op) {
-    stream << "coli::expr(coli::o_cond, ";
+    stream << "tiramisu::expr(tiramisu::o_cond, ";
     print(op->condition);
     stream << ", ";
     print(op->true_value);
@@ -442,9 +442,9 @@ void HalideToC::define_constant(const string &name, Expr val) {
 
     do_indent();
 
-    stream << "coli::constant " << name << "(\"" << name << "\", ";
+    stream << "tiramisu::constant " << name << "(\"" << name << "\", ";
     print(val);
-    stream << ", " << halide_type_to_coli_type_str(val.type())
+    stream << ", " << halide_type_to_tiramisu_type_str(val.type())
            << ", true, NULL, 0, &" << func << ");\n";
 
     constant_list.insert(name);
@@ -509,9 +509,9 @@ void HalideToC::visit(const Provide *op) {
     string dims_str = to_string(op->args);
     string iter_space_str = get_loop_bound_vars() + "->{" + op->name + dims_str + ": " + get_loop_bounds() + "}";
 
-    stream << "coli::computation " << op->name << "(\"" << iter_space_str << "\", ";
+    stream << "tiramisu::computation " << op->name << "(\"" << iter_space_str << "\", ";
     print(op->values[0]);
-    stream << ", true, " << halide_type_to_coli_type_str(op->values[0].type())
+    stream << ", true, " << halide_type_to_tiramisu_type_str(op->values[0].type())
            << ", &" << func << ");\n";
 
     // 1-to-1 mapping to buffer
@@ -550,7 +550,7 @@ void HalideToC::visit(const Realize *op) {
     // Create a temporary buffer
 
     string buffer_name = "buff_" + op->name;
-    stream << "coli::buffer " << buffer_name << "(\"" << buffer_name << "\", "
+    stream << "tiramisu::buffer " << buffer_name << "(\"" << buffer_name << "\", "
            << op->bounds.size() << ", ";
 
     stream << "{";
@@ -562,7 +562,7 @@ void HalideToC::visit(const Realize *op) {
     }
     stream << "}, ";
 
-    stream << halide_type_to_coli_type_str(op->types[0]) << ", NULL, coli::a_temporary, "
+    stream << halide_type_to_tiramisu_type_str(op->types[0]) << ", NULL, tiramisu::a_temporary, "
            << "&" << func << ");\n";
 
     temporary_buffers.insert(buffer_name);
@@ -600,7 +600,7 @@ void halide_pipeline_to_c(
 
     std::ostringstream stream;
 
-    stream << "coli::function " << func << "(\"" << func << "\")" << ";\n";
+    stream << "tiramisu::function " << func << "(\"" << func << "\")" << ";\n";
 
     set<string> output_buffers;
     Scope<Expr> scope;
@@ -617,7 +617,7 @@ void halide_pipeline_to_c(
         std::ostringstream sizes;
         sizes << "{";
         for (size_t i = 0; i < iter->second.size(); ++i) {
-            sizes << "coli::expr(" << iter->second[i] << ")";
+            sizes << "tiramisu::expr(" << iter->second[i] << ")";
             scope.push(f.name() + "_min_" + std::to_string(i), make_const(Int(32), 0));
             scope.push(f.name() + "_extent_" + std::to_string(i), make_const(Int(32), iter->second[i]));
             if (i != iter->second.size() - 1) {
@@ -628,8 +628,8 @@ void halide_pipeline_to_c(
 
         string buffer_name = "buff_" + f.name();
         //TODO(psuriana): should make the buffer data type variable instead of uint8_t always
-        stream << "coli::buffer " << buffer_name << "(\"" << buffer_name << "\", "
-               << f.args().size() << ", " << sizes.str() << ", coli::p_uint8, NULL, coli::a_output, "
+        stream << "tiramisu::buffer " << buffer_name << "(\"" << buffer_name << "\", "
+               << f.args().size() << ", " << sizes.str() << ", tiramisu::p_uint8, NULL, tiramisu::a_output, "
                << "&" << func << ");\n";
         output_buffers.insert(buffer_name);
 

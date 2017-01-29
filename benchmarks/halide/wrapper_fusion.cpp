@@ -18,16 +18,16 @@ int main(int, char**)
     Halide::Image<uint8_t> output_ref_g(input.width(), input.height(), input.channels());
     Halide::Image<uint8_t> output_ref_h(input.width(), input.height(), input.channels());
     Halide::Image<uint8_t> output_ref_k(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_coli_f(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_coli_g(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_coli_h(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_coli_k(input.width(), input.height(), input.channels());
+    Halide::Image<uint8_t> output_tiramisu_f(input.width(), input.height(), input.channels());
+    Halide::Image<uint8_t> output_tiramisu_g(input.width(), input.height(), input.channels());
+    Halide::Image<uint8_t> output_tiramisu_h(input.width(), input.height(), input.channels());
+    Halide::Image<uint8_t> output_tiramisu_k(input.width(), input.height(), input.channels());
 
     // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        fusion_coli(input, output_coli_f, output_coli_g, output_coli_h, output_coli_k);
+        fusion_tiramisu(input, output_tiramisu_f, output_tiramisu_g, output_tiramisu_h, output_tiramisu_k);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -49,8 +49,8 @@ int main(int, char**)
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
 
-    Halide::Tools::save_image(output_coli_f, "./build/fusion_f_coli.png");
-    Halide::Tools::save_image(output_coli_g, "./build/fusion_g_coli.png");
+    Halide::Tools::save_image(output_tiramisu_f, "./build/fusion_f_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_g, "./build/fusion_g_tiramisu.png");
     Halide::Tools::save_image(output_ref_f, "./build/fusion_f_ref.png");
     Halide::Tools::save_image(output_ref_g, "./build/fusion_g_ref.png");
 

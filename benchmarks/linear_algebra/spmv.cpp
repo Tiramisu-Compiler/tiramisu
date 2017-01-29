@@ -34,19 +34,19 @@ for (i = 0; i < M; i++)
 
 #define SIZE0 1000
 
-using namespace coli;
+using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
     function spmv("spmv");
-    buffer b_row_start("b_row_start", 1, {coli::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_col_idx("b_col_idx", 1, {coli::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_values("b_values", 1, {coli::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_x("b_x", 1, {coli::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_y("b_y", 1, {coli::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_output, &spmv);
+    buffer b_row_start("b_row_start", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_col_idx("b_col_idx", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_output, &spmv);
 
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", &e_M, p_int32, true, NULL, 0, &spmv);

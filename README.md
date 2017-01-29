@@ -62,9 +62,9 @@ To build documentation (doxygen required)
 How To Use Tiramisu
 ----------------------
 Tiramisu provides few classes to enable users to represent their program:
-- The `coli::computation` class: a computation is composed of an expression and an iteration space but is not associated with any memory location.
-- The `coli::function` class: a function is composed of multiple computations and a vector of arguments (functions arguments).
-- The `coli::buffer`: a class to represent memory buffers.
+- The `tiramisu::computation` class: a computation is composed of an expression and an iteration space but is not associated with any memory location.
+- The `tiramisu::function` class: a function is composed of multiple computations and a vector of arguments (functions arguments).
+- The `tiramisu::buffer`: a class to represent memory buffers.
 
 In general, in order to use Tiramisu to optimize, all what a user needs to do is the following:
 - Represent the program that needs to be optimized

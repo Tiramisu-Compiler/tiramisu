@@ -27,7 +27,7 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
 
-namespace coli
+namespace tiramisu
 {
 
 namespace parser
@@ -156,12 +156,12 @@ public:
 class map
 {
 public:
-    coli::parser::space parameters;
+    tiramisu::parser::space parameters;
     std::string domain_name;
     std::string range_name;
-    coli::parser::space domain;
-    coli::parser::space range;
-    coli::parser::constraint constraints;
+    tiramisu::parser::space domain;
+    tiramisu::parser::space range;
+    tiramisu::parser::constraint constraints;
 
     map(std::string map_str)
     {
@@ -216,8 +216,8 @@ public:
             constraints.parse(constraints_str);
         }
 
-        DEBUG(2, coli::str_dump("Parsing the map : " + map_str + "\n"));
-        DEBUG(2, coli::str_dump("The parsed map  : " + this->get_str() + "\n"));
+        DEBUG(2, tiramisu::str_dump("Parsing the map : " + map_str + "\n"));
+        DEBUG(2, tiramisu::str_dump("The parsed map  : " + this->get_str() + "\n"));
     };
 
     std::string get_str() const

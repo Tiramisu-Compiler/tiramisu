@@ -31,21 +31,21 @@ Func blurxy(Func input, Func blur_y) {
 #define SIZE0 1280
 #define SIZE1 768
 
-using namespace coli;
+using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
     /*
      * Declare a function blurxy.
-     * Declare two arguments (coli buffers) for the function: b_input and b_blury
+     * Declare two arguments (tiramisu buffers) for the function: b_input and b_blury
      * Declare an invariant for the function.
      */
     function blurxy("blurxy");
-    buffer b_input("b_input", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
-    buffer b_blury("b_blury", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
+    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
+    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
     expr e_p0 = expr((int32_t) SIZE0);
     expr e_p1 = expr((int32_t) SIZE1);
     constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2, true, p_uint8, &blurxy);
 
     // Create a memory buffer (2 dimensional).
-    buffer b_blurx("b_blurx", 2, {coli::expr(SIZE0),coli::expr(SIZE1)}, p_uint8, NULL, a_temporary, &blurxy);
+    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_temporary, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");

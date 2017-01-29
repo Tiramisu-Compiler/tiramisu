@@ -26,22 +26,22 @@ Func matmul(Input A, Input B, Output C) {
 
 #define SIZE0 1000
 
-using namespace coli;
+using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
     /*
      * Declare a function matmul.
-     * Declare two arguments (coli buffers) for the function: b_A and b_B
+     * Declare two arguments (tiramisu buffers) for the function: b_A and b_B
      * Declare an invariant for the function.
      */
     function matmul("matmul");
-    buffer b_A("b_A", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_B("b_B", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_C("b_C", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
+    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
+    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
+    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
     expr e_p0 = expr((int32_t) SIZE0);
     constant p0("N", &e_p0, p_int32, true, NULL, 0, &matmul);
 

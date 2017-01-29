@@ -23,23 +23,23 @@ for (i = 0; i < M; i++)
 
 #define SIZE0 10
 
-using namespace coli;
+using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
     function sequence("sequence");
-    buffer b0("b0", 1, {coli::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b1("b1", 1, {coli::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {coli::expr(SIZE0),coli::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b3("b3", 1, {coli::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b2("b2", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", e_M, p_int32, true, NULL, 0, &sequence);
 
-    expr val = coli::expr(1);
+    expr val = tiramisu::expr(1);
     computation c0("[M]->{c0[i]: 0<=i<M}", val, true, p_uint8, &sequence);
     computation c1("[M]->{c1[i]: 0<=i<M}", val, true, p_uint8, &sequence);
     computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", val, true, p_uint8, &sequence);

@@ -1,9 +1,9 @@
 #include <iostream>
 
-namespace coli
+namespace tiramisu
 {
 
-int coli_indentation = 0;
+int tiramisu_indentation = 0;
 
 void str_dump(std::string str)
 {
@@ -25,8 +25,8 @@ void str_dump(const char * str, const char * str2)
 
 void print_indentation()
 {
-    for (int coli_indent=0; coli_indent<coli::coli_indentation; coli_indent++)
-        if (coli_indent%4 == 0)
+    for (int tiramisu_indent=0; tiramisu_indent<tiramisu::tiramisu_indentation; tiramisu_indent++)
+        if (tiramisu_indent%4 == 0)
             str_dump("|");
         else
                 str_dump(" ");

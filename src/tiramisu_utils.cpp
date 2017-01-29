@@ -190,9 +190,9 @@ void compare_2_2D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int 
     }
 
 	if (error)
-	    coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+	    tiramisu::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
 	else
-	    coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
+	    tiramisu::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
 }
 
 
@@ -210,7 +210,7 @@ void compare_2_1D_arrays(std::string str, uint8_t *array1, uint8_t *array2, int 
     }
 
     if (error)
-        coli::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
+        tiramisu::error("\033[1;31mTest " + str + " failed.\033[0m\n", false);
     else
-        coli::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
+        tiramisu::str_dump("\033[1;32mTest " + str + " succeeded.\033[0m\n");
 }

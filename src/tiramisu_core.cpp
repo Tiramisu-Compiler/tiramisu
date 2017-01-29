@@ -16,7 +16,7 @@
 #include <string>
 #include <algorithm>
 
-namespace coli
+namespace tiramisu
 {
 
 std::map<std::string, computation *> computations_list;
@@ -62,8 +62,8 @@ void function::gen_isl_ast()
 
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
-    ast_build = isl_ast_build_set_after_each_for(ast_build, &coli::for_code_generator_after_for, NULL);
-    ast_build = isl_ast_build_set_at_each_domain(ast_build, &coli::stmt_code_generator, this);
+    ast_build = isl_ast_build_set_after_each_for(ast_build, &tiramisu::for_code_generator_after_for, NULL);
+    ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::stmt_code_generator, this);
 
     // Set iterator names
     isl_id_list *iterators = isl_id_list_alloc(ctx,  this->get_iterator_names().size());
@@ -94,12 +94,12 @@ void function::gen_isl_ast()
             isl_union_map_copy(this->get_aligned_identity_schedules()),
             isl_union_set_copy(this->get_time_processor_domain()));
 
-    DEBUG(3, coli::str_dump("Schedule:", isl_union_map_to_str(this->get_schedule())));
-    DEBUG(3, coli::str_dump("Iteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
-    DEBUG(3, coli::str_dump("Time-Space domain:", isl_union_set_to_str(this->get_time_processor_domain())));
-    DEBUG(3, coli::str_dump("Time-Space aligned identity schedule:", isl_union_map_to_str(this->get_aligned_identity_schedules())));
-    DEBUG(3, coli::str_dump("Identity schedule intersect Time-Space domain:", isl_union_map_to_str(umap)));
-    DEBUG(3, coli::str_dump("\n"));
+    DEBUG(3, tiramisu::str_dump("Schedule:", isl_union_map_to_str(this->get_schedule())));
+    DEBUG(3, tiramisu::str_dump("Iteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
+    DEBUG(3, tiramisu::str_dump("Time-Space domain:", isl_union_set_to_str(this->get_time_processor_domain())));
+    DEBUG(3, tiramisu::str_dump("Time-Space aligned identity schedule:", isl_union_map_to_str(this->get_aligned_identity_schedules())));
+    DEBUG(3, tiramisu::str_dump("Identity schedule intersect Time-Space domain:", isl_union_map_to_str(umap)));
+    DEBUG(3, tiramisu::str_dump("\n"));
 
     this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
 
@@ -127,14 +127,14 @@ void split_string(std::string str, std::string delimiter,
     vector.push_back(token);
 }
 
-void coli::parser::constraint::parse(std::string str)
+void tiramisu::parser::constraint::parse(std::string str)
 {
     assert(str.empty() == false);
 
     split_string(str, "and", this->constraints);
 };
 
-void coli::parser::space::parse(std::string space)
+void tiramisu::parser::space::parse(std::string space)
 {
     std::vector<std::string> vector;
     split_string(space, ",", vector);
@@ -160,7 +160,7 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
-void coli::computation::tag_parallel_dimension(int par_dim)
+void tiramisu::computation::tag_parallel_dimension(int par_dim)
 {
     assert(par_dim >= 0);
     assert(this->get_name().length() > 0);
@@ -175,7 +175,7 @@ void coli::computation::tag_parallel_dimension(int par_dim)
 }
 
 
-void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
+void tiramisu::computation::tag_gpu_dimensions(int dim0, int dim1)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -186,7 +186,7 @@ void coli::computation::tag_gpu_dimensions(int dim0, int dim1)
     this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
 }
 
-void coli::computation::tag_vector_dimension(int dim)
+void tiramisu::computation::tag_vector_dimension(int dim)
 {
     assert(dim >= 0);
     assert(this->get_name().length() > 0);
@@ -207,10 +207,10 @@ void function::dump_halide_stmt() const
 {
     if (ENABLE_DEBUG)
     {
-        coli::str_dump("\n\n");
-        coli::str_dump("\nGenerated Halide Low Level IR:\n");
+        tiramisu::str_dump("\n\n");
+        tiramisu::str_dump("\nGenerated Halide Low Level IR:\n");
         std::cout << this->get_halide_stmt();
-        coli::str_dump("\n\n\n\n");
+        tiramisu::str_dump("\n\n\n\n");
     }
 }
 
@@ -221,15 +221,15 @@ void function::dump_time_processor_domain() const
 
     if (ENABLE_DEBUG)
     {
-        coli::str_dump("\n\nTime-processor domain:\n");
+        tiramisu::str_dump("\n\nTime-processor domain:\n");
 
-        coli::str_dump("Function " + this->get_name() + ":\n");
+        tiramisu::str_dump("Function " + this->get_name() + ":\n");
         for (const auto &comp : this->get_computations())
         {
             isl_set_dump(comp->get_time_processor_domain());
         }
 
-        coli::str_dump("\n\n");
+        tiramisu::str_dump("\n\n");
     }
 }
 
@@ -278,20 +278,20 @@ void computation::dump() const
 
         for (auto e: this->index_expr)
         {
-            coli::str_dump("Access expression:", (const char * ) isl_ast_expr_to_C_str(e));
-            coli::str_dump("\n");
+            tiramisu::str_dump("Access expression:", (const char * ) isl_ast_expr_to_C_str(e));
+            tiramisu::str_dump("\n");
         }
 
-        coli::str_dump("Halide statement:\n");
+        tiramisu::str_dump("Halide statement:\n");
         if (this->stmt.defined())
         {
             std::cout << this->stmt;
         }
         else
         {
-            coli::str_dump("NULL");
+            tiramisu::str_dump("NULL");
         }
-        coli::str_dump("\n");
+        tiramisu::str_dump("\n");
     }
 }
 
@@ -317,12 +317,12 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
     assert(dim_pos >= 0);
     assert(dim_pos <= (signed int) isl_map_dim(map, isl_dim_out));
 
-    DEBUG(3, coli::str_dump("Setting the constant coefficient of ",
+    DEBUG(3, tiramisu::str_dump("Setting the constant coefficient of ",
                             isl_map_to_str(map));
-             coli::str_dump(" at dimension ");
-             coli::str_dump(std::to_string(dim_pos));
-             coli::str_dump(" into ");
-             coli::str_dump(std::to_string(val)));
+             tiramisu::str_dump(" at dimension ");
+             tiramisu::str_dump(std::to_string(dim_pos));
+             tiramisu::str_dump(" into ");
+             tiramisu::str_dump(std::to_string(val)));
 
     isl_space *sp = isl_map_get_space(map);
     isl_local_space *lsp =
@@ -350,11 +350,11 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
             identity = isl_map_add_constraint(identity, cst2);
         }
 
-    DEBUG(3, coli::str_dump("Transformation map ", isl_map_to_str(identity)));
+    DEBUG(3, tiramisu::str_dump("Transformation map ", isl_map_to_str(identity)));
 
     map = isl_map_apply_range(map, identity);
 
-    DEBUG(3, coli::str_dump("After applying the transformation map: ",
+    DEBUG(3, tiramisu::str_dump("After applying the transformation map: ",
                             isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
@@ -396,14 +396,14 @@ void computation::after(computation &comp, int dim)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, coli::str_dump("Setting the schedule of ");
-             coli::str_dump(this->get_name());
-             coli::str_dump(" after ");
-             coli::str_dump(comp.get_name());
-             coli::str_dump(" at dimension ");
-             coli::str_dump(std::to_string(dim)));
+    DEBUG(3, tiramisu::str_dump("Setting the schedule of ");
+             tiramisu::str_dump(this->get_name());
+             tiramisu::str_dump(" after ");
+             tiramisu::str_dump(comp.get_name());
+             tiramisu::str_dump(" at dimension ");
+             tiramisu::str_dump(std::to_string(dim)));
 
-    std::vector<std::pair<int, coli::computation *>> ordered_computations;
+    std::vector<std::pair<int, tiramisu::computation *>> ordered_computations;
 
     comp.get_function()->align_schedules();
 
@@ -412,15 +412,15 @@ void computation::after(computation &comp, int dim)
     {
         sched1 = c->get_schedule();
 
-        DEBUG(3, coli::str_dump("Preparing to adjust the schedule of the computation ");
-                 coli::str_dump(c->get_name()));
-        DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
+        DEBUG(3, tiramisu::str_dump("Preparing to adjust the schedule of the computation ");
+                 tiramisu::str_dump(c->get_name()));
+        DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
         assert(sched1 != NULL);
-        DEBUG(3, coli::str_dump("Dimension level after which ordering dimensions will be inserted : ");
-                 coli::str_dump(std::to_string(dim)));
-        DEBUG(3, coli::str_dump("Original number of dimensions of the schedule : ");
-                 coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
+        DEBUG(3, tiramisu::str_dump("Dimension level after which ordering dimensions will be inserted : ");
+                 tiramisu::str_dump(std::to_string(dim)));
+        DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
+                 tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
         assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
         assert(dim >= computation::root_dimension);
 
@@ -429,17 +429,17 @@ void computation::after(computation &comp, int dim)
         if ((c != &comp))
             c->relative_order = c->relative_order + 1;
 
-        DEBUG(3, coli::str_dump("Calculated relative order: ");
-                 coli::str_dump(std::to_string(c->relative_order)));
+        DEBUG(3, tiramisu::str_dump("Calculated relative order: ");
+                 tiramisu::str_dump(std::to_string(c->relative_order)));
 
-        DEBUG(3, coli::str_dump("Adding the computation to the vector of ordered computations."));
+        DEBUG(3, tiramisu::str_dump("Adding the computation to the vector of ordered computations."));
 
-        ordered_computations.push_back(std::pair<int, coli::computation *>(c->relative_order, c));
+        ordered_computations.push_back(std::pair<int, tiramisu::computation *>(c->relative_order, c));
     }
 
     std::sort(ordered_computations.begin(), ordered_computations.end());
 
-    DEBUG(3, coli::str_dump("Setting the schedules according to their orders."));
+    DEBUG(3, tiramisu::str_dump("Setting the schedules according to their orders."));
 
     int order = 0;
     for (auto c: ordered_computations)
@@ -450,7 +450,7 @@ void computation::after(computation &comp, int dim)
         order++;
 
         c.second->set_schedule(sched1);
-        DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
+        DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
     }
 
     DEBUG_INDENT(-4);
@@ -471,18 +471,18 @@ void computation::first(int dim)
     {
         sched1 = c->get_schedule();
 
-        DEBUG(3, coli::str_dump("Adjusting the schedule of a computation ");
-                 coli::str_dump(c->get_name()));
-        DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(sched1)));
+        DEBUG(3, tiramisu::str_dump("Adjusting the schedule of a computation ");
+                 tiramisu::str_dump(c->get_name()));
+        DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
         assert(sched1 != NULL);
-        DEBUG(3, coli::str_dump("Dimension level after which the ordering dimension will be inserted : ");
-                 coli::str_dump(std::to_string(dim)));
-        DEBUG(3, coli::str_dump("Original number of dimensions of the schedule : ");
-                 coli::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
+        DEBUG(3, tiramisu::str_dump("Dimension level after which the ordering dimension will be inserted : ");
+                 tiramisu::str_dump(std::to_string(dim)));
+        DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
+                 tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
         if (this->statements_to_compute_before_me != NULL)
-            DEBUG(3, coli::str_dump("Computation to compute before this computation ");
-                         coli::str_dump(this->statements_to_compute_before_me->get_name()));
+            DEBUG(3, tiramisu::str_dump("Computation to compute before this computation ");
+                         tiramisu::str_dump(this->statements_to_compute_before_me->get_name()));
         assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
         assert(dim >= computation::root_dimension);
 
@@ -490,23 +490,23 @@ void computation::first(int dim)
         if (c != this && c != this->statements_to_compute_before_me)
             c->relative_order = c->relative_order + 1;
 
-        DEBUG(3, coli::str_dump("Relative order: ");
-                 coli::str_dump(std::to_string(c->relative_order)));
+        DEBUG(3, tiramisu::str_dump("Relative order: ");
+                 tiramisu::str_dump(std::to_string(c->relative_order)));
 
         if (c == this || c == this->statements_to_compute_before_me)
         {
             sched1 = isl_map_set_const_dim(sched1, dim+1, 0);
-            DEBUG(3, coli::str_dump("Setting dimension to 0."));
+            DEBUG(3, tiramisu::str_dump("Setting dimension to 0."));
         }
         else
         if (c != this)
         {
             sched1 = isl_map_set_const_dim(sched1, dim+1, 1);
-            DEBUG(3, coli::str_dump("Setting dimension to 1."));
+            DEBUG(3, tiramisu::str_dump("Setting dimension to 1."));
         }
 
         c->set_schedule(sched1);
-        DEBUG(3, coli::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
+        DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
     }
 
     DEBUG_INDENT(-4);
@@ -565,7 +565,7 @@ void computation::interchange(int inDim0, int inDim1)
 
     isl_map *schedule = this->get_schedule();
 
-    DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
 
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
@@ -616,7 +616,7 @@ void computation::interchange(int inDim0, int inDim1)
 
     map = map + "]}";
 
-    DEBUG(3, coli::str_dump("Transformation map = ", map.c_str()));
+    DEBUG(3, tiramisu::str_dump("Transformation map = ", map.c_str()));
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
     transformation_map = isl_map_set_tuple_id(
@@ -626,7 +626,7 @@ void computation::interchange(int inDim0, int inDim1)
         transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
-    DEBUG(3, coli::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
 
     this->set_schedule(schedule);
 
@@ -654,8 +654,8 @@ void computation::split(int inDim0, int sizeX)
                                     isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
 
 
-    DEBUG(3, coli::str_dump("Original schedule: ", isl_map_to_str(schedule)));
-    DEBUG(3, coli::str_dump("Splitting dimension " + std::to_string(inDim0)
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Splitting dimension " + std::to_string(inDim0)
                             + " with split size " + std::to_string(sizeX)));
 
     std::string inDim0_str;
@@ -713,7 +713,7 @@ void computation::split(int inDim0, int sizeX)
         std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
         inDim0_str + "%" + std::to_string(sizeX) + ")}";
 
-    DEBUG(3, coli::str_dump("Transformation map = ", map.c_str()));
+    DEBUG(3, tiramisu::str_dump("Transformation map = ", map.c_str()));
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 
@@ -728,16 +728,16 @@ void computation::split(int inDim0, int sizeX)
     transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
-    DEBUG(3, coli::str_dump("Schedule after splitting: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Schedule after splitting: ", isl_map_to_str(schedule)));
 
     this->set_schedule(schedule);
 
     DEBUG_INDENT(-4);
 }
 
-// Methods related to the coli::function class.
+// Methods related to the tiramisu::function class.
 
-std::string coli::function::get_gpu_iterator(std::string comp, int lev0) const
+std::string tiramisu::function::get_gpu_iterator(std::string comp, int lev0) const
 {
    assert(comp.length() > 0);
    assert(lev0 >=0 );
@@ -756,13 +756,13 @@ std::string coli::function::get_gpu_iterator(std::string comp, int lev0) const
           else if (lev0 == pd.second.second)
               res = std::string("__thread_id_y");
           else
-              coli::error("Level not mapped to GPU.", true);
+              tiramisu::error("Level not mapped to GPU.", true);
 
           std::string str = std::string("Dimension ") + std::to_string(lev0)
                + std::string(" should be mapped to iterator ") + res;
           str = str + ". It was compared against: " + std::to_string(pd.second.first)
                + " and " + std::to_string(pd.second.second);
-          DEBUG(3, coli::str_dump(str));
+          DEBUG(3, tiramisu::str_dump(str));
        }
    }
 
@@ -770,7 +770,7 @@ std::string coli::function::get_gpu_iterator(std::string comp, int lev0) const
    return res;
 }
 
-bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
+bool tiramisu::function::should_map_to_gpu(std::string comp, int lev0) const
 {
       assert(comp.length() > 0);
       assert(lev0 >=0 );
@@ -791,13 +791,13 @@ bool coli::function::should_map_to_gpu(std::string comp, int lev0) const
       std::string str = std::string("Dimension ") + std::to_string(lev0)
           + std::string(found?" should":" should not")
           + std::string(" be mapped to GPU.");
-      DEBUG(10, coli::str_dump(str));
+      DEBUG(10, tiramisu::str_dump(str));
 
       DEBUG_INDENT(-4);
       return found;
 }
 
-int coli::function::get_max_identity_schedules_range_dim() const
+int tiramisu::function::get_max_identity_schedules_range_dim() const
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -817,7 +817,7 @@ int coli::function::get_max_identity_schedules_range_dim() const
 }
 
 
-int coli::function::get_max_schedules_range_dim() const
+int tiramisu::function::get_max_schedules_range_dim() const
 {
     int max_dim = 0;
 
@@ -839,7 +839,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
     int mdim = isl_map_dim(map, isl_dim_out);
     assert(max_dim >= mdim);
 
-    DEBUG(10, coli::str_dump("Input map:", isl_map_to_str(map)));
+    DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
 
     const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
 
@@ -857,7 +857,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 
     map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
 
-    DEBUG(10, coli::str_dump("After alignment, map = ",
+    DEBUG(10, tiramisu::str_dump("After alignment, map = ",
                 isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
@@ -865,7 +865,7 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 }
 
 
-isl_union_map *coli::function::get_aligned_identity_schedules() const
+isl_union_map *tiramisu::function::get_aligned_identity_schedules() const
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -892,7 +892,7 @@ isl_union_map *coli::function::get_aligned_identity_schedules() const
         if (comp->should_schedule_this_computation())
         {
             isl_map *sched = comp->gen_identity_schedule_for_time_space_domain();
-            DEBUG(3, coli::str_dump("Identity schedule for time space domain: ", isl_map_to_str(sched)));
+            DEBUG(3, tiramisu::str_dump("Identity schedule for time space domain: ", isl_map_to_str(sched)));
             assert((sched != NULL) && "Identity schedule could not be computed");
             sched = isl_map_align_range_dims(sched, max_dim);
             result = isl_union_map_union(result, isl_union_map_from_map(sched));
@@ -900,12 +900,12 @@ isl_union_map *coli::function::get_aligned_identity_schedules() const
     }
 
     DEBUG_INDENT(-4);
-    DEBUG(3, coli::str_dump("End of function"));
+    DEBUG(3, tiramisu::str_dump("End of function"));
 
     return result;
 }
 
-void coli::function::align_schedules()
+void tiramisu::function::align_schedules()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -921,15 +921,15 @@ void coli::function::align_schedules()
     }
 
     DEBUG_INDENT(-4);
-    DEBUG(3, coli::str_dump("End of function"));
+    DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
-void coli::function::add_invariant(coli::constant invar)
+void tiramisu::function::add_invariant(tiramisu::constant invar)
 {
     invariants.push_back(invar);
 }
 
-void coli::function::add_computation(computation *cpt)
+void tiramisu::function::add_computation(computation *cpt)
 {
     assert(cpt != NULL);
 
@@ -941,7 +941,7 @@ void coli::function::add_computation(computation *cpt)
     this->body.push_back(cpt);
 }
 
-void coli::constant::dump(bool exhaustive) const
+void tiramisu::constant::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
@@ -953,13 +953,13 @@ void coli::constant::dump(bool exhaustive) const
     }
 }
 
-void coli::function::dump(bool exhaustive) const
+void tiramisu::function::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
         std::cout << "\n\nFunction \"" << this->name << "\"" << std::endl;
 
-        std::cout << "Function arguments (coli buffers):" << std::endl;
+        std::cout << "Function arguments (tiramisu buffers):" << std::endl;
         for (const auto &buf : this->function_arguments)
         {
             buf->dump(exhaustive);
@@ -1000,22 +1000,22 @@ void coli::function::dump(bool exhaustive) const
     }
 }
 
-void coli::function::dump_iteration_domain() const
+void tiramisu::function::dump_iteration_domain() const
 {
     if (ENABLE_DEBUG)
     {
-        coli::str_dump("\nIteration domain:\n");
+        tiramisu::str_dump("\nIteration domain:\n");
         for (const auto &cpt : this->body)
             cpt->dump_iteration_domain();
-        coli::str_dump("\n");
+        tiramisu::str_dump("\n");
     }
 }
 
-void coli::function::dump_schedule() const
+void tiramisu::function::dump_schedule() const
 {
     if (ENABLE_DEBUG)
     {
-        coli::str_dump("\nSchedule:\n");
+        tiramisu::str_dump("\nSchedule:\n");
 
         for (const auto &cpt : this->body)
         {
@@ -1040,18 +1040,18 @@ void coli::function::dump_schedule() const
     }
 }
 
-Halide::Argument::Kind halide_argtype_from_coli_argtype(coli::argument_t type)
+Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type)
 {
     Halide::Argument::Kind res;
 
-    if (type == coli::a_temporary)
-        coli::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
+    if (type == tiramisu::a_temporary)
+        tiramisu::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
 
-    if (type == coli::a_input)
+    if (type == tiramisu::a_input)
     {
         res = Halide::Argument::InputBuffer;
     }
-    else  // if (type == coli::a_output)
+    else  // if (type == tiramisu::a_output)
     {
         res = Halide::Argument::OutputBuffer;
     }
@@ -1059,12 +1059,12 @@ Halide::Argument::Kind halide_argtype_from_coli_argtype(coli::argument_t type)
     return res;
 }
 
-void coli::function::set_arguments(std::vector<coli::buffer *> buffer_vec)
+void tiramisu::function::set_arguments(std::vector<tiramisu::buffer *> buffer_vec)
 {
     this->function_arguments = buffer_vec;
 }
 
-void coli::function::add_vector_dimension(std::string stmt_name, int vec_dim)
+void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim)
 {
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
@@ -1072,7 +1072,7 @@ void coli::function::add_vector_dimension(std::string stmt_name, int vec_dim)
     this->vector_dimensions.push_back(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
+void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
 {
     assert(vec_dim >= 0);
     assert(stmt_name.length() > 0);
@@ -1080,7 +1080,7 @@ void coli::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
     this->parallel_dimensions.push_back(std::pair<std::string,int>(stmt_name, vec_dim));
 }
 
-void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
+void tiramisu::function::add_gpu_dimensions(std::string stmt_name, int dim0,
                                         int dim1)
 {
     assert(dim0 >= 0);
@@ -1093,7 +1093,7 @@ void coli::function::add_gpu_dimensions(std::string stmt_name, int dim0,
                                                          (dim0, dim1)));
 }
 
-isl_union_set * coli::function::get_time_processor_domain() const
+isl_union_set * tiramisu::function::get_time_processor_domain() const
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1128,7 +1128,7 @@ isl_union_set * coli::function::get_time_processor_domain() const
 }
 
 
-isl_union_set *coli::function::get_iteration_domain() const
+isl_union_set *tiramisu::function::get_iteration_domain() const
 {
     isl_union_set *result = NULL;
     isl_space *space = NULL;
@@ -1157,7 +1157,7 @@ isl_union_set *coli::function::get_iteration_domain() const
     return result;
 }
 
-isl_union_map *coli::function::get_schedule() const
+isl_union_map *tiramisu::function::get_schedule() const
 {
     isl_union_map *result = NULL;
     isl_space *space = NULL;
@@ -1188,122 +1188,122 @@ isl_union_map *coli::function::get_schedule() const
 
 // Function for the buffer class
 
-std::string str_coli_type_op(coli::op_t type)
+std::string str_tiramisu_type_op(tiramisu::op_t type)
 {
     switch (type)
     {
-        case coli::o_logical_and:
+        case tiramisu::o_logical_and:
             return "and";
-        case coli::o_logical_or:
+        case tiramisu::o_logical_or:
             return "or";
-        case coli::o_max:
+        case tiramisu::o_max:
             return "max";
-        case coli::o_min:
+        case tiramisu::o_min:
             return "min";
-        case coli::o_minus:
+        case tiramisu::o_minus:
             return "minus";
-        case coli::o_add:
+        case tiramisu::o_add:
             return "add";
-        case coli::o_sub:
+        case tiramisu::o_sub:
             return "sub";
-        case coli::o_mul:
+        case tiramisu::o_mul:
             return "mul";
-        case coli::o_div:
+        case tiramisu::o_div:
             return "div";
-        case coli::o_mod:
+        case tiramisu::o_mod:
             return "mod";
-        case coli::o_cond:
+        case tiramisu::o_cond:
             return "cond";
-        case coli::o_not:
+        case tiramisu::o_not:
             return "not";
-        case coli::o_eq:
+        case tiramisu::o_eq:
             return "eq";
-        case coli::o_ne:
+        case tiramisu::o_ne:
             return "ne";
-        case coli::o_le:
+        case tiramisu::o_le:
             return "le";
-        case coli::o_lt:
+        case tiramisu::o_lt:
             return "lt";
-        case coli::o_ge:
+        case tiramisu::o_ge:
             return "ge";
-        case coli::o_call:
+        case tiramisu::o_call:
             return "call";
-        case coli::o_access:
+        case tiramisu::o_access:
             return "access";
-        case coli::o_right_shift:
+        case tiramisu::o_right_shift:
             return "right-shift";
-        case coli::o_left_shift:
+        case tiramisu::o_left_shift:
             return "left-shift";
-        case coli::o_floor:
+        case tiramisu::o_floor:
             return "floor";
-        case coli::o_cast:
+        case tiramisu::o_cast:
             return "cast";
         default:
-            coli::error("coli op not supported.", true);
+            tiramisu::error("tiramisu op not supported.", true);
             return "";
     }
 }
 
-std::string str_from_coli_type_expr(coli::expr_t type)
+std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
 {
     switch (type)
     {
-        case coli::e_id:
+        case tiramisu::e_id:
             return "id";
-        case coli::e_val:
+        case tiramisu::e_val:
             return "val";
-        case coli::e_op:
+        case tiramisu::e_op:
             return "op";
         default:
-            coli::error("Coli type not supported.", true);
+            tiramisu::error("Coli type not supported.", true);
             return "";
     }
 }
 
-std::string str_from_coli_type_argument(coli::argument_t type)
+std::string str_from_tiramisu_type_argument(tiramisu::argument_t type)
 {
     switch (type)
     {
-        case coli::a_input:
+        case tiramisu::a_input:
             return "input";
-        case coli::a_output:
+        case tiramisu::a_output:
             return "output";
-        case coli::a_temporary:
+        case tiramisu::a_temporary:
             return "temporary";
         default:
-            coli::error("Coli type not supported.", true);
+            tiramisu::error("Coli type not supported.", true);
             return "";
     }
 }
 
-std::string str_from_coli_type_primitive(coli::primitive_t type)
+std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
 {
     switch (type)
     {
-        case coli::p_uint8:
+        case tiramisu::p_uint8:
             return "uint8";
-        case coli::p_int8:
+        case tiramisu::p_int8:
             return "int8";
-        case coli::p_uint16:
+        case tiramisu::p_uint16:
             return "uint16";
-        case coli::p_int16:
+        case tiramisu::p_int16:
             return "int16";
-        case coli::p_uint32:
+        case tiramisu::p_uint32:
             return "uin32";
-        case coli::p_int32:
+        case tiramisu::p_int32:
             return "int32";
-        case coli::p_uint64:
+        case tiramisu::p_uint64:
             return "uint64";
-        case coli::p_int64:
+        case tiramisu::p_int64:
             return "int64";
-        case coli::p_float32:
+        case tiramisu::p_float32:
             return "float32";
-        case coli::p_float64:
+        case tiramisu::p_float64:
             return "float64";
-        case coli::p_boolean:
+        case tiramisu::p_boolean:
             return "bool";
         default:
-            coli::error("Coli type not supported.", true);
+            tiramisu::error("Coli type not supported.", true);
             return "";
     }
 }
@@ -1313,7 +1313,7 @@ std::string str_from_is_null(void *ptr)
     return ((ptr != NULL) ? "Not NULL" : "NULL");
 }
 
-void coli::buffer::dump(bool exhaustive) const
+void tiramisu::buffer::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
@@ -1324,16 +1324,16 @@ void coli::buffer::dump(bool exhaustive) const
         std::cout << "Dimension sizes: ";
         for (auto size: dim_sizes)
         {
-          // TODO: create_halide_expr_from_coli_expr does not support
+          // TODO: create_halide_expr_from_tiramisu_expr does not support
           // the case where the buffer size is a computation access.
             std::vector<isl_ast_expr *> ie = {};
-            std::cout << halide_expr_from_coli_expr(NULL, ie, size) << ", ";
+            std::cout << halide_expr_from_tiramisu_expr(NULL, ie, size) << ", ";
         }
 
         std::cout << std::endl;
 
         std::cout << "Elements type: "
-                  << str_from_coli_type_primitive(this->type) << std::endl;
+                  << str_from_tiramisu_type_primitive(this->type) << std::endl;
 
         std::cout << "Data field: "
                   << str_from_is_null(this->data) << std::endl;
@@ -1342,64 +1342,64 @@ void coli::buffer::dump(bool exhaustive) const
                   << str_from_is_null(this->fct) << std::endl;
 
         std::cout << "Argument type: "
-                  << str_from_coli_type_argument(this->argtype) << std::endl;
+                  << str_from_tiramisu_type_argument(this->argtype) << std::endl;
 
         std::cout<< std::endl << std::endl;
     }
 }
 
-Halide::Type halide_type_from_coli_type(coli::primitive_t type)
+Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
 {
     Halide::Type t;
 
     switch (type)
     {
-        case coli::p_uint8:
+        case tiramisu::p_uint8:
             t = Halide::UInt(8);
             break;
-        case coli::p_int8:
+        case tiramisu::p_int8:
             t = Halide::Int(8);
             break;
-        case coli::p_uint16:
+        case tiramisu::p_uint16:
             t = Halide::UInt(16);
             break;
-        case coli::p_int16:
+        case tiramisu::p_int16:
             t = Halide::Int(16);
             break;
-        case coli::p_uint32:
+        case tiramisu::p_uint32:
             t = Halide::UInt(32);
             break;
-        case coli::p_int32:
+        case tiramisu::p_int32:
             t = Halide::Int(32);
             break;
-        case coli::p_uint64:
+        case tiramisu::p_uint64:
             t = Halide::UInt(64);
             break;
-        case coli::p_int64:
+        case tiramisu::p_int64:
             t = Halide::Int(64);
             break;
-        case coli::p_float32:
+        case tiramisu::p_float32:
             t = Halide::Float(32);
             break;
-        case coli::p_float64:
+        case tiramisu::p_float64:
             t = Halide::Float(64);
             break;
-        case coli::p_boolean:
+        case tiramisu::p_boolean:
             t = Halide::Bool();
             break;
         default:
-            coli::error("Coli type cannot be translated to Halide type.", true);
+            tiramisu::error("Coli type cannot be translated to Halide type.", true);
     }
     return t;
 }
 
-isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
+isl_map* tiramisu::computation::update_let_stmt_schedule_domain_name(isl_map* map)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    DEBUG(10, coli::str_dump ("Updating the domain of schedule."));
-    DEBUG(10, coli::str_dump ("Input schedule: ", isl_map_to_str(map)));
+    DEBUG(10, tiramisu::str_dump ("Updating the domain of schedule."));
+    DEBUG(10, tiramisu::str_dump ("Input schedule: ", isl_map_to_str(map)));
 
     // Get the computation,
     // Check if the computation is a let stmt, if it is the case
@@ -1407,12 +1407,12 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
     std::string comp_name = isl_map_get_tuple_name(map, isl_dim_in);
     assert(comp_name.size() > 0);
 
-    coli::computation* let_comp =
+    tiramisu::computation* let_comp =
             this->get_function()->get_computation_by_name(comp_name);
 
     if (let_comp == NULL)    // i.e. if let computation not found
     {
-        DEBUG(10, coli::str_dump ("Computation used in the domain not found."));
+        DEBUG(10, tiramisu::str_dump ("Computation used in the domain not found."));
 
         // Find the LET_STMT_PREFIX in the name,
         int pos = comp_name.find(LET_STMT_PREFIX);
@@ -1421,24 +1421,24 @@ isl_map* coli::computation::update_let_stmt_schedule_domain_name(isl_map* map)
         // of comp_name, add the prefix.
         if ((pos == std::string::npos) || (pos != 0))
         {
-            DEBUG(10, coli::str_dump ("Computation does not have LET_STMT_PREFIX."));
+            DEBUG(10, tiramisu::str_dump ("Computation does not have LET_STMT_PREFIX."));
             comp_name = LET_STMT_PREFIX + comp_name;
 
             // Does adding LET_STMT_PREFIX allow finding the stmt ?
             if (this->get_function()->get_computation_by_name(comp_name) != NULL)
             {
-                DEBUG(10, coli::str_dump ("Replacing computation domain."));
+                DEBUG(10, tiramisu::str_dump ("Replacing computation domain."));
                 map = isl_map_set_tuple_name(map, isl_dim_in,
                                              comp_name.c_str ());
                 map = isl_map_set_tuple_name(map, isl_dim_out,
                                              comp_name.c_str ());
             }
             else
-                coli::error("Scheduling an undeclared computation.", true);
+                tiramisu::error("Scheduling an undeclared computation.", true);
         }
     }
 
-    DEBUG(10, coli::str_dump ("Output schedule: ", isl_map_to_str(map)));
+    DEBUG(10, tiramisu::str_dump ("Output schedule: ", isl_map_to_str(map)));
     DEBUG_INDENT(-4);
 
     return map;

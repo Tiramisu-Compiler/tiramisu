@@ -11,19 +11,19 @@
 #include <string.h>
 #include <Halide.h>
 
-using namespace coli;
+using namespace tiramisu;
 
 void generate_function_1(std::string name, int size, int val0, int val1)
 {
-    coli::global::set_default_coli_options();
-    coli::global::set_auto_data_mapping(false); // No automatic data mapping.
+    tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_auto_data_mapping(false); // No automatic data mapping.
 
-    coli::function function0(name);
-    coli::computation S0("{S0[i]: 0<=i<10}", coli::expr((uint8_t) 4), true, p_uint8, &function0);
-    coli::computation S1("{S1[i]: 0<=i<10}", coli::expr((uint8_t) 4), true, p_uint8, &function0);
-    coli::computation S2("{S2[i]: 0<=i<10}", coli::expr((uint8_t) 4), true, p_uint8, &function0);
+    tiramisu::function function0(name);
+    tiramisu::computation S0("{S0[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
+    tiramisu::computation S1("{S1[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
+    tiramisu::computation S2("{S2[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
 
-    coli::buffer buf0("buf0", 1, {size}, coli::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 1, {size}, tiramisu::p_uint8, NULL, a_output, &function0);
     S0.set_access("{S0[0,i,0]->buf0[i]}");
     S1.set_access("{S1[0,i,1]->buf0[i]}");
     S2.set_access("{S2[1,i,0]->buf0[i]}");

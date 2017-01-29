@@ -19,7 +19,7 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
 
-namespace coli
+namespace tiramisu
 {
 
 class function;
@@ -27,32 +27,32 @@ class computation;
 class buffer;
 class constant;
 
-Halide::Type halide_type_from_coli_type(coli::primitive_t type);
-Halide::Expr halide_expr_from_coli_expr(coli::computation *comp,
+Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type);
+Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                                         std::vector<isl_ast_expr *> &index_expr,
-                                        const coli::expr &coli_expr);
+                                        const tiramisu::expr &tiramisu_expr);
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
-std::string halide_type_to_coli_type_str_str(Halide::Type type);
-coli::primitive_t halide_type_to_coli_type(Halide::Type type);
+std::string halide_type_to_tiramisu_type_str_str(Halide::Type type);
+tiramisu::primitive_t halide_type_to_tiramisu_type(Halide::Type type);
 
 struct HalideCodegenOutput {
-    std::map<std::string, coli::computation *> computation_list;
-    std::map<std::string, coli::constant *> constant_list;
-    std::map<std::string, coli::buffer *> output_buffers;
+    std::map<std::string, tiramisu::computation *> computation_list;
+    std::map<std::string, tiramisu::constant *> constant_list;
+    std::map<std::string, tiramisu::buffer *> output_buffers;
 
-    HalideCodegenOutput(const std::map<std::string, coli::computation *> &computations,
-                        const std::map<std::string, coli::constant *> &constants,
-                        const std::map<std::string, coli::buffer *> &buffers)
+    HalideCodegenOutput(const std::map<std::string, tiramisu::computation *> &computations,
+                        const std::map<std::string, tiramisu::constant *> &constants,
+                        const std::map<std::string, tiramisu::buffer *> &buffers)
         : computation_list(computations), constant_list(constants), output_buffers(buffers) {}
 };
 
-HalideCodegenOutput halide_pipeline_to_coli_function(
+HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     Halide::Internal::Stmt s,
     const std::vector<Halide::Internal::Function> &outputs,
     const std::map<std::string, Halide::Internal::Function> &env,
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
-    coli::function *func);
+    tiramisu::function *func);
 
 void halide_pipeline_to_c(
     Halide::Internal::Stmt s,
@@ -61,12 +61,12 @@ void halide_pipeline_to_c(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     const std::string &func);
 
-#define LET_STMT_PREFIX "_coli_"
+#define LET_STMT_PREFIX "_tiramisu_"
 
 
 /**
   * A class to represent functions.  A function is composed of
-  * computations (of type coli::computation).
+  * computations (of type tiramisu::computation).
   */
 class function
 {
@@ -80,7 +80,7 @@ private:
       * Function arguments.  These are the buffers or scalars that are
       * passed to the function.
       */
-    std::vector<coli::buffer *> function_arguments;
+    std::vector<tiramisu::buffer *> function_arguments;
 
     /**
       * A vector representing the invariants of the function.
@@ -89,7 +89,7 @@ private:
       * variables that are invariant to the function i.e. do not change
       * their value during the execution of the function).
       */
-    std::vector<coli::constant> invariants;
+    std::vector<tiramisu::constant> invariants;
 
     /**
       * An isl context associate with the function.
@@ -154,7 +154,7 @@ private:
       * to the function as arguments and some are declared and allocated
       * within the function itself.
       */
-    std::map<std::string, coli::buffer *> buffers_list;
+    std::map<std::string, tiramisu::buffer *> buffers_list;
 
     /**
      * The context set of the function.  i.e. a set representing the
@@ -177,7 +177,7 @@ public:
         context_set = NULL;
 
         // Allocate an isl context.  This isl context will be used by
-        // the isl library calls within coli.
+        // the isl library calls within tiramisu.
         ctx = isl_ctx_alloc();
     };
 
@@ -185,11 +185,11 @@ public:
       * Get the arguments of the function.
       */
     // @{
-    const std::vector<coli::buffer *> &get_arguments() const
+    const std::vector<tiramisu::buffer *> &get_arguments() const
     {
         return function_arguments;
     }
-    std::vector<coli::buffer *> &get_arguments()
+    std::vector<tiramisu::buffer *> &get_arguments()
     {
         return function_arguments;
     }
@@ -221,11 +221,11 @@ public:
       * Return a vector representing the invariants of the function.
       */
     // @{
-    const std::vector<coli::constant> &get_invariants() const
+    const std::vector<tiramisu::constant> &get_invariants() const
     {
         return invariants;
     }
-    std::vector<coli::constant> &get_invariants()
+    std::vector<tiramisu::constant> &get_invariants()
     {
         return invariants;
     }
@@ -235,11 +235,11 @@ public:
       * Return list of the buffers.
       */
     // @{
-    const std::map<std::string, coli::buffer *> &get_buffers_list() const
+    const std::map<std::string, tiramisu::buffer *> &get_buffers_list() const
     {
         return buffers_list;
     }
-    std::map<std::string, coli::buffer *> &get_buffers_list()
+    std::map<std::string, tiramisu::buffer *> &get_buffers_list()
     {
         return buffers_list;
     }
@@ -274,7 +274,7 @@ public:
     /**
       * Add an invariant to the function.
       */
-    void add_invariant(coli::constant param);
+    void add_invariant(tiramisu::constant param);
 
     /**
       * Add a computation to the function.  The order in which
@@ -289,7 +289,7 @@ public:
       * The arguments in the vector will be the arguments of the function
       * (with the order of their appearance in the vector).
       */
-    void set_arguments(std::vector<coli::buffer *> buffer_vec);
+    void set_arguments(std::vector<tiramisu::buffer *> buffer_vec);
 
     /**
      * Set the context of the function. A context is an ISL set that
@@ -608,12 +608,12 @@ class buffer
       * rightmost dimension of the buffer (N2), the second vector element
       * represents N1, ...
       */
-    std::vector<coli::expr> dim_sizes;
+    std::vector<tiramisu::expr> dim_sizes;
 
     /**
       * The type of the elements of the buffer.
       */
-    coli::primitive_t type;
+    tiramisu::primitive_t type;
 
     /**
       * Buffer data.
@@ -621,19 +621,19 @@ class buffer
     uint8_t *data;
 
     /**
-      * The coli function where this buffer is declared or where the
+      * The tiramisu function where this buffer is declared or where the
       * buffer is an argument.
       */
-    coli::function *fct;
+    tiramisu::function *fct;
 
     /**
      * Type of the argument.
      */
-    coli::argument_t argtype;
+    tiramisu::argument_t argtype;
 
 public:
     /**
-      * Create a coli buffer where computations can be stored
+      * Create a tiramisu buffer where computations can be stored
       * or buffers bound to computation.
       * \p name is the name of the buffer.
       * \p nb_dims is the number of dimensions of the buffer.
@@ -643,7 +643,7 @@ public:
       * \p type is the type of the buffer.
       * \p data is the data stored in the buffer.  This is useful
       * for binding a computation to an already existing buffer.
-      * \p fct is i a pointer to a coli function where the buffer is
+      * \p fct is i a pointer to a tiramisu function where the buffer is
       * declared/used.
       * \p is_argument indicates whether the buffer is passed to the
       * function as an argument.  All the buffers passed as arguments
@@ -654,9 +654,9 @@ public:
       * This means that the buffers that are allocated within the
       * function cannot be used outside the function.
       */
-    buffer(std::string name, int nb_dims, std::vector<coli::expr> dim_sizes,
-           coli::primitive_t type, uint8_t *data,
-           coli::argument_t argt, coli::function *fct):
+    buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
+           tiramisu::primitive_t type, uint8_t *data,
+           tiramisu::argument_t argt, tiramisu::function *fct):
         name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
         data(data), fct(fct)
     {
@@ -667,7 +667,7 @@ public:
 
         argtype = argt;
 
-        fct->get_buffers_list().insert(std::pair<std::string, coli::buffer *>(name, this));
+        fct->get_buffers_list().insert(std::pair<std::string, tiramisu::buffer *>(name, this));
     };
 
     /**
@@ -689,7 +689,7 @@ public:
     /**
     * Return the type of buffer.
     */
-    coli::primitive_t get_type() const
+    tiramisu::primitive_t get_type() const
     {
         return type;
     }
@@ -705,7 +705,7 @@ public:
     /**
       * Return the type of the argument.
       */
-    coli::argument_t get_argument_type() const
+    tiramisu::argument_t get_argument_type() const
     {
         return argtype;
     }
@@ -716,7 +716,7 @@ public:
       * rightmost dimension of the buffer (N2), the second vector element
       * represents N1, ...
       */
-    const std::vector<coli::expr> &get_dim_sizes() const
+    const std::vector<tiramisu::expr> &get_dim_sizes() const
     {
         return dim_sizes;
     }
@@ -764,7 +764,7 @@ private:
     /**
       * The function where this computation is declared.
       */
-    coli::function *function;
+    tiramisu::function *function;
 
     /**
       * Halide statement that assigns the computation to a buffer location.
@@ -786,7 +786,7 @@ private:
     /**
      * Data type of the computation.
      */
-    coli::primitive_t data_type;
+    tiramisu::primitive_t data_type;
 
 
     /**
@@ -813,7 +813,7 @@ protected:
     /**
       * An expression representing the computation.
       */
-    coli::expr expression;
+    tiramisu::expr expression;
 
     /**
      * If set to true, the computation is scheduled, otherwise it is
@@ -832,10 +832,10 @@ protected:
       * by users.
       */
     void init_computation(std::string iteration_space_str,
-                          coli::function *fct,
-                          const coli::expr &e,
+                          tiramisu::function *fct,
+                          const tiramisu::expr &e,
                           bool schedule_this_computation,
-                          coli::primitive_t t) {
+                          tiramisu::primitive_t t) {
         assert(fct != NULL);
         assert(iteration_space_str.length()>0 && ("Empty iteration space"));
 
@@ -873,7 +873,7 @@ protected:
 
         this->schedule_this_computation = false;
         this->data_type = p_none;
-        this->expression = coli::expr();
+        this->expression = tiramisu::expr();
         this->statements_to_compute_before_me = NULL;
 
         this->ctx = NULL;
@@ -894,7 +894,7 @@ public:
     /**
      * Let statements that should be computed before this computation.
      */
-    coli::computation *statements_to_compute_before_me;
+    tiramisu::computation *statements_to_compute_before_me;
 
     /**
       * Create a computation and make it represent an expression.
@@ -926,12 +926,12 @@ public:
       *
       * \t is the type of the computation, i.e. the type of the elements of
       * the computation.
-      * \p fct is a pointer to the coli function where this computation
+      * \p fct is a pointer to the tiramisu function where this computation
       * should be added.
       */
-    computation(std::string iteration_space_str, coli::expr e,
-                bool schedule_this_computation, coli::primitive_t t,
-                coli::function *fct) {
+    computation(std::string iteration_space_str, tiramisu::expr e,
+                bool schedule_this_computation, tiramisu::primitive_t t,
+                tiramisu::function *fct) {
         init_computation(iteration_space_str, fct, e,
                          schedule_this_computation, t);
         _is_let_stmt = false;
@@ -968,18 +968,18 @@ public:
 
           if (this->is_let_stmt() == false)
           {
-              DEBUG(3, coli::str_dump("Original access:", isl_map_to_str(access)));
+              DEBUG(3, tiramisu::str_dump("Original access:", isl_map_to_str(access)));
 
               if (global::is_auto_data_mapping_set() == true)
               {
-                  DEBUG(3, coli::str_dump("Schedule to apply:", isl_map_to_str(this->get_schedule())));
+                  DEBUG(3, tiramisu::str_dump("Schedule to apply:", isl_map_to_str(this->get_schedule())));
                   access = isl_map_apply_domain(
                               isl_map_copy(access),
                               isl_map_copy(this->get_schedule()));
-                  DEBUG(3, coli::str_dump("Transformed access:", isl_map_to_str(access)));
+                  DEBUG(3, tiramisu::str_dump("Transformed access:", isl_map_to_str(access)));
               }
               else
-                  DEBUG(3, coli::str_dump("Access not transformed"));
+                  DEBUG(3, tiramisu::str_dump("Access not transformed"));
           }
 
           DEBUG_INDENT(-4);
@@ -988,10 +988,10 @@ public:
       }
 
     /**
-     * Return the coli expression associated with the computation
+     * Return the tiramisu expression associated with the computation
      * (RHS).
      */
-    const coli::expr &get_expr() const
+    const tiramisu::expr &get_expr() const
     {
         return expression;
     }
@@ -999,7 +999,7 @@ public:
     /**
       * Return the function where the computation is declared.
       */
-    coli::function *get_function() const
+    tiramisu::function *get_function() const
     {
         return function;
     }
@@ -1086,7 +1086,7 @@ public:
     /**
      * Get the data type of the computation.
      */
-    coli::primitive_t get_data_type() const
+    tiramisu::primitive_t get_data_type() const
     {
       return data_type;
     }
@@ -1099,7 +1099,7 @@ public:
         return stmt;
     }
 
-    bool operator==(coli::computation comp1)
+    bool operator==(tiramisu::computation comp1)
     {
       if (this->get_name() == comp1.get_name())
         return true;
@@ -1112,11 +1112,11 @@ public:
      * the elements [i,j] of the computation C0.
      */
     template<typename... Args>
-    coli::expr operator()(Args... args)
+    tiramisu::expr operator()(Args... args)
     {
-        std::vector<coli::expr> access_expressions{std::forward<Args>(args)...};
-        return coli::expr(coli::o_access,
-                          coli::expr(this->get_name()),
+        std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
+        return tiramisu::expr(tiramisu::o_access,
+                          tiramisu::expr(this->get_name()),
                           access_expressions,
                           this->get_data_type());
     }
@@ -1170,9 +1170,9 @@ public:
             isl_set_copy(this->get_iteration_domain()),
             isl_map_copy(this->get_schedule()));
 
-        DEBUG(3, coli::str_dump("Iteration domain:", isl_set_to_str(this->get_iteration_domain())));
-        DEBUG(3, coli::str_dump("Schedule:", isl_map_to_str(this->get_schedule())));
-        DEBUG(3, coli::str_dump("Generated time-space domain:", isl_set_to_str(time_processor_domain)));
+        DEBUG(3, tiramisu::str_dump("Iteration domain:", isl_set_to_str(this->get_iteration_domain())));
+        DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(this->get_schedule())));
+        DEBUG(3, tiramisu::str_dump("Generated time-space domain:", isl_set_to_str(time_processor_domain)));
 
         DEBUG_INDENT(-4);
     }
@@ -1283,7 +1283,7 @@ public:
         DEBUG_INDENT(4);
 
         isl_map *sched = this->gen_identity_schedule_for_iteration_domain();
-        DEBUG(3, coli::str_dump("The following identity schedule is set: ",
+        DEBUG(3, tiramisu::str_dump("The following identity schedule is set: ",
                                 isl_map_to_str(sched)));
         this->set_schedule(sched);
 
@@ -1342,7 +1342,7 @@ public:
     /**
      * Set the expression associated to the computation.
      */
-    void set_expression(const coli::expr &e)
+    void set_expression(const tiramisu::expr &e)
     {
         this->expression = e;
     }
@@ -1362,7 +1362,7 @@ public:
             map, isl_set_copy(this->get_iteration_domain()));
         map = isl_map_set_tuple_name(map, isl_dim_out, buff->get_name().c_str());
         map = isl_map_coalesce(map);
-        DEBUG(2, coli::str_dump("\nBinding.  The following access function is set: ",
+        DEBUG(2, tiramisu::str_dump("\nBinding.  The following access function is set: ",
                                 isl_map_to_str(map)));
         this->set_access(isl_map_to_str(map));
     }
@@ -1406,7 +1406,7 @@ public:
       * the constant that will hold the value of the constant.
       * \p param_expr is the expression that defines the value
       * of the constant.
-      * \p t indicates the coli type of the constant.
+      * \p t indicates the tiramisu type of the constant.
       * \p function_wide should be set to true if the constant is
       * defined at the entry of the function and is visible to all
       * the computations. i.e. it is declared the root level.
@@ -1426,12 +1426,12 @@ public:
       * loop level, ...
       * \p func is the function in which the constant is defined.
       */
-    constant(std::string param_name, const coli::expr &param_expr,
-             coli::primitive_t t,
+    constant(std::string param_name, const tiramisu::expr &param_expr,
+             tiramisu::primitive_t t,
              bool function_wide,
-             coli::computation *with_computation,
+             tiramisu::computation *with_computation,
              int at_iteration_space_dimension,
-             coli::function *func): coli::computation()
+             tiramisu::function *func): tiramisu::computation()
     {
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
@@ -1439,7 +1439,7 @@ public:
         assert((param_name.length() > 0) && "Parameter name empty");
         assert((func != NULL) && "Function undefined");
 
-        DEBUG(3, coli::str_dump("Declaring a constant."));
+        DEBUG(3, tiramisu::str_dump("Declaring a constant."));
 
         if (function_wide)
         {
@@ -1466,7 +1466,7 @@ public:
             iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
             std::string iteration_space_str = isl_set_to_str(iter);
 
-            DEBUG(3, coli::str_dump(
+            DEBUG(3, tiramisu::str_dump(
                         "Computed iteration space for the constant assignment",
                         isl_set_to_str(iter)));
 
@@ -1475,7 +1475,7 @@ public:
             _is_let_stmt = true;
 
             DEBUG_NO_NEWLINE(10,
-                     coli::str_dump("The computation representing the assignment:");
+                     tiramisu::str_dump("The computation representing the assignment:");
                      this->dump(true));
 
             assert(with_computation != NULL);

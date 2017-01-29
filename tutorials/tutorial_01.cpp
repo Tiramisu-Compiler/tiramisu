@@ -11,7 +11,7 @@
 #include <string.h>
 #include <Halide.h>
 
-using namespace coli;
+using namespace tiramisu;
 
 /*
 int N = 10;
@@ -22,11 +22,11 @@ for (int i=0; i<N; i++)
 
 int main(int argc, char **argv)
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
     // Declare a function.
-    // A function in coli is the equivalent of a function in C.
+    // A function in tiramisu is the equivalent of a function in C.
     // It can have input and output buffers.  The buffers are declared later.
     function function0("function0");
 
@@ -35,14 +35,14 @@ int main(int argc, char **argv)
     // Buffers of type a_output or type::argument::input
     // should be allocated outside the function and passed as arguments to the
     // function.  Buffers of type type::argument::temporary are
-    // allocated automatically by coli within the function and thus should
+    // allocated automatically by tiramisu within the function and thus should
     // not be passed as arguments to the function.
-    buffer buf0("buf0", 2, {coli::expr(10),coli::expr(10)}, p_uint8, NULL, a_output, &function0);
+    buffer buf0("buf0", 2, {tiramisu::expr(10),tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the
     // function.
-    coli::expr e_N = expr((int32_t) 10);
+    tiramisu::expr e_N = expr((int32_t) 10);
     constant N("N", e_N, p_int32, true, NULL, 0, &function0);
 
     // Declare a expressions that will be associated with the
@@ -51,11 +51,11 @@ int main(int argc, char **argv)
     // Declare a computation within function0.
     // To declare a computation, you need to provide:
     // (1) an ISL set representing the iteration space of the computation,
-    // coli uses the ISL syntax for sets and maps.  This syntax is described
+    // tiramisu uses the ISL syntax for sets and maps.  This syntax is described
     // in http://barvinok.gforge.inria.fr/barvinok.pdf (Sections
     // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
     // relations),
-    // (2) a coli expression that represents the computation,
+    // (2) a tiramisu expression that represents the computation,
     // (3) the function in which the computation will be declared.
     computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e3, true, p_uint8, &function0);
 
@@ -109,10 +109,10 @@ int main(int argc, char **argv)
 
 /**
  * Assumptions
- * - Note that the name used during the construction of a coli object and the
+ * - Note that the name used during the construction of a tiramisu object and the
  *   identifier of that object are identical (for example buf0, "buf0").
  *   This is not required but highly recommended as it simplifies reading
- *   coli code and prevents errors.
+ *   tiramisu code and prevents errors.
  * -
  *
  * Current limitations:

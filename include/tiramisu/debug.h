@@ -13,7 +13,7 @@
  */
 #define ENABLE_DEBUG 1
 
-namespace coli
+namespace tiramisu
 {
     void str_dump(std::string str);
     void str_dump(std::string str, const char * str2);
@@ -22,25 +22,25 @@ namespace coli
 
     void error(std::string str, bool exit);
 
-    extern int coli_indentation;
+    extern int tiramisu_indentation;
 }
 
 /**
  * Print function name.
  */
 #define DEBUG_FCT_NAME(LEVEL) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-                                coli::print_indentation();\
-                                coli::str_dump("[");\
-                                coli::str_dump(__FUNCTION__);\
-                                coli::str_dump(" function]\n");}}
+                                tiramisu::print_indentation();\
+                                tiramisu::str_dump("[");\
+                                tiramisu::str_dump(__FUNCTION__);\
+                                tiramisu::str_dump(" function]\n");}}
 
 /**
  * Run \p STMT if the debugging level is above \p LEVEL.
  */
 #define DEBUG(LEVEL,STMT) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-                                coli::print_indentation();\
+                                tiramisu::print_indentation();\
                                 STMT;\
-                                coli::str_dump("\n");}};
+                                tiramisu::str_dump("\n");}};
 
 /**
  * Run \p STMT if the debugging level is above \p LEVEL.
@@ -48,13 +48,13 @@ namespace coli
  * the end of DEBUG.
  */
 #define DEBUG_NO_NEWLINE(LEVEL,STMT) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
-                                coli::print_indentation();\
+                                tiramisu::print_indentation();\
                                 STMT;}};
 
 /**
  * Change the indentation printed before running IF_DEBUG.
  * Useful to indent the text printed by IF_DEBUG.
  */
-#define DEBUG_INDENT(x) {coli::coli_indentation = coli::coli_indentation + x;}
+#define DEBUG_INDENT(x) {tiramisu::tiramisu_indentation = tiramisu::tiramisu_indentation + x;}
 
 #endif

@@ -18,15 +18,15 @@ int main(int, char**)
     Halide::Image<uint8_t> output_ref_u(input.width()/2, input.height()/2);
     Halide::Image<uint8_t> output_ref_v(input.width()/2, input.height()/2);
 
-    Halide::Image<uint8_t> output_coli_y(input.width(), input.height());
-    Halide::Image<uint8_t> output_coli_u(input.width()/2, input.height()/2);
-    Halide::Image<uint8_t> output_coli_v(input.width()/2, input.height()/2);
+    Halide::Image<uint8_t> output_tiramisu_y(input.width(), input.height());
+    Halide::Image<uint8_t> output_tiramisu_u(input.width()/2, input.height()/2);
+    Halide::Image<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
 
     // COLi
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        rgbyuv420_coli(input, output_coli_y, output_coli_u, output_coli_v);
+        rgbyuv420_tiramisu(input, output_tiramisu_y, output_tiramisu_u, output_tiramisu_v);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -48,9 +48,9 @@ int main(int, char**)
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
 
-    Halide::Tools::save_image(output_coli_y, "./build/rgbyuv420_y_coli.png");
-    Halide::Tools::save_image(output_coli_u, "./build/rgbyuv420_u_coli.png");
-    Halide::Tools::save_image(output_coli_v, "./build/rgbyuv420_v_coli.png");
+    Halide::Tools::save_image(output_tiramisu_y, "./build/rgbyuv420_y_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_u, "./build/rgbyuv420_u_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_v, "./build/rgbyuv420_v_tiramisu.png");
     Halide::Tools::save_image(output_ref_y, "./build/rgbyuv420_y_ref.png");
     Halide::Tools::save_image(output_ref_u, "./build/rgbyuv420_u_ref.png");
     Halide::Tools::save_image(output_ref_v, "./build/rgbyuv420_v_ref.png");

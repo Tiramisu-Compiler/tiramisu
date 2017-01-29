@@ -13,14 +13,14 @@
 #include <string>
 
 
-void coli::function::gen_c_code() const
+void tiramisu::function::gen_c_code() const
 {
-    coli::str_dump("\n\n");
-    coli::str_dump("\nC like code:\n");
+    tiramisu::str_dump("\n\n");
+    tiramisu::str_dump("\nC like code:\n");
     isl_printer *p;
     p = isl_printer_to_file(this->get_ctx(), stdout);
     p = isl_printer_set_output_format(p, ISL_FORMAT_C);
     p = isl_printer_print_ast_node(p, this->get_isl_ast());
     isl_printer_free(p);
-    coli::str_dump("\n\n");
+    tiramisu::str_dump("\n\n");
 }

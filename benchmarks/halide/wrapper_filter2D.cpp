@@ -26,7 +26,7 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        filter2D_coli(input, kernel, output1);
+        filter2D_tiramisu(input, kernel, output1);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -48,7 +48,7 @@ int main(int, char**)
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
 
-    Halide::Tools::save_image(output1, "./build/filter2D_coli.png");
+    Halide::Tools::save_image(output1, "./build/filter2D_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/filter2D_ref.png");
 
     return 0;

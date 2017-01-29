@@ -28,7 +28,7 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        heat2d_coli(input, output1);
+        heat2d_tiramisu(input, output1);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -48,7 +48,7 @@ int main(int, char**)
                {"  COLi "," Halide "},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    Halide::Tools::save_image(output1, "./build/heat2d_coli.png");
+    Halide::Tools::save_image(output1, "./build/heat2d_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/heat2d_ref.png");
 
     return 0;

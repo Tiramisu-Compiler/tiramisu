@@ -41,7 +41,7 @@ consume f {
 
 void generate_function_1(int size)
 {
-    coli::global::set_default_coli_options();
+    tiramisu::global::set_default_tiramisu_options();
 
     Var x("x"), y("y");
     Func f("f");
@@ -86,13 +86,13 @@ void generate_function_1(int size)
 
     std::cout << "Test Halide Stmt:\n" << s << "\n\n";
 
-    coli::function func("f");
+    tiramisu::function func("f");
 
     map<string, Function> env = { {"f", f.function()} };
     vector<int32_t> f_size = {size, size};
     map<string, vector<int32_t>> output_buffers_size = { {"f", f_size} };
-    coli::HalideCodegenOutput codegen_output =
-        halide_pipeline_to_coli_function(s, {f.function()}, env, output_buffers_size, &func);
+    tiramisu::HalideCodegenOutput codegen_output =
+        halide_pipeline_to_tiramisu_function(s, {f.function()}, env, output_buffers_size, &func);
 
     const auto iter = codegen_output.output_buffers.find("buff_f");
     assert(iter != codegen_output.output_buffers.end());

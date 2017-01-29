@@ -16,45 +16,45 @@ using std::map;
 using std::set;
 using std::vector;
 
-namespace coli
+namespace tiramisu
 {
 
-coli::primitive_t halide_type_to_coli_type(Type type)
+tiramisu::primitive_t halide_type_to_tiramisu_type(Type type)
 {
     if (type.is_uint()) {
         if (type.bits() == 8) {
-            return coli::p_uint8;
+            return tiramisu::p_uint8;
         } else if (type.bits() == 16) {
-            return coli::p_uint16;
+            return tiramisu::p_uint16;
         } else if (type.bits() == 32) {
-            return coli::p_uint32;
+            return tiramisu::p_uint32;
         } else {
-            return coli::p_uint64;
+            return tiramisu::p_uint64;
         }
     } else if (type.is_int()) {
         if (type.bits() == 8) {
-            return coli::p_int8;
+            return tiramisu::p_int8;
         } else if (type.bits() == 16) {
-            return coli::p_int16;
+            return tiramisu::p_int16;
         } else if (type.bits() == 32) {
-            return coli::p_int32;
+            return tiramisu::p_int32;
         } else {
-            return coli::p_int64;
+            return tiramisu::p_int64;
         }
     } else if (type.is_float()) {
         if (type.bits() == 32) {
-            return coli::p_float32;
+            return tiramisu::p_float32;
         } else if (type.bits() == 64) {
-            return coli::p_float64;
+            return tiramisu::p_float64;
         } else {
-            coli::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
+            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
         }
     } else if (type.is_bool()) {
-        return coli::p_boolean;
+        return tiramisu::p_boolean;
     } else {
-        coli::error("Halide type cannot be translated to Coli type.", true);
+        tiramisu::error("Halide type cannot be translated to Coli type.", true);
     }
-    return coli::p_none;
+    return tiramisu::p_none;
 }
 
 namespace
@@ -77,14 +77,14 @@ class HalideToColi : public IRVisitor {
 private:
     const vector<Function> &outputs;
     const map<string, Function> &env;
-    const map<string, coli::buffer *> &output_buffers;
-    coli::function *func; // Represent one Halide pipeline
+    const map<string, tiramisu::buffer *> &output_buffers;
+    tiramisu::function *func; // Represent one Halide pipeline
     Scope<Expr> &scope; // Scope of the variables
 
-    map<string, coli::buffer *> temporary_buffers;
+    map<string, tiramisu::buffer *> temporary_buffers;
 
     void error() const {
-        coli::error("Can't convert to coli expr.", true);
+        tiramisu::error("Can't convert to tiramisu expr.", true);
     }
 
     void push_loop_dim(const For *op) {
@@ -124,9 +124,9 @@ private:
     void define_constant(const string &name, Expr value);
 
 public:
-    coli::expr expr;
-    map<string, coli::computation *> computation_list;
-    map<string, coli::constant *> constant_list;
+    tiramisu::expr expr;
+    map<string, tiramisu::computation *> computation_list;
+    map<string, tiramisu::constant *> constant_list;
 
     struct Loop {
         std::string name;
@@ -145,11 +145,11 @@ public:
     HalideToColi(Scope<Expr> &s,
                  const vector<Function> &outputs,
                  const map<string, Function> &env,
-                 const map<string, coli::buffer *> &output_buffers,
-                 coli::function *f)
+                 const map<string, tiramisu::buffer *> &output_buffers,
+                 tiramisu::function *f)
            : outputs(outputs), env(env), output_buffers(output_buffers), func(f), scope(s) {}
 
-    coli::expr mutate(Expr e) {
+    tiramisu::expr mutate(Expr e) {
         assert(e.defined() && "HalideToColi can't convert undefined expr\n");
         // For now, substitute in all lets to make life easier (does not substitute in lets in stmt though)
         e = substitute_in_all_lets(e);
@@ -213,35 +213,35 @@ protected:
 
 void HalideToColi::visit(const IntImm *op) {
     if (op->type.bits() == 8) {
-        expr = coli::expr((int8_t)op->value);
+        expr = tiramisu::expr((int8_t)op->value);
     } else if (op->type.bits() == 16) {
-        expr = coli::expr((int16_t)op->value);
+        expr = tiramisu::expr((int16_t)op->value);
     } else if (op->type.bits() == 32) {
-        expr = coli::expr((int32_t)op->value);
+        expr = tiramisu::expr((int32_t)op->value);
     } else {
         // 64-bit signed integer
-        expr = coli::expr(op->value);
+        expr = tiramisu::expr(op->value);
     }
 }
 
 void HalideToColi::visit(const UIntImm *op) {
     if (op->type.bits() == 8) {
-        expr = coli::expr((uint8_t)op->value);
+        expr = tiramisu::expr((uint8_t)op->value);
     } else if (op->type.bits() == 16) {
-        expr = coli::expr((uint16_t)op->value);
+        expr = tiramisu::expr((uint16_t)op->value);
     } else if (op->type.bits() == 32) {
-        expr = coli::expr((uint32_t)op->value);
+        expr = tiramisu::expr((uint32_t)op->value);
     } else {
         // 64-bit unsigned integer
-        expr = coli::expr(op->value);
+        expr = tiramisu::expr(op->value);
     }
 }
 
 void HalideToColi::visit(const FloatImm *op) {
     if (op->type.bits() == 32) {
-        expr = coli::expr((float)op->value);
+        expr = tiramisu::expr((float)op->value);
     } else if (op->type.bits() == 64) {
-        expr = coli::expr(op->value);
+        expr = tiramisu::expr(op->value);
     } else {
         // Only support 32- and 64-bit integer
         error();
@@ -263,110 +263,110 @@ void HalideToColi::visit(const Variable *op) {
         expr = (*iter->second)(0);
     } else {
         // It is presumably a reference to loop variable
-        expr = coli::idx(op->name);
+        expr = tiramisu::idx(op->name);
     }
 }
 
 void HalideToColi::visit(const Add *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = a + b;
 }
 
 void HalideToColi::visit(const Sub *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = a - b;
 }
 
 void HalideToColi::visit(const Mul *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = a * b;
 }
 
 void HalideToColi::visit(const Div *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = a / b;
 }
 
 void HalideToColi::visit(const Mod *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = a % b;
 }
 
 void HalideToColi::visit(const Min *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
-    expr = coli::expr(coli::o_min, a, b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
+    expr = tiramisu::expr(tiramisu::o_min, a, b);
 }
 
 void HalideToColi::visit(const Max *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
-    expr = coli::expr(coli::o_max, a, b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
+    expr = tiramisu::expr(tiramisu::o_max, a, b);
 }
 
 void HalideToColi::visit(const EQ *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a == b);
 }
 
 void HalideToColi::visit(const NE *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a != b);
 }
 
 void HalideToColi::visit(const LT *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a < b);
 }
 
 void HalideToColi::visit(const LE *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a <= b);
 }
 
 void HalideToColi::visit(const GT *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a > b);
 }
 
 void HalideToColi::visit(const GE *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a >= b);
 }
 
 void HalideToColi::visit(const And *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a && b);
 }
 
 void HalideToColi::visit(const Or *op) {
-    coli::expr a = mutate(op->a);
-    coli::expr b = mutate(op->b);
+    tiramisu::expr a = mutate(op->a);
+    tiramisu::expr b = mutate(op->b);
     expr = (a || b);
 }
 
 void HalideToColi::visit(const Not *op) {
-    coli::expr a = mutate(op->a);
+    tiramisu::expr a = mutate(op->a);
     expr = !a;
 }
 
 void HalideToColi::visit(const Select *op) {
-    coli::expr cond = mutate(op->condition);
-    coli::expr t = mutate(op->true_value);
-    coli::expr f = mutate(op->false_value);
-    expr = coli::expr(coli::o_cond, cond, t, f);
+    tiramisu::expr cond = mutate(op->condition);
+    tiramisu::expr t = mutate(op->true_value);
+    tiramisu::expr f = mutate(op->false_value);
+    expr = tiramisu::expr(tiramisu::o_cond, cond, t, f);
 }
 
 void HalideToColi::visit(const Let *op) {
@@ -393,8 +393,8 @@ void HalideToColi::define_constant(const string &name, Expr val) {
     assert((constant_list.find(name) == constant_list.end()) && "Redefinition of lets is not supported right now.\n");
 
     val = simplify(val);
-    coli::expr value = mutate(val);
-    coli::constant *c_const = new coli::constant(name, value, halide_type_to_coli_type(val.type()), true, NULL, 0, func);
+    tiramisu::expr value = mutate(val);
+    tiramisu::constant *c_const = new tiramisu::constant(name, value, halide_type_to_tiramisu_type(val.type()), true, NULL, 0, func);
     constant_list.emplace(name, c_const);
 }
 
@@ -452,15 +452,15 @@ void HalideToColi::visit(const Provide *op) {
     }
 
     assert((op->values.size() == 1) && "Expect 1D store (no tuple) in the Provide node for now.\n");
-    vector<coli::expr> values(op->values.size());
+    vector<tiramisu::expr> values(op->values.size());
     for (size_t i = 0; i < op->values.size(); ++i) {
         values[i] = mutate(op->values[i]);
     }
 
     string dims_str = to_string(op->args);
     string iter_space_str = get_loop_bound_vars() + "->{" + op->name + dims_str + ": " + get_loop_bounds() + "}";
-    coli::computation *compute = new coli::computation(
-        iter_space_str, values[0], true, halide_type_to_coli_type(op->values[0].type()), func);
+    tiramisu::computation *compute = new tiramisu::computation(
+        iter_space_str, values[0], true, halide_type_to_tiramisu_type(op->values[0].type()), func);
 
     // 1-to-1 mapping to buffer
     string access_str = "{" + op->name + dims_str + "->" + "buff_" + op->name + dims_str + "}";
@@ -494,15 +494,15 @@ void HalideToColi::visit(const Realize *op) {
     }
 
     // Create a temporary buffer
-    vector<coli::expr> extents(op->bounds.size());
+    vector<tiramisu::expr> extents(op->bounds.size());
     for (size_t i = 0; i < op->bounds.size(); ++i) {
         extents[i] = mutate(op->bounds[i].extent);
     }
 
     string buffer_name = "buff_" + op->name;
-    coli::buffer *produce_buffer = new coli::buffer(
+    tiramisu::buffer *produce_buffer = new tiramisu::buffer(
         buffer_name, extents.size(), extents,
-        halide_type_to_coli_type(op->types[0]), NULL, a_temporary, func);
+        halide_type_to_tiramisu_type(op->types[0]), NULL, a_temporary, func);
     temporary_buffers.emplace(buffer_name, produce_buffer);
 
     mutate(op->body);
@@ -514,7 +514,7 @@ void HalideToColi::visit(const Call *op) {
     const auto iter = computation_list.find(op->name);
     assert(iter != computation_list.end() && "Call to computation that does not exist.\n");
 
-    vector<coli::expr> args(op->args.size());
+    vector<tiramisu::expr> args(op->args.size());
     for (size_t i = 0; i < op->args.size(); ++i) {
         args[i] = mutate(op->args[i]);
     }
@@ -528,12 +528,12 @@ void HalideToColi::visit(const Block *op) {
 
 } // anonymous namespace
 
-coli::HalideCodegenOutput halide_pipeline_to_coli_function(
+tiramisu::HalideCodegenOutput halide_pipeline_to_tiramisu_function(
         Stmt s, const vector<Function> &outputs, const map<string, Function> &env,
         const map<string, vector<int32_t>> &output_buffers_size,
-        coli::function *func) {
+        tiramisu::function *func) {
 
-    map<string, coli::buffer *> output_buffers;
+    map<string, tiramisu::buffer *> output_buffers;
     Scope<Expr> scope;
 
     // Allocate the output buffers
@@ -541,9 +541,9 @@ coli::HalideCodegenOutput halide_pipeline_to_coli_function(
         const auto iter = output_buffers_size.find(f.name());
         assert(iter != output_buffers_size.end());
 
-        vector<coli::expr> sizes(iter->second.size());
+        vector<tiramisu::expr> sizes(iter->second.size());
         for (size_t i = 0; i < iter->second.size(); ++i) {
-            sizes[i] = coli::expr(iter->second[i]);
+            sizes[i] = tiramisu::expr(iter->second[i]);
             scope.push(f.name() + "_min_" + std::to_string(i), make_const(Int(32), 0));
             scope.push(f.name() + "_extent_" + std::to_string(i), make_const(Int(32), iter->second[i]));
         }
@@ -551,14 +551,14 @@ coli::HalideCodegenOutput halide_pipeline_to_coli_function(
 
         string buffer_name = "buff_" + f.name();
         //TODO(psuriana): should make the buffer data type variable instead of uint8_t always
-        coli::buffer *output_buffer = new coli::buffer(
+        tiramisu::buffer *output_buffer = new tiramisu::buffer(
             buffer_name, f.args().size(), sizes, p_uint8, NULL, a_output, func);
         output_buffers.emplace(buffer_name, output_buffer);
     }
 
     HalideToColi converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);
-    return coli::HalideCodegenOutput(std::move(converter.computation_list),
+    return tiramisu::HalideCodegenOutput(std::move(converter.computation_list),
                                      std::move(converter.constant_list),
                                      std::move(output_buffers));
 }

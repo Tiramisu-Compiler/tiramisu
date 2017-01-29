@@ -12,21 +12,21 @@
 #include <Halide.h>
 #include "halide_image_io.h"
 
-using namespace coli;
+using namespace tiramisu;
 
 #define SIZE0 240
 #define SIZE1 240
 #define DATA_TYPE p_uint16
 
-void generate_coli_obj_file()
+void generate_tiramisu_obj_file()
 {
-    // Set default coli options.
-    global::set_default_coli_options();
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
 
-    function stencil1("stencil1_coli");
-    buffer in("in", 1, {coli::expr(SIZE0)}, DATA_TYPE, NULL, a_input, &stencil1);
-    buffer b0("b0", 1, {coli::expr(SIZE0)}, DATA_TYPE, NULL, a_temporary, &stencil1);
-    buffer b1("b1", 1, {coli::expr(SIZE0)}, DATA_TYPE, NULL, a_output, &stencil1);
+    function stencil1("stencil1_tiramisu");
+    buffer in("in", 1, {tiramisu::expr(SIZE0)}, DATA_TYPE, NULL, a_input, &stencil1);
+    buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, DATA_TYPE, NULL, a_temporary, &stencil1);
+    buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, DATA_TYPE, NULL, a_output, &stencil1);
     constant N("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &stencil1);
 
     idx i = idx("i");
@@ -66,7 +66,7 @@ void generate_coli_obj_file()
 
 int main(int argc, char **argv)
 {
-    generate_coli_obj_file();
+    generate_tiramisu_obj_file();
 
     return 0;
 }
