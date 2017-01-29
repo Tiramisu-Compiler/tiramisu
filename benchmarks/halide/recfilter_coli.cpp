@@ -86,6 +86,9 @@ int main(int argc, char **argv)
 
     // Add schedules.
     rec_filter_s0.tag_parallel_dimension(1);
+    rec_filter_s0.tag_parallel_dimension(0);
+    rec_filter_s1.tag_parallel_dimension(1);
+    rec_filter_s1.tag_parallel_dimension(0);
 
     recfilter_coli.set_arguments({&buff_b0, &buff_rec_filter});
     recfilter_coli.gen_time_processor_domain();
