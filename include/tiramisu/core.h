@@ -83,7 +83,7 @@ private:
 
     /**
       * A vector representing the invariants of the function.
-      * An object of the invariant class is usually used to repsent
+      * An object of the invariant class is usually used to represent
       * function invariants (symbolic constants or
       * variables that are invariant to the function i.e. do not change
       * their value during the execution of the function).
