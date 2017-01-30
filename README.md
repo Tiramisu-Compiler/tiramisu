@@ -44,7 +44,7 @@ To build Tiramisu
 
 You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
 
-    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<COLI_ROOT_DIRECTORY>/Halide/lib/
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
 
 To build documentation (doxygen required)
 

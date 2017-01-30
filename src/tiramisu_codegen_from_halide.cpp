@@ -47,12 +47,12 @@ tiramisu::primitive_t halide_type_to_tiramisu_type(Type type)
         } else if (type.bits() == 64) {
             return tiramisu::p_float64;
         } else {
-            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
+            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Tiramisu.", true);
         }
     } else if (type.is_bool()) {
         return tiramisu::p_boolean;
     } else {
-        tiramisu::error("Halide type cannot be translated to Coli type.", true);
+        tiramisu::error("Halide type cannot be translated to Tiramisu type.", true);
     }
     return tiramisu::p_none;
 }
@@ -73,7 +73,7 @@ std::string to_string(const std::vector<Expr>& v) {
     return stream.str();
 }
 
-class HalideToColi : public IRVisitor {
+class HalideToTiramisu : public IRVisitor {
 private:
     const vector<Function> &outputs;
     const map<string, Function> &env;
@@ -142,15 +142,15 @@ public:
 
     vector<Loop> loop_dims;
 
-    HalideToColi(Scope<Expr> &s,
-                 const vector<Function> &outputs,
-                 const map<string, Function> &env,
-                 const map<string, tiramisu::buffer *> &output_buffers,
-                 tiramisu::function *f)
-           : outputs(outputs), env(env), output_buffers(output_buffers), func(f), scope(s) {}
+    HalideToTiramisu(Scope<Expr> &s,
+                     const vector<Function> &outputs,
+                     const map<string, Function> &env,
+                     const map<string, tiramisu::buffer *> &output_buffers,
+                     tiramisu::function *f)
+        : outputs(outputs), env(env), output_buffers(output_buffers), func(f), scope(s) {}
 
     tiramisu::expr mutate(Expr e) {
-        assert(e.defined() && "HalideToColi can't convert undefined expr\n");
+        assert(e.defined() && "HalideToTiramisu can't convert undefined expr\n");
         // For now, substitute in all lets to make life easier (does not substitute in lets in stmt though)
         e = substitute_in_all_lets(e);
         e.accept(this);
@@ -158,7 +158,7 @@ public:
     }
 
     void mutate(Stmt s) {
-        assert(s.defined() && "HalideToColi can't convert undefined stmt\n");
+        assert(s.defined() && "HalideToTiramisu can't convert undefined stmt\n");
         // For now, substitute in all lets to make life easier (does not substitute in lets in stmt though)
         s = substitute_in_all_lets(s);
         s.accept(this);
@@ -211,7 +211,7 @@ protected:
     void visit(const Realize *);
 };
 
-void HalideToColi::visit(const IntImm *op) {
+void HalideToTiramisu::visit(const IntImm *op) {
     if (op->type.bits() == 8) {
         expr = tiramisu::expr((int8_t)op->value);
     } else if (op->type.bits() == 16) {
@@ -224,7 +224,7 @@ void HalideToColi::visit(const IntImm *op) {
     }
 }
 
-void HalideToColi::visit(const UIntImm *op) {
+void HalideToTiramisu::visit(const UIntImm *op) {
     if (op->type.bits() == 8) {
         expr = tiramisu::expr((uint8_t)op->value);
     } else if (op->type.bits() == 16) {
@@ -237,7 +237,7 @@ void HalideToColi::visit(const UIntImm *op) {
     }
 }
 
-void HalideToColi::visit(const FloatImm *op) {
+void HalideToTiramisu::visit(const FloatImm *op) {
     if (op->type.bits() == 32) {
         expr = tiramisu::expr((float)op->value);
     } else if (op->type.bits() == 64) {
@@ -248,11 +248,11 @@ void HalideToColi::visit(const FloatImm *op) {
     }
 }
 
-void HalideToColi::visit(const Cast *op) {
+void HalideToTiramisu::visit(const Cast *op) {
     error();
 }
 
-void HalideToColi::visit(const Variable *op) {
+void HalideToTiramisu::visit(const Variable *op) {
     assert(!op->param.defined() && "Can only handle simple variable for now.\n");
     assert(!op->image.defined() && "Can only handle simple variable for now.\n");
 
@@ -267,119 +267,119 @@ void HalideToColi::visit(const Variable *op) {
     }
 }
 
-void HalideToColi::visit(const Add *op) {
+void HalideToTiramisu::visit(const Add *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = a + b;
 }
 
-void HalideToColi::visit(const Sub *op) {
+void HalideToTiramisu::visit(const Sub *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = a - b;
 }
 
-void HalideToColi::visit(const Mul *op) {
+void HalideToTiramisu::visit(const Mul *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = a * b;
 }
 
-void HalideToColi::visit(const Div *op) {
+void HalideToTiramisu::visit(const Div *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = a / b;
 }
 
-void HalideToColi::visit(const Mod *op) {
+void HalideToTiramisu::visit(const Mod *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = a % b;
 }
 
-void HalideToColi::visit(const Min *op) {
+void HalideToTiramisu::visit(const Min *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = tiramisu::expr(tiramisu::o_min, a, b);
 }
 
-void HalideToColi::visit(const Max *op) {
+void HalideToTiramisu::visit(const Max *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = tiramisu::expr(tiramisu::o_max, a, b);
 }
 
-void HalideToColi::visit(const EQ *op) {
+void HalideToTiramisu::visit(const EQ *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a == b);
 }
 
-void HalideToColi::visit(const NE *op) {
+void HalideToTiramisu::visit(const NE *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a != b);
 }
 
-void HalideToColi::visit(const LT *op) {
+void HalideToTiramisu::visit(const LT *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a < b);
 }
 
-void HalideToColi::visit(const LE *op) {
+void HalideToTiramisu::visit(const LE *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a <= b);
 }
 
-void HalideToColi::visit(const GT *op) {
+void HalideToTiramisu::visit(const GT *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a > b);
 }
 
-void HalideToColi::visit(const GE *op) {
+void HalideToTiramisu::visit(const GE *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a >= b);
 }
 
-void HalideToColi::visit(const And *op) {
+void HalideToTiramisu::visit(const And *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a && b);
 }
 
-void HalideToColi::visit(const Or *op) {
+void HalideToTiramisu::visit(const Or *op) {
     tiramisu::expr a = mutate(op->a);
     tiramisu::expr b = mutate(op->b);
     expr = (a || b);
 }
 
-void HalideToColi::visit(const Not *op) {
+void HalideToTiramisu::visit(const Not *op) {
     tiramisu::expr a = mutate(op->a);
     expr = !a;
 }
 
-void HalideToColi::visit(const Select *op) {
+void HalideToTiramisu::visit(const Select *op) {
     tiramisu::expr cond = mutate(op->condition);
     tiramisu::expr t = mutate(op->true_value);
     tiramisu::expr f = mutate(op->false_value);
     expr = tiramisu::expr(tiramisu::o_cond, cond, t, f);
 }
 
-void HalideToColi::visit(const Let *op) {
+void HalideToTiramisu::visit(const Let *op) {
     error(); // Should not have encountered this since we called substitute_in_all_lets before mutating
 }
 
-void HalideToColi::visit(const LetStmt *op) {
+void HalideToTiramisu::visit(const LetStmt *op) {
     scope.push(op->name, op->value);
     mutate(op->body);
     scope.pop(op->name);
 }
 
-void HalideToColi::visit(const ProducerConsumer *op) {
+void HalideToTiramisu::visit(const ProducerConsumer *op) {
     assert((op->body.as<Block>() == NULL) && "Does not currently handle update.\n");
     assert((!op->is_producer || (computation_list.find(op->name) == computation_list.end())) &&
            "Found another computation with the same name.\n");
@@ -389,7 +389,7 @@ void HalideToColi::visit(const ProducerConsumer *op) {
     loop_dims = old_loop_dims;
 }
 
-void HalideToColi::define_constant(const string &name, Expr val) {
+void HalideToTiramisu::define_constant(const string &name, Expr val) {
     assert((constant_list.find(name) == constant_list.end()) && "Redefinition of lets is not supported right now.\n");
 
     val = simplify(val);
@@ -398,7 +398,7 @@ void HalideToColi::define_constant(const string &name, Expr val) {
     constant_list.emplace(name, c_const);
 }
 
-void HalideToColi::visit(const For *op) {
+void HalideToTiramisu::visit(const For *op) {
     push_loop_dim(op);
 
     const Variable *min = op->min.as<Variable>();
@@ -432,15 +432,15 @@ void HalideToColi::visit(const For *op) {
     pop_loop_dim();
 }
 
-void HalideToColi::visit(const Evaluate *op) {
+void HalideToTiramisu::visit(const Evaluate *op) {
     IRVisitor::visit(op);
 }
 
-void HalideToColi::visit(const Load *op) {
+void HalideToTiramisu::visit(const Load *op) {
     error(); // Load to external buffer is not currently supported
 }
 
-void HalideToColi::visit(const Provide *op) {
+void HalideToTiramisu::visit(const Provide *op) {
     assert((computation_list.find(op->name) == computation_list.end())
            && "Duplicate computation is not currently supported.\n");
     assert((temporary_buffers.count("buff_" + op->name) || output_buffers.count("buff_" + op->name))
@@ -469,7 +469,7 @@ void HalideToColi::visit(const Provide *op) {
     computation_list.emplace(op->name, compute);
 }
 
-void HalideToColi::visit(const Realize *op) {
+void HalideToTiramisu::visit(const Realize *op) {
     // We will ignore the condition on the Realize node for now.
 
     assert((temporary_buffers.find("buff_" + op->name) == temporary_buffers.end())
@@ -508,7 +508,7 @@ void HalideToColi::visit(const Realize *op) {
     mutate(op->body);
 }
 
-void HalideToColi::visit(const Call *op) {
+void HalideToTiramisu::visit(const Call *op) {
     assert((op->call_type == Call::CallType::Halide) && "Only handle call to halide func for now.\n");
 
     const auto iter = computation_list.find(op->name);
@@ -521,7 +521,7 @@ void HalideToColi::visit(const Call *op) {
     expr = (*iter->second)(args);
 }
 
-void HalideToColi::visit(const Block *op) {
+void HalideToTiramisu::visit(const Block *op) {
     mutate(op->first);
     mutate(op->rest);
 }
@@ -556,7 +556,7 @@ tiramisu::HalideCodegenOutput halide_pipeline_to_tiramisu_function(
         output_buffers.emplace(buffer_name, output_buffer);
     }
 
-    HalideToColi converter(scope, outputs, env, output_buffers, func);
+    HalideToTiramisu converter(scope, outputs, env, output_buffers, func);
     converter.mutate(s);
     return tiramisu::HalideCodegenOutput(std::move(converter.computation_list),
                                      std::move(converter.constant_list),
