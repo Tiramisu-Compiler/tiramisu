@@ -1,4 +1,4 @@
-# Set the following PATHs before compiling COLi
+# Set the following PATHs before compiling Tiramisu
 ISL_INCLUDE_DIRECTORY=/usr/local/include
 ISL_LIB_DIRECTORY=/usr/local/lib
 HALIDE_SOURCE_DIRECTORY=Halide
@@ -25,7 +25,7 @@ TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 b
 
 BENCH_REF_GEN=build/bench_halide_divergence2d_generator build/bench_halide_heat2d_generator build/bench_halide_cvtcolor_generator build/bench_halide_filter2D_generator build/bench_halide_blurxy_generator build/bench_halide_recfilter_generator build/bench_halide_gaussian_generator build/bench_halide_fusion_generator build/bench_halide_recfilter_generator build/bench_halide_heat2d_generator build/bench_halide_divergence2d_generator
 # Not supported yet: build/bench_halide_rgbyuv420_generator
-BENCH_COLI_GEN=build/bench_tiramisu_divergence2d_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_cvtcolor_generator build/bench_tiramisu_filter2D_generator build/bench_tiramisu_blurxy_generator build/bench_tiramisu_recfilter_generator build/bench_halide_recfilter_generator build/bench_tiramisu_fusion_generator build/bench_tiramisu_gaussian_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_divergence2d_generator
+BENCH_TIRAMISU_GEN=build/bench_tiramisu_divergence2d_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_cvtcolor_generator build/bench_tiramisu_filter2D_generator build/bench_tiramisu_blurxy_generator build/bench_tiramisu_recfilter_generator build/bench_halide_recfilter_generator build/bench_tiramisu_fusion_generator build/bench_tiramisu_gaussian_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_divergence2d_generator
 # Not supported yet: build/bench_tiramisu_rgbyuv420_generator
 BENCH_BIN=build/bench_divergence2d build/bench_heat2d build/bench_cvtcolor build/bench_filter2D build/bench_blurxy build/bench_recfilter build/bench_fusion build/bench_gaussian build/bench_heat2d build/bench_divergence2d
 # Not supported yet: build/bench_rgbyuv420
@@ -68,7 +68,7 @@ run_tests:
 	@for tt in ${TEST_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
-benchmarks: $(OBJ) $(BENCH_COLI_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmarks
+benchmarks: $(OBJ) $(BENCH_TIRAMISU_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmarks
 build/bench_tiramisu_%_generator: benchmarks/halide/%_tiramisu.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@

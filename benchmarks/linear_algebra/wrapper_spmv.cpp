@@ -27,7 +27,7 @@ int main(int, char**)
 
     spmv(&b_row_start, &b_col_idx, &b_values, &b_x, &b_y);
 
-    //TODO compute reference spmv and compare with the Coli spmv
+    //TODO: compute reference spmv and compare with the Tiramisu spmv
 
    return 0;
 }

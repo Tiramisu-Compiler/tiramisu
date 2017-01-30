@@ -47,12 +47,12 @@ string halide_type_to_tiramisu_type_str(Type type)
         } else if (type.bits() == 64) {
             return "tiramisu::p_float64";
         } else {
-            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Coli.", true);
+            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Tiramisu.", true);
         }
     } else if (type.is_bool()) {
         return "tiramisu::p_boolean";
     } else {
-        tiramisu::error("Halide type cannot be translated to Coli type.", true);
+        tiramisu::error("Halide type cannot be translated to Tiramisu type.", true);
     }
     return "tiramisu::p_none";
 }

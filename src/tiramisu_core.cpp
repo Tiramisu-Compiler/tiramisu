@@ -1482,7 +1482,7 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
         case tiramisu::o_cast:
             return "cast";
         default:
-            tiramisu::error("tiramisu op not supported.", true);
+            tiramisu::error("Tiramisu op not supported.", true);
             return "";
     }
 }
@@ -1498,7 +1498,7 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
         case tiramisu::e_op:
             return "op";
         default:
-            tiramisu::error("Coli type not supported.", true);
+            tiramisu::error("Tiramisu type not supported.", true);
             return "";
     }
 }
@@ -1514,7 +1514,7 @@ std::string str_from_tiramisu_type_argument(tiramisu::argument_t type)
         case tiramisu::a_temporary:
             return "temporary";
         default:
-            tiramisu::error("Coli type not supported.", true);
+            tiramisu::error("Tiramisu type not supported.", true);
             return "";
     }
 }
@@ -1546,7 +1546,7 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         case tiramisu::p_boolean:
             return "bool";
         default:
-            tiramisu::error("Coli type not supported.", true);
+            tiramisu::error("Tiramisu type not supported.", true);
             return "";
     }
 }
@@ -1631,7 +1631,7 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
             t = Halide::Bool();
             break;
         default:
-            tiramisu::error("Coli type cannot be translated to Halide type.", true);
+            tiramisu::error("Tiramisu type cannot be translated to Halide type.", true);
     }
     return t;
 }

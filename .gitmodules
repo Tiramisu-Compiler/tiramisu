@@ -1,4 +1,4 @@
 [submodule "Halide"]
 	path = Halide
 	url = git@github.com:psuriana/Halide.git
-	branch = coli
+	branch = tiramisu
