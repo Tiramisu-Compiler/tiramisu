@@ -24,6 +24,8 @@
 namespace tiramisu
 {
 
+class computation;
+
 std::string str_from_tiramisu_type_expr(tiramisu::expr_t type);
 std::string str_tiramisu_type_op(tiramisu::op_t type);
 std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
@@ -998,6 +1000,12 @@ public:
     }
 };
 
+/**
+ * Convert a Tiramisu expression into a Halide expression.
+ */
+Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
+                                        std::vector<isl_ast_expr *> &index_expr,
+                                        const tiramisu::expr &tiramisu_expr);
 }
 
 #endif

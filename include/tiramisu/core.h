@@ -27,14 +27,11 @@ class computation;
 class buffer;
 class constant;
 
-Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type);
-Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-                                        std::vector<isl_ast_expr *> &index_expr,
-                                        const tiramisu::expr &tiramisu_expr);
+
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
 std::string halide_type_to_tiramisu_type_str_str(Halide::Type type);
-tiramisu::primitive_t halide_type_to_tiramisu_type(Halide::Type type);
+
 
 struct HalideCodegenOutput {
     std::map<std::string, tiramisu::computation *> computation_list;
