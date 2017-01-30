@@ -82,11 +82,9 @@ private:
     std::vector<tiramisu::buffer *> function_arguments;
 
     /**
-      * A vector representing the invariants of the function.
-      * An object of the invariant class is usually used to represent
-      * function invariants (symbolic constants or
-      * variables that are invariant to the function i.e. do not change
-      * their value during the execution of the function).
+      * A vector representing the invariants of the function (symbolic
+      * constants or variables that are invariant to the function i.e.
+      * do not change their value during the execution of the function).
       */
     std::vector<tiramisu::constant> invariants;
 
