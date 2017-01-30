@@ -27,11 +27,13 @@ class computation;
 class buffer;
 class constant;
 
-
+/**
+  * Add a dimension to the range of a map in the specified position.
+  * Assume that the name of the new dimension is equal to the name of the corresponding
+  * dimension in the domain of the map.
+  * Add a constraint that indicates that the added dim is equal to a constant.
+  */
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
-
-std::string halide_type_to_tiramisu_type_str_str(Halide::Type type);
-
 
 struct HalideCodegenOutput {
     std::map<std::string, tiramisu::computation *> computation_list;

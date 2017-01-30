@@ -363,12 +363,6 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
 }
 
 
-/**
-  * Add a dimension to the range of a map in the specified position.
-  * Assume that the name of the new dimension is equal to the name of the corresponding
-  * dimension in the domain of the map.
-  * Add a constraint that indicates that the added dim is equal to a constant.
-  */
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant)
 {
     assert(map != NULL);
