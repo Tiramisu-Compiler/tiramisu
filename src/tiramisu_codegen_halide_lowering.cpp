@@ -55,7 +55,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     s = skip_stages(s, order);
     DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));*/
 
-    if (t.has_feature(Target::OpenGL) || t.has_feature(Target::Renderscript)) {
+    if (t.has_feature(Target::OpenGL)) {
         DEBUG(3, tiramisu::str_dump("Injecting image intrinsics...\n"));
         s = inject_image_intrinsics(s, env);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after image intrinsics:\n", s)));
@@ -64,7 +64,6 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     if (t.has_gpu_feature() ||
         t.has_feature(Target::OpenGLCompute) ||
         t.has_feature(Target::OpenGL) ||
-        t.has_feature(Target::Renderscript) ||
         (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
         DEBUG(3, tiramisu::str_dump("Selecting a GPU API for GPU loops...\n"));
         s = select_gpu_api(s, t);
@@ -82,8 +81,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     }
 
     if (t.has_gpu_feature() ||
-        t.has_feature(Target::OpenGLCompute) ||
-        t.has_feature(Target::Renderscript)) {
+        t.has_feature(Target::OpenGLCompute)) {
         DEBUG(3, tiramisu::str_dump("Injecting per-block gpu synchronization...\n"));
         s = fuse_gpu_thread_loops(s);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting per-block gpu synchronization:\n", s)));
@@ -101,7 +99,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after unrolling:\n", s)));
 
     DEBUG(3, tiramisu::str_dump("Vectorizing...\n"));
-    s = vectorize_loops(s);
+    s = vectorize_loops(s, t);
     s = simplify(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after vectorizing:\n", s)));
 

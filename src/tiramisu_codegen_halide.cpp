@@ -20,7 +20,7 @@ namespace tiramisu
 {
 
 Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
-Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer, isl_ast_expr *index_expr);
+Halide::Expr linearize_access(Halide::Buffer<> *buffer, isl_ast_expr *index_expr);
 
 computation *function::get_computation_by_name(std::string name) const
 {
@@ -582,8 +582,8 @@ void print_isl_ast_expr_vector(
 }
 
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-                                        std::vector<isl_ast_expr *> &index_expr,
-                                        const tiramisu::expr &tiramisu_expr)
+                                            std::vector<isl_ast_expr *> &index_expr,
+                                            const tiramisu::expr &tiramisu_expr)
 {
     Halide::Expr result;
 
@@ -730,12 +730,14 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                     stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
                 }
 
-                Halide::Internal::BufferPtr *buffer =
-                    new Halide::Internal::BufferPtr(
-                            Halide::Image<>(halide_type_from_tiramisu_type(tiramisu_buffer->get_type()),
-                                            tiramisu_buffer->get_data(),
-                                            tiramisu_buffer->get_dim_sizes().size(),
-                                            shape),
+                Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_type());
+
+                Halide::Buffer<> *buffer =
+                    new Halide::Buffer<>(
+                            type,
+                            tiramisu_buffer->get_data(),
+                            tiramisu_buffer->get_dim_sizes().size(),
+                            shape,
                             tiramisu_buffer->get_name());
 
                 print_isl_ast_expr_vector(index_expr);
@@ -748,9 +750,8 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 param.set_buffer(*buffer);
 
                 result = Halide::Internal::Load::make(
-                            halide_type_from_tiramisu_type(tiramisu_buffer->get_type()),
-                                                       tiramisu_buffer->get_name(),
-                                                       index, *buffer, param);
+                            type, tiramisu_buffer->get_name(),
+                            index, *buffer, param, Halide::Internal::const_true(type.lanes()));
                 }
                 break;
             case tiramisu::o_right_shift:
@@ -775,8 +776,8 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_var)
         result = Halide::Internal::Variable::make(
-            halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
-            tiramisu_expr.get_name());
+                    halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
+                    tiramisu_expr.get_name());
     else if (tiramisu_expr.get_expr_type() != tiramisu::e_id)// Do not signal an error for expressions of type tiramisu::e_id
     {
         tiramisu::str_dump("tiramisu type of expr: ", str_from_tiramisu_type_expr(tiramisu_expr.get_expr_type()).c_str());
@@ -1028,16 +1029,16 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         assert(cond_upper_bound_isl_format != NULL);
         DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
 
-		Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
+        Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
         if (init_expr.type() != halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
             init_expr = Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()), init_expr);
         DEBUG(3, tiramisu::str_dump("init expression: "); std::cout << init_expr);
-		Halide::Expr cond_upper_bound_halide_format =
-		        halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-		cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
-		if (cond_upper_bound_halide_format.type() != halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
-		    cond_upper_bound_halide_format =
-		        Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
+        Halide::Expr cond_upper_bound_halide_format =
+                halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
+        cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
+        if (cond_upper_bound_halide_format.type() != halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
+            cond_upper_bound_halide_format =
+                Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
         DEBUG(3, tiramisu::str_dump("Upper bound expression: "); std::cout << cond_upper_bound_halide_format);
         Halide::Internal::Stmt *halide_body = tiramisu::halide_stmt_from_isl_node(fct, body, level+1, tagged_stmts);
         Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
@@ -1065,8 +1066,8 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
-		    // Currently we can only print Halide expressions using
-		    // "std::cout << ".
+            // Currently we can only print Halide expressions using
+            // "std::cout << ".
                     DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
                 }
             }
@@ -1252,7 +1253,7 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr linearize_access(Halide::Internal::BufferPtr *buffer,
+Halide::Expr linearize_access(Halide::Buffer<> *buffer,
         isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
@@ -1297,8 +1298,8 @@ void computation::create_halide_stmt()
         DEBUG(10, this->expression.dump(true));
 
         Halide::Expr result = halide_expr_from_tiramisu_expr(this,
-                                                         this->get_index_expr(),
-                                                         this->expression);
+                                                             this->get_index_expr(),
+                                                             this->expression);
 
         Halide::Type l_type = halide_type_from_tiramisu_type(this->get_data_type());
 
@@ -1325,7 +1326,8 @@ void computation::create_halide_stmt()
         DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
         const char *buffer_name = isl_space_get_tuple_name(
-                              isl_map_get_space(this->get_transformed_access()), isl_dim_out);
+                                    isl_map_get_space(this->get_transformed_access()),
+                                    isl_dim_out);
         assert(buffer_name != NULL);
 
         isl_map *access = this->get_transformed_access();
@@ -1353,13 +1355,13 @@ void computation::create_halide_stmt()
             stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i - 1].get_int_val();
         }
 
-        Halide::Internal::BufferPtr *buffer =
-              new Halide::Internal::BufferPtr(
-                              Halide::Image<>(halide_type_from_tiramisu_type(tiramisu_buffer->get_type()),
-                                                              tiramisu_buffer->get_data(),
-                                                              tiramisu_buffer->get_dim_sizes().size(),
-                                                              shape),
-                              tiramisu_buffer->get_name());
+        Halide::Buffer<> *buffer =
+            new Halide::Buffer<>(
+                    halide_type_from_tiramisu_type(tiramisu_buffer->get_type()),
+                    tiramisu_buffer->get_data(),
+                    tiramisu_buffer->get_dim_sizes().size(),
+                    shape,
+                    tiramisu_buffer->get_name());
 
         int buf_dims = buffer->dimensions();
 
@@ -1381,10 +1383,11 @@ void computation::create_halide_stmt()
 
         print_isl_ast_expr_vector(index_expr_cp);
 
+        Halide::Type type = halide_type_from_tiramisu_type(this->get_data_type());
         this->stmt = Halide::Internal::Store::make (
                         buffer_name,
-                        halide_expr_from_tiramisu_expr(this, index_expr_cp,
-                                                   this->expression), index, param);
+                        halide_expr_from_tiramisu_expr(this, index_expr_cp, this->expression),
+                        index, param, Halide::Internal::const_true(type.lanes()));
     }
 
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
