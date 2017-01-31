@@ -201,7 +201,7 @@ public:
       * and allocated within the function itself.
       * The names of the buffers are used as a key for the map.
       */
-    const std::map<std::string, tiramisu::buffer *> &get_buffers_list() const;
+    const std::map<std::string, tiramisu::buffer *> &get_buffers() const;
 
     /**
       * Return a vector of the computations of the function.
@@ -520,12 +520,14 @@ public:
 
 
 /**
-  * A class that represents a buffer.  The result of a computation
-  * can be stored in a buffer.  A computation can also be a binding
-  * to a buffer (i.e. a buffer element is represented as a computation).
+  * A class that represents buffers.
+  * Buffers have two use cases:
+  * - used to store the results of computations, and
+  * - used to represent input arguments to functions.
   */
 class buffer
 {
+private:
     /**
       * The name of the buffer.
       */
@@ -537,10 +539,10 @@ class buffer
     int nb_dims;
 
     /**
-      * The size of buffer dimensions.  Assuming the following
+      * The sizes of the dimensions of the buffer.  Assuming the following
       * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * rightmost dimension of the buffer (N2), the second vector element
-      * represents N1, ...
+      * size of rightmost dimension of the buffer (i.e. N2), the second
+      * vector element is N1, and the last vector element is N0.
       */
     std::vector<tiramisu::expr> dim_sizes;
 
@@ -561,32 +563,54 @@ class buffer
     tiramisu::function *fct;
 
     /**
-     * Type of the argument.
+     * Type of the argument (if the buffer is an argument):
+     * Three possible types:
+     *  - a_input: for inputs of the function,
+     *  - a_output: for outputs of the function,
+     *  - a_temporary: for buffers used as temporary buffers within
+     *  the function (any temporary buffer is allocated automatically by
+     *  the Tiramisu runtime at the entry of the function and is
+     *  deallocated at the exit of the function).
      */
     tiramisu::argument_t argtype;
 
 public:
     /**
-      * Create a tiramisu buffer where computations can be stored
-      * or buffers bound to computation.
+      * Create a tiramisu buffer.
+      * Buffers have two use cases:
+      * - used to store the results of computations, and
+      * - used to represent input arguments to functions.
+      *
       * \p name is the name of the buffer.
       * \p nb_dims is the number of dimensions of the buffer.
-      * A scalar is a one dimensional buffer with one element.
+      * A scalar is a one dimensional buffer that has a size of one
+      * element.
       * \p dim_sizes is a vector of integers that represent the size
-      * of each dimension in the buffer from outermost to innermost.
-      * \p type is the type of the buffer.
+      * of each dimension in the buffer.  The first vector element
+      * represents the rightmost array dimension, while the last vector
+      * element represents the leftmost array dimension.
+      * For example, in the buffer buf[N0][N1][N2], the first element
+      * in the vector \p dim_sizes represents the size of rightmost
+      * dimension of the buffer (i.e. N2), the second vector element
+      * is N1, and the last vector element is N0.
+      * Buffer dimensions in Tiramisu have the same semantics as in
+      * C/C++.
+      * \p type is the type of the elements of the buffer.
+      * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
+      * Possible types are declared in tiramisu::primitive_t (type.h).
       * \p data is the data stored in the buffer.  This is useful
-      * for binding a computation to an already existing buffer.
-      * \p fct is i a pointer to a tiramisu function where the buffer is
-      * declared/used.
+      * if an already allocated buffer is passed to Tiramisu.
+      * \p fct is a pointer to a Tiramisu function where the buffer is
+      * declared or used.
       * \p is_argument indicates whether the buffer is passed to the
       * function as an argument.  All the buffers passed as arguments
       * to the function should be allocated by the user outside the
       * function.  Buffers that are not passed to the function as
       * arguments are allocated automatically at the beginning of
       * the function and deallocated at the end of the function.
-      * This means that the buffers that are allocated within the
-      * function cannot be used outside the function.
+      * They are called temporary buffers (of type a_temporary).
+      * Temporary buffers cannot be used outside the function
+      * in which they were allocated.
       */
     buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, uint8_t *data,
@@ -598,6 +622,9 @@ public:
         assert(nb_dims>0 && "Buffer dimensions <= 0");
         assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
         assert(fct != NULL && "Input function is NULL");
+
+        // Check that the buffer does not already exist.
+        // assert((fct->get_buffers().find(name) != fct->get_buffers().end()) && ("Buffer already exists"));
 
         argtype = argt;
 
@@ -613,8 +640,8 @@ public:
     }
 
     /**
-    * Return the buffer data.
-    */
+     * Return the buffer data.
+     */
     uint8_t *get_data()
     {
         return data;

@@ -85,7 +85,7 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
   * The names of the buffers are used as a key for the map.
   */
  // @{
- const std::map<std::string, tiramisu::buffer *> &function::get_buffers_list() const
+ const std::map<std::string, tiramisu::buffer *> &function::get_buffers() const
  {
     return buffers_list;
  }
@@ -1577,9 +1577,6 @@ void tiramisu::buffer::dump(bool exhaustive) const
 
         std::cout << "Elements type: "
                   << str_from_tiramisu_type_primitive(this->type) << std::endl;
-
-        std::cout << "Data field: "
-                  << str_from_is_null(this->data) << std::endl;
 
         std::cout << "Function field: "
                   << str_from_is_null(this->fct) << std::endl;

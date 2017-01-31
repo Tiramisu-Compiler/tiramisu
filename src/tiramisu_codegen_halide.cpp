@@ -713,8 +713,8 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
                 assert(buffer_name != NULL);
 
-                auto buffer_entry = comp->get_function()->get_buffers_list().find(buffer_name);
-                assert(buffer_entry != comp->get_function()->get_buffers_list().end());
+                auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
+                assert(buffer_entry != comp->get_function()->get_buffers().end());
 
                 auto tiramisu_buffer = buffer_entry->second;
 
@@ -1195,7 +1195,7 @@ void function::gen_halide_stmt()
     stmt = tiramisu::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
 
     // Allocate buffers that are not passed as an argument to the function
-    for (const auto &b : this->get_buffers_list())
+    for (const auto &b : this->get_buffers())
     {
         const tiramisu::buffer *buf = b.second;
         // Allocate only arrays that are not passed to the function as arguments.
@@ -1337,8 +1337,8 @@ void computation::create_halide_stmt()
         int access_dims = isl_space_dim(space, isl_dim_out);
 
         // Fetch the actual buffer.
-        auto buffer_entry = this->function->get_buffers_list().find(buffer_name);
-        assert(buffer_entry != this->function->get_buffers_list().end());
+        auto buffer_entry = this->function->get_buffers().find(buffer_name);
+        assert(buffer_entry != this->function->get_buffers().end());
 
         auto tiramisu_buffer = buffer_entry->second;
 
