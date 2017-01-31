@@ -1556,6 +1556,127 @@ std::string str_from_is_null(void *ptr)
     return ((ptr != NULL) ? "Not NULL" : "NULL");
 }
 
+
+/**
+  * Create a tiramisu buffer.
+  * Buffers have two use cases:
+  * - used to store the results of computations, and
+  * - used to represent input arguments to functions.
+  *
+  * \p name is the name of the buffer.
+  * \p nb_dims is the number of dimensions of the buffer.
+  * A scalar is a one dimensional buffer that has a size of one
+  * element.
+  * \p dim_sizes is a vector of integers that represent the size
+  * of each dimension in the buffer.  The first vector element
+  * represents the rightmost array dimension, while the last vector
+  * element represents the leftmost array dimension.
+  * For example, in the buffer buf[N0][N1][N2], the first element
+  * in the vector \p dim_sizes represents the size of rightmost
+  * dimension of the buffer (i.e. N2), the second vector element
+  * is N1, and the last vector element is N0.
+  * Buffer dimensions in Tiramisu have the same semantics as in
+  * C/C++.
+  * \p type is the type of the elements of the buffer.
+  * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
+  * Possible types are declared in tiramisu::primitive_t (type.h).
+  * \p data is the data stored in the buffer.  This is useful
+  * if an already allocated buffer is passed to Tiramisu.
+  * \p fct is a pointer to a Tiramisu function where the buffer is
+  * declared or used.
+  * \p is_argument indicates whether the buffer is passed to the
+  * function as an argument.  All the buffers passed as arguments
+  * to the function should be allocated by the user outside the
+  * function.  Buffers that are not passed to the function as
+  * arguments are allocated automatically at the beginning of
+  * the function and deallocated at the end of the function.
+  * They are called temporary buffers (of type a_temporary).
+  * Temporary buffers cannot be used outside the function
+  * in which they were allocated.
+  */
+tiramisu::buffer::buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
+       tiramisu::primitive_t type, uint8_t *data,
+       tiramisu::argument_t argt, tiramisu::function *fct):
+    name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
+    data(data), fct(fct), argtype(argt)
+{
+    assert(name.length()>0 && "Empty buffer name");
+    assert(nb_dims>0 && "Buffer dimensions <= 0");
+    assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
+    assert(fct != NULL && "Input function is NULL");
+
+    // Check that the buffer does not already exist.
+    assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
+
+    fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
+};
+
+
+/**
+  * Return the type of the argument (if the buffer is an argument).
+  * Three possible types:
+  *  - a_input: for inputs of the function,
+  *  - a_output: for outputs of the function,
+  *  - a_temporary: for buffers used as temporary buffers within
+  *  the function (any temporary buffer is allocated automatically by
+  *  the Tiramisu runtime at the entry of the function and is
+  *  deallocated at the exit of the function).
+  */
+tiramisu::argument_t buffer::get_argument_type() const
+{
+    return argtype;
+}
+
+
+/**
+  * Return a pointer to the data stored within the buffer.
+  */
+uint8_t *buffer::get_data()
+{
+    return data;
+}
+
+
+/**
+  * Return the name of the buffer.
+  */
+const std::string &buffer::get_name() const
+{
+    return name;
+}
+
+
+/**
+  * Get the number of dimensions of the buffer.
+  */
+int buffer::get_n_dims() const
+{
+    return nb_dims;
+}
+
+
+/**
+  * Return the type of the elements of the buffer.
+  */
+tiramisu::primitive_t buffer::get_type() const
+{
+    return type;
+}
+
+
+/**
+  * Return the sizes of the dimensions of the buffer.
+  * Assuming the following buffer: buf[N0][N1][N2].  The first
+  * vector element represents the size of rightmost dimension
+  * of the buffer (i.e. N2), the second vector element is N1,
+  * and the last vector element is N0.
+  */
+const std::vector<tiramisu::expr> &buffer::get_dim_sizes() const
+{
+    return dim_sizes;
+}
+
+
 void tiramisu::buffer::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)

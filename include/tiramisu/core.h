@@ -614,73 +614,48 @@ public:
       */
     buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, uint8_t *data,
-           tiramisu::argument_t argt, tiramisu::function *fct):
-        name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
-        data(data), fct(fct)
-    {
-        assert(name.length()>0 && "Empty buffer name");
-        assert(nb_dims>0 && "Buffer dimensions <= 0");
-        assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
-        assert(fct != NULL && "Input function is NULL");
+           tiramisu::argument_t argt, tiramisu::function *fct);
 
-        // Check that the buffer does not already exist.
-        // assert((fct->get_buffers().find(name) != fct->get_buffers().end()) && ("Buffer already exists"));
+    /**
+      * Return the type of the argument (if the buffer is an argument).
+      * Three possible types:
+      *  - a_input: for inputs of the function,
+      *  - a_output: for outputs of the function,
+      *  - a_temporary: for buffers used as temporary buffers within
+      *  the function (any temporary buffer is allocated automatically by
+      *  the Tiramisu runtime at the entry of the function and is
+      *  deallocated at the exit of the function).
+      */
+    tiramisu::argument_t get_argument_type() const;
 
-        argtype = argt;
-
-        fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
-    };
+    /**
+     * Return a pointer to the data stored within the buffer.
+     */
+    uint8_t *get_data();
 
     /**
       * Return the name of the buffer.
       */
-    const std::string &get_name() const
-    {
-        return name;
-    }
-
-    /**
-     * Return the buffer data.
-     */
-    uint8_t *get_data()
-    {
-        return data;
-    }
-
-    /**
-    * Return the type of buffer.
-    */
-    tiramisu::primitive_t get_type() const
-    {
-        return type;
-    }
+    const std::string &get_name() const;
 
     /**
       * Get the number of dimensions of the buffer.
       */
-    int get_n_dims() const
-    {
-        return nb_dims;
-    }
+    int get_n_dims() const;
 
     /**
-      * Return the type of the argument.
-      */
-    tiramisu::argument_t get_argument_type() const
-    {
-        return argtype;
-    }
+    * Return the type of the elements of the buffer.
+    */
+    tiramisu::primitive_t get_type() const;
 
     /**
-      * Return the size of buffer dimensions.  Assuming the following
-      * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * rightmost dimension of the buffer (N2), the second vector element
-      * represents N1, ...
+      * Return the sizes of the dimensions of the buffer.
+      * Assuming the following buffer: buf[N0][N1][N2].  The first
+      * vector element represents the size of rightmost dimension
+      * of the buffer (i.e. N2), the second vector element is N1,
+      * and the last vector element is N0.
       */
-    const std::vector<tiramisu::expr> &get_dim_sizes() const
-    {
-        return dim_sizes;
-    }
+    const std::vector<tiramisu::expr> &get_dim_sizes() const;
 
     /**
       * Dump the function on standard output (dump most of the fields of
