@@ -78,6 +78,18 @@ namespace tiramisu {
         a_output,
         a_temporary
     };
+
+    /**
+     * Convert a Tiramisu type into the equivalent Halide type (if it exists),
+     * otherwise show an error message (no automatic type conversion is performed).
+     */
+    Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type);
+
+    /**
+     * Convert a Halide type into the equivalent Tiramisu type (if it exists),
+     * otherwise show an error message (no automatic type conversion is performed).
+     */
+    tiramisu::primitive_t halide_type_to_tiramisu_type(Halide::Type type);
 }
 
 #endif
