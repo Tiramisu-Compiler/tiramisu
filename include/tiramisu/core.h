@@ -829,7 +829,7 @@ protected:
         name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
         function = fct;
         function->add_computation(this);
-        this->set_identity_schedule();
+        this->set_identity_schedule_based_on_iteration_domain();
     }
 
     /**
@@ -859,26 +859,30 @@ protected:
 public:
 
     /**
-      * A number identifying the root dimension level.
+      * A number used to specify the dimension level known as root.
+      * The root dimension level is the outermost level.  It is the level
+      * outside any loop nest.  Loop level 0 is the level of the first loop
+      * (outermost loop), loop 1 is the level of following inner loop, ...
       *
       * Where is this number used ?
       *
-      * Tiramisu has helper functions for scheduling (after, before, ...).
+      * These numbers are used in the helper functions used for scheduling
+      * (such as after(), before(), ...).
       * For example, c0.after(c1) indicates that the computation c0 should
       * be executed after the computation c1.
-      * If the two computations are nested in a loop, we need to specify at
-      * which loop level c0 is after c1. This is where indicating the loop
-      * becomes necessary.  The root level is the outermost level. The root
-      * level is the level outside any loop nest. Loop level 0 is the level
-      * of the first loop (outermost loop), loop 1 is following inner loop,
-      * ...
-      * Here is an example: suppose that we have two computations c0 and c1
-      * that have the following two iteration domains:
+      * Since the two computations c0 and c1 are usually nested in a loop,
+      * we need to specify at which loop level c0 is after c1. This is where
+      * we need to specify the loop level numbers.
+      * Here is an example.  Suppose that the two computations c0 and c1
+      * have the following iteration domains
       * {c0[i,j]: 0<=i<N and 0<=j<N} and {c1[i,j]: 0<=i<N and 0<=j<N}.
-      * This means that when code is generated for the two computations,
-      * two loop nests are generated.
       *
-      * c0.after(c1, computation::root_dimension) would create a schedule
+      * When code is generated for the two computations, two loop nests
+      * are generated.  When scheduling c0 after c1 using the after function,
+      * the user can choose one among three possibilities in specifying at
+      * which level c0 is after c1.
+      *
+      * - c0.after(c1, computation::root_dimension) would create a schedule
       * that generates the following code
       *
       * for (i=0; i<N; i++)
@@ -888,7 +892,7 @@ public:
       *     for (j=0; j<N; j++)
       *         c0;
       *
-      * c0.after(c1, 0) would create a schedule that generates the
+      * - c0.after(c1, 0) would create a schedule that generates the
       * following code
       *
       * for (i=0; i<N; i++) {
@@ -898,10 +902,10 @@ public:
       *         c0;
       * }
       *
-      * This means that c0 is after c1 but only starting from loop level 0,
-      * before the loop level 0, they have the same order.
+      * This means that c0 is after c1 starting from loop level 0,
+      * (before the loop level 0, c0 and c1 have the same order).
       *
-      * c0.after(c1, 1) would create a schedule that generates the
+      * - c0.after(c1, 1) would create a schedule that generates the
       * following code
       *
       * for (i=0; i<N; i++)
@@ -910,59 +914,91 @@ public:
       *         c0;
       *     }
       *
-      * This means that c0 is after c1 but only starting from loop level 1,
-      * before the loop level 1, they have the same order.
+      * This means that c0 is after c1 starting from loop level 1,
+      * (before the loop level 1, c0 and c1 have the same order).
       */
     const static int root_dimension = -1;
 
     /**
      * Let statements that should be computed before this computation.
+     *
+     * This is mainly useful when this computation consumes values
+     * computed in let statements, so those let statements should
+     * be executed before this computation.
      */
     tiramisu::computation *statements_to_compute_before_me;
 
     /**
-      * Create a computation and make it represent an expression.
+      * Constructor for computations.
       *
-      * \p iteration_space_str is a string that represents the iteration
-      * space of the computation.  The iteration space should be encoded
-      * using the ISL set format. For details about the ISL format for set
-      * please check the ISL documentation:
-      * http://isl.gforge.inria.fr/user.html#Sets-and-Relations
+      * \p iteration_domain_str is a string that represents the iteration
+      * domain of the computation.  The iteration domain should be written
+      * in the ISL format (http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
       *
-      * The iteration space of a statement is a set that contains
-      * all execution instances of the statement (a statement in a loop
-      * has an execution instance for each loop iteration upon which
+      * The iteration domain of a statement is a set that contains
+      * all of the execution instances of the statement (a statement in a
+      * loop has an execution instance for each loop iteration in which
       * it executes). Each execution instance of a statement in a loop
       * nest is uniquely represented by an identifier and a tuple of
       * integers  (typically,  the  values  of  the  outer  loop  iterators).
-      * These  integer  tuples  are  compactly  described  by affine constraints.
-      * The iteration space of the statement S0 in the following loop nest
+      *
+      * For example, the iteration space of the statement S0 in the following
+      * loop nest
+      * for (i=0; i<2; i++)
+      *   for (j=0; j<3; j++)
+      *      S0;
+      *
+      * is {S0(0,0), S0(0,1), S0(0,2), S0(1,0), S0(1,1), S0(1,2)}
+      *
+      * S0(0,0) is the execution instance of S0 in the iteration (0,0).
+      *
+      * The previous set of integer tuples can be compactly described
+      * by affine constraints as follows
+      *
+      * {S0(i,j): 0<=i<2 and 0<=j<3}
+      *
+      * In general, the loop nest
+      *
       * for (i=0; i<N; i++)
       *   for (j=0; j<M; j++)
       *      S0;
       *
-      * is
+      * has the following iteration domain
       *
-      * {S0[i,j]: 0<=i<N and 0<=j<N}
+      * {S0(i,j): 0<=i<N and 0<=j<M}
       *
-      * THis should be read as: the set of point (i,j) such that
-      * 0<=i<N and 0<=j<N.
+      * This should be read as: the set of points (i,j) such that
+      * 0<=i<N and 0<=j<M.
       *
-      * \t is the type of the computation, i.e. the type of the elements of
-      * the computation.
-      * \p fct is a pointer to the tiramisu function where this computation
+      * \p e is the expression computed by the computation.
+      *
+      * \p schedule_this_computation should be set to true if the computation
+      * is supposed to be schedule and code is supposed to be generated from
+      * the computation.  Set it to false if you just want to use the
+      * computation to represent a buffer (that is passed as an argument
+      * to the function) and you do not intend to generate code for the
+      * computation.
+      *
+      * \p t is the type of the computation, i.e. the type of the expression
+      * computed by the computation. Example of types include (p_uint8,
+      * p_uint16, p_uint32, ...).
+      *
+      * \p fct is a pointer to the Tiramisu function where this computation
       * should be added.
+      *
+      * TODO: copy ISL format for sets.
       */
-    computation(std::string iteration_space_str, tiramisu::expr e,
+    computation(std::string iteration_domain_str, tiramisu::expr e,
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct) {
-        init_computation(iteration_space_str, fct, e,
+        init_computation(iteration_domain_str, fct, e,
                          schedule_this_computation, t);
         _is_let_stmt = false;
     }
 
     /**
-      * Should we schedule this computation?
+      * Return true if the this computation is supposed to be scheduled
+      * by Tiramisu.
       */
     bool should_schedule_this_computation() const
     {
@@ -978,12 +1014,13 @@ public:
     }
 
     /**
-      * Return the transformed access function of the
-      * computation.  First, the domain of the access
-      * function is transformed using the schedule, and
-      * then the transformed access function is returned.
+      * Return the access function of the computation after transforming
+      * it to the time-processor domain.
+      * The domain of the access function is transformed to the
+      * time-processor domain using the schedule, and then the transformed
+      * access function is returned.
       */
-      isl_map *get_transformed_access() const
+      isl_map *get_access_transformed_to_time_processor_domain() const
       {
           DEBUG_FCT_NAME(3);
           DEBUG_INDENT(4);
@@ -996,6 +1033,9 @@ public:
 
               if (global::is_auto_data_mapping_set() == true)
               {
+                  assert(access != NULL);
+                  assert(this->get_schedule() != NULL);
+
                   DEBUG(3, tiramisu::str_dump("Schedule to apply:", isl_map_to_str(this->get_schedule())));
                   access = isl_map_apply_domain(
                               isl_map_copy(access),
@@ -1012,8 +1052,7 @@ public:
       }
 
     /**
-     * Return the tiramisu expression associated with the computation
-     * (RHS).
+     * Return the Tiramisu expression associated with the computation.
      */
     const tiramisu::expr &get_expr() const
     {
@@ -1032,16 +1071,10 @@ public:
       * Return vector of isl_ast_expr representing the indices of the array where
       * the computation will be stored.
       */
-    // @{
-    const std::vector<isl_ast_expr *> &get_index_expr() const
-    {
-        return index_expr;
-    }
     std::vector<isl_ast_expr *> &get_index_expr()
     {
         return index_expr;
     }
-    // @}
 
     /**
       * Return the iteration domain of the computation.
@@ -1100,10 +1133,13 @@ public:
     }
 
     /**
-     * Get the number of dimensions of the computation.
+     * Get the number of dimensions of the iteration
+     * domain of the computation.
      */
     int get_n_dimensions()
     {
+      assert(iteration_domain != NULL);
+
       return isl_set_n_dim(this->iteration_domain);
     }
 
@@ -1123,6 +1159,12 @@ public:
         return stmt;
     }
 
+    /**
+     * Compare two computations.
+     *
+     * Two computations are considered to be equal if they have the
+     * same name.
+     */
     bool operator==(tiramisu::computation comp1)
     {
       if (this->get_name() == comp1.get_name())
@@ -1132,8 +1174,11 @@ public:
     }
 
     /**
-     * Access operator: C0[i,j] represents an access to
-     * the elements [i,j] of the computation C0.
+     * Access operator: C0(i,j) represents an access to
+     * the element (i,j) of the computation C0.
+     * C0(i,j) represents the value computed by the computation
+     * C0(i,j)
+     *
      */
     template<typename... Args>
     tiramisu::expr operator()(Args... args)
@@ -1147,19 +1192,29 @@ public:
 
     /**
       * Tag the dimension \p dim of the iteration space to be parallelized.
-      * The outermost loop level (which corresponds to the leftmost
-      * dimension in the iteration space) is 0.
-      * Note that \p dim is a dimension of the iteration space
-      * not a dimension of the time-processor space.
+      *
+      * The outermost loop level is 0 (it corresponds to the leftmost
+      * dimension in the iteration domain).
+      *
+      * TODO: I think the following statement is wrong. It should be the
+      * opposite.  It should be a dimension of the time-processor domain
+      * not from the iteration domain because we are generating code from
+      * the time-processor domain. Idem for tag_vector_dimension() and tag_gpu_dimensions().
+      *
+      * Note that \p dim is a dimension of the iteration domain
+      * not a dimension of the time-processor domain.
       */
     void tag_parallel_dimension(int dim);
 
     /**
       * Tag the dimension \p dim of the iteration space to be vectorized.
-      * The outermost loop level (which corresponds to the leftmost
-      * dimension in the iteration space) is 0.
+      *
+      * The outermost loop level is 0 (it corresponds to the leftmost
+      * dimension in the iteration domain).
+      *
       * Note that \p dim is a dimension of the iteration space
       * not a dimension of the time-processor space.
+      *
       * The user can only tag dimensions that have constant extent as
       * to be vectorized.  If a loop dimension does not have a constant
       * extent, it first has to be split.
@@ -1167,20 +1222,24 @@ public:
     void tag_vector_dimension(int dim);
 
     /**
-      * Tag the dimension \p dim0 and \p dim1 of the iteration space to
+      * Tag the dimension \p dim0 and \p dim1 of the iteration domain to
       * be mapped to GPU.
+      *
       * Note that \p dim0 and \p dim1 are dimensions of the iteration space
       * not dimensions of the time-processor space.
-      * The outermost loop dimension of the iterations pace (which corresponds
-      * to the leftmost dimension) is 0.
+      *
+      * The outermost loop level is 0 (it corresponds to the leftmost
+      * dimension in the iteration domain).
       */
     void tag_gpu_dimensions(int dim0, int dim1);
 
     /**
       * Generate the time-processor domain of the computation.
+      *
       * In this representation, the logical time of execution and the
       * processor where the computation will be executed are both
-      * specified.
+      * specified.  The memory location where computations will be
+      * stored in memory is not specified at the level.
       */
     void gen_time_processor_domain()
     {
@@ -1202,8 +1261,12 @@ public:
     }
 
     /**
-      * Schedule this computation to run after the comp computation
+      * Schedule this computation to run after the computation \p comp
       * at dimension \p dim of the time-processor domain.
+      *
+      * TODO: check how this works ? Is the root level dimension 0 as stated
+      * here or it is root_level as stated in the documentation above.
+      *
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost time-processor dimension).
       * The first static dimension (dimensions used to specify the lexicographical order
@@ -1228,34 +1291,52 @@ public:
     /**
       * Schedule this computation to run first at dimension
       * \p dim of the time-processor space.
+      *
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
-      * The first loop level corresponds to dimension 0.
+      *
+      * The outermost loop has a loop level equal to zero.
       */
     void first(int dim);
 
     /**
-      * Schedule this computation to run before the comp computation
-      * at dimension dim of the time-processor space.
+      * Schedule this computation to run before the computation \p comp
+      * at dimension \p dim of the time-processor space.
+      *
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
-      * The first loop level is 0.
+      *
+      * The outermost loop has a loop level equal to zero.
       */
     void before(computation &comp, int dim);
 
+    /**
+     * Set the access function of the computation.
+     *
+     * The access function is a relation from computations to buffer locations.
+     * \p access_str is a string that represents the relation (in ISL format,
+     * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+     */
     void set_access(std::string access_str)
     {
         assert(access_str.length() > 0);
 
         this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+
+        assert(this->access != NULL);
     }
 
-    void create_halide_stmt();
-
+    /*
+     * Create a Halide statement that assigns the computations to the memory
+     * buffer and location specified by the access function.
+     */
+    void create_halide_assignment();
 
     /**
-     * Generate the identity schedule
-     * for the iteration domain.
+     * Generate an identity schedule for the computation.
+     *
+     * This identity schedule is an identity relation created from the iteration
+     * domain.
      */
     isl_map *gen_identity_schedule_for_iteration_domain()
     {
@@ -1278,8 +1359,10 @@ public:
     }
 
     /**
-     * Generate the identity schedule
-     * for the time-space domain.
+     * Generate an identity schedule for the computation.
+     *
+     * This identity schedule is an identity relation created from the
+     * time-processor domain.
      */
     isl_map *gen_identity_schedule_for_time_space_domain()
     {
@@ -1299,9 +1382,12 @@ public:
     }
 
     /**
-      * Set the identity schedule.
-      */
-    void set_identity_schedule()
+     * Set an identity schedule for the computation.
+     *
+     * This identity schedule is an identity relation created from the iteration
+     * domain.
+     */
+    void set_identity_schedule_based_on_iteration_domain()
     {
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
@@ -1315,31 +1401,35 @@ public:
     }
 
     /**
-      * Tile the two dimension \p inDim0 and \p inDim1 with rectangular
+      * Tile the two dimensions \p inDim0 and \p inDim1 with rectangular
       * tiling.  \p sizeX and \p sizeY represent the tile size.
-      * \p inDim0 and \p inDim1 should be two consecutive dimensions,
-      * and the should satisfy \p inDim0 > \p inDim1.
+      * \p inDim0 and \p inDim1 should be two consecutive dimensions
+      * (i.e., \p inDim0 = \p inDim1 + 1) and they should satisfy
+      * \p inDim0 > \p inDim1.
       */
     void tile(int inDim0, int inDim1, int sizeX, int sizeY);
 
     /**
-     * Modify the schedule of this computation so that it splits the
-     * dimension inDim0 of the iteration space into two new dimensions.
-     * The size of the inner dimension created is sizeX.
+     * Split the dimension \p inDim0 of the iteration space into two
+     * new dimensions.
+     * \p sizeX is the extent (size) of the inner loop created after
+     * splitting.
+     *
+     * TODO: use iterator names instead of numbering.
+     *
      * If you have a 2D loop with i and j as iterators
-       the dimension number of i is 1 and the dimension number of j is 3
-       and you want to split the dimension i by 16, you can call
-       s0.split(1, 16)
-       This will create two dimensions, let us call them i0 and i1,
-       the dimension number of i0 is 1 and
-       the dimension number of i1 is 3
-       the dimension number of j is now 5 instead of the old value 3.
+     * the dimension number of i is 1 and the dimension number of j is 3
+     * and you want to split the dimension i by 16, you can call
+     * s0.split(1, 16)
+     * This will create two dimensions, let us call them i0 and i1,
+     * the dimension number of i0 is 1 and
+     * the dimension number of i1 is 3
+     * the dimension number of j is now 5 instead of the old value 3.
      */
     void split(int inDim0, int sizeX);
 
     /**
-     * Modify the schedule of this computation so that the two dimensions
-     * inDim0 and inDime1 are interchanged (swaped).
+     * Interchange (swap) the two dimensions \p inDim0 and \p inDim1.
      */
     void interchange(int inDim0, int inDim1);
 
@@ -1351,20 +1441,29 @@ public:
     void set_schedule(std::string map_str);
 
     /**
-      * Set the mapping from iteration space to time-processor space.
+      * Set the schedule indicated by \p map.
+      *
+      * \p map is a string that represents a mapping from the iteration domain
+      *  to the time-processor domain (the mapping is in the ISL format:
+      *  http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+      *
+      * TODO: specify clearly the expected format for the schedule.
+      *
       * The name of the domain and range space must be identical.
       */
     void set_schedule(isl_map *map)
     {
-        // Get the computation,
-        // Check if the computation is a let stmt, if it is the case
-        // check if it starts with LET_STMT_PREFIX, if not add it automatically.
+        /* Check if the computation is a let stmt, if it is,
+         * check if it starts with LET_STMT_PREFIX, if not add
+         * LET_STMT_PREFIX automatically.
+         */
         map = this->update_let_stmt_schedule_domain_name(map);
+
         this->schedule = map;
     }
 
     /**
-     * Set the expression associated to the computation.
+     * Set the expression of the computation.
      */
     void set_expression(const tiramisu::expr &e)
     {
@@ -1390,7 +1489,6 @@ public:
                                 isl_map_to_str(map)));
         this->set_access(isl_map_to_str(map));
     }
-
 
     /**
       * Dump the iteration domain of the computation.
@@ -1488,13 +1586,13 @@ public:
                                        -projection_dimension);
             std::string new_param_name = LET_STMT_PREFIX + param_name;
             iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
-            std::string iteration_space_str = isl_set_to_str(iter);
+            std::string iteration_domain_str = isl_set_to_str(iter);
 
             DEBUG(3, tiramisu::str_dump(
                         "Computed iteration space for the constant assignment",
                         isl_set_to_str(iter)));
 
-            init_computation(iteration_space_str, func, param_expr,
+            init_computation(iteration_domain_str, func, param_expr,
                                    true, t);
             _is_let_stmt = true;
 

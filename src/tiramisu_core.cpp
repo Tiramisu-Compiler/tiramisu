@@ -1179,7 +1179,7 @@ void tiramisu::function::add_computation(computation *cpt)
     assert(std::find_if(this->body.begin(), this->body.end(),
                         [&cpt](const computation *c) { return (c->get_name() == cpt->get_name()); }) ==
            this->body.end() &&
-           "Found duplicate of cpt.");
+           "Found duplicate of the computation.");
 
     this->body.push_back(cpt);
 }

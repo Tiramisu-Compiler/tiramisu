@@ -538,7 +538,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     // Get the accesses of the computation.  The first access is the access
     // for the LHS.  The following accesses are for the RHS.
     std::vector<isl_map *> accesses;
-    isl_map *access = comp->get_transformed_access();
+    isl_map *access = comp->get_access_transformed_to_time_processor_domain();
     accesses.push_back(access);
     // Add the accesses of the RHS to the accesses vector
     get_rhs_accesses(func, comp, accesses);
@@ -709,7 +709,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
                 tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name);
                 const char *buffer_name = isl_space_get_tuple_name(
-                                            isl_map_get_space(access_comp->get_transformed_access()), isl_dim_out);
+                                            isl_map_get_space(access_comp->get_access_transformed_to_time_processor_domain()), isl_dim_out);
                 DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
                 assert(buffer_name != NULL);
 
@@ -1123,7 +1123,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         tiramisu::computation *comp = fct.get_computation_by_name(computation_name);
         DEBUG(10, comp->dump());
 
-        comp->create_halide_stmt();
+        comp->create_halide_assignment();
 
         *result = comp->get_halide_stmt();
     }
@@ -1284,7 +1284,7 @@ Halide::Expr linearize_access(Halide::Buffer<> *buffer,
  * The statement will assign the computations to a memory buffer based on the
  * access function provided in access.
  */
-void computation::create_halide_stmt()
+void computation::create_halide_assignment()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1326,11 +1326,11 @@ void computation::create_halide_stmt()
         DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
         const char *buffer_name = isl_space_get_tuple_name(
-                                    isl_map_get_space(this->get_transformed_access()),
+                                    isl_map_get_space(this->get_access_transformed_to_time_processor_domain()),
                                     isl_dim_out);
         assert(buffer_name != NULL);
 
-        isl_map *access = this->get_transformed_access();
+        isl_map *access = this->get_access_transformed_to_time_processor_domain();
         isl_space *space = isl_map_get_space(access);
         // Get the number of dimensions of the ISL map representing
         // the access.
