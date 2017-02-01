@@ -672,10 +672,38 @@ public:
 
 /**
   * A class that represents computations.
+  * A computation is an expression associated with an iteration domain.
+  * A computation indicates what needs to be computed (the expression
+  * that should be computed).
+  * A computation has three representations:
+  * - Level 1: this level specifies "what" should be computed but does
+  *   not specify "when" (order) and "where" (on which processor) each
+  *   expression should be computed.
+  *   This level also does not specify where computations should be stored
+  *   in memory and in which data layout.
+  * - Level 2: this level specifies "what" should be computed, "when", i.e.
+  *   the order in which the computation should be executed with regard to
+  *   the other computations. And "where" each computation should be
+  *   computed (i.e., on which processor).
+  *   This level still does not specify where computations should be stored
+  *   in memory and their data layout.
+  * - Level 3: this level is similar to Level 2 but it specifies where
+  *   computations should be stored in memory and the data layout.
   */
 class computation {
 private:
+
+    /**
+      * An ISL context associate with the function.
+      */
     isl_ctx *ctx;
+
+    /**
+      * Iteration domain of the computation.
+      * In this representation, the order of execution of computations
+      * is not specified, the computations are also not mapped to memory.
+     */
+    isl_set *iteration_domain;
 
     /**
       * Time-processor domain of the computation.
@@ -684,13 +712,6 @@ private:
       * specified.
       */
     isl_set *time_processor_domain;
-
-    /**
-      * Iteration domain of the computation.
-      * In this representation, the order of execution of computations
-      * is not specified, the computations are also not mapped to memory.
-     */
-    isl_set *iteration_domain;
 
     /**
       * Schedule of the computation.
@@ -709,56 +730,71 @@ private:
 
     /**
       * Access function.  A map indicating how each computation should be stored
-      * in memory.
+      * in memory.  It indicates in which buffer the computation should be stored
+      * and which element of the buffer exactly it should be stored.
       */
     isl_map *access;
 
     /**
-      * An isl_ast_expr representing the index of the array where
-      * the computation will be stored.  This index is computed after the scheduling is done.
+      * An isl_ast_expr representing the index of the array where the computation
+      * will be stored.  This index is computed after the scheduling is done.
       */
     std::vector<isl_ast_expr *> index_expr;
 
     /**
-     * Data type of the computation.
+     * Data type: the type of the value returned by the computation.
      */
     tiramisu::primitive_t data_type;
 
-
     /**
-     * Update the domain name of the schedule of a let statement.
+     * Update the name of the domain name of the schedule of a let statement.
      * If the computation is a let statement, and if the name of
      * the domain of map does not start with the LET_STMT_PREFIX,
      * add the LET_STMT_PREFIX to the name.
+     * We use the LET_STMT_PREFIX to identify the computations that
+     * represent a let statement.
      */
     isl_map* update_let_stmt_schedule_domain_name(isl_map* map);
 
     /**
-     * Relative order of this computation compared to other computations.
+     * A logical time that indicates the relative order of this computation
+     * compared to other computations.
      * This should only be used by the .after() function and should not be
      * used directly by users.
      */
     unsigned long relative_order;
 
 protected:
+
     /**
       * The name of this computation.
       */
     std::string name;
 
     /**
-      * An expression representing the computation.
+      * An expression representing the computation
+      * ("what" should be computed).
       */
     tiramisu::expr expression;
 
     /**
-     * If set to true, the computation is scheduled, otherwise it is
-     * not scheduled and is only used as a binding to input arrays.
+     * TODO: use buffers directly from computations, no need to have
+     * bindings.
+     *
+     * \p schedule_this_computation should be set to true when the computation
+     * should be scheduled and when code for the computation should be generated
+     * during code generation.
+     * It should be set to false when the computation is used to represent a
+     * buffer (i.e., the computation is used only as a binding to a buffer).
+     * In this case, the computation is not scheduled and no code for the
+     * computation is generated.
      */
     bool schedule_this_computation;
 
     /**
      * Does this computation represent a let statement ?
+     * TODO: how is treating a computation that represents a let statement
+     * different from treating normal computations ?
      */
     bool _is_let_stmt;
 
@@ -821,9 +857,61 @@ protected:
     }
 
 public:
+
     /**
       * A number identifying the root dimension level.
-      * This should be used with computation::after().
+      *
+      * Where is this number used ?
+      *
+      * Tiramisu has helper functions for scheduling (after, before, ...).
+      * For example, c0.after(c1) indicates that the computation c0 should
+      * be executed after the computation c1.
+      * If the two computations are nested in a loop, we need to specify at
+      * which loop level c0 is after c1. This is where indicating the loop
+      * becomes necessary.  The root level is the outermost level. The root
+      * level is the level outside any loop nest. Loop level 0 is the level
+      * of the first loop (outermost loop), loop 1 is following inner loop,
+      * ...
+      * Here is an example: suppose that we have two computations c0 and c1
+      * that have the following two iteration domains:
+      * {c0[i,j]: 0<=i<N and 0<=j<N} and {c1[i,j]: 0<=i<N and 0<=j<N}.
+      * This means that when code is generated for the two computations,
+      * two loop nests are generated.
+      *
+      * c0.after(c1, computation::root_dimension) would create a schedule
+      * that generates the following code
+      *
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++)
+      *         c1;
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++)
+      *         c0;
+      *
+      * c0.after(c1, 0) would create a schedule that generates the
+      * following code
+      *
+      * for (i=0; i<N; i++) {
+      *     for (j=0; j<N; j++)
+      *         c1;
+      *     for (j=0; j<N; j++)
+      *         c0;
+      * }
+      *
+      * This means that c0 is after c1 but only starting from loop level 0,
+      * before the loop level 0, they have the same order.
+      *
+      * c0.after(c1, 1) would create a schedule that generates the
+      * following code
+      *
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++) {
+      *         c1;
+      *         c0;
+      *     }
+      *
+      * This means that c0 is after c1 but only starting from loop level 1,
+      * before the loop level 1, they have the same order.
       */
     const static int root_dimension = -1;
 
