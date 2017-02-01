@@ -12,15 +12,15 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<int16_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<int16_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint8_t> output_ref_y(input.width(), input.height());
-    Halide::Image<uint8_t> output_ref_u(input.width()/2, input.height()/2);
-    Halide::Image<uint8_t> output_ref_v(input.width()/2, input.height()/2);
+    Halide::Buffer<uint8_t> output_ref_y(input.width(), input.height());
+    Halide::Buffer<uint8_t> output_ref_u(input.width()/2, input.height()/2);
+    Halide::Buffer<uint8_t> output_ref_v(input.width()/2, input.height()/2);
 
-    Halide::Image<uint8_t> output_tiramisu_y(input.width(), input.height());
-    Halide::Image<uint8_t> output_tiramisu_u(input.width()/2, input.height()/2);
-    Halide::Image<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
+    Halide::Buffer<uint8_t> output_tiramisu_y(input.width(), input.height());
+    Halide::Buffer<uint8_t> output_tiramisu_u(input.width()/2, input.height()/2);
+    Halide::Buffer<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)

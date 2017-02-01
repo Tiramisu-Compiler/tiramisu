@@ -12,22 +12,24 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Image<uint8_t> output_ref_f(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_ref_g(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_ref_h(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_ref_k(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_tiramisu_f(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_tiramisu_g(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_tiramisu_h(input.width(), input.height(), input.channels());
-    Halide::Image<uint8_t> output_tiramisu_k(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_ref_f(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_ref_g(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_ref_h(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_ref_k(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_tiramisu_f(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_tiramisu_g(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_tiramisu_h(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> output_tiramisu_k(input.width(), input.height(), input.channels());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        fusion_tiramisu(input, output_tiramisu_f, output_tiramisu_g, output_tiramisu_h, output_tiramisu_k);
+        fusion_tiramisu(input.raw_buffer(), output_tiramisu_f.raw_buffer(),
+			output_tiramisu_g.raw_buffer(), output_tiramisu_h.raw_buffer(),
+			output_tiramisu_k.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -37,7 +39,8 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
-        fusion_ref(input, output_ref_f, output_ref_g, output_ref_h, output_ref_k);
+        fusion_ref(input.raw_buffer(), output_ref_f.raw_buffer(), output_ref_g.raw_buffer(),
+		   output_ref_h.raw_buffer(), output_ref_k.raw_buffer());
         auto end2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);

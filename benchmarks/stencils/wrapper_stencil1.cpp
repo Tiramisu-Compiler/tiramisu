@@ -11,7 +11,7 @@ int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
 
-    Halide::Image<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
 
     for (int i=0; i<NB_TESTS; i++)
     {

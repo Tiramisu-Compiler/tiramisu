@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
-    Halide::Image<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
     int SIZE0 = in_image.extent(0);
     int SIZE1 = in_image.extent(1);
 

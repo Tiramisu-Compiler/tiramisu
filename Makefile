@@ -11,7 +11,7 @@ HALIDE_LIB_DIRECTORY=Halide/lib
 CXX=g++
 CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
-LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags`
+LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags` -ljpeg
 HEADER_FILES=include/tiramisu/core.h include/tiramisu/debug.h include/tiramisu/utils.h include/tiramisu/expr.h include/tiramisu/parser.h include/tiramisu/type.h
 OBJ=build/tiramisu_core.o build/tiramisu_codegen_halide.o build/tiramisu_codegen_c.o build/tiramisu_debug.o build/tiramisu_utils.o build/tiramisu_codegen_halide_lowering.o build/tiramisu_codegen_from_halide.o
 

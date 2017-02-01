@@ -9,7 +9,7 @@
 
 int main(int, char**)
 {
-    Halide::Image<uint8_t> image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./images/rgb.png");
 
     buffer_t output_buf = {0};
     output_buf.host = (unsigned char *) malloc(image.extent(0)*image.extent(1)*sizeof(unsigned char));
@@ -24,7 +24,7 @@ int main(int, char**)
     // The blurxy takes a buffer_t * argument, when "image"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
-    blurxy(image, &output_buf);
+    blurxy(image.raw_buffer(), &output_buf);
 
     copy_2D_buffer(image.data(), image.extent(0), image.extent(1), output_buf.host);
 

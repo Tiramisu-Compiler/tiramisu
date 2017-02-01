@@ -12,7 +12,7 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Image<float> input(Halide::Float(32), 10000, 10000);
+    Halide::Buffer<float> input(Halide::Float(32), 10000, 10000);
     // Init randomly
     for (int y = 0; y < input.height(); ++y) {
         for (int x = 0; x < input.width(); ++x) {
@@ -21,14 +21,14 @@ int main(int, char**)
         }
     }
 
-    Halide::Image<float> output1(input.width(), input.height());
-    Halide::Image<float> output2(input.width(), input.height());
+    Halide::Buffer<float> output1(input.width(), input.height());
+    Halide::Buffer<float> output2(input.width(), input.height());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        heat2d_tiramisu(input, output1);
+        heat2d_tiramisu(input.raw_buffer(), output1.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -38,7 +38,7 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
-        heat2d_ref(input, output2);
+        heat2d_ref(input.raw_buffer(), output2.raw_buffer());
         auto end2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);
