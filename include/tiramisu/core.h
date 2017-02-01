@@ -1296,35 +1296,42 @@ public:
 
 /**
   * A class that represents loop invariants.
+  *
   * An object of the invariant class can be an expression, a symbolic constant
   * or a variable that is invariant to all the loops of the function.
   */
 class constant: public computation
 {
 public:
+
     /**
       * Create a constant where \p param_name is the name of
       * the constant that will hold the value of the constant.
+      *
       * \p param_expr is the expression that defines the value
       * of the constant.
-      * \p t indicates the tiramisu type of the constant.
+      *
+      * \p t indicates the type of the constant.
+      *
       * \p function_wide should be set to true if the constant is
       * defined at the entry of the function and is visible to all
-      * the computations. i.e. it is declared the root level.
+      * the computations.
       * If function_wide is set to true, then the constant is an
       * invariant to the whole function where it is declared.
-      * Otherwise, this function_wide should be set to false.
+      *
       * \p with_computation, should be set only if function_wide
       * is false, i.e. if the constant is not function wide.
       * In such a case the user should indicate where the
       * constant should be assigned.
       * \p with_computation indicates that the assignment should
-      * be in the loop nest that computes the computation
+      * be in the loop nest that computes the computation indicated by
       * \p with_computation at the dimension indicated
       * by \p at_iteration_space_dimension.
-      * The root level is computation::root_dimension.
+      * The root level (i.e. the level outer than any other loop level)
+      * is computation::root_dimension.
       * 0 represents the first loop level and 1 represents the second
       * loop level, ...
+      *
       * \p func is the function in which the constant is defined.
       */
     constant(std::string param_name, const tiramisu::expr &param_expr,
@@ -1332,65 +1339,7 @@ public:
              bool function_wide,
              tiramisu::computation *with_computation,
              int at_iteration_space_dimension,
-             tiramisu::function *func): tiramisu::computation()
-    {
-        DEBUG_FCT_NAME(3);
-        DEBUG_INDENT(4);
-
-        assert((param_name.length() > 0) && "Parameter name empty");
-        assert((func != NULL) && "Function undefined");
-
-        DEBUG(3, tiramisu::str_dump("Declaring a constant."));
-
-        if (function_wide)
-        {
-            this->name = param_name;
-            this->expression = param_expr;
-            func->add_invariant(*this);
-            _is_let_stmt = true;
-        }
-        else
-        {
-            assert((with_computation != NULL) &&
-                   "A valid computation should be provided.");
-            assert((at_iteration_space_dimension >= computation::root_dimension) &&
-                   "Invalid root dimension.");
-
-            isl_set *iter = with_computation->get_iteration_domain();
-            int projection_dimension = at_iteration_space_dimension+1;
-            iter = isl_set_project_out(isl_set_copy(iter),
-                                       isl_dim_set,
-                                       projection_dimension,
-                                       isl_set_dim(iter, isl_dim_set)
-                                       -projection_dimension);
-            std::string new_param_name = LET_STMT_PREFIX + param_name;
-            iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
-            std::string iteration_domain_str = isl_set_to_str(iter);
-
-            DEBUG(3, tiramisu::str_dump(
-                        "Computed iteration space for the constant assignment",
-                        isl_set_to_str(iter)));
-
-            init_computation(iteration_domain_str, func, param_expr,
-                                   true, t);
-            _is_let_stmt = true;
-
-            DEBUG_NO_NEWLINE(10,
-                     tiramisu::str_dump("The computation representing the assignment:");
-                     this->dump(true));
-
-            assert(with_computation != NULL);
-            // Compute this statement before computing the "with_coputation".
-            // Since this statement is a let statement the "with_computation"
-            // will consumer it.
-            with_computation->statements_to_compute_before_me = this;
-
-            // Set the schedule of this computation to be executed
-            // before the computation.
-            this->before(*with_computation, 2*at_iteration_space_dimension+1);
-        }
-        DEBUG_INDENT(-4);
-    }
+             tiramisu::function *func);
 
     /**
       * Dump the invariant on standard output (dump most of the fields of

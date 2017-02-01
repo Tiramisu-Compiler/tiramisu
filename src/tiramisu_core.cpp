@@ -2272,4 +2272,71 @@ void tiramisu::computation::bind_to(buffer *buff)
     this->set_access(isl_map_to_str(map));
 }
 
+tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param_expr,
+         tiramisu::primitive_t t,
+         bool function_wide,
+         tiramisu::computation *with_computation,
+         int at_iteration_space_dimension,
+         tiramisu::function *func): tiramisu::computation()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert((param_name.length() > 0) && "Parameter name empty");
+    assert((func != NULL) && "Function undefined");
+    assert(((function_wide && !with_computation) || (!function_wide && with_computation)) && "with_computation, should be set only if function_wide is false");
+
+    DEBUG(3, tiramisu::str_dump("Declaring a constant."));
+
+    if (function_wide)
+    {
+        this->name = param_name;
+        this->expression = param_expr;
+        func->add_invariant(*this);
+        _is_let_stmt = true;
+    }
+    else
+    {
+        assert((with_computation != NULL) &&
+               "A valid computation should be provided.");
+        assert((at_iteration_space_dimension >= computation::root_dimension) &&
+               "Invalid root dimension.");
+
+        isl_set *iter = with_computation->get_iteration_domain();
+        int projection_dimension = at_iteration_space_dimension+1;
+        iter = isl_set_project_out(isl_set_copy(iter),
+                                   isl_dim_set,
+                                   projection_dimension,
+                                   isl_set_dim(iter, isl_dim_set)
+                                   -projection_dimension);
+        std::string new_param_name = LET_STMT_PREFIX + param_name;
+        iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
+        std::string iteration_domain_str = isl_set_to_str(iter);
+
+        DEBUG(3, tiramisu::str_dump(
+                    "Computed iteration space for the constant assignment",
+                    isl_set_to_str(iter)));
+
+        init_computation(iteration_domain_str, func, param_expr,
+                               true, t);
+        _is_let_stmt = true;
+
+        DEBUG_NO_NEWLINE(10,
+                 tiramisu::str_dump("The computation representing the assignment:");
+                 this->dump(true));
+
+        assert(with_computation != NULL);
+        // Compute this statement before computing the "with_coputation".
+        // Since this statement is a let statement the "with_computation"
+        // will consumer it.
+        with_computation->statements_to_compute_before_me = this;
+
+        // Set the schedule of this computation to be executed
+        // before the computation.
+        this->before(*with_computation, 2*at_iteration_space_dimension+1);
+    }
+    DEBUG_INDENT(-4);
+}
+
+
 }
