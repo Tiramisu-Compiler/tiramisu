@@ -1805,4 +1805,471 @@ isl_map* tiramisu::computation::update_let_stmt_schedule_domain_name(isl_map* ma
     return map;
 }
 
+//----------------
+
+/**
+  * Initialize a computation
+  *  This is a private function that should not be called explicitly
+  * by users.
+  */
+void tiramisu::computation::init_computation(std::string iteration_space_str,
+                      tiramisu::function *fct,
+                      const tiramisu::expr &e,
+                      bool schedule_this_computation,
+                      tiramisu::primitive_t t)
+{
+        assert(fct != NULL);
+        assert(iteration_space_str.length()>0 && ("Empty iteration space"));
+
+        // Initialize all the fields to NULL (useful for later asserts)
+        access = NULL;
+        schedule = NULL;
+        stmt = Halide::Internal::Stmt();
+        time_processor_domain = NULL;
+        relative_order = 0;
+
+        this->statements_to_compute_before_me = NULL;
+        this->schedule_this_computation = schedule_this_computation;
+        this->data_type = t;
+        this->expression = e;
+
+        this->ctx = fct->get_ctx();
+
+        iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+        name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
+        function = fct;
+        function->add_computation(this);
+        this->set_identity_schedule_based_on_iteration_domain();
+    }
+
+/**
+ * Dummy constructor for derived classes.
+ */
+tiramisu::computation::computation()
+{
+    access = NULL;
+    schedule = NULL;
+    stmt = Halide::Internal::Stmt();
+    time_processor_domain = NULL;
+    relative_order = 0;
+
+    this->schedule_this_computation = false;
+    this->data_type = p_none;
+    this->expression = tiramisu::expr();
+    this->statements_to_compute_before_me = NULL;
+
+    this->ctx = NULL;
+
+    iteration_domain = NULL;
+    name = "";
+    function = NULL;
+    _is_let_stmt = false;
+}
+
+/**
+  * Constructor for computations.
+  *
+  * \p iteration_domain_str is a string that represents the iteration
+  * domain of the computation.  The iteration domain should be written
+  * in the ISL format (http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+  *
+  * The iteration domain of a statement is a set that contains
+  * all of the execution instances of the statement (a statement in a
+  * loop has an execution instance for each loop iteration in which
+  * it executes). Each execution instance of a statement in a loop
+  * nest is uniquely represented by an identifier and a tuple of
+  * integers  (typically,  the  values  of  the  outer  loop  iterators).
+  *
+  * For example, the iteration space of the statement S0 in the following
+  * loop nest
+  * for (i=0; i<2; i++)
+  *   for (j=0; j<3; j++)
+  *      S0;
+  *
+  * is {S0(0,0), S0(0,1), S0(0,2), S0(1,0), S0(1,1), S0(1,2)}
+  *
+  * S0(0,0) is the execution instance of S0 in the iteration (0,0).
+  *
+  * The previous set of integer tuples can be compactly described
+  * by affine constraints as follows
+  *
+  * {S0(i,j): 0<=i<2 and 0<=j<3}
+  *
+  * In general, the loop nest
+  *
+  * for (i=0; i<N; i++)
+  *   for (j=0; j<M; j++)
+  *      S0;
+  *
+  * has the following iteration domain
+  *
+  * {S0(i,j): 0<=i<N and 0<=j<M}
+  *
+  * This should be read as: the set of points (i,j) such that
+  * 0<=i<N and 0<=j<M.
+  *
+  * \p e is the expression computed by the computation.
+  *
+  * \p schedule_this_computation should be set to true if the computation
+  * is supposed to be schedule and code is supposed to be generated from
+  * the computation.  Set it to false if you just want to use the
+  * computation to represent a buffer (that is passed as an argument
+  * to the function) and you do not intend to generate code for the
+  * computation.
+  *
+  * \p t is the type of the computation, i.e. the type of the expression
+  * computed by the computation. Example of types include (p_uint8,
+  * p_uint16, p_uint32, ...).
+  *
+  * \p fct is a pointer to the Tiramisu function where this computation
+  * should be added.
+  *
+  * TODO: copy ISL format for sets.
+  */
+tiramisu::computation::computation(std::string iteration_domain_str, tiramisu::expr e,
+            bool schedule_this_computation, tiramisu::primitive_t t,
+            tiramisu::function *fct) {
+    init_computation(iteration_domain_str, fct, e,
+                     schedule_this_computation, t);
+    _is_let_stmt = false;
+}
+
+/**
+  * Return true if the this computation is supposed to be scheduled
+  * by Tiramisu.
+  */
+bool tiramisu::computation::should_schedule_this_computation() const
+{
+    return schedule_this_computation;
+}
+
+/**
+  * Return the access function of the computation.
+  */
+isl_map *tiramisu::computation::get_access() const
+{
+    return access;
+}
+
+/**
+  * Return the access function of the computation after transforming
+  * it to the time-processor domain.
+  * The domain of the access function is transformed to the
+  * time-processor domain using the schedule, and then the transformed
+  * access function is returned.
+  */
+isl_map *tiramisu::computation::get_access_transformed_to_time_processor_domain() const
+{
+      DEBUG_FCT_NAME(3);
+      DEBUG_INDENT(4);
+
+      isl_map *access = this->get_access();
+
+      if (this->is_let_stmt() == false)
+      {
+          DEBUG(3, tiramisu::str_dump("Original access:", isl_map_to_str(access)));
+
+          if (global::is_auto_data_mapping_set() == true)
+          {
+              assert(access != NULL);
+              assert(this->get_schedule() != NULL);
+
+              DEBUG(3, tiramisu::str_dump("Schedule to apply:", isl_map_to_str(this->get_schedule())));
+              access = isl_map_apply_domain(
+                          isl_map_copy(access),
+                          isl_map_copy(this->get_schedule()));
+              DEBUG(3, tiramisu::str_dump("Transformed access:", isl_map_to_str(access)));
+          }
+          else
+              DEBUG(3, tiramisu::str_dump("Access not transformed"));
+      }
+
+      DEBUG_INDENT(-4);
+
+      return access;
+}
+
+/**
+ * Return the Tiramisu expression associated with the computation.
+ */
+const tiramisu::expr &tiramisu::computation::get_expr() const
+{
+    return expression;
+}
+
+/**
+  * Return the function where the computation is declared.
+  */
+tiramisu::function *tiramisu::computation::get_function() const
+{
+    return function;
+}
+
+/**
+  * Return vector of isl_ast_expr representing the indices of the array where
+  * the computation will be stored.
+  */
+std::vector<isl_ast_expr *> &tiramisu::computation::get_index_expr()
+{
+    return index_expr;
+}
+
+/**
+  * Return the iteration domain of the computation.
+  * In this representation, the order of execution of computations
+  * is not specified, the computations are also not mapped to memory.
+  */
+isl_set *tiramisu::computation::get_iteration_domain() const
+{
+    // Every computation should have an iteration space.
+    assert(iteration_domain != NULL);
+
+    return iteration_domain;
+}
+
+/**
+  * Return the time-processor domain of the computation.
+  * In this representation, the logical time of execution and the
+  * processor where the computation will be executed are both
+  * specified.
+  */
+isl_set *tiramisu::computation::get_time_processor_domain() const
+{
+    return time_processor_domain;
+}
+
+/**
+  * Return the schedule of the computation.
+  */
+isl_map *tiramisu::computation::get_schedule() const
+{
+    return this->schedule;
+}
+
+/**
+ * Return if this computation represents a let statement.
+ */
+bool tiramisu::computation::is_let_stmt() const
+{
+    return _is_let_stmt;
+}
+
+/**
+  * Return the name of the computation.
+  */
+const std::string &tiramisu::computation::get_name() const
+{
+    return name;
+}
+
+/**
+  * Return the context of the computations.
+  */
+isl_ctx *tiramisu::computation::get_ctx() const
+{
+    return ctx;
+}
+
+/**
+ * Get the number of dimensions of the iteration
+ * domain of the computation.
+ */
+int tiramisu::computation::get_n_dimensions()
+{
+  assert(iteration_domain != NULL);
+
+  return isl_set_n_dim(this->iteration_domain);
+}
+
+/**
+ * Get the data type of the computation.
+ */
+tiramisu::primitive_t tiramisu::computation::get_data_type() const
+{
+  return data_type;
+}
+
+/**
+  * Return the Halide statement that assigns the computation to a buffer location.
+  */
+Halide::Internal::Stmt tiramisu::computation::get_halide_stmt() const
+{
+    return stmt;
+}
+
+/**
+ * Compare two computations.
+ *
+ * Two computations are considered to be equal if they have the
+ * same name.
+ */
+bool tiramisu::computation::operator==(tiramisu::computation comp1)
+{
+  if (this->get_name() == comp1.get_name())
+    return true;
+  else
+    return false;
+}
+
+/**
+  * Generate the time-processor domain of the computation.
+  *
+  * In this representation, the logical time of execution and the
+  * processor where the computation will be executed are both
+  * specified.  The memory location where computations will be
+  * stored in memory is not specified at the level.
+  */
+void tiramisu::computation::gen_time_processor_domain()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(this->get_iteration_domain() != NULL);
+    assert(this->get_schedule() != NULL);
+
+    time_processor_domain = isl_set_apply(
+        isl_set_copy(this->get_iteration_domain()),
+        isl_map_copy(this->get_schedule()));
+
+    DEBUG(3, tiramisu::str_dump("Iteration domain:", isl_set_to_str(this->get_iteration_domain())));
+    DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(this->get_schedule())));
+    DEBUG(3, tiramisu::str_dump("Generated time-space domain:", isl_set_to_str(time_processor_domain)));
+
+    DEBUG_INDENT(-4);
+}
+
+/**
+ * Set the access function of the computation.
+ *
+ * The access function is a relation from computations to buffer locations.
+ * \p access_str is a string that represents the relation (in ISL format,
+ * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+ */
+void tiramisu::computation::set_access(std::string access_str)
+{
+    assert(access_str.length() > 0);
+
+    this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+
+    assert(this->access != NULL);
+}
+
+/**
+ * Generate an identity schedule for the computation.
+ *
+ * This identity schedule is an identity relation created from the iteration
+ * domain.
+ */
+isl_map *tiramisu::computation::gen_identity_schedule_for_iteration_domain()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_space *sp = isl_set_get_space(this->get_iteration_domain());
+    isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
+    sched = isl_map_intersect_domain(
+        sched, isl_set_copy(this->get_iteration_domain()));
+    sched = isl_map_coalesce(sched);
+
+    // Add Beta dimensions.
+    for (int i=0; i<isl_space_dim(sp, isl_dim_out)+1; i++)
+        sched = isl_map_add_dim_and_eq_constraint(sched, 2*i, 0);
+
+    DEBUG_INDENT(-4);
+
+    return sched;
+}
+
+/**
+ * Generate an identity schedule for the computation.
+ *
+ * This identity schedule is an identity relation created from the
+ * time-processor domain.
+ */
+isl_map *tiramisu::computation::gen_identity_schedule_for_time_space_domain()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_space *sp = isl_set_get_space(this->get_time_processor_domain());
+    isl_map *sched = isl_map_identity(isl_space_map_from_set(sp));
+    sched = isl_map_intersect_domain(
+        sched, isl_set_copy(this->get_time_processor_domain()));
+    sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
+    sched = isl_map_coalesce(sched);
+
+    DEBUG_INDENT(-4);
+
+    return sched;
+}
+
+/**
+ * Set an identity schedule for the computation.
+ *
+ * This identity schedule is an identity relation created from the iteration
+ * domain.
+ */
+void tiramisu::computation::set_identity_schedule_based_on_iteration_domain()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_map *sched = this->gen_identity_schedule_for_iteration_domain();
+    DEBUG(3, tiramisu::str_dump("The following identity schedule is set: ",
+                            isl_map_to_str(sched)));
+    this->set_schedule(sched);
+
+    DEBUG_INDENT(-4);
+}
+
+/**
+  * Set the schedule indicated by \p map.
+  *
+  * \p map is a string that represents a mapping from the iteration domain
+  *  to the time-processor domain (the mapping is in the ISL format:
+  *  http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+  *
+  * TODO: specify clearly the expected format for the schedule.
+  *
+  * The name of the domain and range space must be identical.
+  */
+void tiramisu::computation::set_schedule(isl_map *map)
+{
+    /* Check if the computation is a let stmt, if it is,
+     * check if it starts with LET_STMT_PREFIX, if not add
+     * LET_STMT_PREFIX automatically.
+     */
+    map = this->update_let_stmt_schedule_domain_name(map);
+
+    this->schedule = map;
+}
+
+/**
+ * Set the expression of the computation.
+ */
+void tiramisu::computation::set_expression(const tiramisu::expr &e)
+{
+    this->expression = e;
+}
+
+/**
+  * Bind the computation to a buffer.
+  * i.e. create a one-to-one data mapping between the computation
+  * the buffer.
+  */
+void tiramisu::computation::bind_to(buffer *buff)
+{
+    assert(buff != NULL);
+
+    isl_space *sp = isl_set_get_space(this->get_iteration_domain());
+    isl_map *map = isl_map_identity(isl_space_map_from_set(sp));
+    map = isl_map_intersect_domain(
+        map, isl_set_copy(this->get_iteration_domain()));
+    map = isl_map_set_tuple_name(map, isl_dim_out, buff->get_name().c_str());
+    map = isl_map_coalesce(map);
+    DEBUG(2, tiramisu::str_dump("\nBinding.  The following access function is set: ",
+                            isl_map_to_str(map)));
+    this->set_access(isl_map_to_str(map));
+}
+
 }
