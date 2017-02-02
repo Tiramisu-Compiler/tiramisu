@@ -11,7 +11,6 @@
 
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
-#include <tiramisu/parser.h>
 
 #include <string>
 #include <algorithm>
@@ -375,29 +374,6 @@ void split_string(std::string str, std::string delimiter,
     vector.push_back(token);
 }
 
-void tiramisu::parser::constraint::parse(std::string str)
-{
-    assert(str.empty() == false);
-
-    split_string(str, "and", this->constraints);
-};
-
-void tiramisu::parser::space::parse(std::string space)
-{
-    std::vector<std::string> vector;
-    split_string(space, ",", vector);
-
-    // Check if the vector has constraints
-    for (int i=0; i<vector.size(); i++)
-    {
-        if (vector[i].find("=") != std::string::npos)
-        {
-            vector[i] = vector[i].erase(0, vector[i].find("=")+1);
-        }
-    }
-
-    this->dimensions = vector;
-}
 
 std::string generate_new_variable_name()
 {
@@ -549,7 +525,6 @@ void computation::set_schedule(std::string map_str)
     assert(this->ctx != NULL);
 
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
-    map = update_let_stmt_schedule_domain_name(map);
     assert(map != NULL);
 
     this->set_schedule(map);
@@ -1772,32 +1747,7 @@ isl_map* tiramisu::computation::update_let_stmt_schedule_domain_name(isl_map* ma
             this->get_function()->get_computation_by_name(comp_name);
 
     if (let_comp == NULL)    // i.e. if let computation not found
-    {
         DEBUG(10, tiramisu::str_dump ("Computation used in the domain not found."));
-
-        // Find the LET_STMT_PREFIX in the name,
-        int pos = comp_name.find(LET_STMT_PREFIX);
-
-        // if LET_STMT_PREFIX is not found or is not in the beginning
-        // of comp_name, add the prefix.
-        if ((pos == std::string::npos) || (pos != 0))
-        {
-            DEBUG(10, tiramisu::str_dump ("Computation does not have LET_STMT_PREFIX."));
-            comp_name = LET_STMT_PREFIX + comp_name;
-
-            // Does adding LET_STMT_PREFIX allow finding the stmt ?
-            if (this->get_function()->get_computation_by_name(comp_name) != NULL)
-            {
-                DEBUG(10, tiramisu::str_dump ("Replacing computation domain."));
-                map = isl_map_set_tuple_name(map, isl_dim_in,
-                                             comp_name.c_str ());
-                map = isl_map_set_tuple_name(map, isl_dim_out,
-                                             comp_name.c_str ());
-            }
-            else
-                tiramisu::error("Scheduling an undeclared computation.", true);
-        }
-    }
 
     DEBUG(10, tiramisu::str_dump ("Output schedule: ", isl_map_to_str(map)));
     DEBUG_INDENT(-4);
@@ -2235,12 +2185,6 @@ void tiramisu::computation::set_identity_schedule_based_on_iteration_domain()
   */
 void tiramisu::computation::set_schedule(isl_map *map)
 {
-    /* Check if the computation is a let stmt, if it is,
-     * check if it starts with LET_STMT_PREFIX, if not add
-     * LET_STMT_PREFIX automatically.
-     */
-    map = this->update_let_stmt_schedule_domain_name(map);
-
     this->schedule = map;
 }
 
@@ -2272,6 +2216,11 @@ void tiramisu::computation::bind_to(buffer *buff)
     this->set_access(isl_map_to_str(map));
 }
 
+void tiramisu::computation::mark_as_let_statement()
+{
+    this->_is_let_stmt = true;
+}
+
 tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param_expr,
          tiramisu::primitive_t t,
          bool function_wide,
@@ -2293,7 +2242,7 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
         this->name = param_name;
         this->expression = param_expr;
         func->add_invariant(*this);
-        _is_let_stmt = true;
+        this->mark_as_let_statement();
     }
     else
     {
@@ -2309,8 +2258,7 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
                                    projection_dimension,
                                    isl_set_dim(iter, isl_dim_set)
                                    -projection_dimension);
-        std::string new_param_name = LET_STMT_PREFIX + param_name;
-        iter = isl_set_set_tuple_name(iter, new_param_name.c_str());
+        iter = isl_set_set_tuple_name(iter, param_name.c_str());
         std::string iteration_domain_str = isl_set_to_str(iter);
 
         DEBUG(3, tiramisu::str_dump(
@@ -2319,7 +2267,8 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
 
         init_computation(iteration_domain_str, func, param_expr,
                                true, t);
-        _is_let_stmt = true;
+
+        this->mark_as_let_statement();
 
         DEBUG_NO_NEWLINE(10,
                  tiramisu::str_dump("The computation representing the assignment:");

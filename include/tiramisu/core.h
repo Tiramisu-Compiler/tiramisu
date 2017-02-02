@@ -60,8 +60,6 @@ void halide_pipeline_to_c(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     const std::string &func);
 
-#define LET_STMT_PREFIX "_tiramisu_"
-
 
 /**
   * A class to represent functions.  A function is composed of
@@ -764,18 +762,19 @@ private:
      */
     unsigned long relative_order;
 
-protected:
-
     /**
-      * The name of this computation.
-      */
-    std::string name;
-
-    /**
-      * An expression representing the computation
-      * ("what" should be computed).
-      */
-    tiramisu::expr expression;
+     * Does this computation represent a let statement ?
+     *
+     * Let statements should be treated differently:
+     * - During Halide code generation a Halide let statement should be
+     * created instead of an assignment statement.
+     * - A let statement does not have/need an access function because
+     * it writes directly to a scalar.
+     * - When targeting Halide, let statements should be created after
+     * their body is created, because the body is an argument needed
+     * for the creation of the let statement.
+     */
+    bool _is_let_stmt;
 
     /**
      * TODO: use buffers directly from computations, no need to have
@@ -791,12 +790,18 @@ protected:
      */
     bool schedule_this_computation;
 
+protected:
+
     /**
-     * Does this computation represent a let statement ?
-     * TODO: how is treating a computation that represents a let statement
-     * different from treating normal computations ?
-     */
-    bool _is_let_stmt;
+      * The name of this computation.
+      */
+    std::string name;
+
+    /**
+      * An expression representing the computation
+      * ("what" should be computed).
+      */
+    tiramisu::expr expression;
 
     /**
       * Initialize a computation.
@@ -1008,6 +1013,16 @@ public:
 
     /**
      * Return if this computation represents a let statement.
+     *
+     * Let statements should be treated differently because:
+     * - A let statement does not have/need an access function because
+     * it writes directly to a scalar.
+     * - If the backend is Halide:
+     *      - During Halide code generation a Halide let statement
+     *      should be created instead of an assignment statement.
+     *      - When targeting Halide, let statements should be created
+     *      after their body is created, because the body is an argument
+     *      needed for the creation of the let statement.
      */
     bool is_let_stmt() const;
 
@@ -1061,6 +1076,11 @@ public:
                           access_expressions,
                           this->get_data_type());
     }
+
+    /**
+     * Mark this statement as a let statement.
+     */
+    void mark_as_let_statement();
 
     /**
       * Tag the dimension \p dim of the iteration space to be parallelized.

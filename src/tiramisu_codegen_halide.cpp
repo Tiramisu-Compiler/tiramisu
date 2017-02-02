@@ -1307,19 +1307,11 @@ void computation::create_halide_assignment()
             result = Halide::Internal::Cast::make(l_type, result);
 
         std::string let_stmt_name = this->get_name();
-        int pos = let_stmt_name.find(LET_STMT_PREFIX);
-        // if LET_STMT_PREFIX is found and is in the beginning of
-        // let_stmt_name.
-        if ((pos != std::string::npos) && (pos == 0))
-            let_stmt_name = let_stmt_name.erase(0, std::strlen(LET_STMT_PREFIX));
-        else
-            tiramisu::error(LET_STMT_PREFIX " not found in let statement name.", true);
 
         let_stmts_vector.push_back(std::pair<std::string, Halide::Expr>(
                                             let_stmt_name,
                                             result));
         DEBUG(10, tiramisu::str_dump("A let statement was added to the vector of let statements."));
-
     }
     else
     {
