@@ -730,7 +730,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                     stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
                 }
 
-                Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_type());
+                Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
 
                 Halide::Buffer<> *buffer =
                     new Halide::Buffer<>(
@@ -1218,7 +1218,7 @@ void function::gen_halide_stmt()
             }
             *stmt = Halide::Internal::Allocate::make(
                         buf->get_name(),
-                        halide_type_from_tiramisu_type(buf->get_type()),
+                        halide_type_from_tiramisu_type(buf->get_elements_type()),
                         halide_dim_sizes, Halide::Internal::const_true(), *stmt);
         }
     }
@@ -1349,7 +1349,7 @@ void computation::create_halide_assignment()
 
         Halide::Buffer<> *buffer =
             new Halide::Buffer<>(
-                    halide_type_from_tiramisu_type(tiramisu_buffer->get_type()),
+                    halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
                     tiramisu_buffer->get_data(),
                     tiramisu_buffer->get_dim_sizes().size(),
                     shape,
@@ -1410,7 +1410,7 @@ void function::gen_halide_obj(
         Halide::Argument buffer_arg(
             buf->get_name(),
             halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
-            halide_type_from_tiramisu_type(buf->get_type()),
+            halide_type_from_tiramisu_type(buf->get_elements_type()),
             buf->get_n_dims());
 
         fct_arguments.push_back(buffer_arg);

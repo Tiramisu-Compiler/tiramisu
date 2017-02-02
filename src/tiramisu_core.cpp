@@ -1622,7 +1622,7 @@ int buffer::get_n_dims() const
 /**
   * Return the type of the elements of the buffer.
   */
-tiramisu::primitive_t buffer::get_type() const
+tiramisu::primitive_t buffer::get_elements_type() const
 {
     return type;
 }

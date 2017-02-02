@@ -170,6 +170,30 @@ private:
      */
     std::vector<std::string> iterator_names;
 
+    /**
+     * This functions iterates over the schedules of the function (the schedule
+     * of each computation in the function) and computes the maximal dimension
+     * among the dimensions of the ranges of all the schedules.
+     */
+    int get_max_schedules_range_dim() const;
+
+    /**
+      * This function first computes the identity schedules,
+      * then it computes the maximal dimension among the dimensions
+      * of the ranges of all the identity schedules.
+      */
+    int get_max_identity_schedules_range_dim() const;
+
+    /**
+      * This function iterates over the computations of the function.
+      * It modifies the identity schedule of each computation in order to
+      * make all the identity schedules have the same number of dimensions
+      * in their ranges.
+      * This is done by adding dimensions equal to 0 to the range of each
+      * identity schedule that does not have enough dimensions.
+      */
+    isl_union_map *get_aligned_identity_schedules() const;
+
 public:
 
     /**
@@ -181,16 +205,6 @@ public:
       * Get the arguments of the function.
       */
     const std::vector<tiramisu::buffer *> &get_arguments() const;
-
-    /**
-      * This function iterates over the computations of the function.
-      * It modifies the identity schedule of each computation in order to
-      * make all the identity schedules have the same number of dimensions
-      * in their ranges.
-      * This is done by adding dimensions equal to 0 to the range of each
-      * identity schedule that does not have enough dimensions.
-      */
-    isl_union_map *get_aligned_identity_schedules() const;
 
     /**
       * Return a map that represents the buffers of the function.
@@ -259,20 +273,6 @@ public:
       * generator.
       */
     Halide::Internal::Stmt get_halide_stmt() const;
-
-    /**
-     * This functions iterates over the schedules of the function (the schedule
-     * of each computation in the function) and computes the maximal dimension
-     * among the dimensions of the ranges of all the schedules.
-     */
-    int get_max_schedules_range_dim() const;
-
-    /**
-      * This function first computes the identity schedules,
-      * then it computes the maximal dimension among the dimensions
-      * of the ranges of all the identity schedules.
-      */
-    int get_max_identity_schedules_range_dim() const;
 
     /**
       * Return the union of all the iteration domains
@@ -644,7 +644,7 @@ public:
     /**
     * Return the type of the elements of the buffer.
     */
-    tiramisu::primitive_t get_type() const;
+    tiramisu::primitive_t get_elements_type() const;
 
     /**
       * Return the sizes of the dimensions of the buffer.
@@ -820,77 +820,6 @@ protected:
     computation();
 
 public:
-
-    /**
-      * root_dimension is a number used to specify the dimension level
-      * known as root.
-      * The root dimension level is the outermost level.  It is the level
-      * outside any loop nest.  Loop level 0 is the level of the first loop
-      * (outermost loop), loop 1 is the level of following inner loop, ...
-      *
-      * Where is this number used ?
-      *
-      * These numbers are used in the helper functions used for scheduling
-      * (such as after(), before(), ...).
-      * For example, c0.after(c1) indicates that the computation c0 should
-      * be executed after the computation c1.
-      * Since the two computations c0 and c1 are usually nested in a loop,
-      * we need to specify at which loop level c0 is after c1. This is where
-      * we need to specify the loop level numbers.
-      * Here is an example.  Suppose that the two computations c0 and c1
-      * have the following iteration domains
-      * {c0[i,j]: 0<=i<N and 0<=j<N} and {c1[i,j]: 0<=i<N and 0<=j<N}.
-      *
-      * When code is generated for the two computations, two loop nests
-      * are generated.  When scheduling c0 after c1 using the after function,
-      * the user can choose one among three possibilities in specifying at
-      * which level c0 is after c1.
-      *
-      * - c0.after(c1, computation::root_dimension) would create a schedule
-      * that generates the following code
-      *
-      * for (i=0; i<N; i++)
-      *     for (j=0; j<N; j++)
-      *         c1;
-      * for (i=0; i<N; i++)
-      *     for (j=0; j<N; j++)
-      *         c0;
-      *
-      * - c0.after(c1, 0) would create a schedule that generates the
-      * following code
-      *
-      * for (i=0; i<N; i++) {
-      *     for (j=0; j<N; j++)
-      *         c1;
-      *     for (j=0; j<N; j++)
-      *         c0;
-      * }
-      *
-      * This means that c0 is after c1 starting from loop level 0,
-      * (before the loop level 0, c0 and c1 have the same order).
-      *
-      * - c0.after(c1, 1) would create a schedule that generates the
-      * following code
-      *
-      * for (i=0; i<N; i++)
-      *     for (j=0; j<N; j++) {
-      *         c1;
-      *         c0;
-      *     }
-      *
-      * This means that c0 is after c1 starting from loop level 1,
-      * (before the loop level 1, c0 and c1 have the same order).
-      */
-    const static int root_dimension = -1;
-
-    /**
-     * Let statements that should be computed before this computation.
-     *
-     * This is mainly useful when this computation consumes values
-     * computed in let statements, so those let statements should
-     * be executed before this computation.
-     */
-    tiramisu::computation *statements_to_compute_before_me;
 
     /**
       * Constructor for computations.
@@ -1354,6 +1283,77 @@ public:
     void mark_as_let_statement();
 
     /**
+      * root_dimension is a number used to specify the dimension level
+      * known as root.
+      * The root dimension level is the outermost level.  It is the level
+      * outside any loop nest.  Loop level 0 is the level of the first loop
+      * (outermost loop), loop 1 is the level of following inner loop, ...
+      *
+      * Where is this number used ?
+      *
+      * These numbers are used in the helper functions used for scheduling
+      * (such as after(), before(), ...).
+      * For example, c0.after(c1) indicates that the computation c0 should
+      * be executed after the computation c1.
+      * Since the two computations c0 and c1 are usually nested in a loop,
+      * we need to specify at which loop level c0 is after c1. This is where
+      * we need to specify the loop level numbers.
+      * Here is an example.  Suppose that the two computations c0 and c1
+      * have the following iteration domains
+      * {c0[i,j]: 0<=i<N and 0<=j<N} and {c1[i,j]: 0<=i<N and 0<=j<N}.
+      *
+      * When code is generated for the two computations, two loop nests
+      * are generated.  When scheduling c0 after c1 using the after function,
+      * the user can choose one among three possibilities in specifying at
+      * which level c0 is after c1.
+      *
+      * - c0.after(c1, computation::root_dimension) would create a schedule
+      * that generates the following code
+      *
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++)
+      *         c1;
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++)
+      *         c0;
+      *
+      * - c0.after(c1, 0) would create a schedule that generates the
+      * following code
+      *
+      * for (i=0; i<N; i++) {
+      *     for (j=0; j<N; j++)
+      *         c1;
+      *     for (j=0; j<N; j++)
+      *         c0;
+      * }
+      *
+      * This means that c0 is after c1 starting from loop level 0,
+      * (before the loop level 0, c0 and c1 have the same order).
+      *
+      * - c0.after(c1, 1) would create a schedule that generates the
+      * following code
+      *
+      * for (i=0; i<N; i++)
+      *     for (j=0; j<N; j++) {
+      *         c1;
+      *         c0;
+      *     }
+      *
+      * This means that c0 is after c1 starting from loop level 1,
+      * (before the loop level 1, c0 and c1 have the same order).
+      */
+    const static int root_dimension = -1;
+
+    /**
+     * Let statements that should be computed before this computation.
+     *
+     * This is mainly useful when this computation consumes values
+     * computed in let statements, so those let statements should
+     * be executed before this computation.
+     */
+    tiramisu::computation *statements_to_compute_before_me;
+
+    /**
       * Dump the iteration domain of the computation.
       * This is useful for debugging.
       */
@@ -1444,7 +1444,6 @@ Halide::Internal::Stmt lower_halide_pipeline(const Halide::Target &t, Halide::In
 
 /**
  * TODO code cleaning:
- * - Minimize public functions,
  * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.
  * - Add two pages explaining how one should use Tiramisu,
  *
