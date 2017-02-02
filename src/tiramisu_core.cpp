@@ -1159,17 +1159,6 @@ void tiramisu::function::add_computation(computation *cpt)
     this->body.push_back(cpt);
 }
 
-void tiramisu::constant::dump(bool exhaustive) const
-{
-    if (ENABLE_DEBUG)
-    {
-        std::cout << "Invariant \"" << this->name << "\"" << std::endl;
-
-        std::cout << "Expression: ";
-        this->get_expr().dump(exhaustive);
-        std::cout << std::endl;
-    }
-}
 
 void tiramisu::function::dump(bool exhaustive) const
 {
@@ -1896,7 +1885,7 @@ bool tiramisu::computation::should_schedule_this_computation() const
 /**
   * Return the access function of the computation.
   */
-isl_map *tiramisu::computation::get_access() const
+isl_map *tiramisu::computation::get_access_relation() const
 {
     return access;
 }
@@ -1908,12 +1897,12 @@ isl_map *tiramisu::computation::get_access() const
   * time-processor domain using the schedule, and then the transformed
   * access function is returned.
   */
-isl_map *tiramisu::computation::get_access_transformed_to_time_processor_domain() const
+isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_domain() const
 {
       DEBUG_FCT_NAME(3);
       DEBUG_INDENT(4);
 
-      isl_map *access = this->get_access();
+      isl_map *access = this->get_access_relation();
 
       if (this->is_let_stmt() == false)
       {
@@ -2197,6 +2186,14 @@ void tiramisu::computation::set_expression(const tiramisu::expr &e)
 }
 
 /**
+ * Set the name of the computation.
+ */
+void tiramisu::computation::set_name(const std::string n)
+{
+    this->name = n;
+}
+
+/**
   * Bind the computation to a buffer.
   * i.e. create a one-to-one data mapping between the computation
   * the buffer.
@@ -2221,6 +2218,12 @@ void tiramisu::computation::mark_as_let_statement()
     this->_is_let_stmt = true;
 }
 
+/****************************************************************************
+ ****************************************************************************
+ ***************************** Constant class *******************************
+ ****************************************************************************
+ ****************************************************************************/
+
 tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param_expr,
          tiramisu::primitive_t t,
          bool function_wide,
@@ -2239,8 +2242,8 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
 
     if (function_wide)
     {
-        this->name = param_name;
-        this->expression = param_expr;
+        this->set_name(param_name);
+        this->set_expression(param_expr);
         func->add_invariant(*this);
         this->mark_as_let_statement();
     }
@@ -2287,5 +2290,16 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::constant::dump(bool exhaustive) const
+{
+    if (ENABLE_DEBUG)
+    {
+        std::cout << "Invariant \"" << this->get_name() << "\"" << std::endl;
+
+        std::cout << "Expression: ";
+        this->get_expr().dump(exhaustive);
+        std::cout << std::endl;
+    }
+}
 
 }
