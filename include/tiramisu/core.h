@@ -1358,6 +1358,18 @@ void halide_stmt_dump(Halide::Internal::Stmt s);
 
 Halide::Internal::Stmt lower_halide_pipeline(const Halide::Target &t, Halide::Internal::Stmt s);
 
+/**
+ * TODO code cleaning:
+ * - Fix the current ambiguities in the documentation (TODOs),
+ * - Minimize public functions,
+ * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.
+ * - Add two pages explaining how one should use Tiramisu,
+ *
+ * - Have documentation on header files only,
+ * - Order the functions in the class computations (get functions then update functions ordered in alphabetical order),
+ * - Clean/document expr.h and type.h
+ */
+
 }
 
 #endif
