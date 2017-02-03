@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     // (actually any buffer of type a_output or a_input should be allocated
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
-    // and should not be passed as arguments to the function.
+    // and should not be passed as arguments to the function).
     buffer buf0("buf0", 2, {tiramisu::expr(10),tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
