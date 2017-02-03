@@ -27,16 +27,16 @@ int main(int argc, char **argv)
 
     // Declare a function.
     // A function in tiramisu is the equivalent of a function in C.
-    // It can have input and output buffers.  The buffers are declared later.
+    // It can have input and output arguments.  These arguments are usually
+    // represented as buffers and are declared later in the tutorial.
     function function0("function0");
 
     // Create a buffer buf0.  This buffer is supposed to be allocated outside
     // the function "function0" and passed to it as an argument.
-    // Buffers of type a_output or type::argument::input
-    // should be allocated outside the function and passed as arguments to the
-    // function.  Buffers of type type::argument::temporary are
-    // allocated automatically by tiramisu within the function and thus should
-    // not be passed as arguments to the function.
+    // (actually any buffer of type a_output or a_input should be allocated
+    // by the caller, in contrast to buffers of type a_temporary which are
+    // allocated automatically by the Tiramisu runtime within the callee
+    // and should not be passed as arguments to the function.
     buffer buf0("buf0", 2, {tiramisu::expr(10),tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     tiramisu::expr e_N = expr((int32_t) 10);
     constant N("N", e_N, p_int32, true, NULL, 0, &function0);
 
-    // Declare a expressions that will be associated with the
+    // Declare expressions that will be associated with the
     // computations.
     expr e3 = expr((uint8_t) 3) + expr((uint8_t) 4);
     // Declare a computation within function0.
