@@ -1138,18 +1138,25 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         Halide::Expr c = halide_expr_from_isl_ast_expr(cond);
 
         DEBUG(3, tiramisu::str_dump("Condition: "); std::cout << c);
+        DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
         Halide::Internal::Stmt *if_s =
                 tiramisu::halide_stmt_from_isl_node(fct, if_stmt,
                                                 level, tagged_stmts);
 
+        DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << *if_s);
+
         Halide::Internal::Stmt else_s;
 
         if (else_stmt != NULL)
         {
-            Halide::Internal::Stmt else_s =
+            DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
+
+            else_s =
                  *tiramisu::halide_stmt_from_isl_node(fct, else_stmt,
                                                   level, tagged_stmts);
+
+            DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
         }
         else
             DEBUG(3, tiramisu::str_dump("Else statement is NULL."));
@@ -1158,6 +1165,9 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                     c,
                     *if_s,
                     else_s);
+
+        DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << *result);
+
     }
 
     DEBUG_INDENT(-4);
