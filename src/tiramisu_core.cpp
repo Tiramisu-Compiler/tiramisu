@@ -228,24 +228,46 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
      return found;
  }
 
- /**
-  * Set the context of the function. A context is an ISL set that
-  * represents constraints over the parameters of the functions
-  * (a parameter is an invariant variable for the function).
-  * An example of a context set is the following:
-  *          "[N,M]->{: M>0 and N>0}"
-  * This context set indicates that the two parameters N and M
-  * are strictly positive.
-  */
+
+ void function::set_context_set(isl_set *context)
+  {
+      assert((context != NULL) && "Context is NULL");
+
+      this->context_set = context;
+  }
+
  void function::set_context_set(std::string context_str)
  {
      assert((context_str.length() > 0) && "Context string is empty");
 
-     context_set = isl_set_read_from_str(this->get_ctx(),
+     this->context_set = isl_set_read_from_str(this->get_ctx(),
                                          context_str.c_str());
 
-     assert((context_set != NULL) && "Context set is empty");
+     assert((context_set != NULL) && "Context set is NULL");
  }
+
+ isl_set *function::get_context_set()
+ {
+     return this->context_set;
+ }
+
+ void function::add_context_constraints(std::string context_str)
+  {
+      assert((context_str.length() > 0) && "Context string is empty");
+
+      if (this->context_set != NULL)
+      {
+          this->context_set = isl_set_intersect(this->context_set,
+                                            isl_set_read_from_str(this->get_ctx(),
+                                                                  context_str.c_str()));
+      }
+      else
+      {
+          this->context_set = isl_set_read_from_str(this->get_ctx(), context_str.c_str());
+      }
+
+      assert((context_set != NULL) && "Context set is NULL");
+  }
 
  /**
    * Set the iterator names of the function.
@@ -418,6 +440,202 @@ void tiramisu::computation::tag_vector_dimension(int dim)
 
     this->get_function()->add_vector_dimension(this->get_name(), dim);
 }
+
+void tiramisu::computation::separate(int dim, tiramisu::constant &C)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(this->get_function()->get_computation_by_name("_"+this->get_name()) == NULL);
+
+    // Create the separated computation.
+    // First, create the domain of the separated computation (which is identical to
+    // the domain of the original computation).
+    std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
+    int pos0 = domain_str.find(this->get_name());
+    int len0 = this->get_name().length();
+    domain_str.replace(pos0, len0, "_"+this->get_name());
+
+    // TODO: create copy functions for all the classes so that we can copy the objects
+    // we need to have this->get_expr().copy()
+    tiramisu::computation *new_c = new tiramisu::computation(domain_str,
+                                                             this->get_expr(),
+                                                             this->should_schedule_this_computation(),
+                                                             this->get_data_type(),
+                                                             this->get_function());
+
+    DEBUG(3, tiramisu::str_dump("Separated computation:\n"); new_c->dump());
+
+    // Create the access relation of the separated computation (by replacing its name).
+    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
+    int pos1 = access_c_str.find(this->get_name());
+    int len1 = this->get_name().length();
+    access_c_str.replace(pos1, len1, "_"+this->get_name());
+    new_c->set_access(access_c_str);
+
+    //TODO: for now we are not adding the new parameter to all the access functions,
+    // iteration domains, schedules, ... We should either add it every where or transform
+    // it into a variable (which is a way better method since it will allow us to
+    // vectorize code that has a variable as loop bound (i<j).
+    // We can use isl_space_align_params to align all the parameters.
+
+    DEBUG(3, tiramisu::str_dump("Access of the separated computation:", isl_map_to_str(new_c->get_access_relation())));
+
+    // Create the constraints i<M and i>=M. To do so, first we need to create
+    // the space of the constraints, which is identical to the space of the
+    // iteration domain plus a new dimension that represents the separator
+    // parameter.
+
+    // First we create the space.
+    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_iteration_domain()));
+    sp = isl_space_add_dims(sp, isl_dim_param, 1);
+    int pos = isl_space_dim(sp, isl_dim_param) - 1;
+    sp = isl_space_set_dim_name(sp, isl_dim_param, pos, C.get_name().c_str());
+    isl_local_space *ls = isl_local_space_from_space(isl_space_copy(sp));
+
+    // Second, we create the constraint i<M and add it to the original computation.
+    // Since constraints in ISL are of the form X>=y, we transform the previous
+    // constraint as follows
+    // i <  M
+    // i <= M-1
+    // M-1-i >= 0
+    isl_constraint *cst_upper = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
+    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, dim, -1);
+    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_param, pos, 1);
+    cst_upper = isl_constraint_set_constant_si(cst_upper, -1);
+
+    this->set_iteration_domain(isl_set_add_constraint(this->get_iteration_domain(), cst_upper));
+
+    // Third, we create the constraint i>=M and add it to the newly created computation.
+    // i >= M
+    // i - M >= 0
+    isl_space *sp2 = isl_space_copy(isl_set_get_space(new_c->get_iteration_domain()));
+    sp2 = isl_space_add_dims(sp2, isl_dim_param, 1);
+    int pos2 = isl_space_dim(sp2, isl_dim_param) - 1;
+    sp2 = isl_space_set_dim_name(sp2, isl_dim_param, pos2, C.get_name().c_str());
+    isl_local_space *ls2 = isl_local_space_from_space(isl_space_copy(sp2));
+    isl_constraint *cst_lower = isl_constraint_alloc_inequality(isl_local_space_copy(ls2));
+    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, dim, 1);
+    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_param, pos, -1);
+
+    new_c->set_iteration_domain(isl_set_add_constraint(new_c->get_iteration_domain(), cst_lower));
+
+    // Mark the separated computation to be executed after the original (full)
+    // computation.
+    new_c->after(*this, dim);
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::set_iteration_domain(isl_set *domain)
+{
+    this->iteration_domain = domain;
+}
+
+void tiramisu::computation::vectorize(int dim, int v,
+                                      tiramisu::expr loop_upper_bound)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    /*
+     * Create a new Tiramisu constant M = w*floor(N/w). This is the biggest
+     * multiple of w that is still smaller than N.  Add this constant to
+     * the list of invariants.
+     */
+    std::string separator_name = tiramisu::generate_new_variable_name();
+    tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound,
+                                                    tiramisu::expr(v));
+    tiramisu::expr cast_expr = tiramisu::expr(o_cast, tiramisu::p_float32, div_expr);
+    tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
+    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, tiramisu::p_int32, floor_expr);
+    tiramisu::expr separator_expr = tiramisu::expr(o_mul, tiramisu::expr(v), cast2_expr);
+
+    tiramisu::constant *separation_param = new tiramisu::constant(
+                    separator_name, separator_expr, p_uint32, true,
+                    NULL, 0, this->get_function());
+
+    /**
+     * Add the following constraints about the separator to the context:
+     *  -  separator%v = 0
+     *  -  separator <= loop_upper_bound
+     */
+
+    // Create a new context set.
+    std::string constraint_parameters = "[" + separation_param->get_name() +
+                                        "," + loop_upper_bound.get_name()  + "]->";
+    std::string constraint = constraint_parameters +
+            "{ : (" + separation_param->get_name() + ") % " + std::to_string(v) + " = 0 and " +
+                "(" + separation_param->get_name() + ") <= " + loop_upper_bound.get_name() +
+                " and (" + separation_param->get_name() + ") > 0 and " +
+                loop_upper_bound.get_name() + " > 0 " +
+            " }";
+
+    isl_set *new_context_set = isl_set_read_from_str(this->get_ctx(), constraint.c_str());
+
+    /*
+     * Align the parameters of this set with the parameters of the iteration domain
+     * (that is, we have to add the new parameter to the context and then take
+     * its space as a model for alignment).
+     */
+    isl_set *original_context = this->get_function()->get_context_set();
+    if (original_context != NULL)
+    {
+        // Create a space from the context and add a parameter.
+        isl_space *sp = isl_space_copy(isl_set_get_space(original_context));
+        sp = isl_space_add_dims(sp, isl_dim_param, 1);
+        int pos = isl_space_dim(sp, isl_dim_param) - 1;
+        sp = isl_space_set_dim_name(sp, isl_dim_param, pos, separator_name.c_str());
+
+        this->set_iteration_domain(
+                isl_set_align_params(
+                        this->get_iteration_domain(),
+                        isl_space_copy(sp)));
+
+        this->get_function()->set_context_set(
+                isl_set_align_params(
+                       this->get_function()->get_context_set(),
+                       isl_space_copy(sp)));
+
+        this->get_function()->set_context_set(
+                isl_set_intersect(
+                        isl_set_copy(original_context),
+                        new_context_set));
+    }
+    else
+    {
+        this->get_function()->set_context_set(new_context_set);
+    }
+
+
+    /*
+     * Separate this computation using the parameter separation_param. That
+     * is create two identical computations where we have a constraint like
+     * i<M in the first and i>=M in the second.
+     * The first is called the full computation while the second is called
+     * the separated computation.
+     * The names of the two computations is different. The name of the separated
+     * computation is equal to the name of the full computation prefixed with "_".
+     */
+    this->separate(dim, *separation_param);
+
+    /**
+     * Split the full computation since the full computation will be vectorized.
+     * Note that we should perform the split on the dimension "2*dim+1" instead
+     * of dim, because the split is performed on dimensions of the schedule which
+     * is of the form [static, dynamic, static, dynamic, static, dynamic, ...],
+     * thus we have to transform dim to 2*dim+1.
+     */
+    this->split(2*dim+1, v);
+
+    // Tag the inner loop after splitting to be vectorized. That loop
+    // is supposed to have a constant extent.
+    this->tag_vector_dimension(dim+1);
+    this->get_function()->align_schedules();
+
+    DEBUG_INDENT(-4);
+}
+
 
 void computation::dump_iteration_domain() const
 {
@@ -1180,9 +1398,9 @@ void tiramisu::function::dump(bool exhaustive) const
         }
         std::cout << std::endl;
 
-        std::cout << "Function context set:";
-        isl_set_dump(this->get_parameter_set());
-        std::cout << std::endl;
+        std::cout << "Function context set: "
+                  << isl_set_to_str(this->get_parameter_set())
+                  << std::endl;
 
         this->dump_schedule();
 
@@ -1461,6 +1679,8 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
             return "val";
         case tiramisu::e_op:
             return "op";
+        case tiramisu::e_var:
+            return "var";
         default:
             tiramisu::error("Tiramisu type not supported.", true);
             return "";
@@ -2077,6 +2297,13 @@ void tiramisu::computation::gen_time_processor_domain()
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::set_access(isl_map *access)
+{
+    assert(access != NULL);
+
+    this->access = access;
+}
+
 /**
  * Set the access function of the computation.
  *
@@ -2089,6 +2316,29 @@ void tiramisu::computation::set_access(std::string access_str)
     assert(access_str.length() > 0);
 
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+
+    /**
+     * Search for any other computation that starts with
+     * "_" and that has the same name.  That computation
+     * was split from this computation.
+     *
+     * For now we assume that only one such computation exists
+     * (we check in the separate function that each computation
+     * is separated only once, separated computations cannot be
+     * separated themselves).
+     */
+    tiramisu::computation *separated_computation = this->get_function()->get_computation_by_name("_"+this->get_name());
+
+    if (separated_computation != NULL)
+    {
+        int pos = access_str.find(this->get_name());
+        int len = this->get_name().length();
+
+        access_str.replace(pos, len, "_"+this->get_name());
+        separated_computation->access = isl_map_read_from_str(separated_computation->ctx, access_str.c_str());
+
+        assert(separated_computation->access != NULL);
+    }
 
     assert(this->access != NULL);
 }

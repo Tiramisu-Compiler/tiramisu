@@ -70,6 +70,8 @@ class function
 private:
     /**
       * The name of the function.
+      * Function names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
       */
     std::string name;
 
@@ -198,6 +200,8 @@ public:
 
     /**
      * Construct a function with the name \p name.
+     * Function names should not start with _ (an underscore).
+     * Names starting with _ are reserved names.
      */
     function(std::string name);
 
@@ -242,6 +246,19 @@ public:
       * are strictly positive.
       */
      isl_set *get_parameter_set() const;
+
+
+     /**
+      * Return the context set of this function.
+      * A context is an ISL set that represents constraints over
+      * the parameters of the functions (a parameter is an invariant
+      * variable for the function).
+      * An example of a context set is the following:
+      *          "[N,M]->{: M>0 and N>0}"
+      * This context set indicates that the two parameters N and M
+      * are strictly positive.
+      */
+     isl_set *get_context_set();
 
      /**
        * Return the isl_ctx associated with this function.
@@ -380,7 +397,22 @@ public:
      * This context set indicates that the two parameters N and M
      * are strictly positive.
      */
+    // @{
     void set_context_set(std::string context_str);
+    void set_context_set(isl_set *context);
+    // @}
+
+    /**
+      * Intersect the set provided as input with the context of the function.
+      * A context is an ISL set that represents constraints over the parameters
+      * of the functions (a parameter is an invariant variable for the function).
+      * An example of a context set is the following:
+      *          "[N,M]->{: M>0 and N>0}"
+      * This context set indicates that the two parameters N and M
+      * are strictly positive.
+      * The input set should have the same space as the context set.
+      */
+    void add_context_constraints(std::string new_context_str);
 
     /**
       * This functions applies to the schedule of each computation
@@ -528,6 +560,8 @@ class buffer
 private:
     /**
       * The name of the buffer.
+      * Buffer names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
       */
     std::string name;
 
@@ -609,6 +643,9 @@ public:
       * They are called temporary buffers (of type a_temporary).
       * Temporary buffers cannot be used outside the function
       * in which they were allocated.
+      *
+      * Buffer names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
       */
     buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, uint8_t *data,
@@ -792,6 +829,8 @@ private:
 
     /**
       * The name of this computation.
+      * Computation names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
       */
     std::string name;
 
@@ -800,6 +839,36 @@ private:
       * ("what" should be computed).
       */
     tiramisu::expr expression;
+
+    /**
+     * Separate the iteration domain into two iteration domains using
+     * the constant \p C.
+     * Let us assume that the dimension \p dim of the iteration domain
+     * is called i.  The iteration domain is separated into two domains
+     * using the hyperplane (i = C). That means, two copies of the
+     * iteration domain are created, the constraint (i<=C) is added to
+     * the first while the constrain (i>C) is added to the second.
+     *
+     * Let us assume the following iteration domain
+     *
+     *   {S0[i,j]: 0<=i<N and 0<=j<N}
+     *
+     * To separate this iteration domain by the hyperplane j=M, one should
+     * call
+     *
+     *   S0.separate(1, tiramisu::expr("M"))
+     *
+     * This will result in the creation of two iteration domains
+     *
+     * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
+     *
+     */
+    void separate(int dim, tiramisu::constant &C);
+
+    /**
+     * Set the iteration domain of the computation
+     */
+    void set_iteration_domain(isl_set *domain);
 
 protected:
 
@@ -862,6 +931,10 @@ public:
       *
       * This should be read as: the set of points (i,j) such that
       * 0<=i<N and 0<=j<M.
+      *
+      * The name of the computation in the iteration domain should not
+      * start with _ (an underscore).  Names starting with _ are reserved
+      * names.
       *
       * \p e is the expression computed by the computation.
       *
@@ -987,7 +1060,10 @@ public:
      * \p access_str is a string that represents the relation (in ISL format,
      * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
      */
+    // @{
     void set_access(std::string access_str);
+    void set_access(isl_map *access);
+    // @}
 
     /**
      * Set the expression of the computation.
@@ -1237,6 +1313,60 @@ public:
       * \p inDim0 > \p inDim1.
       */
     void tile(int inDim0, int inDim1, int sizeX, int sizeY);
+
+    /**
+     * Vectorize the dimension \p dim of the iteration domain of this
+     * computation.  Use the vector length \p v and assume that the
+     * upper bound of \p dim is \p loop_upper_bound.
+     *
+     * The difference between this function and the function
+     * tag_vector_dimension(int dim) is that this function
+     * prepares the iteration domain for vectorization first
+     * and then it calls tag_vector_dimension(int dim).
+     * tag_vector_dimension(int dim) only tags a dimension to
+     * be vectorized, it does not change the tagged dimension.
+     *
+     * This function will separate the iteration domain into two iteration
+     * domains, a full iteration domain and a partial iteration domain.
+     * The full iteration domain has an upper bound that is multiple of
+     * \p v while the other does not.
+     * The full iteration domain is then split by \p v and the inner loop
+     * (which should have a constant extent equal to \p v) is tagged as
+     * a vector loop.
+     *
+     * Let us assume the following loop (a loop represents and iteration
+     * domain)
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<23; j++)
+     *     S0;
+     *
+     * To vectorize the j loop with a vector length 4, one should call
+     *
+     *      S0.vectorize(1, 4, 23);
+     *
+     * The loop (iteration domain) is first separated into the following
+     * two loops
+     *
+     * for (int i=0; i<20; i++)
+     *   S0;
+     *
+     * for (int i=20; i<23; i++)
+     *   S0;
+     *
+     * The full loop is then split by 4
+     *
+     * for (int i1=0; i1<20/4; i1++)
+     *   for (int i2=0; i2<4; i2++)
+     *      S0;
+     *
+     * for (int i=20; i<23; i++)
+     *   S0;
+     *
+     * the i2 loop is then tagged to be vectorized.
+     *
+     */
+    void vectorize(int dim, int v, tiramisu::expr loop_upper_bound);
 
     /**
       * Bind the computation to a buffer.

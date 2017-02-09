@@ -1066,8 +1066,8 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
-            // Currently we can only print Halide expressions using
-            // "std::cout << ".
+                    // Currently we can only print Halide expressions using
+                    // "std::cout << ".
                     DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
                 }
             }
@@ -1233,9 +1233,21 @@ void function::gen_halide_stmt()
         }
     }
 
+    auto invariant_vector = this->get_invariants();
+
     // Generate the invariants of the function.
-    for (const auto &param : this->get_invariants())
+    // Traverse the vector of invariants in reverse order (this because
+    // invariants are added at the beginning of the invariant vector so
+    // the first vector element actually should be visited last because
+    // it was added last).
+    // We need to do this because usually for vectorization, the separation
+    // invariant which is an expression that uses the loop parameters needs
+    // to come after the initialization of those parameters, that is, it should
+    // come last (when we are sure all the other parameters are already
+    // initialized).
+    for (int i = invariant_vector.size() - 1; i >= 0; i--)
     {
+        const auto param = invariant_vector[i]; // Get the i'th invariant
         std::vector<isl_ast_expr *> ie = {};
         *stmt = Halide::Internal::LetStmt::make(
                     param.get_name(),

@@ -208,6 +208,9 @@ public:
                (o != tiramisu::o_cond) &&
                "The operator is not an binary operator.");
 
+        DEBUG(10, expr0.dump(true));
+        DEBUG(10, expr1.dump(true));
+
         assert(expr0.get_data_type() == expr1.get_data_type()
                && "expr0 and expr1 should be of the same type.");
 
@@ -952,6 +955,12 @@ public:
                 case (tiramisu::e_id):
                 {
                     std::cout << "Id name:" << this->get_name() << std::endl;
+                    break;
+                }
+                case (tiramisu::e_var):
+                {
+                    std::cout << "Var name:" << this->get_name() << std::endl;
+                    std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
                     break;
                 }
                 default:
