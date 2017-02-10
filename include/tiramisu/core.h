@@ -136,6 +136,15 @@ private:
       */
     std::vector<std::pair<std::string, std::pair<int, int>>> gpu_dimensions;
 
+    /**
+      * A vector representing the dimensions that should be unrolled
+      * around the computations of the function.
+      * Unrolled dimensions are identified using the tuple
+      * <computation_name, level0>, for example the tuple
+      * <S0, 1> indicates that the loops with level 1
+      * around the computation S0 should be unrolled.
+      */
+    std::vector<std::pair<std::string, int>> unroll_dimensions;
 
     /**
       * Body of the function (a vector of computations).
@@ -347,6 +356,12 @@ public:
      bool should_vectorize(std::string comp, int lev) const;
 
      /**
+       * Return true if the computation \p comp should be unrolled
+       * at the loop level \p lev.
+       */
+     bool should_unroll(std::string comp, int lev) const;
+
+     /**
        * Return true if the computation \p comp should be mapped to GPU
        * at the loop levels \p lev0.
        */
@@ -447,6 +462,14 @@ public:
       * corresponds to the leftmost dimension in the iteration space).
       */
      void add_gpu_dimensions(std::string computation_name, int dim0, int dim1);
+
+     /**
+       * Tag the loop level \p L of the computation
+       * \p computation_name to be unrolled.
+       * The dimension 0 represents the outermost loop level (it
+       * corresponds to the leftmost dimension in the iteration space).
+       */
+     void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
       * Set the iterator names of the function.
@@ -1293,6 +1316,14 @@ public:
       * separate() and split() manually.
       */
     void tag_vector_level(int L);
+
+    /**
+      * Tag the loop level \p L to be unrolled.
+      * The outermost loop level is 0.
+      *
+      * The user can only tag loop levels that have constant extent.
+      */
+    void tag_unroll_level(int L);
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular

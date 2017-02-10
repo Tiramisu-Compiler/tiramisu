@@ -441,6 +441,21 @@ void tiramisu::computation::tag_vector_level(int dim)
     this->get_function()->add_vector_dimension(this->get_name(), dim);
 }
 
+void tiramisu::computation::tag_unroll_level(int level)
+{
+    assert(level >= 0);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    this->get_function()->add_unroll_dimension(this->get_name(), level);
+
+    DEBUG_INDENT(-4);
+}
+
+
 void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 {
     DEBUG_FCT_NAME(3);
@@ -1084,10 +1099,6 @@ void computation::interchange(int L0, int L1)
 
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
 
-    std::cout << "Interchanging loop level " << inDim0 <<
-                 " and loop level " << inDim1 << std::endl;
-
-
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
     std::string inDim0_str = isl_map_get_dim_name(schedule, isl_dim_out, inDim0);
@@ -1292,6 +1303,34 @@ std::string tiramisu::function::get_gpu_iterator(std::string comp, int lev0) con
    DEBUG_INDENT(-4);
    return res;
 }
+
+bool tiramisu::function::should_unroll(std::string comp, int lev0) const
+{
+      assert(comp.length() > 0);
+      assert(lev0 >=0 );
+
+      DEBUG_FCT_NAME(3);
+      DEBUG_INDENT(4);
+
+      bool found = false;
+
+      for (const auto &pd: this->unroll_dimensions)
+      {
+          if ((pd.first == comp) && (pd.second == lev0))
+          {
+              found = true;
+          }
+      }
+
+      std::string str = std::string("Dimension ") + std::to_string(lev0)
+          + std::string(found?" should":" should not")
+          + std::string(" be unrolled.");
+      DEBUG(3, tiramisu::str_dump(str));
+
+      DEBUG_INDENT(-4);
+      return found;
+}
+
 
 bool tiramisu::function::should_map_to_gpu(std::string comp, int lev0) const
 {
@@ -1593,6 +1632,14 @@ void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_d
     assert(stmt_name.length() > 0);
 
     this->parallel_dimensions.push_back(std::pair<std::string,int>(stmt_name, vec_dim));
+}
+
+void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level)
+{
+    assert(level >= 0);
+    assert(stmt_name.length() > 0);
+
+    this->unroll_dimensions.push_back(std::pair<std::string,int>(stmt_name, level));
 }
 
 void tiramisu::function::add_gpu_dimensions(std::string stmt_name, int dim0,
