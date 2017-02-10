@@ -85,10 +85,10 @@ int main(int argc, char **argv)
     rec_filter_s1.after(rec_filter_s0, computation::root_dimension);
 
     // Add schedules.
-    rec_filter_s0.tag_parallel_dimension(1);
-    rec_filter_s0.tag_parallel_dimension(0);
-    rec_filter_s1.tag_parallel_dimension(1);
-    rec_filter_s1.tag_parallel_dimension(0);
+    rec_filter_s0.tag_parallel_level(1);
+    rec_filter_s0.tag_parallel_level(0);
+    rec_filter_s1.tag_parallel_level(1);
+    rec_filter_s1.tag_parallel_level(0);
 
     recfilter_tiramisu.set_arguments({&buff_b0, &buff_rec_filter});
     recfilter_tiramisu.gen_time_processor_domain();

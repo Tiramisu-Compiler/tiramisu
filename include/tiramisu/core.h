@@ -1165,42 +1165,51 @@ public:
     }
 
     /**
-      * Schedule this computation to run after the computation \p comp.
-      * Modify the static dimension \p dim of the time-processor domain
-      * to do so.
+      * Schedule this computation to run after the computation \p comp
+      * within the loop level \p level.  The outermost loop level is 0.
       *
-      * In the time-processor domain, dimensions can be either static
-      * or dynamic.  Static dimensions are used to order statements
-      * within a given loop level while dynamic dimensions represent
-      * the actual loop levels.  For example, the computations c0 and
-      * c1 in the following loop nest
+      * For example assuming we have the two computations
       *
-      * for (i=0; i<N: i++)
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      *
+      * S1.after(S0,1)
+      *
+      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *   {
-      *     c0;
-      *     c1;
+      *     S0;
+      *     S1;
       *   }
       *
-      * have the following representations in the iteration domain
+      * S1.after(S0, computation::root_dimension)
+      * means S1 is after S0 at the main program level and would yield
+      * the following code
       *
-      * {c0(i,j): 0<=i<N and 0<=j<N}
-      * {c1(i,j): 0<=i<N and 0<=j<N}
-      *
-      * and the following representation in the time-processor domain
-      *
-      * {c0[0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * {c1[0,i,0,j,1]: 0<=i<N and 0<=j<N}
-      *
-      * The first dimension (dimension 0) in the time-processor
-      * representation (the leftmost dimension) is a static dimension,
-      * the second dimension (dimension 1) is a dynamic dimension that
-      * represents the loop level i, ..., the forth dimension is a dynamic
-      * dimension that represents the loop level j and the last dimension
-      * (dimension 4) is a static dimension and allows the ordering of
-      * c1 after c0 in the loop nest.
-      *
-      * \p dim has to be a static dimension, i.e. 0, 2, 4, 6, ...
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S0;
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S1;
       *
       * TODO: remove the need for the following assumptions.
       * Few assumptions about how you should call these functions:
@@ -1217,113 +1226,93 @@ public:
       *       S1.after(S0, ...);
       *  since this sets S2 and sets S1.
       */
-    void after(computation &comp, int dim);
+    void after(computation &comp, int level);
 
     /**
       * Schedule this computation to run before the computation \p comp
-      * at dimension \p dim of the time-processor space.
+      * at the loop level \p L.  The outermost loop level is 0.
       *
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
       *
       * The outermost loop has a loop level equal to zero.
       */
-    void before(computation &comp, int dim);
+    void before(computation &comp, int L);
 
     /**
-      * Schedule this computation to run first at dimension
-      * \p dim of the time-processor space.
+      * Schedule this computation to run first at the loop level
+      * \p L.
       *
-      * Use computation::root_dimension to indicate the root dimension
-      * (i.e. the outermost processor-time dimension).
+      * The outermost loop level is 0.
+      *
+      * Use computation::root_dimension to indicate the level of the
+      * main program.
       *
       * The outermost loop has a loop level equal to zero.
       */
-    void first(int dim);
+    void first(int L);
 
     /**
-     * Interchange (swap) the two dimensions \p inDim0 and \p inDim1.
+     * Interchange (swap) the two loop levels \p L0 and \p L1.
      */
-    void interchange(int inDim0, int inDim1);
+    void interchange(int L0, int L1);
 
     /**
-      * Split the dimension \p inDim0 of the iteration space into two
-      * new dimensions.
+      * Split the loop level \p L0 of the iteration space into two
+      * new loop levels.
+      *
+      * The outermost loop level is 0.
+      *
       * \p sizeX is the extent (size) of the inner loop created after
       * splitting.
-      *
-      * TODO: use iterator names instead of numbering.
-      *
-      * If you have a 2D loop with i and j as iterators
-      * the dimension number of i is 1 and the dimension number of j is 3
-      * and you want to split the dimension i by 16, you can call
-      * s0.split(1, 16)
-      * This will create two dimensions, let us call them i0 and i1,
-      * the dimension number of i0 is 1 and
-      * the dimension number of i1 is 3
-      * the dimension number of j is now 5 instead of the old value 3.
       */
-     void split(int inDim0, int sizeX);
+     void split(int L0, int sizeX);
 
     /**
-      * Tag the dimension \p dim0 and \p dim1 of the time-processor domain to
-      * be mapped to GPU.
+      * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
       *
-      * Note that \p dim is a dimension of the time-processor domain not
-      * a dimension of the iteration domain.
-      *
-      * The outermost loop level is 0 (it corresponds to the leftmost
-      * dimension in the time-processor domain).
+      * The outermost loop level is 0.
       */
-    void tag_gpu_dimensions(int dim0, int dim1);
+    void tag_gpu_levels(int L0, int L1);
 
     /**
-      * Tag the dimension \p dim of the time-processor domain to
-      * be parallelized.
+      * Tag the loop level \p L to be parallelized.
       *
-      * The outermost loop level is 0 (it corresponds to the leftmost
-      * dimension in the time-processor domain).
+      * The outermost loop level is 0.
       *
-      * Note that \p dim is a dimension of the time-processor domain not
-      * a dimension of the iteration domain.
       */
-    void tag_parallel_dimension(int dim);
+    void tag_parallel_level(int L);
 
     /**
-      * Tag the dimension \p dim of the time-processor domain to be
-      * vectorized.
+      * Tag the loop level \p L to be vectorized.  The outermost loop level
+      * is 0.
       *
-      * The outermost loop level is 0 (it corresponds to the leftmost
-      * dimension in the time-processor domain).
-      *
-      * Note that \p dim is a dimension of the time-processor domain not
-      * a dimension of the iteration domain.
-      *
-      * The user can only tag dimensions that have constant extent
-      * to be vectorized.  If a loop dimension does not have a constant
-      * extent, it first has to be split.
+      * The user can only tag loop levels that have constant extent.
+      * If a loop level does not have a constant extent, the user
+      * should call .vectorize() command instead or he can call
+      * separate() and split() manually.
       */
-    void tag_vector_dimension(int dim);
+    void tag_vector_level(int L);
 
     /**
-      * Tile the two dimensions \p inDim0 and \p inDim1 with rectangular
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling.  \p sizeX and \p sizeY represent the tile size.
-      * \p inDim0 and \p inDim1 should be two consecutive dimensions
-      * (i.e., \p inDim0 = \p inDim1 + 1) and they should satisfy
-      * \p inDim0 > \p inDim1.
+      * \p L0 and \p L1 should be two consecutive loop levels
+      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+      * \p L0 > \p L1.
       */
-    void tile(int inDim0, int inDim1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int sizeX, int sizeY);
 
     /**
-     * Vectorize the dimension \p dim of the iteration domain of this
-     * computation.  Use the vector length \p v and assume that the
-     * upper bound of \p dim is \p loop_upper_bound.
+     * Vectorize the loop level \p L.  Use the vector length \p v
+     * and assume that the upper bound of the loop level \p L is
+     * \p loop_upper_bound.
      *
      * The difference between this function and the function
-     * tag_vector_dimension(int dim) is that this function
+     * tag_vector_level(int L) is that this function
      * prepares the iteration domain for vectorization first
-     * and then it calls tag_vector_dimension(int dim).
-     * tag_vector_dimension(int dim) only tags a dimension to
+     * and then it calls tag_vector_level(int L).
+     * tag_vector_level(int L) only tags a dimension to
      * be vectorized, it does not change the tagged dimension.
      *
      * This function will separate the iteration domain into two iteration
@@ -1366,7 +1355,7 @@ public:
      * the i2 loop is then tagged to be vectorized.
      *
      */
-    void vectorize(int dim, int v, tiramisu::expr loop_upper_bound);
+    void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
 
     /**
       * Bind the computation to a buffer.
@@ -1539,8 +1528,8 @@ public:
       * constant should be assigned.
       * \p with_computation indicates that the assignment should
       * be in the loop nest that computes the computation indicated by
-      * \p with_computation at the dimension indicated
-      * by \p at_iteration_space_dimension.
+      * \p with_computation at the loop level indicated
+      * by \p at_loop_level.
       * The root level (i.e. the level outer than any other loop level)
       * is computation::root_dimension.
       * 0 represents the first loop level and 1 represents the second
@@ -1552,7 +1541,7 @@ public:
              tiramisu::primitive_t t,
              bool function_wide,
              tiramisu::computation *with_computation,
-             int at_iteration_space_dimension,
+             int at_loop_level,
              tiramisu::function *func);
 
     /**
@@ -1572,6 +1561,8 @@ void halide_stmt_dump(Halide::Internal::Stmt s);
 
 Halide::Internal::Stmt lower_halide_pipeline(const Halide::Target &t, Halide::Internal::Stmt s);
 
+int loop_level_into_dynamic_dimension(int level);
+int loop_level_into_static_dimension(int level);
 /**
  * TODO code cleaning:
  * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.

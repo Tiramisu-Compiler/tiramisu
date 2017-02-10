@@ -72,8 +72,8 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    S0.tile(1,3,2,2);
-    S0.tag_parallel_dimension(0);
+    S0.tile(0,1,2,2);
+    S0.tag_parallel_level(0);
 
     // Dump the schedule.
     function0.dump_schedule();

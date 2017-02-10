@@ -50,10 +50,10 @@ int main(int argc, char **argv)
     c2.set_access("{c2[i,j]->b2[i,j]}");
     c3.set_access("{c3[i]->b3[i]}");
 
-    c0.first(1);
-    c1.after(c0, 1);
-    c2.after(c1, 1);
-    c3.after(c2, 1);
+    c0.first(0);
+    c1.after(c0, 0);
+    c2.after(c1, 0);
+    c3.after(c2, 0);
 
     sequence.set_arguments({&b0, &b1, &b2, &b3});
 

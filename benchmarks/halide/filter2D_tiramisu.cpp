@@ -69,9 +69,9 @@ int main(int argc, char **argv)
     //   filter2D_s0[filter2D_s0_c, filter2D_s0_y, filter2D_s0_x]->filter2D_s0[filter2D_s0_c, filter2D_s0_y, 1, filter2D_s0_x1, filter2D_s0_x2]: floor((filter2D_s0_x_loop_min+filter2D_s0_x_loop_extent-1)/8)*8 <= filter2D_s0_x <= (filter2D_s0_x_loop_min+filter2D_s0_x_loop_extent-1) and filter2D_s0_x1 = floor(filter2D_s0_x/8) and filter2D_s0_x2 = filter2D_s0_x%8
 
     // Add schedules.
-    filter2D_s0.tag_parallel_dimension(0);
-    filter2D_s0.tag_parallel_dimension(1);
-    filter2D_s0.tag_vector_dimension(3);
+    filter2D_s0.tag_parallel_level(0);
+    filter2D_s0.tag_parallel_level(1);
+    filter2D_s0.tag_vector_level(3);
 
     filter2D_tiramisu.set_arguments({&buff_input, &buff_kernel, &buff_filter2D});
     filter2D_tiramisu.gen_time_processor_domain();

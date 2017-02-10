@@ -25,8 +25,8 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     S0.set_access("{S0[i,j]->buf0[i,j]}");
-    S0.tile(1,3,2,2);
-    S0.tag_parallel_dimension(0);
+    S0.tile(0,1,2,2);
+    S0.tag_parallel_level(0);
 
     function0.set_arguments({&buf0});
     function0.gen_time_processor_domain();

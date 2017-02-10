@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
     c_C.tile(0,1,32,32);
-    c_C.tag_parallel_dimension(0);
+    c_C.tag_parallel_level(0);
 
     // Set the arguments to blurxy
     matmul.set_arguments({&b_A, &b_B, &b_C});

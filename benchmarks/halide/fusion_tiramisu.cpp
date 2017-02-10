@@ -106,18 +106,18 @@ int main(int argc, char **argv)
     g_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent,    g_s0_c_loop_min, g_s0_c_loop_extent, g_s0_y_loop_min, g_s0_y_loop_extent, g_s0_x_loop_min, g_s0_x_loop_extent,    h_s0_c_loop_min, h_s0_c_loop_extent, h_s0_y_loop_min, h_s0_y_loop_extent, h_s0_x_loop_min, h_s0_x_loop_extent,   k_s0_c_loop_min, k_s0_c_loop_extent, k_s0_y_loop_min, k_s0_y_loop_extent, k_s0_x_loop_min, k_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x] -> g_s0[0, g_s0_c, 0, g_s0_y, 0, g_s0_x, 1]}");
     h_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent,    g_s0_c_loop_min, g_s0_c_loop_extent, g_s0_y_loop_min, g_s0_y_loop_extent, g_s0_x_loop_min, g_s0_x_loop_extent,    h_s0_c_loop_min, h_s0_c_loop_extent, h_s0_y_loop_min, h_s0_y_loop_extent, h_s0_x_loop_min, h_s0_x_loop_extent,   k_s0_c_loop_min, k_s0_c_loop_extent, k_s0_y_loop_min, k_s0_y_loop_extent, k_s0_x_loop_min, k_s0_x_loop_extent]->{h_s0[h_s0_c, h_s0_y, h_s0_x] -> h_s0[0, h_s0_c, 0, h_s0_y, 0, h_s0_x, 2]}");
     k_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent,    g_s0_c_loop_min, g_s0_c_loop_extent, g_s0_y_loop_min, g_s0_y_loop_extent, g_s0_x_loop_min, g_s0_x_loop_extent,    h_s0_c_loop_min, h_s0_c_loop_extent, h_s0_y_loop_min, h_s0_y_loop_extent, h_s0_x_loop_min, h_s0_x_loop_extent,   k_s0_c_loop_min, k_s0_c_loop_extent, k_s0_y_loop_min, k_s0_y_loop_extent, k_s0_x_loop_min, k_s0_x_loop_extent]->{k_s0[k_s0_c, k_s0_y, k_s0_x] -> k_s0[0, k_s0_c, 0, k_s0_y, 0, k_s0_x, 3]}");
-    f_s0.tag_parallel_dimension(0);
-    f_s0.tag_parallel_dimension(1);
-    g_s0.tag_parallel_dimension(0);
-    g_s0.tag_parallel_dimension(1);
-    h_s0.tag_parallel_dimension(0);
-    h_s0.tag_parallel_dimension(1);
-    k_s0.tag_parallel_dimension(0);
-    k_s0.tag_parallel_dimension(1);
-    f_s0.tag_vector_dimension(2);
-    g_s0.tag_vector_dimension(2);
-    f_s0.tag_vector_dimension(3);
-    g_s0.tag_vector_dimension(3);
+    f_s0.tag_parallel_level(0);
+    f_s0.tag_parallel_level(1);
+    g_s0.tag_parallel_level(0);
+    g_s0.tag_parallel_level(1);
+    h_s0.tag_parallel_level(0);
+    h_s0.tag_parallel_level(1);
+    k_s0.tag_parallel_level(0);
+    k_s0.tag_parallel_level(1);
+    f_s0.tag_vector_level(2);
+    g_s0.tag_vector_level(2);
+    f_s0.tag_vector_level(3);
+    g_s0.tag_vector_level(3);
 
 
     fusion_tiramisu.set_arguments({&buff_input, &buff_f, &buff_g, &buff_h, &buff_k});

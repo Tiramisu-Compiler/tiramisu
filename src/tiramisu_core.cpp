@@ -406,7 +406,7 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
-void tiramisu::computation::tag_parallel_dimension(int par_dim)
+void tiramisu::computation::tag_parallel_level(int par_dim)
 {
     assert(par_dim >= 0);
     assert(this->get_name().length() > 0);
@@ -421,7 +421,7 @@ void tiramisu::computation::tag_parallel_dimension(int par_dim)
 }
 
 
-void tiramisu::computation::tag_gpu_dimensions(int dim0, int dim1)
+void tiramisu::computation::tag_gpu_levels(int dim0, int dim1)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -432,7 +432,7 @@ void tiramisu::computation::tag_gpu_dimensions(int dim0, int dim1)
     this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
 }
 
-void tiramisu::computation::tag_vector_dimension(int dim)
+void tiramisu::computation::tag_vector_level(int dim)
 {
     assert(dim >= 0);
     assert(this->get_name().length() > 0);
@@ -532,7 +532,7 @@ void tiramisu::computation::set_iteration_domain(isl_set *domain)
     this->iteration_domain = domain;
 }
 
-void tiramisu::computation::vectorize(int dim, int v,
+void tiramisu::computation::vectorize(int L0, int v,
                                       tiramisu::expr loop_upper_bound)
 {
     DEBUG_FCT_NAME(3);
@@ -617,20 +617,16 @@ void tiramisu::computation::vectorize(int dim, int v,
      * The names of the two computations is different. The name of the separated
      * computation is equal to the name of the full computation prefixed with "_".
      */
-    this->separate(dim, *separation_param);
+    this->separate(L0, *separation_param);
 
     /**
      * Split the full computation since the full computation will be vectorized.
-     * Note that we should perform the split on the dimension "2*dim+1" instead
-     * of dim, because the split is performed on dimensions of the schedule which
-     * is of the form [static, dynamic, static, dynamic, static, dynamic, ...],
-     * thus we have to transform dim to 2*dim+1.
      */
-    this->split(2*dim+1, v);
+    this->split(L0, v);
 
     // Tag the inner loop after splitting to be vectorized. That loop
     // is supposed to have a constant extent.
-    this->tag_vector_dimension(dim+1);
+    this->tag_vector_level(L0+1);
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
@@ -824,13 +820,94 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int consta
     return map;
 }
 
+/**
+ * Transform the loop level into its corresponding dynamic schedule
+ * dimension.
+ *
+ * In the example below, the dynamic dimension that corresponds
+ * to the loop level 0 is 1, and to 1 it is 3, ...
+ *
+ * Loop level               :    -1      0      1      2
+ * Schedule dimension number:        0   1  2   3  4   5  6
+ * Schedule:                        [0, i1, 0, i2, 0, i3, 0]
+ */
+int loop_level_into_dynamic_dimension(int level)
+{
+    return level*2+1;
+}
 
-void computation::after(computation &comp, int dim)
+/**
+ * Transform the loop level into the first static schedule
+ * dimension after its corresponding dynamic dimension.
+ *
+ * In the example below, the first static dimension that comes
+ * after the corresponding dynamic dimension for
+ * the loop level 0 is 2, and to 1 it is 4, ...
+ *
+ * Loop level               :    -1      0      1      2
+ * Schedule dimension number:        0   1  2   3  4   5  6
+ * Schedule:                        [0, i1, 0, i2, 0, i3, 0]
+ */
+int loop_level_into_static_dimension(int level)
+{
+    return loop_level_into_dynamic_dimension(level) + 1;
+}
+
+
+/**
+  * Implementation internals.
+  *
+  * This function gets as input a loop level and translates it
+  * automatically to the appropriate schedule dimension by:
+  * (1) getting the dynamic schedule dimension that corresponds to
+  * that loop level, then adding +1 which corresponds to the first
+  * static dimension that comes after the dynamic dimension.
+  *
+  * Explanation of what static and dynamic dimensions are:
+  * In the time-processor domain, dimensions can be either static
+  * or dynamic.  Static dimensions are used to order statements
+  * within a given loop level while dynamic dimensions represent
+  * the actual loop levels.  For example, the computations c0 and
+  * c1 in the following loop nest
+  *
+  * for (i=0; i<N: i++)
+  *   for (j=0; j<N; j++)
+  *   {
+  *     c0;
+  *     c1;
+  *   }
+  *
+  * have the following representations in the iteration domain
+  *
+  * {c0(i,j): 0<=i<N and 0<=j<N}
+  * {c1(i,j): 0<=i<N and 0<=j<N}
+  *
+  * and the following representation in the time-processor domain
+  *
+  * {c0[0,i,0,j,0]: 0<=i<N and 0<=j<N}
+  * {c1[0,i,0,j,1]: 0<=i<N and 0<=j<N}
+  *
+  * The first dimension (dimension 0) in the time-processor
+  * representation (the leftmost dimension) is a static dimension,
+  * the second dimension (dimension 1) is a dynamic dimension that
+  * represents the loop level i, ..., the forth dimension is a dynamic
+  * dimension that represents the loop level j and the last dimension
+  * (dimension 4) is a static dimension and allows the ordering of
+  * c1 after c0 in the loop nest.
+  *
+  * \p dim has to be a static dimension, i.e. 0, 2, 4, 6, ...
+  */
+void computation::after(computation &comp, int level)
 {
     isl_map *sched1;
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    // for loop level i return 2*i+1 which represents the
+    // the static dimension just after the dynamic dimension that
+    // represents the loop level i.
+    int dim = loop_level_into_static_dimension(level);
 
     DEBUG(3, tiramisu::str_dump("Setting the schedule of ");
              tiramisu::str_dump(this->get_name());
@@ -853,7 +930,7 @@ void computation::after(computation &comp, int dim)
         DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
         assert(sched1 != NULL);
-        DEBUG(3, tiramisu::str_dump("Dimension level after which ordering dimensions will be inserted : ");
+        DEBUG(3, tiramisu::str_dump("Dimension level in which ordering dimensions will be inserted : ");
                  tiramisu::str_dump(std::to_string(dim)));
         DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
                  tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
@@ -882,7 +959,7 @@ void computation::after(computation &comp, int dim)
     {
         sched1 = c.second->get_schedule();
 
-        sched1 = isl_map_set_const_dim(sched1, dim+1, order);
+        sched1 = isl_map_set_const_dim(sched1, dim, order);
         order++;
 
         c.second->set_schedule(sched1);
@@ -893,12 +970,14 @@ void computation::after(computation &comp, int dim)
 }
 
 
-void computation::first(int dim)
+void computation::first(int level)
 {
     isl_map *sched1;
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    int dim = loop_level_into_static_dimension(level);
 
     this->get_function()->align_schedules();
 
@@ -912,7 +991,7 @@ void computation::first(int dim)
         DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
 
         assert(sched1 != NULL);
-        DEBUG(3, tiramisu::str_dump("Dimension level after which the ordering dimension will be inserted : ");
+        DEBUG(3, tiramisu::str_dump("Dimension level at which the ordering dimension will be inserted : ");
                  tiramisu::str_dump(std::to_string(dim)));
         DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
                  tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
@@ -931,13 +1010,13 @@ void computation::first(int dim)
 
         if (c == this || c == this->statements_to_compute_before_me)
         {
-            sched1 = isl_map_set_const_dim(sched1, dim+1, 0);
+            sched1 = isl_map_set_const_dim(sched1, dim, 0);
             DEBUG(3, tiramisu::str_dump("Setting dimension to 0."));
         }
         else
         if (c != this)
         {
-            sched1 = isl_map_set_const_dim(sched1, dim+1, 1);
+            sched1 = isl_map_set_const_dim(sched1, dim, 1);
             DEBUG(3, tiramisu::str_dump("Setting dimension to 1."));
         }
 
@@ -959,36 +1038,38 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
-void computation::tile(int inDim0, int inDim1,
+void computation::tile(int L0, int L1,
                        int sizeX, int sizeY)
 {
     // Check that the two dimensions are consecutive.
     // Tiling only applies on a consecutive band of loop dimensions.
-    assert((inDim0 == inDim1+2) || (inDim1 == inDim0+2));
+    assert((L0 == L1+1) || (L1 == L0+1));
     assert(sizeX > 0);
     assert(sizeY > 0);
-    assert(inDim0 >= 0);
-    assert(inDim1 >= 0);
+    assert(L0 >= 0);
+    assert(L1 >= 0);
     assert(this->get_iteration_domain() != NULL);
-    assert(inDim1 < isl_space_dim(isl_map_get_space(this->schedule), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->schedule), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    int new_inDim1 = inDim1 + 2;
-    this->split(inDim0, sizeX);
-    this->split(new_inDim1, sizeY);
-    this->interchange(inDim0+2, new_inDim1);
+    this->split(L0, sizeX);
+    this->split(L1+1, sizeY);
+    this->interchange(L0+1, L1+1);
 
     DEBUG_INDENT(-4);
 }
 
 /**
- * Modify the schedule of this computation so that the two dimensions
- * inDim0 and inDime1 are interchanged (swaped).
+ * This function modifies the schedule of the computation so that the two loop
+ * levels L0 and L1 are interchanged (swapped).
  */
-void computation::interchange(int inDim0, int inDim1)
+void computation::interchange(int L0, int L1)
 {
+    int inDim0 = loop_level_into_dynamic_dimension(L0);
+    int inDim1 = loop_level_into_dynamic_dimension(L1);
+
     assert(inDim0 >= 0);
     assert(inDim0 < isl_space_dim(isl_map_get_space(this->schedule),
                                   isl_dim_out));
@@ -1002,6 +1083,10 @@ void computation::interchange(int inDim0, int inDim1)
     isl_map *schedule = this->get_schedule();
 
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+
+    std::cout << "Interchanging loop level " << inDim0 <<
+                 " and loop level " << inDim1 << std::endl;
+
 
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
@@ -1071,11 +1156,13 @@ void computation::interchange(int inDim0, int inDim1)
 
 /**
  * Modify the schedule of this computation so that it splits the
- * dimension inDim0 of the iteration space into two new dimensions.
+ * loop level L0 into two new loop levels.
  * The size of the inner dimension created is sizeX.
  */
-void computation::split(int inDim0, int sizeX)
+void computation::split(int L0, int sizeX)
 {
+    int inDim0 = loop_level_into_dynamic_dimension(L0);
+
     assert(this->get_schedule() != NULL);
     assert(inDim0 >= 0);
     assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
@@ -1398,9 +1485,12 @@ void tiramisu::function::dump(bool exhaustive) const
         }
         std::cout << std::endl;
 
-        std::cout << "Function context set: "
-                  << isl_set_to_str(this->get_parameter_set())
-                  << std::endl;
+        if (this->get_parameter_set() != NULL)
+        {
+            std::cout << "Function context set: "
+                      << isl_set_to_str(this->get_parameter_set())
+                      << std::endl;
+        }
 
         this->dump_schedule();
 
@@ -2478,7 +2568,7 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
          tiramisu::primitive_t t,
          bool function_wide,
          tiramisu::computation *with_computation,
-         int at_iteration_space_dimension,
+         int at_loop_level,
          tiramisu::function *func): tiramisu::computation()
 {
     DEBUG_FCT_NAME(3);
@@ -2501,11 +2591,11 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
     {
         assert((with_computation != NULL) &&
                "A valid computation should be provided.");
-        assert((at_iteration_space_dimension >= computation::root_dimension) &&
+        assert((at_loop_level >= computation::root_dimension) &&
                "Invalid root dimension.");
 
         isl_set *iter = with_computation->get_iteration_domain();
-        int projection_dimension = at_iteration_space_dimension+1;
+        int projection_dimension = at_loop_level+1;
         iter = isl_set_project_out(isl_set_copy(iter),
                                    isl_dim_set,
                                    projection_dimension,
@@ -2535,7 +2625,7 @@ tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param
 
         // Set the schedule of this computation to be executed
         // before the computation.
-        this->before(*with_computation, 2*at_iteration_space_dimension+1);
+        this->before(*with_computation, at_loop_level);
     }
     DEBUG_INDENT(-4);
 }

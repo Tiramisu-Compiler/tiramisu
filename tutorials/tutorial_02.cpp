@@ -77,8 +77,8 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_blurx.tile(1,3,2,2);
-    c_blurx.tag_gpu_dimensions(0,1);
+    c_blurx.tile(0,1,2,2);
+    c_blurx.tag_gpu_levels(0,1);
     c_blury.set_schedule("{c_blury[i,j]->c_blury[0,i,0,j,0]}");
     c_blury.after(c_blurx, computation::root_dimension);
 
