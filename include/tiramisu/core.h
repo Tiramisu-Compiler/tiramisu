@@ -892,6 +892,9 @@ private:
      * Set the iteration domain of the computation
      */
     void set_iteration_domain(isl_set *domain);
+        tiramisu::constant*
+        create_separator_and_add_constraints_to_context (
+                const tiramisu::expr& loop_upper_bound, int v);
 
 protected:
 
@@ -1333,6 +1336,61 @@ public:
       * \p L0 > \p L1.
       */
     void tile(int L0, int L1, int sizeX, int sizeY);
+
+    /**
+     * Unroll the loop level \p L with an unrolling factor \p fac
+     * and assume that the upper bound of the loop level \p L is
+     * \p loop_upper_bound.
+     *
+     * The difference between this function and the function
+     * tag_unroll_level(int L) is that this function separates
+     * the iteration domain into full and partial iteration
+     * domains for unrolling first and then it calls
+     * tag_unroll_level(int L).
+     * tag_unroll_level(int L) only tags a dimension to
+     * be unrolled, it does not modify the tagged dimension.
+     *
+     * This function separates the iteration domain into two iteration
+     * domains, a full iteration domain and a partial iteration domain.
+     * The full iteration domain has an upper bound that is multiple of
+     * \p fac while the other does not.
+     * The full iteration domain is then split by \p fac and the inner loop
+     * (which should have a constant extent equal to \p fac) is tagged as
+     * a unrolled loop.
+     *
+     * Let us assume the following loop (a loop represents and iteration
+     * domain)
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<23; j++)
+     *     S0;
+     *
+     * To unroll the j loop with an unrolling factor of 4, one should call
+     *
+     *      S0.unroll(1, 4, 23);
+     *
+     * The loop (iteration domain) is first separated into the following
+     * two loops
+     *
+     * for (int i=0; i<20; i++)
+     *   S0;
+     *
+     * for (int i=20; i<23; i++)
+     *   S0;
+     *
+     * The full loop is then split by 4
+     *
+     * for (int i1=0; i1<20/4; i1++)
+     *   for (int i2=0; i2<4; i2++)
+     *      S0;
+     *
+     * for (int i=20; i<23; i++)
+     *   S0;
+     *
+     * the i2 loop is then tagged to be unrolled.
+     *
+     */
+    void unroll(int L, int fac, tiramisu::expr loop_upper_bound);
 
     /**
      * Vectorize the loop level \p L.  Use the vector length \p v

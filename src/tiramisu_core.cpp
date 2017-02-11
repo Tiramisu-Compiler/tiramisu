@@ -547,6 +547,100 @@ void tiramisu::computation::set_iteration_domain(isl_set *domain)
     this->iteration_domain = domain;
 }
 
+/*
+ * Create a new Tiramisu constant M = v*floor(N/v) and use it as
+ * a separator.
+ *
+ * Add the following constraints about the separator to the context:
+ *  -  separator%v = 0
+ *  -  separator <= loop_upper_bound
+ *
+ * The separator is used to separate a computation. That
+ * is, it is used to create two identical computations where we have
+ * a constraint like i<M in the first and i>=M in the second.
+ * The first is called the full computation while the second is called
+ * the separated computation.
+ *
+ * This function is used in vectorize and unroll mainly.
+ */
+tiramisu::constant*
+    tiramisu::computation::create_separator_and_add_constraints_to_context (
+                        const tiramisu::expr& loop_upper_bound, int v)
+{
+    /*
+     * Create a new Tiramisu constant M = v*floor(N/v). This is the biggest
+     * multiple of w that is still smaller than N.  Add this constant to
+     * the list of invariants.
+     */
+    std::string separator_name = tiramisu::generate_new_variable_name ();
+    tiramisu::expr div_expr = tiramisu::expr (o_div, loop_upper_bound,
+                                              tiramisu::expr (v));
+    tiramisu::expr cast_expr = tiramisu::expr (o_cast, tiramisu::p_float32,
+                                               div_expr);
+    tiramisu::expr floor_expr = tiramisu::expr (o_floor, cast_expr);
+    tiramisu::expr cast2_expr = tiramisu::expr (o_cast, tiramisu::p_int32,
+                                                floor_expr);
+    tiramisu::expr separator_expr = tiramisu::expr (o_mul,
+                                                    tiramisu::expr (v),
+                                                    cast2_expr);
+    tiramisu::constant* separation_param = new tiramisu::constant (
+            separator_name, separator_expr, p_uint32, true, NULL, 0,
+            this->get_function ());
+    /**
+     * Add the following constraints about the separator to the context:
+     *  -  separator%v = 0
+     *  -  separator <= loop_upper_bound
+     */
+    // Create a new context set.
+    std::string constraint_parameters = "[" + separation_param->get_name ()
+            + "," + loop_upper_bound.get_name () + "]->";
+    std::string constraint = constraint_parameters + "{ : ("
+            + separation_param->get_name () + ") % " + std::to_string (v)
+            + " = 0 and " + "(" + separation_param->get_name () + ") <= "
+            + loop_upper_bound.get_name () + " and ("
+            + separation_param->get_name () + ") > 0 and "
+            + loop_upper_bound.get_name () + " > 0 " + " }";
+    isl_set* new_context_set = isl_set_read_from_str (this->get_ctx (),
+                                                      constraint.c_str ());
+    /*
+     * Align the parameters of this set with the parameters of the iteration domain
+     * (that is, we have to add the new parameter to the context and then take
+     * its space as a model for alignment).
+     */
+    isl_set* original_context = this->get_function ()->get_context_set ();
+    if (original_context != NULL)
+    {
+        // Create a space from the context and add a parameter.
+        isl_space* sp = isl_space_copy (
+                isl_set_get_space (original_context));
+        sp = isl_space_add_dims (sp, isl_dim_param, 1);
+        int pos = isl_space_dim (sp, isl_dim_param) - 1;
+        sp = isl_space_set_dim_name (sp, isl_dim_param, pos,
+                                     separator_name.c_str ());
+        this->set_iteration_domain (
+                isl_set_align_params (this->get_iteration_domain (),
+                                      isl_space_copy (sp)));
+        this->get_function ()->set_context_set (
+                isl_set_align_params (
+                        this->get_function ()->get_context_set (),
+                        isl_space_copy (sp)));
+        this->get_function ()->set_context_set (
+                isl_set_intersect (isl_set_copy (original_context),
+                                   new_context_set));
+    }
+    else
+    {
+        this->get_function ()->set_context_set (new_context_set);
+    }
+    return separation_param;
+}
+
+//TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
+//as bound. Currently only loops that have a symbolic constant bound can be vectorized
+//this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
+//as input.
+// Idem for unroll.
+//TODO: make vectorize and unroll retrieve the loop bound automatically.
 void tiramisu::computation::vectorize(int L0, int v,
                                       tiramisu::expr loop_upper_bound)
 {
@@ -554,74 +648,11 @@ void tiramisu::computation::vectorize(int L0, int v,
     DEBUG_INDENT(4);
 
     /*
-     * Create a new Tiramisu constant M = w*floor(N/w). This is the biggest
-     * multiple of w that is still smaller than N.  Add this constant to
-     * the list of invariants.
+     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
+     * a separator.
      */
-    std::string separator_name = tiramisu::generate_new_variable_name();
-    tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound,
-                                                    tiramisu::expr(v));
-    tiramisu::expr cast_expr = tiramisu::expr(o_cast, tiramisu::p_float32, div_expr);
-    tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
-    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, tiramisu::p_int32, floor_expr);
-    tiramisu::expr separator_expr = tiramisu::expr(o_mul, tiramisu::expr(v), cast2_expr);
-
-    tiramisu::constant *separation_param = new tiramisu::constant(
-                    separator_name, separator_expr, p_uint32, true,
-                    NULL, 0, this->get_function());
-
-    /**
-     * Add the following constraints about the separator to the context:
-     *  -  separator%v = 0
-     *  -  separator <= loop_upper_bound
-     */
-
-    // Create a new context set.
-    std::string constraint_parameters = "[" + separation_param->get_name() +
-                                        "," + loop_upper_bound.get_name()  + "]->";
-    std::string constraint = constraint_parameters +
-            "{ : (" + separation_param->get_name() + ") % " + std::to_string(v) + " = 0 and " +
-                "(" + separation_param->get_name() + ") <= " + loop_upper_bound.get_name() +
-                " and (" + separation_param->get_name() + ") > 0 and " +
-                loop_upper_bound.get_name() + " > 0 " +
-            " }";
-
-    isl_set *new_context_set = isl_set_read_from_str(this->get_ctx(), constraint.c_str());
-
-    /*
-     * Align the parameters of this set with the parameters of the iteration domain
-     * (that is, we have to add the new parameter to the context and then take
-     * its space as a model for alignment).
-     */
-    isl_set *original_context = this->get_function()->get_context_set();
-    if (original_context != NULL)
-    {
-        // Create a space from the context and add a parameter.
-        isl_space *sp = isl_space_copy(isl_set_get_space(original_context));
-        sp = isl_space_add_dims(sp, isl_dim_param, 1);
-        int pos = isl_space_dim(sp, isl_dim_param) - 1;
-        sp = isl_space_set_dim_name(sp, isl_dim_param, pos, separator_name.c_str());
-
-        this->set_iteration_domain(
-                isl_set_align_params(
-                        this->get_iteration_domain(),
-                        isl_space_copy(sp)));
-
-        this->get_function()->set_context_set(
-                isl_set_align_params(
-                       this->get_function()->get_context_set(),
-                       isl_space_copy(sp)));
-
-        this->get_function()->set_context_set(
-                isl_set_intersect(
-                        isl_set_copy(original_context),
-                        new_context_set));
-    }
-    else
-    {
-        this->get_function()->set_context_set(new_context_set);
-    }
-
+     tiramisu::constant* separation_param =
+         create_separator_and_add_constraints_to_context (loop_upper_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -642,6 +673,44 @@ void tiramisu::computation::vectorize(int L0, int v,
     // Tag the inner loop after splitting to be vectorized. That loop
     // is supposed to have a constant extent.
     this->tag_vector_level(L0+1);
+    this->get_function()->align_schedules();
+
+    DEBUG_INDENT(-4);
+}
+
+
+void tiramisu::computation::unroll(int L0, int v,
+                                   tiramisu::expr loop_upper_bound)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    /*
+     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
+     * a separator.
+     */
+     tiramisu::constant* separation_param =
+         create_separator_and_add_constraints_to_context (loop_upper_bound, v);
+
+    /*
+     * Separate this computation using the parameter separation_param. That
+     * is create two identical computations where we have a constraint like
+     * i<M in the first and i>=M in the second.
+     * The first is called the full computation while the second is called
+     * the separated computation.
+     * The names of the two computations is different. The name of the separated
+     * computation is equal to the name of the full computation prefixed with "_".
+     */
+    this->separate(L0, *separation_param);
+
+    /**
+     * Split the full computation since the full computation will be unrolled.
+     */
+    this->split(L0, v);
+
+    // Tag the inner loop after splitting to be unrolled. That loop
+    // is supposed to have a constant extent.
+    this->tag_unroll_level(L0+1);
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
