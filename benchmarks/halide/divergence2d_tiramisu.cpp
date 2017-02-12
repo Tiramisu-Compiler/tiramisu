@@ -67,8 +67,6 @@ int main(int argc, char **argv)
     divergence2d_s1.set_expression(((tiramisu::expr(p0)*(input(tiramisu::idx("divergence2d_s1_r4__y"), (tiramisu::idx("divergence2d_s1_r4__x") + tiramisu::expr((int32_t)1))) + input(tiramisu::idx("divergence2d_s1_r4__y"), (tiramisu::idx("divergence2d_s1_r4__x") - tiramisu::expr((int32_t)1))))) + (tiramisu::expr(p1)*(input((tiramisu::idx("divergence2d_s1_r4__y") + tiramisu::expr((int32_t)1)), tiramisu::idx("divergence2d_s1_r4__x")) + input((tiramisu::idx("divergence2d_s1_r4__y") - tiramisu::expr((int32_t)1)), tiramisu::idx("divergence2d_s1_r4__x"))))));
     divergence2d_s1.set_access("{divergence2d_s1[divergence2d_s1_r4__y, divergence2d_s1_r4__x]->buff_divergence2d[divergence2d_s1_r4__y, divergence2d_s1_r4__x]}");
 
-    // Define compute level for "divergence2d".
-    divergence2d_s0.first(computation::root_dimension);
     divergence2d_s1.after(divergence2d_s0, computation::root_dimension);
 
     // Add schedules.

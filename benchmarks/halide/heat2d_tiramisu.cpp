@@ -68,7 +68,6 @@ int main(int argc, char **argv)
     heat2d_s1.set_access("{heat2d_s1[heat2d_s1_r4__y, heat2d_s1_r4__x]->buff_heat2d[heat2d_s1_r4__y, heat2d_s1_r4__x]}");
 
     // Define compute level for "heat2d".
-    heat2d_s0.first(computation::root_dimension);
     heat2d_s1.after(heat2d_s0, computation::root_dimension);
 
     // Add schedules.

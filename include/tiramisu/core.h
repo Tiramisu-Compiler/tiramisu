@@ -1236,21 +1236,6 @@ public:
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S1;
-      *
-      * TODO: remove the need for the following assumptions.
-      * Few assumptions about how you should call these functions:
-      * - Call .first() before calling any .after()
-      * - Call .after() in the order of appearance of stmts, that is
-      * if in the program you have S0, then S1 then S2, you should call
-      * .after() as follows:
-      *       S1.after(S0, ...);
-      *       S2.after(S1, ...);
-      *  In this case, since S1 appears in the program before S2, we set S1 first
-      *  then we set S2.
-      *  but you should not call it as follows
-      *       S2.after(S1, ...);
-      *       S1.after(S0, ...);
-      *  since this sets S2 and sets S1.
       */
     void after(computation &comp, int level);
 
@@ -1269,14 +1254,79 @@ public:
       * Schedule this computation to run first at the loop level
       * \p L.
       *
-      * The outermost loop level is 0.
+      * Calling this function is not needed any more. Calling
+      * after() alone is sufficient now. A computation that is
+      * not ordered after other computations is considered to be
+      * the first automatically.
       *
-      * Use computation::root_dimension to indicate the level of the
-      * main program.
-      *
-      * The outermost loop has a loop level equal to zero.
       */
     void first(int L);
+
+    /**
+     * Fuse the loop over this computation with the loop over the
+     * computations passed as arguments. Fuse at the loop level
+     * \p lev.
+     *
+     * For example, assuming we have the following computations
+     *
+     * {S0[i,j]: 0<=i<N and 0<=j<N}, {S1[i,j]: 0<=i<N and 0<=j<N}
+     * and {S2[i,j]: 0<=i<N and 0<=j<N}.
+     *
+     * With the default schedule, these computations would be equivalent
+     * to the following loops nests
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<N; j++)
+     *     S0;
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<N; j++)
+     *     S1;
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<N; j++)
+     *     S2;
+     *
+     * S2.fuse_after(1, S0, S1);
+     *
+     * would result in fusing S2 with S0 and S1 at loop level 1,
+     * the resulting code would look like
+     *
+     * for (i=0; i<N; i++)
+     *   for (j=0; j<N; j++)
+     *   {
+     *     S0;
+     *     S1;
+     *     S2;
+     *   }
+     *
+     * S2.fuse_after(0, S0, S1);
+     *
+     * would result in the following code
+     *
+     * for (i=0; i<N; i++)
+     * {
+     *   for (j=0; j<N; j++)
+     *     S0;
+     *   for (j=0; j<N; j++)
+     *     S1;
+     *   for (j=0; j<N; j++)
+     *     S2;
+     * }
+     *
+     */
+    template<typename... Args> void fuse_after(int lev, Args... args)
+    {
+        std::vector<tiramisu::computation> computations{std::forward<Args>(args)...};
+
+        if (computations.size()>0)
+        {
+            this->after(computations[0], lev);
+
+            for (int i=0; i<computations.size()-1; i++)
+                computations[i].after(computations[i+1], lev);
+        }
+    }
 
     /**
      * Interchange (swap) the two loop levels \p L0 and \p L1.

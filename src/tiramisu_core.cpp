@@ -828,6 +828,75 @@ void computation::set_schedule(std::string map_str)
     this->set_schedule(map);
 }
 
+struct param_pack_1
+{
+    int in_dim;
+    int out_constant;
+};
+
+/**
+ * Take a basic map as input, go through all of its constraints,
+ * identifies the constraint of the static dimension param_pack_1.in_dim
+ * (passed in user) and return the value of the static dimension in
+ * param_pack_1.out_constant.
+ */
+isl_stat extract_static_dim_value_from_bmap(__isl_take isl_basic_map *bmap, void *user)
+{
+    struct param_pack_1 *data = (struct param_pack_1 *) user;
+
+    isl_constraint_list *list = isl_basic_map_get_constraint_list(bmap);
+    int n_constraints = isl_constraint_list_n_constraint(list);
+
+    for (int i = 0; i<n_constraints; i++)
+    {
+        isl_constraint *cst = isl_constraint_list_get_constraint(list, i);
+        isl_val *val = isl_constraint_get_coefficient_val(cst, isl_dim_out, data->in_dim);
+        if (isl_val_is_one(val)) // i.e., the coefficient of the dimension data->in_dim is 1
+        {
+            isl_val *val2 = isl_constraint_get_constant_val(cst);
+            data->out_constant = isl_val_get_num_si(val2);
+        }
+    }
+
+    return isl_stat_ok;
+}
+
+/**
+ * Return the value of the static dimension.
+ *
+ * For example, if we have a map M = {S0[i,j]->[0,i,1,j,2]}
+ * and call isl_map_get_static_dim(M, 4), it will return 2.
+ */
+int isl_map_get_static_dim(isl_map *map, int dim_pos)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(map != NULL);
+    assert(dim_pos >= 0);
+    assert(dim_pos <= (signed int) isl_map_dim(map, isl_dim_out));
+
+    DEBUG(3, tiramisu::str_dump("Getting the constant coefficient of ",
+                            isl_map_to_str(map));
+             tiramisu::str_dump(" at dimension ");
+             tiramisu::str_dump(std::to_string(dim_pos)));
+
+    struct param_pack_1 *data = (struct param_pack_1 *) malloc(sizeof(struct param_pack_1));
+    data->out_constant = -1;
+    data->in_dim = dim_pos;
+
+    isl_map_foreach_basic_map(isl_map_copy(map),
+                              &extract_static_dim_value_from_bmap,
+                              data);
+
+    DEBUG(3, tiramisu::str_dump("The constant is: ");
+             tiramisu::str_dump(std::to_string(data->out_constant)));
+
+    DEBUG_INDENT(-4);
+
+    return data->out_constant;
+}
+
 
 isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
 {
@@ -983,8 +1052,6 @@ int loop_level_into_static_dimension(int level)
   */
 void computation::after(computation &comp, int level)
 {
-    isl_map *sched1;
-
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
@@ -1000,115 +1067,30 @@ void computation::after(computation &comp, int level)
              tiramisu::str_dump(" at dimension ");
              tiramisu::str_dump(std::to_string(dim)));
 
-    std::vector<std::pair<int, tiramisu::computation *>> ordered_computations;
-
     comp.get_function()->align_schedules();
 
-    // Go through all the computations.
-    for (auto c: this->get_function()->get_computations())
-    {
-        sched1 = c->get_schedule();
+    DEBUG(3, tiramisu::str_dump("Preparing to adjust the schedule of the computation ");
+             tiramisu::str_dump(this->get_name()));
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(this->get_schedule())));
 
-        DEBUG(3, tiramisu::str_dump("Preparing to adjust the schedule of the computation ");
-                 tiramisu::str_dump(c->get_name()));
-        DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
+    assert(this->get_schedule() != NULL);
+    DEBUG(3, tiramisu::str_dump("Dimension level in which ordering dimensions will be inserted : ");
+             tiramisu::str_dump(std::to_string(dim)));
+    assert(dim < (signed int) isl_map_dim(this->get_schedule(), isl_dim_out));
+    assert(dim >= computation::root_dimension);
 
-        assert(sched1 != NULL);
-        DEBUG(3, tiramisu::str_dump("Dimension level in which ordering dimensions will be inserted : ");
-                 tiramisu::str_dump(std::to_string(dim)));
-        DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
-                 tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
-        assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
-        assert(dim >= computation::root_dimension);
-
-        // Update relative orders.
-        c->relative_order = c->relative_order*10;
-        if ((c != &comp))
-            c->relative_order = c->relative_order + 1;
-
-        DEBUG(3, tiramisu::str_dump("Calculated relative order: ");
-                 tiramisu::str_dump(std::to_string(c->relative_order)));
-
-        DEBUG(3, tiramisu::str_dump("Adding the computation to the vector of ordered computations."));
-
-        ordered_computations.push_back(std::pair<int, tiramisu::computation *>(c->relative_order, c));
-    }
-
-    std::sort(ordered_computations.begin(), ordered_computations.end());
-
-    DEBUG(3, tiramisu::str_dump("Setting the schedules according to their orders."));
-
-    int order = 0;
-    for (auto c: ordered_computations)
-    {
-        sched1 = c.second->get_schedule();
-
-        sched1 = isl_map_set_const_dim(sched1, dim, order);
-        order++;
-
-        c.second->set_schedule(sched1);
-        DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
-    }
+    // Get the constant in comp, add +1 to it and set it to sched1
+    int order = (-1) * isl_map_get_static_dim(comp.get_schedule(), dim);
+    isl_map *new_sched = isl_map_set_const_dim(this->get_schedule(), dim, order+1);
+    this->set_schedule(new_sched);
+    DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
 
-
 void computation::first(int level)
 {
-    isl_map *sched1;
-
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    int dim = loop_level_into_static_dimension(level);
-
-    this->get_function()->align_schedules();
-
-    // Go through all the computations.
-    for (auto c: this->get_function()->get_computations())
-    {
-        sched1 = c->get_schedule();
-
-        DEBUG(3, tiramisu::str_dump("Adjusting the schedule of a computation ");
-                 tiramisu::str_dump(c->get_name()));
-        DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(sched1)));
-
-        assert(sched1 != NULL);
-        DEBUG(3, tiramisu::str_dump("Dimension level at which the ordering dimension will be inserted : ");
-                 tiramisu::str_dump(std::to_string(dim)));
-        DEBUG(3, tiramisu::str_dump("Original number of dimensions of the schedule : ");
-                 tiramisu::str_dump(std::to_string(isl_map_dim(sched1, isl_dim_out))));
-        if (this->statements_to_compute_before_me != NULL)
-            DEBUG(3, tiramisu::str_dump("Computation to compute before this computation ");
-                         tiramisu::str_dump(this->statements_to_compute_before_me->get_name()));
-        assert(dim < (signed int) isl_map_dim(sched1, isl_dim_out));
-        assert(dim >= computation::root_dimension);
-
-        // Update relative orders.
-        if (c != this && c != this->statements_to_compute_before_me)
-            c->relative_order = c->relative_order + 1;
-
-        DEBUG(3, tiramisu::str_dump("Relative order: ");
-                 tiramisu::str_dump(std::to_string(c->relative_order)));
-
-        if (c == this || c == this->statements_to_compute_before_me)
-        {
-            sched1 = isl_map_set_const_dim(sched1, dim, 0);
-            DEBUG(3, tiramisu::str_dump("Setting dimension to 0."));
-        }
-        else
-        if (c != this)
-        {
-            sched1 = isl_map_set_const_dim(sched1, dim, 1);
-            DEBUG(3, tiramisu::str_dump("Setting dimension to 1."));
-        }
-
-        c->set_schedule(sched1);
-        DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(sched1)));
-    }
-
-    DEBUG_INDENT(-4);
+    tiramisu::error("Calling first() is not needed any more. All you need to do is to drop the call to first().", true);
 }
 
 

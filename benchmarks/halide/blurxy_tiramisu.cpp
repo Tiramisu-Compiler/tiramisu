@@ -61,9 +61,6 @@ int main(int argc, char **argv)
                         (((p0(tiramisu::idx("blur_x_s0_c"), tiramisu::idx("blur_x_s0_y"), tiramisu::idx("blur_x_s0_x")) + p0(tiramisu::idx("blur_x_s0_c"), tiramisu::idx("blur_x_s0_y"), (tiramisu::idx("blur_x_s0_x") + tiramisu::expr((int32_t)1)))) + p0(tiramisu::idx("blur_x_s0_c"), tiramisu::idx("blur_x_s0_y"), (tiramisu::idx("blur_x_s0_x") + tiramisu::expr((int32_t)2))))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
     blur_x_s0.set_access("{blur_x_s0[blur_x_s0_c, blur_x_s0_y, blur_x_s0_x]->buff_blur_x[blur_x_s0_c, blur_x_s0_y, blur_x_s0_x]}");
 
-    // Define compute level for "blur_x".
-    blur_x_s0.first(computation::root_dimension);
-
     // Define loop bounds for dimension "blur_y_s0_c".
     tiramisu::constant blur_y_s0_c_loop_min("blur_y_s0_c_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
     tiramisu::constant blur_y_s0_c_loop_extent("blur_y_s0_c_loop_extent", tiramisu::expr(blur_y_extent_2), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);

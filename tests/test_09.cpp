@@ -46,9 +46,6 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
                         tiramisu::expr((uint8_t)val0), true, tiramisu::p_uint8, &test_reduction_operator);
     input_s0.set_access("{input_s0[input_s0_z, input_s0_y, input_s0_x]->buff_input[input_s0_z, input_s0_y, input_s0_x]}");
 
-    // Define compute level for "input".
-    input_s0.first(computation::root_dimension);
-
     // Define loop bounds for dimension "f_s0_y".
     tiramisu::constant f_s0_y_loop_min("f_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
     tiramisu::constant f_s0_y_loop_extent("f_s0_y_loop_extent", tiramisu::expr(f_extent_1), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
@@ -81,8 +78,6 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     // Define compute level for "f".
     f_s0.after(input_s0, computation::root_dimension);
     f_s1.after(f_s0, computation::root_dimension);
-
-    // Add schedules.
 
     test_reduction_operator.set_arguments({&buff_f});
     test_reduction_operator.gen_time_processor_domain();

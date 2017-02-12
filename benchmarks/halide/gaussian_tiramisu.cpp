@@ -89,8 +89,6 @@ int main(int argc, char **argv)
     gaussian_s0.set_access("{gaussian_s0[gaussian_s0_c, gaussian_s0_y, gaussian_s0_x]->buff_gaussian[gaussian_s0_c, gaussian_s0_y, gaussian_s0_x]}");
 
 
-    // Define compute level for "gaussian_x".
-    gaussian_x_s0.first(computation::root_dimension);
     // Define compute level for "gaussian".
     gaussian_s0.after(gaussian_x_s0, computation::root_dimension);
 

@@ -81,7 +81,6 @@ int main(int argc, char **argv)
     rec_filter_s1.set_access("{rec_filter_s1[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]->buff_rec_filter[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]}");
 
     // Define compute level for "rec_filter".
-    rec_filter_s0.first(computation::root_dimension);
     rec_filter_s1.after(rec_filter_s0, computation::root_dimension);
 
     // Add schedules.
