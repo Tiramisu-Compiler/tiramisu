@@ -54,7 +54,9 @@ int main(int argc, char **argv)
     by.set_access("{by[c, y, x]->buff_by[c, y, x]}");
 
 
-    by.after(bx, computation::root_dimension);
+    bx.set_schedule("[Nc, Ny, Nx]->{bx[c, y, x]->bx[0, c, 0, floor(y/32), 0, floor(x/32), 0, ys     , 0, (x%32), 0]: ((y%32) <= ys = (y%32)) and (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    by.set_schedule("[Mc, My, Mx]->{by[c, y, x]->by[1, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32),  0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+
 
     // Add schedules.
     bx.tag_parallel_level(1);
