@@ -135,12 +135,16 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
     DEBUG(3, tiramisu::str_dump("Schedule reversed:", isl_map_to_str(map)));
 
     isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The iterator map of an AST leaf (after scheduling):");
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling):");
                         isl_pw_multi_aff_dump(iterator_map));
     DEBUG(3, tiramisu::str_dump("Access:", isl_map_to_str(access)));
     isl_pw_multi_aff* index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("isl_pw_multi_aff_from_map(access):");
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("index_aff = isl_pw_multi_aff_from_map(access):");
                         isl_pw_multi_aff_dump(index_aff));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff):");
+                                isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map):");
+                                isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
     iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):");
                         isl_pw_multi_aff_dump(iterator_map));
@@ -161,7 +165,8 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                                         tiramisu::computation *comp,
                                         const tiramisu::expr &exp,
-                                        std::vector<isl_map *> &accesses)
+                                        std::vector<isl_map *> &accesses,
+                                        bool return_buffer_accesses)
 {
     assert(fct != NULL);
 
@@ -385,16 +390,28 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:",
                                 isl_map_to_str(identity)));
 
-        access_function = isl_map_apply_range(isl_map_copy(identity),access_function);
-        DEBUG(3, tiramisu::str_dump(
+        if (return_buffer_accesses == true)
+        {
+            access_function = isl_map_apply_range(isl_map_copy(identity), isl_map_copy(access_function));
+            DEBUG(3, tiramisu::str_dump(
                 "Applying access function on the range of transformation function:",
                 isl_map_to_str(access_function)));
+        }
+        else
+        {
+            access_function = isl_map_copy(identity);
+        }
 
-        if (global::is_auto_data_mapping_set() == true)
+        // Run the following block (i.e., apply the schedule on the access function) only if
+        // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
+        // otherwise return the access function that is not transformed into time-processor space
+        // this is mainly because the function that calls this function expects the access function
+        // to be in the iteration domain.
+        if ((global::is_auto_data_mapping_set() == true) && (return_buffer_accesses == true))
         {
             DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_function)));
-            DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(comp->get_schedule())));
-            access_function = isl_map_apply_domain(access_function,isl_map_copy(comp->get_schedule()));
+            DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_schedule())));
+            access_function = isl_map_apply_domain(access_function, isl_map_copy(comp->get_trimmed_schedule()));
             DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_function)));
         }
         accesses.push_back(access_function);
@@ -406,89 +423,89 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
             switch(exp.get_op_type())
             {
                 case tiramisu::o_logical_and:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_logical_or:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_max:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_min:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_minus:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_add:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_sub:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_mul:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_div:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_mod:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_cond:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_le:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_lt:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_ge:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_gt:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_not:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_eq:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_ne:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_right_shift:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_left_shift:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_floor:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     break;
                 case tiramisu::o_cast:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     break;
                 default:
                     tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
@@ -502,14 +519,17 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
 /**
  * Compute the accesses of the RHS of the computation
  * \p comp and store them in the accesses vector.
+ *
+ * If \p return_buffer_accesses is set to true, this function returns access functions to
+ * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses)
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     const tiramisu::expr &rhs = comp->get_expr();
-    traverse_expr_and_extract_accesses(func, comp, rhs, accesses);
+    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -541,7 +561,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
     accesses.push_back(access);
     // Add the accesses of the RHS to the accesses vector
-    get_rhs_accesses(func, comp, accesses);
+    get_rhs_accesses(func, comp, accesses, true);
 
     // For each access in accesses (i.e. for each access in the computation),
     // compute the corresponding isl_ast expression.
@@ -866,6 +886,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
             case isl_ast_op_pdiv_r:
                 result = Halide::Internal::Mod::make(op0, op1);
                 break;
+            case isl_ast_op_select:
             case isl_ast_op_cond:
                 result = Halide::Internal::Select::make(op0, op1, op2);
                 break;

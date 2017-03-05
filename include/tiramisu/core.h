@@ -196,6 +196,20 @@ private:
     int get_max_identity_schedules_range_dim() const;
 
     /**
+      * Get the trimmed time-processor domain of the function.
+      * The first dimension of the time-processor domain is used
+      * to indicate duplicates of the computation.  Computations that
+      * do not have any duplicate have 0 in that dimension, whereas
+      * computations that have duplicates (i.e., are recomputed) have
+      * a number in that dimension to represent each duplicate.
+      * The trimmed time-processor domain is the time-processor domain
+      * without the dimension that represents the duplicates.  We simply
+      * take the time-processor domain and remove the first dimension
+      * used to represent the duplicates.
+      */
+    isl_union_set *get_trimmed_time_processor_domain() const;
+
+    /**
       * This function iterates over the computations of the function.
       * It modifies the identity schedule of each computation in order to
       * make all the identity schedules have the same number of dimensions
@@ -311,6 +325,15 @@ public:
       * of the computations of the function.
       */
     isl_union_map *get_schedule() const;
+
+    /**
+      * Return the union of all the trimmed schedules of the
+      * function.
+      * A trimmed schedule is the schedule without the duplication
+      * dimension (the schedule dimension used to indicate duplicate
+      * computations).
+      */
+    isl_union_map *get_trimmed_schedule() const;
 
     /**
       * Return an ISL AST that represents this function.
@@ -892,9 +915,25 @@ private:
      * Set the iteration domain of the computation
      */
     void set_iteration_domain(isl_set *domain);
-        tiramisu::constant*
-        create_separator_and_add_constraints_to_context (
+
+    tiramisu::constant* create_separator_and_add_constraints_to_context(
                 const tiramisu::expr& loop_upper_bound, int v);
+
+    /**
+     * Edit the schedule \p sched of the duplicate computation that has \p
+     * duplicate_ID as an ID.  Edit the schedule as follows: assuming that
+     * y and y' are the input and output dimensions of sched in dimensions
+     * \p dim0.  This function function add the constraint:
+     *  in_dim_coefficient*y = out_dim_coefficient*y' + const_conefficient = 0;
+     */
+    isl_map* edit_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient, int out_dim_coefficient, int const_conefficient, isl_map* sched);
+
+    /**
+     * Number of duplicates of the this computation. It also indicates
+     * the ID of the last duplicated computation.  We use it to figure
+     * out the ID of the any new duplicate created.
+     */
+    int duplicate_ID;
 
 protected:
 
@@ -1051,12 +1090,35 @@ public:
       isl_map *get_schedule() const;
 
       /**
+        * Return the trimmed schedule of the computation.
+        * The trimmed schedule is the schedule without the
+        * duplication dimension (the schedule dimension used
+        * to indicate duplicate computations).
+        */
+      isl_map *get_trimmed_schedule() const;
+
+      /**
         * Return the time-processor domain of the computation.
         * In this representation, the logical time of execution and the
         * processor where the computation will be executed are both
         * specified.
         */
       isl_set *get_time_processor_domain() const;
+
+      /**
+        * Return the trimmed time-processor domain.
+        * The first dimension of the time-processor domain is used
+        * to indicate redundancy of the computation.  Computations that
+        * are not redundant have 0 in that dimension, whereas
+        * computations that are redundant (i.e., are recomputed) have
+        * a number different from 0 in that dimension and which represents
+        * the ID of the redundant computation.
+        * The trimmed time-processor domain is the time-processor domain
+        * without the dimension that represents the redundancy.  We simply
+        * take the time-processor domain and remove the first dimension.
+        */
+      isl_set *get_trimmed_time_processor_domain();
+
 
      /**
        * Return if this computation represents a let statement.
@@ -1120,8 +1182,15 @@ public:
       * domain. The same name of space should be used for both the range
       * and the domain of the schedule.
       *
-      * In the time-processor domain, static and dynamic dimensions are
-      * interleaved: static, dynamic, static, dynamic, ...
+      * Vectors in the time-processor domain have the following form
+      *
+      * computation_name[redundancy_ID,static,dynamic,static,dynamic,static,dynamic,static,...]
+      *
+      * The first dimension of the vector is used to indicate the redundancy ID
+      * (the notion of the redundancy ID is explained later).
+      *
+      * The following dimensions are interleaved dimensions: static, dynamic, static,
+      * dynamic, ...
       * Static dimensions are used to order statements within a given block
       * of statements in a given loop level while dynamic dimensions represent
       * the actual loop levels.
@@ -1141,23 +1210,66 @@ public:
       *
       * and the following representation in the time-processor domain
       *
-      * {c0[0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * {c1[0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
       *
       * The first dimension (dimension 0) in the time-processor
-      * representation (the leftmost dimension) is a static dimension,
-      * the second dimension (dimension 1) is a dynamic dimension that
-      * represents the loop level i, ..., the forth dimension is a dynamic
+      * representation (the leftmost dimension) is the redundancy ID
+      * (in this case it is 0, the meaning of this ID will be explained later).
+      * The second dimension (dimension 1 on the left) is a static dimension,
+      * the third dimension (dimension 2) is a dynamic dimension that
+      * represents the loop level i, ..., the fifth dimension is a dynamic
       * dimension that represents the loop level j and the last dimension
-      * (dimension 4) is a static dimension and allows the ordering of
+      * (dimension 5) is a static dimension and allows the ordering of
       * c1 after c0 in the loop nest.
       *
       * To transform the previous iteration domain representation to the
       * time-processor domain representation, the following schedule should
       * be used:
       *
-      * {c0[i,j]->c0[0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * {c1[i,j]->c1[0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      *
+      * The first dimension called "redundancy ID" is only meaningful if the
+      * computed with redundancy. i.e., some parts of the computation are
+      * redundantly computed.  Redundant computations are in general used to
+      * maximize parallelism and data locality on the expense of doing some
+      * computations redundantly.
+      * For example, if the two computations c1(i,j) and c2(i,j) both depend
+      * on the computation c0(i,j), instead of waiting for c0(i,j) to be
+      * computed and then computing c1(i,j) and c2(i,j) in parallel, the thread
+      * executing c1(i,j) can compute c0(i,j) by itself and then run c1(i,j).
+      * The thread that computes c2(i,j) can do the same and compute c0(i,j)
+      * by itself and then compute c2(i,j). In this case the two threads do not
+      * need to wait. This is done at the expense of redundant computation since
+      * c0(i,j) is computed by both threads.
+      *
+      * In general redundant computations are useful when tiling stencil
+      * computations.  In the context of stencils such a tiling is called
+      * "overlapped tiling".  Tiles that depend on results computed by other
+      * tiles that run in parallel can compute the boundaries redundantly which
+      * allows them to avoid waiting and thus can run in parallel.
+      *
+      * In Tiramisu, the user can indicate that a chunk of the computation
+      * should be computed redundantly. That chunk has an arbitrary ID (which
+      * is a simple constant).  The original computation always has a redundancy
+      * ID equal to 0 (which means this is the original computation).
+      * The redundant computations have an ID that is equal to 1 or 2 or 3, ...
+      *
+      * For example if we want to compute all of c0 three times (that is,
+      * compute the original computation and compute two redundant computations),
+      * we can use the following IDs in the redundancy IR dimension.
+      *
+      * The original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      *
+      * The schedule of c0 in this case would be three maps that map c0[i,j] to
+      * the three different redundant computations in the time-processor domain:
+      *
+      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+      *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+      *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       *
       */
     // @{
@@ -1191,8 +1303,11 @@ public:
     }
 
     /**
-      * Schedule this computation to run after the computation \p comp
-      * within the loop level \p level.  The outermost loop level is 0.
+      * Schedule the duplicate \p duplicate_ID of this computation to run
+      * after the computation \p comp within the loop level \p level.
+      * The outermost loop level is 0.
+      * By default the original computation (rather than any duplicate) is
+      * scheduled after \p comp.
       *
       * For example assuming we have the two computations
       *
@@ -1237,7 +1352,7 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       */
-    void after(computation &comp, int level);
+    void after(computation &comp, int level, int duplicate_ID = 0);
 
     /**
       * Schedule this computation to run before the computation \p comp
@@ -1251,16 +1366,76 @@ public:
     void before(computation &comp, int L);
 
     /**
-      * Schedule this computation to run first at the loop level
-      * \p L.
-      *
-      * Calling this function is not needed any more. Calling
-      * after() alone is sufficient now. A computation that is
-      * not ordered after other computations is considered to be
-      * the first automatically.
-      *
-      */
-    void first(int L);
+     * Duplicate a part of the computation.  The duplicated part
+     * is identified using a disjunction of conjunctions of constraints.
+     *
+     * For example, let us assume that you have the following computation
+     *
+     * {C0[i,j]: 0<=i<N and 0<=j<N}
+     *
+     * If you want to create a duplicate a block of the computations
+     * of C0 that satisfy the has the iteration domain
+     *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+     * you can write
+     *
+     * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
+     *
+     * This will keep the original computation C0 and will create a
+     * new computation that is a subset of C0 and that its domain
+     * is restricted to the domain "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+     * (the function actually intersects the domain provided with
+     * the original domain).
+     *
+     * C0 is called the original computation while the newly created
+     * computation is called the duplicate computation, both have
+     * the name C0.  To differentiate between the two computations,
+     * we introduce the notion of "duplicate ID".
+     *
+     * The duplicate ID of the original computation is always 0. The ID
+     * of the newly created computation is generated automatically and
+     * is 1 for the first duplicate, 2 for the second duplicate, ...
+     *
+     * The duplicate computation is an exact copy of the original
+     * computation except in two things:
+     * (1) the iteration domain of the duplicate computation is
+     * the intersection of the iteration domain of the original
+     * computation with the constraints provided as an argument
+     * to the duplicate command; this means that the iteration domain
+     * of the duplicate computation is always a subset of the original
+     * iteration domain;
+     * (2) the duplicate ID of the two computations is different, the
+     * original computation has an ID equal to zero while the newly
+     * created duplicate has an ID equal to the number of duplicates
+     * already created + 1.
+     *
+     * The duplicated computation will have a schedule equal to the schedule
+     * of the original computation up to the point where the duplication happens.
+     * After duplication, any schedule that is applied on the original computation
+     * will not be applied automatically on the duplicate computation.
+     * To apply a schedule on the duplicate computation, you should specify
+     * the duplicate ID in the scheduling command.  By default, all the scheduling
+     * commands apply on the original computation.  For example, to tile the
+     * dimensions 3 and 4 of the duplicate computation that has an ID equal to
+     * 1 with a tile size 32x32, you can call
+     *
+     * C0.tile(1, 3,4, 32,32);
+     *
+     * To tile the original computation with the same tiling, you can call
+     *
+     * C0.tile(0, 3,4, 32,32);
+     *
+     * Or simply call
+     *
+     * C0.tile(3,4, 32,32);
+     *
+     * Since all the scheduling commands by default apply on the original
+     * computation.
+     *
+     * \p dim is the loop level in which the duplicate is ordered to be
+     * executed after the original.
+     *
+     */
+    void duplicate(std::string constraints, int dim);
 
     /**
      * Fuse the loop over this computation with the loop over the
@@ -1332,6 +1507,18 @@ public:
      * Interchange (swap) the two loop levels \p L0 and \p L1.
      */
     void interchange(int L0, int L1);
+
+    /**
+      * Shift the loop level \p L0 of the iteration space by
+      * \p n iterations.
+      *
+      * The outermost loop level is 0.
+      *
+      * \p n can be a positive or a negative number. A positive
+      * number means a shift forward of the loop iterations while
+      * a negative value would mean a shift backward.
+      */
+     void shift(int L0, int n, int duplicate_ID);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -1499,9 +1686,16 @@ public:
     /**
       * Bind the computation to a buffer.
       * i.e. create a one-to-one data mapping between the computation
-      * the buffer.
+      * and the buffer.
       */
     void bind_to(buffer *buff);
+
+    /**
+     * Add a map to the schedule.  This function does not override
+     * the original schedule but simply adds the new map to the original
+     * schedule.  The resulting schedule is a union of maps.
+     */
+    void add_schedule(isl_map *map);
 
     /*
       * Create a Halide statement that assigns the computations to the memory
