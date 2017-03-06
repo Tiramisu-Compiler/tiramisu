@@ -920,20 +920,15 @@ private:
                 const tiramisu::expr& loop_upper_bound, int v);
 
     /**
-     * Edit the schedule \p sched of the duplicate computation that has \p
-     * duplicate_ID as an ID.  Edit the schedule as follows: assuming that
-     * y and y' are the input and output dimensions of sched in dimensions
-     * \p dim0.  This function function add the constraint:
-     *  in_dim_coefficient*y = out_dim_coefficient*y' + const_conefficient = 0;
+     * Number of duplicates of the this computation.  We use it to figure
+     * out the ID of any new duplicate created.
      */
-    isl_map* edit_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient, int out_dim_coefficient, int const_conefficient, isl_map* sched);
+    int duplicate_number;
 
     /**
-     * Number of duplicates of the this computation. It also indicates
-     * the ID of the last duplicated computation.  We use it to figure
-     * out the ID of the any new duplicate created.
+     * Vector of duplicate computations.
      */
-    int duplicate_ID;
+    std::vector<isl_map *> duplicates;
 
 protected:
 
@@ -1088,6 +1083,12 @@ public:
         * Return the schedule of the computation.
         */
       isl_map *get_schedule() const;
+
+      /*
+       * Get the schedule of a duplicate computation.
+       * \p duplicate_ID is the ID of the duplicate.
+       */
+      isl_map *get_duplicate_schedule(int duplicate_ID);
 
       /**
         * Return the trimmed schedule of the computation.
@@ -1277,6 +1278,15 @@ public:
     void set_schedule(std::string map_str);
     // @}
 
+    /*
+     * Set the schedule of a duplicate computation.
+     * \p duplicate_ID is the ID of the duplicate.
+     */
+    // @{
+    void set_duplicate_schedule(int duplicate_ID, isl_map *map);
+    void set_duplicate_schedule(int duplicate_ID, std::string map_str);
+    // @}
+
     /**
      * Compare two computations.
      *
@@ -1303,11 +1313,28 @@ public:
     }
 
     /**
-      * Schedule the duplicate \p duplicate_ID of this computation to run
-      * after the computation \p comp within the loop level \p level.
+     * Apply a transformation from time-processor space to time-processor space.
+     * This transformation is applied on the range of the schedule.
+     *
+     * For example, to apply to shift the i dimension of the time-processor domain
+     * of C0, you can apply the transformation
+     *
+     * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
+     *
+     * To apply an interchange, you would do
+     *
+     * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
+     *
+     */
+    void apply_transformation(std::string map_str);
+
+    /**
+      * Schedule the duplicate \p second_duplicate_ID of this computation to run
+      * after the duplicate \p first_duplicate_ID of the computation \p comp.
+      * The computations are placed after each other in the loop level \p level.
       * The outermost loop level is 0.
-      * By default the original computation (rather than any duplicate) is
-      * scheduled after \p comp.
+      * By default the original computations (rather than any duplicate) are
+      * scheduled after each other.
       *
       * For example assuming we have the two computations
       *
@@ -1352,7 +1379,7 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       */
-    void after(computation &comp, int level, int duplicate_ID = 0);
+    void after(computation &comp, int level, int first_duplicate_ID = 0, int second_duplicate_ID = 0);
 
     /**
       * Schedule this computation to run before the computation \p comp
@@ -1506,7 +1533,7 @@ public:
     /**
      * Interchange (swap) the two loop levels \p L0 and \p L1.
      */
-    void interchange(int L0, int L1);
+    void interchange(int L0, int L1, int duplicate_ID = 0);
 
     /**
       * Shift the loop level \p L0 of the iteration space by
@@ -1529,7 +1556,7 @@ public:
       * \p sizeX is the extent (size) of the inner loop created after
       * splitting.
       */
-     void split(int L0, int sizeX);
+     void split(int L0, int sizeX, int duplicate_ID = 0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
@@ -1572,7 +1599,7 @@ public:
       * (i.e., \p L0 = \p L1 + 1) and they should satisfy
       * \p L0 > \p L1.
       */
-    void tile(int L0, int L1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int sizeX, int sizeY, int duplicate_ID = 0);
 
     /**
      * Unroll the loop level \p L with an unrolling factor \p fac
