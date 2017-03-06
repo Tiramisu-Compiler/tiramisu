@@ -1383,7 +1383,7 @@ void computation::interchange(int L0, int L1, int duplicate_ID)
 }
 
 
-void computation::duplicate(std::string constraints_set, int dim)
+void computation::duplicate(std::string constraints_set)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);

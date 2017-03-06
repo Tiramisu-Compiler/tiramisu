@@ -1458,11 +1458,8 @@ public:
      * Since all the scheduling commands by default apply on the original
      * computation.
      *
-     * \p dim is the loop level in which the duplicate is ordered to be
-     * executed after the original.
-     *
      */
-    void duplicate(std::string constraints, int dim);
+    void duplicate(std::string constraints);
 
     /**
      * Fuse the loop over this computation with the loop over the

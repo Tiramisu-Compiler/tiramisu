@@ -78,7 +78,8 @@ int main(int argc, char **argv)
     // by after bx
     by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->by[0, 0, c, 0, y1, 0, x1, 2, y2, 0, x2, 0]}");
 #elif 0
-    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (0 <= x <= (Nx -1))}", 2);
+    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (0 <= x <= (Nx -1))}");
+    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (0 <= x <= (Nx -1))}");
     bx.shift(1,-2,1);
     bx.tile(1,2,32,32,1);
     bx.tile(1,2,32,32);
