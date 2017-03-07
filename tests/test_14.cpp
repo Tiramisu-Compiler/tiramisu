@@ -60,8 +60,8 @@ int main(int argc, char **argv)
     bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
     by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 1, c, 0, y, 0, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 1
-    bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[c,y,x]->bx[1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= (y%32) <= 2) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[c,y,x]->bx[2, 0, c, 0, floor(y/32), 0, floor((x-2)/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (x%32) <= 2) and (x>=2) and (0 <= x <= (Nx -1))}");
-    by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 3, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+        bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx [c,y,x]->bx [1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, ((y-2)%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+        by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 0
     // duplicate
     bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[0, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
@@ -108,6 +108,7 @@ int main(int argc, char **argv)
     blurxy_tiramisu.gen_c_code();
 
     blurxy_tiramisu.dump_schedule();
+    blurxy_tiramisu.dump_trimmed_time_processor_domain();
 
     return 0;
 }
