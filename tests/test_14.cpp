@@ -78,13 +78,17 @@ int main(int argc, char **argv)
     // by after bx
     by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->by[0, 0, c, 0, y1, 0, x1, 2, y2, 0, x2, 0]}");
 #elif 0
-    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (0 <= x <= (Nx -1))}");
-    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (0 <= x <= (Nx -1))}");
+    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (y>=2) and (0 <= x <= (Nx -1))}");
+    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (x%32) <= 2) and (x>=2) and (0 <= x <= (Nx -1))}");
     bx.shift(1,-2,1);
-    bx.tile(1,2,32,32,1);
+    bx.shift(2,-2,2);
     bx.tile(1,2,32,32);
+    bx.tile(1,2,32,32,1);
+    bx.tile(1,2,32,32,2);
     by.tile(1,2,32,32);
     bx.after(bx,2,0,1);
+    bx.after(bx,2,1,2);
+    by.after(bx,2);
     by.after(bx,2);
 #endif
 
@@ -102,6 +106,8 @@ int main(int argc, char **argv)
     blurxy_tiramisu.dump_halide_stmt();
     blurxy_tiramisu.gen_halide_obj("build/generated_fct_test_14.o");
     blurxy_tiramisu.gen_c_code();
+
+    blurxy_tiramisu.dump_schedule();
 
     return 0;
 }
