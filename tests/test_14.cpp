@@ -59,12 +59,12 @@ int main(int argc, char **argv)
     // Default schedule.
     bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
     by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 1, c, 0, y, 0, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
-#elif 1
-        bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx [c,y,x]->bx [1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, ((y-2)%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
-        by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+#elif 0
+    bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx [c,y,x]->bx [1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, ((y-2)%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 0
     // duplicate
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[0, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[0, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
     // shift the duplicate
     bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]; bx[1, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y-2, 0, x, 0]}");
     // tiling of the duplicate
@@ -73,23 +73,18 @@ int main(int argc, char **argv)
     bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0, 0, 0, 0, 0]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]; bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]}");
     // tile by
     by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y, 0, x, 0]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}");
-    // duplicate 0 after duplicate 1 of bx.
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]; bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[0, 0, c, 0, y1, 0, x1, 1, y2, 0, x2, 0]}");
+    // duplicate 1 after the original of bx.
+    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]; bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[1, 0, c, 0, y1, 0, x1, 1, y2, 0, x2, 0]}");
     // by after bx
     by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->by[0, 0, c, 0, y1, 0, x1, 2, y2, 0, x2, 0]}");
-#elif 0
+#elif 1
     bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (y>=2) and (0 <= x <= (Nx -1))}");
-    bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (x%32) <= 2) and (x>=2) and (0 <= x <= (Nx -1))}");
     bx.shift(1,-2,1);
-    bx.shift(2,-2,2);
     bx.tile(1,2,32,32);
     bx.tile(1,2,32,32,1);
-    bx.tile(1,2,32,32,2);
     by.tile(1,2,32,32);
     bx.after(bx,2,0,1);
-    bx.after(bx,2,1,2);
-    by.after(bx,2);
-    by.after(bx,2);
+    by.after(bx,2,1);
 #endif
 
     // Add schedules.
@@ -106,9 +101,6 @@ int main(int argc, char **argv)
     blurxy_tiramisu.dump_halide_stmt();
     blurxy_tiramisu.gen_halide_obj("build/generated_fct_test_14.o");
     blurxy_tiramisu.gen_c_code();
-
-    blurxy_tiramisu.dump_schedule();
-    blurxy_tiramisu.dump_trimmed_time_processor_domain();
 
     return 0;
 }

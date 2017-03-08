@@ -376,9 +376,9 @@ void function::gen_isl_ast()
 
     DEBUG(3, tiramisu::str_dump("Schedule:", isl_union_map_to_str(this->get_schedule())));
     DEBUG(3, tiramisu::str_dump("Iteration domain:", isl_union_set_to_str(this->get_iteration_domain())));
-    DEBUG(3, tiramisu::str_dump("Time-Space domain:", isl_union_set_to_str(this->get_trimmed_time_processor_domain())));
-    DEBUG(3, tiramisu::str_dump("Time-Space aligned identity schedule:", isl_union_map_to_str(this->get_aligned_identity_schedules())));
-    DEBUG(3, tiramisu::str_dump("Identity schedule intersect Time-Space domain:", isl_union_map_to_str(umap)));
+    DEBUG(3, tiramisu::str_dump("Trimmed Time-Processor domain:", isl_union_set_to_str(this->get_trimmed_time_processor_domain())));
+    DEBUG(3, tiramisu::str_dump("Trimmed Time-Processor aligned identity schedule:", isl_union_map_to_str(this->get_aligned_identity_schedules())));
+    DEBUG(3, tiramisu::str_dump("Identity schedule intersect trimmed Time-Processor domain:", isl_union_map_to_str(umap)));
     DEBUG(3, tiramisu::str_dump("\n"));
 
     this->ast = isl_ast_build_node_from_schedule_map(ast_build, umap);
@@ -747,6 +747,24 @@ void function::dump_halide_stmt() const
     }
 }
 
+
+void function::dump_trimmed_time_processor_domain() const
+{
+    // Create time space domain
+
+    if (ENABLE_DEBUG)
+    {
+        tiramisu::str_dump("\n\nTrimmed Time-processor domain:\n");
+
+        tiramisu::str_dump("Function " + this->get_name() + ":\n");
+        for (const auto &comp : this->get_computations())
+        {
+            isl_set_dump(comp->get_trimmed_time_processor_domain());
+        }
+
+        tiramisu::str_dump("\n\n");
+    }
+}
 
 void function::dump_time_processor_domain() const
 {
@@ -1382,6 +1400,26 @@ void computation::interchange(int L0, int L1, int duplicate_ID)
     DEBUG_INDENT(-4);
 }
 
+/**
+ * Get a map as input.  Go through all the basic maps, keep only
+ * the basic map of the duplicate ID.
+ */
+isl_map *isl_map_filter_bmap_by_dupliate_ID(int ID, isl_map *map)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_map *identity = isl_map_universe(isl_map_get_space(map));
+    identity = isl_set_identity(isl_map_range(isl_map_copy(map)));
+    DEBUG(3, tiramisu::str_dump("Identity created from the range of the map: ",
+                                    isl_map_to_str(identity)));
+
+    identity = isl_map_set_const_dim(identity, 0, ID);
+
+    return isl_map_apply_range(isl_map_copy(map), identity);
+
+    DEBUG_INDENT(-4);
+}
 
 void computation::duplicate(std::string constraints_set)
 {
@@ -1406,8 +1444,10 @@ void computation::duplicate(std::string constraints_set)
     DEBUG(3, tiramisu::str_dump("Now creating a map for the new duplicate."));
     this->duplicate_number++;
     int new_ID = this->duplicate_number;
-    isl_map *new_sched = isl_map_set_const_dim(isl_map_copy(this->get_schedule()), 0, new_ID);
-
+    isl_map *new_sched = isl_map_filter_bmap_by_dupliate_ID(0, isl_map_copy(this->get_schedule()));
+    DEBUG(3, tiramisu::str_dump("After filtering the map the original: ", isl_map_to_str(new_sched)));
+    new_sched = isl_map_set_const_dim(new_sched, 0, new_ID);
+    DEBUG(3, tiramisu::str_dump("After setting the dimension 0 to the new_ID: ", isl_map_to_str(new_sched)));
     DEBUG(3, tiramisu::str_dump("The map of the new duplicate is now: ", isl_map_to_str(new_sched)));
 
     isl_set *set = isl_set_read_from_str(this->get_ctx(), constraints_set.c_str());

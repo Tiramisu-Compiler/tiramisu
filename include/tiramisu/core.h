@@ -578,6 +578,19 @@ public:
      void dump_time_processor_domain() const;
 
      /**
+       * Dump (on stdout) the trimmed time processor domain of the function.
+       * The time-processor domain should be generated before calling
+       * this function (gen_time_processor_domain()).
+       * This is mainly useful for debugging.
+       * The difference between the time-processor domain and the trimmed
+       * time-processor domain is that the trimmed one does not have the
+       * duplicate dimension.  We remove it before printing.
+       * The trimmed time-processor domain is the domain used for code
+       * generation.
+       */
+     void dump_trimmed_time_processor_domain() const;
+
+     /**
        * Dump a Halide stmt that represents the function.
        * gen_halide_stmt should be called before calling this function.
        */
