@@ -64,19 +64,19 @@ int main(int argc, char **argv)
     by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 0
     // duplicate
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx[0, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    bx.apply_transformation("bx[0, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}", 1);
     // shift the duplicate
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0]; bx[1, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y-2, 0, x, 0]}");
+    bx.apply_transformation("bx[1, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, y-2, 0, x, 0]}", 1);
     // tiling of the duplicate
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0]->bx[0, 0, c, 0, y, 0, x, 0, 0, 0, 0, 0]; bx[1, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}");
+    bx.apply_transformation("[Nc, Ny, Nx]->{bx[1, 0, c, 0, y, 0, x, 0]->bx[1, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}", 1);
     // tiling of the original
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0, 0, 0, 0, 0]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]; bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]}");
+    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y, 0, x, 0, 0, 0, 0, 0]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}", 0);
     // tile by
-    by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y, 0, x, 0]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}");
+    by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y, 0, x, 0]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]}", 0);
     // duplicate 1 after the original of bx.
-    bx.apply_transformation("[Nc, Ny, Nx]->{bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]; bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[1, 0, c, 0, y1, 0, x1, 1, y2, 0, x2, 0]}");
+    bx.apply_transformation("[Nc, Ny, Nx]->{bx[1, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->bx[1, 0, c, 0, y1, 0, x1, 1, y2, 0, x2, 0]}", 1);
     // by after bx
-    by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->by[0, 0, c, 0, y1, 0, x1, 2, y2, 0, x2, 0]}");
+    by.apply_transformation("[Mc, My, Mx]->{by[0, 0, c, 0, y1, 0, x1, 0, y2, 0, x2, 0]->by[0, 0, c, 0, y1, 0, x1, 2, y2, 0, x2, 0]}", 0);
 #elif 1
     bx.duplicate("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= (y%32) <= 2) and (y>=2) and (0 <= x <= (Nx -1))}");
     bx.shift(1,-2,1);

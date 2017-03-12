@@ -410,8 +410,8 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         if ((global::is_auto_data_mapping_set() == true) && (return_buffer_accesses == true))
         {
             DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_function)));
-            DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_schedule())));
-            access_function = isl_map_apply_domain(access_function, isl_map_copy(comp->get_trimmed_schedule()));
+            DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_union_of_schedules())));
+            access_function = isl_map_apply_domain(access_function, isl_map_copy(comp->get_trimmed_union_of_schedules()));
             DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_function)));
         }
         accesses.push_back(access_function);

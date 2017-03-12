@@ -808,9 +808,20 @@ private:
     isl_set *time_processor_domain;
 
     /**
-      * Schedule of the computation.
+      * A vector of the schedules of the computation.
+      *
+      * In Tiramisu, for a given computation computation object, we have
+      * the original iteration domain of the computation and we may have
+      * duplicate iteration domains.  The schedules that transform the
+      * original iteration domain into duplicates and that transform the
+      * duplicates into time-processor domain are all stored in this vector.
+      *
+      * schedules[0] is the schedule of the original computation (which has an ID = 0),
+      * schedules[1] is the schedule of the duplicate computation that has an ID = 1,
+      * schedules[2] is the schedule of the duplicate computation that has an ID = 2,
+      * and so on, ...
       */
-    isl_map *schedule;
+    std::vector<isl_map *> schedules;
 
     /**
       * The function where this computation is declared.
@@ -932,17 +943,6 @@ private:
     tiramisu::constant* create_separator_and_add_constraints_to_context(
                 const tiramisu::expr& loop_upper_bound, int v);
 
-    /**
-     * Number of duplicates of the this computation.  We use it to figure
-     * out the ID of any new duplicate created.
-     */
-    int duplicate_number;
-
-    /**
-     * Vector of duplicate computations.
-     */
-    std::vector<isl_map *> duplicates;
-
 protected:
 
     /**
@@ -1053,6 +1053,21 @@ public:
        */
       tiramisu::primitive_t get_data_type() const;
 
+      /*
+       * Get the schedule of the computation or a duplicate of the
+       * computation.
+       * \p duplicate_ID should be used to indicate the ID of the duplicate
+       * of which you want to get the schedule.
+       * By default, this function returns the schedule of the original
+       * computation which has an ID = 0.
+       */
+      isl_map *get_schedule(int duplicate_ID = 0) const;
+
+      /**
+       * Return the number of schedules of duplicate computations.
+       */
+      int get_duplicate_schedules_number() const;
+
       /**
        * Return the Tiramisu expression associated with the computation.
        */
@@ -1093,23 +1108,32 @@ public:
       int get_n_dimensions();
 
       /**
-        * Return the schedule of the computation.
+        * Return the union of the schedules of the original computation
+        * and it duplicates (if it has).
+        * The return map is an isl_map that represents the union of the
+        * schedules.
         */
-      isl_map *get_schedule() const;
-
-      /*
-       * Get the schedule of a duplicate computation.
-       * \p duplicate_ID is the ID of the duplicate.
-       */
-      isl_map *get_duplicate_schedule(int duplicate_ID);
+      isl_map *get_union_of_schedules() const;
 
       /**
-        * Return the trimmed schedule of the computation.
-        * The trimmed schedule is the schedule without the
-        * duplication dimension (the schedule dimension used
-        * to indicate duplicate computations).
+       * Return a vector of the schedules.
+       * This vector holds both the schedule of the original computation and
+       * the schedule of each duplicate computation.
+       * The element 0 in the vector is the schedule of the original computation.
+       * The elements from 1 to the number of duplicates are the schedules that transform
+       * the original computation into duplicate computations and map them to the
+       * time-processor domain.
+       */
+      std::vector<isl_map *> get_vector_of_schedules() const;
+
+      /**
+        * Trim the union of schedules of the computation and
+        * return the result.
+        * The trimmed union of schedules is the schedule without the
+        * duplicate dimension (the dimension used to indicate the
+        * duplicate ID).
         */
-      isl_map *get_trimmed_schedule() const;
+      isl_map *get_trimmed_union_of_schedules() const;
 
       /**
         * Return the time-processor domain of the computation.
@@ -1177,6 +1201,10 @@ public:
      *
      * This identity schedule is an identity relation created from the iteration
      * domain.
+     *
+     * This sets the schedule of the original computation
+     * and does not set the schedule of any duplicate
+     * computation.
      */
     void set_identity_schedule_based_on_iteration_domain();
 
@@ -1186,7 +1214,10 @@ public:
     void set_name(const std::string n);
 
     /**
-      * Set the schedule indicated by \p map.
+      * Set the schedule indicated by \p map and use \p ID to indicate the ID of
+      * the duplicate to which the schedule is set (the original computation
+      * has an ID = 0 and the other computations have an ID between 1 and the
+      * number of the duplicates).
       *
       * \p map is a string that represents a mapping from the iteration domain
       * to the time-processor domain (the ISL format to represent maps is
@@ -1285,19 +1316,13 @@ public:
       *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
       *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       *
+      * \p ID indicates the duplicate computation that you want to set
+      * the schedule for.  By default, this function sets the schedule of the
+      * original computation.
       */
     // @{
-    void set_schedule(isl_map *map);
-    void set_schedule(std::string map_str);
-    // @}
-
-    /*
-     * Set the schedule of a duplicate computation.
-     * \p duplicate_ID is the ID of the duplicate.
-     */
-    // @{
-    void set_duplicate_schedule(int duplicate_ID, isl_map *map);
-    void set_duplicate_schedule(int duplicate_ID, std::string map_str);
+    void set_schedule(isl_map *map, int ID = 0);
+    void set_schedule(std::string map_str, int ID = 0);
     // @}
 
     /**
@@ -1315,8 +1340,7 @@ public:
      * C0(i,j)
      *
      */
-    template<typename... Args>
-    tiramisu::expr operator()(Args... args)
+    template<typename... Args> tiramisu::expr operator()(Args... args)
     {
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
         return tiramisu::expr(tiramisu::o_access,
@@ -1338,8 +1362,11 @@ public:
      *
      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
      *
+     * The transformation is applied on the duplicate \p ID.  By default,
+     * the transformations are applied on the original computation.
+     *
      */
-    void apply_transformation(std::string map_str);
+    void apply_transformation(std::string map_str, int ID = 0);
 
     /**
       * Schedule the duplicate \p second_duplicate_ID of this computation to run
@@ -1413,7 +1440,7 @@ public:
      *
      * {C0[i,j]: 0<=i<N and 0<=j<N}
      *
-     * If you want to create a duplicate a block of the computations
+     * If you want to create a duplicate of a block of the computations
      * of C0 that satisfy the has the iteration domain
      *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
      * you can write
@@ -1721,18 +1748,28 @@ public:
     void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
 
     /**
+     * Add a map to the schedule of the duplicate \p ID.
+     * This function does not override the original schedule of the duplicate
+     * but simply adds the new map to it.  The resulting schedule is a union
+     * of maps.
+     */
+    void add_schedule_to_duplicate_schedule(isl_map *map, int ID = 0);
+
+    /**
+     * Add a new duplicate schedule.
+     *
+     * This is a schedule that duplicates the original computation. That is,
+     * the domain of the map is the iteration domain of the original computation.
+     *
+     */
+    void add_new_duplicate_schedule(isl_map *map);
+
+    /**
       * Bind the computation to a buffer.
       * i.e. create a one-to-one data mapping between the computation
       * and the buffer.
       */
     void bind_to(buffer *buff);
-
-    /**
-     * Add a map to the schedule.  This function does not override
-     * the original schedule but simply adds the new map to the original
-     * schedule.  The resulting schedule is a union of maps.
-     */
-    void add_schedule(isl_map *map);
 
     /*
       * Create a Halide statement that assigns the computations to the memory
@@ -1918,7 +1955,7 @@ public:
       * Dump the invariant on standard output (dump most of the fields of
       * the invariant class).
       * This is mainly useful for debugging.
-      * If \p exhaustive is set to true, all the fields of the invaraint
+      * If \p exhaustive is set to true, all the fields of the invariant
       * class are printed.  This is useful to find potential initialization
       * problems.
       */
