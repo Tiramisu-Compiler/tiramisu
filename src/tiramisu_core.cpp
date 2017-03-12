@@ -1179,10 +1179,12 @@ int loop_level_into_static_dimension(int level)
   * of this computation will be modified.
   *
   */
-void computation::after(computation &comp, int level, int first_duplicate_ID, int second_duplicate_ID)
+void computation::after(computation &comp, int level, int first_duplicate_ID)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    int second_duplicate_ID = get_selected_duplicate_ID();
 
     // for loop level i return 2*i+1 which represents the
     // the static dimension just after the dynamic dimension that
@@ -1215,6 +1217,7 @@ void computation::after(computation &comp, int level, int first_duplicate_ID, in
     this->set_schedule(new_sched, second_duplicate_ID);
     DEBUG(3, tiramisu::str_dump("Schedule adjusted: ", isl_map_to_str(this->get_schedule(second_duplicate_ID))));
 
+    this->reset_selected_duplicate();
     DEBUG_INDENT(-4);
 }
 
@@ -1225,11 +1228,17 @@ void computation::before(computation &comp, int dim)
 
     comp.after(*this, dim);
 
+    this->reset_selected_duplicate();
+
     DEBUG_INDENT(-4);
 }
 
-void computation::tile(int L0, int L1,
-                       int sizeX, int sizeY, int duplicate_ID)
+int computation::get_selected_duplicate_ID()
+{
+    return this->selected_ID;
+}
+
+void computation::tile(int L0, int L1, int sizeX, int sizeY)
 {
     // Check that the two dimensions are consecutive.
     // Tiling only applies on a consecutive band of loop dimensions.
@@ -1239,6 +1248,9 @@ void computation::tile(int L0, int L1,
     assert(L0 >= 0);
     assert(L1 >= 0);
     assert(this->get_iteration_domain() != NULL);
+
+    int duplicate_ID = get_selected_duplicate_ID();
+
     assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
     assert(duplicate_ID >= 0);
     assert(duplicate_ID <= this->get_duplicate_schedules_number());
@@ -1246,9 +1258,11 @@ void computation::tile(int L0, int L1,
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    this->split(L0, sizeX, duplicate_ID);
-    this->split(L1+1, sizeY, duplicate_ID);
-    this->interchange(L0+1, L1+1, duplicate_ID);
+    this->select(duplicate_ID)->split(L0, sizeX);
+    this->select(duplicate_ID)->split(L1+1, sizeY);
+    this->select(duplicate_ID)->interchange(L0+1, L1+1);
+
+    this->reset_selected_duplicate();
 
     DEBUG_INDENT(-4);
 }
@@ -1257,10 +1271,12 @@ void computation::tile(int L0, int L1,
  * This function modifies the schedule of the computation so that the two loop
  * levels L0 and L1 are interchanged (swapped).
  */
-void computation::interchange(int L0, int L1, int duplicate_ID)
+void computation::interchange(int L0, int L1)
 {
     int inDim0 = loop_level_into_dynamic_dimension(L0);
     int inDim1 = loop_level_into_dynamic_dimension(L1);
+
+    int duplicate_ID = get_selected_duplicate_ID();
 
     assert(inDim0 >= 0);
     assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)),
@@ -1416,6 +1432,8 @@ void computation::interchange(int L0, int L1, int duplicate_ID)
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
 
     this->set_schedule(schedule, duplicate_ID);
+
+    this->reset_selected_duplicate();
 
     DEBUG_INDENT(-4);
 }
@@ -1603,12 +1621,14 @@ isl_map* edit_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient, i
     return sched;
 }
 
-void computation::shift(int L0, int n, int duplicate_ID = 0)
+void computation::shift(int L0, int n)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
+
+    int duplicate_ID = get_selected_duplicate_ID();
 
     assert(this->get_union_of_schedules() != NULL);
     assert(this->get_schedule(duplicate_ID) != NULL);
@@ -1637,6 +1657,8 @@ void computation::shift(int L0, int n, int duplicate_ID = 0)
     this->set_schedule(new_sched, duplicate_ID);
     DEBUG(3, tiramisu::str_dump("Schedule after shifting: ", isl_map_to_str(this->get_schedule(duplicate_ID))));
 
+    this->reset_selected_duplicate();
+
     DEBUG_INDENT(-4);
 }
 
@@ -1646,9 +1668,11 @@ void computation::shift(int L0, int n, int duplicate_ID = 0)
  * loop level L0 into two new loop levels.
  * The size of the inner dimension created is sizeX.
  */
-void computation::split(int L0, int sizeX, int duplicate_ID)
+void computation::split(int L0, int sizeX)
 {
     int inDim0 = loop_level_into_dynamic_dimension(L0);
+
+    int duplicate_ID = get_selected_duplicate_ID();
 
     assert(this->get_schedule(duplicate_ID) != NULL);
     assert(inDim0 >= 0);
@@ -1832,6 +1856,8 @@ void computation::split(int L0, int sizeX, int duplicate_ID)
 
     this->set_schedule(schedule, duplicate_ID);
 
+    this->reset_selected_duplicate();
+
     DEBUG_INDENT(-4);
 }
 
@@ -1947,13 +1973,21 @@ int tiramisu::function::get_max_identity_schedules_range_dim() const
 
 int tiramisu::function::get_max_schedules_range_dim() const
 {
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
     int max_dim = 0;
 
     for (const auto &comp : this->get_computations())
     {
-        int m = isl_map_dim(comp->get_union_of_schedules(), isl_dim_out);
-        max_dim = std::max(max_dim, m);
+        for (const auto &sched: comp->get_vector_of_schedules())
+        {
+            int m = isl_map_dim(isl_map_copy(sched), isl_dim_out);
+            max_dim = std::max(max_dim, m);
+        }
     }
+
+    DEBUG_INDENT(-4);
 
     return max_dim;
 }
@@ -2765,6 +2799,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         stmt = Halide::Internal::Stmt();
         time_processor_domain = NULL;
         relative_order = 0;
+        selected_ID = 0;
 
         this->statements_to_compute_before_me = NULL;
         this->schedule_this_computation = schedule_this_computation;
@@ -2782,6 +2817,21 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         DEBUG_INDENT(-4);
     }
 
+
+void tiramisu::computation::reset_selected_duplicate()
+{
+    this->selected_ID = 0;
+}
+
+
+tiramisu::computation* tiramisu::computation::select(int ID)
+{
+    this->selected_ID = ID;
+
+    return (this);
+}
+
+
 /**
  * Dummy constructor for derived classes.
  */
@@ -2791,6 +2841,7 @@ tiramisu::computation::computation()
     stmt = Halide::Internal::Stmt();
     time_processor_domain = NULL;
     relative_order = 0;
+    selected_ID = 0;
 
     this->schedule_this_computation = false;
     this->data_type = p_none;

@@ -911,6 +911,21 @@ private:
     tiramisu::expr expression;
 
     /**
+     * A computation can have multiple duplicates.  When the user applies
+     * a transformation, that transformation can be applied either on the
+     * original computation or on one of its duplicates.
+     * Tiramisu should know on which one the transformation should be applied.
+     *
+     * We use this variable to indicate which duplicate of the computation
+     * is selected currently. The selected duplicate is the one on which
+     * all the transformations will be applied.
+     *
+     * By default, the original computation is selected (ID = 0). The user
+     * can select another duplicate using the select(ID) command.
+     */
+    int selected_ID;
+
+    /**
      * Separate the iteration domain into two iteration domains using
      * the constant \p C.
      * Let us assume that the dimension \p dim of the iteration domain
@@ -942,6 +957,16 @@ private:
 
     tiramisu::constant* create_separator_and_add_constraints_to_context(
                 const tiramisu::expr& loop_upper_bound, int v);
+
+    /**
+     * Reset the selected duplicate ID.
+     */
+    void reset_selected_duplicate();
+
+    /**
+     * Get the ID of the selected duplicate.
+     */
+    int get_selected_duplicate_ID();
 
 protected:
 
@@ -1156,7 +1181,6 @@ public:
         * take the time-processor domain and remove the first dimension.
         */
       isl_set *get_trimmed_time_processor_domain();
-
 
      /**
        * Return if this computation represents a let statement.
@@ -1419,7 +1443,7 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       */
-    void after(computation &comp, int level, int first_duplicate_ID = 0, int second_duplicate_ID = 0);
+    void after(computation &comp, int level, int first_duplicate_ID = 0);
 
     /**
       * Schedule this computation to run before the computation \p comp
@@ -1570,7 +1594,27 @@ public:
     /**
      * Interchange (swap) the two loop levels \p L0 and \p L1.
      */
-    void interchange(int L0, int L1, int duplicate_ID = 0);
+    void interchange(int L0, int L1);
+
+    /**
+     * A computation can have multiple duplicates.  When the user calls
+     * a high level transformation function such as tile(), split(), ...,
+     * Tiramisu should know on which one the transformation should be applied.
+     *
+     * We use select(ID) to select a duplicate of the computation on which
+     * all the high level transformations will be applied.
+     *
+     * By default, the original computation is selected.
+     * After each call to a high level scheduling function, the selected duplicate
+     * is reset to the default (which is the original).
+     *
+     * Example, to apply two transformations on the duplicate 1 of the computation
+     * C0:
+     *
+     * C0.select(1).tile(0,1, 32,32);
+     * C0.select(1).vectorize(3, 4);
+     */
+    computation* select(int ID);
 
     /**
       * Shift the loop level \p L0 of the iteration space by
@@ -1582,7 +1626,7 @@ public:
       * number means a shift forward of the loop iterations while
       * a negative value would mean a shift backward.
       */
-     void shift(int L0, int n, int duplicate_ID);
+     void shift(int L0, int n);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -1593,7 +1637,7 @@ public:
       * \p sizeX is the extent (size) of the inner loop created after
       * splitting.
       */
-     void split(int L0, int sizeX, int duplicate_ID = 0);
+     void split(int L0, int sizeX);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
@@ -1636,7 +1680,7 @@ public:
       * (i.e., \p L0 = \p L1 + 1) and they should satisfy
       * \p L0 > \p L1.
       */
-    void tile(int L0, int L1, int sizeX, int sizeY, int duplicate_ID = 0);
+    void tile(int L0, int L1, int sizeX, int sizeY);
 
     /**
      * Unroll the loop level \p L with an unrolling factor \p fac

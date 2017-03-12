@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
     by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, y+2, 1, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 1
-    by.shift(1, +2, 0);
+    by.shift(1, +2);
     by.after(bx, 1);
 #endif
 
