@@ -968,6 +968,23 @@ private:
      */
     int get_selected_duplicate_ID();
 
+    /**
+     * Intersect \p set with the context of the computation.
+     */
+    // @{
+    isl_set* intersect_set_with_context(isl_set* set);
+    isl_map* intersect_map_domain_with_context(isl_map* map);
+    // @}
+
+    /**
+     * Simplify \p set using the context and by calling
+     * set coalescing.
+     */
+    // @{
+    isl_set* simplify(isl_set* set);
+    isl_map* simplify(isl_map* map);
+    // @}
+
 protected:
 
     /**
@@ -1393,6 +1410,47 @@ public:
     void apply_transformation(std::string map_str, int ID = 0);
 
     /**
+     * Apply a transformation on the domain of the schedule.
+     * This is a transformation from iteration domain to the time-processor
+     * domain.
+     *
+     * For example, to apply to shift the i dimension of the iteration domain
+     * of C0, you can apply the transformation
+     *
+     * C0[i, j] -> C0[i+2, j]
+     *
+     * The transformation is applied on the duplicate \p ID.  By default,
+     * the transformations are applied on the original computation.
+     *
+     */
+    void apply_transformation_on_domain(std::string map_str, int ID = 0);
+
+    /**
+     * Add the set of constraints \p domain_constraints to the domain
+     * of the schedule and add the set of constraints \p range_constraints
+     * to the range of the schedule.
+     */
+    void add_schedule_constraint(std::string domain_constraints, std::string range_constraints, int ID);
+
+    /**
+     * Apply a duplication transformation from iteration space to
+     * time-processor space.
+     * A duplication transformation duplicates the original computation,
+     * so the domain of the schedule has to be the iteration domain of
+     * the original computation.
+     *
+     * For example, to duplicate C0 into a first duplicate:
+     *
+     * C0[i, j] -> C0[1, 0, i, 0, j, 0]
+     *
+     * To duplicate C0 again
+     *
+     * C0[i, j] -> C0[2, 0, j, 0, i, 0]
+     *
+     */
+    void create_duplication_transformation(std::string map_str);
+
+    /**
       * Schedule the duplicate \p second_duplicate_ID of this computation to run
       * after the duplicate \p first_duplicate_ID of the computation \p comp.
       * The computations are placed after each other in the loop level \p level.
@@ -1454,7 +1512,21 @@ public:
       *
       * The outermost loop has a loop level equal to zero.
       */
-    void before(computation &comp, int L);
+    void before(computation &consumer, int L);
+
+    /**
+     * This function assumes that \p consumer consumes values produced by
+     * this computation (which is the producer).
+     *
+     * This computation is scheduled so that the values consumed by the
+     * \p consumer are computed at the level \p L and in the same loop
+     * nest of the consumer.
+     *
+     * If the consumer needs redundant computations of the producer to
+     * be performed, the function creates the necessary redundant
+     * computations and schedules them before the consumer.
+     */
+    void compute_at(computation &comp, int L);
 
     /**
      * Duplicate a part of the computation.  The duplicated part
@@ -1522,8 +1594,14 @@ public:
      * Since all the scheduling commands by default apply on the original
      * computation.
      *
+     * \p domain_constraints is a set of constraints on the iteration domain that
+     * define the duplicate.
+     * \p range_constraints is a set of constraints on the time-processor domain
+     * that define the duplicate.
+     * The set of range_constraints is supposed to have an ID 0.
+     *
      */
-    void duplicate(std::string constraints);
+    void duplicate(std::string domain_constraints, std::string range_constraints);
 
     /**
      * Fuse the loop over this computation with the loop over the

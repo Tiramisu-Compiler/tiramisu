@@ -563,6 +563,8 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     // Add the accesses of the RHS to the accesses vector
     get_rhs_accesses(func, comp, accesses, true);
 
+
+    std::vector<isl_ast_expr *> index_expressions;
     // For each access in accesses (i.e. for each access in the computation),
     // compute the corresponding isl_ast expression.
     for (auto &access: accesses)
@@ -570,7 +572,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
         if (access != NULL)
         {
             DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):", isl_map_to_str(access)));
-            comp->get_index_expr().push_back(create_isl_ast_index_expression(build, access));
+            index_expressions.push_back(create_isl_ast_index_expression(build, access));
         }
         else
         {
@@ -579,6 +581,10 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
                 tiramisu::error("An access function should be provided before generating code.", true);
         }
     }
+
+    // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
+    for (int i=index_expressions.size()-1; i>=0; i--)
+        comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
 
     for (const auto &i_expr : comp->get_index_expr())
     {
@@ -597,8 +603,7 @@ void print_isl_ast_expr_vector(
 {
     DEBUG(3, tiramisu::str_dump ("List of index expressions."));
     for (auto& i_expr : index_expr_cp)
-        DEBUG_NO_NEWLINE(3, tiramisu::str_dump (" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
-    DEBUG(3, tiramisu::str_dump (" "));
+        DEBUG(3, tiramisu::str_dump (" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
 }
 
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
@@ -1378,6 +1383,8 @@ void computation::create_halide_assignment()
                                     isl_dim_out);
         assert(buffer_name != NULL);
 
+        DEBUG(3, tiramisu::str_dump("Buffer name extracted from the access relation: ", buffer_name));
+
         isl_map *access = this->get_access_relation_adapted_to_time_processor_domain();
         isl_space *space = isl_map_get_space(access);
         // Get the number of dimensions of the ISL map representing
@@ -1389,6 +1396,7 @@ void computation::create_halide_assignment()
         assert(buffer_entry != this->function->get_buffers().end());
 
         auto tiramisu_buffer = buffer_entry->second;
+        DEBUG(3, tiramisu::str_dump("A Tiramisu buffer that corresponds to the buffer indicated in the access relation was found."));
 
         DEBUG(10, tiramisu_buffer->dump(true));
 
@@ -1410,32 +1418,38 @@ void computation::create_halide_assignment()
                     tiramisu_buffer->get_dim_sizes().size(),
                     shape,
                     tiramisu_buffer->get_name());
+        DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
 
         int buf_dims = buffer->dimensions();
 
         // The number of dimensions in the Halide buffer should be equal to
         // the number of dimensions of the access function.
         assert(buf_dims == access_dims);
-
-        auto index_expr = this->index_expr[0];
-        assert(index_expr != NULL);
-
-        Halide::Expr index = tiramisu::linearize_access(buffer, index_expr);
+        assert(this->index_expr[0] != NULL);
+        DEBUG(3, tiramisu::str_dump("Linearizing access of the LHS index expression."));
+        Halide::Expr index = tiramisu::linearize_access(buffer, this->index_expr[0]);
 
         Halide::Internal::Parameter param(
               buffer->type(), true, buffer->dimensions(), buffer->name());
         param.set_buffer(*buffer);
 
-        std::vector<isl_ast_expr *> index_expr_cp = this->index_expr;
-        index_expr_cp.erase(index_expr_cp.begin());
+        DEBUG(3, tiramisu::str_dump("Index expressions of this statement are (the first is the LHS and the others are the RHS) :"));
+        print_isl_ast_expr_vector(this->index_expr);
 
-        print_isl_ast_expr_vector(index_expr_cp);
+        DEBUG(3, tiramisu::str_dump("Erasing the LHS index expression from the vector of index expressions (the LHS index has just been linearized)."));
+        this->index_expr.erase(this->index_expr.begin());
 
         Halide::Type type = halide_type_from_tiramisu_type(this->get_data_type());
+
+        DEBUG(3, tiramisu::str_dump("Calling the Halide::Internal::Store::make function which creates the store statement."));
+        DEBUG(3, tiramisu::str_dump("The RHS index expressions are first transformed to Halide expressions then passed to the make function."));
+
         this->stmt = Halide::Internal::Store::make (
                         buffer_name,
-                        halide_expr_from_tiramisu_expr(this, index_expr_cp, this->expression),
+                        halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
                         index, param, Halide::Internal::const_true(type.lanes()));
+
+        DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
     }
 
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
