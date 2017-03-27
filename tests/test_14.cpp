@@ -12,6 +12,8 @@
 #include <Halide.h>
 #include "halide_image_io.h"
 
+#define USE_FIXED_VALUES 0
+#define SEPARATED 0
 
 using namespace tiramisu;
 
@@ -56,7 +58,6 @@ int main(int argc, char **argv)
     tiramisu::computation by("[Mc, My, Mx]->{by[c, y, x]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}", (((bx(tiramisu::idx("c"), tiramisu::idx("y"), tiramisu::idx("x")) + bx(tiramisu::idx("c"), (tiramisu::idx("y") + tiramisu::expr((int32_t)1)), tiramisu::idx("x"))) + bx(tiramisu::idx("c"), (tiramisu::idx("y") + tiramisu::expr((int32_t)2)), tiramisu::idx("x")))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
     by.set_access("{by[c, y, x]->buff_by[c, y, x]}");
 
-#define USE_FIXED_VALUES 0
 
 #if USE_FIXED_VALUES
     blurxy_tiramisu.add_context_constraints("[Nc, Ny, Nx, Mc, My, Mx]->{: Nc=3 and Mc=3 and Ny=3514 and My=3512 and Nx=2104 and Mx=2104}");
@@ -95,26 +96,16 @@ int main(int argc, char **argv)
     by.tile(1,2,32,32);
     bx.select(1)->after(bx,2,0);
     by.after(bx,2,1);
-    blurxy_tiramisu.dump_schedule();
 #elif 1
     bx.tile(1,2,32,32);
     by.tile(1,2,32,32);
     bx.compute_at(by,2);
 
-    #if USE_FIXED_VALUES
+    #if SEPARATED || USE_FIXED_VALUES
         bx.after(bx,computation::root_dimension,1);
         by.after(bx,computation::root_dimension,1);
         by.after(bx,2,0);
-    #else
-        bx.after(bx,computation::root_dimension,1);
-        by.after(bx,computation::root_dimension,1);
-        by.after(bx,2,0);
-        //bx.select(1)->shift(1,-1);
-        //bx.select(1)->shift(3,-2);
-        //bx.add_schedule_constraint("{bx[c, y, x]: y>=2}", "", 1);
     #endif
-
-    blurxy_tiramisu.dump_schedule();
 #endif
 
     bx.tag_parallel_level(1);

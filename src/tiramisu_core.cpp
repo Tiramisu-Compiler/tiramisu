@@ -1084,6 +1084,37 @@ isl_stat extract_static_dim_value_from_bmap(__isl_take isl_basic_map *bmap, void
     return isl_stat_ok;
 }
 
+
+isl_stat extract_constant_value_from_bset(__isl_take isl_basic_set *bset, void *user)
+{
+    struct param_pack_1 *data = (struct param_pack_1 *) user;
+
+    isl_constraint_list *list = isl_basic_set_get_constraint_list(bset);
+    int n_constraints = isl_constraint_list_n_constraint(list);
+
+
+    for (int i = 0; i<n_constraints; i++)
+    {
+            isl_constraint *cst = isl_constraint_list_get_constraint(list, i);
+            if (isl_constraint_is_equality(cst) && isl_constraint_involves_dims(cst, isl_dim_set, data->in_dim, 1))
+            {
+                isl_val *val = isl_constraint_get_coefficient_val(cst, isl_dim_out, data->in_dim);
+                assert(isl_val_is_one(val));
+                // assert that the coefficients of all the other dimension spaces are zero.
+
+                isl_val *val2 = isl_constraint_get_constant_val(cst);
+                int const_val = (-1) * isl_val_get_num_si(val2);
+                data->out_constant = const_val;
+                DEBUG(3, tiramisu::str_dump("Dimensions found.  Constant = " +
+                                            std::to_string(const_val)));
+            }
+    }
+
+    return isl_stat_ok;
+}
+
+
+
 /**
  * Return the value of the static dimension.
  * If multiple duplicates are available, return the static dimension
@@ -1109,12 +1140,44 @@ int isl_map_get_static_dim(isl_map *map, int dim_pos, int duplicate_ID)
              tiramisu::str_dump(std::to_string(duplicate_ID)));
 
     struct param_pack_1 *data = (struct param_pack_1 *) malloc(sizeof(struct param_pack_1));
-    data->out_constant = -1;
+    data->out_constant = 0;
     data->in_dim = dim_pos;
     data->duplicate_ID = duplicate_ID;
 
     isl_map_foreach_basic_map(isl_map_copy(map),
                               &extract_static_dim_value_from_bmap,
+                              data);
+
+    DEBUG(3, tiramisu::str_dump("The constant is: ");
+             tiramisu::str_dump(std::to_string(data->out_constant)));
+
+    DEBUG_INDENT(-4);
+
+    return data->out_constant;
+}
+
+
+
+int isl_set_get_const_dim(isl_set *set, int dim_pos)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(set != NULL);
+    assert(dim_pos >= 0);
+    assert(dim_pos <= (signed int) isl_set_dim(set, isl_dim_out));
+
+    DEBUG(3, tiramisu::str_dump("Getting the constant coefficient of ",
+                            isl_set_to_str(set));
+             tiramisu::str_dump(" at dimension ");
+             tiramisu::str_dump(std::to_string(dim_pos)));
+
+    struct param_pack_1 *data = (struct param_pack_1 *) malloc(sizeof(struct param_pack_1));
+    data->out_constant = 0;
+    data->in_dim = dim_pos;
+
+    isl_set_foreach_basic_set(isl_set_copy(set),
+                              &extract_constant_value_from_bset,
                               data);
 
     DEBUG(3, tiramisu::str_dump("The constant is: ");
@@ -2024,6 +2087,76 @@ isl_map* computation::intersect_map_domain_with_context(isl_map* map)
         return map;
 }
 
+/**
+ * Assuming the set missing is the set of missing computations that will be
+ * duplicated. The duplicated computations may needed to be shifted so that
+ * they are executed with the original computation rather than being executed
+ * after the original computation.
+ * This function figures out the shift degree for each dimension of the missing
+ * set.
+ *
+ * - For each dimension d in [0 to L]:
+ *      * Project all the dimensions of the missing set except the dimension d.
+ *      * The shift factor is obtained as follows:
+ *              For the remaining the negative of the constant value of that dimension.
+ */
+std::vector<int> get_shift_degrees(isl_set *missing, int L)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<int> shifts;
+
+    DEBUG(3, tiramisu::str_dump("Getting the shift degrees for the missing set."));
+    DEBUG(3, tiramisu::str_dump("The missing set is: ", isl_set_to_str(missing)));
+    DEBUG(3, tiramisu::str_dump("Get the shift degrees up to the loop level : " + std::to_string(L)));
+
+    for (int i=0; i<=L; i++)
+    {
+        isl_set *m = isl_set_copy(missing);
+        int dim = loop_level_into_dynamic_dimension(i);
+        int max_dim = loop_level_into_dynamic_dimension(L);
+        DEBUG(3, tiramisu::str_dump("The current dynamic dimension is: " + std::to_string(dim)));
+
+
+        DEBUG(3, tiramisu::str_dump("Projecting out all the dimensions of the set except the dimension " + std::to_string(dim)));
+
+        if (dim != 0)
+        {
+            m = isl_set_project_out(m, isl_dim_set, 0, dim);
+            DEBUG(3, tiramisu::str_dump("Projecting " + std::to_string(dim) + " dimensions starting from dimension 0."));
+        }
+
+        DEBUG(3, tiramisu::str_dump("After projection: ", isl_set_to_str(m)));
+
+        if (dim != max_dim)
+        {
+            int last_dim = isl_set_dim(m, isl_dim_set);
+            DEBUG(3, tiramisu::str_dump("Projecting " + std::to_string(last_dim-1) + " dimensions starting from dimension 1."));
+            m = isl_set_project_out(m, isl_dim_set, 1, last_dim-1);
+        }
+
+        DEBUG(3, tiramisu::str_dump("After projection: ", isl_set_to_str(m)));
+
+        int c = (-1) * isl_set_get_const_dim(isl_set_copy(m), 0);
+
+        shifts.push_back(c);
+
+        DEBUG(3, tiramisu::str_dump("The constant value of the remaining dimension is: " + std::to_string(c)));
+    }
+
+    if (ENABLE_DEBUG && DEBUG_LEVEL>=3)
+    {
+        DEBUG_NO_NEWLINE(3, tiramisu::str_dump("Shift degrees are: "));
+        for (auto c: shifts)
+            tiramisu::str_dump(std::to_string(c) + " ");
+        tiramisu::str_dump("\n");
+    }
+
+    DEBUG_INDENT(-4);
+
+    return shifts;
+}
 
 /**
  * - Get the access function of the consumer (access to computations).
@@ -2181,6 +2314,7 @@ void computation::compute_at(computation &consumer, int L)
     // Compute missing = needed - producer
     // First, rename the needed to have the same space name as produced
     needed = isl_set_set_tuple_name(needed, isl_set_get_tuple_name(isl_set_copy(producer_domain)));
+
     /*
      * The isl_set_subtract function is not well documented. Here is a test that indicates what is does exactly.
      * S1: { S[i, j] : i >= 0 and i <= 100 and j >= 0 and j <= 100 }
@@ -2195,6 +2329,8 @@ void computation::compute_at(computation &consumer, int L)
     DEBUG(3, tiramisu::str_dump("Missing = needed - producer = ", isl_set_to_str(missing)));
     DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
     isl_set *original_missing = isl_set_copy(missing);
+
+    std::vector<int> shift_degrees = get_shift_degrees(isl_set_copy(missing), L);
 
     // Now replace the parameters by existential variables and remove them
     if (L+1 > 0)
@@ -2288,8 +2424,24 @@ void computation::compute_at(computation &consumer, int L)
 
     // Duplicate the producer using the missing set which is in the time-processor domain.
     this->duplicate("", isl_set_to_str(missing));
-    DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the producer computation."));
-    this->dump();
+    DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the schedule of the producer computation."));
+    this->dump_schedule();
+
+    DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
+    this->after((*this),L,1);
+    consumer.after((*this),L,1);
+    consumer.after((*this),L,0);
+    DEBUG(3, tiramisu::str_dump("Dumping the schedule of the producer and consumer."));
+    this->dump_schedule();
+    consumer.dump_schedule();
+
+    // Computing the shift degrees.
+    for (int i=0; i<L; i++)
+        if (shift_degrees[i] != 0)
+        {
+            DEBUG(3, tiramisu::str_dump("Now shifting the duplicate by " + std::to_string(shift_degrees[i]) + " at loop level " + std::to_string(i)));
+            this->select(1)->shift(i,shift_degrees[i]);
+        }
 
     DEBUG_INDENT(-4);
 }
