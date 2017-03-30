@@ -32,11 +32,18 @@ You need to specify the following paths in the Makefile
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
 
-To get the Halide submodule run the following git command (in the Tiramisu root directory)
+To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
 
     git submodule update --init --remote
+    cd Halide
+    git checkout tiramisu
+    make
 
-You may get an access rights error from git when running this command. To solve this error, be sure to have you machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
+Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve
+and compile Halide. Note that you need to set the path to an installed LLVM
+first. To do so, set the variable LLVM_PREFIX in the script.
+
+You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
 
 To build Tiramisu
 
