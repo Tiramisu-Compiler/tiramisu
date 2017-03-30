@@ -629,126 +629,100 @@ public:
     /**
      * Addition.
      */
-    template<typename T> tiramisu::expr operator+(T val) const
+    template<typename T> friend tiramisu::expr operator+(tiramisu::expr e1, T val)
     {
-        if ((std::is_same<T, tiramisu::expr>::value) ||
-            (std::is_same<T, tiramisu::var>::value))
+        if ((std::is_same<T, uint8_t>::value) ||
+            (std::is_same<T, int8_t>::value) ||
+            (std::is_same<T, uint16_t>::value) ||
+            (std::is_same<T, int16_t>::value) ||
+            (std::is_same<T, int32_t>::value) ||
+            (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_add, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_add, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_add, e1, tiramisu::expr((T) val));
         }
         else
         {
-            tiramisu::error("Adding a tiramisu expression to a non supported type.\n",
-                        true);
+            return tiramisu::expr(tiramisu::o_add, e1, val);
         }
     }
 
     /**
      * Substruction.
      */
-    template<typename T> tiramisu::expr operator-(T val) const
+    template<typename T> friend tiramisu::expr operator-(tiramisu::expr e1, T val)
     {
-        if ((std::is_same<T, tiramisu::expr>::value))
+        if ((std::is_same<T, uint8_t>::value) ||
+            (std::is_same<T, int8_t>::value) ||
+            (std::is_same<T, uint16_t>::value) ||
+            (std::is_same<T, int16_t>::value) ||
+            (std::is_same<T, int32_t>::value) ||
+            (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_sub, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_sub, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_sub, e1, tiramisu::expr((T) val));
         }
         else
         {
-            tiramisu::error("Substructing a tiramisu expression from a non supported type.\n",
-                        true);
+            return tiramisu::expr(tiramisu::o_sub, e1, val);
         }
     }
 
     /**
      * Division.
      */
-    template<typename T> tiramisu::expr operator/(T val) const
+    template<typename T> friend tiramisu::expr operator/(tiramisu::expr e1, T val)
     {
-        if ((std::is_same<T, tiramisu::expr>::value))
+        if ((std::is_same<T, uint8_t>::value) ||
+            (std::is_same<T, int8_t>::value) ||
+            (std::is_same<T, uint16_t>::value) ||
+            (std::is_same<T, int16_t>::value) ||
+            (std::is_same<T, int32_t>::value) ||
+            (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_div, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_div, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_div, e1, tiramisu::expr((T) val));
         }
         else
         {
-            tiramisu::error("Dividing a tiramisu expression by a non supported type.\n",
-                        true);
+            return tiramisu::expr(tiramisu::o_div, e1, val);
         }
     }
 
     /**
      * Multiplication.
      */
-    template<typename T> tiramisu::expr operator*(T val) const
+    template<typename T> friend tiramisu::expr operator*(tiramisu::expr e1, T val)
     {
-        if ((std::is_same<T, tiramisu::expr>::value))
+        if ((std::is_same<T, uint8_t>::value) ||
+            (std::is_same<T, int8_t>::value) ||
+            (std::is_same<T, uint16_t>::value) ||
+            (std::is_same<T, int16_t>::value) ||
+            (std::is_same<T, int32_t>::value) ||
+            (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_mul, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_mul, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_mul, e1, tiramisu::expr((T) val));
         }
         else
         {
-            tiramisu::error("Multiplying a tiramisu expression by a non supported type.\n",
-                        true);
+            return tiramisu::expr(tiramisu::o_mul, e1, val);
         }
     }
 
     /**
      * Modulo.
      */
-    template<typename T> tiramisu::expr operator%(T val) const
+    template<typename T> friend tiramisu::expr operator%(tiramisu::expr e1, T val)
     {
-        if ((std::is_same<T, tiramisu::expr>::value))
+        if ((std::is_same<T, uint8_t>::value) ||
+            (std::is_same<T, int8_t>::value) ||
+            (std::is_same<T, uint16_t>::value) ||
+            (std::is_same<T, int16_t>::value) ||
+            (std::is_same<T, int32_t>::value) ||
+            (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_mod, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_mod, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_mod, e1, tiramisu::expr((T) val));
         }
         else
         {
-            tiramisu::error("Modulo of a tiramisu expression by a non supported type.\n",
-                        true);
+            return tiramisu::expr(tiramisu::o_mod, e1, val);
         }
     }
 
@@ -1015,6 +989,7 @@ public:
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                                         std::vector<isl_ast_expr *> &index_expr,
                                         const tiramisu::expr &tiramisu_expr);
+
 }
 
 #endif

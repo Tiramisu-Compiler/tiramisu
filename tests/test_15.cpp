@@ -12,6 +12,9 @@
 #include <Halide.h>
 #include "halide_image_io.h"
 
+/**
+ * Test the shift command.
+ */
 
 using namespace tiramisu;
 

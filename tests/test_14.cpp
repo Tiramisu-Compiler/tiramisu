@@ -12,6 +12,10 @@
 #include <Halide.h>
 #include "halide_image_io.h"
 
+/**
+ * Test the command compute_at().
+ */
+
 #define USE_FIXED_VALUES 0
 #define SEPARATED 0
 

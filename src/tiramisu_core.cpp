@@ -2118,26 +2118,37 @@ std::vector<int> get_shift_degrees(isl_set *missing, int L)
         int max_dim = loop_level_into_dynamic_dimension(L);
         DEBUG(3, tiramisu::str_dump("The current dynamic dimension is: " + std::to_string(dim)));
 
-
         DEBUG(3, tiramisu::str_dump("Projecting out all the dimensions of the set except the dimension " + std::to_string(dim)));
 
         if (dim != 0)
         {
             m = isl_set_project_out(m, isl_dim_set, 0, dim);
-            DEBUG(3, tiramisu::str_dump("Projecting " + std::to_string(dim) + " dimensions starting from dimension 0."));
+            DEBUG(10, tiramisu::str_dump("Projecting " + std::to_string(dim) + " dimensions starting from dimension 0."));
         }
 
-        DEBUG(3, tiramisu::str_dump("After projection: ", isl_set_to_str(m)));
+        DEBUG(10, tiramisu::str_dump("After projection: ", isl_set_to_str(m)));
 
         if (dim != max_dim)
         {
             int last_dim = isl_set_dim(m, isl_dim_set);
-            DEBUG(3, tiramisu::str_dump("Projecting " + std::to_string(last_dim-1) + " dimensions starting from dimension 1."));
+            DEBUG(10, tiramisu::str_dump("Projecting " + std::to_string(last_dim-1) + " dimensions starting from dimension 1."));
             m = isl_set_project_out(m, isl_dim_set, 1, last_dim-1);
         }
 
         DEBUG(3, tiramisu::str_dump("After projection: ", isl_set_to_str(m)));
 
+        /**
+         * TODO: We assume that the set after projection is of the form
+         * [T0]->{[i0]: i0 = T0 + 1}
+         * which is in general the case, but we need to check that this
+         * is the case. If it is not the case, the computed shifts are wrong.
+         * i.e., check that we do not have any other dimension or parameter is
+         * involved in the constraint. The constraint should have the form
+         * dynamic_dimension = fixed_dimension + constant
+         * where tile_dimension is a fixed dimension and where constant is
+         * a literal constant not a symbolic constant. This constant will
+         * become the shift degree.
+         */
         int c = (-1) * isl_set_get_const_dim(isl_set_copy(m), 0);
 
         shifts.push_back(c);
@@ -3062,24 +3073,25 @@ isl_union_set *tiramisu::function::get_trimmed_time_processor_domain() const
     }
     else
     {
+       DEBUG_INDENT(-4);
        return NULL;
     }
 
     assert(space != NULL);
     result = isl_union_set_empty(isl_space_copy(space));
 
-        for (const auto &cpt : this->body)
-        {
+    for (const auto &cpt : this->body)
+    {
             if (cpt->should_schedule_this_computation())
             {
                 isl_set *cpt_iter_space = isl_set_copy(cpt->get_trimmed_time_processor_domain());
                 result = isl_union_set_union(isl_union_set_from_set(cpt_iter_space), result);
             }
-        }
+    }
 
-        DEBUG_INDENT(-4);
+    DEBUG_INDENT(-4);
 
-        return result;
+    return result;
 }
 
 isl_union_set *tiramisu::function::get_time_processor_domain() const

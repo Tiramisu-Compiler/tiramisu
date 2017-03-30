@@ -39,6 +39,9 @@ namespace tiramisu {
 
     /**
       * Types of tiramisu operators.
+      * If the expression is of type e_op then it should
+      * have an operator type. This is the operator type.
+      *
       * "o_" stands for operator.
       */
     enum op_t {

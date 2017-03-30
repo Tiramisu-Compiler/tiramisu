@@ -160,6 +160,124 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 }
 
 /**
+ * access_dimension:
+ *      The dimension of the access. For example, the access
+ *      C0(i0, i1, i2) have three access dimensions: i0, i1 and i2.
+ * access_expression:
+ *      The expression of the access.
+ *      This expression is parsed recursively (by calling get_constraint_for_access)
+ *      and is gradually used to update the constraint.
+ * access_relation:
+ *      The access relation that represents the access.
+ * cst:
+ *      The constraint that defines the access and that is being constructed.
+ *      Different calls to get_constraint_for_access modify this constraint
+ *      gradually until the final constraint is created. Only the final constraint
+ *      is added to the access_relation.
+ * coeff:
+ *      The coefficient in which all the dimension coefficients of the constraint
+ *      are going to be multiplied. This coefficient is used to implement o_minus,
+ *      o_mul and o_sub.
+ */
+isl_constraint* get_constraint_for_access(int access_dimension,
+                                          const tiramisu::expr& access_expression,
+                                          isl_map*& access_relation,
+                                          isl_constraint* cst,
+                                          int coeff,
+                                          tiramisu::function* fct)
+{
+    /*
+     * An e_val can appear in an expression passed to this function in two cases:
+     *  I- the e_val refers to the constant of the constraint (for example in
+     *  "i + 1", the "+1" refers to the constant of the constraint).
+     *  II- the e_val is a coefficient of a dimension. For example, in "2*i"
+     *  the "+2" is a coefficient of "i".
+     *
+     *  The case (I) is handled in the following block, while the case (II)
+     *  is handled in the block handling o_mul. The "+2" in that case is
+     *  used to update coeff.
+     */
+    if (access_expression.get_expr_type () == tiramisu::e_val)
+    {
+        int64_t val = coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst));
+        cst = isl_constraint_set_constant_si(cst, (-1)*val);
+        DEBUG(3, tiramisu::str_dump("Assigning (-1)*(coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : " + std::to_string(-val)));
+    }
+    else if (access_expression.get_expr_type () == tiramisu::e_id)
+    {
+        assert(access_expression.get_name().length() > 0);
+
+        DEBUG(3, tiramisu::str_dump("Looking for a dimension named "); tiramisu::str_dump(access_expression.get_name()); tiramisu::str_dump(" in the domain of ", isl_map_to_str(access_relation)));
+        int dim0 = isl_space_find_dim_by_name(isl_map_get_space (access_relation),
+                                              isl_dim_in,
+                                              access_expression.get_name().c_str());
+        if (dim0 >= 0)
+        {
+            int current_coeff = (-1) * isl_val_get_num_si(isl_constraint_get_coefficient_val(cst, isl_dim_in, dim0));
+            coeff = current_coeff + coeff;
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, (coeff) * (-1));
+            DEBUG(3, tiramisu::str_dump("Dimension found. Assigning -1 to the input coefficient of dimension " + std::to_string (dim0)));
+        }
+        else
+        {
+            DEBUG(3, tiramisu::str_dump("Dimension not found.  Adding dimension as a parameter."));
+            access_relation = isl_map_add_dims(access_relation, isl_dim_param, 1);
+            int pos = isl_map_dim(access_relation, isl_dim_param);
+            isl_id* param_id = isl_id_alloc(fct->get_ctx(), access_expression.get_name().c_str (), NULL);
+            access_relation = isl_map_set_dim_id(access_relation, isl_dim_param, pos - 1, param_id);
+            isl_local_space* ls2 = isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_relation)));
+            cst = isl_constraint_alloc_equality(isl_local_space_copy(ls2));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos - 1, (coeff) * (-1));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
+            DEBUG(3, tiramisu::str_dump ("After adding a parameter:", isl_map_to_str (access_relation)));
+        }
+    }
+    else if (access_expression.get_expr_type() == tiramisu::e_op)
+    {
+        if (access_expression.get_op_type() == tiramisu::o_add)
+        {
+            tiramisu::expr op0 = access_expression.get_operand (0);
+            tiramisu::expr op1 = access_expression.get_operand (1);
+            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+            isl_constraint_dump(cst);
+            cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
+            isl_constraint_dump(cst);
+        }
+        else if (access_expression.get_op_type () == tiramisu::o_sub)
+        {
+            tiramisu::expr op0 = access_expression.get_operand(0);
+            tiramisu::expr op1 = access_expression.get_operand(1);
+            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+            cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, -coeff, fct);
+        }
+        else if (access_expression.get_op_type () == tiramisu::o_minus)
+        {
+            tiramisu::expr op0 = access_expression.get_operand(0);
+            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, -coeff, fct);
+        }
+        else if (access_expression.get_op_type () == tiramisu::o_mul)
+        {
+             tiramisu::expr op0 = access_expression.get_operand(0);
+             tiramisu::expr op1 = access_expression.get_operand(1);
+             if (op0.get_expr_type () == tiramisu::e_val)
+             {
+                 coeff = coeff * op0.get_int_val();
+                 cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
+             }
+             else if (op1.get_expr_type () == tiramisu::e_val)
+             {
+                 coeff = coeff * op1.get_int_val();
+                 cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+             }
+        }
+        else
+            tiramisu::error ("Currently only Add and Sub operations for accesses are supported.", true);
+    }
+
+    return cst;
+}
+
+/**
  * Traverse the tiramisu expression and extract accesses.
  */
 void traverse_expr_and_extract_accesses(tiramisu::function *fct,
@@ -206,201 +324,30 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         DEBUG(3, tiramisu::str_dump("Transformation map before adding constraints:",
                                 isl_map_to_str(identity)));
 
-        //TODO: make the following a recursive function that translates the access
-        // into proper constraints.
-
         // The dimension_number is a counter that indicates to which dimension
         // is the access associated.
-        int dimension_number = 0;
+        int access_dimension = 0;
         for (const auto &access: exp.get_access())
         {
-            isl_local_space *ls = isl_local_space_from_space(
-                                        isl_map_get_space(
-                                                isl_map_copy(identity)));
-            isl_constraint *cst = isl_constraint_alloc_equality(
-                                        isl_local_space_copy(ls));
-
-            DEBUG(3, tiramisu::str_dump(
-                    "Assigning 1 to the coefficient of output dimension " +
-                    std::to_string(dimension_number)));
-            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
-                                                    dimension_number, 1);
-
-            if (access.get_expr_type() == tiramisu::e_val)
-            {
-                cst = isl_constraint_set_constant_si(cst, (-1)*access.get_int_val());
-                DEBUG(3, tiramisu::str_dump(
-                 "Assigning (-1)*access.get_int_val() to the cst dimension "));
-            }
-            else if (access.get_expr_type() == tiramisu::e_id)
-            {
-                DEBUG(3, tiramisu::str_dump("Looking for a dimension named ");
-                         tiramisu::str_dump(access.get_name());
-                         tiramisu::str_dump(" in the domain of ", isl_map_to_str(identity)));
-
-                int dim0 = isl_space_find_dim_by_name(
-                                isl_map_get_space(identity),
-                                isl_dim_in,
-                                access.get_name().c_str());
-                if(dim0 >= 0)
-                {
-                    cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
-                                                        dim0, -1);
-                    DEBUG(3, tiramisu::str_dump(
-                         "Dimension found. Assigning -1 to the input coefficient of dimension " +
-                          std::to_string(dim0)));
-                }
-                else
-                {
-                    DEBUG(3, tiramisu::str_dump(
-                            "Dimension not found.  Adding dimension as a parameter."));
-
-                    identity = isl_map_add_dims(identity, isl_dim_param, 1);
-                    int pos = isl_map_dim(identity, isl_dim_param);
-                    isl_id *param_id = isl_id_alloc(fct->get_ctx(),
-                                                    access.get_name().c_str(),
-                                                    NULL);
-                    identity = isl_map_set_dim_id(identity, isl_dim_param,
-                                    pos-1, param_id);
-
-                    ls = isl_local_space_from_space(
-                             isl_map_get_space(
-                                 isl_map_copy(identity)));
-                     cst = isl_constraint_alloc_equality(
-                               isl_local_space_copy(ls));
-
-                     dim0 = isl_space_find_dim_by_name(
-                                isl_map_get_space(identity),
-                                isl_dim_param,
-                                access.get_name().c_str());
-                     assert((dim0 >= 0) && "Dimension not found");
-                     cst = isl_constraint_set_coefficient_si(cst, isl_dim_param,
-                                dim0, -1);
-                     cst = isl_constraint_set_coefficient_si(cst, isl_dim_out,
-                               dimension_number, 1);
-                     DEBUG(3, tiramisu::str_dump("After adding a parameter:",
-                                                   isl_map_to_str(identity)));
-                }
-            }
-            else if (access.get_expr_type() == tiramisu::e_op)
-            {
-                if (access.get_op_type() == tiramisu::o_add)
-                {
-                    tiramisu::expr op0 = access.get_operand(0);
-                    tiramisu::expr op1 = access.get_operand(1);
-
-                    if (op0.get_expr_type() == tiramisu::e_id)
-                    {
-                        int dim0 = isl_space_find_dim_by_name(
-                                        isl_map_get_space(identity),
-                                        isl_dim_in,
-                                        op0.get_name().c_str());
-                        assert((dim0 >= 0) && "Dimension not found");
-                        cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
-                                                                dim0, -1);
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning -1 to the input coefficient of dimension " +
-                         std::to_string(dim0)));
-                    }
-                    if (op1.get_expr_type() == tiramisu::e_id)
-                    {
-                        int dim0 = isl_space_find_dim_by_name(
-                                        isl_map_get_space(identity),
-                                        isl_dim_in,
-                                        op1.get_name().c_str());
-                        assert((dim0 >= 0) && "Dimension not found");
-                        cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
-                                                                dim0, -1);
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning -1 to the input coefficient of dimension " +
-                         std::to_string(dim0)));
-                    }
-                    if (op0.get_expr_type() == tiramisu::e_val)
-                    {
-                        cst = isl_constraint_set_constant_si(cst, (-1)*op0.get_int_val());
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning (-1)*op0.get_int_val() to the cst dimension "));
-                    }
-                    if (op1.get_expr_type() == tiramisu::e_val)
-                    {
-                        cst = isl_constraint_set_constant_si(cst, (-1)*op1.get_int_val());
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning (-1)*op1.get_int_val() to the cst dimension "));
-                    }
-                }
-                else if (access.get_op_type() == tiramisu::o_sub)
-                {
-                    tiramisu::expr op0 = access.get_operand(0);
-                    tiramisu::expr op1 = access.get_operand(1);
-
-                    if (op0.get_expr_type() == tiramisu::e_id)
-                    {
-                        int dim0 = isl_space_find_dim_by_name(
-                                        isl_map_get_space(identity),
-                                        isl_dim_in,
-                                        op0.get_name().c_str());
-                         DEBUG(3, tiramisu::str_dump("Searching for " + op0.get_name() + " in the range of ");
-                                  tiramisu::str_dump(isl_space_to_str(isl_map_get_space(identity))));
-                        assert((dim0 >= 0) && "Dimension not found");
-                        cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
-                                                                dim0, -1);
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning -1 to the input coefficient of dimension " +
-                         std::to_string(dim0)));
-                    }
-                    if (op1.get_expr_type() == tiramisu::e_id)
-                    {
-                        int dim0 = isl_space_find_dim_by_name(
-                                        isl_map_get_space(identity),
-                                        isl_dim_in,
-                                        op1.get_name().c_str());
-                        assert((dim0 >= 0) && "Dimension not found");
-                        cst = isl_constraint_set_coefficient_si(cst, isl_dim_in,
-                                                                dim0, -1);
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning -1 to the input coefficient of dimension " +
-                         std::to_string(dim0)));
-                    }
-                    if (op0.get_expr_type() == tiramisu::e_val)
-                    {
-                        cst = isl_constraint_set_constant_si(cst, op0.get_int_val());
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning (-1)*op0.get_int_val() to the cst dimension "));
-                    }
-                    if (op1.get_expr_type() == tiramisu::e_val)
-                    {
-                        cst = isl_constraint_set_constant_si(cst, op1.get_int_val());
-                        DEBUG(3, tiramisu::str_dump(
-                         "Assigning (-1)*op1.get_int_val() to the cst dimension "));
-                    }
-                }
-                else
-                {
-                    tiramisu::error("Currently only Add and Sub operations for accesses are supported." , true);
-                }
-            }
-            dimension_number++;
+            DEBUG(3, tiramisu::str_dump ("Assigning 1 to the coefficient of output dimension " + std::to_string (access_dimension)));
+            isl_constraint* cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(isl_map_get_space(isl_map_copy(identity)))));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
+            cst = get_constraint_for_access(access_dimension, access, identity, cst, +1, fct);
             identity = isl_map_add_constraint(identity, cst);
-            DEBUG(3, tiramisu::str_dump("After adding a constraint:",
-                                          isl_map_to_str(identity)));
+            DEBUG(3, tiramisu::str_dump("After adding a constraint:", isl_map_to_str(identity)));
+            access_dimension++;
         }
 
-        DEBUG(3, tiramisu::str_dump("Access function:",
-                                isl_map_to_str(access_function)));
-        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:",
-                                isl_map_to_str(identity)));
+        DEBUG(3, tiramisu::str_dump("Access function:", isl_map_to_str(access_function)));
+        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:", isl_map_to_str(identity)));
 
         if (return_buffer_accesses == true)
         {
             access_function = isl_map_apply_range(isl_map_copy(identity), isl_map_copy(access_function));
-            DEBUG(3, tiramisu::str_dump(
-                "Applying access function on the range of transformation function:",
-                isl_map_to_str(access_function)));
+            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:", isl_map_to_str(access_function)));
         }
         else
-        {
             access_function = isl_map_copy(identity);
-        }
 
         // Run the following block (i.e., apply the schedule on the access function) only if
         // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
@@ -562,6 +509,11 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     accesses.push_back(access);
     // Add the accesses of the RHS to the accesses vector
     get_rhs_accesses(func, comp, accesses, true);
+    DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
+    DEBUG_INDENT(4);
+    for (int i = 0; i < accesses.size(); i++)
+        DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ":", isl_map_to_str(accesses[i])));
+    DEBUG_INDENT(-4);
 
 
     std::vector<isl_ast_expr *> index_expressions;
@@ -591,9 +543,11 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
         DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
                                 isl_ast_expr_to_C_str(i_expr)));
     }
+
+    DEBUG_FCT_NAME(3);
     DEBUG(3, tiramisu::str_dump("\n\n"));
     DEBUG_INDENT(-4);
-    DEBUG_FCT_NAME(3);
+
 
     return node;
 }
