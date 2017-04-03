@@ -43,6 +43,7 @@ void print_time(std::string file_name, std::string kernel_name,
                 std::vector<double>      time_vector);
 void init_1D_buffer(buffer_t *buf, int N, uint8_t val);
 void print_1D_buffer(buffer_t *buf, int N);
+void print_2D_buffer(buffer_t *buf, int N, int M);
 void init_1D_buffer_val(buffer_t *buf, int N, uint8_t val);
 buffer_t allocate_1D_buffer(int NN);
 void print_2D_array(buffer_t buf, int N, int M);

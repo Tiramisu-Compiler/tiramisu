@@ -51,6 +51,10 @@ namespace tiramisu
                                 tiramisu::print_indentation();\
                                 STMT;}};
 
+
+#define DEBUG_NEWLINE(LEVEL) {if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {\
+                                tiramisu::str_dump("\n");}};
+
 /**
  * Change the indentation printed before running IF_DEBUG.
  * Useful to indent the text printed by IF_DEBUG.

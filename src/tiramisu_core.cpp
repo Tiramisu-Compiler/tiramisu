@@ -37,6 +37,7 @@ isl_ast_node *for_code_generator_after_for(
 
 std::string generate_new_variable_name();
 void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool);
+tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp, const tiramisu::expr &exp);
 
 /**
  * Create an equality constraint and add it to the schedule \p sched
@@ -3600,7 +3601,6 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         this->statements_to_compute_before_me = NULL;
         this->schedule_this_computation = schedule_this_computation;
         this->data_type = t;
-        this->expression = e;
 
         this->ctx = fct->get_ctx();
 
@@ -3609,6 +3609,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         function = fct;
         function->add_computation(this);
         this->set_identity_schedule_based_on_iteration_domain();
+        this->set_expression(e);
 
         DEBUG_INDENT(-4);
     }
@@ -4138,7 +4139,23 @@ void tiramisu::computation::add_schedule_to_duplicate_schedule(isl_map *map, int
  */
 void tiramisu::computation::set_expression(const tiramisu::expr &e)
 {
-    this->expression = e;
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The original expression is: "));
+    e.dump(false);
+    DEBUG(3, tiramisu::str_dump(""));
+
+    DEBUG(3, tiramisu::str_dump("Traversing the expression to replace non-affine accesses by a constant definition."));
+    tiramisu::expr modified_e = traverse_expr_and_replace_non_affine_accesses(this, e);
+
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The new expression is: "));
+    modified_e.dump(false);
+    DEBUG(3, tiramisu::str_dump(""));
+
+    this->expression = modified_e;
+
+    DEBUG_INDENT(-4);
 }
 
 /**
