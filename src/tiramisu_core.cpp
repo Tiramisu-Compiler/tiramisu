@@ -1499,15 +1499,28 @@ int computation::get_selected_duplicate_ID()
     return this->selected_ID;
 }
 
+void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
+{
+    assert(L0 >= 0);
+    assert(L1 >= 0);
+    assert((L1 == L0+1));
+    assert(sizeX > 0);
+    assert(sizeY > 0);
+
+    this->tile(L0, L1, sizeX, sizeY);
+    this->tag_gpu_block_levels(L0, L1);
+    this->tag_gpu_thread_levels(L0+2, L1+2);
+}
+
 void computation::tile(int L0, int L1, int sizeX, int sizeY)
 {
     // Check that the two dimensions are consecutive.
     // Tiling only applies on a consecutive band of loop dimensions.
-    assert((L0 == L1+1) || (L1 == L0+1));
-    assert(sizeX > 0);
-    assert(sizeY > 0);
     assert(L0 >= 0);
     assert(L1 >= 0);
+    assert((L1 == L0+1));
+    assert(sizeX > 0);
+    assert(sizeY > 0);
     assert(this->get_iteration_domain() != NULL);
 
     int duplicate_ID = get_selected_duplicate_ID();

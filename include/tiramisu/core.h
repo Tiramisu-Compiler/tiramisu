@@ -1717,6 +1717,21 @@ public:
     }
 
     /**
+     * Tile the computation and then tag the outermost tile dimension
+     * to be mapped to GPU blocks and tag the innermost tile dimensions
+     * to be mapped to GPU threads.
+     *
+     * Tile the two loop levels \p L0 and \p L1 with rectangular
+     * tiling.  \p sizeX and \p sizeY represent the tile size.
+     * \p L0 and \p L1 should be two consecutive loop levels
+     * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+     * \p L0 > \p L1.
+     */
+    // @{
+    void gpu_tile(int L0, int L1, int sizeX, int sizeY);
+    // @}
+
+    /**
      * Interchange (swap) the two loop levels \p L0 and \p L1.
      */
     void interchange(int L0, int L1);
