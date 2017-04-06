@@ -1308,11 +1308,29 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                     DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
                 }
             }
-            else if (fct.should_map_to_gpu(tagged_stmts[tt], level))
+            else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
             {
                     fortype = Halide::Internal::ForType::Parallel;
                     dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_iterator(
+                    std::string gpu_iter = fct.get_gpu_thread_iterator(
+                        tagged_stmts[tt], level);
+                    Halide::Expr new_iterator_var =
+                        Halide::Internal::Variable::make(
+                            Halide::Int(32),
+                            gpu_iter);
+                    *halide_body = Halide::Internal::LetStmt::make(
+                        iterator_str,
+                        new_iterator_var,
+                        *halide_body);
+                        iterator_str = gpu_iter;
+                        DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
+                             " created.\n"));
+            }
+            else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
+            {
+                    fortype = Halide::Internal::ForType::Parallel;
+                    dev_api = Halide::DeviceAPI::OpenCL;
+                    std::string gpu_iter = fct.get_gpu_block_iterator(
                         tagged_stmts[tt], level);
                     Halide::Expr new_iterator_var =
                         Halide::Internal::Variable::make(
@@ -1367,7 +1385,8 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         {
             if (fct.should_parallelize(computation_name, l) ||
                 fct.should_vectorize(computation_name, l) ||
-                fct.should_map_to_gpu(computation_name, l) ||
+                fct.should_map_to_gpu_block(computation_name, l) ||
+                fct.should_map_to_gpu_thread(computation_name, l) ||
                 fct.should_unroll(computation_name, l))
             tagged_stmts.push_back(computation_name);
         }

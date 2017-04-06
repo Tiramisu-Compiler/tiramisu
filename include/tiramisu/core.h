@@ -122,19 +122,26 @@ private:
     std::vector<std::pair<std::string, int>> vector_dimensions;
 
     /**
-      * A vector representing the GPU dimensions around
+      * A vector representing the GPU thread dimensions around
       * the computations of the function.
-      * GPU dimensions are dimensions that should be mapped
+      * GPU thread dimensions are dimensions that should be mapped
       * to parallel GPU threads.
       * GPU dimensions are identified using the tuple
-      * <computation_name, level0, level1>, for example the tuple
-      * <S0, 0, 1> indicates that the loops with levels 0 and 1
-      * (i.e. the two outermost loops) around the computation S0
-      * should be mapped to GPU.
+      * <computation_name, level0, level1, level2>, for example the tuple
+      * <S0, 0, 1, 2> indicates that the loops with levels 0, 1 and 2
+      * (i.e. the three outermost loops) around the computation S0
+      * should be mapped to GPU threads.
       * Level1 must be the level following level0, i.e.
       * level1 == level0 + 1
+      * and level2 must be the level following level1
       */
-    std::vector<std::pair<std::string, std::pair<int, int>>> gpu_dimensions;
+    std::vector<std::pair<std::string, std::tuple<int, int, int>>> gpu_block_dimensions;
+
+    /**
+     * Similar to gpu_dimensions but used to store information about GPU thread dimensions.
+     * i.e., dimensions that should mapped to threads (in CUDA terminology).
+     */
+    std::vector<std::pair<std::string, std::tuple<int, int, int>>> gpu_thread_dimensions;
 
     /**
       * A vector representing the dimensions that should be unrolled
@@ -359,12 +366,20 @@ public:
     const std::vector<std::string>& get_iterator_names() const;
 
     /**
-       * Return a string representing the name of the GPU iterator at
+       * Return a string representing the name of the GPU thread iterator at
        * dimension \p lev0.
        * This function only returns a non-empty string if the
-       * computation \p comp is mapped to GPU at the dimension \p lev0.
+       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
        */
-     std::string get_gpu_iterator(std::string comp, int lev0) const;
+     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
+
+     /**
+       * Return a string representing the name of the GPU block iterator at
+       * dimension \p lev0.
+       * This function only returns a non-empty string if the
+       * computation \p comp is mapped to a GPU block at the dimension \p lev0.
+       */
+     std::string get_gpu_block_iterator(std::string comp, int lev0) const;
 
      /**
        * Return true if the computation \p comp should be parallelized
@@ -385,10 +400,16 @@ public:
      bool should_unroll(std::string comp, int lev) const;
 
      /**
-       * Return true if the computation \p comp should be mapped to GPU
+       * Return true if the computation \p comp should be mapped to GPU block
        * at the loop levels \p lev0.
        */
-     bool should_map_to_gpu(std::string comp, int lev0) const;
+     bool should_map_to_gpu_block(std::string comp, int lev0) const;
+
+     /**
+       * Return true if the computation \p comp should be mapped to GPU thread
+       * at the loop levels \p lev0.
+       */
+     bool should_map_to_gpu_thread(std::string comp, int lev0) const;
 
     /**
       * Add an invariant to the function.
@@ -479,12 +500,38 @@ public:
     void add_vector_dimension(std::string computation_name, int vec_dim);
 
     /**
-      * Tag the dimensions \p dim0 and \p dim1 of the computation
-      * \p computation_name to be mapped to GPU.
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU blocks.
       * The dimension 0 represents the outermost loop level (it
       * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, 2);
+      *
+      * Will tag the dimensions 1 and 2 to be transformed to GPU blocks.
       */
-     void add_gpu_dimensions(std::string computation_name, int dim0, int dim1);
+     void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
+
+     /**
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU threads.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, -1, -1);
+      *
+      * Will tag the dimension 1 to be transformed to GPU threads.
+      */
+     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
      /**
        * Tag the loop level \p L of the computation
@@ -1722,7 +1769,35 @@ public:
       *
       * The outermost loop level is 0.
       */
+     // @{
     void tag_gpu_levels(int L0, int L1);
+    void tag_gpu_levels(int L0, int L1, int L2, int L3);
+    void tag_gpu_levels(int L0, int L1, int L2, int L3, int L4, int L5);
+     // @}
+
+    /**
+      * Tag the loop level \p L0 and \p L1 to be mapped to GPU block
+      * dimensions.
+      *
+      * The outermost loop level is 0.
+      */
+    // @{
+    void tag_gpu_block_levels(int L0);
+    void tag_gpu_block_levels(int L0, int L1);
+    void tag_gpu_block_levels(int L0, int L1, int L2);
+    // @}
+
+    /**
+      * Tag the loop level \p L0 and \p L1 to be mapped to GPU thread
+      * dimensions.
+      *
+      * The outermost loop level is 0.
+      */
+    // @{
+    void tag_gpu_thread_levels(int L0);
+    void tag_gpu_thread_levels(int L0, int L1);
+    void tag_gpu_thread_levels(int L0, int L1, int L2);
+    // @}
 
     /**
       * Tag the loop level \p L to be parallelized.

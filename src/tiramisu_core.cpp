@@ -452,7 +452,95 @@ void tiramisu::computation::tag_gpu_levels(int dim0, int dim1)
     assert(this->get_name().length() > 0);
     assert(this->get_function() != NULL);
 
-    this->get_function()->add_gpu_dimensions(this->get_name(), dim0, dim1);
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, -1, -1);
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim1, -1, -1);
+}
+
+void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim3)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, -1);
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim2, dim3, -1);
+}
+
+void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim3, int dim4, int dim5)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, dim2);
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim3, dim4, dim5);
+}
+
+
+void tiramisu::computation::tag_gpu_block_levels(int dim0)
+{
+    assert(dim0 >= 0);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, -1, -1);
+}
+
+void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, -1);
+}
+
+void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1, int dim2)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, dim2);
+}
+
+void tiramisu::computation::tag_gpu_thread_levels(int dim0)
+{
+    assert(dim0 >= 0);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, -1);
+}
+
+void tiramisu::computation::tag_gpu_thread_levels(int dim0, int dim1)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, dim1);
+}
+
+void tiramisu::computation::tag_gpu_thread_levels(int dim0, int dim1, int dim2)
+{
+    assert(dim0 >= 0);
+    assert(dim1 >= 0);
+    assert(dim1 == dim0 + 1);
+    assert(this->get_name().length() > 0);
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, dim1, dim2);
 }
 
 void tiramisu::computation::tag_vector_level(int dim)
@@ -2659,7 +2747,7 @@ void computation::split(int L0, int sizeX)
 
 // Methods related to the tiramisu::function class.
 
-std::string tiramisu::function::get_gpu_iterator(std::string comp, int lev0) const
+std::string tiramisu::function::get_gpu_thread_iterator(std::string comp, int lev0) const
 {
    assert(comp.length() > 0);
    assert(lev0 >=0 );
@@ -2669,21 +2757,24 @@ std::string tiramisu::function::get_gpu_iterator(std::string comp, int lev0) con
 
    std::string res = std::string("");;
 
-   for (const auto &pd: this->gpu_dimensions)
+   for (const auto &pd: this->gpu_thread_dimensions)
    {
-      if ((pd.first == comp) && ((pd.second.first == lev0) || (pd.second.second == lev0)))
+       if ((pd.first == comp) && ((std::get<0>(pd.second) == lev0) || (std::get<1>(pd.second) == lev0) || (std::get<2>(pd.second) == lev0)))
       {
-          if (lev0 == pd.second.first)
+          if (lev0 == std::get<0>(pd.second))
               res = std::string("__thread_id_x");
-          else if (lev0 == pd.second.second)
+          else if (lev0 == std::get<1>(pd.second))
               res = std::string("__thread_id_y");
+          else if (lev0 == std::get<2>(pd.second))
+              res = std::string("__thread_id_z");
           else
               tiramisu::error("Level not mapped to GPU.", true);
 
           std::string str = std::string("Dimension ") + std::to_string(lev0)
                + std::string(" should be mapped to iterator ") + res;
-          str = str + ". It was compared against: " + std::to_string(pd.second.first)
-               + " and " + std::to_string(pd.second.second);
+          str = str + ". It was compared against: " + std::to_string(std::get<0>(pd.second))
+               + ", " + std::to_string(std::get<1>(pd.second)) + " and "
+               + std::to_string(std::get<2>(pd.second));
           DEBUG(3, tiramisu::str_dump(str));
        }
    }
@@ -2691,6 +2782,45 @@ std::string tiramisu::function::get_gpu_iterator(std::string comp, int lev0) con
    DEBUG_INDENT(-4);
    return res;
 }
+
+
+std::string tiramisu::function::get_gpu_block_iterator(std::string comp, int lev0) const
+{
+   assert(comp.length() > 0);
+   assert(lev0 >=0 );
+
+   DEBUG_FCT_NAME(3);
+   DEBUG_INDENT(4);
+
+   std::string res = std::string("");;
+
+   for (const auto &pd: this->gpu_block_dimensions)
+   {
+       if ((pd.first == comp) && ((std::get<0>(pd.second) == lev0) || (std::get<1>(pd.second) == lev0) || (std::get<2>(pd.second) == lev0)))
+      {
+          if (lev0 == std::get<0>(pd.second))
+              res = std::string("__block_id_x");
+          else if (lev0 == std::get<1>(pd.second))
+              res = std::string("__block_id_y");
+          else if (lev0 == std::get<2>(pd.second))
+              res = std::string("__block_id_z");
+          else
+              tiramisu::error("Level not mapped to GPU.", true);
+
+          std::string str = std::string("Dimension ") + std::to_string(lev0)
+               + std::string(" should be mapped to iterator ") + res;
+          str = str + ". It was compared against: " + std::to_string(std::get<0>(pd.second))
+               + ", " + std::to_string(std::get<1>(pd.second)) + " and "
+               + std::to_string(std::get<2>(pd.second));
+          DEBUG(3, tiramisu::str_dump(str));
+       }
+   }
+
+   DEBUG_INDENT(-4);
+   return res;
+}
+
+
 
 bool tiramisu::function::should_unroll(std::string comp, int lev0) const
 {
@@ -2719,20 +2849,19 @@ bool tiramisu::function::should_unroll(std::string comp, int lev0) const
       return found;
 }
 
-
-bool tiramisu::function::should_map_to_gpu(std::string comp, int lev0) const
+bool tiramisu::function::should_map_to_gpu_block(std::string comp, int lev0) const
 {
-      assert(comp.length() > 0);
-      assert(lev0 >=0 );
-
       DEBUG_FCT_NAME(10);
       DEBUG_INDENT(4);
 
+      assert(comp.length() > 0);
+      assert(lev0 >=0 );
+
       bool found = false;
 
-      for (const auto &pd: this->gpu_dimensions)
+      for (const auto &pd: this->gpu_block_dimensions)
       {
-          if ((pd.first == comp) && ((pd.second.first == lev0) || (pd.second.second == lev0)))
+          if ((pd.first == comp) && ((std::get<0>(pd.second) == lev0) || (std::get<1>(pd.second) == lev0) || (std::get<2>(pd.second) == lev0)))
           {
               found = true;
           }
@@ -2740,7 +2869,35 @@ bool tiramisu::function::should_map_to_gpu(std::string comp, int lev0) const
 
       std::string str = std::string("Dimension ") + std::to_string(lev0)
           + std::string(found?" should":" should not")
-          + std::string(" be mapped to GPU.");
+          + std::string(" be mapped to GPU block.");
+      DEBUG(10, tiramisu::str_dump(str));
+
+      DEBUG_INDENT(-4);
+      return found;
+}
+
+
+bool tiramisu::function::should_map_to_gpu_thread(std::string comp, int lev0) const
+{
+      DEBUG_FCT_NAME(10);
+      DEBUG_INDENT(4);
+
+      assert(comp.length() > 0);
+      assert(lev0 >=0 );
+
+      bool found = false;
+
+      for (const auto &pd: this->gpu_thread_dimensions)
+      {
+          if ((pd.first == comp) && ((std::get<0>(pd.second) == lev0) || (std::get<1>(pd.second) == lev0) || (std::get<2>(pd.second) == lev0)))
+          {
+              found = true;
+          }
+      }
+
+      std::string str = std::string("Dimension ") + std::to_string(lev0)
+          + std::string(found?" should":" should not")
+          + std::string(" be mapped to GPU thread.");
       DEBUG(10, tiramisu::str_dump(str));
 
       DEBUG_INDENT(-4);
@@ -3048,17 +3205,29 @@ void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level)
     this->unroll_dimensions.push_back(std::pair<std::string,int>(stmt_name, level));
 }
 
-void tiramisu::function::add_gpu_dimensions(std::string stmt_name, int dim0,
-                                        int dim1)
-{
-    assert(dim0 >= 0);
-    assert(dim1 >= 0);
-    assert(dim1 == dim0 + 1);
-    assert(stmt_name.length() > 0);
 
-    this->gpu_dimensions.push_back(std::pair<std::string, std::pair<int,int>>
-                                          (stmt_name,  std::pair<int,int>
-                                                         (dim0, dim1)));
+void tiramisu::function::add_gpu_block_dimensions(std::string stmt_name, int dim0,
+                                                  int dim1, int dim2)
+{
+    assert(stmt_name.length() > 0);
+    assert(dim0 >= 0);
+    // dim1 and dim2 can be -1 if not set.
+
+    this->gpu_block_dimensions.push_back(std::pair<std::string, std::tuple<int,int,int>>
+                                         (stmt_name, std::tuple<int,int,int>
+                                         (dim0, dim1, dim2)));
+}
+
+void tiramisu::function::add_gpu_thread_dimensions(std::string stmt_name, int dim0,
+                                                   int dim1, int dim2)
+{
+    assert(stmt_name.length() > 0);
+    assert(dim0 >= 0);
+    // dim1 and dim2 can be -1 if not set.
+
+    this->gpu_thread_dimensions.push_back(std::pair<std::string, std::tuple<int,int,int>>
+                                          (stmt_name, std::tuple<int,int,int>
+                                          (dim0, dim1, dim2)));
 }
 
 isl_union_set *tiramisu::function::get_trimmed_time_processor_domain() const
