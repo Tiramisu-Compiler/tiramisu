@@ -1785,9 +1785,9 @@ public:
       * The outermost loop level is 0.
       */
      // @{
-    void tag_gpu_levels(int L0, int L1);
-    void tag_gpu_levels(int L0, int L1, int L2, int L3);
-    void tag_gpu_levels(int L0, int L1, int L2, int L3, int L4, int L5);
+    void tag_gpu_level(int L0, int L1);
+    void tag_gpu_level(int L0, int L1, int L2, int L3);
+    void tag_gpu_level(int L0, int L1, int L2, int L3, int L4, int L5);
      // @}
 
     /**
@@ -1797,9 +1797,9 @@ public:
       * The outermost loop level is 0.
       */
     // @{
-    void tag_gpu_block_levels(int L0);
-    void tag_gpu_block_levels(int L0, int L1);
-    void tag_gpu_block_levels(int L0, int L1, int L2);
+    void tag_gpu_block_level(int L0);
+    void tag_gpu_block_level(int L0, int L1);
+    void tag_gpu_block_level(int L0, int L1, int L2);
     // @}
 
     /**
@@ -1809,9 +1809,9 @@ public:
       * The outermost loop level is 0.
       */
     // @{
-    void tag_gpu_thread_levels(int L0);
-    void tag_gpu_thread_levels(int L0, int L1);
-    void tag_gpu_thread_levels(int L0, int L1, int L2);
+    void tag_gpu_thread_level(int L0);
+    void tag_gpu_thread_level(int L0, int L1);
+    void tag_gpu_thread_level(int L0, int L1, int L2);
     // @}
 
     /**

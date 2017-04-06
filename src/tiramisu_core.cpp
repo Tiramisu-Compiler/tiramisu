@@ -444,7 +444,7 @@ void tiramisu::computation::tag_parallel_level(int par_dim)
 }
 
 
-void tiramisu::computation::tag_gpu_levels(int dim0, int dim1)
+void tiramisu::computation::tag_gpu_level(int dim0, int dim1)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -456,7 +456,7 @@ void tiramisu::computation::tag_gpu_levels(int dim0, int dim1)
     this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim1, -1, -1);
 }
 
-void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim3)
+void tiramisu::computation::tag_gpu_level(int dim0, int dim1, int dim2, int dim3)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -468,7 +468,7 @@ void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim
     this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim2, dim3, -1);
 }
 
-void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim3, int dim4, int dim5)
+void tiramisu::computation::tag_gpu_level(int dim0, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -481,7 +481,7 @@ void tiramisu::computation::tag_gpu_levels(int dim0, int dim1, int dim2, int dim
 }
 
 
-void tiramisu::computation::tag_gpu_block_levels(int dim0)
+void tiramisu::computation::tag_gpu_block_level(int dim0)
 {
     assert(dim0 >= 0);
     assert(this->get_name().length() > 0);
@@ -490,7 +490,7 @@ void tiramisu::computation::tag_gpu_block_levels(int dim0)
     this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, -1, -1);
 }
 
-void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1)
+void tiramisu::computation::tag_gpu_block_level(int dim0, int dim1)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -501,7 +501,7 @@ void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1)
     this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, -1);
 }
 
-void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1, int dim2)
+void tiramisu::computation::tag_gpu_block_level(int dim0, int dim1, int dim2)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -512,7 +512,7 @@ void tiramisu::computation::tag_gpu_block_levels(int dim0, int dim1, int dim2)
     this->get_function()->add_gpu_block_dimensions(this->get_name(), dim0, dim1, dim2);
 }
 
-void tiramisu::computation::tag_gpu_thread_levels(int dim0)
+void tiramisu::computation::tag_gpu_thread_level(int dim0)
 {
     assert(dim0 >= 0);
     assert(this->get_name().length() > 0);
@@ -521,7 +521,7 @@ void tiramisu::computation::tag_gpu_thread_levels(int dim0)
     this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, -1);
 }
 
-void tiramisu::computation::tag_gpu_thread_levels(int dim0, int dim1)
+void tiramisu::computation::tag_gpu_thread_level(int dim0, int dim1)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -532,7 +532,7 @@ void tiramisu::computation::tag_gpu_thread_levels(int dim0, int dim1)
     this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, dim1);
 }
 
-void tiramisu::computation::tag_gpu_thread_levels(int dim0, int dim1, int dim2)
+void tiramisu::computation::tag_gpu_thread_level(int dim0, int dim1, int dim2)
 {
     assert(dim0 >= 0);
     assert(dim1 >= 0);
@@ -1508,8 +1508,8 @@ void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
     assert(sizeY > 0);
 
     this->tile(L0, L1, sizeX, sizeY);
-    this->tag_gpu_block_levels(L0, L1);
-    this->tag_gpu_thread_levels(L0+2, L1+2);
+    this->tag_gpu_block_level(L0, L1);
+    this->tag_gpu_thread_level(L0+2, L1+2);
 }
 
 void computation::tile(int L0, int L1, int sizeX, int sizeY)
