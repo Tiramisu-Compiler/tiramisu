@@ -1729,6 +1729,7 @@ public:
      */
     // @{
     void gpu_tile(int L0, int L1, int sizeX, int sizeY);
+    void gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -1848,7 +1849,10 @@ public:
       * (i.e., \p L0 = \p L1 + 1) and they should satisfy
       * \p L0 > \p L1.
       */
+    // @{
     void tile(int L0, int L1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
+    // @}
 
     /**
      * Unroll the loop level \p L with an unrolling factor \p fac

@@ -1512,6 +1512,23 @@ void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
     this->tag_gpu_thread_level(L0+2, L1+2);
 }
 
+void computation::gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
+{
+    assert(L0 >= 0);
+    assert(L1 >= 0);
+    assert(L2 >= 0);
+    assert((L1 == L0+1));
+    assert((L2 == L1+1));
+    assert(sizeX > 0);
+    assert(sizeY > 0);
+    assert(sizeZ > 0);
+
+    this->tile(L0, L1, L2, sizeX, sizeY, sizeZ);
+    this->tag_gpu_block_level(L0, L1, L2);
+    this->tag_gpu_thread_level(L0+3, L1+3, L2+3);
+}
+
+
 void computation::tile(int L0, int L1, int sizeX, int sizeY)
 {
     // Check that the two dimensions are consecutive.
@@ -1541,6 +1558,114 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     DEBUG_INDENT(-4);
 }
 
+void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
+{
+    // Check that the two dimensions are consecutive.
+    // Tiling only applies on a consecutive band of loop dimensions.
+    assert(L0 >= 0);
+    assert(L1 >= 0);
+    assert(L2 >= 0);
+    assert((L1 == L0+1));
+    assert((L2 == L1+1));
+    assert(sizeX > 0);
+    assert(sizeY > 0);
+    assert(sizeZ > 0);
+    assert(this->get_iteration_domain() != NULL);
+
+    int duplicate_ID = get_selected_duplicate_ID();
+
+    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
+    assert(duplicate_ID >= 0);
+    assert(duplicate_ID <= this->get_duplicate_schedules_number());
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    //  Original loops
+    //  L0
+    //    L1
+    //      L2
+
+    this->select(duplicate_ID)->split(L0, sizeX); // Split L0 into L0 and L0_prime
+    // Compute the new L1 and the new L2 and the newly created L0 (called L0 prime)
+    int L0_prime = L0+1;
+    L1 = L1+1;
+    L2 = L2+1;
+
+    //  Loop after transformation
+    //  L0
+    //    L0_prime
+    //      L1
+    //        L2
+
+    this->select(duplicate_ID)->split(L1, sizeY);
+    int L1_prime = L1+1;
+    L2 = L2+1;
+
+    //  Loop after transformation
+    //  L0
+    //    L0_prime
+    //      L1
+    //        L1_prime
+    //          L2
+
+    this->select(duplicate_ID)->split(L2, sizeZ);
+
+    //  Loop after transformation
+    //  L0
+    //    L0_prime
+    //      L1
+    //        L1_prime
+    //          L2
+    //            L2_prime
+
+    this->select(duplicate_ID)->interchange(L0_prime, L1);
+    // Change the position of L0_prime to the new position
+    int temp = L0_prime;
+    L0_prime = L1;
+    L1 = temp;
+
+    //  Loop after transformation
+    //  L0
+    //    L1
+    //      L0_prime
+    //        L1_prime
+    //          L2
+    //            L2_prime
+
+    this->select(duplicate_ID)->interchange(L0_prime, L2);
+    // Change the position of L0_prime to the new position
+    temp = L0_prime;
+    L0_prime = L2;
+    L2 = temp;
+
+    //  Loop after transformation
+    //  L0
+    //    L1
+    //      L2
+    //        L1_prime
+    //          L0_prime
+    //            L2_prime
+
+    this->select(duplicate_ID)->interchange(L1_prime, L0_prime);
+
+    //  Loop after transformation
+    //  L0
+    //    L1
+    //      L2
+    //        L0_prime
+    //          L1_prime
+    //            L2_prime
+
+    this->reset_selected_duplicate();
+
+    DEBUG_INDENT(-4);
+}
+
+
+
 /**
  * This function modifies the schedule of the computation so that the two loop
  * levels L0 and L1 are interchanged (swapped).
@@ -1566,6 +1691,7 @@ void computation::interchange(int L0, int L1)
 
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Interchanging the duplicate " + std::to_string(duplicate_ID)));
+    DEBUG(3, tiramisu::str_dump("Interchanging the dimensions " + std::to_string(L0) + " and " + std::to_string(L1)));
 
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
@@ -1636,11 +1762,24 @@ void computation::interchange(int L0, int L1)
     DEBUG(3, tiramisu::str_dump(map.c_str()));
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+
     transformation_map = isl_map_set_tuple_id(
         transformation_map, isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
     isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
     transformation_map = isl_map_set_tuple_id(
         transformation_map, isl_dim_out, id_range);
+
+
+    // Check that the names of each dimension is well set
+    for (int i=1; i<isl_map_dim(transformation_map, isl_dim_in); i++)
+    {
+        isl_id *dim_id = isl_id_copy(dimensions[i-1]);
+        transformation_map = isl_map_set_dim_id(transformation_map, isl_dim_out, i, dim_id);
+        assert(isl_map_has_dim_name(transformation_map, isl_dim_in, i));
+        assert(isl_map_has_dim_name(transformation_map, isl_dim_out, i));
+    }
+
 
     // ------------------------------------------------------------
     // Create a map for that keeps the other schedules.
@@ -1694,6 +1833,16 @@ void computation::interchange(int L0, int L1)
     id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
     transformation_map2 = isl_map_set_tuple_id(
         transformation_map2, isl_dim_out, id_range);
+
+
+    for (int i=1; i<isl_map_dim(transformation_map, isl_dim_in); i++)
+    {
+        isl_id *dim_id = isl_id_copy(dimensions[i-1]);
+        transformation_map = isl_map_set_dim_id(transformation_map, isl_dim_out, i, dim_id);
+        assert(isl_map_has_dim_name(transformation_map, isl_dim_in, i));
+        assert(isl_map_has_dim_name(transformation_map, isl_dim_out, i));
+    }
+
 
     transformation_map = isl_map_union(transformation_map, transformation_map2);
 
