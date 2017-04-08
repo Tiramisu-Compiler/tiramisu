@@ -4,3 +4,7 @@ build/
 *~
 tags
 /Debug/
+.autotools
+.cproject
+.project
+.settings
