@@ -171,8 +171,6 @@ bool access_has_id(const tiramisu::expr& exp)
     // Traverse the expression tree and try to see if the expression has an ID.
     if (exp.get_expr_type() == tiramisu::e_val)
         has_id = false;
-    else if (exp.get_expr_type() == tiramisu::e_id)
-        has_id = true;
     else if (exp.get_expr_type() == tiramisu::e_var)
         has_id = true;
     else if (exp.get_expr_type() == tiramisu::e_op)
@@ -247,7 +245,6 @@ bool access_is_affine(const tiramisu::expr& exp)
 
     // Traverse the expression tree and try to find expressions that are non-affine.
     if (exp.get_expr_type() == tiramisu::e_val ||
-        exp.get_expr_type() == tiramisu::e_id  ||
         exp.get_expr_type() == tiramisu::e_var)
     {
         affine = true;
@@ -363,7 +360,7 @@ isl_constraint* get_constraint_for_access(int access_dimension,
         cst = isl_constraint_set_constant_si(cst, (-1)*val);
         DEBUG(3, tiramisu::str_dump("Assigning (-1)*(coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : " + std::to_string(-val)));
     }
-    else if (access_expression.get_expr_type () == tiramisu::e_id)
+    else if (access_expression.get_expr_type () == tiramisu::e_var)
     {
         assert(access_expression.get_name().length() > 0);
 
@@ -455,11 +452,8 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
     {
         DEBUG(3, tiramisu::str_dump("Extracting access from o_access."));
 
-        // Create the access map for this access node.
-        tiramisu::expr id = exp.get_operand(0);
-
         // Get the corresponding computation
-        tiramisu::computation *comp2 = fct->get_computation_by_name(id.get_name());
+        tiramisu::computation *comp2 = fct->get_computation_by_name(exp.get_name());
         DEBUG(3, tiramisu::str_dump("The computation corresponding to the access: "
                                 + comp2->get_name()));
 
@@ -597,7 +591,6 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
     tiramisu::expr output_expr;
 
     if (exp.get_expr_type() == tiramisu::e_val ||
-        exp.get_expr_type() == tiramisu::e_id  ||
         exp.get_expr_type() == tiramisu::e_var)
     {
         output_expr = exp;
@@ -625,7 +618,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
                 tiramisu::constant *cons = new tiramisu::constant(access_name , exp2.get_access()[i],
                                                                   exp2.get_access()[i].get_data_type(),
                                                                   false, comp, at_loop_level, comp->get_function());
-                exp2.set_access_dimension(i, tiramisu::expr(access_name));
+                exp2.set_access_dimension(i, tiramisu::var(exp2.get_access()[i].get_data_type(), access_name));
                 DEBUG(10, tiramisu::str_dump("New access:")); exp2.get_access()[i].dump(false);
                 DEBUG(10, tiramisu::str_dump("Constant created.  Constant body:")); cons->dump(false);
             }
@@ -854,7 +847,8 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
 
         DEBUG(3, tiramisu::str_dump("tiramisu expression of type tiramisu::e_op"));
 
-        op0 = halide_expr_from_tiramisu_expr(comp, index_expr, tiramisu_expr.get_operand(0));
+        if (tiramisu_expr.get_n_arg() > 0)
+            op0 = halide_expr_from_tiramisu_expr(comp, index_expr, tiramisu_expr.get_operand(0));
 
         if (tiramisu_expr.get_n_arg() > 1)
         {
@@ -941,7 +935,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
             case tiramisu::o_access:
             {
                 DEBUG(3, tiramisu::str_dump("op type: o_access"));
-                const char *access_comp_name = tiramisu_expr.get_operand(0).get_name().c_str();
+                const char *access_comp_name = tiramisu_expr.get_name().c_str();
                 DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
                 tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name);
                 const char *buffer_name = isl_space_get_tuple_name(
@@ -1066,7 +1060,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
         result = Halide::Internal::Variable::make(
                     halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
                     tiramisu_expr.get_name());
-    else if (tiramisu_expr.get_expr_type() != tiramisu::e_id)// Do not signal an error for expressions of type tiramisu::e_id
+    else
     {
         tiramisu::str_dump("tiramisu type of expr: ", str_from_tiramisu_type_expr(tiramisu_expr.get_expr_type()).c_str());
         tiramisu::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);

@@ -60,14 +60,14 @@ int main(int argc, char **argv)
 
     spmv.set_context_set("[M,b0,b1]->{: M>0 and b0>0 and b1>0 and b1>b0 and b1%4=0}");
 
-    expr e_t = c_col_idx(idx("j"));
+    expr e_t = c_col_idx(var("j"));
     constant t("t", e_t, p_int32, false, &c_y, 1, &spmv);
-    expr e_b1 = c_row_start(idx("i") + 1);
+    expr e_b1 = c_row_start(var("i") + 1);
     constant b1("b1", e_b1, p_int32, false, &t, 0, &spmv);
-    expr e_b0 = c_row_start(idx("i"));
+    expr e_b0 = c_row_start(var("i"));
     constant b0("b0", e_b0, p_int32, false, &b1, 0, &spmv);
 
-    expr e_y = c_y(idx("i")) + c_values(idx("j")) * c_x(idx("t"));
+    expr e_y = c_y(var("i")) + c_values(var("j")) * c_x(var("t"));
     c_y.set_expression(e_y);
 
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");

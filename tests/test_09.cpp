@@ -72,7 +72,7 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     tiramisu::computation f_s1("[f_s1_y_loop_min, f_s1_y_loop_extent, f_s1_x_loop_min, f_s1_x_loop_extent, f_s1_r4__x_loop_min, f_s1_r4__x_loop_extent]->{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]: "
                         "(f_s1_y_loop_min <= f_s1_y <= ((f_s1_y_loop_min + f_s1_y_loop_extent) + -1)) and (f_s1_x_loop_min <= f_s1_x <= ((f_s1_x_loop_min + f_s1_x_loop_extent) + -1)) and (f_s1_r4__x_loop_min <= f_s1_r4__x <= ((f_s1_r4__x_loop_min + f_s1_r4__x_loop_extent) + -1))}",
                         tiramisu::expr(), true, tiramisu::p_uint8, &test_reduction_operator);
-    f_s1.set_expression((f_s1(tiramisu::idx("f_s1_y"), tiramisu::idx("f_s1_x"), (tiramisu::idx("f_s1_r4__x") - tiramisu::expr((int32_t)1))) + input_s0(tiramisu::idx("f_s1_r4__x"), tiramisu::idx("f_s1_y"), tiramisu::idx("f_s1_x"))));
+    f_s1.set_expression((f_s1(tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"), (tiramisu::var("f_s1_r4__x") - tiramisu::expr((int32_t)1))) + input_s0(tiramisu::var("f_s1_r4__x"), tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"))));
     f_s1.set_access("{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]->buff_f[f_s1_y, f_s1_x]}");
 
     // Define compute level for "f".

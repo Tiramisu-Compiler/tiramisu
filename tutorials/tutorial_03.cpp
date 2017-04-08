@@ -51,9 +51,9 @@ int main(int argc, char **argv)
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
 
     // Indices
-    idx i = idx("i");
-    idx j = idx("j");
-    idx k = idx("k");
+    var i = var("i");
+    var j = var("j");
+    var k = var("k");
 
     // Declare a computation c_C
     computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);

@@ -1432,7 +1432,7 @@ public:
     {
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
         return tiramisu::expr(tiramisu::o_access,
-                          tiramisu::expr(this->get_name()),
+                          this->get_name(),
                           access_expressions,
                           this->get_data_type());
     }

@@ -130,16 +130,16 @@ class expr
     std::vector<tiramisu::expr> access_vector;
 
     /**
-      * Identifier name.
-      */
-    std::string name;
-
-    /**
      * Is this expression defined ?
      */
     bool defined;
 
 protected:
+    /**
+      * Identifier name.
+      */
+    std::string name;
+
     /**
       * Data type.
       */
@@ -227,13 +227,13 @@ public:
         this->op.push_back(expr2);
     }
 
-    expr(tiramisu::op_t o, tiramisu::expr id_expr,
+    expr(tiramisu::op_t o, std::string name,
          std::vector<tiramisu::expr> access_expressions,
          tiramisu::primitive_t type)
     {
         assert((o == tiramisu::o_access) && "The operator is not an access operator.");
         assert(access_expressions.size() > 0);
-        assert(id_expr.get_expr_type() == tiramisu::e_id);
+        assert(name.size() > 0);
 
         this->_operator = tiramisu::o_access;
         this->etype = tiramisu::e_op;
@@ -241,22 +241,7 @@ public:
         this->defined = true;
 
         this->set_access(access_expressions);
-        this->op.push_back(id_expr);
-    }
-
-    /**
-     * Construct an expression that represents an id.
-     */
-    expr(std::string name)
-    {
-        assert(name.length() > 0);
-
-        this->etype = tiramisu::e_id;
         this->name = name;
-        this->defined = true;
-
-        this->_operator = tiramisu::o_none;
-        this->dtype = tiramisu::p_none;
     }
 
     /**
@@ -573,8 +558,9 @@ public:
       */
     std::string get_name() const
     {
-        assert((this->get_expr_type() == tiramisu::e_id) ||
-               (this->get_expr_type() == tiramisu::e_var));
+        assert((this->get_expr_type() == tiramisu::e_var) ||
+               (this->get_op_type() == tiramisu::o_access) ||
+               (this->get_op_type() == tiramisu::o_call));
 
         return name;
     }
@@ -894,7 +880,7 @@ public:
                             }
                             if ((this->get_op_type() == tiramisu::o_access) || (this->get_op_type() == tiramisu::o_call))
                             {
-                                std::cout << "Access expressions:" << std::endl;
+                                std::cout << "Access or call to " +  this->get_name() + ". Access or argument expressions:" << std::endl;
                                 for (const auto &e: this->get_access())
                                 {
                                     e.dump(exhaustive);
@@ -926,11 +912,6 @@ public:
                                 std::cout << "Value:" << this->get_float32_value() << std::endl;
                             else if (this->get_data_type() == tiramisu::p_float64)
                                 std::cout << "Value:" << this->get_float64_value() << std::endl;
-                            break;
-                        }
-                        case (tiramisu::e_id):
-                        {
-                            std::cout << "Id name:" << this->get_name() << std::endl;
                             break;
                         }
                         case (tiramisu::e_var):
@@ -1168,7 +1149,7 @@ public:
                                 break;
                             case tiramisu::o_access:
                             case tiramisu::o_call:
-                                std::cout << this->get_operand(0).get_name() << "(";
+                                std::cout << this->get_name() << "(";
                                 for (int k = 0; k < this->get_access().size(); k++)
                                 {
                                     if (k != 0)
@@ -1206,11 +1187,6 @@ public:
                             std::cout << this->get_float64_value();
                         break;
                     }
-                    case (tiramisu::e_id):
-                    {
-                        std::cout << this->get_name();
-                        break;
-                    }
                     case (tiramisu::e_var):
                     {
                         std::cout << this->get_name();
@@ -1234,13 +1210,7 @@ public:
     /**
      * Construct an expression that represents an id.
      */
-    idx(std::string name): expr(name)
-    {
-        assert(name.length() > 0);
 
-        //this->etype = tiramisu::e_var;
-        this->dtype = global::get_loop_iterator_default_data_type();
-    }
 };
 
 
@@ -1254,12 +1224,22 @@ public:
      * Construct an expression that represents an id.
      */
     var(tiramisu::primitive_t type,
-        std::string name): expr(name)
+        std::string name)
     {
         assert(name.length() > 0);
 
+        this->name = name;
         this->etype = tiramisu::e_var;
         this->dtype = type;
+    }
+
+    var(std::string name)
+    {
+        assert(name.length() > 0);
+
+        this->name = name;
+        this->etype = tiramisu::e_var;
+        this->dtype = global::get_loop_iterator_default_data_type();
     }
 };
 

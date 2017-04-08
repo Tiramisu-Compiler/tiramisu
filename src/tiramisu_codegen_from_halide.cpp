@@ -263,7 +263,7 @@ void HalideToTiramisu::visit(const Variable *op) {
         expr = (*iter->second)(0);
     } else {
         // It is presumably a reference to loop variable
-        expr = tiramisu::idx(op->name);
+        expr = tiramisu::var(op->name);
     }
 }
 

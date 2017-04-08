@@ -52,14 +52,14 @@ int main(int argc, char **argv)
     tiramisu::constant Nc("Nc", tiramisu::expr(by_ext_2), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
     tiramisu::constant Ny("Ny", (tiramisu::expr(by_ext_1) + tiramisu::expr((int32_t)2)), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
     tiramisu::constant Nx("Nx", tiramisu::expr(by_ext_0), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
-    tiramisu::computation bx("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}", (((p0(tiramisu::idx("c"), tiramisu::idx("y"), tiramisu::idx("x")) + p0(tiramisu::idx("c"), tiramisu::idx("y"), (tiramisu::idx("x") + tiramisu::expr((int32_t)1)))) + p0(tiramisu::idx("c"), tiramisu::idx("y"), (tiramisu::idx("x") + tiramisu::expr((int32_t)2))))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
+    tiramisu::computation bx("[Nc, Ny, Nx]->{bx[c, y, x]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}", (((p0(tiramisu::var("c"), tiramisu::var("y"), tiramisu::var("x")) + p0(tiramisu::var("c"), tiramisu::var("y"), (tiramisu::var("x") + tiramisu::expr((int32_t)1)))) + p0(tiramisu::var("c"), tiramisu::var("y"), (tiramisu::var("x") + tiramisu::expr((int32_t)2))))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
     bx.set_access("{bx[c, y, x]->buff_bx[c, y, x]}");
 
 
     tiramisu::constant Mc("Mc", tiramisu::expr(by_ext_2), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
     tiramisu::constant My("My", tiramisu::expr(by_ext_1), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
     tiramisu::constant Mx("Mx", tiramisu::expr(by_ext_0), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
-    tiramisu::computation by("[Mc, My, Mx]->{by[c, y, x]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}", (((bx(tiramisu::idx("c"), tiramisu::idx("y"), tiramisu::idx("x")) + bx(tiramisu::idx("c"), (tiramisu::idx("y") + tiramisu::expr((int32_t)1)), tiramisu::idx("x"))) + bx(tiramisu::idx("c"), (tiramisu::idx("y") + tiramisu::expr((int32_t)2)), tiramisu::idx("x")))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
+    tiramisu::computation by("[Mc, My, Mx]->{by[c, y, x]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}", (((bx(tiramisu::var("c"), tiramisu::var("y"), tiramisu::var("x")) + bx(tiramisu::var("c"), (tiramisu::var("y") + tiramisu::expr((int32_t)1)), tiramisu::var("x"))) + bx(tiramisu::var("c"), (tiramisu::var("y") + tiramisu::expr((int32_t)2)), tiramisu::var("x")))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
     by.set_access("{by[c, y, x]->buff_by[c, y, x]}");
 
 

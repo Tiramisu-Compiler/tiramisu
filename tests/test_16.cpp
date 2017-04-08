@@ -26,8 +26,8 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}", e0, true, p_uint8, &function0);
 
-    tiramisu::idx i = tiramisu::idx("i");
-    tiramisu::idx j = tiramisu::idx("j");
+    tiramisu::var i = tiramisu::var("i");
+    tiramisu::var j = tiramisu::var("j");
     tiramisu::expr e1 = tiramisu::expr(S0(i+i+0, j+j+0));
     tiramisu::computation S1("[N,M]->{S1[i,j]: 0<=i<M and 0<=j<M}", e1, true, p_uint8, &function0);
 

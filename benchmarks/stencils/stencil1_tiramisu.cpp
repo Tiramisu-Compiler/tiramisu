@@ -29,7 +29,7 @@ void generate_tiramisu_obj_file()
     buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, DATA_TYPE, NULL, a_output, &stencil1);
     constant N("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &stencil1);
 
-    idx i = idx("i");
+    var i = var("i");
 
     computation c_in("[N]->{c_in[i]: 1<=i<=80-2}", expr(), false, DATA_TYPE, &stencil1);
     computation c_b0("[N]->{c_b0[i]: 1<=i<=80-2}", c_in(i-1) + c_in(i) + c_in(i+1),  true, DATA_TYPE, &stencil1);

@@ -3636,8 +3636,6 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
 {
     switch (type)
     {
-        case tiramisu::e_id:
-            return "id";
         case tiramisu::e_val:
             return "val";
         case tiramisu::e_op:

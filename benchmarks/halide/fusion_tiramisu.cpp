@@ -53,25 +53,25 @@ int main(int argc, char **argv)
     tiramisu::constant f_s0_x_loop_extent("f_s0_x_loop_extent", tiramisu::expr(f_extent_0), tiramisu::p_int32, true, NULL, 0, &fusion_tiramisu);
     tiramisu::computation f_s0("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_c, f_s0_y, f_s0_x]: "
                         "(f_s0_c_loop_min <= f_s0_c <= ((f_s0_c_loop_min + f_s0_c_loop_extent) + -1)) and (f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        (tiramisu::expr((uint8_t)255) - input(tiramisu::idx("f_s0_c"), tiramisu::idx("f_s0_y"), tiramisu::idx("f_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
+                        (tiramisu::expr((uint8_t)255) - input(tiramisu::var("f_s0_c"), tiramisu::var("f_s0_y"), tiramisu::var("f_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
     f_s0.set_access("{f_s0[f_s0_c, f_s0_y, f_s0_x]->buff_f[f_s0_c, f_s0_y, f_s0_x]}");
 
 
     tiramisu::computation g_s0("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x]: "
                         "(f_s0_c_loop_min <= g_s0_c <= ((f_s0_c_loop_min + f_s0_c_loop_extent) + -1)) and (f_s0_y_loop_min <= g_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= g_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        (tiramisu::expr((uint8_t)255) - input(tiramisu::idx("g_s0_c"), tiramisu::idx("g_s0_y"), tiramisu::idx("g_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
+                        (tiramisu::expr((uint8_t)255) - input(tiramisu::var("g_s0_c"), tiramisu::var("g_s0_y"), tiramisu::var("g_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
     g_s0.set_access("{g_s0[g_s0_c, g_s0_y, g_s0_x]->buff_g[g_s0_c, g_s0_y, g_s0_x]}");
 
 
     tiramisu::computation h_s0("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{h_s0[h_s0_c, h_s0_y, h_s0_x]: "
                         "(f_s0_c_loop_min <= h_s0_c <= ((f_s0_c_loop_min + f_s0_c_loop_extent) + -1)) and (f_s0_y_loop_min <= h_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= h_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        (tiramisu::expr((uint8_t)255) - input(tiramisu::idx("h_s0_c"), tiramisu::idx("h_s0_y"), tiramisu::idx("h_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
+                        (tiramisu::expr((uint8_t)255) - input(tiramisu::var("h_s0_c"), tiramisu::var("h_s0_y"), tiramisu::var("h_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
     h_s0.set_access("{h_s0[h_s0_c, h_s0_y, h_s0_x]->buff_h[h_s0_c, h_s0_y, h_s0_x]}");
 
 
     tiramisu::computation k_s0("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{k_s0[k_s0_c, k_s0_y, k_s0_x]: "
                         "(f_s0_c_loop_min <= k_s0_c <= ((f_s0_c_loop_min + f_s0_c_loop_extent) + -1)) and (f_s0_y_loop_min <= k_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= k_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        (tiramisu::expr((uint8_t)255) - input(tiramisu::idx("k_s0_c"), tiramisu::idx("k_s0_y"), tiramisu::idx("k_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
+                        (tiramisu::expr((uint8_t)255) - input(tiramisu::var("k_s0_c"), tiramisu::var("k_s0_y"), tiramisu::var("k_s0_x"))), true, tiramisu::p_uint8, &fusion_tiramisu);
     k_s0.set_access("{k_s0[k_s0_c, k_s0_y, k_s0_x]->buff_k[k_s0_c, k_s0_y, k_s0_x]}");
 
 
