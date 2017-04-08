@@ -3574,9 +3574,9 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
             return "div";
         case tiramisu::o_mod:
             return "mod";
-        case tiramisu::o_cond:
-            return "cond";
-        case tiramisu::o_not:
+        case tiramisu::o_select:
+            return "select";
+        case tiramisu::o_logical_not:
             return "not";
         case tiramisu::o_eq:
             return "eq";
@@ -3600,6 +3600,32 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
             return "floor";
         case tiramisu::o_cast:
             return "cast";
+        case tiramisu::o_sin:
+            return "sin";
+        case tiramisu::o_cos:
+            return "cos";
+        case tiramisu::o_tan:
+            return "tan";
+        case tiramisu::o_asin:
+            return "asin";
+        case tiramisu::o_acos:
+            return "acos";
+        case tiramisu::o_atan:
+            return "atan";
+        case tiramisu::o_abs:
+            return "abs";
+        case tiramisu::o_sqrt:
+            return "sqrt";
+        case tiramisu::o_expo:
+            return "exp";
+        case tiramisu::o_log:
+            return "log";
+        case tiramisu::o_ceil:
+            return "ceil";
+        case tiramisu::o_round:
+            return "round";
+        case tiramisu::o_trunc:
+            return "trunc";
         default:
             tiramisu::error("Tiramisu op not supported.", true);
             return "";

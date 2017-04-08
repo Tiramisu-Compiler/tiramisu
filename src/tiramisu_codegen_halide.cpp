@@ -183,9 +183,22 @@ bool access_has_id(const tiramisu::expr& exp)
                     has_id = false;
                     break;
                 case tiramisu::o_minus:
-                case tiramisu::o_not:
+                case tiramisu::o_logical_not:
                 case tiramisu::o_floor:
                 case tiramisu::o_cast:
+                case tiramisu::o_sin:
+                case tiramisu::o_cos:
+                case tiramisu::o_tan:
+                case tiramisu::o_asin:
+                case tiramisu::o_acos:
+                case tiramisu::o_atan:
+                case tiramisu::o_abs:
+                case tiramisu::o_sqrt:
+                case tiramisu::o_expo:
+                case tiramisu::o_log:
+                case tiramisu::o_ceil:
+                case tiramisu::o_round:
+                case tiramisu::o_trunc:
                     has_id = access_has_id(exp.get_operand(0));
                     break;
                 case tiramisu::o_logical_and:
@@ -208,7 +221,7 @@ bool access_has_id(const tiramisu::expr& exp)
                     has_id = access_has_id(exp.get_operand(0)) ||
                              access_has_id(exp.get_operand(1));
                     break;
-                case tiramisu::o_cond:
+                case tiramisu::o_select:
                     has_id = access_has_id(exp.get_operand(0)) ||
                              access_has_id(exp.get_operand(1)) ||
                              access_has_id(exp.get_operand(2));
@@ -247,7 +260,7 @@ bool access_is_affine(const tiramisu::expr& exp)
                 affine = false;
                 break;
             case tiramisu::o_minus:
-            case tiramisu::o_not:
+            case tiramisu::o_logical_not:
                 affine = access_is_affine(exp.get_operand(0));
                 break;
             case tiramisu::o_logical_and:
@@ -259,7 +272,20 @@ bool access_is_affine(const tiramisu::expr& exp)
             case tiramisu::o_max:
             case tiramisu::o_min:
             case tiramisu::o_floor:
-            case tiramisu::o_cond:
+            case tiramisu::o_sin:
+            case tiramisu::o_cos:
+            case tiramisu::o_select:
+            case tiramisu::o_tan:
+            case tiramisu::o_asin:
+            case tiramisu::o_acos:
+            case tiramisu::o_atan:
+            case tiramisu::o_abs:
+            case tiramisu::o_sqrt:
+            case tiramisu::o_expo:
+            case tiramisu::o_log:
+            case tiramisu::o_ceil:
+            case tiramisu::o_round:
+            case tiramisu::o_trunc:
                 // For now we consider these expression to be non-affine expression (although they can be expressed
                 // as affine contraints).
                 // TODO: work on the expression parser to support parsing these expressions into an access relation
@@ -503,90 +529,49 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
 
             switch(exp.get_op_type())
             {
-                case tiramisu::o_logical_and:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_logical_or:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_max:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_min:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_minus:
+                case tiramisu::o_logical_not:
+                case tiramisu::o_floor:
+                case tiramisu::o_cast:
+                case tiramisu::o_sin:
+                case tiramisu::o_cos:
+                case tiramisu::o_tan:
+                case tiramisu::o_asin:
+                case tiramisu::o_acos:
+                case tiramisu::o_atan:
+                case tiramisu::o_abs:
+                case tiramisu::o_sqrt:
+                case tiramisu::o_expo:
+                case tiramisu::o_log:
+                case tiramisu::o_ceil:
+                case tiramisu::o_round:
+                case tiramisu::o_trunc:
                     traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     break;
+                case tiramisu::o_logical_and:
+                case tiramisu::o_logical_or:
+                case tiramisu::o_max:
+                case tiramisu::o_min:
                 case tiramisu::o_add:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_sub:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_mul:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_div:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_mod:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_cond:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_le:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_lt:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_ge:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_gt:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_not:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_eq:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_ne:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_right_shift:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    break;
                 case tiramisu::o_left_shift:
                     traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
                     traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
                     break;
-                case tiramisu::o_floor:
+                case tiramisu::o_select:
                     traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    break;
-                case tiramisu::o_cast:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses, return_buffer_accesses);
                     break;
                 default:
                     tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
@@ -657,8 +642,21 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             switch(exp.get_op_type())
             {
                 case tiramisu::o_minus:
-                case tiramisu::o_not:
+                case tiramisu::o_logical_not:
                 case tiramisu::o_floor:
+                case tiramisu::o_sin:
+                case tiramisu::o_cos:
+                case tiramisu::o_tan:
+                case tiramisu::o_asin:
+                case tiramisu::o_acos:
+                case tiramisu::o_atan:
+                case tiramisu::o_abs:
+                case tiramisu::o_sqrt:
+                case tiramisu::o_expo:
+                case tiramisu::o_log:
+                case tiramisu::o_ceil:
+                case tiramisu::o_round:
+                case tiramisu::o_trunc:
                     exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
                     output_expr = tiramisu::expr(exp.get_op_type(), exp2);
                     break;
@@ -687,7 +685,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
                     exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
                     output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3);
                     break;
-                case tiramisu::o_cond:
+                case tiramisu::o_select:
                     exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
                     exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
                     exp4 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(2));
@@ -908,9 +906,9 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 result = Halide::Internal::Mod::make(op0, op1);
                 DEBUG(3, tiramisu::str_dump("op type: o_mod"));
                 break;
-            case tiramisu::o_cond:
+            case tiramisu::o_select:
                 result = Halide::Internal::Select::make(op0, op1, op2);
-                DEBUG(3, tiramisu::str_dump("op type: o_cond"));
+                DEBUG(3, tiramisu::str_dump("op type: o_select"));
                 break;
             case tiramisu::o_le:
                 result = Halide::Internal::LE::make(op0, op1);
@@ -928,7 +926,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 result = Halide::Internal::GT::make(op0, op1);
                 DEBUG(3, tiramisu::str_dump("op type: o_gt"));
                 break;
-            case tiramisu::o_not:
+            case tiramisu::o_logical_not:
                 result = Halide::Internal::Not::make(op0);
                 DEBUG(3, tiramisu::str_dump("op type: o_not"));
                 break;
@@ -1007,6 +1005,58 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
             case tiramisu::o_cast:
                 result = Halide::cast(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()), op0);
                 DEBUG(3, tiramisu::str_dump("op type: o_cast"));
+                break;
+            case tiramisu::o_sin:
+                result = Halide::sin(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_sin"));
+                break;
+            case tiramisu::o_cos:
+                result = Halide::cos(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_cos"));
+                break;
+            case tiramisu::o_tan:
+                result = Halide::tan(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_tan"));
+                break;
+            case tiramisu::o_asin:
+                result = Halide::asin(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_asin"));
+                break;
+            case tiramisu::o_acos:
+                result = Halide::acos(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_acos"));
+                break;
+            case tiramisu::o_atan:
+                result = Halide::atan(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_atan"));
+                break;
+            case tiramisu::o_abs:
+                result = Halide::abs(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_abs"));
+                break;
+            case tiramisu::o_sqrt:
+                result = Halide::sqrt(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_sqrt"));
+                break;
+            case tiramisu::o_expo:
+                result = Halide::exp(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_expo"));
+                break;
+            case tiramisu::o_log:
+                result = Halide::log(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_log"));
+                break;
+            case tiramisu::o_ceil:
+                result = Halide::ceil(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_ceil"));
+                break;
+            case tiramisu::o_round:
+                result = Halide::round(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_round"));
+                break;
+            case tiramisu::o_trunc:
+                result = Halide::trunc(op0);
+                DEBUG(3, tiramisu::str_dump("op type: o_trunc"));
                 break;
             default:
                 tiramisu::error("Translating an unsupported ISL expression into a Halide expression.", 1);

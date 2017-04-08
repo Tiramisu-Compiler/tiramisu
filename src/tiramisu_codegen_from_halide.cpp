@@ -366,7 +366,7 @@ void HalideToTiramisu::visit(const Select *op) {
     tiramisu::expr cond = mutate(op->condition);
     tiramisu::expr t = mutate(op->true_value);
     tiramisu::expr f = mutate(op->false_value);
-    expr = tiramisu::expr(tiramisu::o_cond, cond, t, f);
+    expr = tiramisu::expr(tiramisu::o_select, cond, t, f);
 }
 
 void HalideToTiramisu::visit(const Let *op) {

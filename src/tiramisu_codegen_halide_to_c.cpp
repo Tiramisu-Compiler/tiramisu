@@ -406,7 +406,7 @@ void HalideToC::visit(const Not *op) {
 }
 
 void HalideToC::visit(const Select *op) {
-    stream << "tiramisu::expr(tiramisu::o_cond, ";
+    stream << "tiramisu::expr(tiramisu::o_select, ";
     print(op->condition);
     stream << ", ";
     print(op->true_value);

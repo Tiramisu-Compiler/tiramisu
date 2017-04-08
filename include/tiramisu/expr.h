@@ -184,8 +184,6 @@ public:
       */
     expr(tiramisu::op_t o, tiramisu::expr expr0)
     {
-        assert(((o == tiramisu::o_minus) || (o == tiramisu::o_floor) || (o == tiramisu::o_cast)) &&
-               "The only unary operators are the minus and floor operator.");
         if (o == tiramisu::o_floor) {
             assert(((expr0.get_data_type() == tiramisu::p_float32) ||
                    (expr0.get_data_type() == tiramisu::p_float64)) &&
@@ -202,12 +200,6 @@ public:
 
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
-        assert((o != tiramisu::o_minus) &&
-               (o != tiramisu::o_call) &&
-               (o != tiramisu::o_access) &&
-               (o != tiramisu::o_cond) &&
-               "The operator is not an binary operator.");
-
         assert(expr0.get_data_type() == expr1.get_data_type()
                && "expr0 and expr1 should be of the same type.");
 
@@ -222,7 +214,6 @@ public:
 
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1, tiramisu::expr expr2)
     {
-        assert((o == tiramisu::o_cond) && "The operator is not a ternary operator.");
         assert(expr1.get_data_type() == expr2.get_data_type() &&
                "expr1 and expr2 should be of the same type.");
 
@@ -802,7 +793,7 @@ public:
      */
     tiramisu::expr operator!() const
     {
-        return tiramisu::expr(tiramisu::o_not, *this);
+        return tiramisu::expr(tiramisu::o_logical_not, *this);
     }
 
     /**
@@ -1030,14 +1021,14 @@ public:
                                  this->get_operand(1).dump(false);
                                  std::cout << ")";
                                  break;
-                            case tiramisu::o_cond:
-                                std::cout << "(";
+                            case tiramisu::o_select:
+                                std::cout << "select(";
                                 this->get_operand(0).dump(false);
-                                std::cout << ")?(";
+                                std::cout << ",";
                                 this->get_operand(1).dump(false);
-                                std::cout << "):(";
+                                std::cout << ",";
                                 this->get_operand(2).dump(false);
-                                std::cout << ") ";
+                                std::cout << ")";
                                 break;
                             case tiramisu::o_le:
                                 std::cout << "(";
@@ -1067,7 +1058,7 @@ public:
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
-                            case tiramisu::o_not:
+                            case tiramisu::o_logical_not:
                                 std::cout << "!(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ")";
@@ -1102,6 +1093,71 @@ public:
                                 break;
                             case tiramisu::o_floor:
                                 std::cout << "floor(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_sin:
+                                std::cout << "sin(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_cos:
+                                std::cout << "cos(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_tan:
+                                std::cout << "tan(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_atan:
+                                std::cout << "atan(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_acos:
+                                std::cout << "acos(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_asin:
+                                std::cout << "asin(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_abs:
+                                std::cout << "abs(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_sqrt:
+                                std::cout << "sqrt(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_expo:
+                                std::cout << "exp(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_log:
+                                std::cout << "log(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_ceil:
+                                std::cout << "ceil(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_round:
+                                std::cout << "round(";
+                                this->get_operand(0).dump(false);
+                                std::cout << ") ";
+                                break;
+                            case tiramisu::o_trunc:
+                                std::cout << "trunc(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ") ";
                                 break;

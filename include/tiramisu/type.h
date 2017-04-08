@@ -45,30 +45,48 @@ namespace tiramisu {
       * "o_" stands for operator.
       */
     enum op_t {
-        o_logical_and,
-        o_logical_or,
-        o_max,
-        o_min,
         o_minus,
         o_add,
         o_sub,
         o_mul,
         o_div,
         o_mod,
-        o_cond,
-        o_not,
+
+        o_logical_and,
+        o_logical_or,
+        o_logical_not,
+        o_select,
         o_eq,
         o_ne,
         o_le,
         o_lt,
         o_ge,
         o_gt,
-        o_call,
-        o_access,
+
+        o_max,
+        o_min,
         o_right_shift,
         o_left_shift,
         o_floor,
         o_cast,
+
+        o_sin,
+        o_cos,
+        o_tan,
+        o_asin,
+        o_acos,
+        o_atan,
+        o_abs,
+        o_sqrt,
+        o_expo, // exponential
+        o_log,
+        o_ceil,
+        o_round,
+        o_trunc,
+
+        o_call,
+        o_access,
+
         o_none
     };
 
