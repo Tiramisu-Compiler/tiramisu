@@ -16,8 +16,6 @@ int main(int, char**)
     // Call the Tiramisu generated code
     TEST_NAME(&output_buf);
     compare_2_2D_arrays("test_"+std::string(TEST_NAME_STR), output_buf.host, reference_buf.host, SIZE0, SIZE1);
-    print_2D_buffer(&reference_buf, SIZE0, SIZE1);
-    print_2D_buffer(&output_buf, SIZE0, SIZE1);
 
-   return 0;
+    return 0;
 }
