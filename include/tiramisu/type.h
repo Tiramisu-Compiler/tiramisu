@@ -11,11 +11,10 @@ namespace tiramisu {
      * "e_" stands for expression.
      */
     enum expr_t {
-        e_val,
-        e_id,
-        e_var,
-        e_op,
-        e_none
+        e_val,          // literal value, like 1, 2.4, 10, ...
+        e_var,          // a variable of a primitive type (i.e., an identifier holding one value),
+        e_op,           // an operation: add, mul, div, ...
+        e_none          // undefined expression. The existence of an expression of e_none type means an error.
     };
 
     /**
