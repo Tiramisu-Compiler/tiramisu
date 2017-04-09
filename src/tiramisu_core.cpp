@@ -422,7 +422,7 @@ void split_string(std::string str, std::string delimiter,
 
 std::string generate_new_variable_name()
 {
-    return "c" + std::to_string(id_counter++);
+    return "t" + std::to_string(id_counter++);
 }
 
 
