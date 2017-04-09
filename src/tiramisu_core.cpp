@@ -4489,6 +4489,28 @@ void tiramisu::computation::add_schedule_to_duplicate_schedule(isl_map *map, int
     this->set_schedule(isl_map_union(this->get_schedule(duplicate), map), duplicate);
 }
 
+void tiramisu::computation::add_associated_let_stmt(std::string variable_name, tiramisu::expr e)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(variable_name.size()>0);
+    assert(e.is_defined());
+
+    DEBUG(3, tiramisu::str_dump("Adding a let statement associated to the computation " + this->get_name() + "."));
+    DEBUG(3, tiramisu::str_dump("The name of the variable of the let statement: " + variable_name + "."));
+    DEBUG(3, tiramisu::str_dump("Expression: ")); e.dump(false);
+
+    this->associated_let_stmts.push_back(std::pair<std::string, tiramisu::expr>(variable_name, e));
+
+    DEBUG_INDENT(-4);
+}
+
+std::vector<std::pair<std::string, tiramisu::expr>> tiramisu::computation::get_associated_let_stmts()
+{
+    return this->associated_let_stmts;
+}
+
 /**
  * Set the expression of the computation.
  */

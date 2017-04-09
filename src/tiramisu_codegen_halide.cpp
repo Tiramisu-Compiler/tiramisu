@@ -614,13 +614,9 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
                 DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Access is not affine. Access: "));
                 exp2.get_access()[i].dump(false); DEBUG_NEWLINE(10);
                 std::string access_name = generate_new_variable_name();
-                int at_loop_level = isl_set_dim(isl_set_copy(comp->get_iteration_domain()), isl_dim_set) - 1;
-                tiramisu::constant *cons = new tiramisu::constant(access_name , exp2.get_access()[i],
-                                                                  exp2.get_access()[i].get_data_type(),
-                                                                  false, comp, at_loop_level, comp->get_function());
+                comp->add_associated_let_stmt(access_name, exp2.get_access()[i]);
                 exp2.set_access_dimension(i, tiramisu::var(exp2.get_access()[i].get_data_type(), access_name));
                 DEBUG(10, tiramisu::str_dump("New access:")); exp2.get_access()[i].dump(false);
-                DEBUG(10, tiramisu::str_dump("Constant created.  Constant body:")); cons->dump(false);
             }
         }
 
@@ -1213,7 +1209,18 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         isl_ast_node_list *list = isl_ast_node_block_get_children(node);
         isl_ast_node *child1;
 
+        /*
+        child1 = isl_ast_node_list_get_ast_node(list, 0);
+
+        DEBUG(3, tiramisu::str_dump("Generating child 0 of the block."));
+
+        Halide::Internal::Stmt *block1 =
+            tiramisu::halide_stmt_from_isl_node(fct, child1, level, tagged_stmts);
+
+        *result = Halide::Internal::Block::make({*block1});
+*/
         for (i=isl_ast_node_list_n_ast_node(list)-1; i>=0; i--)
+        //for (i=1; i<isl_ast_node_list_n_ast_node(list); i++)
         {
             child1 = isl_ast_node_list_get_ast_node(list, i);
 
@@ -1258,9 +1265,12 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             {
                 if (result->defined() == true)
                 {
+                    //*result = Halide::Internal::Block::make(
+                    //    *result,
+                    //    *block1);
                     *result = Halide::Internal::Block::make(
-                        *block1,
-                        *result);
+                                  *block1,
+                                  *result);
                 }
                 else // (result->defined() == false)
                     result = block1;
@@ -1441,6 +1451,23 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         comp->create_halide_assignment();
 
         *result = comp->get_halide_stmt();
+
+        for (const auto l_stmt : comp->get_associated_let_stmts())
+        {
+            DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
+            DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
+            DEBUG(3, tiramisu::str_dump("Expression of the let statement: "));
+            l_stmt.second.dump(false);
+
+            std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
+            *result = Halide::Internal::LetStmt::make(
+                                l_stmt.first,
+                                halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                                *result);
+
+            DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
+            DEBUG_NO_NEWLINE(10, std::cout << *result);
+        }
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_if)
     {
@@ -1461,7 +1488,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
         DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << *if_s);
 
-        Halide::Internal::Stmt else_s;
+        Halide::Internal::Stmt else_s = Halide::Internal::Stmt();
 
         if (else_stmt != NULL)
         {

@@ -1032,6 +1032,17 @@ private:
     isl_map* simplify(isl_map* map);
     // @}
 
+    /**
+     * A vector that contains the list of let statements associated
+     * with this computation.
+     *
+     * A let statement that is associated with the computation is a let statement
+     * that will be added just before the computation.  The scope of the variable
+     * defined by the let statement is this computation alone. i.e., it is not
+     * defined in other computations.
+     */
+    std::vector<std::pair<std::string, tiramisu::expr>> associated_let_stmts;
+
 protected:
 
     /**
@@ -1131,6 +1142,19 @@ public:
       * access function is returned.
       */
       isl_map *get_access_relation_adapted_to_time_processor_domain() const;
+
+      /**
+       * Return vector of associated let statements.
+       *
+       * This is a vector that contains the list of let statements
+       * associated with this computation.
+       *
+       * A let statement that is associated with the computation is a
+       * let statement that will be added just before the computation.
+       * The scope of the variable defined by the let statement is this
+       * computation alone. i.e., it is not defined in other computations.
+       */
+      std::vector<std::pair<std::string, tiramisu::expr>> get_associated_let_stmts();
 
       /**
         * Return the context of the computations.
@@ -1962,6 +1986,14 @@ public:
      *
      */
     void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
+
+    /**
+     * Add an let statement that is associated to this computation.
+     * The let statement will be added just before the computation and the
+     * scope of the variable defined by the let statement is this computation
+     * alone. i.e., it is not defined in other computations.
+     */
+    void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
      * Add a map to the schedule of the duplicate \p ID.
