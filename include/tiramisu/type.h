@@ -55,6 +55,7 @@ namespace tiramisu {
         o_logical_or,
         o_logical_not,
         o_select,
+        o_cond,
         o_eq,
         o_ne,
         o_le,

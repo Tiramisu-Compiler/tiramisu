@@ -3576,6 +3576,8 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
             return "mod";
         case tiramisu::o_select:
             return "select";
+        case tiramisu::o_select:
+            return "ternary_cond";
         case tiramisu::o_logical_not:
             return "not";
         case tiramisu::o_eq:
