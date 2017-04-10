@@ -2,3 +2,23 @@
 	- Let's assume that f1 is the consumer of f0.
 	- f0.before(f1, computation::root_dimension);
 
+- Tuples: translate an assignment of a Tuple to a function
+	as the diffinition of multiple computations.
+	For example, if you have
+
+	f(i) = Tuple(5,17)
+
+	It should be translated in Tiramisu to two computations
+
+	{f0[i]: 0<=i<N}: 5
+	{f1[i]: 0<=i<N}: 17
+
+	Now any reference to f(i).0 (i.e., the first element in
+	the tuple f(i)), should be translated into f0(i) or
+	something similar.
+
+- Reduction
+
+- Update
+
+
