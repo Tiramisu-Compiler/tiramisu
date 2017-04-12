@@ -17,8 +17,16 @@
 	the tuple f(i)), should be translated into f0(i) or
 	something similar.
 
+- parallel(y, val): implemented as two calls to Tiramsiu
+	- split(y, y1, y2, val)
+	- tag_parallel_level(y1) or tag_parallel_level(y2) (not sure what are the semantics of parallel in Halide).
+
+reorder_storage():
+	- Should be implemented by creating a map that reorders dimensions
+	  exactly like we do for the interchange() command in Tiramisu (which
+	  interchanges loop nest levels).
+
 - Reduction
 
 - Update
-
 
