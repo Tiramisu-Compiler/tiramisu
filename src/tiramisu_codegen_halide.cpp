@@ -1796,7 +1796,7 @@ void function::gen_halide_obj(
         fct_arguments.push_back(buffer_arg);
     }
 
-    Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt());
+    Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt(), m);
     m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered, Halide::Internal::LoweredFunc::External));
 
     Halide::Outputs output = Halide::Outputs().object(obj_file_name);

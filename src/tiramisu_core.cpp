@@ -599,7 +599,7 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     access_c_str.replace(pos1, len1, "_"+this->get_name());
     new_c->set_access(access_c_str);
 
-    //TODO: for now we are not adding the new parameter to all the access functions,
+    // TODO: for now we are not adding the new parameter to all the access functions,
     // iteration domains, schedules, ... We should either add it every where or transform
     // it into a variable (which is a way better method since it will allow us to
     // vectorize code that has a variable as loop bound (i<j).
@@ -746,12 +746,12 @@ tiramisu::constant*
     return separation_param;
 }
 
-//TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
-//as bound. Currently only loops that have a symbolic constant bound can be vectorized
-//this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
-//as input.
+// TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
+// as bound. Currently only loops that have a symbolic constant bound can be vectorized
+// this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
+// as input.
 // Idem for unroll.
-//TODO: make vectorize and unroll retrieve the loop bound automatically.
+// TODO: make vectorize and unroll retrieve the loop bound automatically.
 void tiramisu::computation::vectorize(int L0, int v,
                                       tiramisu::expr loop_upper_bound)
 {
@@ -3835,8 +3835,8 @@ void tiramisu::buffer::dump(bool exhaustive) const
         std::cout << "Dimension sizes: ";
         for (auto size: dim_sizes)
         {
-          // TODO: create_halide_expr_from_tiramisu_expr does not support
-          // the case where the buffer size is a computation access.
+            // TODO: create_halide_expr_from_tiramisu_expr does not support
+            // the case where the buffer size is a computation access.
             std::vector<isl_ast_expr *> ie = {};
             std::cout << halide_expr_from_tiramisu_expr(NULL, ie, size) << ", ";
         }
