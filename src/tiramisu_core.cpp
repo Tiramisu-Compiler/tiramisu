@@ -3324,7 +3324,9 @@ Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t
     Halide::Argument::Kind res;
 
     if (type == tiramisu::a_temporary)
+    {
         tiramisu::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
+    }
 
     if (type == tiramisu::a_input)
     {
@@ -3332,6 +3334,7 @@ Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t
     }
     else  // if (type == tiramisu::a_output)
     {
+        assert(type == tiramisu::a_output);
         res = Halide::Argument::OutputBuffer;
     }
 

@@ -1774,14 +1774,10 @@ void function::gen_halide_obj(
     std::string obj_file_name, Halide::Target::OS os,
     Halide::Target::Arch arch, int bits) const
 {
-    Halide::Target target;
-    target.os = os;
-    target.arch = arch;
-    target.bits = bits;
     std::vector<Halide::Target::Feature> x86_features;
     x86_features.push_back(Halide::Target::AVX);
     x86_features.push_back(Halide::Target::SSE41);
-    target.set_features(x86_features);
+    Halide::Target target(os, arch, bits, x86_features);
 
     Halide::Module m(obj_file_name, target);
 
