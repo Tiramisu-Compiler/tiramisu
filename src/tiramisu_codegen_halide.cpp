@@ -953,7 +953,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
 
                 // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
                 // to outermost; thus, we need to reverse the order
-                halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
+                halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
                 int stride = 1;
 
                 for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
@@ -972,6 +972,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                             tiramisu_buffer->get_dim_sizes().size(),
                             shape,
                             tiramisu_buffer->get_name());
+                delete[] shape;
 
                 print_isl_ast_expr_vector(index_expr);
 
@@ -1712,7 +1713,7 @@ void computation::create_halide_assignment()
 
         // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is
         // from innermost to outermost; thus, we need to reverse the order
-        halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
+        halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
         for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
             shape[i].min = 0;
@@ -1728,6 +1729,7 @@ void computation::create_halide_assignment()
                     tiramisu_buffer->get_dim_sizes().size(),
                     shape,
                     tiramisu_buffer->get_name());
+        delete[] shape;
         DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
 
         int buf_dims = buffer->dimensions();
