@@ -55,6 +55,12 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
     s = skip_stages(s, order);
     DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));*/
 
+    // TODO(psuriana): This pass is important to figure out all the buffer symbols.
+    // Maybe we should put it somewhere else instead of here.
+    DEBUG(3, tiramisu::str_dump("Unpacking buffer arguments...\n"));
+    s = unpack_buffers(s);
+    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after unpacking buffer arguments:\n", s)));
+
     if (t.has_feature(Target::OpenGL)) {
         DEBUG(3, tiramisu::str_dump("Injecting image intrinsics...\n"));
         s = inject_image_intrinsics(s, env);
