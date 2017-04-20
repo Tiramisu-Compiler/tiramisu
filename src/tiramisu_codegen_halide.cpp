@@ -1536,7 +1536,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
         comp->create_halide_assignment();
 
-        *result = comp->get_halide_stmt();
+        *result = comp->get_generated_halide_stmt();
 
         for (const auto l_stmt : comp->get_associated_let_stmts())
         {

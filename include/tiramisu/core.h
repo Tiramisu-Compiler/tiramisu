@@ -1214,8 +1214,10 @@ public:
 
       /**
         * Return the Halide statement that assigns the computation to a buffer location.
+        * Before calling this function the user should first call Halide code generation
+        * (function::gen_halide_stmt()).
         */
-      Halide::Internal::Stmt get_halide_stmt() const;
+      Halide::Internal::Stmt get_generated_halide_stmt() const;
 
       /**
         * Return vector of isl_ast_expr representing the indices of the array where

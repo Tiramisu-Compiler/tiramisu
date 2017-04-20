@@ -4246,8 +4246,10 @@ tiramisu::primitive_t tiramisu::computation::get_data_type() const
 /**
   * Return the Halide statement that assigns the computation to a buffer location.
   */
-Halide::Internal::Stmt tiramisu::computation::get_halide_stmt() const
+Halide::Internal::Stmt tiramisu::computation::get_generated_halide_stmt() const
 {
+    assert((stmt.defined() == true) && "Code should generated first before calling this function.");
+
     return stmt;
 }
 
