@@ -4248,8 +4248,6 @@ tiramisu::primitive_t tiramisu::computation::get_data_type() const
   */
 Halide::Internal::Stmt tiramisu::computation::get_generated_halide_stmt() const
 {
-    assert((stmt.defined() == true) && "Code should generated first before calling this function.");
-
     return stmt;
 }
 
