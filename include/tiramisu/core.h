@@ -833,9 +833,43 @@ class computation {
 private:
 
     /**
+      * Access function.  A map indicating how each computation should be stored
+      * in memory.  It indicates in which buffer the computation should be stored
+      * and which element of the buffer exactly it should be stored.
+      */
+    isl_map *access;
+
+    /**
+     * A vector that contains the list of let statements associated
+     * with this computation.
+     *
+     * A let statement that is associated with the computation is a let statement
+     * that will be added just before the computation.  The scope of the variable
+     * defined by the let statement is this computation alone. i.e., it is not
+     * defined in other computations.
+     */
+    std::vector<std::pair<std::string, tiramisu::expr>> associated_let_stmts;
+
+    /**
       * An ISL context associate with the function.
       */
     isl_ctx *ctx;
+
+    /**
+     * Data type: the type of the value returned by the computation.
+     */
+    tiramisu::primitive_t data_type;
+
+    /**
+      * An expression representing the computation
+      * ("what" should be computed).
+      */
+    tiramisu::expr expression;
+
+    /**
+      * The function where this computation is declared.
+      */
+    tiramisu::function *function;
 
     /**
       * Iteration domain of the computation.
@@ -859,33 +893,6 @@ private:
       * and so on, ...
       */
     std::vector<isl_map *> schedules;
-
-    /**
-      * The function where this computation is declared.
-      */
-    tiramisu::function *function;
-
-    /**
-      * Access function.  A map indicating how each computation should be stored
-      * in memory.  It indicates in which buffer the computation should be stored
-      * and which element of the buffer exactly it should be stored.
-      */
-    isl_map *access;
-
-    /**
-     * Data type: the type of the value returned by the computation.
-     */
-    tiramisu::primitive_t data_type;
-
-    /**
-     * Update the name of the domain name of the schedule of a let statement.
-     * If the computation is a let statement, and if the name of
-     * the domain of map does not start with the LET_STMT_PREFIX,
-     * add the LET_STMT_PREFIX to the name.
-     * We use the LET_STMT_PREFIX to identify the computations that
-     * represent a let statement.
-     */
-    isl_map* update_let_stmt_schedule_domain_name(isl_map* map);
 
     /**
      * A logical time that indicates the relative order of this computation
@@ -931,12 +938,6 @@ private:
      std::string name;
 
      /**
-       * An expression representing the computation
-       * ("what" should be computed).
-       */
-     tiramisu::expr expression;
-
-     /**
       * A computation can have multiple duplicates.  When the user applies
       * a transformation, that transformation can be applied either on the
       * original computation or on one of its duplicates.
@@ -954,6 +955,11 @@ private:
      // Private class members that are computed during code generation.
 
      /**
+       * Halide statement that assigns the computation to a buffer location.
+       */
+     Halide::Internal::Stmt stmt;
+
+     /**
        * Time-processor domain of the computation.
        * In this representation, the logical time of execution and the
        * processor where the computation will be executed are both
@@ -962,17 +968,56 @@ private:
      isl_set *time_processor_domain;
 
      /**
-       * Halide statement that assigns the computation to a buffer location.
-       */
-     Halide::Internal::Stmt stmt;
-
-     /**
        * An isl_ast_expr representing the index of the array where the computation
        * will be stored.  This index is computed after the scheduling is done.
        */
      std::vector<isl_ast_expr *> index_expr;
 
      // Private class methods.
+
+     /**
+      * Get the ID of the selected duplicate.
+      */
+     int get_selected_duplicate_ID();
+
+    /**
+     * Set the iteration domain of the computation
+     */
+    void set_iteration_domain(isl_set *domain);
+
+    tiramisu::constant* create_separator_and_add_constraints_to_context(
+                const tiramisu::expr& loop_upper_bound, int v);
+
+    /**
+     * Apply a duplication transformation from iteration space to
+     * time-processor space.
+     * A duplication transformation duplicates the original computation,
+     * so the domain of the schedule has to be the iteration domain of
+     * the original computation.
+     *
+     * For example, to duplicate C0 into a first duplicate:
+     *
+     * C0[i, j] -> C0[1, 0, i, 0, j, 0]
+     *
+     * To duplicate C0 again
+     *
+     * C0[i, j] -> C0[2, 0, j, 0, i, 0]
+     *
+     */
+    void create_duplication_transformation(std::string map_str);
+
+    /**
+     * Intersect \p set with the context of the computation.
+     */
+    // @{
+    isl_set* intersect_set_with_context(isl_set* set);
+    isl_map* intersect_map_domain_with_context(isl_map* map);
+    // @}
+
+    /**
+     * Reset the selected duplicate ID.
+     */
+    void reset_selected_duplicate();
 
     /**
      * Separate the iteration domain into two iteration domains using
@@ -1009,32 +1054,6 @@ private:
     std::vector<tiramisu::computation *> separate(int dim, tiramisu::constant &C);
 
     /**
-     * Set the iteration domain of the computation
-     */
-    void set_iteration_domain(isl_set *domain);
-
-    tiramisu::constant* create_separator_and_add_constraints_to_context(
-                const tiramisu::expr& loop_upper_bound, int v);
-
-    /**
-     * Reset the selected duplicate ID.
-     */
-    void reset_selected_duplicate();
-
-    /**
-     * Get the ID of the selected duplicate.
-     */
-    int get_selected_duplicate_ID();
-
-    /**
-     * Intersect \p set with the context of the computation.
-     */
-    // @{
-    isl_set* intersect_set_with_context(isl_set* set);
-    isl_map* intersect_map_domain_with_context(isl_map* map);
-    // @}
-
-    /**
      * Simplify \p set using the context and by calling
      * set coalescing.
      */
@@ -1043,16 +1062,7 @@ private:
     isl_map* simplify(isl_map* map);
     // @}
 
-    /**
-     * A vector that contains the list of let statements associated
-     * with this computation.
-     *
-     * A let statement that is associated with the computation is a let statement
-     * that will be added just before the computation.  The scope of the variable
-     * defined by the let statement is this computation alone. i.e., it is not
-     * defined in other computations.
-     */
-    std::vector<std::pair<std::string, tiramisu::expr>> associated_let_stmts;
+
 
 protected:
 
@@ -1489,7 +1499,7 @@ public:
      * the transformations are applied on the original computation.
      *
      */
-    void apply_transformation(std::string map_str, int ID = 0);
+    void apply_transformation_on_schedule(std::string map_str, int ID = 0);
 
     /**
      * Apply a transformation on the domain of the schedule.
@@ -1505,7 +1515,7 @@ public:
      * the transformations are applied on the original computation.
      *
      */
-    void apply_transformation_on_domain(std::string map_str, int ID = 0);
+    void apply_transformation_on_schedule_domain(std::string map_str, int ID = 0);
 
     /**
      * Add the set of constraints \p domain_constraints to the domain
@@ -1513,24 +1523,6 @@ public:
      * to the range of the schedule.
      */
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints, int ID);
-
-    /**
-     * Apply a duplication transformation from iteration space to
-     * time-processor space.
-     * A duplication transformation duplicates the original computation,
-     * so the domain of the schedule has to be the iteration domain of
-     * the original computation.
-     *
-     * For example, to duplicate C0 into a first duplicate:
-     *
-     * C0[i, j] -> C0[1, 0, i, 0, j, 0]
-     *
-     * To duplicate C0 again
-     *
-     * C0[i, j] -> C0[2, 0, j, 0, i, 0]
-     *
-     */
-    void create_duplication_transformation(std::string map_str);
 
     /**
       * Schedule the duplicate \p second_duplicate_ID of this computation to run
@@ -2032,16 +2024,16 @@ public:
       */
     void bind_to(buffer *buff);
 
-    /*
-      * Create a Halide statement that assigns the computations to the memory
-      * buffer and location specified by the access function.
-      */
-     void create_halide_assignment();
-
      /*
        * Create a copy of this computation.
        */
       tiramisu::computation *copy();
+
+      /*
+        * Create a Halide statement that assigns the computations to the memory
+        * buffer and location specified by the access function.
+        */
+       void create_halide_assignment();
 
      /**
       * Generate an identity schedule for the computation.

@@ -1013,7 +1013,7 @@ void computation::set_schedule(std::string map_str, int ID)
 }
 
 
-void computation::apply_transformation(std::string map_str, int ID)
+void computation::apply_transformation_on_schedule(std::string map_str, int ID)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1046,7 +1046,7 @@ void computation::apply_transformation(std::string map_str, int ID)
 }
 
 
-void computation::apply_transformation_on_domain(std::string map_str, int ID)
+void computation::apply_transformation_on_schedule_domain(std::string map_str, int ID)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
