@@ -259,7 +259,7 @@ void HalideToTiramisu::visit(const Variable *op) {
     const auto &iter = constant_list.find(op->name);
     if (iter != constant_list.end()) {
         // It is a reference to variable defined in Let/LetStmt
-        //TODO(psuriana): when do we actually generate constant???
+        // TODO(psuriana): when do we actually generate constant???
         expr = (*iter->second)(0);
     } else {
         // It is presumably a reference to loop variable
@@ -550,7 +550,7 @@ tiramisu::HalideCodegenOutput halide_pipeline_to_tiramisu_function(
         assert(sizes.size() == f.args().size());
 
         string buffer_name = "buff_" + f.name();
-        //TODO(psuriana): should make the buffer data type variable instead of uint8_t always
+        // TODO(psuriana): should make the buffer data type variable instead of uint8_t always
         tiramisu::buffer *output_buffer = new tiramisu::buffer(
             buffer_name, f.args().size(), sizes, p_uint8, NULL, a_output, func);
         output_buffers.emplace(buffer_name, output_buffer);

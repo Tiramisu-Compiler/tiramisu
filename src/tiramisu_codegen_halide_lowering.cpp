@@ -24,8 +24,8 @@ string stmt_to_string(const string &str, const Stmt &s) {
 
 } // anonymous namespace
 
-Stmt lower_halide_pipeline(const Target &t, Stmt s) {
-    map<string, Function> env; //TODO(psuriana): compute the env (function DAG)
+Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
+    map<string, Function> env; // TODO(psuriana): compute the env (function DAG)
 
     DEBUG(3, tiramisu::str_dump("Performing sliding window optimization...\n"));
     s = sliding_window(s, env);
@@ -50,7 +50,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     s = simplify(s, false);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after first simplification:\n", s)));
 
-    //TODO(psuriana): might be applicable to Tiramisu?
+    // TODO(psuriana): might be applicable to Tiramisu?
     /*DEBUG(3, tiramisu::str_dump("Dynamically skipping stages...\n"));
     s = skip_stages(s, order);
     DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));*/
@@ -92,6 +92,8 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     s = unify_duplicate_lets(s);
     s = remove_trivial_for_loops(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after second simplifcation:\n", s)));
+
+    // TODO(psuriana): Should we handle prefetch in tiramisu?
 
     DEBUG(3, tiramisu::str_dump("Unrolling...\n"));
     s = unroll_loops(s);
@@ -147,7 +149,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s) {
     std::cout << "Lowering after final simplification:\n" << s << "\n";
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
-    s = inject_hexagon_rpc(s, t);
+    s = inject_hexagon_rpc(s, t, m);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
     return s;

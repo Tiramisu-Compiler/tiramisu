@@ -272,7 +272,7 @@ void HalideToC::visit(const Variable *op) {
     const auto &iter = constant_list.find(op->name);
     if (iter != constant_list.end()) {
         // It is a reference to variable defined in Let/LetStmt
-        //TODO(psuriana): when do we actually generate constant???
+        // TODO(psuriana): when do we actually generate constant???
         stream << (*iter) << "(0)";
     } else {
         // It is presumably a reference to loop variable
@@ -485,7 +485,7 @@ void HalideToC::visit(const For *op) {
 }
 
 void HalideToC::visit(const Evaluate *op) {
-    //TODO(psuriana): do nothing for now
+    // TODO(psuriana): do nothing for now
 }
 
 void HalideToC::visit(const Load *op) {
@@ -627,7 +627,7 @@ void halide_pipeline_to_c(
         sizes << "}";
 
         string buffer_name = "buff_" + f.name();
-        //TODO(psuriana): should make the buffer data type variable instead of uint8_t always
+        // TODO(psuriana): should make the buffer data type variable instead of uint8_t always
         stream << "tiramisu::buffer " << buffer_name << "(\"" << buffer_name << "\", "
                << f.args().size() << ", " << sizes.str() << ", tiramisu::p_uint8, NULL, tiramisu::a_output, "
                << "&" << func << ");\n";

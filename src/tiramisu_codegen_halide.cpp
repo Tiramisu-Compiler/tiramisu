@@ -1033,7 +1033,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
 
                 // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
                 // to outermost; thus, we need to reverse the order
-                halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
+                halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
                 int stride = 1;
 
                 for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
@@ -1052,6 +1052,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                             tiramisu_buffer->get_dim_sizes().size(),
                             shape,
                             tiramisu_buffer->get_name());
+                delete[] shape;
 
                 print_isl_ast_expr_vector(index_expr);
 
@@ -1790,7 +1791,7 @@ void computation::create_halide_assignment()
 
         // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is
         // from innermost to outermost; thus, we need to reverse the order
-        halide_dimension_t shape[tiramisu_buffer->get_dim_sizes().size()];
+        halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
         for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
             shape[i].min = 0;
@@ -1806,6 +1807,7 @@ void computation::create_halide_assignment()
                     tiramisu_buffer->get_dim_sizes().size(),
                     shape,
                     tiramisu_buffer->get_name());
+        delete[] shape;
         DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
 
         int buf_dims = buffer->dimensions();
@@ -1849,14 +1851,10 @@ void computation::create_halide_assignment()
 void function::gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
                               Halide::Target::Arch arch, int bits) const
 {
-    Halide::Target target;
-    target.os = os;
-    target.arch = arch;
-    target.bits = bits;
     std::vector<Halide::Target::Feature> x86_features;
     x86_features.push_back(Halide::Target::AVX);
     x86_features.push_back(Halide::Target::SSE41);
-    target.set_features(x86_features);
+    Halide::Target target(os, arch, bits, x86_features);
 
     Halide::Module m(obj_file_name, target);
 
@@ -1873,7 +1871,7 @@ void function::gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
         fct_arguments.push_back(buffer_arg);
     }
 
-    Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt());
+    Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt(), m);
     m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered, Halide::Internal::LoweredFunc::External));
 
     Halide::Outputs output = Halide::Outputs().object(obj_file_name);
