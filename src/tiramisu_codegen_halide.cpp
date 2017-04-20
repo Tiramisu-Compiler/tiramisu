@@ -20,7 +20,7 @@ namespace tiramisu
 {
 
 Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
-Halide::Expr linearize_access(Halide::Buffer<> *buffer, isl_ast_expr *index_expr);
+Halide::Expr linearize_access(int dims, halide_dimension_t *shape, isl_ast_expr *index_expr);
 std::string generate_new_variable_name();
 
 std::vector<computation *> function::get_computation_by_name(std::string name) const
@@ -1011,61 +1011,71 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 DEBUG(3, tiramisu::str_dump("op type: o_ne"));
                 break;
             case tiramisu::o_access:
-            {
-                DEBUG(3, tiramisu::str_dump("op type: o_access"));
-                const char *access_comp_name = tiramisu_expr.get_name().c_str();
-                DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
+                {
+                    DEBUG(3, tiramisu::str_dump("op type: o_access"));
+                    const char *access_comp_name = tiramisu_expr.get_name().c_str();
+                    DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
 
-                // TODO: We assume that computations that have the same name write all to the same buffer
-                // but may have different access relations (the difference is in the domains of their access relations).
-                // This assumption should be eliminated.
-                tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name)[0];
-                assert((access_comp != NULL) && "Accessed computation is NULL.");
-                const char *buffer_name = isl_space_get_tuple_name(
-                                            isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()), isl_dim_out);
-                DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
-                assert(buffer_name != NULL);
+                    // TODO: We assume that computations that have the same name write all to the same buffer
+                    // but may have different access relations (the difference is in the domains of their access relations).
+                    // This assumption should be eliminated.
+                    tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name)[0];
+                    assert((access_comp != NULL) && "Accessed computation is NULL.");
+                    const char *buffer_name = isl_space_get_tuple_name(
+                                                isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()), isl_dim_out);
+                    DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
+                    assert(buffer_name != NULL);
 
-                auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
-                assert(buffer_entry != comp->get_function()->get_buffers().end());
+                    auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
+                    assert(buffer_entry != comp->get_function()->get_buffers().end());
 
-                auto tiramisu_buffer = buffer_entry->second;
+                    auto tiramisu_buffer = buffer_entry->second;
 
-                // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
-                // to outermost; thus, we need to reverse the order
-                halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
-                int stride = 1;
+                    Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
 
-                for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
-                    shape[i].min = 0;
-                    shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
-                    shape[i].stride = stride;
-                    stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
-                }
+                    // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
+                    // to outermost; thus, we need to reverse the order
+                    halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
+                    int stride = 1;
 
-                Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
+                    for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
+                        shape[i].min = 0;
+                        shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
+                        shape[i].stride = stride;
+                        stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
+                    }
 
-                Halide::Buffer<> *buffer =
-                    new Halide::Buffer<>(
-                            type,
-                            tiramisu_buffer->get_data(),
-                            tiramisu_buffer->get_dim_sizes().size(),
-                            shape,
-                            tiramisu_buffer->get_name());
-                delete[] shape;
+                    print_isl_ast_expr_vector(index_expr);
 
-                print_isl_ast_expr_vector(index_expr);
+                    Halide::Expr index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
+                    index_expr.erase(index_expr.begin());
 
-                Halide::Expr index = tiramisu::linearize_access(buffer, index_expr[0]);
-                index_expr.erase(index_expr.begin());
+                    if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
+                    {
+                        Halide::Buffer<> *buffer =
+                            new Halide::Buffer<>(
+                                    type,
+                                    tiramisu_buffer->get_data(),
+                                    tiramisu_buffer->get_dim_sizes().size(),
+                                    shape,
+                                    tiramisu_buffer->get_name());
 
-                Halide::Internal::Parameter param(
-                    buffer->type(), true, buffer->dimensions(), buffer->name());
-                param.set_buffer(*buffer);
+                        // TODO(psuriana): Not sure if this the right way to handle external input
+                        /*Halide::Internal::Parameter param(
+                            buffer->type(), true, buffer->dimensions(), buffer->name());
+                        param.set_buffer(*buffer);*/
 
-                result = Halide::Internal::Load::make(
-                            type, tiramisu_buffer->get_name(),
-                            index, *buffer, param, Halide::Internal::const_true(type.lanes()));
+                        result = Halide::Internal::Load::make(
+                                    type, tiramisu_buffer->get_name(), index, *buffer,
+                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                    }
+                    else
+                    {
+                        result = Halide::Internal::Load::make(
+                                type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
+                                Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                    }
+                    delete[] shape;
                 }
                 break;
             case tiramisu::o_right_shift:
@@ -1703,25 +1713,22 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr linearize_access(Halide::Buffer<> *buffer,
-        isl_ast_expr *index_expr)
+Halide::Expr linearize_access(int dims, halide_dimension_t *shape, isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    int buf_dims = buffer->dimensions();
-
     // ISL dimension is ordered from outermost to innermost.
 
     isl_ast_expr *operand;
     Halide::Expr index = 0;
-    for (int i = buf_dims; i >= 1; --i)
+    for (int i = dims; i >= 1; --i)
     {
         operand = isl_ast_expr_get_op_arg(index_expr, i);
         Halide::Expr operand_h = halide_expr_from_isl_ast_expr(operand);
-        index += operand_h * Halide::Expr(buffer->stride(buf_dims - i));
+        index += operand_h * Halide::Expr(shape[dims - i].stride);
     }
 
     DEBUG_INDENT(-4);
@@ -1789,39 +1796,26 @@ void computation::create_halide_assignment()
 
         DEBUG(10, tiramisu_buffer->dump(true));
 
+        Halide::Type type = halide_type_from_tiramisu_type(this->get_data_type());
+        int buf_dims = tiramisu_buffer->get_dim_sizes().size();
+
         // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is
         // from innermost to outermost; thus, we need to reverse the order
         halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
-        for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
+        for (int i = 0; i < buf_dims; i++) {
             shape[i].min = 0;
             shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i - 1].get_int_val();
             shape[i].stride = stride;
             stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i - 1].get_int_val();
         }
 
-        Halide::Buffer<> *buffer =
-            new Halide::Buffer<>(
-                    halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
-                    tiramisu_buffer->get_data(),
-                    tiramisu_buffer->get_dim_sizes().size(),
-                    shape,
-                    tiramisu_buffer->get_name());
-        delete[] shape;
-        DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
-
-        int buf_dims = buffer->dimensions();
-
         // The number of dimensions in the Halide buffer should be equal to
         // the number of dimensions of the access function.
         assert(buf_dims == access_dims);
         assert(this->index_expr[0] != NULL);
         DEBUG(3, tiramisu::str_dump("Linearizing access of the LHS index expression."));
-        Halide::Expr index = tiramisu::linearize_access(buffer, this->index_expr[0]);
-
-        Halide::Internal::Parameter param(
-              buffer->type(), true, buffer->dimensions(), buffer->name());
-        param.set_buffer(*buffer);
+        Halide::Expr index = tiramisu::linearize_access(buf_dims, shape, this->index_expr[0]);
 
         DEBUG(3, tiramisu::str_dump("Index expressions of this statement are (the first is the LHS and the others are the RHS) :"));
         print_isl_ast_expr_vector(this->index_expr);
@@ -1829,7 +1823,20 @@ void computation::create_halide_assignment()
         DEBUG(3, tiramisu::str_dump("Erasing the LHS index expression from the vector of index expressions (the LHS index has just been linearized)."));
         this->index_expr.erase(this->index_expr.begin());
 
-        Halide::Type type = halide_type_from_tiramisu_type(this->get_data_type());
+        Halide::Internal::Parameter param;
+
+        if (tiramisu_buffer->get_argument_type() == tiramisu::a_output) {
+            Halide::Buffer<> *buffer =
+                new Halide::Buffer<>(
+                        halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                        tiramisu_buffer->get_data(),
+                        tiramisu_buffer->get_dim_sizes().size(),
+                        shape,
+                        tiramisu_buffer->get_name());
+            param = Halide::Internal::Parameter(buffer->type(), true, buffer->dimensions(), buffer->name());
+            param.set_buffer(*buffer);
+            DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
+        }
 
         DEBUG(3, tiramisu::str_dump("Calling the Halide::Internal::Store::make function which creates the store statement."));
         DEBUG(3, tiramisu::str_dump("The RHS index expressions are first transformed to Halide expressions then passed to the make function."));
@@ -1840,6 +1847,7 @@ void computation::create_halide_assignment()
                         index, param, Halide::Internal::const_true(type.lanes()));
 
         DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
+        delete[] shape;
     }
 
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
