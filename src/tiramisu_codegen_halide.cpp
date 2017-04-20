@@ -23,23 +23,23 @@ Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t
 Halide::Expr linearize_access(Halide::Buffer<> *buffer, isl_ast_expr *index_expr);
 std::string generate_new_variable_name();
 
-computation *function::get_computation_by_name(std::string name) const
+std::vector<computation *> function::get_computation_by_name(std::string name) const
 {
     assert(name.size() > 0);
 
-    DEBUG(10, tiramisu::str_dump ("Searching computation " + name));
+    DEBUG(10, tiramisu::str_dump("Searching computation " + name));
 
-    tiramisu::computation *res_comp = NULL;
+    std::vector<tiramisu::computation *> res_comp;
 
-    for (const auto &comp : this->get_computations())
+    for (auto &comp : this->get_computations())
     {
         if (name == comp->get_name())
         {
-            res_comp = comp;
+            res_comp.push_back(comp);
         }
     }
 
-    if (res_comp == NULL)
+    if (res_comp.size() == 0)
     {
         DEBUG(10, tiramisu::str_dump ("Computation not found."));
     }
@@ -54,7 +54,7 @@ computation *function::get_computation_by_name(std::string name) const
 /**
   * Get the computation associated with a node.
   */
-tiramisu::computation *get_computation_by_node(tiramisu::function *fct, isl_ast_node *node)
+std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function *fct, isl_ast_node *node)
 {
     isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
     isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -62,9 +62,9 @@ tiramisu::computation *get_computation_by_node(tiramisu::function *fct, isl_ast_
     isl_ast_expr_free(arg);
     std::string computation_name(isl_id_get_name(id));
     isl_id_free(id);
-    tiramisu::computation *comp = fct->get_computation_by_name(computation_name);
+    std::vector<tiramisu::computation *> comp = fct->get_computation_by_name(computation_name);
 
-    assert((comp != NULL) && "Computation not found for this node.");
+    assert((comp.size()>0) && "Computation not found for this node.");
 
     return comp;
 }
@@ -437,13 +437,52 @@ isl_constraint* get_constraint_for_access(int access_dimension,
 }
 
 /**
- * Traverse the tiramisu expression and extract accesses.
+ * Traverse the vector of computations \p comp_vec and return the computations
+ * that have a domain that intersects with \p domain.
+ */
+tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec, isl_union_set *node_domain)
+{
+    tiramisu::computation *res = NULL;
+
+    for (int i = 0; i < comp_vec.size(); i++)
+    {
+        isl_set *comp_domain = comp_vec[i]->get_iteration_domain();
+        isl_map *sched = comp_vec[i]->get_trimmed_union_of_schedules();
+        isl_set *scheduled_comp_domain = isl_set_apply(isl_set_copy(comp_domain), isl_map_copy(sched));
+        isl_union_set *intersection = isl_union_set_intersect(isl_union_set_copy(node_domain),
+                                                              isl_union_set_copy(isl_union_set_from_set(scheduled_comp_domain)));
+
+        if (isl_union_set_is_empty(intersection) == isl_bool_false)
+        {
+            res = comp_vec[i];
+        }
+    }
+
+    assert((res != NULL) && "Computation not found.");
+
+    return res;
+}
+
+
+/**
+ * Traverse the tiramisu expression and extract the access of the access
+ * operation passed in \p exp.
+ * An access relation from the domain of the computation \p comp to the
+ * computation accessed by the access operation \p exp is added to the
+ * vector \p accesses.
+ * If \p return_buffer_accesses = true, an access to a buffer is created
+ * instead.
+ * \p domain_of_accessed_computation is the domain of the current statement
+ * (in ISL AST). Knowing this domain is important to retrieve the computation
+ * that corresponds to the current statement if many computations that have
+ * the name comp.get_name() exist.
  */
 void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                                         tiramisu::computation *comp,
                                         const tiramisu::expr &exp,
                                         std::vector<isl_map *> &accesses,
-                                        bool return_buffer_accesses)
+                                        bool return_buffer_accesses,
+                                        isl_union_set *domain_of_accessed_computation)
 {
     assert(fct != NULL);
 
@@ -454,31 +493,31 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
     {
         DEBUG(3, tiramisu::str_dump("Extracting access from o_access."));
 
-        // Get the corresponding computation
-        tiramisu::computation *comp2 = fct->get_computation_by_name(exp.get_name());
-        DEBUG(3, tiramisu::str_dump("The computation corresponding to the access: "
-                                + comp2->get_name()));
+        // Get the domain of the computation that corresponds to the access.
+        // Even if there are many computations, we take the first because the
+        // domain is the same any way.
+        // The computation that represents the access operation.
+        // TODO: if there multiple computations (in the case of an update for example),
+        // the following should retrieve the right computation.
+        tiramisu::computation *access_op_comp = fct->get_computation_by_name(exp.get_name())[0];
 
-        isl_map *access_function = isl_map_copy(comp2->get_access_relation());
+        DEBUG(10, tiramisu::str_dump("Obtained accessed computation."));
 
-        DEBUG(3, tiramisu::str_dump("The original access function of this computation (before transforming its domain into time-space) : ",
-                                isl_map_to_str(access_function)));
-
-        isl_set *domain = isl_set_copy(isl_set_universe(
+        isl_set *lhs_comp_domain = isl_set_copy(isl_set_universe(
                     isl_set_get_space(
                         isl_set_copy(comp->get_iteration_domain()))));
 
-        isl_set *range = isl_set_copy(isl_set_universe(
+        isl_set *rhs_comp_domain = isl_set_copy(isl_set_universe(
                             isl_set_get_space(
-                                isl_set_copy(comp2->get_iteration_domain()))));
+                                isl_set_copy(access_op_comp->get_iteration_domain()))));
 
-        isl_map* identity = create_map_from_domain_and_range(isl_set_copy(domain),
-                                                             isl_set_copy(range));
+        isl_map *access_to_comp = create_map_from_domain_and_range(isl_set_copy(lhs_comp_domain),
+                                                             isl_set_copy(rhs_comp_domain));
 
-        identity = isl_map_universe(isl_map_get_space(identity));
+        access_to_comp = isl_map_universe(isl_map_get_space(access_to_comp));
 
         DEBUG(3, tiramisu::str_dump("Transformation map before adding constraints:",
-                                isl_map_to_str(identity)));
+                                isl_map_to_str(access_to_comp)));
 
         // The dimension_number is a counter that indicates to which dimension
         // is the access associated.
@@ -486,38 +525,45 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         for (const auto &access: exp.get_access())
         {
             DEBUG(3, tiramisu::str_dump ("Assigning 1 to the coefficient of output dimension " + std::to_string (access_dimension)));
-            isl_constraint* cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(isl_map_get_space(isl_map_copy(identity)))));
+            isl_constraint* cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_to_comp)))));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
-            cst = get_constraint_for_access(access_dimension, access, identity, cst, +1, fct);
-            identity = isl_map_add_constraint(identity, cst);
-            DEBUG(3, tiramisu::str_dump("After adding a constraint:", isl_map_to_str(identity)));
+            cst = get_constraint_for_access(access_dimension, access, access_to_comp, cst, +1, fct);
+            access_to_comp = isl_map_add_constraint(access_to_comp, cst);
+            DEBUG(3, tiramisu::str_dump("After adding a constraint:", isl_map_to_str(access_to_comp)));
             access_dimension++;
         }
 
-        DEBUG(3, tiramisu::str_dump("Access function:", isl_map_to_str(access_function)));
-        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:", isl_map_to_str(identity)));
+        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:", isl_map_to_str(access_to_comp)));
 
         if (return_buffer_accesses == true)
         {
-            access_function = isl_map_apply_range(isl_map_copy(identity), isl_map_copy(access_function));
-            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:", isl_map_to_str(access_function)));
+            assert((domain_of_accessed_computation != NULL) && "The domain of the statement being generated should be provided so that computations with the same are filtered out.");
+
+            isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
+
+            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
+                                    isl_map_to_str(access_to_buff)));
+
+            access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), isl_map_copy(access_to_buff));
+            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:", isl_map_to_str(access_to_buff)));
+
+            // Run the following block (i.e., apply the schedule on the access function) only if
+            // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
+            // otherwise return the access function that is not transformed into time-processor space
+            // this is mainly because the function that calls this function expects the access function
+            // to be in the iteration domain.
+            if ((global::is_auto_data_mapping_set() == true))
+            {
+                DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_to_buff)));
+                DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_union_of_schedules())));
+                access_to_buff = isl_map_apply_domain(access_to_buff, isl_map_copy(comp->get_trimmed_union_of_schedules()));
+                DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_to_buff)));
+            }
+
+            accesses.push_back(access_to_buff);
         }
         else
-            access_function = isl_map_copy(identity);
-
-        // Run the following block (i.e., apply the schedule on the access function) only if
-        // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
-        // otherwise return the access function that is not transformed into time-processor space
-        // this is mainly because the function that calls this function expects the access function
-        // to be in the iteration domain.
-        if ((global::is_auto_data_mapping_set() == true) && (return_buffer_accesses == true))
-        {
-            DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_function)));
-            DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_union_of_schedules())));
-            access_function = isl_map_apply_domain(access_function, isl_map_copy(comp->get_trimmed_union_of_schedules()));
-            DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_function)));
-        }
-        accesses.push_back(access_function);
+            accesses.push_back(isl_map_copy(access_to_comp));
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
@@ -542,8 +588,11 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                 case tiramisu::o_ceil:
                 case tiramisu::o_round:
                 case tiramisu::o_trunc:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
+                {
+                    tiramisu::expr exp0 = exp.get_operand(0);
+                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses, domain_of_accessed_computation);
                     break;
+                }
                 case tiramisu::o_logical_and:
                 case tiramisu::o_logical_or:
                 case tiramisu::o_max:
@@ -561,15 +610,24 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                 case tiramisu::o_ne:
                 case tiramisu::o_right_shift:
                 case tiramisu::o_left_shift:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
+                {
+                    tiramisu::expr exp0 = exp.get_operand(0);
+                    tiramisu::expr exp1 = exp.get_operand(1);
+                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses, domain_of_accessed_computation);
                     break;
+                }
                 case tiramisu::o_select:
                 case tiramisu::o_cond:
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(0), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(1), accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp.get_operand(2), accesses, return_buffer_accesses);
+                {
+                    tiramisu::expr expr0 = exp.get_operand(0);
+                    tiramisu::expr expr1 = exp.get_operand(1);
+                    tiramisu::expr expr2 = exp.get_operand(2);
+                    traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses, domain_of_accessed_computation);
                     break;
+                }
                 default:
                     tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
             }
@@ -703,13 +761,13 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * If \p return_buffer_accesses is set to true, this function returns access functions to
  * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses)
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses, isl_union_set *comp_domain)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     const tiramisu::expr &rhs = comp->get_expr();
-    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
+    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses, comp_domain);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -730,7 +788,17 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     tiramisu::function *func = (tiramisu::function *) user;
 
     // Find the name of the computation associated to this AST leaf node.
-    tiramisu::computation *comp = get_computation_by_node(func, node);
+    std::vector<tiramisu::computation *> comp_vec = get_computation_by_node(func, node);
+    assert((comp_vec.size() > 0) && "get_computation_by_node() returned an empty vector !");
+    isl_union_map *sched = isl_union_map_copy(isl_ast_build_get_schedule(build));
+    isl_union_set *sched_range = isl_union_map_domain(sched);
+    assert((sched_range != NULL) && "Range of schedule is NULL.");
+    tiramisu::computation *comp = filter_computations_by_domain(comp_vec, isl_union_set_copy(sched_range));
+
+   // Mark "comp" as the computation associated with this node.
+    isl_id *annotation_id = isl_id_alloc(func->get_ctx(), "", (void *) comp);
+    node = isl_ast_node_set_annotation(node, isl_id_copy(annotation_id));
+
     assert((comp != NULL) && "Computation not found!");;
 
     DEBUG(3, tiramisu::str_dump("Computation:", comp->get_name().c_str()));
@@ -741,7 +809,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
     accesses.push_back(access);
     // Add the accesses of the RHS to the accesses vector
-    get_rhs_accesses(func, comp, accesses, true);
+    get_rhs_accesses(func, comp, accesses, true, sched_range);
 
     if (accesses.size() > 0)
     {
@@ -848,15 +916,22 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
         DEBUG(3, tiramisu::str_dump("tiramisu expression of type tiramisu::e_op"));
 
         if (tiramisu_expr.get_n_arg() > 0)
-            op0 = halide_expr_from_tiramisu_expr(comp, index_expr, tiramisu_expr.get_operand(0));
+        {
+            tiramisu::expr expr0 = tiramisu_expr.get_operand(0);
+            op0 = halide_expr_from_tiramisu_expr(comp, index_expr, expr0);
+        }
 
         if (tiramisu_expr.get_n_arg() > 1)
         {
-            op1 = halide_expr_from_tiramisu_expr(comp, index_expr, tiramisu_expr.get_operand(1));
+            tiramisu::expr expr1 = tiramisu_expr.get_operand(1);
+            op1 = halide_expr_from_tiramisu_expr(comp, index_expr, expr1);
         }
 
         if (tiramisu_expr.get_n_arg() > 2)
-            op2 = halide_expr_from_tiramisu_expr(comp, index_expr, tiramisu_expr.get_operand(2));
+        {
+            tiramisu::expr expr2 = tiramisu_expr.get_operand(2);
+            op2 = halide_expr_from_tiramisu_expr(comp, index_expr, expr2);
+        }
 
         switch(tiramisu_expr.get_op_type())
         {
@@ -940,7 +1015,12 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                 DEBUG(3, tiramisu::str_dump("op type: o_access"));
                 const char *access_comp_name = tiramisu_expr.get_name().c_str();
                 DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
-                tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name);
+
+                // TODO: We assume that computations that have the same name write all to the same buffer
+                // but may have different access relations (the difference is in the domains of their access relations).
+                // This assumption should be eliminated.
+                tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name)[0];
+                assert((access_comp != NULL) && "Accessed computation is NULL.");
                 const char *buffer_name = isl_space_get_tuple_name(
                                             isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()), isl_dim_out);
                 DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
@@ -1191,6 +1271,17 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 
 std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
 
+// For each node of the ISL AST, the corresponding computation is stored.
+// This function retrieves that computation.
+tiramisu::computation* get_computation_annotated_in_a_node(isl_ast_node* node)
+{
+    // Retrieve the computation of the node.
+    isl_id* comp_id = isl_ast_node_get_annotation (node);
+    tiramisu::computation* comp =
+             (tiramisu::computation*) (isl_id_get_user(comp_id));
+    return comp;
+}
+
 /**
   * Generate a Halide statement from an ISL ast node object in the ISL ast
   * tree.
@@ -1217,18 +1308,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         isl_ast_node_list *list = isl_ast_node_block_get_children(node);
         isl_ast_node *child1;
 
-        /*
-        child1 = isl_ast_node_list_get_ast_node(list, 0);
-
-        DEBUG(3, tiramisu::str_dump("Generating child 0 of the block."));
-
-        Halide::Internal::Stmt *block1 =
-            tiramisu::halide_stmt_from_isl_node(fct, child1, level, tagged_stmts);
-
-        *result = Halide::Internal::Block::make({*block1});
-*/
         for (i=isl_ast_node_list_n_ast_node(list)-1; i>=0; i--)
-        //for (i=1; i<isl_ast_node_list_n_ast_node(list); i++)
         {
             child1 = isl_ast_node_list_get_ast_node(list, i);
 
@@ -1273,9 +1353,6 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             {
                 if (result->defined() == true)
                 {
-                    //*result = Halide::Internal::Block::make(
-                    //    *result,
-                    //    *block1);
                     *result = Halide::Internal::Block::make(
                                   *block1,
                                   *result);
@@ -1453,7 +1530,8 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             tagged_stmts.push_back(computation_name);
         }
 
-        tiramisu::computation *comp = fct.get_computation_by_name(computation_name);
+        // Retrieve the computation of the node.
+        tiramisu::computation* comp = get_computation_annotated_in_a_node(node);
         DEBUG(10, comp->dump());
 
         comp->create_halide_assignment();
@@ -1572,7 +1650,7 @@ void function::gen_halide_stmt()
                 // we pass NULL pointers for parameters that are necessary
                 // in case we are computing the halide expression from a tiramisu expression
                 // that represents a computation access.
-                const auto &sz = buf->get_dim_sizes()[i];
+                const auto sz = buf->get_dim_sizes()[i];
                 std::vector<isl_ast_expr *> ie = {};
                 halide_dim_sizes.push_back(halide_expr_from_tiramisu_expr(NULL, ie, sz));
             }
@@ -1770,9 +1848,8 @@ void computation::create_halide_assignment()
     DEBUG_INDENT(-4);
 }
 
-void function::gen_halide_obj(
-    std::string obj_file_name, Halide::Target::OS os,
-    Halide::Target::Arch arch, int bits) const
+void function::gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
+                              Halide::Target::Arch arch, int bits) const
 {
     std::vector<Halide::Target::Feature> x86_features;
     x86_features.push_back(Halide::Target::AVX);

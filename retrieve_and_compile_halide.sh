@@ -11,4 +11,5 @@ git submodule update --init --remote
 
 cd Halide/
 git checkout tiramisu
+git pull
 make -j8
