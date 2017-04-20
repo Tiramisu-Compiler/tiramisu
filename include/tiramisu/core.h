@@ -262,7 +262,7 @@ public:
       * Return the computation of the function that has
       * the name \p str.
       */
-    computation *get_computation_by_name(std::string str) const;
+    std::vector<computation *> get_computation_by_name(std::string str) const;
 
     /**
       * Return a set that represents the parameters of the function
@@ -809,8 +809,6 @@ public:
     void dump(bool exhaustive) const;
 };
 
-
-
 /**
   * A class that represents computations.
   * A computation is an expression associated with an iteration domain.
@@ -847,14 +845,6 @@ private:
     isl_set *iteration_domain;
 
     /**
-      * Time-processor domain of the computation.
-      * In this representation, the logical time of execution and the
-      * processor where the computation will be executed are both
-      * specified.
-      */
-    isl_set *time_processor_domain;
-
-    /**
       * A vector of the schedules of the computation.
       *
       * In Tiramisu, for a given computation computation object, we have
@@ -876,22 +866,11 @@ private:
     tiramisu::function *function;
 
     /**
-      * Halide statement that assigns the computation to a buffer location.
-      */
-    Halide::Internal::Stmt stmt;
-
-    /**
       * Access function.  A map indicating how each computation should be stored
       * in memory.  It indicates in which buffer the computation should be stored
       * and which element of the buffer exactly it should be stored.
       */
     isl_map *access;
-
-    /**
-      * An isl_ast_expr representing the index of the array where the computation
-      * will be stored.  This index is computed after the scheduling is done.
-      */
-    std::vector<isl_ast_expr *> index_expr;
 
     /**
      * Data type: the type of the value returned by the computation.
@@ -931,46 +910,69 @@ private:
     bool _is_let_stmt;
 
     /**
-     * TODO: use buffers directly from computations, no need to have
-     * bindings.
-     *
-     * \p schedule_this_computation should be set to true when the computation
-     * should be scheduled and when code for the computation should be generated
-     * during code generation.
-     * It should be set to false when the computation is used to represent a
-     * buffer (i.e., the computation is used only as a binding to a buffer).
-     * In this case, the computation is not scheduled and no code for the
-     * computation is generated.
-     */
-    bool schedule_this_computation;
-
-    /**
-      * The name of this computation.
-      * Computation names should not start with _ (an underscore).
-      * Names starting with _ are reserved names.
+      * TODO: use buffers directly from computations, no need to have
+      * bindings.
+      *
+      * \p schedule_this_computation should be set to true when the computation
+      * should be scheduled and when code for the computation should be generated
+      * during code generation.
+      * It should be set to false when the computation is used to represent a
+      * buffer (i.e., the computation is used only as a binding to a buffer).
+      * In this case, the computation is not scheduled and no code for the
+      * computation is generated.
       */
-    std::string name;
+     bool schedule_this_computation;
 
-    /**
-      * An expression representing the computation
-      * ("what" should be computed).
+     /**
+       * The name of this computation.
+       * Computation names should not start with _ (an underscore).
+       * Names starting with _ are reserved names.
+       */
+     std::string name;
+
+     /**
+       * An expression representing the computation
+       * ("what" should be computed).
+       */
+     tiramisu::expr expression;
+
+     /**
+      * A computation can have multiple duplicates.  When the user applies
+      * a transformation, that transformation can be applied either on the
+      * original computation or on one of its duplicates.
+      * Tiramisu should know on which one the transformation should be applied.
+      *
+      * We use this variable to indicate which duplicate of the computation
+      * is selected currently. The selected duplicate is the one on which
+      * all the transformations will be applied.
+      *
+      * By default, the original computation is selected (ID = 0). The user
+      * can select another duplicate using the select(ID) command.
       */
-    tiramisu::expr expression;
+     int selected_ID;
 
-    /**
-     * A computation can have multiple duplicates.  When the user applies
-     * a transformation, that transformation can be applied either on the
-     * original computation or on one of its duplicates.
-     * Tiramisu should know on which one the transformation should be applied.
-     *
-     * We use this variable to indicate which duplicate of the computation
-     * is selected currently. The selected duplicate is the one on which
-     * all the transformations will be applied.
-     *
-     * By default, the original computation is selected (ID = 0). The user
-     * can select another duplicate using the select(ID) command.
-     */
-    int selected_ID;
+     // Private class members that are computed during code generation.
+
+     /**
+       * Time-processor domain of the computation.
+       * In this representation, the logical time of execution and the
+       * processor where the computation will be executed are both
+       * specified.
+       */
+     isl_set *time_processor_domain;
+
+     /**
+       * Halide statement that assigns the computation to a buffer location.
+       */
+     Halide::Internal::Stmt stmt;
+
+     /**
+       * An isl_ast_expr representing the index of the array where the computation
+       * will be stored.  This index is computed after the scheduling is done.
+       */
+     std::vector<isl_ast_expr *> index_expr;
+
+     // Private class methods.
 
     /**
      * Separate the iteration domain into two iteration domains using
@@ -981,7 +983,7 @@ private:
      * iteration domain are created, the constraint (i<=C) is added to
      * the first while the constrain (i>C) is added to the second.
      *
-     * Let us assume the following iteration domain
+     * Let us assume that we have the following iteration domain
      *
      *   {S0[i,j]: 0<=i<N and 0<=j<N}
      *
@@ -990,12 +992,21 @@ private:
      *
      *   S0.separate(1, tiramisu::expr("M"))
      *
-     * This will result in the creation of two iteration domains
+     * This will result in the creation of two computations that have the following
+     * iteration domains
      *
      * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
      *
+     * The call to separate returns a vector of pointers to computations.
+     * The fitst computation is the one constrained with the constraint
+     * (i<=C), this computation is also known as the full computation
+     * while the second computation is constrained with (i>C). The second
+     * computation is also known as the partial or the separated computation.
+     *
+     * Note that computation names that start with "_" are reserved to Tiramisu.
+     *
      */
-    void separate(int dim, tiramisu::constant &C);
+    std::vector<tiramisu::computation *> separate(int dim, tiramisu::constant &C);
 
     /**
      * Set the iteration domain of the computation
@@ -1671,8 +1682,10 @@ public:
      * that define the duplicate.
      * The set of range_constraints is supposed to have an ID 0.
      *
+     * This function returns a vector of two computations, the first element in the vector
+     * is the original computation and the second is the duplicated computation.
      */
-    void duplicate(std::string domain_constraints, std::string range_constraints);
+    std::vector<tiramisu::computation *> duplicate(std::string domain_constraints, std::string range_constraints);
 
     /**
      * Fuse the loop over this computation with the loop over the
@@ -2024,6 +2037,11 @@ public:
       * buffer and location specified by the access function.
       */
      void create_halide_assignment();
+
+     /*
+       * Create a copy of this computation.
+       */
+      tiramisu::computation *copy();
 
      /**
       * Generate an identity schedule for the computation.
