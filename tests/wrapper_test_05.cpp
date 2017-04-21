@@ -14,11 +14,12 @@ int main(int, char**)
     init_2D_buffer_val(&reference_buf, NN, MM, 13);
 
     buffer_t output_buf = allocate_2D_buffer(NN, MM);
-
     init_2D_buffer_val(&output_buf, NN, MM, 0);
-    f(&output_buf);
-    compare_2_2D_arrays("Halide code generation and execution for f",
-                        output_buf.host, reference_buf.host, NN, MM);
+    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
+
+    f(halide_output_buf.raw_buffer());
+
+    compare_2_2D_arrays("Halide code generation and execution for f", halide_output_buf.data(), reference_buf.host, NN, MM);
 
    return 0;
 }

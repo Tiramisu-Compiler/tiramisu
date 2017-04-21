@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int blurxy_tiramisu_test(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer);
+int blurxy_tiramisu_test(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int blurxy_tiramisu_test_argv(void **args);
 // Result is never null and points to constant static data
 const struct halide_filter_metadata_t *blurxy_tiramisu_test_metadata();

@@ -6,7 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int test_access_parsing(buffer_t *_p0_buffer);
+int test_access_parsing(halide_buffer_t *_p0_buffer);
 int test_access_parsing_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

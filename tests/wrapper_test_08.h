@@ -6,7 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int test_floor_operator(buffer_t *_p0_buffer);
+int test_floor_operator(halide_buffer_t *_p0_buffer);
 int test_floor_operator_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

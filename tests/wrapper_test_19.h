@@ -21,7 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int TEST_NAME(buffer_t *_p0_buffer);
+int TEST_NAME(halide_buffer_t *_p0_buffer);
 int TEST_NAME_ARGV(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

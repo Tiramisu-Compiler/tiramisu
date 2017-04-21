@@ -13,11 +13,12 @@ int main(int, char**)
     init_1D_buffer_val(&reference_buf, NN, 4);
 
     buffer_t output_buf = allocate_1D_buffer(NN);
-
     init_1D_buffer_val(&output_buf, NN, 0);
-    test_duplication(&output_buf);
-    compare_2_1D_arrays("test_duplication",
-                        output_buf.host, reference_buf.host, NN);
+    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
+
+    test_duplication(halide_output_buf.raw_buffer());
+
+    compare_2_1D_arrays("test_duplication", halide_output_buf.data(), reference_buf.host, NN);
 
    return 0;
 }
