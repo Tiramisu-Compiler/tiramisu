@@ -23,10 +23,12 @@ int main(int, char**)
     std::cout << "Array (after initialization)" << std::endl;
     print_1D_buffer(&input_buf, NN*MM);
 
-    function0(&input_buf);
+    Halide::Buffer<uint8_t> halide_input_buf(input_buf);
+
+    function0(halide_input_buf.raw_buffer());
 
     std::cout << "Array after the Halide pipeline" << std::endl;
-    print_1D_buffer(&input_buf, NN*MM);
+    print_1D_array(halide_input_buf.data(), NN*MM);
 
     return 0;
 }

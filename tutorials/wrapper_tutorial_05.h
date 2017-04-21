@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-int sequence(buffer_t *b1, buffer_t *b2, buffer_t *b3, buffer_t *b4) HALIDE_FUNCTION_ATTRS;
-int sequence_argv(void **args) HALIDE_FUNCTION_ATTRS;
+int sequence(halide_buffer_t *b1, halide_buffer_t *b2, halide_buffer_t *b3, halide_buffer_t *b4);
+int sequence_argv(void **args);
 // Result is never null and points to constant static data
-const struct halide_filter_metadata_t *spmv_metadata() HALIDE_FUNCTION_ATTRS;
+const struct halide_filter_metadata_t *spmv_metadata();
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -21,7 +21,12 @@ int main(int, char**)
     buffer_t b3 = allocate_1D_buffer(NN);
     init_1D_buffer_val(&b3, NN, 1);
 
-    sequence(&b0, &b1, &b2, &b3);
+    Halide::Buffer<uint8_t> b0_buf(b0);
+    Halide::Buffer<uint8_t> b1_buf(b1);
+    Halide::Buffer<uint8_t> b2_buf(b2);
+    Halide::Buffer<uint8_t> b3_buf(b3);
+
+    sequence(b0_buf.raw_buffer(), b1_buf.raw_buffer(), b2_buf.raw_buffer(), b3_buf.raw_buffer());
 
    return 0;
 }

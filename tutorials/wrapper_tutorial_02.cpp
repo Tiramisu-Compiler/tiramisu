@@ -20,13 +20,15 @@ int main(int, char**)
     output_buf.min[0] = 0;
     output_buf.min[1] = 0;
     output_buf.elem_size = 1;
+    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
+
 
     // The blurxy takes a buffer_t * argument, when "image"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
-    blurxy(image.raw_buffer(), &output_buf);
+    blurxy(image.raw_buffer(), halide_output_buf.raw_buffer());
 
-    copy_2D_buffer(image.data(), image.extent(0), image.extent(1), output_buf.host);
+    copy_2D_buffer(image.data(), image.extent(0), image.extent(1), halide_output_buf.data());
 
     Halide::Tools::save_image(image, "./build/tutorial_02.png");
 

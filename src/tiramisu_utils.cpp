@@ -62,6 +62,17 @@ void print_1D_buffer(buffer_t *buf, int N)
     printf("\n");
 }
 
+void print_1D_array(uint8_t *buf, int N)
+{
+    int i;
+
+    for (i=0; i<N; i++)
+    {
+       printf("%u, ", buf[i]);
+    }
+    printf("\n");
+}
+
 void init_1D_buffer(buffer_t *buf, int N, uint8_t val)
 {
     int i;

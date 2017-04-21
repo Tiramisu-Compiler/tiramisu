@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-int blurxy(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer) HALIDE_FUNCTION_ATTRS;
-int blurxy_argv(void **args) HALIDE_FUNCTION_ATTRS;
+int blurxy(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int blurxy_argv(void **args);
 // Result is never null and points to constant static data
-const struct halide_filter_metadata_t *blurxy_metadata() HALIDE_FUNCTION_ATTRS;
+const struct halide_filter_metadata_t *blurxy_metadata();
 
 #ifdef __cplusplus
 }  // extern "C"

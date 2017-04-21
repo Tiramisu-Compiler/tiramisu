@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-int function0(buffer_t *_p0_buffer) HALIDE_FUNCTION_ATTRS;
-int function0_argv(void **args) HALIDE_FUNCTION_ATTRS;
+int function0(halide_buffer_t *_p0_buffer);
+int function0_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;
 #ifdef __cplusplus
