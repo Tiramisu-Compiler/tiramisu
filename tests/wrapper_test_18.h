@@ -1,5 +1,5 @@
-#ifndef TIRAMISU_test_h
-#define TIRAMISU_test_h
+#ifndef TIRAMISU_test_18_h
+#define TIRAMISU_test_18_h
 
 
 // Define these values for each new test
@@ -21,8 +21,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int TEST_NAME(buffer_t *_p0_buffer) HALIDE_FUNCTION_ATTRS;
-int TEST_NAME_ARGV(void **args) HALIDE_FUNCTION_ATTRS;
+
+int TEST_NAME (buffer_t *_p0_buffer);
+int TEST_NAME_ARGV (void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;
 #ifdef __cplusplus
