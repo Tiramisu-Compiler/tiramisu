@@ -16,7 +16,7 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        stencil1_tiramisu(input);
+        stencil1_tiramisu(input.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);

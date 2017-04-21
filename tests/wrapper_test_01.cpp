@@ -19,8 +19,7 @@ int main(int, char**)
     Halide::Buffer<uint8_t> halide_output_buf(output_buf);
 
     assign_7_to_10x10_2D_array_with_tiling_parallelism(halide_output_buf.raw_buffer());
-    compare_2_2D_arrays("assign_7_to_10x10_2D_array_with_tiling_parallelism",
-                        halide_output_buf.data(), reference_buf.host, NN, MM);
+    compare_2_2D_arrays("assign_7_to_10x10_2D_array_with_tiling_parallelism", halide_output_buf.data(), reference_buf.host, NN, MM);
 
    return 0;
 }

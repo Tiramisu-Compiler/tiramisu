@@ -7,13 +7,13 @@
 extern "C" {
 #endif
 
-int cvtcolor_tiramisu(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer) HALIDE_FUNCTION_ATTRS;
-int cvtcolor_tiramisu_argv(void **args) HALIDE_FUNCTION_ATTRS;
-int cvtcolor_ref(buffer_t *_b_input_buffer, buffer_t *_b_blury_buffer) HALIDE_FUNCTION_ATTRS;
-int cvtcolor_ref_argv(void **args) HALIDE_FUNCTION_ATTRS;
+int cvtcolor_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int cvtcolor_tiramisu_argv(void **args);
+int cvtcolor_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int cvtcolor_ref_argv(void **args);
 // Result is never null and points to constant static data
-const struct halide_filter_metadata_t *cvtcolor_tiramisu_metadata() HALIDE_FUNCTION_ATTRS;
-const struct halide_filter_metadata_t *cvtcolor_ref_metadata() HALIDE_FUNCTION_ATTRS;
+const struct halide_filter_metadata_t *cvtcolor_tiramisu_metadata();
+const struct halide_filter_metadata_t *cvtcolor_ref_metadata();
 
 #ifdef __cplusplus
 }  // extern "C"
