@@ -412,23 +412,6 @@ public:
      bool should_map_to_gpu_thread(std::string comp, int lev0) const;
 
     /**
-      * Add an invariant to the function.
-      */
-    void add_invariant(tiramisu::constant param);
-
-    /**
-      * Add a buffer to the function.
-      * The buffers of the function are either:
-      * - buffers passed to the function as arguments, or
-      * - buffers that are declared and allocated within the function
-      * itself.
-      * The first element of the pair is the name of the buffer (it is
-      * used as a key), the second element of the pair is a pointer
-      * to the buffer.
-      */
-    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
-
-    /**
       * Add a computation to the function.  The order in which
       * computations are added to the function is not important.
       * The order of execution is specified using the schedule.
@@ -462,6 +445,12 @@ public:
     // @}
 
     /**
+      * Set the iterator names of the function.
+      * This function overrides any previously set iterator names.
+      */
+    void set_iterator_names(const std::vector<std::string>& iteratorNames);
+
+    /**
       * Intersect the set provided as input with the context of the function.
       * A context is an ISL set that represents constraints over the parameters
       * of the functions (a parameter is an invariant variable for the function).
@@ -474,14 +463,21 @@ public:
     void add_context_constraints(std::string new_context_str);
 
     /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
+      * Add a buffer to the function.
+      * The buffers of the function are either:
+      * - buffers passed to the function as arguments, or
+      * - buffers that are declared and allocated within the function
+      * itself.
+      * The first element of the pair is the name of the buffer (it is
+      * used as a key), the second element of the pair is a pointer
+      * to the buffer.
       */
-    void align_schedules();
+    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
+
+   /**
+     * Add an invariant to the function.
+     */
+   void add_invariant(tiramisu::constant param);
 
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
@@ -542,15 +538,19 @@ public:
      void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
-      * Set the iterator names of the function.
-      * This function overrides any previously set iterator names.
-      */
-    void set_iterator_names(const std::vector<std::string>& iteratorNames);
-
-    /**
       * Add an iterator to the function.
       */
     void add_iterator_name(const std::string iteratorName);
+
+    /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
 
     /**
        * Generate an object file that contains the compiled function.
