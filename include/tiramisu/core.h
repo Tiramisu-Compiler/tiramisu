@@ -67,6 +67,9 @@ void halide_pipeline_to_c(
   */
 class function
 {
+    // The computation class can access the private members of function.
+    friend tiramisu::computation;
+
 private:
     /**
       * The name of the function.
@@ -225,6 +228,41 @@ private:
       * identity schedule that does not have enough dimensions.
       */
     isl_union_map *get_aligned_identity_schedules() const;
+protected:
+
+    /**
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU blocks.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, 2);
+      *
+      * Will tag the dimensions 1 and 2 to be transformed to GPU blocks.
+      */
+     void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
+
+     /**
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU threads.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, -1, -1);
+      *
+      * Will tag the dimension 1 to be transformed to GPU threads.
+      */
+     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
 public:
 
@@ -268,48 +306,14 @@ public:
     void add_context_constraints(std::string new_context_str);
 
     /**
-      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
-      * \p computation_name to be mapped to GPU blocks.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      *
-      * If the user does not want to tag \p dim1 or \p dim2, he can leave
-      * their values to default value (i.e., -1).  They will not be tagged.
-      *
-      * For example
-      *
-      * add_gpu_block_dimensions("S0", 1, 2);
-      *
-      * Will tag the dimensions 1 and 2 to be transformed to GPU blocks.
-      */
-     void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
-
-     /**
-      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
-      * \p computation_name to be mapped to GPU threads.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      *
-      * If the user does not want to tag \p dim1 or \p dim2, he can leave
-      * their values to default value (i.e., -1).  They will not be tagged.
-      *
-      * For example
-      *
-      * add_gpu_block_dimensions("S0", 1, -1, -1);
-      *
-      * Will tag the dimension 1 to be transformed to GPU threads.
-      */
-     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
-
-   /**
      * Add an invariant to the function.
      */
-   void add_invariant(tiramisu::constant param);
+    void add_invariant(tiramisu::constant param);
 
-   /**
-     * Add an iterator to the function.
-     */
-   void add_iterator_name(const std::string iteratorName);
+    /**
+      * Add an iterator to the function.
+      */
+    void add_iterator_name(const std::string iteratorName);
 
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
