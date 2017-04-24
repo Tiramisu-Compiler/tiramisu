@@ -192,6 +192,56 @@ private:
     std::vector<std::string> iterator_names;
 
     /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be parallelized.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_parallel_dimension(std::string computation_name, int vec_dim);
+
+    /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be vectorized.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_vector_dimension(std::string computation_name, int vec_dim);
+
+     /**
+       * Tag the loop level \p L of the computation
+       * \p computation_name to be unrolled.
+       * The dimension 0 represents the outermost loop level (it
+       * corresponds to the leftmost dimension in the iteration space).
+       */
+     void add_unroll_dimension(std::string stmt_name, int L);
+
+    /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
+
+    /**
+      * Return a string representing the name of the GPU block iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
+      */
+    std::string get_gpu_block_iterator(std::string comp, int lev0) const;
+
+    /**
+       * Return a string representing the name of the GPU thread iterator at
+       * dimension \p lev0.
+       * This function only returns a non-empty string if the
+       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
+       */
+     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
+
+    /**
      * This functions iterates over the schedules of the function (the schedule
      * of each computation in the function) and computes the maximal dimension
      * among the dimensions of the ranges of all the schedules.
@@ -314,40 +364,6 @@ public:
       * Add an iterator to the function.
       */
     void add_iterator_name(const std::string iteratorName);
-
-    /**
-      * Tag the dimension \p dim of the computation \p computation_name to
-      * be parallelized.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      */
-    void add_parallel_dimension(std::string computation_name, int vec_dim);
-
-    /**
-      * Tag the dimension \p dim of the computation \p computation_name to
-      * be vectorized.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      */
-    void add_vector_dimension(std::string computation_name, int vec_dim);
-
-     /**
-       * Tag the loop level \p L of the computation
-       * \p computation_name to be unrolled.
-       * The dimension 0 represents the outermost loop level (it
-       * corresponds to the leftmost dimension in the iteration space).
-       */
-     void add_unroll_dimension(std::string stmt_name, int L);
-
-    /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
-      */
-    void align_schedules();
 
     /**
       * Dump the function on standard output (dump most of the fields of
@@ -489,7 +505,7 @@ public:
      * This context set indicates that the two parameters N and M
      * are strictly positive.
      */
-    isl_set *get_context_set();
+    isl_set *get_program_context();
 
     /**
       * Return the isl_ctx associated with this function.
@@ -498,23 +514,7 @@ public:
       * of the function (which should be retrieved by calling
       * get_parameter_set()).
       */
-    isl_ctx *get_ctx() const;
-
-    /**
-      * Return a string representing the name of the GPU block iterator at
-      * dimension \p lev0.
-      * This function only returns a non-empty string if the
-      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
-      */
-    std::string get_gpu_block_iterator(std::string comp, int lev0) const;
-
-    /**
-       * Return a string representing the name of the GPU thread iterator at
-       * dimension \p lev0.
-       * This function only returns a non-empty string if the
-       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
-       */
-     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
+    isl_ctx *get_isl_ctx() const;
 
     /**
       * Return the Halide statement that represents the whole
