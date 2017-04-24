@@ -67,6 +67,9 @@ void halide_pipeline_to_c(
   */
 class function
 {
+    // The computation class can access the private members of function.
+    friend tiramisu::computation;
+
 private:
     /**
       * The name of the function.
@@ -189,6 +192,40 @@ private:
     std::vector<std::string> iterator_names;
 
     /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be parallelized.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_parallel_dimension(std::string computation_name, int vec_dim);
+
+    /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be vectorized.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_vector_dimension(std::string computation_name, int vec_dim);
+
+     /**
+       * Tag the loop level \p L of the computation
+       * \p computation_name to be unrolled.
+       * The dimension 0 represents the outermost loop level (it
+       * corresponds to the leftmost dimension in the iteration space).
+       */
+    void add_unroll_dimension(std::string stmt_name, int L);
+
+    /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
+
+    /**
      * This functions iterates over the schedules of the function (the schedule
      * of each computation in the function) and computes the maximal dimension
      * among the dimensions of the ranges of all the schedules.
@@ -225,6 +262,41 @@ private:
       * identity schedule that does not have enough dimensions.
       */
     isl_union_map *get_aligned_identity_schedules() const;
+protected:
+
+    /**
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU blocks.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, 2);
+      *
+      * Will tag the dimensions 1 and 2 to be transformed to GPU blocks.
+      */
+    void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
+
+     /**
+      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+      * \p computation_name to be mapped to GPU threads.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      *
+      * If the user does not want to tag \p dim1 or \p dim2, he can leave
+      * their values to default value (i.e., -1).  They will not be tagged.
+      *
+      * For example
+      *
+      * add_gpu_block_dimensions("S0", 1, -1, -1);
+      *
+      * Will tag the dimension 1 to be transformed to GPU threads.
+      */
+    void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
 public:
 
@@ -234,6 +306,149 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
+
+    /**
+      * Add a buffer to the function.
+      * The buffers of the function are either:
+      * - buffers passed to the function as arguments, or
+      * - buffers that are declared and allocated within the function
+      * itself.
+      * The first element of the pair is the name of the buffer (it is
+      * used as a key), the second element of the pair is a pointer
+      * to the buffer.
+      */
+    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
+
+    /**
+      * Add a computation to the function.  The order in which
+      * computations are added to the function is not important.
+      * The order of execution is specified using the schedule.
+      * This doesn't allow computations with duplicate names.
+      */
+    void add_computation(computation *cpt);
+
+    /**
+      * Intersect the set provided as input with the context of the function.
+      * A context is an ISL set that represents constraints over the parameters
+      * of the functions (a parameter is an invariant variable for the function).
+      * An example of a context set is the following:
+      *          "[N,M]->{: M>0 and N>0}"
+      * This context set indicates that the two parameters N and M
+      * are strictly positive.
+      * The input set should have the same space as the context set.
+      */
+    void add_context_constraints(std::string new_context_str);
+
+    /**
+     * Add an invariant to the function.
+     */
+    void add_invariant(tiramisu::constant param);
+
+    /**
+      * Add an iterator to the function.
+      */
+    void add_iterator_name(const std::string iteratorName);
+
+    /**
+      * Dump the function on standard output (dump most of the fields of
+      * the function class).
+      * This is mainly useful for debugging.
+      * If \p exhaustive is set to true, all the fields of the function
+      * class are printed.  This is useful for finding potential
+      * initialization problems.
+      */
+    void dump(bool exhaustive) const;
+
+    /**
+      * Dump a Halide stmt that represents the function.
+      * gen_halide_stmt should be called before calling this function.
+      */
+    void dump_halide_stmt() const;
+
+    /**
+      * Dump the iteration domain of the function.
+      * This is mainly useful for debugging.
+      */
+    void dump_iteration_domain() const;
+
+    /**
+      * Dump the schedules of the computations of the function.
+      * This is mainly useful for debugging.
+      * The schedule is a relation between the iteration space and a
+      * time space.  The relation provides a logical date of execution for
+      * each point in the iteration space.
+      * The schedule needs first to be set before calling this function.
+      */
+    void dump_schedule() const;
+
+    /**
+      * Dump (on stdout) the time processor domain of the function.
+      * The time-processor domain should be generated before calling
+      * this function (gen_time_processor_domain()).
+      * This is mainly useful for debugging.
+      */
+    void dump_time_processor_domain() const;
+
+    /**
+      * Dump (on stdout) the trimmed time processor domain of the function.
+      * The time-processor domain should be generated before calling
+      * this function (gen_time_processor_domain()).
+      * This is mainly useful for debugging.
+      * The difference between the time-processor domain and the trimmed
+      * time-processor domain is that the trimmed one does not have the
+      * duplicate dimension.  We remove it before printing.
+      * The trimmed time-processor domain is the domain used for code
+      * generation.
+      */
+    void dump_trimmed_time_processor_domain() const;
+
+    /**
+      * Generate C code on stdout.
+      * Currently C code code generation is very basic and does not
+      * support many features compared to the Halide code generator.
+      * Use this for debugging only.
+      */
+    void gen_c_code() const;
+
+    /**
+      * Generate an object file that contains the compiled function.
+      * This function relies on Halide to generate the object file and
+      * thus requires Halide objects as inputs.
+      * \p obj_file_name indicates the name of the generated file.
+      * \p os indicates the target operating system (Halide::Target::OS).
+      * \p arch indicates the architecture of the target (the instruction set).
+      * \p bits indicate the bit-width of the target machine.
+      *    must be 0 for unknown, or 32 or 64.
+      * For a full list of supported values for \p os and \p arch please
+      * check the documentation of Halide::Target
+      * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
+      * If the machine parameters are not supplied, Halide detects
+      * the parameters of the host machine automatically.
+      */
+    // @{
+    void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
+                         Halide::Target::Arch arch, int bits) const;
+
+    void gen_halide_obj(std::string obj_file_name) const;
+    // @}
+
+    /**
+      * Generate a Halide stmt that represents the function.
+      */
+    void gen_halide_stmt();
+
+    /**
+      * Generate an isl AST that represents the function.
+      */
+    void gen_isl_ast();
+
+    /**
+      * Generate the time-processor domain of the function.
+      * In this representation, the logical time of execution and the
+      * processor where the computation will be executed are both
+      * specified.
+      */
+    void gen_time_processor_domain();
 
     /**
       * Get the arguments of the function.
@@ -265,38 +480,38 @@ public:
     std::vector<computation *> get_computation_by_name(std::string str) const;
 
     /**
-      * Return a set that represents the parameters of the function
-      * (an ISL set that represents the parameters and constraints over
-      * the parameters of the functions, a parameter is an invariant
-      * of the function). This set is also known as the context of
-      * the program.
-      * An example of a context set is the following:
-      *          "[N,M]->{: M>0 and N>0}"
-      * This context set indicates that the two parameters N and M
-      * are strictly positive.
+      * Return a string representing the name of the GPU block iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
       */
-     isl_set *get_parameter_set() const;
+    std::string get_gpu_block_iterator(std::string comp, int lev0) const;
 
-     /**
-      * Return the context set of this function.
-      * A context is an ISL set that represents constraints over
-      * the parameters of the functions (a parameter is an invariant
-      * variable for the function).
-      * An example of a context set is the following:
-      *          "[N,M]->{: M>0 and N>0}"
-      * This context set indicates that the two parameters N and M
-      * are strictly positive.
+    /**
+      * Return a string representing the name of the GPU thread iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
       */
-     isl_set *get_context_set();
+    std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
 
-     /**
-       * Return the isl_ctx associated with this function.
-       * This is an ISL specific object required when calling certain
-       * ISL functions.  It does not represent the set of parameters
-       * of the function (which should be retrieved by calling
-       * get_parameter_set()).
-       */
-     isl_ctx *get_ctx() const;
+    /**
+      * Return the isl_ctx associated with this function.
+      * This is an ISL specific object required when calling certain
+      * ISL functions.  It does not represent the set of parameters
+      * of the function (which should be retrieved by calling
+      * get_parameter_set()).
+      */
+    isl_ctx *get_isl_ctx() const;
+
+    /**
+      * Return the Halide statement that represents the whole
+      * function.
+      * The Halide statement is generated by the code generator.
+      * This function should not be called before calling the code
+      * generator.
+      */
+    Halide::Internal::Stmt get_halide_stmt() const;
 
     /**
       * Get the name of the function.
@@ -312,19 +527,37 @@ public:
     const std::vector<tiramisu::constant> &get_invariants() const;
 
     /**
-      * Return the Halide statement that represents the whole
-      * function.
-      * The Halide statement is generated by the code generator.
-      * This function should not be called before calling the code
-      * generator.
+      * Return an ISL AST that represents this function.
+      * This function itself does not generate the ISL AST, it just
+      * returns it if it already exists.
+      * The function gen_isl_ast() should be called before calling
+      * this function.
       */
-    Halide::Internal::Stmt get_halide_stmt() const;
+    isl_ast_node *get_isl_ast() const;
 
     /**
       * Return the union of all the iteration domains
       * of the computations of the function.
       */
     isl_union_set *get_iteration_domain() const;
+
+    /**
+      * Get the iterator names of the function.
+      */
+    const std::vector<std::string>& get_iterator_names() const;
+
+    /**
+      * Return a set that represents the parameters of the function
+      * (an ISL set that represents the parameters and constraints over
+      * the parameters of the functions,  a parameter is an invariant
+      * of the function). This set is also known as the context of
+      * the program.
+      * An example of a context set is the following:
+      *          "[N,M]->{: M>0 and N>0}"
+      * This context set indicates that the two parameters N and M
+      * are strictly positive.
+      */
+    isl_set *get_program_context() const;
 
     /**
       * Return the union of all the schedules
@@ -342,15 +575,6 @@ public:
     isl_union_map *get_trimmed_schedule() const;
 
     /**
-      * Return an ISL AST that represents this function.
-      * This function itself does not generate the ISL AST, it just
-      * returns it if it already exists.
-      * The function gen_isl_ast() should be called before calling
-      * this function.
-      */
-    isl_ast_node *get_isl_ast() const;
-
-    /**
       * Return the union of time-processor domains of each
       * computation in the function.
       * In the time-processor representation, the logical time of
@@ -358,82 +582,6 @@ public:
       * executed are both specified.
       */
     isl_union_set *get_time_processor_domain() const;
-
-    /**
-      * Get the iterator names of the function.
-      */
-    const std::vector<std::string>& get_iterator_names() const;
-
-    /**
-      * Return a string representing the name of the GPU thread iterator at
-      * dimension \p lev0.
-      * This function only returns a non-empty string if the
-      * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
-      */
-     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
-
-     /**
-       * Return a string representing the name of the GPU block iterator at
-       * dimension \p lev0.
-       * This function only returns a non-empty string if the
-       * computation \p comp is mapped to a GPU block at the dimension \p lev0.
-       */
-     std::string get_gpu_block_iterator(std::string comp, int lev0) const;
-
-     /**
-       * Return true if the computation \p comp should be parallelized
-       * at the loop level \p lev.
-       */
-     bool should_parallelize(std::string comp, int lev) const;
-
-     /**
-       * Return true if the computation \p comp should be vectorized
-       * at the loop level \p lev.
-       */
-     bool should_vectorize(std::string comp, int lev) const;
-
-     /**
-       * Return true if the computation \p comp should be unrolled
-       * at the loop level \p lev.
-       */
-     bool should_unroll(std::string comp, int lev) const;
-
-     /**
-       * Return true if the computation \p comp should be mapped to a GPU block
-       * at the loop levels \p lev0.
-       */
-     bool should_map_to_gpu_block(std::string comp, int lev0) const;
-
-     /**
-       * Return true if the computation \p comp should be mapped to a GPU thread
-       * at the loop levels \p lev0.
-       */
-     bool should_map_to_gpu_thread(std::string comp, int lev0) const;
-
-    /**
-      * Add an invariant to the function.
-      */
-    void add_invariant(tiramisu::constant param);
-
-    /**
-      * Add a buffer to the function.
-      * The buffers of the function are either:
-      * - buffers passed to the function as arguments, or
-      * - buffers that are declared and allocated within the function
-      * itself.
-      * The first element of the pair is the name of the buffer (it is
-      * used as a key), the second element of the pair is a pointer
-      * to the buffer.
-      */
-    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
-
-    /**
-      * Add a computation to the function.  The order in which
-      * computations are added to the function is not important.
-      * The order of execution is specified using the schedule.
-      * This doesn't allow computations with duplicate names.
-      */
-    void add_computation(computation *cpt);
 
     /**
       * Set the arguments of the function.
@@ -461,196 +609,40 @@ public:
     // @}
 
     /**
-      * Intersect the set provided as input with the context of the function.
-      * A context is an ISL set that represents constraints over the parameters
-      * of the functions (a parameter is an invariant variable for the function).
-      * An example of a context set is the following:
-      *          "[N,M]->{: M>0 and N>0}"
-      * This context set indicates that the two parameters N and M
-      * are strictly positive.
-      * The input set should have the same space as the context set.
-      */
-    void add_context_constraints(std::string new_context_str);
-
-    /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
-      */
-    void align_schedules();
-
-    /**
-      * Tag the dimension \p dim of the computation \p computation_name to
-      * be parallelized.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      */
-    void add_parallel_dimension(std::string computation_name, int vec_dim);
-
-    /**
-      * Tag the dimension \p dim of the computation \p computation_name to
-      * be vectorized.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      */
-    void add_vector_dimension(std::string computation_name, int vec_dim);
-
-    /**
-      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
-      * \p computation_name to be mapped to GPU blocks.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      *
-      * If the user does not want to tag \p dim1 or \p dim2, he can leave
-      * their values to default value (i.e., -1).  They will not be tagged.
-      *
-      * For example
-      *
-      * add_gpu_block_dimensions("S0", 1, 2);
-      *
-      * Will tag the dimensions 1 and 2 to be transformed to GPU blocks.
-      */
-     void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
-
-     /**
-      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
-      * \p computation_name to be mapped to GPU threads.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      *
-      * If the user does not want to tag \p dim1 or \p dim2, he can leave
-      * their values to default value (i.e., -1).  They will not be tagged.
-      *
-      * For example
-      *
-      * add_gpu_block_dimensions("S0", 1, -1, -1);
-      *
-      * Will tag the dimension 1 to be transformed to GPU threads.
-      */
-     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
-
-     /**
-       * Tag the loop level \p L of the computation
-       * \p computation_name to be unrolled.
-       * The dimension 0 represents the outermost loop level (it
-       * corresponds to the leftmost dimension in the iteration space).
-       */
-     void add_unroll_dimension(std::string stmt_name, int L);
-
-    /**
       * Set the iterator names of the function.
       * This function overrides any previously set iterator names.
       */
     void set_iterator_names(const std::vector<std::string>& iteratorNames);
 
     /**
-      * Add an iterator to the function.
+      * Return true if the computation \p comp should be mapped to GPU block
+      * at the loop levels \p lev0.
       */
-    void add_iterator_name(const std::string iteratorName);
+    bool should_map_to_gpu_block(std::string comp, int lev0) const;
 
     /**
-       * Generate an object file that contains the compiled function.
-       * This function relies on Halide to generate the object file and
-       * thus requires Halide objects as inputs.
-       * \p obj_file_name indicates the name of the generated file.
-       * \p os indicates the target operating system (Halide::Target::OS).
-       * \p arch indicates the architecture of the target (the instruction set).
-       * \p bits indicate the bit-width of the target machine.
-       *    must be 0 for unknown, or 32 or 64.
-       * For a full list of supported values for \p os and \p arch please
-       * check the documentation of Halide::Target
-       * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
-       * If the machine parameters are not supplied, Halide detects
-       * the parameters of the host machine automatically.
-       */
-     // @{
-     void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
-                         Halide::Target::Arch arch, int bits) const;
-
-     void gen_halide_obj(std::string obj_file_name) const;
-     // @}
-
-     /**
-       * Generate C code on stdout.
-       * Currently C code code generation is very basic and does not
-       * support many features compared to the Halide code generator.
-       * Use this for debugging only.
-       */
-     void gen_c_code() const;
-
-     /**
-       * Generate an isl AST that represents the function.
-       */
-     void gen_isl_ast();
-
-     /**
-       * Generate a Halide stmt that represents the function.
-       */
-     void gen_halide_stmt();
-
-     /**
-       * Generate the time-processor domain of the function.
-       * In this representation, the logical time of execution and the
-       * processor where the computation will be executed are both
-       * specified.
-       */
-     void gen_time_processor_domain();
-
-    /**
-      * Dump the iteration domain of the function.
-      * This is mainly useful for debugging.
+      * Return true if the computation \p comp should be mapped to GPU thread
+      * at the loop levels \p lev0.
       */
-    void dump_iteration_domain() const;
+    bool should_map_to_gpu_thread(std::string comp, int lev0) const;
 
     /**
-      * Dump the schedules of the computations of the function.
-      * This is mainly useful for debugging.
-      * The schedule is a relation between the iteration space and a
-      * time space.  The relation provides a logical date of execution for
-      * each point in the iteration space.
-      * The schedule needs first to be set before calling this function.
+      * Return true if the computation \p comp should be parallelized
+      * at the loop level \p lev.
       */
-    void dump_schedule() const;
+    bool should_parallelize(std::string comp, int lev) const;
 
     /**
-       * Dump (on stdout) the time processor domain of the function.
-       * The time-processor domain should be generated before calling
-       * this function (gen_time_processor_domain()).
-       * This is mainly useful for debugging.
-       */
-     void dump_time_processor_domain() const;
-
-     /**
-       * Dump (on stdout) the trimmed time processor domain of the function.
-       * The time-processor domain should be generated before calling
-       * this function (gen_time_processor_domain()).
-       * This is mainly useful for debugging.
-       * The difference between the time-processor domain and the trimmed
-       * time-processor domain is that the trimmed one does not have the
-       * duplicate dimension.  We remove it before printing.
-       * The trimmed time-processor domain is the domain used for code
-       * generation.
-       */
-     void dump_trimmed_time_processor_domain() const;
-
-     /**
-       * Dump a Halide stmt that represents the function.
-       * gen_halide_stmt should be called before calling this function.
-       */
-     void dump_halide_stmt() const;
-
-    /**
-      * Dump the function on standard output (dump most of the fields of
-      * the function class).
-      * This is mainly useful for debugging.
-      * If \p exhaustive is set to true, all the fields of the function
-      * class are printed.  This is useful for finding potential
-      * initialization problems.
+      * Return true if the computation \p comp should be unrolled
+      * at the loop level \p lev.
       */
-    void dump(bool exhaustive) const;
+    bool should_unroll(std::string comp, int lev) const;
+
+    /**
+      * Return true if the computation \p comp should be vectorized
+      * at the loop level \p lev.
+      */
+    bool should_vectorize(std::string comp, int lev) const;
 };
 
 
@@ -700,15 +692,15 @@ private:
     tiramisu::function *fct;
 
     /**
-     * Type of the argument (if the buffer is an argument):
-     * Three possible types:
-     *  - a_input: for inputs of the function,
-     *  - a_output: for outputs of the function,
-     *  - a_temporary: for buffers used as temporary buffers within
-     *  the function (any temporary buffer is allocated automatically by
-     *  the Tiramisu runtime at the entry of the function and is
-     *  deallocated at the exit of the function).
-     */
+      * Type of the argument (if the buffer is an argument):
+      * Three possible types:
+      *  - a_input: for inputs of the function,
+      *  - a_output: for outputs of the function,
+      *  - a_temporary: for buffers used as temporary buffers within
+      *  the function (any temporary buffer is allocated automatically by
+      *  the Tiramisu runtime at the entry of the function and is
+      *  deallocated at the exit of the function).
+      */
     tiramisu::argument_t argtype;
 
 public:
@@ -784,8 +776,8 @@ public:
     int get_n_dims() const;
 
     /**
-    * Return the type of the elements of the buffer.
-    */
+      * Return the type of the elements of the buffer.
+      */
     tiramisu::primitive_t get_elements_type() const;
 
     /**
@@ -839,14 +831,14 @@ private:
     isl_map *access;
 
     /**
-     * A vector that contains the list of let statements associated
-     * with this computation.
-     *
-     * A let statement that is associated with the computation is a let statement
-     * that will be added just before the computation.  The scope of the variable
-     * defined by the let statement is this computation alone. i.e., it is not
-     * defined in other computations.
-     */
+      * A vector that contains the list of let statements associated
+      * with this computation.
+      *
+      * A let statement that is associated with the computation is a let statement
+      * that will be added just before the computation.  The scope of the variable
+      * defined by the let statement is this computation alone. i.e., it is not
+      * defined in other computations.
+      */
     std::vector<std::pair<std::string, tiramisu::expr>> associated_let_stmts;
 
     /**
@@ -855,8 +847,8 @@ private:
     isl_ctx *ctx;
 
     /**
-     * Data type: the type of the value returned by the computation.
-     */
+      * Data type: the type of the value returned by the computation.
+      */
     tiramisu::primitive_t data_type;
 
     /**
@@ -894,25 +886,25 @@ private:
     std::vector<isl_map *> schedules;
 
     /**
-     * A logical time that indicates the relative order of this computation
-     * compared to other computations.
-     * This should only be used by the .after() function and should not be
-     * used directly by users.
-     */
+      * A logical time that indicates the relative order of this computation
+      * compared to other computations.
+      * This should only be used by the .after() function and should not be
+      * used directly by users.
+      */
     unsigned long relative_order;
 
     /**
-     * Does this computation represent a let statement ?
-     *
-     * Let statements should be treated differently:
-     * - During Halide code generation a Halide let statement should be
-     * created instead of an assignment statement.
-     * - A let statement does not have/need an access function because
-     * it writes directly to a scalar.
-     * - When targeting Halide, let statements should be created after
-     * their body is created, because the body is an argument needed
-     * for the creation of the let statement.
-     */
+      * Does this computation represent a let statement ?
+      *
+      * Let statements should be treated differently:
+      * - During Halide code generation a Halide let statement should be
+      * created instead of an assignment statement.
+      * - A let statement does not have/need an access function because
+      * it writes directly to a scalar.
+      * - When targeting Halide, let statements should be created after
+      * their body is created, because the body is an argument needed
+      * for the creation of the let statement.
+      */
     bool _is_let_stmt;
 
     /**
@@ -929,14 +921,14 @@ private:
       */
      bool schedule_this_computation;
 
-     /**
-       * The name of this computation.
-       * Computation names should not start with _ (an underscore).
-       * Names starting with _ are reserved names.
-       */
-     std::string name;
+    /**
+      * The name of this computation.
+      * Computation names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
+      */
+    std::string name;
 
-     /**
+    /**
       * A computation can have multiple duplicates.  When the user applies
       * a transformation, that transformation can be applied either on the
       * original computation or on one of its duplicates.
@@ -949,113 +941,113 @@ private:
       * By default, the original computation is selected (ID = 0). The user
       * can select another duplicate using the select(ID) command.
       */
-     int selected_ID;
+    int selected_ID;
 
-     // Private class members that are computed during code generation.
-
-     /**
-       * Halide statement that assigns the computation to a buffer location.
-       */
-     Halide::Internal::Stmt stmt;
-
-     /**
-       * Time-processor domain of the computation.
-       * In this representation, the logical time of execution and the
-       * processor where the computation will be executed are both
-       * specified.
-       */
-     isl_set *time_processor_domain;
-
-     /**
-       * An isl_ast_expr representing the index of the array where the computation
-       * will be stored.  This index is computed after the scheduling is done.
-       */
-     std::vector<isl_ast_expr *> index_expr;
-
-     // Private class methods.
-
-     /**
-      * Get the ID of the selected duplicate.
-      */
-     int get_selected_duplicate_ID();
+    // Private class members that are computed during code generation.
 
     /**
-     * Set the iteration domain of the computation
-     */
+      * Halide statement that assigns the computation to a buffer location.
+      */
+    Halide::Internal::Stmt stmt;
+
+    /**
+      * Time-processor domain of the computation.
+      * In this representation, the logical time of execution and the
+      * processor where the computation will be executed are both
+      * specified.
+      */
+    isl_set *time_processor_domain;
+
+    /**
+      * An isl_ast_expr representing the index of the array where the computation
+      * will be stored.  This index is computed after the scheduling is done.
+      */
+    std::vector<isl_ast_expr *> index_expr;
+
+    // Private class methods.
+
+    /**
+      * Get the ID of the selected duplicate.
+      */
+    int get_selected_duplicate_ID();
+
+    /**
+      * Set the iteration domain of the computation
+      */
     void set_iteration_domain(isl_set *domain);
 
     tiramisu::constant* create_separator_and_add_constraints_to_context(
                 const tiramisu::expr& loop_upper_bound, int v);
 
     /**
-     * Apply a duplication transformation from iteration space to
-     * time-processor space.
-     * A duplication transformation duplicates the original computation,
-     * so the domain of the schedule has to be the iteration domain of
-     * the original computation.
-     *
-     * For example, to duplicate C0 into a first duplicate:
-     *
-     * C0[i, j] -> C0[1, 0, i, 0, j, 0]
-     *
-     * To duplicate C0 again
-     *
-     * C0[i, j] -> C0[2, 0, j, 0, i, 0]
-     *
-     */
+      * Apply a duplication transformation from iteration space to
+      * time-processor space.
+      * A duplication transformation duplicates the original computation,
+      * so the domain of the schedule has to be the iteration domain of
+      * the original computation.
+      *
+      * For example, to duplicate C0 into a first duplicate:
+      *
+      * C0[i, j] -> C0[1, 0, i, 0, j, 0]
+      *
+      * To duplicate C0 again
+      *
+      * C0[i, j] -> C0[2, 0, j, 0, i, 0]
+      *
+      */
     void create_duplication_transformation(std::string map_str);
 
     /**
-     * Intersect \p set with the context of the computation.
-     */
+      * Intersect \p set with the context of the computation.
+      */
     // @{
     isl_set* intersect_set_with_context(isl_set* set);
     isl_map* intersect_map_domain_with_context(isl_map* map);
     // @}
 
     /**
-     * Reset the selected duplicate ID.
-     */
+      * Reset the selected duplicate ID.
+      */
     void reset_selected_duplicate();
 
     /**
-     * Separate the iteration domain into two iteration domains using
-     * the constant \p C.
-     * Let us assume that the dimension \p dim of the iteration domain
-     * is called i.  The iteration domain is separated into two domains
-     * using the hyperplane (i = C). That means, two copies of the
-     * iteration domain are created, the constraint (i<=C) is added to
-     * the first while the constrain (i>C) is added to the second.
-     *
-     * Let us assume that we have the following iteration domain
-     *
-     *   {S0[i,j]: 0<=i<N and 0<=j<N}
-     *
-     * To separate this iteration domain by the hyperplane j=M, one should
-     * call
-     *
-     *   S0.separate(1, tiramisu::expr("M"))
-     *
-     * This will result in the creation of two computations that have the following
-     * iteration domains
-     *
-     * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
-     *
-     * The call to separate returns a vector of pointers to computations.
-     * The fitst computation is the one constrained with the constraint
-     * (i<=C), this computation is also known as the full computation
-     * while the second computation is constrained with (i>C). The second
-     * computation is also known as the partial or the separated computation.
-     *
-     * Note that computation names that start with "_" are reserved to Tiramisu.
-     *
-     */
+      * Separate the iteration domain into two iteration domains using
+      * the constant \p C.
+      * Let us assume that the dimension \p dim of the iteration domain
+      * is called i.  The iteration domain is separated into two domains
+      * using the hyperplane (i = C). That means, two copies of the
+      * iteration domain are created, the constraint (i<=C) is added to
+      * the first while the constrain (i>C) is added to the second.
+      *
+      * Let us assume that we have the following iteration domain
+      *
+      *   {S0[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * To separate this iteration domain by the hyperplane j=M, one should
+      * call
+      *
+      *   S0.separate(1, tiramisu::expr("M"))
+      *
+      * This will result in the creation of two computations that have the following
+      * iteration domains
+      *
+      * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
+      *
+      * The call to separate returns a vector of pointers to computations.
+      * The fitst computation is the one constrained with the constraint
+      * (i<=C), this computation is also known as the full computation
+      * while the second computation is constrained with (i>C). The second
+      * computation is also known as the partial or the separated computation.
+      *
+      * Note that computation names that start with "_" are reserved to Tiramisu.
+      *
+      */
     std::vector<tiramisu::computation *> separate(int dim, tiramisu::constant &C);
 
     /**
-     * Simplify \p set using the context and by calling
-     * set coalescing.
-     */
+      * Simplify \p set using the context and by calling
+      * set coalescing.
+      */
     // @{
     isl_set* simplify(isl_set* set);
     isl_map* simplify(isl_map* map);
@@ -1077,8 +1069,8 @@ protected:
                           tiramisu::primitive_t t);
 
     /**
-     * Dummy constructor for derived classes.
-     */
+      * Dummy constructor for derived classes.
+      */
     computation();
 
 public:
@@ -1161,150 +1153,150 @@ public:
       * time-processor domain using the schedule, and then the transformed
       * access function is returned.
       */
-      isl_map *get_access_relation_adapted_to_time_processor_domain() const;
+    isl_map *get_access_relation_adapted_to_time_processor_domain() const;
 
-      /**
-       * Return vector of associated let statements.
-       *
-       * This is a vector that contains the list of let statements
-       * associated with this computation.
-       *
-       * A let statement that is associated with the computation is a
-       * let statement that will be added just before the computation.
-       * The scope of the variable defined by the let statement is this
-       * computation alone. i.e., it is not defined in other computations.
-       */
-      std::vector<std::pair<std::string, tiramisu::expr>> get_associated_let_stmts();
+    /**
+      * Return vector of associated let statements.
+      *
+      * This is a vector that contains the list of let statements
+      * associated with this computation.
+      *
+      * A let statement that is associated with the computation is a
+      * let statement that will be added just before the computation.
+      * The scope of the variable defined by the let statement is this
+      * computation alone. i.e., it is not defined in other computations.
+      */
+    std::vector<std::pair<std::string, tiramisu::expr>> get_associated_let_stmts();
 
-      /**
-        * Return the context of the computations.
-        */
-      isl_ctx *get_ctx() const;
+    /**
+      * Return the context of the computations.
+      */
+    isl_ctx *get_ctx() const;
 
-      /**
-        * Get the data type of the computation.
-        */
-      tiramisu::primitive_t get_data_type() const;
+    /**
+      * Get the data type of the computation.
+      */
+    tiramisu::primitive_t get_data_type() const;
 
-      /*
-       * Get the schedule of the computation or a duplicate of the
-       * computation.
-       * \p duplicate_ID should be used to indicate the ID of the duplicate
-       * of which you want to get the schedule.
-       * By default, this function returns the schedule of the original
-       * computation which has an ID = 0.
-       */
-      isl_map *get_schedule(int duplicate_ID = 0) const;
+    /**
+      * Get the schedule of the computation or a duplicate of the
+      * computation.
+      * \p duplicate_ID should be used to indicate the ID of the duplicate
+      * of which you want to get the schedule.
+      * By default, this function returns the schedule of the original
+      * computation which has an ID = 0.
+      */
+    isl_map *get_schedule(int duplicate_ID = 0) const;
 
-      /**
-        * Return the number of schedules of duplicate computations.
-        */
-      int get_duplicate_schedules_number() const;
+    /**
+      * Return the number of schedules of duplicate computations.
+      */
+    int get_duplicate_schedules_number() const;
 
-      /**
-        * Return the Tiramisu expression associated with the computation.
-        */
-      const tiramisu::expr &get_expr() const;
+    /**
+      * Return the Tiramisu expression associated with the computation.
+      */
+    const tiramisu::expr &get_expr() const;
 
-      /**
-        * Return the function where the computation is declared.
-        */
-      tiramisu::function *get_function() const;
+    /**
+      * Return the function where the computation is declared.
+      */
+    tiramisu::function *get_function() const;
 
-      /**
-        * Return the Halide statement that assigns the computation to a buffer location.
-        * Before calling this function the user should first call Halide code generation
-        * (function::gen_halide_stmt()).
-        */
-      Halide::Internal::Stmt get_generated_halide_stmt() const;
+    /**
+      * Return the Halide statement that assigns the computation to a buffer location.
+      * Before calling this function the user should first call Halide code generation
+      * (function::gen_halide_stmt()).
+      */
+    Halide::Internal::Stmt get_generated_halide_stmt() const;
 
-      /**
-        * Return vector of isl_ast_expr representing the indices of the array where
-        * the computation will be stored.
-        */
-      std::vector<isl_ast_expr *> &get_index_expr();
+    /**
+      * Return vector of isl_ast_expr representing the indices of the array where
+      * the computation will be stored.
+      */
+    std::vector<isl_ast_expr *> &get_index_expr();
 
-      /**
-        * Return the iteration domain of the computation.
-        * In this representation, the order of execution of computations
-        * is not specified, the computations are also not mapped to memory.
-        */
-      isl_set *get_iteration_domain() const;
+    /**
+      * Return the iteration domain of the computation.
+      * In this representation, the order of execution of computations
+      * is not specified, the computations are also not mapped to memory.
+      */
+    isl_set *get_iteration_domain() const;
 
-      /**
-        * Return the name of the computation.
-        */
-      const std::string &get_name() const;
+    /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
 
-      /**
-       * Get the number of dimensions of the iteration
-       * domain of the computation.
-       */
-      int get_n_dimensions();
+    /**
+      * Get the number of dimensions of the iteration
+      * domain of the computation.
+      */
+    int get_n_dimensions();
 
-      /**
-        * Return the union of the schedules of the original computation
-        * and it duplicates (if it has).
-        * The return map is an isl_map that represents the union of the
-        * schedules.
-        */
-      isl_map *get_union_of_schedules() const;
+    /**
+      * Return the union of the schedules of the original computation
+      * and it duplicates (if it has).
+      * The return map is an isl_map that represents the union of the
+      * schedules.
+      */
+    isl_map *get_union_of_schedules() const;
 
-      /**
-       * Return a vector of the schedules.
-       * This vector holds both the schedule of the original computation and
-       * the schedule of each duplicate computation.
-       * The element 0 in the vector is the schedule of the original computation.
-       * The elements from 1 to the number of duplicates are the schedules that transform
-       * the original computation into duplicate computations and map them to the
-       * time-processor domain.
-       */
-      std::vector<isl_map *> get_vector_of_schedules() const;
+    /**
+      * Return a vector of the schedules.
+      * This vector holds both the schedule of the original computation and
+      * the schedule of each duplicate computation.
+      * The element 0 in the vector is the schedule of the original computation.
+      * The elements from 1 to the number of duplicates are the schedules that transform
+      * the original computation into duplicate computations and map them to the
+      * time-processor domain.
+      */
+    std::vector<isl_map *> get_vector_of_schedules() const;
 
-      /**
-        * Trim the union of schedules of the computation and
-        * return the result.
-        * The trimmed union of schedules is the schedule without the
-        * duplicate dimension (the dimension used to indicate the
-        * duplicate ID).
-        */
-      isl_map *get_trimmed_union_of_schedules() const;
+    /**
+      * Trim the union of schedules of the computation and
+      * return the result.
+      * The trimmed union of schedules is the schedule without the
+      * duplicate dimension (the dimension used to indicate the
+      * duplicate ID).
+      */
+    isl_map *get_trimmed_union_of_schedules() const;
 
-      /**
-        * Return the time-processor domain of the computation.
-        * In this representation, the logical time of execution and the
-        * processor where the computation will be executed are both
-        * specified.
-        */
-      isl_set *get_time_processor_domain() const;
+    /**
+      * Return the time-processor domain of the computation.
+      * In this representation, the logical time of execution and the
+      * processor where the computation will be executed are both
+      * specified.
+      */
+    isl_set *get_time_processor_domain() const;
 
-      /**
-        * Return the trimmed time-processor domain.
-        * The first dimension of the time-processor domain is used
-        * to indicate redundancy of the computation.  Computations that
-        * are not redundant have 0 in that dimension, whereas
-        * computations that are redundant (i.e., are recomputed) have
-        * a number different from 0 in that dimension and which represents
-        * the ID of the redundant computation.
-        * The trimmed time-processor domain is the time-processor domain
-        * without the dimension that represents the redundancy.  We simply
-        * take the time-processor domain and remove the first dimension.
-        */
-      isl_set *get_trimmed_time_processor_domain();
+    /**
+      * Return the trimmed time-processor domain.
+      * The first dimension of the time-processor domain is used
+      * to indicate redundancy of the computation.  Computations that
+      * are not redundant have 0 in that dimension, whereas
+      * computations that are redundant (i.e., are recomputed) have
+      * a number different from 0 in that dimension and which represents
+      * the ID of the redundant computation.
+      * The trimmed time-processor domain is the time-processor domain
+      * without the dimension that represents the redundancy.  We simply
+      * take the time-processor domain and remove the first dimension.
+      */
+    isl_set *get_trimmed_time_processor_domain();
 
-     /**
-       * Return if this computation represents a let statement.
-       *
-       * Let statements should be treated differently because:
-       * - A let statement does not have/need an access function because
-       * it writes directly to a scalar.
-       * - If the backend is Halide:
-       *      - During Halide code generation a Halide let statement
-       *      should be created instead of an assignment statement.
-       *      - When targeting Halide, let statements should be created
-       *      after their body is created, because the body is an argument
-       *      needed for the creation of the let statement.
-       */
+    /**
+      * Return if this computation represents a let statement.
+      *
+      * Let statements should be treated differently because:
+      * - A let statement does not have/need an access function because
+      * it writes directly to a scalar.
+      * - If the backend is Halide:
+      *      - During Halide code generation a Halide let statement
+      *      should be created instead of an assignment statement.
+      *      - When targeting Halide, let statements should be created
+      *      after their body is created, because the body is an argument
+      *      needed for the creation of the let statement.
+      */
     bool is_let_stmt() const;
 
     /**
@@ -1314,37 +1306,37 @@ public:
     bool should_schedule_this_computation() const;
 
     /**
-     * Set the access function of the computation.
-     *
-     * The access function is a relation from computations to buffer locations.
-     * \p access_str is a string that represents the relation (in ISL format,
-     * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
-     */
+      * Set the access function of the computation.
+      *
+      * The access function is a relation from computations to buffer locations.
+      * \p access_str is a string that represents the relation (in ISL format,
+      * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+      */
     // @{
     void set_access(std::string access_str);
     void set_access(isl_map *access);
     // @}
 
     /**
-     * Set the expression of the computation.
-     */
+      * Set the expression of the computation.
+      */
     void set_expression(const tiramisu::expr &e);
 
     /**
-     * Set an identity schedule for the computation.
-     *
-     * This identity schedule is an identity relation created from the iteration
-     * domain.
-     *
-     * This sets the schedule of the original computation
-     * and does not set the schedule of any duplicate
-     * computation.
-     */
+      * Set an identity schedule for the computation.
+      *
+      * This identity schedule is an identity relation created from the iteration
+      * domain.
+      *
+      * This sets the schedule of the original computation
+      * and does not set the schedule of any duplicate
+      * computation.
+      */
     void set_identity_schedule_based_on_iteration_domain();
 
     /**
-     * Set the name of the computation.
-     */
+      * Set the name of the computation.
+      */
     void set_name(const std::string n);
 
     /**
@@ -1460,69 +1452,68 @@ public:
     // @}
 
     /**
-     * Compare two computations.
-     *
-     * Two computations are considered to be equal if they have the
-     * same name.
-     */
+      * Compare two computations.
+      *
+      * Two computations are considered to be equal if they have the
+      * same name.
+      */
     bool operator==(tiramisu::computation comp1);
 
     /**
-     * Access operator: C0(i,j) represents an access to
-     * the element (i,j) of the computation C0.
-     * C0(i,j) represents the value computed by the computation
-     * C0(i,j)
-     *
-     */
+      * Access operator: C0(i,j) represents an access to
+      * the element (i,j) of the computation C0.
+      * C0(i,j) represents the value computed by the computation
+      * C0(i,j)
+      */
     template<typename... Args> tiramisu::expr operator()(Args... args)
     {
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
         return tiramisu::expr(tiramisu::o_access,
-                          this->get_name(),
-                          access_expressions,
-                          this->get_data_type());
+                              this->get_name(),
+                              access_expressions,
+                              this->get_data_type());
     }
 
     /**
-     * Apply a transformation from time-processor space to time-processor space.
-     * This transformation is applied on the range of the schedule.
-     *
-     * For example, to apply to shift the i dimension of the time-processor domain
-     * of C0, you can apply the transformation
-     *
-     * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
-     *
-     * To apply an interchange, you would do
-     *
-     * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
-     *
-     * The transformation is applied on the duplicate \p ID.  By default,
-     * the transformations are applied on the original computation.
-     *
-     */
+      * Apply a transformation from time-processor space to time-processor space.
+      * This transformation is applied on the range of the schedule.
+      *
+      * For example, to apply to shift the i dimension of the time-processor domain
+      * of C0, you can apply the transformation
+      *
+      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
+      *
+      * To apply an interchange, you would do
+      *
+      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
+      *
+      * The transformation is applied on the duplicate \p ID.  By default,
+      * the transformations are applied on the original computation.
+      *
+      */
     void apply_transformation_on_schedule(std::string map_str, int ID = 0);
 
     /**
-     * Apply a transformation on the domain of the schedule.
-     * This is a transformation from iteration domain to the time-processor
-     * domain.
-     *
-     * For example, to apply to shift the i dimension of the iteration domain
-     * of C0, you can apply the transformation
-     *
-     * C0[i, j] -> C0[i+2, j]
-     *
-     * The transformation is applied on the duplicate \p ID.  By default,
-     * the transformations are applied on the original computation.
-     *
-     */
+      * Apply a transformation on the domain of the schedule.
+      * This is a transformation from iteration domain to the time-processor
+      * domain.
+      *
+      * For example, to apply to shift the i dimension of the iteration domain
+      * of C0, you can apply the transformation
+      *
+      * C0[i, j] -> C0[i+2, j]
+      *
+      * The transformation is applied on the duplicate \p ID.  By default,
+      * the transformations are applied on the original computation.
+      *
+      */
     void apply_transformation_on_schedule_domain(std::string map_str, int ID = 0);
 
     /**
-     * Add the set of constraints \p domain_constraints to the domain
-     * of the schedule and add the set of constraints \p range_constraints
-     * to the range of the schedule.
-     */
+      * Add the set of constraints \p domain_constraints to the domain
+      * of the schedule and add the set of constraints \p range_constraints
+      * to the range of the schedule.
+      */
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints, int ID);
 
     /**
@@ -1590,201 +1581,201 @@ public:
     void before(computation &consumer, int L);
 
     /**
-     * This function assumes that \p consumer consumes values produced by
-     * this computation (which is the producer).
-     *
-     * This computation is scheduled so that the values consumed by the
-     * \p consumer are computed at the level \p L and in the same loop
-     * nest of the consumer.
-     *
-     * If the consumer needs redundant computations of the producer to
-     * be performed, the function creates the necessary redundant
-     * computations and schedules them before the consumer.
-     */
+      * This function assumes that \p consumer consumes values produced by
+      * this computation (which is the producer).
+      *
+      * This computation is scheduled so that the values consumed by the
+      * \p consumer are computed at the level \p L and in the same loop
+      * nest of the consumer.
+      *
+      * If the consumer needs redundant computations of the producer to
+      * be performed, the function creates the necessary redundant
+      * computations and schedules them before the consumer.
+      */
     void compute_at(computation &comp, int L);
 
     /**
-     * Duplicate a part of the computation.  The duplicated part
-     * is identified using a disjunction of conjunctions of constraints.
-     *
-     * For example, let us assume that you have the following computation
-     *
-     * {C0[i,j]: 0<=i<N and 0<=j<N}
-     *
-     * If you want to create a duplicate of a block of the computations
-     * of C0 that satisfy the has the iteration domain
-     *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
-     * you can write
-     *
-     * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
-     *
-     * This will keep the original computation C0 and will create a
-     * new computation that is a subset of C0 and that its domain
-     * is restricted to the domain "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
-     * (the function actually intersects the domain provided with
-     * the original domain).
-     *
-     * C0 is called the original computation while the newly created
-     * computation is called the duplicate computation, both have
-     * the name C0.  To differentiate between the two computations,
-     * we introduce the notion of "duplicate ID".
-     *
-     * The duplicate ID of the original computation is always 0. The ID
-     * of the newly created computation is generated automatically and
-     * is 1 for the first duplicate, 2 for the second duplicate, ...
-     *
-     * The duplicate computation is an exact copy of the original
-     * computation except in two things:
-     * (1) the iteration domain of the duplicate computation is
-     * the intersection of the iteration domain of the original
-     * computation with the constraints provided as an argument
-     * to the duplicate command; this means that the iteration domain
-     * of the duplicate computation is always a subset of the original
-     * iteration domain;
-     * (2) the duplicate ID of the two computations is different, the
-     * original computation has an ID equal to zero while the newly
-     * created duplicate has an ID equal to the number of duplicates
-     * already created + 1.
-     *
-     * The duplicated computation will have a schedule equal to the schedule
-     * of the original computation up to the point where the duplication happens.
-     * After duplication, any schedule that is applied on the original computation
-     * will not be applied automatically on the duplicate computation.
-     * To apply a schedule on the duplicate computation, you should specify
-     * the duplicate ID in the scheduling command.  By default, all the scheduling
-     * commands apply on the original computation.  For example, to tile the
-     * dimensions 3 and 4 of the duplicate computation that has an ID equal to
-     * 1 with a tile size 32x32, you can call
-     *
-     * C0.tile(1, 3,4, 32,32);
-     *
-     * To tile the original computation with the same tiling, you can call
-     *
-     * C0.tile(0, 3,4, 32,32);
-     *
-     * Or simply call
-     *
-     * C0.tile(3,4, 32,32);
-     *
-     * Since all the scheduling commands by default apply on the original
-     * computation.
-     *
-     * \p domain_constraints is a set of constraints on the iteration domain that
-     * define the duplicate.
-     * \p range_constraints is a set of constraints on the time-processor domain
-     * that define the duplicate.
-     * The set of range_constraints is supposed to have an ID 0.
-     *
-     * This function returns a vector of two computations, the first element in the vector
-     * is the original computation and the second is the duplicated computation.
-     */
+      * Duplicate a part of the computation.  The duplicated part
+      * is identified using a disjunction of conjunctions of constraints.
+      *
+      * For example, let us assume that you have the following computation
+      *
+      * {C0[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * If you want to create a duplicate of a block of the computations
+      * of C0 that satisfy the has the iteration domain
+      *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+      * you can write
+      *
+      * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
+      *
+      * This will keep the original computation C0 and will create a
+      * new computation that is a subset of C0 and that its domain
+      * is restricted to the domain "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+      * (the function actually intersects the domain provided with
+      * the original domain).
+      *
+      * C0 is called the original computation while the newly created
+      * computation is called the duplicate computation, both have
+      * the name C0.  To differentiate between the two computations,
+      * we introduce the notion of "duplicate ID".
+      *
+      * The duplicate ID of the original computation is always 0. The ID
+      * of the newly created computation is generated automatically and
+      * is 1 for the first duplicate, 2 for the second duplicate, ...
+      *
+      * The duplicate computation is an exact copy of the original
+      * computation except in two things:
+      * (1) the iteration domain of the duplicate computation is
+      * the intersection of the iteration domain of the original
+      * computation with the constraints provided as an argument
+      * to the duplicate command; this means that the iteration domain
+      * of the duplicate computation is always a subset of the original
+      * iteration domain;
+      * (2) the duplicate ID of the two computations is different, the
+      * original computation has an ID equal to zero while the newly
+      * created duplicate has an ID equal to the number of duplicates
+      * already created + 1.
+      *
+      * The duplicated computation will have a schedule equal to the schedule
+      * of the original computation up to the point where the duplication happens.
+      * After duplication, any schedule that is applied on the original computation
+      * will not be applied automatically on the duplicate computation.
+      * To apply a schedule on the duplicate computation, you should specify
+      * the duplicate ID in the scheduling command.  By default, all the scheduling
+      * commands apply on the original computation.  For example, to tile the
+      * dimensions 3 and 4 of the duplicate computation that has an ID equal to
+      * 1 with a tile size 32x32, you can call
+      *
+      * C0.tile(1, 3,4, 32,32);
+      *
+      * To tile the original computation with the same tiling, you can call
+      *
+      * C0.tile(0, 3,4, 32,32);
+      *
+      * Or simply call
+      *
+      * C0.tile(3,4, 32,32);
+      *
+      * Since all the scheduling commands by default apply on the original
+      * computation.
+      *
+      * \p domain_constraints is a set of constraints on the iteration domain that
+      * define the duplicate.
+      * \p range_constraints is a set of constraints on the time-processor domain
+      * that define the duplicate.
+      * The set of range_constraints is supposed to have an ID 0.
+      *
+      * This function returns a vector of two computations, the first element in the vector
+      * is the original computation and the second is the duplicated computation.
+      */
     std::vector<tiramisu::computation *> duplicate(std::string domain_constraints, std::string range_constraints);
 
     /**
-     * Fuse the loop over this computation with the loop over the
-     * computations passed as arguments. Fuse at the loop level
-     * \p lev.
-     *
-     * For example, assuming we have the following computations
-     *
-     * {S0[i,j]: 0<=i<N and 0<=j<N}, {S1[i,j]: 0<=i<N and 0<=j<N}
-     * and {S2[i,j]: 0<=i<N and 0<=j<N}.
-     *
-     * With the default schedule, these computations would be equivalent
-     * to the following loops nests
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<N; j++)
-     *     S0;
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<N; j++)
-     *     S1;
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<N; j++)
-     *     S2;
-     *
-     * S2.fuse_after(1, S0, S1);
-     *
-     * would result in fusing S2 with S0 and S1 at loop level 1,
-     * the resulting code would look like
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<N; j++)
-     *   {
-     *     S0;
-     *     S1;
-     *     S2;
-     *   }
-     *
-     * S2.fuse_after(0, S0, S1);
-     *
-     * would result in the following code
-     *
-     * for (i=0; i<N; i++)
-     * {
-     *   for (j=0; j<N; j++)
-     *     S0;
-     *   for (j=0; j<N; j++)
-     *     S1;
-     *   for (j=0; j<N; j++)
-     *     S2;
-     * }
-     *
-     */
+      * Fuse the loop over this computation with the loop over the
+      * computations passed as arguments. Fuse at the loop level
+      * \p lev.
+      *
+      * For example, assuming we have the following computations
+      *
+      * {S0[i,j]: 0<=i<N and 0<=j<N}, {S1[i,j]: 0<=i<N and 0<=j<N}
+      * and {S2[i,j]: 0<=i<N and 0<=j<N}.
+      *
+      * With the default schedule, these computations would be equivalent
+      * to the following loops nests
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S0;
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S1;
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S2;
+      *
+      * S2.fuse_after(1, S0, S1);
+      *
+      * would result in fusing S2 with S0 and S1 at loop level 1,
+      * the resulting code would look like
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *   {
+      *     S0;
+      *     S1;
+      *     S2;
+      *   }
+      *
+      * S2.fuse_after(0, S0, S1);
+      *
+      * would result in the following code
+      *
+      * for (i=0; i<N; i++)
+      * {
+      *   for (j=0; j<N; j++)
+      *     S0;
+      *   for (j=0; j<N; j++)
+      *     S1;
+      *   for (j=0; j<N; j++)
+      *     S2;
+      * }
+      *
+      */
     template<typename... Args> void fuse_after(int lev, Args... args)
     {
         std::vector<tiramisu::computation> computations{std::forward<Args>(args)...};
 
-        if (computations.size()>0)
+        if (computations.size() > 0)
         {
             this->after(computations[0], lev);
 
-            for (int i=0; i<computations.size()-1; i++)
+            for (int i = 0; i < computations.size() - 1; i++)
                 computations[i].after(computations[i+1], lev);
         }
     }
 
     /**
-     * Tile the computation and then tag the outermost tile dimension
-     * to be mapped to GPU blocks and tag the innermost tile dimensions
-     * to be mapped to GPU threads.
-     *
-     * Tile the two loop levels \p L0 and \p L1 with rectangular
-     * tiling.  \p sizeX and \p sizeY represent the tile size.
-     * \p L0 and \p L1 should be two consecutive loop levels
-     * (i.e., \p L0 = \p L1 + 1) and they should satisfy
-     * \p L0 > \p L1.
-     */
+      * Tile the computation and then tag the outermost tile dimension
+      * to be mapped to GPU blocks and tag the innermost tile dimensions
+      * to be mapped to GPU threads.
+      *
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
+      * tiling. \p sizeX and \p sizeY represent the tile size.
+      * \p L0 and \p L1 should be two consecutive loop levels
+      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+      * \p L0 > \p L1.
+      */
     // @{
     void gpu_tile(int L0, int L1, int sizeX, int sizeY);
     void gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
-     * Interchange (swap) the two loop levels \p L0 and \p L1.
-     */
+      * Interchange (swap) the two loop levels \p L0 and \p L1.
+      */
     void interchange(int L0, int L1);
 
     /**
-     * A computation can have multiple duplicates.  When the user calls
-     * a high level transformation function such as tile(), split(), ...,
-     * Tiramisu should know on which one the transformation should be applied.
-     *
-     * We use select(ID) to select a duplicate of the computation on which
-     * all the high level transformations will be applied.
-     *
-     * By default, the original computation is selected.
-     * After each call to a high level scheduling function, the selected duplicate
-     * is reset to the default (which is the original).
-     *
-     * Example, to apply two transformations on the duplicate 1 of the computation
-     * C0:
-     *
-     * C0.select(1).tile(0,1, 32,32);
-     * C0.select(1).vectorize(3, 4);
-     */
+      * A computation can have multiple duplicates.  When the user calls
+      * a high level transformation function such as tile(), split(), ...,
+      * Tiramisu should know on which one the transformation should be applied.
+      *
+      * We use select(ID) to select a duplicate of the computation on which
+      * all the high level transformations will be applied.
+      *
+      * By default, the original computation is selected.
+      * After each call to a high level scheduling function, the selected duplicate
+      * is reset to the default (which is the original).
+      *
+      * Example, to apply two transformations on the duplicate 1 of the computation
+      * C0:
+      *
+      * C0.select(1).tile(0,1, 32,32);
+      * C0.select(1).vectorize(3, 4);
+      */
     computation* select(int ID);
 
     /**
@@ -1797,7 +1788,7 @@ public:
       * number means a shift forward of the loop iterations while
       * a negative value would mean a shift backward.
       */
-     void shift(int L0, int n);
+    void shift(int L0, int n);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -1808,7 +1799,7 @@ public:
       * \p sizeX is the extent (size) of the inner loop created after
       * splitting.
       */
-     void split(int L0, int sizeX);
+    void split(int L0, int sizeX);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
@@ -1874,7 +1865,7 @@ public:
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
-      * tiling.  \p sizeX and \p sizeY represent the tile size.
+      * tiling. \p sizeX and \p sizeY represent the tile size.
       * \p L0 and \p L1 should be two consecutive loop levels
       * (i.e., \p L0 = \p L1 + 1) and they should satisfy
       * \p L0 > \p L1.
@@ -1885,137 +1876,137 @@ public:
     // @}
 
     /**
-     * Unroll the loop level \p L with an unrolling factor \p fac
-     * and assume that the upper bound of the loop level \p L is
-     * \p loop_upper_bound.
-     *
-     * The difference between this function and the function
-     * tag_unroll_level(int L) is that this function separates
-     * the iteration domain into full and partial iteration
-     * domains for unrolling first and then it calls
-     * tag_unroll_level(int L).
-     * tag_unroll_level(int L) only tags a dimension to
-     * be unrolled, it does not modify the tagged dimension.
-     *
-     * This function separates the iteration domain into two iteration
-     * domains, a full iteration domain and a partial iteration domain.
-     * The full iteration domain has an upper bound that is multiple of
-     * \p fac while the other does not.
-     * The full iteration domain is then split by \p fac and the inner loop
-     * (which should have a constant extent equal to \p fac) is tagged as
-     * a unrolled loop.
-     *
-     * Let us assume the following loop (a loop represents and iteration
-     * domain)
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<23; j++)
-     *     S0;
-     *
-     * To unroll the j loop with an unrolling factor of 4, one should call
-     *
-     *      S0.unroll(1, 4, 23);
-     *
-     * The loop (iteration domain) is first separated into the following
-     * two loops
-     *
-     * for (int i=0; i<20; i++)
-     *   S0;
-     *
-     * for (int i=20; i<23; i++)
-     *   S0;
-     *
-     * The full loop is then split by 4
-     *
-     * for (int i1=0; i1<20/4; i1++)
-     *   for (int i2=0; i2<4; i2++)
-     *      S0;
-     *
-     * for (int i=20; i<23; i++)
-     *   S0;
-     *
-     * the i2 loop is then tagged to be unrolled.
-     *
-     */
+      * Unroll the loop level \p L with an unrolling factor \p fac
+      * and assume that the upper bound of the loop level \p L is
+      * \p loop_upper_bound.
+      *
+      * The difference between this function and the function
+      * tag_unroll_level(int L) is that this function separates
+      * the iteration domain into full and partial iteration
+      * domains for unrolling first and then it calls
+      * tag_unroll_level(int L).
+      * tag_unroll_level(int L) only tags a dimension to
+      * be unrolled, it does not modify the tagged dimension.
+      *
+      * This function separates the iteration domain into two iteration
+      * domains, a full iteration domain and a partial iteration domain.
+      * The full iteration domain has an upper bound that is multiple of
+      * \p fac while the other does not.
+      * The full iteration domain is then split by \p fac and the inner loop
+      * (which should have a constant extent equal to \p fac) is tagged as
+      * a unrolled loop.
+      *
+      * Let us assume the following loop (a loop represents and iteration
+      * domain)
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<23; j++)
+      *     S0;
+      *
+      * To unroll the j loop with an unrolling factor of 4, one should call
+      *
+      *      S0.unroll(1, 4, 23);
+      *
+      * The loop (iteration domain) is first separated into the following
+      * two loops
+      *
+      * for (int i=0; i<20; i++)
+      *   S0;
+      *
+      * for (int i=20; i<23; i++)
+      *   S0;
+      *
+      * The full loop is then split by 4
+      *
+      * for (int i1=0; i1<20/4; i1++)
+      *   for (int i2=0; i2<4; i2++)
+      *      S0;
+      *
+      * for (int i=20; i<23; i++)
+      *   S0;
+      *
+      * the i2 loop is then tagged to be unrolled.
+      *
+      */
     void unroll(int L, int fac, tiramisu::expr loop_upper_bound);
 
     /**
-     * Vectorize the loop level \p L.  Use the vector length \p v
-     * and assume that the upper bound of the loop level \p L is
-     * \p loop_upper_bound.
-     *
-     * The difference between this function and the function
-     * tag_vector_level(int L) is that this function
-     * prepares the iteration domain for vectorization first
-     * and then it calls tag_vector_level(int L).
-     * tag_vector_level(int L) only tags a dimension to
-     * be vectorized, it does not change the tagged dimension.
-     *
-     * This function will separate the iteration domain into two iteration
-     * domains, a full iteration domain and a partial iteration domain.
-     * The full iteration domain has an upper bound that is multiple of
-     * \p v while the other does not.
-     * The full iteration domain is then split by \p v and the inner loop
-     * (which should have a constant extent equal to \p v) is tagged as
-     * a vector loop.
-     *
-     * Let us assume the following loop (a loop represents and iteration
-     * domain)
-     *
-     * for (i=0; i<N; i++)
-     *   for (j=0; j<23; j++)
-     *     S0;
-     *
-     * To vectorize the j loop with a vector length 4, one should call
-     *
-     *      S0.vectorize(1, 4, 23);
-     *
-     * The loop (iteration domain) is first separated into the following
-     * two loops
-     *
-     * for (int i=0; i<20; i++)
-     *   S0;
-     *
-     * for (int i=20; i<23; i++)
-     *   S0;
-     *
-     * The full loop is then split by 4
-     *
-     * for (int i1=0; i1<20/4; i1++)
-     *   for (int i2=0; i2<4; i2++)
-     *      S0;
-     *
-     * for (int i=20; i<23; i++)
-     *   S0;
-     *
-     * the i2 loop is then tagged to be vectorized.
-     *
-     */
+      * Vectorize the loop level \p L.  Use the vector length \p v
+      * and assume that the upper bound of the loop level \p L is
+      * \p loop_upper_bound.
+      *
+      * The difference between this function and the function
+      * tag_vector_level(int L) is that this function
+      * prepares the iteration domain for vectorization first
+      * and then it calls tag_vector_level(int L).
+      * tag_vector_level(int L) only tags a dimension to
+      * be vectorized, it does not change the tagged dimension.
+      *
+      * This function will separate the iteration domain into two iteration
+      * domains, a full iteration domain and a partial iteration domain.
+      * The full iteration domain has an upper bound that is multiple of
+      * \p v while the other does not.
+      * The full iteration domain is then split by \p v and the inner loop
+      * (which should have a constant extent equal to \p v) is tagged as
+      * a vector loop.
+      *
+      * Let us assume the following loop (a loop represents and iteration
+      * domain)
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<23; j++)
+      *     S0;
+      *
+      * To vectorize the j loop with a vector length 4, one should call
+      *
+      *      S0.vectorize(1, 4, 23);
+      *
+      * The loop (iteration domain) is first separated into the following
+      * two loops
+      *
+      * for (int i=0; i<20; i++)
+      *   S0;
+      *
+      * for (int i=20; i<23; i++)
+      *   S0;
+      *
+      * The full loop is then split by 4
+      *
+      * for (int i1=0; i1<20/4; i1++)
+      *   for (int i2=0; i2<4; i2++)
+      *      S0;
+      *
+      * for (int i=20; i<23; i++)
+      *   S0;
+      *
+      * the i2 loop is then tagged to be vectorized.
+      *
+      */
     void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
 
     /**
-     * Add an let statement that is associated to this computation.
-     * The let statement will be added just before the computation and the
-     * scope of the variable defined by the let statement is this computation
-     * alone. i.e., it is not defined in other computations.
-     */
+      * Add an let statement that is associated to this computation.
+      * The let statement will be added just before the computation and the
+      * scope of the variable defined by the let statement is this computation
+      * alone. i.e., it is not defined in other computations.
+      */
     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
-     * Add a map to the schedule of the duplicate \p ID.
-     * This function does not override the original schedule of the duplicate
-     * but simply adds the new map to it.  The resulting schedule is a union
-     * of maps.
-     */
+      * Add a map to the schedule of the duplicate \p ID.
+      * This function does not override the original schedule of the duplicate
+      * but simply adds the new map to it.  The resulting schedule is a union
+      * of maps.
+      */
     void add_schedule_to_duplicate_schedule(isl_map *map, int ID = 0);
 
     /**
-     * Add a new duplicate schedule.
-     *
-     * This is a schedule that duplicates the original computation. That is,
-     * the domain of the map is the iteration domain of the original computation.
-     *
-     */
+      * Add a new duplicate schedule.
+      *
+      * This is a schedule that duplicates the original computation. That is,
+      * the domain of the map is the iteration domain of the original computation.
+      *
+      */
     void add_new_duplicate_schedule(isl_map *map);
 
     /**
@@ -2045,11 +2036,11 @@ public:
     isl_map *gen_identity_schedule_for_iteration_domain();
 
     /**
-    * Generate an identity schedule for the computation.
-    *
-    * This identity schedule is an identity relation created from the
-    * time-processor domain.
-    */
+      * Generate an identity schedule for the computation.
+      *
+      * This identity schedule is an identity relation created from the
+      * time-processor domain.
+      */
     isl_map *gen_identity_schedule_for_time_space_domain();
 
     /**
@@ -2063,8 +2054,8 @@ public:
     void gen_time_processor_domain();
 
     /**
-     * Mark this statement as a let statement.
-     */
+      * Mark this statement as a let statement.
+      */
     void mark_as_let_statement();
 
     /**
@@ -2231,14 +2222,14 @@ Halide::Internal::Stmt lower_halide_pipeline(
 int loop_level_into_dynamic_dimension(int level);
 int loop_level_into_static_dimension(int level);
 /**
- * TODO code cleaning:
- * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.
- * - Add two pages explaining how one should use Tiramisu,
- *
- * - Have documentation on header files only,
- * - Order the functions in the class computations (get functions then update functions ordered in alphabetical order),
- * - Clean/document expr.h and type.h
- */
+  * TODO code cleaning:
+  * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.
+  * - Add two pages explaining how one should use Tiramisu,
+  *
+  * - Have documentation on header files only,
+  * - Order the functions in the class computations (get functions then update functions ordered in alphabetical order),
+  * - Clean/document expr.h and type.h
+  */
 
 }
 

@@ -601,8 +601,8 @@ public:
     }
 
     /**
-     * Addition.
-     */
+      * Addition.
+      */
     template<typename T> friend tiramisu::expr operator+(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
@@ -621,8 +621,8 @@ public:
     }
 
     /**
-     * Subtraction.
-     */
+      * Subtraction.
+      */
     template<typename T> friend tiramisu::expr operator-(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
@@ -641,8 +641,8 @@ public:
     }
 
     /**
-     * Division.
-     */
+      * Division.
+      */
     template<typename T> friend tiramisu::expr operator/(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
@@ -661,8 +661,8 @@ public:
     }
 
     /**
-     * Multiplication.
-     */
+      * Multiplication.
+      */
     template<typename T> friend tiramisu::expr operator*(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
@@ -681,8 +681,8 @@ public:
     }
 
     /**
-     * Modulo.
-     */
+      * Modulo.
+      */
     template<typename T> friend tiramisu::expr operator%(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
@@ -701,8 +701,8 @@ public:
     }
 
     /**
-     * Right shift operator.
-     */
+      * Right shift operator.
+      */
     template<typename T> tiramisu::expr operator>>(T val) const
     {
         if ((std::is_same<T, tiramisu::expr>::value))
@@ -725,8 +725,8 @@ public:
     }
 
     /**
-     * Left shift operator.
-     */
+      * Left shift operator.
+      */
     template<typename T> tiramisu::expr operator<<(T val) const
     {
         if ((std::is_same<T, tiramisu::expr>::value))
@@ -749,40 +749,40 @@ public:
     }
 
     /**
-     * Logical and of two expressions.
-     */
+      * Logical and of two expressions.
+      */
     tiramisu::expr operator&&(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_logical_and, *this, e1);
     }
 
     /**
-     * Logical and of two expressions.
-     */
+      * Logical and of two expressions.
+      */
     tiramisu::expr operator||(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_logical_or, *this, e1);
     }
 
     /**
-     * Expression multiplied by (-1).
-     */
+      * Expression multiplied by (-1).
+      */
     tiramisu::expr operator-() const
     {
         return tiramisu::expr(tiramisu::o_minus, *this);
     }
 
     /**
-     * Logical NOT of an expression.
-     */
+      * Logical NOT of an expression.
+      */
     tiramisu::expr operator!() const
     {
         return tiramisu::expr(tiramisu::o_logical_not, *this);
     }
 
     /**
-     * Comparison operator.
-     */
+      * Comparison operator.
+      */
     // @{
     tiramisu::expr operator==(tiramisu::expr e1) const
     {
@@ -795,32 +795,32 @@ public:
     // @}
 
     /**
-     * Less than operator.
-     */
+      * Less than operator.
+      */
     tiramisu::expr operator<(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_lt, *this, e1);
     }
 
     /**
-     * Less than or equal operator.
-     */
+      * Less than or equal operator.
+      */
     tiramisu::expr operator<=(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_le, *this, e1);
     }
 
     /**
-     * Greater than operator.
-     */
+      * Greater than operator.
+      */
     tiramisu::expr operator>(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_gt, *this, e1);
     }
 
     /**
-     * Greater than or equal operator.
-     */
+      * Greater than or equal operator.
+      */
     tiramisu::expr operator>=(tiramisu::expr e1) const
     {
         return tiramisu::expr(tiramisu::o_ge, *this, e1);
@@ -1201,26 +1201,26 @@ public:
 };
 
 /**
- * A class that represents index expressions
- */
+  * A class that represents index expressions
+  */
 class idx: public tiramisu::expr
 {
 public:
     /**
-     * Construct an expression that represents an id.
-     */
+      * Construct an expression that represents an id.
+      */
 };
 
 
 /**
- * A class that represents constant variable references
- */
+  * A class that represents constant variable references
+  */
 class var: public tiramisu::expr
 {
 public:
     /**
-     * Construct an expression that represents an id.
-     */
+      * Construct an expression that represents an id.
+      */
     var(tiramisu::primitive_t type, std::string name)
     {
         assert(name.length() > 0);
@@ -1241,8 +1241,8 @@ public:
 };
 
 /**
- * Convert a Tiramisu expression into a Halide expression.
- */
+  * Convert a Tiramisu expression into a Halide expression.
+  */
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
                                             std::vector<isl_ast_expr *> &index_expr,
                                             const tiramisu::expr &tiramisu_expr);
