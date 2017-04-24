@@ -226,22 +226,6 @@ private:
     void align_schedules();
 
     /**
-      * Return a string representing the name of the GPU block iterator at
-      * dimension \p lev0.
-      * This function only returns a non-empty string if the
-      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
-      */
-    std::string get_gpu_block_iterator(std::string comp, int lev0) const;
-
-    /**
-       * Return a string representing the name of the GPU thread iterator at
-       * dimension \p lev0.
-       * This function only returns a non-empty string if the
-       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
-       */
-     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
-
-    /**
      * This functions iterates over the schedules of the function (the schedule
      * of each computation in the function) and computes the maximal dimension
      * among the dimensions of the ranges of all the schedules.
@@ -494,6 +478,22 @@ public:
       * the name \p str.
       */
     std::vector<computation *> get_computation_by_name(std::string str) const;
+
+    /**
+      * Return a string representing the name of the GPU block iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
+      */
+    std::string get_gpu_block_iterator(std::string comp, int lev0) const;
+
+    /**
+       * Return a string representing the name of the GPU thread iterator at
+       * dimension \p lev0.
+       * This function only returns a non-empty string if the
+       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
+       */
+     std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
 
     /**
      * Return the context set of this function.
