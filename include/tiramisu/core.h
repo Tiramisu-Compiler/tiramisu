@@ -496,18 +496,6 @@ public:
      std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
 
     /**
-     * Return the context set of this function.
-     * A context is an ISL set that represents constraints over
-     * the parameters of the functions (a parameter is an invariant
-     * variable for the function).
-     * An example of a context set is the following:
-     *          "[N,M]->{: M>0 and N>0}"
-     * This context set indicates that the two parameters N and M
-     * are strictly positive.
-     */
-    isl_set *get_program_context();
-
-    /**
       * Return the isl_ctx associated with this function.
       * This is an ISL specific object required when calling certain
       * ISL functions.  It does not represent the set of parameters
@@ -569,7 +557,7 @@ public:
       * This context set indicates that the two parameters N and M
       * are strictly positive.
       */
-     isl_set *get_parameter_set() const;
+     isl_set *get_program_context() const;
 
     /**
       * Return the union of all the schedules
