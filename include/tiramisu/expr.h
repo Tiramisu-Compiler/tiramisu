@@ -20,7 +20,6 @@
 #include <tiramisu/type.h>
 
 
-
 namespace tiramisu
 {
 
@@ -42,8 +41,8 @@ class global
 {
 private:
     /**
-     * Perform automatic data mapping ?
-     */
+      * Perform automatic data mapping ?
+      */
     static bool auto_data_mapping;
 
 public:
@@ -108,7 +107,8 @@ class expr
     /**
       * The value of the expression.
       */
-    union {
+    union
+    {
         uint8_t     uint8_value;
         int8_t      int8_value;
         uint16_t    uint16_value;
@@ -130,8 +130,8 @@ class expr
     std::vector<tiramisu::expr> access_vector;
 
     /**
-     * Is this expression defined ?
-     */
+      * Is this expression defined?
+      */
     bool defined;
 
 protected:
@@ -621,7 +621,7 @@ public:
     }
 
     /**
-     * Substruction.
+     * Subtraction.
      */
     template<typename T> friend tiramisu::expr operator-(tiramisu::expr e1, T val)
     {
@@ -720,8 +720,7 @@ public:
         }
         else
         {
-            tiramisu::error("Right shift of a tiramisu expression by a non supported type.\n",
-                        true);
+            tiramisu::error("Right shift of a tiramisu expression by a non supported type.\n", true);
         }
     }
 
@@ -745,8 +744,7 @@ public:
         }
         else
         {
-            tiramisu::error("Left shift of a tiramisu expression by a non supported type.\n",
-                        true);
+            tiramisu::error("Left shift of a tiramisu expression by a non supported type.\n", true);
         }
     }
 
@@ -847,14 +845,15 @@ public:
       */
     void set_access_dimension(int i, tiramisu::expr acc)
     {
+        assert((i < (int)this->access_vector.size()) && "index is out of bounds.");
         access_vector[i] = acc;
     }
 
     /**
       * Dump the object on standard output (dump most of the fields of
-      * the expression class).  This is mainly useful for debugging.
+      * the expression class). This is mainly useful for debugging.
       * If \p exhaustive is set to true, all the fields of the class are
-      * printed.  This is useful to find potential initialization problems.
+      * printed. This is useful to find potential initialization problems.
       */
     void dump(bool exhaustive) const
     {
@@ -937,47 +936,47 @@ public:
                             case tiramisu::o_logical_and:
                                 std::cout << "(";
                                 this->get_operand(0).dump(false);
-                                std::cout << ")&&" << "(";
+                                std::cout << ") &&" << "(";
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
                             case tiramisu::o_logical_or:
                                 std::cout << "(";
                                 this->get_operand(0).dump(false);
-                                std::cout << ")||" << "(";
+                                std::cout << ") ||" << "(";
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
                             case tiramisu::o_max:
-                                std::cout << " max(";
+                                std::cout << "max(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ", ";
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
                             case tiramisu::o_min:
-                                std::cout << " min(";
+                                std::cout << "min(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ", ";
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
                             case tiramisu::o_minus:
-                                std::cout << " -(";
+                                std::cout << "-(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ")";
                                 break;
                             case tiramisu::o_add:
                                 std::cout << "";
                                 this->get_operand(0).dump(false);
-                                std::cout << "+";
+                                std::cout << " + ";
                                 this->get_operand(1).dump(false);
                                 std::cout << "";
                                 break;
                             case tiramisu::o_sub:
                                 std::cout << "(";
                                 this->get_operand(0).dump(false);
-                                std::cout << ")-(";
+                                std::cout << ") - (";
                                 this->get_operand(1).dump(false);
                                 std::cout << ")";
                                 break;
@@ -1005,9 +1004,9 @@ public:
                             case tiramisu::o_select:
                                 std::cout << "select(";
                                 this->get_operand(0).dump(false);
-                                std::cout << ",";
+                                std::cout << ", ";
                                 this->get_operand(1).dump(false);
-                                std::cout << ",";
+                                std::cout << ", ";
                                 this->get_operand(2).dump(false);
                                 std::cout << ")";
                                 break;
@@ -1143,7 +1142,7 @@ public:
                                 std::cout << ") ";
                                 break;
                             case tiramisu::o_cast:
-                                std::cout << " cast(";
+                                std::cout << "cast(";
                                 this->get_operand(0).dump(false);
                                 std::cout << ") ";
                                 break;
@@ -1210,7 +1209,6 @@ public:
     /**
      * Construct an expression that represents an id.
      */
-
 };
 
 
@@ -1223,8 +1221,7 @@ public:
     /**
      * Construct an expression that represents an id.
      */
-    var(tiramisu::primitive_t type,
-        std::string name)
+    var(tiramisu::primitive_t type, std::string name)
     {
         assert(name.length() > 0);
 
@@ -1247,8 +1244,8 @@ public:
  * Convert a Tiramisu expression into a Halide expression.
  */
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-                                        std::vector<isl_ast_expr *> &index_expr,
-                                        const tiramisu::expr &tiramisu_expr);
+                                            std::vector<isl_ast_expr *> &index_expr,
+                                            const tiramisu::expr &tiramisu_expr);
 
 }
 

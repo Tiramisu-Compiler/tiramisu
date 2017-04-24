@@ -7,9 +7,9 @@
 namespace tiramisu {
 
     /**
-     * The possible types of an expression.
-     * "e_" stands for expression.
-     */
+      * The possible types of an expression.
+      * "e_" stands for expression.
+      */
     enum expr_t {
         e_val,          // literal value, like 1, 2.4, 10, ...
         e_var,          // a variable of a primitive type (i.e., an identifier holding one value),

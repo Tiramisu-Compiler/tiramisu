@@ -62,7 +62,7 @@ void halide_pipeline_to_c(
 
 
 /**
-  * A class to represent functions.  A function is composed of
+  * A class to represent functions. A function is composed of
   * computations (of type tiramisu::computation).
   */
 class function
@@ -76,7 +76,7 @@ private:
     std::string name;
 
     /**
-      * Function arguments.  These are the buffers or scalars that are
+      * Function arguments. These are the buffers or scalars that are
       * passed to the function.
       */
     std::vector<tiramisu::buffer *> function_arguments;
@@ -122,15 +122,15 @@ private:
     std::vector<std::pair<std::string, int>> vector_dimensions;
 
     /**
-      * A vector representing the GPU thread dimensions around
+      * A vector representing the GPU block dimensions around
       * the computations of the function.
-      * GPU thread dimensions are dimensions that should be mapped
-      * to parallel GPU threads.
+      * GPU dimensions dimensions are dimensions that should be mapped
+      * to parallel GPU dimensions.
       * GPU dimensions are identified using the tuple
       * <computation_name, level0, level1, level2>, for example the tuple
       * <S0, 0, 1, 2> indicates that the loops with levels 0, 1 and 2
       * (i.e. the three outermost loops) around the computation S0
-      * should be mapped to GPU threads.
+      * should be mapped to GPU dimensions.
       * Level1 must be the level following level0, i.e.
       * level1 == level0 + 1
       * and level2 must be the level following level1
@@ -170,14 +170,14 @@ private:
     Halide::Internal::Stmt *halide_stmt;
 
     /**
-      * A map representing the buffers of the function.  Some of these
+      * A map representing the buffers of the function. Some of these
       * buffers are passed to the function as arguments and some are
       * declared and allocated within the function itself.
       */
     std::map<std::string, tiramisu::buffer *> buffers_list;
 
     /**
-     * The context set of the function.  i.e. a set representing the
+     * The context set of the function, i.e. a set representing the
      * constraints over the parameters.
      * The parameters of a function are the function invariants (constants).
      */
@@ -210,7 +210,7 @@ private:
       * computations that have duplicates (i.e., are recomputed) have
       * a number in that dimension to represent each duplicate.
       * The trimmed time-processor domain is the time-processor domain
-      * without the dimension that represents the duplicates.  We simply
+      * without the dimension that represents the duplicates. We simply
       * take the time-processor domain and remove the first dimension
       * used to represent the duplicates.
       */
@@ -267,7 +267,7 @@ public:
     /**
       * Return a set that represents the parameters of the function
       * (an ISL set that represents the parameters and constraints over
-      * the parameters of the functions,  a parameter is an invariant
+      * the parameters of the functions, a parameter is an invariant
       * of the function). This set is also known as the context of
       * the program.
       * An example of a context set is the following:
@@ -276,7 +276,6 @@ public:
       * are strictly positive.
       */
      isl_set *get_parameter_set() const;
-
 
      /**
       * Return the context set of this function.
@@ -361,16 +360,16 @@ public:
     isl_union_set *get_time_processor_domain() const;
 
     /**
-    * Get the iterator names of the function.
-    */
+      * Get the iterator names of the function.
+      */
     const std::vector<std::string>& get_iterator_names() const;
 
     /**
-       * Return a string representing the name of the GPU thread iterator at
-       * dimension \p lev0.
-       * This function only returns a non-empty string if the
-       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
-       */
+      * Return a string representing the name of the GPU thread iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
+      */
      std::string get_gpu_thread_iterator(std::string comp, int lev0) const;
 
      /**
@@ -400,13 +399,13 @@ public:
      bool should_unroll(std::string comp, int lev) const;
 
      /**
-       * Return true if the computation \p comp should be mapped to GPU block
+       * Return true if the computation \p comp should be mapped to a GPU block
        * at the loop levels \p lev0.
        */
      bool should_map_to_gpu_block(std::string comp, int lev0) const;
 
      /**
-       * Return true if the computation \p comp should be mapped to GPU thread
+       * Return true if the computation \p comp should be mapped to a GPU thread
        * at the loop levels \p lev0.
        */
      bool should_map_to_gpu_thread(std::string comp, int lev0) const;
@@ -1183,8 +1182,8 @@ public:
       isl_ctx *get_ctx() const;
 
       /**
-       * Get the data type of the computation.
-       */
+        * Get the data type of the computation.
+        */
       tiramisu::primitive_t get_data_type() const;
 
       /*
@@ -1198,13 +1197,13 @@ public:
       isl_map *get_schedule(int duplicate_ID = 0) const;
 
       /**
-       * Return the number of schedules of duplicate computations.
-       */
+        * Return the number of schedules of duplicate computations.
+        */
       int get_duplicate_schedules_number() const;
 
       /**
-       * Return the Tiramisu expression associated with the computation.
-       */
+        * Return the Tiramisu expression associated with the computation.
+        */
       const tiramisu::expr &get_expr() const;
 
       /**
@@ -2026,41 +2025,41 @@ public:
       */
     void bind_to(buffer *buff);
 
-     /*
-       * Create a copy of this computation.
-       */
-      tiramisu::computation *copy();
+    /**
+      * Create a copy of this computation.
+      */
+    tiramisu::computation *copy();
 
-      /*
-        * Create a Halide statement that assigns the computations to the memory
-        * buffer and location specified by the access function.
-        */
-       void create_halide_assignment();
+    /**
+      * Create a Halide statement that assigns the computations to the memory
+      * buffer and location specified by the access function.
+      */
+    void create_halide_assignment();
 
-     /**
+    /**
       * Generate an identity schedule for the computation.
       *
       * This identity schedule is an identity relation created from the iteration
       * domain.
       */
-     isl_map *gen_identity_schedule_for_iteration_domain();
+    isl_map *gen_identity_schedule_for_iteration_domain();
 
-     /**
-      * Generate an identity schedule for the computation.
+    /**
+    * Generate an identity schedule for the computation.
+    *
+    * This identity schedule is an identity relation created from the
+    * time-processor domain.
+    */
+    isl_map *gen_identity_schedule_for_time_space_domain();
+
+    /**
+      * Generate the time-processor domain of the computation.
       *
-      * This identity schedule is an identity relation created from the
-      * time-processor domain.
+      * In this representation, the logical time of execution and the
+      * processor where the computation will be executed are both
+      * specified.  The memory location where computations will be
+      * stored in memory is not specified at the level.
       */
-     isl_map *gen_identity_schedule_for_time_space_domain();
-
-   /**
-     * Generate the time-processor domain of the computation.
-     *
-     * In this representation, the logical time of execution and the
-     * processor where the computation will be executed are both
-     * specified.  The memory location where computations will be
-     * stored in memory is not specified at the level.
-     */
     void gen_time_processor_domain();
 
     /**
@@ -2131,12 +2130,12 @@ public:
     const static int root_dimension = -1;
 
     /**
-     * Let statements that should be computed before this computation.
-     *
-     * This is mainly useful when this computation consumes values
-     * computed in let statements, so those let statements should
-     * be executed before this computation.
-     */
+      * Let statements that should be computed before this computation.
+      *
+      * This is mainly useful when this computation consumes values
+      * computed in let statements, so those let statements should
+      * be executed before this computation.
+      */
     tiramisu::computation *statements_to_compute_before_me;
 
     /**
