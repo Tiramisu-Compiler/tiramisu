@@ -382,7 +382,7 @@ isl_constraint* get_constraint_for_access(int access_dimension,
             DEBUG(3, tiramisu::str_dump("Dimension not found.  Adding dimension as a parameter."));
             access_relation = isl_map_add_dims(access_relation, isl_dim_param, 1);
             int pos = isl_map_dim(access_relation, isl_dim_param);
-            isl_id* param_id = isl_id_alloc(fct->get_ctx(), access_expression.get_name().c_str (), NULL);
+            isl_id* param_id = isl_id_alloc(fct->get_isl_ctx(), access_expression.get_name().c_str (), NULL);
             access_relation = isl_map_set_dim_id(access_relation, isl_dim_param, pos - 1, param_id);
             isl_local_space* ls2 = isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_relation)));
             cst = isl_constraint_alloc_equality(isl_local_space_copy(ls2));
@@ -796,7 +796,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     tiramisu::computation *comp = filter_computations_by_domain(comp_vec, isl_union_set_copy(sched_range));
 
    // Mark "comp" as the computation associated with this node.
-    isl_id *annotation_id = isl_id_alloc(func->get_ctx(), "", (void *) comp);
+    isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *) comp);
     node = isl_ast_node_set_annotation(node, isl_id_copy(annotation_id));
 
     assert((comp != NULL) && "Computation not found!");;

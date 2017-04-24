@@ -135,7 +135,7 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
    * This context set indicates that the two parameters N and M
    * are strictly positive.
    */
-  isl_set *function::get_parameter_set() const
+  isl_set *function::get_program_context() const
   {
       if (context_set != NULL)
           return isl_set_copy(context_set);
@@ -181,7 +181,7 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
  /**
    * Return the isl context associated with this function.
    */
- isl_ctx *function::get_ctx() const
+ isl_ctx *function::get_isl_ctx() const
  {
      return ctx;
  }
@@ -262,15 +262,10 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
  {
      assert((context_str.length() > 0) && "Context string is empty");
 
-     this->context_set = isl_set_read_from_str(this->get_ctx(),
+     this->context_set = isl_set_read_from_str(this->get_isl_ctx(),
                                          context_str.c_str());
 
      assert((context_set != NULL) && "Context set is NULL");
- }
-
- isl_set *function::get_context_set()
- {
-     return this->context_set;
  }
 
  void function::add_context_constraints(std::string context_str)
@@ -280,12 +275,12 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
       if (this->context_set != NULL)
       {
           this->context_set = isl_set_intersect(this->context_set,
-                                            isl_set_read_from_str(this->get_ctx(),
+                                            isl_set_read_from_str(this->get_isl_ctx(),
                                                                   context_str.c_str()));
       }
       else
       {
-          this->context_set = isl_set_read_from_str(this->get_ctx(), context_str.c_str());
+          this->context_set = isl_set_read_from_str(this->get_isl_ctx(), context_str.c_str());
       }
 
       assert((context_set != NULL) && "Context set is NULL");
@@ -343,13 +338,13 @@ void function::gen_isl_ast()
     assert(this->get_aligned_identity_schedules() != NULL);
 
 
-    isl_ctx *ctx = this->get_ctx();
+    isl_ctx *ctx = this->get_isl_ctx();
     isl_ast_build *ast_build;
 
-    if (this->get_parameter_set() == NULL)
+    if (this->get_program_context() == NULL)
         ast_build = isl_ast_build_alloc(ctx);
     else
-        ast_build = isl_ast_build_from_context(this->get_parameter_set());
+        ast_build = isl_ast_build_from_context(this->get_program_context());
 
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
@@ -748,7 +743,7 @@ tiramisu::constant*
      * (that is, we have to add the new parameter to the context and then take
      * its space as a model for alignment).
      */
-    isl_set* original_context = this->get_function ()->get_context_set ();
+    isl_set* original_context = this->get_function ()->get_program_context ();
     if (original_context != NULL)
     {
         // Create a space from the context and add a parameter.
@@ -763,7 +758,7 @@ tiramisu::constant*
                                       isl_space_copy (sp)));
         this->get_function ()->set_context_set (
                 isl_set_align_params (
-                        this->get_function ()->get_context_set (),
+                        this->get_function ()->get_program_context (),
                         isl_space_copy (sp)));
         this->get_function ()->set_context_set (
                 isl_set_intersect (isl_set_copy (original_context),
@@ -2248,7 +2243,7 @@ isl_set* computation::intersect_set_with_context(isl_set* set)
         DEBUG_INDENT(4);
 
         // Unify the space of the context and the "missing" set so that we can intersect them.
-        isl_set* context = isl_set_copy(this->get_function()->get_context_set());
+        isl_set* context = isl_set_copy(this->get_function()->get_program_context());
         if (context != NULL)
         {
             isl_space* model = isl_set_get_space(isl_set_copy(context));
@@ -2289,7 +2284,7 @@ isl_map* computation::intersect_map_domain_with_context(isl_map* map)
         DEBUG_INDENT(4);
 
         // Unify the space of the context and the "missing" set so that we can intersect them.
-        isl_set* context = isl_set_copy(this->get_function()->get_context_set());
+        isl_set* context = isl_set_copy(this->get_function()->get_program_context());
         if (context != NULL)
         {
             isl_space* model = isl_set_get_space(isl_set_copy(context));
@@ -3233,10 +3228,10 @@ void tiramisu::function::dump(bool exhaustive) const
         }
         std::cout << std::endl;
 
-        if (this->get_parameter_set() != NULL)
+        if (this->get_program_context() != NULL)
         {
             std::cout << "Function context set: "
-                      << isl_set_to_str(this->get_parameter_set())
+                      << isl_set_to_str(this->get_program_context())
                       << std::endl;
         }
 
@@ -3918,7 +3913,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         this->schedule_this_computation = schedule_this_computation;
         this->data_type = t;
 
-        this->ctx = fct->get_ctx();
+        this->ctx = fct->get_isl_ctx();
 
         iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
         name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain), isl_dim_type::isl_dim_set));
