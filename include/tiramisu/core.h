@@ -262,6 +262,7 @@ private:
       * identity schedule that does not have enough dimensions.
       */
     isl_union_map *get_aligned_identity_schedules() const;
+
 protected:
 
     /**
@@ -348,6 +349,12 @@ public:
       * Add an iterator to the function.
       */
     void add_iterator_name(const std::string iteratorName);
+
+    /**
+     * Compute the graph of dependences between the computations of
+     * the function.
+     */
+    void compute_dep_graph();
 
     /**
       * Dump the function on standard output (dump most of the fields of
@@ -500,7 +507,7 @@ public:
       * This is an ISL specific object required when calling certain
       * ISL functions.  It does not represent the set of parameters
       * of the function (which should be retrieved by calling
-      * get_parameter_set()).
+      * get_program_context()).
       */
     isl_ctx *get_isl_ctx() const;
 

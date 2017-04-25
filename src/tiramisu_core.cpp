@@ -36,7 +36,7 @@ isl_ast_node *for_code_generator_after_for(
 
 
 std::string generate_new_variable_name();
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool, isl_union_set *domain);
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool);
 tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp, const tiramisu::expr &exp);
 
 /**
@@ -2447,7 +2447,7 @@ void computation::compute_at(computation &consumer, int L)
 
     // Compute the access relation of the consumer computation.
     std::vector<isl_map *> accesses_vector;
-    get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false, NULL);
+    get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
     assert(accesses_vector.size() > 0);
 
     DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));

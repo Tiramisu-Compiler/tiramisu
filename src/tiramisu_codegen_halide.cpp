@@ -481,8 +481,7 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                                         tiramisu::computation *comp,
                                         const tiramisu::expr &exp,
                                         std::vector<isl_map *> &accesses,
-                                        bool return_buffer_accesses,
-                                        isl_union_set *domain_of_accessed_computation)
+                                        bool return_buffer_accesses)
 {
     assert(fct != NULL);
 
@@ -537,8 +536,6 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
 
         if (return_buffer_accesses == true)
         {
-            assert((domain_of_accessed_computation != NULL) && "The domain of the statement being generated should be provided so that computations with the same are filtered out.");
-
             isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
             DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
@@ -590,7 +587,7 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                 case tiramisu::o_trunc:
                 {
                     tiramisu::expr exp0 = exp.get_operand(0);
-                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
                     break;
                 }
                 case tiramisu::o_logical_and:
@@ -613,8 +610,8 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                 {
                     tiramisu::expr exp0 = exp.get_operand(0);
                     tiramisu::expr exp1 = exp.get_operand(1);
-                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses, domain_of_accessed_computation);
-                    traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses);
                     break;
                 }
                 case tiramisu::o_select:
@@ -623,9 +620,9 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
                     tiramisu::expr expr0 = exp.get_operand(0);
                     tiramisu::expr expr1 = exp.get_operand(1);
                     tiramisu::expr expr2 = exp.get_operand(2);
-                    traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses, domain_of_accessed_computation);
-                    traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses, domain_of_accessed_computation);
-                    traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses, domain_of_accessed_computation);
+                    traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses);
+                    traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses);
                     break;
                 }
                 default:
@@ -761,13 +758,13 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * If \p return_buffer_accesses is set to true, this function returns access functions to
  * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses, isl_union_set *comp_domain)
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     const tiramisu::expr &rhs = comp->get_expr();
-    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses, comp_domain);
+    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -809,7 +806,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
     accesses.push_back(access);
     // Add the accesses of the RHS to the accesses vector
-    get_rhs_accesses(func, comp, accesses, true, sched_range);
+    get_rhs_accesses(func, comp, accesses, true);
 
     if (accesses.size() > 0)
     {
