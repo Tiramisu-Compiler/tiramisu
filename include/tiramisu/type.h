@@ -69,6 +69,7 @@ namespace tiramisu {
         o_left_shift,
         o_floor,
         o_cast,
+        o_address,
 
         o_sin,
         o_cos,

@@ -36,7 +36,7 @@ isl_ast_node *for_code_generator_after_for(
 
 
 std::string generate_new_variable_name();
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool, isl_union_set *domain);
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool);
 tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp, const tiramisu::expr &exp);
 
 /**
@@ -2446,7 +2446,7 @@ void computation::compute_at(computation &consumer, int L)
 
     // Compute the access relation of the consumer computation.
     std::vector<isl_map *> accesses_vector;
-    get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false, NULL);
+    get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
     assert(accesses_vector.size() > 0);
 
     DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
@@ -3573,6 +3573,8 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
             return "call";
         case tiramisu::o_access:
             return "access";
+        case tiramisu::o_address:
+            return "address";
         case tiramisu::o_right_shift:
             return "right-shift";
         case tiramisu::o_left_shift:
@@ -4069,23 +4071,24 @@ isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_do
       isl_map *access = isl_map_copy(this->get_access_relation());
 
       if (this->is_let_stmt() == false)
-          assert((access != NULL) && "Access relation is NULL.");
-
-      if (this->is_let_stmt() == false)
       {
           DEBUG(10, tiramisu::str_dump("Original access:", isl_map_to_str(access)));
 
           if (global::is_auto_data_mapping_set() == true)
           {
-              assert(access != NULL);
-              assert(this->get_trimmed_union_of_schedules() != NULL);
+              if (access != NULL)
+              {
+                  assert(this->get_trimmed_union_of_schedules() != NULL);
 
-              DEBUG(10, tiramisu::str_dump("Original schedule:", isl_map_to_str(this->get_union_of_schedules())));
-              DEBUG(10, tiramisu::str_dump("Trimmed schedule to apply:", isl_map_to_str(this->get_trimmed_union_of_schedules())));
-              access = isl_map_apply_domain(
-                          isl_map_copy(access),
-                          isl_map_copy(this->get_trimmed_union_of_schedules()));
-              DEBUG(10, tiramisu::str_dump("Transformed access:", isl_map_to_str(access)));
+                  DEBUG(10, tiramisu::str_dump("Original schedule:", isl_map_to_str(this->get_union_of_schedules())));
+                  DEBUG(10, tiramisu::str_dump("Trimmed schedule to apply:", isl_map_to_str(this->get_trimmed_union_of_schedules())));
+                  access = isl_map_apply_domain(
+                              isl_map_copy(access),
+                              isl_map_copy(this->get_trimmed_union_of_schedules()));
+                  DEBUG(10, tiramisu::str_dump("Transformed access:", isl_map_to_str(access)));
+              }
+              else
+                  DEBUG(10, tiramisu::str_dump("Not access relation to transform."));
           }
           else
               DEBUG(10, tiramisu::str_dump("Access not transformed"));
@@ -4331,8 +4334,6 @@ void tiramisu::computation::set_access(std::string access_str)
             assert(separated_computation->get_access_relation() != NULL);
         }
     }
-
-    assert(this->get_access_relation() != NULL);
 }
 
 /**
@@ -4489,8 +4490,7 @@ void tiramisu::computation::set_expression(const tiramisu::expr &e)
     DEBUG(3, tiramisu::str_dump("Traversing the expression to replace non-affine accesses by a constant definition."));
     tiramisu::expr modified_e = traverse_expr_and_replace_non_affine_accesses(this, e);
 
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The new expression is: "));
-    modified_e.dump(false);
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The new expression is: "); modified_e.dump(false););
     DEBUG(3, tiramisu::str_dump(""));
 
     this->expression = modified_e;

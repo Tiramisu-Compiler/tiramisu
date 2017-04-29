@@ -99,8 +99,8 @@ class expr
     tiramisu::op_t _operator;
 
     /**
-      * The value of the 1st, 2nd and 3rd operators of the expression.
-      * op[0] is the 1st operator, op[1] is the 2nd, ...
+      * The value of the 1st, 2nd and 3rd operands of the expression.
+      * op[0] is the 1st operand, op[1] is the 2nd, ...
       */
     std::vector<tiramisu::expr> op;
 
@@ -128,6 +128,17 @@ class expr
       * the vector {i, j}.
       */
     std::vector<tiramisu::expr> access_vector;
+
+    /**
+      * A vector of expressions representing arguments of an
+      * external function.
+      * For example, to call the function foo() with the following
+      * three arguments as input
+      *     the integer 1, the result of the computation C1(0,0), and
+      *     the computation C0 (i.e., its buffer).
+      * \p vector should be {tiramisu::expr(1), C1(0,0), tiramisu::expr(o_address, tiramisu::var("C0"))}.
+      */
+    std::vector<tiramisu::expr> argument_vector;
 
     /**
       * Is this expression defined?
@@ -180,7 +191,7 @@ public:
     }
 
     /**
-      * Create a expression of type \p t (a unary operator).
+      * Create a expression for a unary operator.
       */
     expr(tiramisu::op_t o, tiramisu::expr expr0)
     {
@@ -228,19 +239,25 @@ public:
     }
 
     expr(tiramisu::op_t o, std::string name,
-         std::vector<tiramisu::expr> access_expressions,
+         std::vector<tiramisu::expr> vec,
          tiramisu::primitive_t type)
     {
-        assert((o == tiramisu::o_access) && "The operator is not an access operator.");
-        assert(access_expressions.size() > 0);
+        assert(((o == tiramisu::o_access) || (o == tiramisu::o_call)) && "The operator is not an access operator.");
+        assert(vec.size() > 0);
         assert(name.size() > 0);
 
-        this->_operator = tiramisu::o_access;
+        this->_operator = o;
         this->etype = tiramisu::e_op;
         this->dtype = type;
         this->defined = true;
 
-        this->set_access(access_expressions);
+        if (o == tiramisu::o_access)
+            this->set_access(vec);
+        else if (o == tiramisu::o_call)
+            this->set_arguments(vec);
+        else
+            tiramisu::error("Type of operator is not o_access or o_call.", true);
+
         this->name = name;
     }
 
@@ -590,6 +607,18 @@ public:
     }
 
     /**
+      * Return the arguments of an external function call.
+      */
+    std::vector<tiramisu::expr> get_arguments() const
+    {
+        assert(this->get_expr_type() == tiramisu::e_op);
+        assert(this->get_op_type() == tiramisu::o_call);
+
+        return argument_vector;
+    }
+
+
+    /**
       * Get the number of dimensions in the access vector.
       */
     int get_n_dim_access() const
@@ -838,7 +867,6 @@ public:
         access_vector = vector;
     }
 
-
     /**
       * Set an element of the vector of accesses of a computation.
       * This changes only one dimension of the access vector.
@@ -847,6 +875,16 @@ public:
     {
         assert((i < (int)this->access_vector.size()) && "index is out of bounds.");
         access_vector[i] = acc;
+    }
+
+    /**
+      * Set the arguments of an external function call.
+      * For example, for the call my_external(C0, 1, C1(i,j)),
+      * \p vector should be {C0, 1, C1(i,j)}.
+      */
+    void set_arguments(std::vector<tiramisu::expr> vector)
+    {
+        argument_vector = vector;
     }
 
     /**
@@ -870,20 +908,36 @@ public:
                         case tiramisu::e_op:
                         {
                             std::cout << "Expression operator type:" << str_tiramisu_type_op(this->_operator) << std::endl;
-                            std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
-                            std::cout << "Dumping the operands:" << std::endl;
-                            for (int i = 0; i < this->get_n_arg(); i++)
+                            if (this->get_n_arg() > 0)
                             {
-                                std::cout << "Operand " << std::to_string(i) << "." << std::endl;
-                                this->op[i].dump(exhaustive);
+                                std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
+                                std::cout << "Dumping the operands:" << std::endl;
+                                for (int i = 0; i < this->get_n_arg(); i++)
+                                {
+                                    std::cout << "Operand " << std::to_string(i) << "." << std::endl;
+                                    this->op[i].dump(exhaustive);
+                                }
                             }
-                            if ((this->get_op_type() == tiramisu::o_access) || (this->get_op_type() == tiramisu::o_call))
+                            if ((this->get_op_type() == tiramisu::o_access))
                             {
-                                std::cout << "Access or call to " +  this->get_name() + ". Access or argument expressions:" << std::endl;
+                                std::cout << "Access to " +  this->get_name() + ". Access expressions:" << std::endl;
                                 for (const auto &e: this->get_access())
                                 {
                                     e.dump(exhaustive);
                                 }
+                            }
+                            if ((this->get_op_type() == tiramisu::o_call))
+                            {
+                                std::cout << "call to " +  this->get_name() + ". Argument expressions:" << std::endl;
+                                for (const auto &e: this->get_arguments())
+                                {
+                                    e.dump(exhaustive);
+                                }
+                            }
+                            if ((this->get_op_type() == tiramisu::o_address))
+                            {
+                                std::cout << "Address of the following access : " << std::endl;
+                                this->get_operand(0).dump(true);
                             }
                             break;
                         }
@@ -1147,7 +1201,6 @@ public:
                                 std::cout << ") ";
                                 break;
                             case tiramisu::o_access:
-                            case tiramisu::o_call:
                                 std::cout << this->get_name() << "(";
                                 for (int k = 0; k < this->get_access().size(); k++)
                                 {
@@ -1156,6 +1209,19 @@ public:
                                     this->get_access()[k].dump(false);
                                 }
                                 std::cout << ")";
+                                break;
+                            case tiramisu::o_call:
+                                std::cout << this->get_name() << "(";
+                                for (int k = 0; k < this->get_arguments().size(); k++)
+                                {
+                                    if (k != 0)
+                                        std::cout << ", ";
+                                    this->get_arguments()[k].dump(false);
+                                }
+                                std::cout << ")";
+                                break;
+                            case tiramisu::o_address:
+                                std::cout << "&" << this->get_operand(0).get_name();
                                 break;
                             default:
                                 tiramisu::error("Dumping an unsupported tiramisu expression.", 1);
@@ -1219,7 +1285,8 @@ class var: public tiramisu::expr
 {
 public:
     /**
-      * Construct an expression that represents an id.
+      * Construct an expression that represents a variable.
+      * \p type is the type of the variable and \p name is its name.
       */
     var(tiramisu::primitive_t type, std::string name)
     {
@@ -1230,6 +1297,17 @@ public:
         this->dtype = type;
     }
 
+    /**
+     * Construct an expression that represents an untyped variable.
+     * For example to declare the variable "t", use
+     * tiramisu::var("t");
+     *
+     * To declare an expression that represents the reference of a buffer
+     * one can declare a variable as follows
+     *
+     * tiramisu::expr(o_address, "buf0");
+     *
+     */
     var(std::string name)
     {
         assert(name.length() > 0);
