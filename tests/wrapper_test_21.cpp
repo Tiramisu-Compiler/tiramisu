@@ -11,7 +11,7 @@ extern "C" {
 
 uint8_t my_external(halide_buffer_t *buf0)
 {
-    return 0;   //buf0->host[0];
+    return buf0->host[0];
 }
 
 #ifdef __cplusplus
