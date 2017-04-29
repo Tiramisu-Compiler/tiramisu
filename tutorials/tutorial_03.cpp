@@ -39,9 +39,9 @@ int main(int argc, char **argv)
      * Declare an invariant for the function.
      */
     function matmul("matmul");
-    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
+    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
+    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
+    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
     expr e_p0 = expr((int32_t) SIZE0);
     constant p0("N", e_p0, p_int32, true, NULL, 0, &matmul);
 

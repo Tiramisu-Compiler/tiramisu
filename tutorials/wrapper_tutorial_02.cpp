@@ -10,26 +10,16 @@
 int main(int, char**)
 {
     Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> output_buf(image.extent(0), image.extent(1));
 
-    buffer_t output_buf = {0};
-    output_buf.host = (unsigned char *) malloc(image.extent(0)*image.extent(1)*sizeof(unsigned char));
-    output_buf.stride[0] = 1;
-    output_buf.stride[1] = image.extent(0);
-    output_buf.extent[0] = image.extent(0);
-    output_buf.extent[1] = image.extent(1);
-    output_buf.min[0] = 0;
-    output_buf.min[1] = 0;
-    output_buf.elem_size = 1;
-    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
-
-
-    // The blurxy takes a buffer_t * argument, when "image"
+    // The blurxy takes a halide_buffer_t * as argument, when "image"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
-    blurxy(image.raw_buffer(), halide_output_buf.raw_buffer());
+    blurxy(image.raw_buffer(), output_buf.raw_buffer());
 
-    copy_2D_buffer(image.data(), image.extent(0), image.extent(1), halide_output_buf.data());
-
+    // TODO(psuriana): not sure why we have to copy the output to image, then
+    // write it to file, as opposed to write the output to file directly.
+    copy_buffer(output_buf, image);
     Halide::Tools::save_image(image, "./build/tutorial_02.png");
 
    return 0;

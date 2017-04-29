@@ -7,17 +7,16 @@
 
 int main(int, char**)
 {
-    buffer_t reference_buf = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&reference_buf, SIZE0, SIZE1, 4);
+	Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
+    init_buffer(reference_buf, (uint8_t)4);
 
-    buffer_t output_buf = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&output_buf, SIZE0, SIZE1, 99);
-    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
+    Halide::Buffer<uint8_t> output_buf(SIZE0, SIZE1);
+    init_buffer(output_buf, (uint8_t)99);
 
     // Call the Tiramisu generated code
-    TEST_NAME(halide_output_buf.raw_buffer());
+    TEST_NAME(output_buf.raw_buffer());
 
-    compare_2_2D_arrays("test_"+std::string(TEST_NAME_STR), halide_output_buf.data(), reference_buf.host, SIZE0, SIZE1);
+    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf, reference_buf);
 
     return 0;
 }

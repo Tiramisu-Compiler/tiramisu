@@ -10,16 +10,15 @@
 
 int main(int, char**)
 {
-    buffer_t reference_buf = allocate_2D_buffer(NN, MM);
-    init_2D_buffer_val(&reference_buf, NN, MM, 7);
+    Halide::Buffer<uint8_t> reference_buf(NN, MM);
+    init_buffer(reference_buf, (uint8_t)7);
 
-    buffer_t output_buf = allocate_2D_buffer(NN, MM);
-    init_2D_buffer_val(&output_buf, NN, MM, 13);
-    Halide::Buffer<uint8_t> halide_output_buf(output_buf);
+    Halide::Buffer<uint8_t> output_buf(NN, MM);
+    init_buffer(output_buf, (uint8_t)13);
 
-    assign_7_to_1000x1000_2D_array_with_tiling_parallelism(halide_output_buf.raw_buffer());
+    assign_7_to_1000x1000_2D_array_with_tiling_parallelism(output_buf.raw_buffer());
 
-    compare_2_2D_arrays("assign_7_to_1000x1000_2D_array_with_tiling_parallelism", halide_output_buf.data(), reference_buf.host, NN, MM);
+    compare_buffers("assign_7_to_1000x1000_2D_array_with_tiling_parallelism", output_buf, reference_buf);
 
     return 0;
 }

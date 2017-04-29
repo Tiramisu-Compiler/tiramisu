@@ -16,8 +16,8 @@
 for (i = 0; i < M; i++)
   S0(i) = 7;
   S1(i) = 7;
-  for (j=0; j<N; j++)
-      S2(i,j) = 7;
+  for (j = 0; j < N; j++)
+    S2(i, j) = 7;
   S3(i) = 7;
 */
 
@@ -33,13 +33,13 @@ int main(int argc, char **argv)
     function sequence("sequence");
     buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
     buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
     buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", e_M, p_int32, true, NULL, 0, &sequence);
 
-    expr val = tiramisu::expr(1);
+    expr val = tiramisu::expr(7);
     computation c0("[M]->{c0[i]: 0<=i<M}", val, true, p_uint8, &sequence);
     computation c1("[M]->{c1[i]: 0<=i<M}", val, true, p_uint8, &sequence);
     computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", val, true, p_uint8, &sequence);

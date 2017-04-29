@@ -44,7 +44,7 @@ build/tiramisu_codegen_%.o: src/tiramisu_codegen_%.cpp $(HEADER_FILES)
 	$(CXX) -fPIC ${CXXFLAGS} ${INCLUDES} -c $< -o $@
 
 
-# Build the tutorials.  First Object files need to be build, then the
+# Build the tutorials. First Object files need to be build, then the
 # library generators need to be build and execute (so that they generate
 # the libraries), then the wrapper should be built (wrapper are programs that call the
 # library functions).

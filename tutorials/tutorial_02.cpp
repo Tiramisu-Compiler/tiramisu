@@ -44,8 +44,8 @@ int main(int argc, char **argv)
      * Declare an invariant for the function.
      */
     function blurxy("blurxy");
-    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
-    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
+    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
+    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
     expr e_p0 = expr((int32_t) SIZE0);
     expr e_p1 = expr((int32_t) SIZE1);
     constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
