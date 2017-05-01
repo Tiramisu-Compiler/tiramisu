@@ -25,7 +25,7 @@ for (i = 0; i < M; i++)
     int b0 = row_start[i];
     int b1 = row_start[i+1];
 
-    for (j=b0; j<b1; j++)
+    for (j = b0; j < b1; j++)
     {
         int t = col_idx[j];
         y[i] += values[j] * x[t];

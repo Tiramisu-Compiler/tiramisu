@@ -14,10 +14,10 @@
 
 /* CSR SpMV Simplified.
 for (i = 0; i < M; i++)
-  S0(i) = 1;
-  S1(i) = 1;
-  for (j=0; j<N; j++)
-      S2(i,j) = 1;
+  S0(i) = 4;
+  S1(i) = 3;
+  for (j = 0; j < N; j++)
+    S2(i, j) = 2;
   S3(i) = 1;
 */
 
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     function sequence("sequence");
     buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
     buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
     buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
     expr e_M = expr((int32_t) SIZE0);

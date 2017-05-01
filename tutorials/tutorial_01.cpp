@@ -15,9 +15,9 @@ using namespace tiramisu;
 
 /*
 int N = 10;
-for (int i=0; i<N; i++)
-  for (int j=0; j<N; j++)
-     buf0[i,j] = 3 + 4;
+for (int i = 0; i < N; i++)
+  for (int j = 0; j < N; j++)
+    buf0[i, j] = 3 + 4;
 */
 
 int main(int argc, char **argv)
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", 2, {tiramisu::expr(10),tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
+    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the
@@ -117,8 +117,7 @@ int main(int argc, char **argv)
  *
  * Current limitations:
  *  - Note that the type of the invariant N is "int32_t".  This is important
-      because this invariant is used later as a loop bound and the
-      type of the bound and the iterator should be the same for correct code
-      generation.  This implies that the invariant should be of type "int32_t".
-
+ *    because this invariant is used later as a loop bound and the
+ *    type of the bound and the iterator should be the same for correct code
+ *    generation. This implies that the invariant should be of type "int32_t".
  */

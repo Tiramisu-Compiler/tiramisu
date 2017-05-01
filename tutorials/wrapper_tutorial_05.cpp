@@ -9,32 +9,31 @@
 
 int main(int, char**)
 {
-    buffer_t b0 = allocate_1D_buffer(NN);
-    init_1D_buffer_val(&b0, NN, 99);
+    // Outputs
+    Halide::Buffer<uint8_t> b0(NN);
+    init_buffer(b0, (uint8_t)99);
+    Halide::Buffer<uint8_t> b1(NN);
+    init_buffer(b1, (uint8_t)99);
+    Halide::Buffer<uint8_t> b2(NN, NN);
+    init_buffer(b2, (uint8_t)99);
+    Halide::Buffer<uint8_t> b3(NN);
+    init_buffer(b3, (uint8_t)99);
 
-    buffer_t b1 = allocate_1D_buffer(NN);
-    init_1D_buffer_val(&b1, NN, 99);
+    sequence(b0.raw_buffer(), b1.raw_buffer(), b2.raw_buffer(), b3.raw_buffer());
 
-    buffer_t b2 = allocate_2D_buffer(NN, NN);
-    init_2D_buffer_val(&b2, NN, NN, 99);
+    Halide::Buffer<uint8_t> expected_b0(NN);
+    init_buffer(expected_b0, (uint8_t)4);
+    Halide::Buffer<uint8_t> expected_b1(NN);
+    init_buffer(expected_b1, (uint8_t)3);
+    Halide::Buffer<uint8_t> expected_b2(NN, NN);
+    init_buffer(expected_b2, (uint8_t)2);
+    Halide::Buffer<uint8_t> expected_b3(NN);
+    init_buffer(expected_b3, (uint8_t)1);
 
-    buffer_t b3 = allocate_1D_buffer(NN);
-    init_1D_buffer_val(&b3, NN, 99);
+    compare_buffers("tutorial_05_b0", b0, expected_b0);
+    compare_buffers("tutorial_05_b1", b1, expected_b1);
+    compare_buffers("tutorial_05_b2", b2, expected_b2);
+    compare_buffers("tutorial_05_b3", b3, expected_b3);
 
-    buffer_t b_reference = allocate_1D_buffer(NN);
-    init_1D_buffer_val(&b_reference, NN, 1);
-
-    Halide::Buffer<uint8_t> b0_buf(b0);
-    Halide::Buffer<uint8_t> b1_buf(b1);
-    Halide::Buffer<uint8_t> b2_buf(b2);
-    Halide::Buffer<uint8_t> b3_buf(b3);
-    Halide::Buffer<uint8_t> b_reference_buf(b_reference);
-
-    sequence(b0_buf.raw_buffer(), b1_buf.raw_buffer(), b2_buf.raw_buffer(), b3_buf.raw_buffer());
-
-    std::cout << "Tutorial 05 (a sequence of computations)." << std::endl << "Output: ";
-    print_1D_array(b3_buf.data(), NN);
-    compare_2_1D_arrays("sequence (tutorial 05)", b3_buf.data(), b_reference_buf.data(), NN);
-
-   return 0;
+    return 0;
 }

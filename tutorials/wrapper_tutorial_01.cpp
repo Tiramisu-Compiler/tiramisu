@@ -9,18 +9,21 @@
 
 int main(int, char**)
 {
-    buffer_t input_buf = allocate_2D_buffer(NN, MM);
-    init_2D_buffer_val(&input_buf, NN, MM, 9);
+    Halide::Buffer<uint8_t> output(NN, MM);
+    init_buffer(output, (uint8_t)9);
 
     std::cout << "Array (after initialization)" << std::endl;
-    print_2D_buffer(&input_buf, NN, MM);
+    print_buffer(output);
 
-    Halide::Buffer<uint8_t> halide_input_buf(input_buf);
-
-    function0(halide_input_buf.raw_buffer());
+    function0(output.raw_buffer());
 
     std::cout << "Array after the Halide pipeline" << std::endl;
-    print_1D_array(halide_input_buf.data(), NN*MM);
+    print_buffer(output);
+
+    Halide::Buffer<uint8_t> expected(NN, MM);
+    init_buffer(expected, (uint8_t)7);
+
+    compare_buffers("tutorial_01", output, expected);
 
     return 0;
 }
