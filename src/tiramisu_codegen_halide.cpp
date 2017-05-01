@@ -41,11 +41,11 @@ std::vector<computation *> function::get_computation_by_name(std::string name) c
 
     if (res_comp.size() == 0)
     {
-        DEBUG(10, tiramisu::str_dump ("Computation not found."));
+        DEBUG(10, tiramisu::str_dump("Computation not found."));
     }
     else
     {
-        DEBUG(10, tiramisu::str_dump ("Computation found."));
+        DEBUG(10, tiramisu::str_dump("Computation found."));
     }
 
     return res_comp;
@@ -70,24 +70,24 @@ std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function 
     return comp;
 }
 
-isl_map *create_map_from_domain_and_range (isl_set *domain, isl_set *range)
+isl_map *create_map_from_domain_and_range(isl_set *domain, isl_set *range)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump ("Domain:", isl_set_to_str(domain)));
-    DEBUG(3, tiramisu::str_dump ("Range:", isl_set_to_str(range)));
+    DEBUG(3, tiramisu::str_dump("Domain:", isl_set_to_str(domain)));
+    DEBUG(3, tiramisu::str_dump("Range:", isl_set_to_str(range)));
     // Extracting the spaces and aligning them
-    isl_space *sp1 = isl_set_get_space (domain);
-    isl_space *sp2 = isl_set_get_space (range);
-    sp1 = isl_space_align_params (sp1, isl_space_copy (sp2));
-    sp2 = isl_space_align_params (sp2, isl_space_copy (sp1));
+    isl_space *sp1 = isl_set_get_space(domain);
+    isl_space *sp2 = isl_set_get_space(range);
+    sp1 = isl_space_align_params(sp1, isl_space_copy(sp2));
+    sp2 = isl_space_align_params(sp2, isl_space_copy(sp1));
     // Create the space access_domain -> sched_range.
-    isl_space *sp = isl_space_map_from_domain_and_range (
-                        isl_space_copy (sp1), isl_space_copy (sp2));
+    isl_space *sp = isl_space_map_from_domain_and_range(
+                        isl_space_copy(sp1), isl_space_copy(sp2));
     isl_map *adapter = isl_map_universe (sp);
-    DEBUG(3, tiramisu::str_dump ("Transformation map:", isl_map_to_str (adapter)));
-    isl_space *sp_map = isl_map_get_space (adapter);
+    DEBUG(3, tiramisu::str_dump("Transformation map:", isl_map_to_str(adapter)));
+    isl_space *sp_map = isl_map_get_space(adapter);
     isl_local_space *l_sp = isl_local_space_from_space (sp_map);
     // Add equality constraints.
     for (int i = 0; i < isl_space_dim (sp1, isl_dim_set); i++)
@@ -98,18 +98,18 @@ isl_map *create_map_from_domain_and_range (isl_set *domain, isl_set *range)
             {
                 if (isl_space_has_dim_id(sp2, isl_dim_set, j) == true)
                 {
-                    isl_id *id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
-                    isl_id *id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
-                    if (strcmp (isl_id_get_name (id1), isl_id_get_name (id2)) == 0)
+                    isl_id *id1 = isl_space_get_dim_id(sp1, isl_dim_set, i);
+                    isl_id *id2 = isl_space_get_dim_id(sp2, isl_dim_set, j);
+                    if (strcmp (isl_id_get_name(id1), isl_id_get_name(id2)) == 0)
                     {
-                        isl_constraint *cst = isl_equality_alloc (
-                                                  isl_local_space_copy (l_sp));
-                        cst = isl_constraint_set_coefficient_si (cst,
+                        isl_constraint *cst = isl_equality_alloc(
+                                                  isl_local_space_copy(l_sp));
+                        cst = isl_constraint_set_coefficient_si(cst,
                                 isl_dim_in,
                                 i, 1);
-                        cst = isl_constraint_set_coefficient_si (
+                        cst = isl_constraint_set_coefficient_si(
                                   cst, isl_dim_out, j, -1);
-                        adapter = isl_map_add_constraint (adapter, cst);
+                        adapter = isl_map_add_constraint(adapter, cst);
                     }
                 }
             }
@@ -117,7 +117,7 @@ isl_map *create_map_from_domain_and_range (isl_set *domain, isl_set *range)
     }
     DEBUG(3, tiramisu::str_dump(
               "Transformation map after adding equality constraints:",
-              isl_map_to_str (adapter)));
+              isl_map_to_str(adapter)));
 
     DEBUG_INDENT(-4);
 
@@ -384,7 +384,7 @@ isl_constraint *get_constraint_for_access(int access_dimension,
         DEBUG(3, tiramisu::str_dump("Looking for a dimension named ");
               tiramisu::str_dump(access_expression.get_name());
               tiramisu::str_dump(" in the domain of ", isl_map_to_str(access_relation)));
-        int dim0 = isl_space_find_dim_by_name(isl_map_get_space (access_relation),
+        int dim0 = isl_space_find_dim_by_name(isl_map_get_space(access_relation),
                                               isl_dim_in,
                                               access_expression.get_name().c_str());
         if (dim0 >= 0)
@@ -407,7 +407,7 @@ isl_constraint *get_constraint_for_access(int access_dimension,
             cst = isl_constraint_alloc_equality(isl_local_space_copy(ls2));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos - 1, (coeff) * (-1));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
-            DEBUG(3, tiramisu::str_dump ("After adding a parameter:", isl_map_to_str (access_relation)));
+            DEBUG(3, tiramisu::str_dump("After adding a parameter:", isl_map_to_str(access_relation)));
         }
     }
     else if (access_expression.get_expr_type() == tiramisu::e_op)
@@ -545,8 +545,8 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         int access_dimension = 0;
         for (const auto &access : exp.get_access())
         {
-            DEBUG(3, tiramisu::str_dump ("Assigning 1 to the coefficient of output dimension " +
-                                         std::to_string (access_dimension)));
+            DEBUG(3, tiramisu::str_dump("Assigning 1 to the coefficient of output dimension " +
+                                        std::to_string (access_dimension)));
             isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(
                                       isl_map_get_space(isl_map_copy(access_to_comp)))));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
@@ -931,10 +931,10 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 void print_isl_ast_expr_vector(
     const std::vector<isl_ast_expr *> &index_expr_cp)
 {
-    DEBUG(3, tiramisu::str_dump ("List of index expressions."));
+    DEBUG(3, tiramisu::str_dump("List of index expressions."));
     for (auto &i_expr : index_expr_cp)
     {
-        DEBUG(3, tiramisu::str_dump (" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
+        DEBUG(3, tiramisu::str_dump(" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
     }
 }
 

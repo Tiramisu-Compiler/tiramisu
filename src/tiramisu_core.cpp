@@ -109,9 +109,10 @@ isl_union_map *tiramisu::function::compute_dep_graph()
 
     isl_union_map *result = NULL;
 
-    for (auto consumer: this->get_computations())
+    for (auto consumer : this->get_computations())
     {
-        DEBUG(3, tiramisu::str_dump("Computing the dependences involving the computation " + consumer->get_name() + "."));
+        DEBUG(3, tiramisu::str_dump("Computing the dependences involving the computation " +
+                                    consumer->get_name() + "."));
         DEBUG(3, tiramisu::str_dump("Computing the accesses of the computation."));
 
         isl_union_map *accesses_union_map = NULL;
@@ -134,7 +135,8 @@ isl_union_map *tiramisu::function::compute_dep_graph()
             for (const auto access : accesses_vector)
             {
                 isl_map *reverse_access = isl_map_reverse(isl_map_copy(access));
-                accesses_union_map = isl_union_map_union(isl_union_map_from_map(isl_map_copy(reverse_access)), accesses_union_map);
+                accesses_union_map = isl_union_map_union(isl_union_map_from_map(isl_map_copy(reverse_access)),
+                                     accesses_union_map);
             }
 
             //accesses_union_map = isl_union_map_intersect_range(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
@@ -144,9 +146,13 @@ isl_union_map *tiramisu::function::compute_dep_graph()
             DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(accesses_union_map)));
 
             if (result == NULL)
+            {
                 result = isl_union_map_copy(accesses_union_map);
+            }
             else
+            {
                 result = isl_union_map_union(result, isl_union_map_copy(accesses_union_map));
+            }
         }
     }
 
@@ -186,20 +192,26 @@ void tiramisu::function::compute_bounds()
 
     isl_union_set *Domains = NULL;
     Domains = isl_union_set_empty(isl_set_get_space(last[0]->get_iteration_domain()));
-    for (auto c: last)
-        Domains = isl_union_set_union(Domains, isl_union_set_from_set(isl_set_copy(c->get_iteration_domain())));
-    DEBUG(3, tiramisu::str_dump("The domains of the last computations are:", isl_union_set_to_str(Domains)));
+    for (auto c : last)
+    {
+        Domains = isl_union_set_union(Domains,
+                                      isl_union_set_from_set(isl_set_copy(c->get_iteration_domain())));
+    }
+    DEBUG(3, tiramisu::str_dump("The domains of the last computations are:",
+                                isl_union_set_to_str(Domains)));
 
     // Compute "Producers", the union of the iteration domains of the computations
     // that computed "last".
-    isl_union_set *Producers = isl_union_set_apply(isl_union_set_copy(Domains), isl_union_map_copy(Reverse));
-    DEBUG(3, tiramisu::str_dump("The producers of the last computations are:", isl_union_set_to_str(Producers)));
+    isl_union_set *Producers = isl_union_set_apply(isl_union_set_copy(Domains),
+                               isl_union_map_copy(Reverse));
+    DEBUG(3, tiramisu::str_dump("The producers of the last computations are:",
+                                isl_union_set_to_str(Producers)));
 
     DEBUG(3, tiramisu::str_dump("Propagating the bounds over all computations."));
     DEBUG_INDENT(4);
     while (isl_union_set_is_empty(Producers) == isl_bool_false)
     {
-        for (auto c: this->get_computations())
+        for (auto c : this->get_computations())
         {
             DEBUG(3, tiramisu::str_dump("Computing the domain (bounds) of the computation: " + c->get_name()));
             isl_union_set *s1 = isl_union_set_from_set(isl_set_copy(c->get_iteration_domain()));
@@ -213,12 +225,13 @@ void tiramisu::function::compute_bounds()
             if ((isl_union_set_is_empty(s2) == isl_bool_false))
             {
                 isl_union_set *s3 = isl_union_set_copy(isl_union_set_intersect(isl_union_set_copy(s1),
-                                                                               isl_union_set_copy(s2)));
+                                                       isl_union_set_copy(s2)));
 
                 if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true) ||
-                    (isl_union_set_is_subset(s1, s3)))
+                        (isl_union_set_is_subset(s1, s3)))
                 {
-                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = Producers intersect the old domain = ", isl_union_set_to_str(s3)));
+                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = Producers intersect the old domain = ",
+                                                isl_union_set_to_str(s3)));
                     c->set_iteration_domain(isl_set_from_union_set(s3));
                 }
             }
@@ -505,7 +518,7 @@ void function::gen_isl_ast()
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::stmt_code_generator, this);
 
     // Set iterator names
-    isl_id_list *iterators = isl_id_list_alloc(ctx,  this->get_iterator_names().size());
+    isl_id_list *iterators = isl_id_list_alloc(ctx, this->get_iterator_names().size());
     if (this->get_iterator_names().size() > 0)
     {
 
@@ -869,19 +882,19 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
      * the list of invariants.
      */
     std::string separator_name = tiramisu::generate_new_variable_name ();
-    tiramisu::expr div_expr = tiramisu::expr (o_div, loop_upper_bound,
-                              tiramisu::expr (v));
-    tiramisu::expr cast_expr = tiramisu::expr (o_cast, tiramisu::p_float32,
+    tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound,
+                              tiramisu::expr(v));
+    tiramisu::expr cast_expr = tiramisu::expr(o_cast, tiramisu::p_float32,
                                div_expr);
-    tiramisu::expr floor_expr = tiramisu::expr (o_floor, cast_expr);
-    tiramisu::expr cast2_expr = tiramisu::expr (o_cast, tiramisu::p_int32,
+    tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
+    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, tiramisu::p_int32,
                                 floor_expr);
-    tiramisu::expr separator_expr = tiramisu::expr (o_mul,
-                                    tiramisu::expr (v),
+    tiramisu::expr separator_expr = tiramisu::expr(o_mul,
+                                    tiramisu::expr(v),
                                     cast2_expr);
     tiramisu::constant *separation_param = new tiramisu::constant (
         separator_name, separator_expr, p_uint32, true, NULL, 0,
-        this->get_function ());
+        this->get_function());
     /**
      * Add the following constraints about the separator to the context:
      *  -  separator%v = 0
@@ -903,30 +916,30 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
      * (that is, we have to add the new parameter to the context and then take
      * its space as a model for alignment).
      */
-    isl_set *original_context = this->get_function ()->get_program_context ();
+    isl_set *original_context = this->get_function()->get_program_context ();
     if (original_context != NULL)
     {
         // Create a space from the context and add a parameter.
-        isl_space *sp = isl_space_copy (
+        isl_space *sp = isl_space_copy(
                             isl_set_get_space (original_context));
         sp = isl_space_add_dims (sp, isl_dim_param, 1);
         int pos = isl_space_dim (sp, isl_dim_param) - 1;
         sp = isl_space_set_dim_name (sp, isl_dim_param, pos,
                                      separator_name.c_str ());
-        this->set_iteration_domain (
-            isl_set_align_params (this->get_iteration_domain (),
-                                  isl_space_copy (sp)));
-        this->get_function ()->set_context_set (
-            isl_set_align_params (
-                this->get_function ()->get_program_context (),
-                isl_space_copy (sp)));
-        this->get_function ()->set_context_set (
-            isl_set_intersect (isl_set_copy (original_context),
+        this->set_iteration_domain(
+            isl_set_align_params(this->get_iteration_domain (),
+                                  isl_space_copy(sp)));
+        this->get_function()->set_context_set (
+            isl_set_align_params(
+                this->get_function()->get_program_context (),
+                isl_space_copy(sp)));
+        this->get_function()->set_context_set (
+            isl_set_intersect(isl_set_copy (original_context),
                                new_context_set));
     }
     else
     {
-        this->get_function ()->set_context_set (new_context_set);
+        this->get_function()->set_context_set (new_context_set);
     }
     return separation_param;
 }
@@ -2236,35 +2249,35 @@ isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_co
 
     isl_map *identity = isl_set_identity(isl_map_range(isl_map_copy(sched)));
     identity = isl_map_universe(isl_map_get_space(identity));
-    isl_space *sp = isl_map_get_space (identity);
-    isl_local_space *lsp = isl_local_space_from_space (isl_space_copy (sp));
+    isl_space *sp = isl_map_get_space(identity);
+    isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
 
     // Create a transformation map that transforms the schedule.
     for (int i = 0; i < isl_map_dim (identity, isl_dim_out); i++)
         if (i == dim0)
         {
-            isl_constraint *cst = isl_constraint_alloc_equality (isl_local_space_copy (lsp));
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_in, dim0, in_dim_coefficient);
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_out, dim0, -out_dim_coefficient);
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, in_dim_coefficient);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim0, -out_dim_coefficient);
             // TODO: this should be inverted into const_conefficient.
-            cst = isl_constraint_set_constant_si (cst, -const_conefficient);
-            identity = isl_map_add_constraint (identity, cst);
-            DEBUG(3, tiramisu::str_dump ("Setting the constraint for dimension " + std::to_string (dim0)));
-            DEBUG(3, tiramisu::str_dump ("The identity schedule is now: ", isl_map_to_str (identity)));
+            cst = isl_constraint_set_constant_si(cst, -const_conefficient);
+            identity = isl_map_add_constraint(identity, cst);
+            DEBUG(3, tiramisu::str_dump("Setting the constraint for dimension " + std::to_string (dim0)));
+            DEBUG(3, tiramisu::str_dump("The identity schedule is now: ", isl_map_to_str(identity)));
         }
         else
         {
             // Set equality constraints for dimensions
-            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy (lsp));
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_in, i, 1);
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_out, i, -1);
-            identity = isl_map_add_constraint (identity, cst2);
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+            identity = isl_map_add_constraint(identity, cst2);
         }
 
     isl_map *final_identity = identity;
-    DEBUG(3, tiramisu::str_dump ("The transformation map is: ", isl_map_to_str (final_identity)));
+    DEBUG(3, tiramisu::str_dump("The transformation map is: ", isl_map_to_str(final_identity)));
     sched = isl_map_apply_range (sched, final_identity);
-    DEBUG(3, tiramisu::str_dump ("The schedule after being transformed: ", isl_map_to_str (sched)));
+    DEBUG(3, tiramisu::str_dump("The schedule after being transformed: ", isl_map_to_str(sched)));
 
     DEBUG_INDENT(-4);
 
@@ -2288,75 +2301,75 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
     DEBUG(3, tiramisu::str_dump("Coefficient of the constant " + std::to_string(const_conefficient)));
 
     isl_map *identity = isl_set_identity(isl_map_range(isl_map_copy(sched)));
-    identity = isl_map_universe (isl_map_get_space (identity));
-    isl_space *sp = isl_map_get_space (identity);
-    isl_local_space *lsp = isl_local_space_from_space (isl_space_copy (sp));
+    identity = isl_map_universe(isl_map_get_space(identity));
+    isl_space *sp = isl_map_get_space(identity);
+    isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
 
     // Create a transformation map that applies only on the map that have
     // duplicate_ID as an ID.
     for (int i = 0; i < isl_map_dim (identity, isl_dim_out); i++)
         if (i == 0)
         {
-            isl_constraint *cst = isl_constraint_alloc_equality (isl_local_space_copy (lsp));
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_in, 0, 1);
-            cst = isl_constraint_set_constant_si (cst, -duplicate_ID);
-            identity = isl_map_add_constraint (identity, cst);
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, 0, 1);
+            cst = isl_constraint_set_constant_si(cst, -duplicate_ID);
+            identity = isl_map_add_constraint(identity, cst);
 
             // Set equality constraints for the first dimension (to keep the value of the duplicate ID)
-            isl_constraint *cst2 = isl_constraint_alloc_equality (isl_local_space_copy (lsp));
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_in, i, 1);
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_out, i, -1);
-            identity = isl_map_add_constraint (identity, cst2);
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+            identity = isl_map_add_constraint(identity, cst2);
 
-            DEBUG(3, tiramisu::str_dump ("Setting the constant " + std::to_string (
-                                             duplicate_ID) + " for dimension 0."));
+            DEBUG(3, tiramisu::str_dump("Setting the constant " + std::to_string (
+                                            duplicate_ID) + " for dimension 0."));
         }
         else if (i == dim0)
         {
-            isl_constraint *cst = isl_constraint_alloc_inequality (isl_local_space_copy (lsp));
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_in, dim0, in_dim_coefficient);
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_out, dim0, -out_dim_coefficient);
-            cst = isl_constraint_set_constant_si (cst, -const_conefficient);
-            identity = isl_map_add_constraint (identity, cst);
-            DEBUG(3, tiramisu::str_dump ("Setting the constraint for dimension " + std::to_string (dim0)));
-            DEBUG(3, tiramisu::str_dump ("The identity schedule is now: ", isl_map_to_str (identity)));
+            isl_constraint *cst = isl_constraint_alloc_inequality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, in_dim_coefficient);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, dim0, -out_dim_coefficient);
+            cst = isl_constraint_set_constant_si(cst, -const_conefficient);
+            identity = isl_map_add_constraint(identity, cst);
+            DEBUG(3, tiramisu::str_dump("Setting the constraint for dimension " + std::to_string (dim0)));
+            DEBUG(3, tiramisu::str_dump("The identity schedule is now: ", isl_map_to_str(identity)));
         }
         else
         {
             // Set equality constraints for dimensions
-            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy (lsp));
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_in, i, 1);
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_out, i, -1);
-            identity = isl_map_add_constraint (identity, cst2);
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+            identity = isl_map_add_constraint(identity, cst2);
         }
 
     isl_map *final_identity = identity;
-    DEBUG(3, tiramisu::str_dump ("The identity schedule is now: ", isl_map_to_str (final_identity)));
+    DEBUG(3, tiramisu::str_dump("The identity schedule is now: ", isl_map_to_str(final_identity)));
 
     isl_map *identity2;
 
     // Now set map that keep schedules of the other duplicates without any modification.
     DEBUG(3, tiramisu::str_dump("Setting a map to keep the schedules of the other duplicates that have an ID > this duplicate"));
     identity2 = isl_set_identity(isl_map_range(isl_map_copy(sched)));
-    identity2 = isl_map_universe (isl_map_get_space (identity2));
-    sp = isl_map_get_space (identity2);
-    lsp = isl_local_space_from_space (isl_space_copy (sp));
+    identity2 = isl_map_universe(isl_map_get_space(identity2));
+    sp = isl_map_get_space(identity2);
+    lsp = isl_local_space_from_space(isl_space_copy(sp));
     for (int i = 0; i < isl_map_dim (identity2, isl_dim_out); i++)
     {
         if (i == 0)
         {
-            isl_constraint *cst = isl_constraint_alloc_inequality (isl_local_space_copy (lsp));
-            cst = isl_constraint_set_coefficient_si (cst, isl_dim_in, 0, 1);
-            cst = isl_constraint_set_constant_si (cst, -duplicate_ID - 1);
-            identity2 = isl_map_add_constraint (identity2, cst);
+            isl_constraint *cst = isl_constraint_alloc_inequality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, 0, 1);
+            cst = isl_constraint_set_constant_si(cst, -duplicate_ID - 1);
+            identity2 = isl_map_add_constraint(identity2, cst);
         }
-        isl_constraint *cst2 = isl_constraint_alloc_equality (isl_local_space_copy (lsp));
-        cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_in, i, 1);
-        cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_out, i, -1);
-        identity2 = isl_map_add_constraint (identity2, cst2);
+        isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+        cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+        cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+        identity2 = isl_map_add_constraint(identity2, cst2);
     }
 
-    DEBUG(3, tiramisu::str_dump ("The identity schedule is now: ", isl_map_to_str (identity2)));
+    DEBUG(3, tiramisu::str_dump("The identity schedule is now: ", isl_map_to_str(identity2)));
     final_identity = isl_map_union (final_identity, identity2);
 
     if (duplicate_ID > 0)
@@ -2364,30 +2377,30 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
         DEBUG(3, tiramisu::str_dump("Setting a map to keep the schedules of the other duplicates that have an ID < this duplicate"));
         identity2 = isl_set_identity(isl_map_range(isl_map_copy(sched)));
         identity2 = isl_map_universe(isl_map_get_space(identity2));
-        sp = isl_map_get_space (identity2);
-        lsp = isl_local_space_from_space (isl_space_copy (sp));
+        sp = isl_map_get_space(identity2);
+        lsp = isl_local_space_from_space(isl_space_copy(sp));
         for (int i = 0; i < isl_map_dim (identity2, isl_dim_out); i++)
         {
             if (i == 0)
             {
-                isl_constraint *cst = isl_constraint_alloc_inequality(isl_local_space_copy (lsp));
-                cst = isl_constraint_alloc_inequality (isl_local_space_copy (lsp));
-                cst = isl_constraint_set_coefficient_si (cst, isl_dim_in, 0, -1);
-                cst = isl_constraint_set_constant_si (cst, duplicate_ID - 1);
-                identity2 = isl_map_add_constraint (identity2, cst);
+                isl_constraint *cst = isl_constraint_alloc_inequality(isl_local_space_copy(lsp));
+                cst = isl_constraint_alloc_inequality(isl_local_space_copy(lsp));
+                cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, 0, -1);
+                cst = isl_constraint_set_constant_si(cst, duplicate_ID - 1);
+                identity2 = isl_map_add_constraint(identity2, cst);
             }
-            isl_constraint *cst2 = isl_constraint_alloc_equality (isl_local_space_copy (lsp));
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_in, i, 1);
-            cst2 = isl_constraint_set_coefficient_si (cst2, isl_dim_out, i, -1);
-            identity2 = isl_map_add_constraint (identity2, cst2);
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_in, i, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_out, i, -1);
+            identity2 = isl_map_add_constraint(identity2, cst2);
         }
-        DEBUG(3, tiramisu::str_dump ("The identity schedule is now: ", isl_map_to_str (identity2)));
+        DEBUG(3, tiramisu::str_dump("The identity schedule is now: ", isl_map_to_str(identity2)));
         final_identity = isl_map_union (final_identity, identity2);
     }
 
-    DEBUG(3, tiramisu::str_dump ("The final transformation map is: ", isl_map_to_str (final_identity)));
+    DEBUG(3, tiramisu::str_dump("The final transformation map is: ", isl_map_to_str(final_identity)));
     sched = isl_map_apply_range (sched, final_identity);
-    DEBUG(3, tiramisu::str_dump ("The schedule after being modified: ", isl_map_to_str (sched)));
+    DEBUG(3, tiramisu::str_dump("The schedule after being modified: ", isl_map_to_str(sched)));
 
     DEBUG_INDENT(-4);
 
@@ -2515,7 +2528,7 @@ isl_map *computation::intersect_map_domain_with_context(isl_map *map)
         map = isl_map_align_params(map, isl_space_copy(model));
         DEBUG(10, tiramisu::str_dump("Context: ", isl_set_to_str(context)));
         DEBUG(10, tiramisu::str_dump("Map after aligning its parameters with the context parameters: ",
-                                     isl_map_to_str (map)));
+                                     isl_map_to_str(map)));
 
         isl_id *missing_id1 = NULL;
         if (isl_map_has_tuple_id(map, isl_dim_in) == isl_bool_true)
@@ -2538,7 +2551,7 @@ isl_map *computation::intersect_map_domain_with_context(isl_map *map)
                                      isl_set_to_str (context)));
         map = isl_map_intersect_domain(map, isl_set_copy(context));
         DEBUG(10, tiramisu::str_dump("Map after intersecting with the program context: ",
-                                     isl_map_to_str (map)));
+                                     isl_map_to_str(map)));
     }
 
     DEBUG_INDENT(-4);
@@ -2771,10 +2784,10 @@ void computation::compute_at(computation &consumer, int L)
         }
 
         isl_space *sp = isl_set_get_space(isl_set_copy(consumer_domain));
-        isl_local_space *lsp = isl_local_space_from_space(isl_space_copy (sp));
+        isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
 
         isl_space *sp2 = isl_set_get_space(isl_set_copy(producer_domain));
-        isl_local_space *lsp2 = isl_local_space_from_space(isl_space_copy (sp2));
+        isl_local_space *lsp2 = isl_local_space_from_space(isl_space_copy(sp2));
 
         for (int i = 0; i <= L; i++)
         {
@@ -4213,7 +4226,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump ("Constructing the computation: " + iteration_space_str));
+    DEBUG(3, tiramisu::str_dump("Constructing the computation: " + iteration_space_str));
 
     assert(fct != NULL);
     assert(iteration_space_str.length() > 0 && ("Empty iteration space"));

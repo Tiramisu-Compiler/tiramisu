@@ -20,23 +20,16 @@ uint8_t my_external(halide_buffer_t *buf0)
 
 int main(int, char **)
 {
-    buffer_t reference_buf = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&reference_buf, SIZE0, SIZE1, 9);
+    Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
+    init_buffer(reference_buf, (uint8_t)9);
 
-    buffer_t output_buf1 = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&output_buf1, SIZE0, SIZE1, 0);
-
-    buffer_t output_buf2 = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&output_buf2, SIZE0, SIZE1, 0);
-
-    Halide::Buffer<uint8_t> halide_output_buf1(output_buf1);
-    Halide::Buffer<uint8_t> halide_output_buf2(output_buf2);
+    Halide::Buffer<uint8_t> output_buf1(SIZE0, SIZE1);
+    Halide::Buffer<uint8_t> output_buf2(SIZE0, SIZE1);
 
     // Call the Tiramisu generated code
-    tiramisu_generated_code(halide_output_buf1.raw_buffer(), halide_output_buf2.raw_buffer());
+    tiramisu_generated_code(output_buf1.raw_buffer(), output_buf2.raw_buffer());
 
-    compare_2_2D_arrays("test_" + std::string(TEST_NAME_STR), halide_output_buf1.data(),
-                        reference_buf.host, SIZE0, SIZE1);
+    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf1, reference_buf);
 
     return 0;
 }
