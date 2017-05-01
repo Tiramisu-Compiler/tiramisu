@@ -44,9 +44,9 @@ int main(int argc, char **argv)
     function spmv("spmv");
     buffer b_row_start("b_row_start", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
     buffer b_col_idx("b_col_idx", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0*SIZE0)}, p_uint8, NULL, a_output, &spmv);
+    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_output, &spmv);
 
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", e_M, p_int32, true, NULL, 0, &spmv);

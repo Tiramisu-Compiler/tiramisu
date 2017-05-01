@@ -32,8 +32,10 @@ void generate_tiramisu_obj_file()
     var i = var("i");
 
     computation c_in("[N]->{c_in[i]: 1<=i<=80-2}", expr(), false, DATA_TYPE, &stencil1);
-    computation c_b0("[N]->{c_b0[i]: 1<=i<=80-2}", c_in(i-1) + c_in(i) + c_in(i+1),  true, DATA_TYPE, &stencil1);
-    computation c_b1("[N]->{c_b1[i]: 1<=i<=80-2}", c_b0(i-1) + c_b0(i) + c_b0(i+1),  true, DATA_TYPE, &stencil1);
+    computation c_b0("[N]->{c_b0[i]: 1<=i<=80-2}", c_in(i - 1) + c_in(i) + c_in(i + 1),  true,
+                     DATA_TYPE, &stencil1);
+    computation c_b1("[N]->{c_b1[i]: 1<=i<=80-2}", c_b0(i - 1) + c_b0(i) + c_b0(i + 1),  true,
+                     DATA_TYPE, &stencil1);
 
     // Map the computations to a buffer.
     c_in.set_access("{c_in[i]->in[i]}");

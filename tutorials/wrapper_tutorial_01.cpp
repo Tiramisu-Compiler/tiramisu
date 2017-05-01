@@ -7,7 +7,7 @@
 #define NN 10
 #define MM 10
 
-int main(int, char**)
+int main(int, char **)
 {
     Halide::Buffer<uint8_t> output(NN, MM);
     init_buffer(output, (uint8_t)9);

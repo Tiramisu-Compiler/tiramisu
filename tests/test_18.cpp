@@ -28,15 +28,16 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
-    tiramisu::computation S0("[N]->{S0[i0,i1,i2]: 0<=i0<N and 0<=i1<N and 0<=i2<N}", e0, true, p_uint8, &function0);
+    tiramisu::computation S0("[N]->{S0[i0,i1,i2]: 0<=i0<N and 0<=i1<N and 0<=i2<N}", e0, true, p_uint8,
+                             &function0);
 
     S0.set_access("[N]->{S0[i0,i1,i2]->buf0[i0,i2]}");
 
     // Test if this works correctly.
-    S0.gpu_tile(1,2,2,2);
+    S0.gpu_tile(1, 2, 2, 2);
 
     function0.set_arguments({&buf0});
     function0.gen_time_processor_domain();
@@ -48,7 +49,7 @@ void generate_function(std::string name, int size, int val0)
 
 int main(int argc, char **argv)
 {
-    generate_function("test_"+std::string(TEST_NAME_STR), SIZE0, 1);
+    generate_function("test_" + std::string(TEST_NAME_STR), SIZE0, 1);
 
     return 0;
 }

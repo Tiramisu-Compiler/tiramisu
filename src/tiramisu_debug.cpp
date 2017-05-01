@@ -25,9 +25,13 @@ void print_indentation()
     for (int tiramisu_indent = 0; tiramisu_indent < tiramisu::tiramisu_indentation; tiramisu_indent++)
     {
         if (tiramisu_indent % 4 == 0)
+        {
             str_dump("|");
+        }
         else
+        {
             str_dump(" ");
+        }
     }
 }
 

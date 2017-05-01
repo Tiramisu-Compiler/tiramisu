@@ -39,9 +39,12 @@ int main(int argc, char **argv)
      * Declare an invariant for the function.
      */
     function matmul("matmul");
-    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &matmul);
-    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &matmul);
+    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input,
+               &matmul);
+    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input,
+               &matmul);
+    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output,
+               &matmul);
     expr e_p0 = expr((int32_t) SIZE0);
     constant p0("N", &e_p0, p_int32, true, NULL, 0, &matmul);
 
@@ -57,7 +60,7 @@ int main(int argc, char **argv)
 
     // Declare a computation c_C
     computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", NULL, true, p_uint8, &matmul);
-    expr e1 = c_C(i,j,k-1) + c_A(i,k) * c_B(k,j);
+    expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
     c_C.set_expression(&e1);
 
     // Map the computations to a buffer.
@@ -68,7 +71,7 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_C.tile(0,1,32,32);
+    c_C.tile(0, 1, 32, 32);
     c_C.tag_parallel_level(0);
 
     // Set the arguments to blurxy

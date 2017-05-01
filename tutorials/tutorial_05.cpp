@@ -33,7 +33,8 @@ int main(int argc, char **argv)
     function sequence("sequence");
     buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
     buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output,
+              &sequence);
     buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
     expr e_M = expr((int32_t) SIZE0);
@@ -41,7 +42,8 @@ int main(int argc, char **argv)
 
     computation c0("[M]->{c0[i]: 0<=i<M}", tiramisu::expr((uint8_t) 4), true, p_uint8, &sequence);
     computation c1("[M]->{c1[i]: 0<=i<M}", tiramisu::expr((uint8_t) 3), true, p_uint8, &sequence);
-    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", tiramisu::expr((uint8_t) 2), true, p_uint8, &sequence);
+    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", tiramisu::expr((uint8_t) 2), true, p_uint8,
+                   &sequence);
     computation c3("[M]->{c3[i]: 0<=i<M}", tiramisu::expr((uint8_t) 1), true, p_uint8, &sequence);
 
     c0.set_access("{c0[i]->b0[i]}");

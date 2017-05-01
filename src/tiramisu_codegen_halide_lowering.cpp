@@ -16,7 +16,8 @@ namespace tiramisu
 namespace
 {
 
-string stmt_to_string(const string &str, const Stmt &s) {
+string stmt_to_string(const string &str, const Stmt &s)
+{
     std::ostringstream stream;
     stream << str << s << "\n";
     return stream.str();
@@ -24,7 +25,8 @@ string stmt_to_string(const string &str, const Stmt &s) {
 
 } // anonymous namespace
 
-Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
+Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m)
+{
     map<string, Function> env; // TODO(psuriana): compute the env (function DAG)
 
     DEBUG(3, tiramisu::str_dump("Performing sliding window optimization...\n"));
@@ -33,7 +35,8 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
 
     DEBUG(3, tiramisu::str_dump("Removing code that depends on undef values...\n"));
     s = remove_undef(s);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after removing code that depends on undef values:\n", s)));
+    DEBUG(4, tiramisu::str_dump(
+              stmt_to_string("Lowering after removing code that depends on undef values:\n", s)));
 
     // This uniquifies the variable names, so we're good to simplify
     // after this point. This lets later passes assume syntactic
@@ -61,36 +64,42 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
     s = unpack_buffers(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after unpacking buffer arguments:\n", s)));
 
-    if (t.has_feature(Target::OpenGL)) {
+    if (t.has_feature(Target::OpenGL))
+    {
         DEBUG(3, tiramisu::str_dump("Injecting image intrinsics...\n"));
         s = inject_image_intrinsics(s, env);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after image intrinsics:\n", s)));
     }
 
     if (t.has_gpu_feature() ||
-        t.has_feature(Target::OpenGLCompute) ||
-        t.has_feature(Target::OpenGL) ||
-        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
+            t.has_feature(Target::OpenGLCompute) ||
+            t.has_feature(Target::OpenGL) ||
+            (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128}))))
+    {
         DEBUG(3, tiramisu::str_dump("Selecting a GPU API for GPU loops...\n"));
         s = select_gpu_api(s, t);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after selecting a GPU API:\n", s)));
 
         DEBUG(3, tiramisu::str_dump("Injecting host <-> dev buffer copies...\n"));
         s = inject_host_dev_buffer_copies(s, t);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting host <-> dev buffer copies:\n", s)));
+        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting host <-> dev buffer copies:\n",
+                                    s)));
     }
 
-    if (t.has_feature(Target::OpenGL)) {
+    if (t.has_feature(Target::OpenGL))
+    {
         DEBUG(3, tiramisu::str_dump("Injecting OpenGL texture intrinsics...\n"));
         s = inject_opengl_intrinsics(s);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after OpenGL intrinsics:\n", s)));
     }
 
     if (t.has_gpu_feature() ||
-        t.has_feature(Target::OpenGLCompute)) {
+            t.has_feature(Target::OpenGLCompute))
+    {
         DEBUG(3, tiramisu::str_dump("Injecting per-block gpu synchronization...\n"));
         s = fuse_gpu_thread_loops(s);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting per-block gpu synchronization:\n", s)));
+        DEBUG(4, tiramisu::str_dump(
+                  stmt_to_string("Lowering after injecting per-block gpu synchronization:\n", s)));
     }
 
     DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
@@ -129,7 +138,8 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
     s = inject_early_frees(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting early frees:\n", s)));
 
-    if (t.has_feature(Target::FuzzFloatStores)) {
+    if (t.has_feature(Target::FuzzFloatStores))
+    {
         DEBUG(3, tiramisu::str_dump("Fuzzing floating point stores...\n"));
         s = fuzz_float_stores(s);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after fuzzing floating point stores:\n", s)));
@@ -138,7 +148,8 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m) {
     DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
     s = common_subexpression_elimination(s);
 
-    if (t.has_feature(Target::OpenGL)) {
+    if (t.has_feature(Target::OpenGL))
+    {
         DEBUG(3, tiramisu::str_dump("Detecting varying attributes...\n"));
         s = find_linear_expressions(s);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after detecting varying attributes:\n", s)));

@@ -6,11 +6,11 @@
 #include <cstdlib>
 #include <iostream>
 
-int main(int, char**)
+int main(int, char **)
 {
-	Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
     Halide::Buffer<uint8_t> ref = Halide::Tools::load_image("./images/reference_blurxy.png");
-    Halide::Buffer<uint8_t> output(input.width()-8, input.height()-8, input.channels());
+    Halide::Buffer<uint8_t> output(input.width() - 8, input.height() - 8, input.channels());
 
     blurxy_tiramisu_test(input.raw_buffer(), output.raw_buffer());
 

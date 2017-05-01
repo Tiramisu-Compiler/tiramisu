@@ -8,9 +8,9 @@
 #define NN 32
 #define MM 32
 
-int main(int, char**)
+int main(int, char **)
 {
-	Halide::Buffer<uint8_t> reference_buf(NN, MM);
+    Halide::Buffer<uint8_t> reference_buf(NN, MM);
     init_buffer(reference_buf, (uint8_t)7);
 
     Halide::Buffer<uint8_t> output_buf(NN, MM);
@@ -20,5 +20,5 @@ int main(int, char**)
 
     compare_buffers("assign_7_to_10x10_2D_array_with_vectorization", output_buf, reference_buf);
 
-   return 0;
+    return 0;
 }

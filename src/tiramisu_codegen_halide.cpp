@@ -54,7 +54,8 @@ std::vector<computation *> function::get_computation_by_name(std::string name) c
 /**
   * Get the computation associated with a node.
   */
-std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function *fct, isl_ast_node *node)
+std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function *fct,
+        isl_ast_node *node)
 {
     isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
     isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
@@ -64,12 +65,12 @@ std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function 
     isl_id_free(id);
     std::vector<tiramisu::computation *> comp = fct->get_computation_by_name(computation_name);
 
-    assert((comp.size()>0) && "Computation not found for this node.");
+    assert((comp.size() > 0) && "Computation not found for this node.");
 
     return comp;
 }
 
-isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
+isl_map *create_map_from_domain_and_range (isl_set *domain, isl_set *range)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -77,17 +78,17 @@ isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
     DEBUG(3, tiramisu::str_dump ("Domain:", isl_set_to_str(domain)));
     DEBUG(3, tiramisu::str_dump ("Range:", isl_set_to_str(range)));
     // Extracting the spaces and aligning them
-    isl_space* sp1 = isl_set_get_space (domain);
-    isl_space* sp2 = isl_set_get_space (range);
+    isl_space *sp1 = isl_set_get_space (domain);
+    isl_space *sp2 = isl_set_get_space (range);
     sp1 = isl_space_align_params (sp1, isl_space_copy (sp2));
     sp2 = isl_space_align_params (sp2, isl_space_copy (sp1));
     // Create the space access_domain -> sched_range.
-    isl_space* sp = isl_space_map_from_domain_and_range (
-            isl_space_copy (sp1), isl_space_copy (sp2));
-    isl_map* adapter = isl_map_universe (sp);
+    isl_space *sp = isl_space_map_from_domain_and_range (
+                        isl_space_copy (sp1), isl_space_copy (sp2));
+    isl_map *adapter = isl_map_universe (sp);
     DEBUG(3, tiramisu::str_dump ("Transformation map:", isl_map_to_str (adapter)));
-    isl_space* sp_map = isl_map_get_space (adapter);
-    isl_local_space* l_sp = isl_local_space_from_space (sp_map);
+    isl_space *sp_map = isl_map_get_space (adapter);
+    isl_local_space *l_sp = isl_local_space_from_space (sp_map);
     // Add equality constraints.
     for (int i = 0; i < isl_space_dim (sp1, isl_dim_set); i++)
     {
@@ -97,17 +98,17 @@ isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
             {
                 if (isl_space_has_dim_id(sp2, isl_dim_set, j) == true)
                 {
-                    isl_id* id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
-                    isl_id* id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
+                    isl_id *id1 = isl_space_get_dim_id (sp1, isl_dim_set, i);
+                    isl_id *id2 = isl_space_get_dim_id (sp2, isl_dim_set, j);
                     if (strcmp (isl_id_get_name (id1), isl_id_get_name (id2)) == 0)
                     {
-                        isl_constraint* cst = isl_equality_alloc (
-                                        isl_local_space_copy (l_sp));
+                        isl_constraint *cst = isl_equality_alloc (
+                                                  isl_local_space_copy (l_sp));
                         cst = isl_constraint_set_coefficient_si (cst,
-                                                                 isl_dim_in,
-                                                                 i, 1);
+                                isl_dim_in,
+                                i, 1);
                         cst = isl_constraint_set_coefficient_si (
-                                        cst, isl_dim_out, j, -1);
+                                  cst, isl_dim_out, j, -1);
                         adapter = isl_map_add_constraint (adapter, cst);
                     }
                 }
@@ -115,16 +116,16 @@ isl_map* create_map_from_domain_and_range (isl_set* domain, isl_set* range)
         }
     }
     DEBUG(3, tiramisu::str_dump(
-            "Transformation map after adding equality constraints:",
-            isl_map_to_str (adapter)));
+              "Transformation map after adding equality constraints:",
+              isl_map_to_str (adapter)));
 
     DEBUG_INDENT(-4);
 
     return adapter;
 }
 
-isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
-        isl_map* access)
+isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
+        isl_map *access)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -132,28 +133,30 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
     isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
     DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(schedule)));
 
-    isl_map* map = isl_map_reverse(isl_map_copy(schedule));
+    isl_map *map = isl_map_reverse(isl_map_copy(schedule));
     DEBUG(3, tiramisu::str_dump("Schedule reversed:", isl_map_to_str(map)));
 
-    isl_pw_multi_aff* iterator_map = isl_pw_multi_aff_from_map(map);
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling):");
-                        isl_pw_multi_aff_dump(iterator_map));
+    isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
+    DEBUG_NO_NEWLINE(3,
+                     tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling):");
+                     isl_pw_multi_aff_dump(iterator_map));
     DEBUG(3, tiramisu::str_dump("Access:", isl_map_to_str(access)));
-    isl_pw_multi_aff* index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
+    isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("index_aff = isl_pw_multi_aff_from_map(access):");
-                        isl_pw_multi_aff_dump(index_aff));
+                     isl_pw_multi_aff_dump(index_aff));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff):");
-                                isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
+                     isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map):");
-                                isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
+                     isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
     iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):");
-                        isl_pw_multi_aff_dump(iterator_map));
-    isl_ast_expr* index_expr = isl_ast_build_access_from_pw_multi_aff(
-                                    build,
-                                    isl_pw_multi_aff_copy(iterator_map));
+    DEBUG_NO_NEWLINE(3,
+                     tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):");
+                     isl_pw_multi_aff_dump(iterator_map));
+    isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(
+                                   build,
+                                   isl_pw_multi_aff_copy(iterator_map));
     DEBUG(3, tiramisu::str_dump("isl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
-                            (const char * ) isl_ast_expr_to_C_str(index_expr)));
+                                (const char * ) isl_ast_expr_to_C_str(index_expr)));
 
     DEBUG_INDENT(-4);
 
@@ -161,7 +164,7 @@ isl_ast_expr* create_isl_ast_index_expression(isl_ast_build* build,
 }
 
 
-bool access_has_id(const tiramisu::expr& exp)
+bool access_has_id(const tiramisu::expr &exp)
 {
     DEBUG_INDENT(4);
     DEBUG_FCT_NAME(10);
@@ -170,67 +173,71 @@ bool access_has_id(const tiramisu::expr& exp)
 
     // Traverse the expression tree and try to see if the expression has an ID.
     if (exp.get_expr_type() == tiramisu::e_val)
+    {
         has_id = false;
+    }
     else if (exp.get_expr_type() == tiramisu::e_var)
+    {
         has_id = true;
+    }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
-            switch(exp.get_op_type())
-            {
-                case tiramisu::o_access:
-                case tiramisu::o_call:
-                case tiramisu::o_address:
-                    has_id = false;
-                    break;
-                case tiramisu::o_minus:
-                case tiramisu::o_logical_not:
-                case tiramisu::o_floor:
-                case tiramisu::o_cast:
-                case tiramisu::o_sin:
-                case tiramisu::o_cos:
-                case tiramisu::o_tan:
-                case tiramisu::o_asin:
-                case tiramisu::o_acos:
-                case tiramisu::o_atan:
-                case tiramisu::o_abs:
-                case tiramisu::o_sqrt:
-                case tiramisu::o_expo:
-                case tiramisu::o_log:
-                case tiramisu::o_ceil:
-                case tiramisu::o_round:
-                case tiramisu::o_trunc:
-                    has_id = access_has_id(exp.get_operand(0));
-                    break;
-                case tiramisu::o_logical_and:
-                case tiramisu::o_logical_or:
-                case tiramisu::o_max:
-                case tiramisu::o_min:
-                case tiramisu::o_add:
-                case tiramisu::o_sub:
-                case tiramisu::o_mul:
-                case tiramisu::o_div:
-                case tiramisu::o_mod:
-                case tiramisu::o_le:
-                case tiramisu::o_lt:
-                case tiramisu::o_ge:
-                case tiramisu::o_gt:
-                case tiramisu::o_eq:
-                case tiramisu::o_ne:
-                case tiramisu::o_right_shift:
-                case tiramisu::o_left_shift:
-                    has_id = access_has_id(exp.get_operand(0)) ||
-                             access_has_id(exp.get_operand(1));
-                    break;
-                case tiramisu::o_select:
-                case tiramisu::o_cond:
-                    has_id = access_has_id(exp.get_operand(0)) ||
-                             access_has_id(exp.get_operand(1)) ||
-                             access_has_id(exp.get_operand(2));
-                    break;
-                default:
-                    tiramisu::error("Checking an unsupported tiramisu expression for whether it has an ID.", 1);
-            }
+        switch (exp.get_op_type())
+        {
+        case tiramisu::o_access:
+        case tiramisu::o_call:
+        case tiramisu::o_address:
+            has_id = false;
+            break;
+        case tiramisu::o_minus:
+        case tiramisu::o_logical_not:
+        case tiramisu::o_floor:
+        case tiramisu::o_cast:
+        case tiramisu::o_sin:
+        case tiramisu::o_cos:
+        case tiramisu::o_tan:
+        case tiramisu::o_asin:
+        case tiramisu::o_acos:
+        case tiramisu::o_atan:
+        case tiramisu::o_abs:
+        case tiramisu::o_sqrt:
+        case tiramisu::o_expo:
+        case tiramisu::o_log:
+        case tiramisu::o_ceil:
+        case tiramisu::o_round:
+        case tiramisu::o_trunc:
+            has_id = access_has_id(exp.get_operand(0));
+            break;
+        case tiramisu::o_logical_and:
+        case tiramisu::o_logical_or:
+        case tiramisu::o_max:
+        case tiramisu::o_min:
+        case tiramisu::o_add:
+        case tiramisu::o_sub:
+        case tiramisu::o_mul:
+        case tiramisu::o_div:
+        case tiramisu::o_mod:
+        case tiramisu::o_le:
+        case tiramisu::o_lt:
+        case tiramisu::o_ge:
+        case tiramisu::o_gt:
+        case tiramisu::o_eq:
+        case tiramisu::o_ne:
+        case tiramisu::o_right_shift:
+        case tiramisu::o_left_shift:
+            has_id = access_has_id(exp.get_operand(0)) ||
+                     access_has_id(exp.get_operand(1));
+            break;
+        case tiramisu::o_select:
+        case tiramisu::o_cond:
+            has_id = access_has_id(exp.get_operand(0)) ||
+                     access_has_id(exp.get_operand(1)) ||
+                     access_has_id(exp.get_operand(2));
+            break;
+        default:
+            tiramisu::error("Checking an unsupported tiramisu expression for whether it has an ID.", 1);
         }
+    }
 
     DEBUG_INDENT(-4);
 
@@ -238,7 +245,7 @@ bool access_has_id(const tiramisu::expr& exp)
 }
 
 
-bool access_is_affine(const tiramisu::expr& exp)
+bool access_is_affine(const tiramisu::expr &exp)
 {
     DEBUG_INDENT(4);
     DEBUG_FCT_NAME(10);
@@ -248,72 +255,74 @@ bool access_is_affine(const tiramisu::expr& exp)
 
     // Traverse the expression tree and try to find expressions that are non-affine.
     if (exp.get_expr_type() == tiramisu::e_val ||
-        exp.get_expr_type() == tiramisu::e_var)
+            exp.get_expr_type() == tiramisu::e_var)
     {
         affine = true;
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
-        switch(exp.get_op_type())
+        switch (exp.get_op_type())
         {
-            case tiramisu::o_access:
-            case tiramisu::o_call:
-            case tiramisu::o_address:
+        case tiramisu::o_access:
+        case tiramisu::o_call:
+        case tiramisu::o_address:
+            affine = false;
+            break;
+        case tiramisu::o_minus:
+        case tiramisu::o_logical_not:
+            affine = access_is_affine(exp.get_operand(0));
+            break;
+        case tiramisu::o_logical_and:
+        case tiramisu::o_logical_or:
+        case tiramisu::o_add:
+        case tiramisu::o_sub:
+            affine = access_is_affine(exp.get_operand(0)) && access_is_affine(exp.get_operand(1));
+            break;
+        case tiramisu::o_max:
+        case tiramisu::o_min:
+        case tiramisu::o_floor:
+        case tiramisu::o_sin:
+        case tiramisu::o_cos:
+        case tiramisu::o_select:
+        case tiramisu::o_cond:
+        case tiramisu::o_tan:
+        case tiramisu::o_asin:
+        case tiramisu::o_acos:
+        case tiramisu::o_atan:
+        case tiramisu::o_abs:
+        case tiramisu::o_sqrt:
+        case tiramisu::o_expo:
+        case tiramisu::o_log:
+        case tiramisu::o_ceil:
+        case tiramisu::o_round:
+        case tiramisu::o_trunc:
+            // For now we consider these expression to be non-affine expression (although they can be expressed
+            // as affine contraints).
+            // TODO: work on the expression parser to support parsing these expressions into an access relation
+            // with affine constraints.
+            affine = false;
+            break;
+        case tiramisu::o_right_shift:
+        case tiramisu::o_left_shift:
+        case tiramisu::o_cast:
+            affine = false;
+            break;
+        case tiramisu::o_mul:
+        case tiramisu::o_div:
+        case tiramisu::o_mod:
+        case tiramisu::o_le:
+        case tiramisu::o_lt:
+        case tiramisu::o_ge:
+        case tiramisu::o_gt:
+        case tiramisu::o_eq:
+        case tiramisu::o_ne:
+            if (access_has_id(exp.get_operand(0)) && access_has_id(exp.get_operand(1)))
+            {
                 affine = false;
-                break;
-            case tiramisu::o_minus:
-            case tiramisu::o_logical_not:
-                affine = access_is_affine(exp.get_operand(0));
-                break;
-            case tiramisu::o_logical_and:
-            case tiramisu::o_logical_or:
-            case tiramisu::o_add:
-            case tiramisu::o_sub:
-                affine = access_is_affine(exp.get_operand(0)) && access_is_affine(exp.get_operand(1));
-                break;
-            case tiramisu::o_max:
-            case tiramisu::o_min:
-            case tiramisu::o_floor:
-            case tiramisu::o_sin:
-            case tiramisu::o_cos:
-            case tiramisu::o_select:
-            case tiramisu::o_cond:
-            case tiramisu::o_tan:
-            case tiramisu::o_asin:
-            case tiramisu::o_acos:
-            case tiramisu::o_atan:
-            case tiramisu::o_abs:
-            case tiramisu::o_sqrt:
-            case tiramisu::o_expo:
-            case tiramisu::o_log:
-            case tiramisu::o_ceil:
-            case tiramisu::o_round:
-            case tiramisu::o_trunc:
-                // For now we consider these expression to be non-affine expression (although they can be expressed
-                // as affine contraints).
-                // TODO: work on the expression parser to support parsing these expressions into an access relation
-                // with affine constraints.
-                affine = false;
-                break;
-            case tiramisu::o_right_shift:
-            case tiramisu::o_left_shift:
-            case tiramisu::o_cast:
-                affine = false;
-                break;
-            case tiramisu::o_mul:
-            case tiramisu::o_div:
-            case tiramisu::o_mod:
-            case tiramisu::o_le:
-            case tiramisu::o_lt:
-            case tiramisu::o_ge:
-            case tiramisu::o_gt:
-            case tiramisu::o_eq:
-            case tiramisu::o_ne:
-                if (access_has_id(exp.get_operand(0)) && access_has_id(exp.get_operand(1)))
-                    affine = false;
-                break;
-            default:
-                tiramisu::error("Unsupported tiramisu expression passed to access_is_affine().", 1);
+            }
+            break;
+        default:
+            tiramisu::error("Unsupported tiramisu expression passed to access_is_affine().", 1);
         }
     }
 
@@ -342,12 +351,12 @@ bool access_is_affine(const tiramisu::expr& exp)
  *      are going to be multiplied. This coefficient is used to implement o_minus,
  *      o_mul and o_sub.
  */
-isl_constraint* get_constraint_for_access(int access_dimension,
-                                          const tiramisu::expr& access_expression,
-                                          isl_map*& access_relation,
-                                          isl_constraint* cst,
-                                          int coeff,
-                                          tiramisu::function* fct)
+isl_constraint *get_constraint_for_access(int access_dimension,
+        const tiramisu::expr &access_expression,
+        isl_map *&access_relation,
+        isl_constraint *cst,
+        int coeff,
+        tiramisu::function *fct)
 {
     /*
      * An e_val can appear in an expression passed to this function in two cases:
@@ -362,33 +371,39 @@ isl_constraint* get_constraint_for_access(int access_dimension,
      */
     if (access_expression.get_expr_type () == tiramisu::e_val)
     {
-        int64_t val = coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst));
-        cst = isl_constraint_set_constant_si(cst, (-1)*val);
-        DEBUG(3, tiramisu::str_dump("Assigning (-1)*(coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : " + std::to_string(-val)));
+        int64_t val = coeff * access_expression.get_int_val() + (-1) * isl_val_get_num_si(
+                          isl_constraint_get_constant_val(cst));
+        cst = isl_constraint_set_constant_si(cst, (-1) * val);
+        DEBUG(3, tiramisu::str_dump("Assigning (-1)*(coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : "
+                                    + std::to_string(-val)));
     }
     else if (access_expression.get_expr_type () == tiramisu::e_var)
     {
         assert(access_expression.get_name().length() > 0);
 
-        DEBUG(3, tiramisu::str_dump("Looking for a dimension named "); tiramisu::str_dump(access_expression.get_name()); tiramisu::str_dump(" in the domain of ", isl_map_to_str(access_relation)));
+        DEBUG(3, tiramisu::str_dump("Looking for a dimension named ");
+              tiramisu::str_dump(access_expression.get_name());
+              tiramisu::str_dump(" in the domain of ", isl_map_to_str(access_relation)));
         int dim0 = isl_space_find_dim_by_name(isl_map_get_space (access_relation),
                                               isl_dim_in,
                                               access_expression.get_name().c_str());
         if (dim0 >= 0)
         {
-            int current_coeff = (-1) * isl_val_get_num_si(isl_constraint_get_coefficient_val(cst, isl_dim_in, dim0));
+            int current_coeff = (-1) * isl_val_get_num_si(isl_constraint_get_coefficient_val(cst, isl_dim_in,
+                                dim0));
             coeff = current_coeff + coeff;
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, (coeff) * (-1));
-            DEBUG(3, tiramisu::str_dump("Dimension found. Assigning -1 to the input coefficient of dimension " + std::to_string (dim0)));
+            DEBUG(3, tiramisu::str_dump("Dimension found. Assigning -1 to the input coefficient of dimension " +
+                                        std::to_string (dim0)));
         }
         else
         {
             DEBUG(3, tiramisu::str_dump("Dimension not found.  Adding dimension as a parameter."));
             access_relation = isl_map_add_dims(access_relation, isl_dim_param, 1);
             int pos = isl_map_dim(access_relation, isl_dim_param);
-            isl_id* param_id = isl_id_alloc(fct->get_isl_ctx(), access_expression.get_name().c_str (), NULL);
+            isl_id *param_id = isl_id_alloc(fct->get_isl_ctx(), access_expression.get_name().c_str (), NULL);
             access_relation = isl_map_set_dim_id(access_relation, isl_dim_param, pos - 1, param_id);
-            isl_local_space* ls2 = isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_relation)));
+            isl_local_space *ls2 = isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_relation)));
             cst = isl_constraint_alloc_equality(isl_local_space_copy(ls2));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos - 1, (coeff) * (-1));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
@@ -420,21 +435,23 @@ isl_constraint* get_constraint_for_access(int access_dimension,
         }
         else if (access_expression.get_op_type () == tiramisu::o_mul)
         {
-             tiramisu::expr op0 = access_expression.get_operand(0);
-             tiramisu::expr op1 = access_expression.get_operand(1);
-             if (op0.get_expr_type () == tiramisu::e_val)
-             {
-                 coeff = coeff * op0.get_int_val();
-                 cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
-             }
-             else if (op1.get_expr_type () == tiramisu::e_val)
-             {
-                 coeff = coeff * op1.get_int_val();
-                 cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
-             }
+            tiramisu::expr op0 = access_expression.get_operand(0);
+            tiramisu::expr op1 = access_expression.get_operand(1);
+            if (op0.get_expr_type () == tiramisu::e_val)
+            {
+                coeff = coeff * op0.get_int_val();
+                cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
+            }
+            else if (op1.get_expr_type () == tiramisu::e_val)
+            {
+                coeff = coeff * op1.get_int_val();
+                cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+            }
         }
         else
+        {
             tiramisu::error ("Currently only Add and Sub operations for accesses are supported.", true);
+        }
     }
 
     return cst;
@@ -444,7 +461,8 @@ isl_constraint* get_constraint_for_access(int access_dimension,
  * Traverse the vector of computations \p comp_vec and return the computations
  * that have a domain that intersects with \p domain.
  */
-tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec, isl_union_set *node_domain)
+tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
+        isl_union_set *node_domain)
 {
     tiramisu::computation *res = NULL;
 
@@ -454,7 +472,7 @@ tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::compu
         isl_map *sched = comp_vec[i]->get_trimmed_union_of_schedules();
         isl_set *scheduled_comp_domain = isl_set_apply(isl_set_copy(comp_domain), isl_map_copy(sched));
         isl_union_set *intersection = isl_union_set_intersect(isl_union_set_copy(node_domain),
-                                                              isl_union_set_copy(isl_union_set_from_set(scheduled_comp_domain)));
+                                      isl_union_set_copy(isl_union_set_from_set(scheduled_comp_domain)));
 
         if (isl_union_set_is_empty(intersection) == isl_bool_false)
         {
@@ -507,28 +525,30 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         DEBUG(10, tiramisu::str_dump("Obtained accessed computation."));
 
         isl_set *lhs_comp_domain = isl_set_copy(isl_set_universe(
-                    isl_set_get_space(
-                        isl_set_copy(comp->get_iteration_domain()))));
+                isl_set_get_space(
+                    isl_set_copy(comp->get_iteration_domain()))));
 
         isl_set *rhs_comp_domain = isl_set_copy(isl_set_universe(
-                            isl_set_get_space(
-                                isl_set_copy(access_op_comp->get_iteration_domain()))));
+                isl_set_get_space(
+                    isl_set_copy(access_op_comp->get_iteration_domain()))));
 
         isl_map *access_to_comp = create_map_from_domain_and_range(isl_set_copy(lhs_comp_domain),
-                                                             isl_set_copy(rhs_comp_domain));
+                                  isl_set_copy(rhs_comp_domain));
 
         access_to_comp = isl_map_universe(isl_map_get_space(access_to_comp));
 
         DEBUG(3, tiramisu::str_dump("Transformation map before adding constraints:",
-                                isl_map_to_str(access_to_comp)));
+                                    isl_map_to_str(access_to_comp)));
 
         // The dimension_number is a counter that indicates to which dimension
         // is the access associated.
         int access_dimension = 0;
-        for (const auto &access: exp.get_access())
+        for (const auto &access : exp.get_access())
         {
-            DEBUG(3, tiramisu::str_dump ("Assigning 1 to the coefficient of output dimension " + std::to_string (access_dimension)));
-            isl_constraint* cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_to_comp)))));
+            DEBUG(3, tiramisu::str_dump ("Assigning 1 to the coefficient of output dimension " +
+                                         std::to_string (access_dimension)));
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(
+                                      isl_map_get_space(isl_map_copy(access_to_comp)))));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
             cst = get_constraint_for_access(access_dimension, access, access_to_comp, cst, +1, fct);
             access_to_comp = isl_map_add_constraint(access_to_comp, cst);
@@ -536,17 +556,19 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
             access_dimension++;
         }
 
-        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:", isl_map_to_str(access_to_comp)));
+        DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:",
+                                    isl_map_to_str(access_to_comp)));
 
         if (return_buffer_accesses == true)
         {
             isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
             DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
-                                    isl_map_to_str(access_to_buff)));
+                                        isl_map_to_str(access_to_buff)));
 
             access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), isl_map_copy(access_to_buff));
-            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:", isl_map_to_str(access_to_buff)));
+            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:",
+                                        isl_map_to_str(access_to_buff)));
 
             // Run the following block (i.e., apply the schedule on the access function) only if
             // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
@@ -555,91 +577,98 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
             // to be in the iteration domain.
             if ((global::is_auto_data_mapping_set() == true))
             {
-                DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:", isl_map_to_str(access_to_buff)));
-                DEBUG(3, tiramisu::str_dump("Trimmed schedule:", isl_map_to_str(comp->get_trimmed_union_of_schedules())));
-                access_to_buff = isl_map_apply_domain(access_to_buff, isl_map_copy(comp->get_trimmed_union_of_schedules()));
+                DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:",
+                                            isl_map_to_str(access_to_buff)));
+                DEBUG(3, tiramisu::str_dump("Trimmed schedule:",
+                                            isl_map_to_str(comp->get_trimmed_union_of_schedules())));
+                access_to_buff = isl_map_apply_domain(access_to_buff,
+                                                      isl_map_copy(comp->get_trimmed_union_of_schedules()));
                 DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_to_buff)));
             }
 
             accesses.push_back(access_to_buff);
         }
         else
+        {
             accesses.push_back(isl_map_copy(access_to_comp));
+        }
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
-            DEBUG(3, tiramisu::str_dump("Extracting access from e_op."));
+        DEBUG(3, tiramisu::str_dump("Extracting access from e_op."));
 
-            switch(exp.get_op_type())
-            {
-                case tiramisu::o_minus:
-                case tiramisu::o_logical_not:
-                case tiramisu::o_floor:
-                case tiramisu::o_cast:
-                case tiramisu::o_sin:
-                case tiramisu::o_cos:
-                case tiramisu::o_tan:
-                case tiramisu::o_asin:
-                case tiramisu::o_acos:
-                case tiramisu::o_atan:
-                case tiramisu::o_abs:
-                case tiramisu::o_sqrt:
-                case tiramisu::o_expo:
-                case tiramisu::o_log:
-                case tiramisu::o_ceil:
-                case tiramisu::o_round:
-                case tiramisu::o_trunc:
-                case tiramisu::o_address:
-                {
-                    tiramisu::expr exp0 = exp.get_operand(0);
-                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
-                    break;
-                }
-                case tiramisu::o_logical_and:
-                case tiramisu::o_logical_or:
-                case tiramisu::o_max:
-                case tiramisu::o_min:
-                case tiramisu::o_add:
-                case tiramisu::o_sub:
-                case tiramisu::o_mul:
-                case tiramisu::o_div:
-                case tiramisu::o_mod:
-                case tiramisu::o_le:
-                case tiramisu::o_lt:
-                case tiramisu::o_ge:
-                case tiramisu::o_gt:
-                case tiramisu::o_eq:
-                case tiramisu::o_ne:
-                case tiramisu::o_right_shift:
-                case tiramisu::o_left_shift:
-                {
-                    tiramisu::expr exp0 = exp.get_operand(0);
-                    tiramisu::expr exp1 = exp.get_operand(1);
-                    traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses);
-                    break;
-                }
-                case tiramisu::o_select:
-                case tiramisu::o_cond:
-                {
-                    tiramisu::expr expr0 = exp.get_operand(0);
-                    tiramisu::expr expr1 = exp.get_operand(1);
-                    tiramisu::expr expr2 = exp.get_operand(2);
-                    traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses);
-                    traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses);
-                    break;
-                }
-                case tiramisu::o_call:
-                {
-                    for (const auto e: exp.get_arguments())
-                        traverse_expr_and_extract_accesses(fct, comp, e, accesses, return_buffer_accesses);
-                    break;
-                }
-                default:
-                    tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
-            }
+        switch (exp.get_op_type())
+        {
+        case tiramisu::o_minus:
+        case tiramisu::o_logical_not:
+        case tiramisu::o_floor:
+        case tiramisu::o_cast:
+        case tiramisu::o_sin:
+        case tiramisu::o_cos:
+        case tiramisu::o_tan:
+        case tiramisu::o_asin:
+        case tiramisu::o_acos:
+        case tiramisu::o_atan:
+        case tiramisu::o_abs:
+        case tiramisu::o_sqrt:
+        case tiramisu::o_expo:
+        case tiramisu::o_log:
+        case tiramisu::o_ceil:
+        case tiramisu::o_round:
+        case tiramisu::o_trunc:
+        case tiramisu::o_address:
+        {
+            tiramisu::expr exp0 = exp.get_operand(0);
+            traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
+            break;
         }
+        case tiramisu::o_logical_and:
+        case tiramisu::o_logical_or:
+        case tiramisu::o_max:
+        case tiramisu::o_min:
+        case tiramisu::o_add:
+        case tiramisu::o_sub:
+        case tiramisu::o_mul:
+        case tiramisu::o_div:
+        case tiramisu::o_mod:
+        case tiramisu::o_le:
+        case tiramisu::o_lt:
+        case tiramisu::o_ge:
+        case tiramisu::o_gt:
+        case tiramisu::o_eq:
+        case tiramisu::o_ne:
+        case tiramisu::o_right_shift:
+        case tiramisu::o_left_shift:
+        {
+            tiramisu::expr exp0 = exp.get_operand(0);
+            tiramisu::expr exp1 = exp.get_operand(1);
+            traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
+            traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses);
+            break;
+        }
+        case tiramisu::o_select:
+        case tiramisu::o_cond:
+        {
+            tiramisu::expr expr0 = exp.get_operand(0);
+            tiramisu::expr expr1 = exp.get_operand(1);
+            tiramisu::expr expr2 = exp.get_operand(2);
+            traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses);
+            traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses);
+            traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses);
+            break;
+        }
+        case tiramisu::o_call:
+        {
+            for (const auto e : exp.get_arguments())
+            {
+                traverse_expr_and_extract_accesses(fct, comp, e, accesses, return_buffer_accesses);
+            }
+            break;
+        }
+        default:
+            tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
+        }
+    }
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -649,7 +678,8 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
 /**
  * Traverse the tiramisu expression and replace non-affine accesses by a constant.
  */
-tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp, const tiramisu::expr &exp)
+tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
+        const tiramisu::expr &exp)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
@@ -660,7 +690,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
     tiramisu::expr output_expr;
 
     if (exp.get_expr_type() == tiramisu::e_val ||
-        exp.get_expr_type() == tiramisu::e_var)
+            exp.get_expr_type() == tiramisu::e_var)
     {
         output_expr = exp;
     }
@@ -670,8 +700,10 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
 
         DEBUG(10, tiramisu::str_dump("Looking for non-affine accesses in an o_access."));
 
-        for (const auto &access: exp2.get_access())
+        for (const auto &access : exp2.get_access())
+        {
             traverse_expr_and_replace_non_affine_accesses(comp, access);
+        }
 
         // Check if the access expressions of exp are affine (exp is an access operation).
         for (int i = 0; i < exp2.get_access().size(); i++)
@@ -693,77 +725,78 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
-            DEBUG(10, tiramisu::str_dump("Extracting access from e_op."));
+        DEBUG(10, tiramisu::str_dump("Extracting access from e_op."));
 
-            tiramisu::expr exp2, exp3, exp4;
-            std::vector<tiramisu::expr> new_arguments;
+        tiramisu::expr exp2, exp3, exp4;
+        std::vector<tiramisu::expr> new_arguments;
 
-            switch(exp.get_op_type())
+        switch (exp.get_op_type())
+        {
+        case tiramisu::o_minus:
+        case tiramisu::o_logical_not:
+        case tiramisu::o_floor:
+        case tiramisu::o_sin:
+        case tiramisu::o_cos:
+        case tiramisu::o_tan:
+        case tiramisu::o_asin:
+        case tiramisu::o_acos:
+        case tiramisu::o_atan:
+        case tiramisu::o_abs:
+        case tiramisu::o_sqrt:
+        case tiramisu::o_expo:
+        case tiramisu::o_log:
+        case tiramisu::o_ceil:
+        case tiramisu::o_round:
+        case tiramisu::o_trunc:
+        case tiramisu::o_address:
+            exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
+            output_expr = tiramisu::expr(exp.get_op_type(), exp2);
+            break;
+        case tiramisu::o_cast:
+            exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
+            output_expr = expr(exp.get_op_type(), exp.get_data_type(), exp2);
+            break;
+        case tiramisu::o_logical_and:
+        case tiramisu::o_logical_or:
+        case tiramisu::o_sub:
+        case tiramisu::o_add:
+        case tiramisu::o_max:
+        case tiramisu::o_min:
+        case tiramisu::o_mul:
+        case tiramisu::o_div:
+        case tiramisu::o_mod:
+        case tiramisu::o_le:
+        case tiramisu::o_lt:
+        case tiramisu::o_ge:
+        case tiramisu::o_gt:
+        case tiramisu::o_eq:
+        case tiramisu::o_ne:
+        case tiramisu::o_right_shift:
+        case tiramisu::o_left_shift:
+            exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
+            exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
+            output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3);
+            break;
+        case tiramisu::o_select:
+        case tiramisu::o_cond:
+            exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
+            exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
+            exp4 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(2));
+            output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3, exp4);
+            break;
+        case tiramisu::o_call:
+            for (const auto e : exp.get_arguments())
             {
-                case tiramisu::o_minus:
-                case tiramisu::o_logical_not:
-                case tiramisu::o_floor:
-                case tiramisu::o_sin:
-                case tiramisu::o_cos:
-                case tiramisu::o_tan:
-                case tiramisu::o_asin:
-                case tiramisu::o_acos:
-                case tiramisu::o_atan:
-                case tiramisu::o_abs:
-                case tiramisu::o_sqrt:
-                case tiramisu::o_expo:
-                case tiramisu::o_log:
-                case tiramisu::o_ceil:
-                case tiramisu::o_round:
-                case tiramisu::o_trunc:
-                case tiramisu::o_address:
-                    exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
-                    output_expr = tiramisu::expr(exp.get_op_type(), exp2);
-                    break;
-                case tiramisu::o_cast:
-                    exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
-                    output_expr = expr(exp.get_op_type(), exp.get_data_type(), exp2);
-                    break;
-                case tiramisu::o_logical_and:
-                case tiramisu::o_logical_or:
-                case tiramisu::o_sub:
-                case tiramisu::o_add:
-                case tiramisu::o_max:
-                case tiramisu::o_min:
-                case tiramisu::o_mul:
-                case tiramisu::o_div:
-                case tiramisu::o_mod:
-                case tiramisu::o_le:
-                case tiramisu::o_lt:
-                case tiramisu::o_ge:
-                case tiramisu::o_gt:
-                case tiramisu::o_eq:
-                case tiramisu::o_ne:
-                case tiramisu::o_right_shift:
-                case tiramisu::o_left_shift:
-                    exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
-                    exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
-                    output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3);
-                    break;
-                case tiramisu::o_select:
-                case tiramisu::o_cond:
-                    exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
-                    exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
-                    exp4 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(2));
-                    output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3, exp4);
-                    break;
-                case tiramisu::o_call:
-                    for (const auto e: exp.get_arguments())
-                    {
-                        exp2 = traverse_expr_and_replace_non_affine_accesses(comp, e);
-                        new_arguments.push_back(exp2);
-                    }
-                    output_expr = tiramisu::expr(o_call, exp.get_name(), new_arguments, exp.get_data_type());
-                    break;
-                default:
-                    tiramisu::error("Unsupported tiramisu expression passed to traverse_expr_and_replace_non_affine_accesses().", 1);
+                exp2 = traverse_expr_and_replace_non_affine_accesses(comp, e);
+                new_arguments.push_back(exp2);
             }
+            output_expr = tiramisu::expr(o_call, exp.get_name(), new_arguments, exp.get_data_type());
+            break;
+        default:
+            tiramisu::error("Unsupported tiramisu expression passed to traverse_expr_and_replace_non_affine_accesses().",
+                            1);
         }
+    }
 
     DEBUG_INDENT(-4);
 
@@ -779,7 +812,8 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * If \p return_buffer_accesses is set to true, this function returns access functions to
  * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp, std::vector<isl_map *> &accesses, bool return_buffer_accesses)
+void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp,
+                      std::vector<isl_map *> &accesses, bool return_buffer_accesses)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -811,9 +845,10 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     isl_union_map *sched = isl_union_map_copy(isl_ast_build_get_schedule(build));
     isl_union_set *sched_range = isl_union_map_domain(sched);
     assert((sched_range != NULL) && "Range of schedule is NULL.");
-    tiramisu::computation *comp = filter_computations_by_domain(comp_vec, isl_union_set_copy(sched_range));
+    tiramisu::computation *comp = filter_computations_by_domain(comp_vec,
+                                  isl_union_set_copy(sched_range));
 
-   // Mark "comp" as the computation associated with this node.
+    // Mark "comp" as the computation associated with this node.
     isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *) comp);
     node = isl_ast_node_set_annotation(node, isl_id_copy(annotation_id));
 
@@ -850,33 +885,40 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
         std::vector<isl_ast_expr *> index_expressions;
         // For each access in accesses (i.e. for each access in the computation),
         // compute the corresponding isl_ast expression.
-        for (auto &access: accesses)
+        for (auto &access : accesses)
         {
             if (access != NULL)
             {
-                DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):", isl_map_to_str(access)));
+                DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
+                                            isl_map_to_str(access)));
                 index_expressions.push_back(create_isl_ast_index_expression(build, access));
             }
             else
             {
                 if (!comp->is_let_stmt()) // If this is not let stmt,
-                                          // it should have an access function.
+                    // it should have an access function.
+                {
                     tiramisu::error("An access function should be provided before generating code.", true);
+                }
             }
         }
 
         // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
-        for (int i=index_expressions.size()-1; i>=0; i--)
+        for (int i = index_expressions.size() - 1; i >= 0; i--)
+        {
             comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
+        }
 
         for (const auto &i_expr : comp->get_index_expr())
         {
             DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
-                                    isl_ast_expr_to_C_str(i_expr)));
+                                        isl_ast_expr_to_C_str(i_expr)));
         }
     }
     else
+    {
         DEBUG(3, tiramisu::str_dump("Generated RHS empty."));
+    }
 
     DEBUG_FCT_NAME(3);
     DEBUG(3, tiramisu::str_dump("\n\n"));
@@ -887,47 +929,69 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
 }
 
 void print_isl_ast_expr_vector(
-          const std::vector<isl_ast_expr*>& index_expr_cp)
+    const std::vector<isl_ast_expr *> &index_expr_cp)
 {
     DEBUG(3, tiramisu::str_dump ("List of index expressions."));
-    for (auto& i_expr : index_expr_cp)
+    for (auto &i_expr : index_expr_cp)
+    {
         DEBUG(3, tiramisu::str_dump (" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
+    }
 }
 
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-                                            std::vector<isl_ast_expr *> &index_expr,
-                                            const tiramisu::expr &tiramisu_expr)
+        std::vector<isl_ast_expr *> &index_expr,
+        const tiramisu::expr &tiramisu_expr)
 {
     Halide::Expr result;
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump("Input Tiramisu expression: ");tiramisu_expr.dump(false));
+    DEBUG(3, tiramisu::str_dump("Input Tiramisu expression: "); tiramisu_expr.dump(false));
 
     if (tiramisu_expr.get_expr_type() == tiramisu::e_val)
     {
         DEBUG(3, tiramisu::str_dump("tiramisu expression of type tiramisu::e_val"));
         if (tiramisu_expr.get_data_type() == tiramisu::p_uint8)
+        {
             result = Halide::Expr(tiramisu_expr.get_uint8_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_int8)
+        {
             result = Halide::Expr(tiramisu_expr.get_int8_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_uint16)
+        {
             result = Halide::Expr(tiramisu_expr.get_uint16_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_int16)
+        {
             result = Halide::Expr(tiramisu_expr.get_int16_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_uint32)
+        {
             result = Halide::Expr(tiramisu_expr.get_uint32_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_int32)
+        {
             result = Halide::Expr(tiramisu_expr.get_int32_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_uint64)
+        {
             result = Halide::Expr(tiramisu_expr.get_uint64_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_int64)
+        {
             result = Halide::Expr(tiramisu_expr.get_int64_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_float32)
+        {
             result = Halide::Expr(tiramisu_expr.get_float32_value());
+        }
         else if (tiramisu_expr.get_data_type() == tiramisu::p_float64)
+        {
             result = Halide::Expr(tiramisu_expr.get_float64_value());
+        }
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_op)
     {
@@ -953,270 +1017,286 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
             op2 = halide_expr_from_tiramisu_expr(comp, index_expr, expr2);
         }
 
-        switch(tiramisu_expr.get_op_type())
+        switch (tiramisu_expr.get_op_type())
         {
-            case tiramisu::o_logical_and:
-                result = Halide::Internal::And::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_logical_and"));
-                break;
-            case tiramisu::o_logical_or:
-                result = Halide::Internal::Or::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_logical_or"));
-                break;
-            case tiramisu::o_max:
-                result = Halide::Internal::Max::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_max"));
-                break;
-            case tiramisu::o_min:
-                result = Halide::Internal::Min::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_min"));
-                break;
-            case tiramisu::o_minus:
-                result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_minus"));
-                break;
-            case tiramisu::o_add:
-                result = Halide::Internal::Add::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_add"));
-                break;
-            case tiramisu::o_sub:
-                result = Halide::Internal::Sub::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_sub"));
-                break;
-            case tiramisu::o_mul:
-                result = Halide::Internal::Mul::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_mul"));
-                break;
-            case tiramisu::o_div:
-                result = Halide::Internal::Div::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_div"));
-                break;
-            case tiramisu::o_mod:
-                result = Halide::Internal::Mod::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_mod"));
-                break;
-            case tiramisu::o_select:
-                result = Halide::Internal::Select::make(op0, op1, op2);
-                DEBUG(3, tiramisu::str_dump("op type: o_select"));
-                break;
-            case tiramisu::o_cond:
-                tiramisu::error("Code generation for o_cond is not supported yet.", true);
-                break;
-            case tiramisu::o_le:
-                result = Halide::Internal::LE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_le"));
-                break;
-            case tiramisu::o_lt:
-                result = Halide::Internal::LT::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_lt"));
-                break;
-            case tiramisu::o_ge:
-                result = Halide::Internal::GE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_ge"));
-                break;
-            case tiramisu::o_gt:
-                result = Halide::Internal::GT::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_gt"));
-                break;
-            case tiramisu::o_logical_not:
-                result = Halide::Internal::Not::make(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_not"));
-                break;
-            case tiramisu::o_eq:
-                result = Halide::Internal::EQ::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_eq"));
-                break;
-            case tiramisu::o_ne:
-                result = Halide::Internal::NE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_ne"));
-                break;
-            case tiramisu::o_access:
-            case tiramisu::o_address:
-                {
-                    DEBUG(3, tiramisu::str_dump("op type: o_access or o_address"));
+        case tiramisu::o_logical_and:
+            result = Halide::Internal::And::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_logical_and"));
+            break;
+        case tiramisu::o_logical_or:
+            result = Halide::Internal::Or::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_logical_or"));
+            break;
+        case tiramisu::o_max:
+            result = Halide::Internal::Max::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_max"));
+            break;
+        case tiramisu::o_min:
+            result = Halide::Internal::Min::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_min"));
+            break;
+        case tiramisu::o_minus:
+            result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_minus"));
+            break;
+        case tiramisu::o_add:
+            result = Halide::Internal::Add::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_add"));
+            break;
+        case tiramisu::o_sub:
+            result = Halide::Internal::Sub::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_sub"));
+            break;
+        case tiramisu::o_mul:
+            result = Halide::Internal::Mul::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_mul"));
+            break;
+        case tiramisu::o_div:
+            result = Halide::Internal::Div::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_div"));
+            break;
+        case tiramisu::o_mod:
+            result = Halide::Internal::Mod::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_mod"));
+            break;
+        case tiramisu::o_select:
+            result = Halide::Internal::Select::make(op0, op1, op2);
+            DEBUG(3, tiramisu::str_dump("op type: o_select"));
+            break;
+        case tiramisu::o_cond:
+            tiramisu::error("Code generation for o_cond is not supported yet.", true);
+            break;
+        case tiramisu::o_le:
+            result = Halide::Internal::LE::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_le"));
+            break;
+        case tiramisu::o_lt:
+            result = Halide::Internal::LT::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_lt"));
+            break;
+        case tiramisu::o_ge:
+            result = Halide::Internal::GE::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_ge"));
+            break;
+        case tiramisu::o_gt:
+            result = Halide::Internal::GT::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_gt"));
+            break;
+        case tiramisu::o_logical_not:
+            result = Halide::Internal::Not::make(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_not"));
+            break;
+        case tiramisu::o_eq:
+            result = Halide::Internal::EQ::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_eq"));
+            break;
+        case tiramisu::o_ne:
+            result = Halide::Internal::NE::make(op0, op1);
+            DEBUG(3, tiramisu::str_dump("op type: o_ne"));
+            break;
+        case tiramisu::o_access:
+        case tiramisu::o_address:
+        {
+            DEBUG(3, tiramisu::str_dump("op type: o_access or o_address"));
 
-                    const char *access_comp_name = NULL;
+            const char *access_comp_name = NULL;
 
-                    if (tiramisu_expr.get_op_type() == tiramisu::o_access)
-                        access_comp_name = tiramisu_expr.get_name().c_str();
-                    else if (tiramisu_expr.get_op_type() == tiramisu::o_address)
-                        access_comp_name = tiramisu_expr.get_operand(0).get_name().c_str();
-                    else
-                        tiramisu::error("Unsupported operation.", true);
-
-                    assert(access_comp_name != NULL);
-
-                    DEBUG(3, tiramisu::str_dump("Computation being accessed: ");tiramisu::str_dump(access_comp_name));
-
-                    // TODO: We assume that computations that have the same name write all to the same buffer
-                    // but may have different access relations (the difference is in the domains of their access relations).
-                    // This assumption should be eliminated.
-                    tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(access_comp_name)[0];
-                    assert((access_comp != NULL) && "Accessed computation is NULL.");
-                    const char *buffer_name = isl_space_get_tuple_name(
-                                                isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()), isl_dim_out);
-                    DEBUG(3, tiramisu::str_dump("Name of the associated buffer: ");tiramisu::str_dump(buffer_name));
-                    assert(buffer_name != NULL);
-
-                    auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
-                    assert(buffer_entry != comp->get_function()->get_buffers().end());
-
-                    auto tiramisu_buffer = buffer_entry->second;
-
-                    Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
-
-                    // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
-                    // to outermost; thus, we need to reverse the order
-                    halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
-                    int stride = 1;
-
-                    for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++) {
-                        shape[i].min = 0;
-                        shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
-                        shape[i].stride = stride;
-                        stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size()- i - 1].get_int_val();
-                    }
-
-                    if (tiramisu_expr.get_op_type() == tiramisu::o_access)
-                    {
-                        print_isl_ast_expr_vector(index_expr);
-
-                        Halide::Expr index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
-                        index_expr.erase(index_expr.begin());
-
-                        if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
-                        {
-                            Halide::Buffer<> *buffer =
-                                new Halide::Buffer<>(
-                                        type,
-                                        tiramisu_buffer->get_data(),
-                                        tiramisu_buffer->get_dim_sizes().size(),
-                                        shape,
-                                        tiramisu_buffer->get_name());
-
-                            // TODO(psuriana): Not sure if this the right way to handle external input
-                            /*Halide::Internal::Parameter param(
-                                buffer->type(), true, buffer->dimensions(), buffer->name());
-                            param.set_buffer(*buffer);*/
-
-                            result = Halide::Internal::Load::make(
-                                        type, tiramisu_buffer->get_name(), index, *buffer,
-                                        Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
-                        }
-                        else
-                        {
-                            result = Halide::Internal::Load::make(
-                                    type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
-                        }
-                    }
-                    else if (tiramisu_expr.get_op_type() == tiramisu::o_address)
-                    {
-                        // Create a pointer to Halide buffer.
-                        result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(), tiramisu_buffer->get_name()+".buffer");
-                    }
-                delete[] shape;
-                }
-                break;
-            case tiramisu::o_right_shift:
-                result = op0 >> op1;
-                DEBUG(3, tiramisu::str_dump("op type: o_right_shift"));
-                break;
-            case tiramisu::o_left_shift:
-                result = op0 << op1;
-                DEBUG(3, tiramisu::str_dump("op type: o_left_shift"));
-                break;
-            case tiramisu::o_floor:
-                result = Halide::floor(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_floor"));
-                break;
-            case tiramisu::o_cast:
-                result = Halide::cast(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()), op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_cast"));
-                break;
-            case tiramisu::o_sin:
-                result = Halide::sin(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_sin"));
-                break;
-            case tiramisu::o_cos:
-                result = Halide::cos(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_cos"));
-                break;
-            case tiramisu::o_tan:
-                result = Halide::tan(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_tan"));
-                break;
-            case tiramisu::o_asin:
-                result = Halide::asin(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_asin"));
-                break;
-            case tiramisu::o_acos:
-                result = Halide::acos(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_acos"));
-                break;
-            case tiramisu::o_atan:
-                result = Halide::atan(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_atan"));
-                break;
-            case tiramisu::o_abs:
-                result = Halide::abs(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_abs"));
-                break;
-            case tiramisu::o_sqrt:
-                result = Halide::sqrt(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_sqrt"));
-                break;
-            case tiramisu::o_expo:
-                result = Halide::exp(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_expo"));
-                break;
-            case tiramisu::o_log:
-                result = Halide::log(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_log"));
-                break;
-            case tiramisu::o_ceil:
-                result = Halide::ceil(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_ceil"));
-                break;
-            case tiramisu::o_round:
-                result = Halide::round(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_round"));
-                break;
-            case tiramisu::o_trunc:
-                result = Halide::trunc(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_trunc"));
-                break;
-            case tiramisu::o_call:
+            if (tiramisu_expr.get_op_type() == tiramisu::o_access)
             {
-                std::vector<Halide::Expr> vec;
-                for (auto e: tiramisu_expr.get_arguments())
-                {
-                    Halide::Expr he = halide_expr_from_tiramisu_expr(comp, index_expr, e);
-                    vec.push_back(he);
-                }
-                result = Halide::Internal::Call::make(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
-                                                      tiramisu_expr.get_name(),
-                                                      vec,
-                                                      Halide::Internal::Call::CallType::Extern);
-                DEBUG(3, tiramisu::str_dump("op type: o_call"));
-                break;
+                access_comp_name = tiramisu_expr.get_name().c_str();
             }
-            default:
-                tiramisu::error("Translating an unsupported ISL expression into a Halide expression.", 1);
+            else if (tiramisu_expr.get_op_type() == tiramisu::o_address)
+            {
+                access_comp_name = tiramisu_expr.get_operand(0).get_name().c_str();
+            }
+            else
+            {
+                tiramisu::error("Unsupported operation.", true);
+            }
+
+            assert(access_comp_name != NULL);
+
+            DEBUG(3, tiramisu::str_dump("Computation being accessed: "); tiramisu::str_dump(access_comp_name));
+
+            // TODO: We assume that computations that have the same name write all to the same buffer
+            // but may have different access relations (the difference is in the domains of their access relations).
+            // This assumption should be eliminated.
+            tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(
+                    access_comp_name)[0];
+            assert((access_comp != NULL) && "Accessed computation is NULL.");
+            const char *buffer_name = isl_space_get_tuple_name(
+                                          isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()),
+                                          isl_dim_out);
+            DEBUG(3, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
+            assert(buffer_name != NULL);
+
+            auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
+            assert(buffer_entry != comp->get_function()->get_buffers().end());
+
+            auto tiramisu_buffer = buffer_entry->second;
+
+            Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
+
+            // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
+            // to outermost; thus, we need to reverse the order
+            halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
+            int stride = 1;
+
+            for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+            {
+                shape[i].min = 0;
+                shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i
+                                  - 1].get_int_val();
+                shape[i].stride = stride;
+                stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i -
+                          1].get_int_val();
+            }
+
+            if (tiramisu_expr.get_op_type() == tiramisu::o_access)
+            {
+                print_isl_ast_expr_vector(index_expr);
+
+                Halide::Expr index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape,
+                                     index_expr[0]);
+                index_expr.erase(index_expr.begin());
+
+                if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
+                {
+                    Halide::Buffer<> *buffer =
+                        new Halide::Buffer<>(
+                        type,
+                        tiramisu_buffer->get_data(),
+                        tiramisu_buffer->get_dim_sizes().size(),
+                        shape,
+                        tiramisu_buffer->get_name());
+
+                    // TODO(psuriana): Not sure if this the right way to handle external input
+                    /*Halide::Internal::Parameter param(
+                        buffer->type(), true, buffer->dimensions(), buffer->name());
+                    param.set_buffer(*buffer);*/
+
+                    result = Halide::Internal::Load::make(
+                                 type, tiramisu_buffer->get_name(), index, *buffer,
+                                 Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                }
+                else
+                {
+                    result = Halide::Internal::Load::make(
+                                 type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
+                                 Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                }
+            }
+            else if (tiramisu_expr.get_op_type() == tiramisu::o_address)
+            {
+                // Create a pointer to Halide buffer.
+                result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
+                         tiramisu_buffer->get_name() + ".buffer");
+            }
+            delete[] shape;
+        }
+        break;
+        case tiramisu::o_right_shift:
+            result = op0 >> op1;
+            DEBUG(3, tiramisu::str_dump("op type: o_right_shift"));
+            break;
+        case tiramisu::o_left_shift:
+            result = op0 << op1;
+            DEBUG(3, tiramisu::str_dump("op type: o_left_shift"));
+            break;
+        case tiramisu::o_floor:
+            result = Halide::floor(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_floor"));
+            break;
+        case tiramisu::o_cast:
+            result = Halide::cast(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()), op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_cast"));
+            break;
+        case tiramisu::o_sin:
+            result = Halide::sin(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_sin"));
+            break;
+        case tiramisu::o_cos:
+            result = Halide::cos(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_cos"));
+            break;
+        case tiramisu::o_tan:
+            result = Halide::tan(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_tan"));
+            break;
+        case tiramisu::o_asin:
+            result = Halide::asin(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_asin"));
+            break;
+        case tiramisu::o_acos:
+            result = Halide::acos(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_acos"));
+            break;
+        case tiramisu::o_atan:
+            result = Halide::atan(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_atan"));
+            break;
+        case tiramisu::o_abs:
+            result = Halide::abs(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_abs"));
+            break;
+        case tiramisu::o_sqrt:
+            result = Halide::sqrt(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_sqrt"));
+            break;
+        case tiramisu::o_expo:
+            result = Halide::exp(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_expo"));
+            break;
+        case tiramisu::o_log:
+            result = Halide::log(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_log"));
+            break;
+        case tiramisu::o_ceil:
+            result = Halide::ceil(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_ceil"));
+            break;
+        case tiramisu::o_round:
+            result = Halide::round(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_round"));
+            break;
+        case tiramisu::o_trunc:
+            result = Halide::trunc(op0);
+            DEBUG(3, tiramisu::str_dump("op type: o_trunc"));
+            break;
+        case tiramisu::o_call:
+        {
+            std::vector<Halide::Expr> vec;
+            for (auto e : tiramisu_expr.get_arguments())
+            {
+                Halide::Expr he = halide_expr_from_tiramisu_expr(comp, index_expr, e);
+                vec.push_back(he);
+            }
+            result = Halide::Internal::Call::make(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
+                                                  tiramisu_expr.get_name(),
+                                                  vec,
+                                                  Halide::Internal::Call::CallType::Extern);
+            DEBUG(3, tiramisu::str_dump("op type: o_call"));
+            break;
+        }
+        default:
+            tiramisu::error("Translating an unsupported ISL expression into a Halide expression.", 1);
         }
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_var)
         result = Halide::Internal::Variable::make(
-                    halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
-                    tiramisu_expr.get_name());
+                     halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
+                     tiramisu_expr.get_name());
     else
     {
-        tiramisu::str_dump("tiramisu type of expr: ", str_from_tiramisu_type_expr(tiramisu_expr.get_expr_type()).c_str());
+        tiramisu::str_dump("tiramisu type of expr: ",
+                           str_from_tiramisu_type_expr(tiramisu_expr.get_expr_type()).c_str());
         tiramisu::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
     }
 
     if (result.defined() == true)
-        DEBUG(10, tiramisu::str_dump("Generated stmt: "); std::cout << result);
+    {
+        DEBUG(10, tiramisu::str_dump("Generated stmt: ");
+    } std::cout << result);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -1246,87 +1326,93 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
         op0 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
+        {
             op1 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 1));
+        }
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
-            op2 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 2));
-
-        switch(isl_ast_expr_get_op_type(isl_expr))
         {
-            case isl_ast_op_and:
-                result = Halide::Internal::And::make(op0, op1);
-                break;
-            case isl_ast_op_and_then:
-                result = Halide::Internal::And::make(op0, op1);
-                tiramisu::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.", 0);
-                break;
-            case isl_ast_op_or:
-                result = Halide::Internal::Or::make(op0, op1);
-                break;
-            case isl_ast_op_or_else:
-                result = Halide::Internal::Or::make(op0, op1);
-                tiramisu::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.", 0);
-                break;
-            case isl_ast_op_max:
-                result = Halide::Internal::Max::make(op0, op1);
-                break;
-            case isl_ast_op_min:
-                result = Halide::Internal::Min::make(op0, op1);
-                break;
-            case isl_ast_op_minus:
-                result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
-                break;
-            case isl_ast_op_add:
-                result = Halide::Internal::Add::make(op0, op1);
-                break;
-            case isl_ast_op_sub:
-                result = Halide::Internal::Sub::make(op0, op1);
-                break;
-            case isl_ast_op_mul:
-                result = Halide::Internal::Mul::make(op0, op1);
-                break;
-            case isl_ast_op_div:
-                result = Halide::Internal::Div::make(op0, op1);
-                break;
-            case isl_ast_op_fdiv_q:
-            case isl_ast_op_pdiv_q:
-                result = Halide::Internal::Div::make(op0, op1);
-                result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(result));
-                break;
-            case isl_ast_op_zdiv_r:
-            case isl_ast_op_pdiv_r:
-                result = Halide::Internal::Mod::make(op0, op1);
-                break;
-            case isl_ast_op_select:
-            case isl_ast_op_cond:
-                result = Halide::Internal::Select::make(op0, op1, op2);
-                break;
-            case isl_ast_op_le:
-                result = Halide::Internal::LE::make(op0, op1);
-                break;
-            case isl_ast_op_lt:
-                result = Halide::Internal::LT::make(op0, op1);
-                break;
-            case isl_ast_op_ge:
-                result = Halide::Internal::GE::make(op0, op1);
-                break;
-            case isl_ast_op_gt:
-                result = Halide::Internal::GT::make(op0, op1);
-                break;
-            case isl_ast_op_eq:
-                result = Halide::Internal::EQ::make(op0, op1);
-                break;
-            default:
-                tiramisu::str_dump("Transforming the following expression",
-                        (const char *) isl_ast_expr_to_C_str(isl_expr));
-                tiramisu::str_dump("\n");
-                tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
+            op2 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 2));
+        }
+
+        switch (isl_ast_expr_get_op_type(isl_expr))
+        {
+        case isl_ast_op_and:
+            result = Halide::Internal::And::make(op0, op1);
+            break;
+        case isl_ast_op_and_then:
+            result = Halide::Internal::And::make(op0, op1);
+            tiramisu::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
+                            0);
+            break;
+        case isl_ast_op_or:
+            result = Halide::Internal::Or::make(op0, op1);
+            break;
+        case isl_ast_op_or_else:
+            result = Halide::Internal::Or::make(op0, op1);
+            tiramisu::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
+                            0);
+            break;
+        case isl_ast_op_max:
+            result = Halide::Internal::Max::make(op0, op1);
+            break;
+        case isl_ast_op_min:
+            result = Halide::Internal::Min::make(op0, op1);
+            break;
+        case isl_ast_op_minus:
+            result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
+            break;
+        case isl_ast_op_add:
+            result = Halide::Internal::Add::make(op0, op1);
+            break;
+        case isl_ast_op_sub:
+            result = Halide::Internal::Sub::make(op0, op1);
+            break;
+        case isl_ast_op_mul:
+            result = Halide::Internal::Mul::make(op0, op1);
+            break;
+        case isl_ast_op_div:
+            result = Halide::Internal::Div::make(op0, op1);
+            break;
+        case isl_ast_op_fdiv_q:
+        case isl_ast_op_pdiv_q:
+            result = Halide::Internal::Div::make(op0, op1);
+            result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(result));
+            break;
+        case isl_ast_op_zdiv_r:
+        case isl_ast_op_pdiv_r:
+            result = Halide::Internal::Mod::make(op0, op1);
+            break;
+        case isl_ast_op_select:
+        case isl_ast_op_cond:
+            result = Halide::Internal::Select::make(op0, op1, op2);
+            break;
+        case isl_ast_op_le:
+            result = Halide::Internal::LE::make(op0, op1);
+            break;
+        case isl_ast_op_lt:
+            result = Halide::Internal::LT::make(op0, op1);
+            break;
+        case isl_ast_op_ge:
+            result = Halide::Internal::GE::make(op0, op1);
+            break;
+        case isl_ast_op_gt:
+            result = Halide::Internal::GT::make(op0, op1);
+            break;
+        case isl_ast_op_eq:
+            result = Halide::Internal::EQ::make(op0, op1);
+            break;
+        default:
+            tiramisu::str_dump("Transforming the following expression",
+                               (const char *) isl_ast_expr_to_C_str(isl_expr));
+            tiramisu::str_dump("\n");
+            tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
         }
     }
     else
     {
         tiramisu::str_dump("Transforming the following expression",
-                (const char *) isl_ast_expr_to_C_str(isl_expr));
+                           (const char *) isl_ast_expr_to_C_str(isl_expr));
         tiramisu::str_dump("\n");
         tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
     }
@@ -1338,12 +1424,12 @@ std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
 
 // For each node of the ISL AST, the corresponding computation is stored.
 // This function retrieves that computation.
-tiramisu::computation* get_computation_annotated_in_a_node(isl_ast_node* node)
+tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
 {
     // Retrieve the computation of the node.
-    isl_id* comp_id = isl_ast_node_get_annotation (node);
-    tiramisu::computation* comp =
-             (tiramisu::computation*) (isl_id_get_user(comp_id));
+    isl_id *comp_id = isl_ast_node_get_annotation (node);
+    tiramisu::computation *comp =
+        (tiramisu::computation *) (isl_id_get_user(comp_id));
     return comp;
 }
 
@@ -1373,7 +1459,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         isl_ast_node_list *list = isl_ast_node_block_get_children(node);
         isl_ast_node *child1;
 
-        for (i=isl_ast_node_list_n_ast_node(list)-1; i>=0; i--)
+        for (i = isl_ast_node_list_n_ast_node(list) - 1; i >= 0; i--)
         {
             child1 = isl_ast_node_list_get_ast_node(list, i);
 
@@ -1389,19 +1475,19 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                 if (let_stmts_vector.empty() == false) // i.e. non-consumed let statements
                 {
                     if (result->defined() == true) // if some stmts have already been created
-                                                   // in this loop we can generate letStmt
+                        // in this loop we can generate letStmt
                     {
-                        for (auto l_stmt: let_stmts_vector)
+                        for (auto l_stmt : let_stmts_vector)
                         {
                             DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
                             DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
                             DEBUG(3, tiramisu::str_dump("Expression of the let statement: ");
-                                     std::cout << l_stmt.second);
+                                  std::cout << l_stmt.second);
 
                             *result = Halide::Internal::LetStmt::make(
-                                                l_stmt.first,
-                                                l_stmt.second,
-                                                *result);
+                                          l_stmt.first,
+                                          l_stmt.second,
+                                          *result);
 
                             DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
                             DEBUG_NO_NEWLINE(10, std::cout << *result);
@@ -1423,7 +1509,9 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
                                   *result);
                 }
                 else // (result->defined() == false)
+                {
                     result = block1;
+                }
             }
         }
     }
@@ -1440,7 +1528,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
         if (!isl_val_is_one(isl_ast_expr_get_val(inc)))
             tiramisu::error("The increment in one of the loops is not +1."
-                        "This is not supported by Halide", 1);
+                            "This is not supported by Halide", 1);
 
         isl_ast_node *body = isl_ast_node_for_get_body(node);
         isl_ast_expr *cond_upper_bound_isl_format = NULL;
@@ -1456,34 +1544,46 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
            format.
         */
         if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
+        {
             cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+        }
         else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)
         {
             // Create an expression of "1".
             isl_val *one = isl_val_one(isl_ast_node_get_ctx(node));
             // Add 1 to the ISL ast upper bound to transform it into a strinct bound.
             cond_upper_bound_isl_format = isl_ast_expr_add(
-                            isl_ast_expr_get_op_arg(cond, 1),
-                            isl_ast_expr_from_val(one));
+                                              isl_ast_expr_get_op_arg(cond, 1),
+                                              isl_ast_expr_from_val(one));
         }
         else
-            tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt" ,1);
+        {
+            tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt" , 1);
+        }
 
         assert(cond_upper_bound_isl_format != NULL);
         DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
 
         Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
-        if (init_expr.type() != halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
-            init_expr = Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()), init_expr);
+        if (init_expr.type() != halide_type_from_tiramisu_type(
+                    global::get_loop_iterator_default_data_type()))
+        {
+            init_expr = Halide::Internal::Cast::make(halide_type_from_tiramisu_type(
+                            global::get_loop_iterator_default_data_type()), init_expr);
+        }
         DEBUG(3, tiramisu::str_dump("init expression: "); std::cout << init_expr);
         Halide::Expr cond_upper_bound_halide_format =
-                halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
+            halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
         cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
-        if (cond_upper_bound_halide_format.type() != halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
+        if (cond_upper_bound_halide_format.type() != halide_type_from_tiramisu_type(
+                    global::get_loop_iterator_default_data_type()))
             cond_upper_bound_halide_format =
-                Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
-        DEBUG(3, tiramisu::str_dump("Upper bound expression: "); std::cout << cond_upper_bound_halide_format);
-        Halide::Internal::Stmt *halide_body = tiramisu::halide_stmt_from_isl_node(fct, body, level+1, tagged_stmts);
+                Halide::Internal::Cast::make(halide_type_from_tiramisu_type(
+                                                 global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
+        DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
+              std::cout << cond_upper_bound_halide_format);
+        Halide::Internal::Stmt *halide_body = tiramisu::halide_stmt_from_isl_node(fct, body, level + 1,
+                                              tagged_stmts);
         Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
         Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
@@ -1497,10 +1597,13 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             }
             else if (fct.should_vectorize(tagged_stmts[tt], level))
             {
-                DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "); tiramisu::str_dump(std::to_string(level)));
+                DEBUG(3, tiramisu::str_dump("Trying to vectorize at level ");
+                      tiramisu::str_dump(std::to_string(level)));
 
-                const Halide::Internal::IntImm *extent = cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                if (extent) {
+                const Halide::Internal::IntImm *extent =
+                    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+                if (extent)
+                {
                     fortype = Halide::Internal::ForType::Vectorized;
                     DEBUG(3, tiramisu::str_dump("Loop vectorized"));
                 }
@@ -1514,46 +1617,49 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             }
             else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
             {
-                    fortype = Halide::Internal::ForType::Parallel;
-                    dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_thread_iterator(
-                        tagged_stmts[tt], level);
-                    Halide::Expr new_iterator_var =
-                        Halide::Internal::Variable::make(
-                            Halide::Int(32),
-                            gpu_iter);
-                    *halide_body = Halide::Internal::LetStmt::make(
-                        iterator_str,
-                        new_iterator_var,
-                        *halide_body);
-                        iterator_str = gpu_iter;
-                        DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
-                             " created.\n"));
+                fortype = Halide::Internal::ForType::Parallel;
+                dev_api = Halide::DeviceAPI::OpenCL;
+                std::string gpu_iter = fct.get_gpu_thread_iterator(
+                                           tagged_stmts[tt], level);
+                Halide::Expr new_iterator_var =
+                    Halide::Internal::Variable::make(
+                        Halide::Int(32),
+                        gpu_iter);
+                *halide_body = Halide::Internal::LetStmt::make(
+                                   iterator_str,
+                                   new_iterator_var,
+                                   *halide_body);
+                iterator_str = gpu_iter;
+                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
+                                            " created.\n"));
             }
             else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
             {
-                    fortype = Halide::Internal::ForType::Parallel;
-                    dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_block_iterator(
-                        tagged_stmts[tt], level);
-                    Halide::Expr new_iterator_var =
-                        Halide::Internal::Variable::make(
-                            Halide::Int(32),
-                            gpu_iter);
-                    *halide_body = Halide::Internal::LetStmt::make(
-                        iterator_str,
-                        new_iterator_var,
-                        *halide_body);
-                        iterator_str = gpu_iter;
-                        DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
-                             " created.\n"));
+                fortype = Halide::Internal::ForType::Parallel;
+                dev_api = Halide::DeviceAPI::OpenCL;
+                std::string gpu_iter = fct.get_gpu_block_iterator(
+                                           tagged_stmts[tt], level);
+                Halide::Expr new_iterator_var =
+                    Halide::Internal::Variable::make(
+                        Halide::Int(32),
+                        gpu_iter);
+                *halide_body = Halide::Internal::LetStmt::make(
+                                   iterator_str,
+                                   new_iterator_var,
+                                   *halide_body);
+                iterator_str = gpu_iter;
+                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
+                                            " created.\n"));
             }
             else if (fct.should_unroll(tagged_stmts[tt], level))
             {
-                DEBUG(3, tiramisu::str_dump("Trying to unroll at level "); tiramisu::str_dump(std::to_string(level)));
+                DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
+                      tiramisu::str_dump(std::to_string(level)));
 
-                const Halide::Internal::IntImm *extent = cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                if (extent) {
+                const Halide::Internal::IntImm *extent =
+                    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+                if (extent)
+                {
                     fortype = Halide::Internal::ForType::Unrolled;
                     DEBUG(3, tiramisu::str_dump("Loop unrolled"));
                 }
@@ -1566,10 +1672,11 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         }
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
-        *result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format, fortype,
-                dev_api, *halide_body);
+        *result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format,
+                                              fortype,
+                                              dev_api, *halide_body);
         DEBUG(3, tiramisu::str_dump("For loop created."));
-        DEBUG(10, std::cout<< *result);
+        DEBUG(10, std::cout << *result);
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_user)
     {
@@ -1580,7 +1687,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         isl_id *id = isl_ast_expr_get_id(arg);
         isl_ast_expr_free(arg);
         std::string computation_name(isl_id_get_name(id));
-        DEBUG(3, tiramisu::str_dump("Computation name: ");tiramisu::str_dump(computation_name));
+        DEBUG(3, tiramisu::str_dump("Computation name: "); tiramisu::str_dump(computation_name));
         isl_id_free(id);
 
         // Check if any loop around this statement should be
@@ -1588,15 +1695,17 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         for (int l = 0; l < level; l++)
         {
             if (fct.should_parallelize(computation_name, l) ||
-                fct.should_vectorize(computation_name, l) ||
-                fct.should_map_to_gpu_block(computation_name, l) ||
-                fct.should_map_to_gpu_thread(computation_name, l) ||
-                fct.should_unroll(computation_name, l))
-            tagged_stmts.push_back(computation_name);
+                    fct.should_vectorize(computation_name, l) ||
+                    fct.should_map_to_gpu_block(computation_name, l) ||
+                    fct.should_map_to_gpu_thread(computation_name, l) ||
+                    fct.should_unroll(computation_name, l))
+            {
+                tagged_stmts.push_back(computation_name);
+            }
         }
 
         // Retrieve the computation of the node.
-        tiramisu::computation* comp = get_computation_annotated_in_a_node(node);
+        tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
         DEBUG(10, comp->dump());
 
         comp->create_halide_assignment();
@@ -1612,9 +1721,9 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
             std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
             *result = Halide::Internal::LetStmt::make(
-                                l_stmt.first,
-                                halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
-                                *result);
+                          l_stmt.first,
+                          halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                          *result);
 
             DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
             DEBUG_NO_NEWLINE(10, std::cout << *result);
@@ -1634,7 +1743,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
         Halide::Internal::Stmt *if_s =
-                tiramisu::halide_stmt_from_isl_node(fct, if_stmt,
+            tiramisu::halide_stmt_from_isl_node(fct, if_stmt,
                                                 level, tagged_stmts);
 
         DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << *if_s);
@@ -1646,18 +1755,20 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
 
             else_s =
-                 *tiramisu::halide_stmt_from_isl_node(fct, else_stmt,
-                                                  level, tagged_stmts);
+                *tiramisu::halide_stmt_from_isl_node(fct, else_stmt,
+                        level, tagged_stmts);
 
             DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
         }
         else
+        {
             DEBUG(3, tiramisu::str_dump("Else statement is NULL."));
+        }
 
         *result = Halide::Internal::IfThenElse::make(
-                    c,
-                    *if_s,
-                    else_s);
+                      c,
+                      *if_s,
+                      else_s);
 
         DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << *result);
 
@@ -1806,23 +1917,26 @@ void computation::create_halide_assignment()
     if (this->is_let_stmt())
     {
         DEBUG(3, tiramisu::str_dump("This is a let statement."));
-        DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The expression associated with the let statement: "); this->expression.dump(false));
+        DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The expression associated with the let statement: ");
+                         this->expression.dump(false));
         DEBUG_NEWLINE(10);
 
         Halide::Expr result = halide_expr_from_tiramisu_expr(this,
-                                                             this->get_index_expr(),
-                                                             this->expression);
+                              this->get_index_expr(),
+                              this->expression);
 
         Halide::Type l_type = halide_type_from_tiramisu_type(this->get_data_type());
 
         if (l_type != result.type())
+        {
             result = Halide::Internal::Cast::make(l_type, result);
+        }
 
         std::string let_stmt_name = this->get_name();
 
         let_stmts_vector.push_back(std::pair<std::string, Halide::Expr>(
-                                            let_stmt_name,
-                                            result));
+                                       let_stmt_name,
+                                       result));
         DEBUG(10, tiramisu::str_dump("A let statement was added to the vector of let statements."));
     }
     else
@@ -1830,8 +1944,8 @@ void computation::create_halide_assignment()
         DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
         const char *buffer_name = isl_space_get_tuple_name(
-                                    isl_map_get_space(this->get_access_relation_adapted_to_time_processor_domain()),
-                                    isl_dim_out);
+                                      isl_map_get_space(this->get_access_relation_adapted_to_time_processor_domain()),
+                                      isl_dim_out);
         assert(buffer_name != NULL);
 
         DEBUG(3, tiramisu::str_dump("Buffer name extracted from the access relation: ", buffer_name));
@@ -1858,11 +1972,14 @@ void computation::create_halide_assignment()
         // from innermost to outermost; thus, we need to reverse the order
         halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
-        for (int i = 0; i < buf_dims; i++) {
+        for (int i = 0; i < buf_dims; i++)
+        {
             shape[i].min = 0;
-            shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i - 1].get_int_val();
+            shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i
+                              - 1].get_int_val();
             shape[i].stride = stride;
-            stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i - 1].get_int_val();
+            stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i -
+                      1].get_int_val();
         }
 
         // The number of dimensions in the Halide buffer should be equal to
@@ -1880,14 +1997,15 @@ void computation::create_halide_assignment()
 
         Halide::Internal::Parameter param;
 
-        if (tiramisu_buffer->get_argument_type() == tiramisu::a_output) {
+        if (tiramisu_buffer->get_argument_type() == tiramisu::a_output)
+        {
             Halide::Buffer<> *buffer =
                 new Halide::Buffer<>(
-                        halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
-                        tiramisu_buffer->get_data(),
-                        tiramisu_buffer->get_dim_sizes().size(),
-                        shape,
-                        tiramisu_buffer->get_name());
+                halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                tiramisu_buffer->get_data(),
+                tiramisu_buffer->get_dim_sizes().size(),
+                shape,
+                tiramisu_buffer->get_name());
             param = Halide::Internal::Parameter(buffer->type(), true, buffer->dimensions(), buffer->name());
             param.set_buffer(*buffer);
             DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
@@ -1897,16 +2015,16 @@ void computation::create_halide_assignment()
         DEBUG(3, tiramisu::str_dump("The RHS index expressions are first transformed to Halide expressions then passed to the make function."));
 
         this->stmt = Halide::Internal::Store::make (
-                        buffer_name,
-                        halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
-                        index, param, Halide::Internal::const_true(type.lanes()));
+                         buffer_name,
+                         halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
+                         index, param, Halide::Internal::const_true(type.lanes()));
 
         DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
         delete[] shape;
     }
 
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
-             std::cout << this->stmt);
+                     std::cout << this->stmt);
 
     DEBUG_INDENT(-4);
 }
@@ -1935,7 +2053,8 @@ void function::gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
     }
 
     Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt(), m);
-    m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered, Halide::Internal::LoweredFunc::External));
+    m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered,
+                                           Halide::Internal::LoweredFunc::External));
 
     Halide::Outputs output = Halide::Outputs().object(obj_file_name);
     m.compile(output);

@@ -25,15 +25,17 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
-    tiramisu::computation S0("[N]->{S0[i0,i1,i2,i3,i4,i5]: 0<=i0<N and 0<=i1<N and 0<=i2<N and 0<=i3<N and 0<=i4<N and 0<=i5<N}", e0, true, p_uint8, &function0);
+    tiramisu::computation
+    S0("[N]->{S0[i0,i1,i2,i3,i4,i5]: 0<=i0<N and 0<=i1<N and 0<=i2<N and 0<=i3<N and 0<=i4<N and 0<=i5<N}",
+       e0, true, p_uint8, &function0);
 
     S0.set_access("[N]->{S0[i0,i1,i2,i3,i4,i5]->buf0[i0,i5]}");
 
     // Test if this works correctly.
-    S0.tag_gpu_level(0,1,2,3,4,5);
+    S0.tag_gpu_level(0, 1, 2, 3, 4, 5);
 
     function0.set_arguments({&buf0});
     function0.gen_time_processor_domain();

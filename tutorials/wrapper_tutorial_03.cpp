@@ -7,7 +7,7 @@
 
 #define NN 1000
 
-int main(int, char**)
+int main(int, char **)
 {
     Halide::Buffer<uint8_t> A_buf(NN, NN);
     init_buffer(A_buf, (uint8_t)1);
@@ -24,7 +24,9 @@ int main(int, char**)
     for (int i = 0; i < NN; i++)
         for (int j = 0; j < NN; j++)
             for (int k = 0; k < NN; k++)
-                C2_buf(i, j) += A_buf(i, k)*B_buf(k, j);
+            {
+                C2_buf(i, j) += A_buf(i, k) * B_buf(k, j);
+            }
 
     compare_buffers("matmul", C1_buf, C2_buf);
 

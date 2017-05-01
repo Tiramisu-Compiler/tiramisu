@@ -5,9 +5,9 @@
 
 #include "wrapper_test_20.h"
 
-int main(int, char**)
+int main(int, char **)
 {
-	Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
+    Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
     init_buffer(reference_buf, (uint8_t)4);
 
     Halide::Buffer<uint8_t> output_buf(SIZE0, SIZE1);

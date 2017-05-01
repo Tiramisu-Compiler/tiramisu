@@ -44,8 +44,10 @@ int main(int argc, char **argv)
      * Declare an invariant for the function.
      */
     function blurxy("blurxy");
-    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input, &blurxy);
-    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_output, &blurxy);
+    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input,
+                   &blurxy);
+    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
+                   a_output, &blurxy);
     expr e_p0 = expr((int32_t) SIZE0);
     expr e_p1 = expr((int32_t) SIZE1);
     constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
@@ -56,18 +58,19 @@ int main(int argc, char **argv)
 
     expr e1 = (c_input(var("i") - 1, var("j")) +
                c_input(var("i")    , var("j")) +
-               c_input(var("i") + 1, var("j")))/((uint8_t) 3);
+               c_input(var("i") + 1, var("j"))) / ((uint8_t) 3);
 
     computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", e1, true, p_uint8, &blurxy);
 
     expr e2 = (c_blurx(var("i"), var("j") - 1) +
                c_blurx(var("i"), var("j")) +
-               c_blurx(var("i"), var("j") + 1))/((uint8_t) 3);
+               c_blurx(var("i"), var("j") + 1)) / ((uint8_t) 3);
 
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2, true, p_uint8, &blurxy);
 
     // Create a memory buffer (2 dimensional).
-    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0),tiramisu::expr(SIZE1)}, p_uint8, NULL, a_temporary, &blurxy);
+    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
+                   a_temporary, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
@@ -77,8 +80,8 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_blurx.tile(0,1,2,2);
-    c_blurx.tag_gpu_level(0,1);
+    c_blurx.tile(0, 1, 2, 2);
+    c_blurx.tag_gpu_level(0, 1);
     c_blury.set_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
     c_blury.after(c_blurx, computation::root_dimension);
 

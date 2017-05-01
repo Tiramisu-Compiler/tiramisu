@@ -27,21 +27,22 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::constant M("M", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}", e0, true, p_uint8, &function0);
 
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
-    tiramisu::expr e1 = tiramisu::expr(S0(i, j)) + tiramisu::expr(S0(tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(tiramisu::o_abs, tiramisu::expr(9))), 9));
+    tiramisu::expr e1 = tiramisu::expr(S0(i, j)) + tiramisu::expr(S0(tiramisu::expr(tiramisu::o_cast,
+                        tiramisu::p_int32, tiramisu::expr(tiramisu::o_abs, tiramisu::expr(9))), 9));
     tiramisu::computation S1("[N,M]->{S1[i,j]: 0<=i<M and 0<=j<M}", e1, true, p_uint8, &function0);
 
     tiramisu::expr e2 = tiramisu::expr(S1(i, j)) +
                         tiramisu::expr(S0(tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32,
-                                                         tiramisu::expr(tiramisu::o_abs, tiramisu::expr(2)) +
-                                                         tiramisu::expr(tiramisu::o_abs, tiramisu::expr(7))),
-                                         9));
+                                          tiramisu::expr(tiramisu::o_abs, tiramisu::expr(2)) +
+                                          tiramisu::expr(tiramisu::o_abs, tiramisu::expr(7))),
+                                          9));
     tiramisu::computation S2("[N,M]->{S2[i,j]: 0<=i<M and 0<=j<M}", e2, true, p_uint8, &function0);
 
 
@@ -62,7 +63,7 @@ void generate_function(std::string name, int size, int val0)
 
 int main(int argc, char **argv)
 {
-    generate_function("test_"+std::string(TEST_NAME_STR), SIZE0, 1);
+    generate_function("test_" + std::string(TEST_NAME_STR), SIZE0, 1);
 
     return 0;
 }

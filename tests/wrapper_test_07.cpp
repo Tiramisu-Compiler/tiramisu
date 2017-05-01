@@ -7,7 +7,7 @@
 
 #define NN 10
 
-int main(int, char**)
+int main(int, char **)
 {
     Halide::Buffer<uint8_t> reference_buf(NN);
     init_buffer(reference_buf, (uint8_t)4);
@@ -19,5 +19,5 @@ int main(int, char**)
 
     compare_buffers("test_duplication", output_buf, reference_buf);
 
-   return 0;
+    return 0;
 }

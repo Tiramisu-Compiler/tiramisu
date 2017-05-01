@@ -195,9 +195,10 @@ public:
       */
     expr(tiramisu::op_t o, tiramisu::expr expr0)
     {
-        if (o == tiramisu::o_floor) {
+        if (o == tiramisu::o_floor)
+        {
             assert(((expr0.get_data_type() == tiramisu::p_float32) ||
-                   (expr0.get_data_type() == tiramisu::p_float64)) &&
+                    (expr0.get_data_type() == tiramisu::p_float64)) &&
                    "Can only do floor on float32 or float64.");
         }
 
@@ -242,7 +243,8 @@ public:
          std::vector<tiramisu::expr> vec,
          tiramisu::primitive_t type)
     {
-        assert(((o == tiramisu::o_access) || (o == tiramisu::o_call)) && "The operator is not an access operator.");
+        assert(((o == tiramisu::o_access) || (o == tiramisu::o_call)) &&
+               "The operator is not an access operator.");
         assert(vec.size() > 0);
         assert(name.size() > 0);
 
@@ -252,11 +254,17 @@ public:
         this->defined = true;
 
         if (o == tiramisu::o_access)
+        {
             this->set_access(vec);
+        }
         else if (o == tiramisu::o_call)
+        {
             this->set_arguments(vec);
+        }
         else
+        {
             tiramisu::error("Type of operator is not o_access or o_call.", true);
+        }
 
         this->name = name;
     }
@@ -394,10 +402,10 @@ public:
     /**
       * Return true if the expression is defined.
       */
-      bool is_defined() const
-      {
-          return defined;
-      }
+    bool is_defined() const
+    {
+        return defined;
+    }
 
     /**
       * Return the actual value of the expression.
@@ -491,27 +499,49 @@ public:
         int64_t result = 0;
 
         if (this->get_data_type() == tiramisu::p_uint8)
+        {
             result = this->get_uint8_value();
+        }
         else if (this->get_data_type() == tiramisu::p_int8)
+        {
             result = this->get_int8_value();
+        }
         else if (this->get_data_type() == tiramisu::p_uint16)
+        {
             result = this->get_uint16_value();
+        }
         else if (this->get_data_type() == tiramisu::p_int16)
+        {
             result = this->get_int16_value();
+        }
         else if (this->get_data_type() == tiramisu::p_uint32)
+        {
             result = this->get_uint32_value();
+        }
         else if (this->get_data_type() == tiramisu::p_int32)
+        {
             result = this->get_int32_value();
+        }
         else if (this->get_data_type() == tiramisu::p_uint64)
+        {
             result = this->get_uint64_value();
+        }
         else if (this->get_data_type() == tiramisu::p_int64)
+        {
             result = this->get_int64_value();
+        }
         else if (this->get_data_type() == tiramisu::p_float32)
+        {
             result = this->get_float32_value();
+        }
         else if (this->get_data_type() == tiramisu::p_float64)
+        {
             result = this->get_float64_value();
+        }
         else
+        {
             tiramisu::error("Calling get_int_val() on a non integer expression.", true);
+        }
 
         return result;
     }
@@ -523,11 +553,17 @@ public:
         int64_t result = 0;
 
         if (this->get_data_type() == tiramisu::p_float32)
+        {
             result = this->get_float32_value();
+        }
         else if (this->get_data_type() == tiramisu::p_float64)
+        {
             result = this->get_float64_value();
+        }
         else
+        {
             tiramisu::error("Calling get_double_val() on a non double expression.", true);
+        }
 
         return result;
     }
@@ -635,11 +671,11 @@ public:
     template<typename T> friend tiramisu::expr operator+(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
-            (std::is_same<T, int8_t>::value) ||
-            (std::is_same<T, uint16_t>::value) ||
-            (std::is_same<T, int16_t>::value) ||
-            (std::is_same<T, int32_t>::value) ||
-            (std::is_same<T, uint32_t>::value))
+                (std::is_same<T, int8_t>::value) ||
+                (std::is_same<T, uint16_t>::value) ||
+                (std::is_same<T, int16_t>::value) ||
+                (std::is_same<T, int32_t>::value) ||
+                (std::is_same<T, uint32_t>::value))
         {
             return tiramisu::expr(tiramisu::o_add, e1, tiramisu::expr((T) val));
         }
@@ -655,11 +691,11 @@ public:
     template<typename T> friend tiramisu::expr operator-(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
-            (std::is_same<T, int8_t>::value) ||
-            (std::is_same<T, uint16_t>::value) ||
-            (std::is_same<T, int16_t>::value) ||
-            (std::is_same<T, int32_t>::value) ||
-            (std::is_same<T, uint32_t>::value))
+                (std::is_same<T, int8_t>::value) ||
+                (std::is_same<T, uint16_t>::value) ||
+                (std::is_same<T, int16_t>::value) ||
+                (std::is_same<T, int32_t>::value) ||
+                (std::is_same<T, uint32_t>::value))
         {
             return tiramisu::expr(tiramisu::o_sub, e1, tiramisu::expr((T) val));
         }
@@ -675,11 +711,11 @@ public:
     template<typename T> friend tiramisu::expr operator/(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
-            (std::is_same<T, int8_t>::value) ||
-            (std::is_same<T, uint16_t>::value) ||
-            (std::is_same<T, int16_t>::value) ||
-            (std::is_same<T, int32_t>::value) ||
-            (std::is_same<T, uint32_t>::value))
+                (std::is_same<T, int8_t>::value) ||
+                (std::is_same<T, uint16_t>::value) ||
+                (std::is_same<T, int16_t>::value) ||
+                (std::is_same<T, int32_t>::value) ||
+                (std::is_same<T, uint32_t>::value))
         {
             return tiramisu::expr(tiramisu::o_div, e1, tiramisu::expr((T) val));
         }
@@ -695,11 +731,11 @@ public:
     template<typename T> friend tiramisu::expr operator*(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
-            (std::is_same<T, int8_t>::value) ||
-            (std::is_same<T, uint16_t>::value) ||
-            (std::is_same<T, int16_t>::value) ||
-            (std::is_same<T, int32_t>::value) ||
-            (std::is_same<T, uint32_t>::value))
+                (std::is_same<T, int8_t>::value) ||
+                (std::is_same<T, uint16_t>::value) ||
+                (std::is_same<T, int16_t>::value) ||
+                (std::is_same<T, int32_t>::value) ||
+                (std::is_same<T, uint32_t>::value))
         {
             return tiramisu::expr(tiramisu::o_mul, e1, tiramisu::expr((T) val));
         }
@@ -715,11 +751,11 @@ public:
     template<typename T> friend tiramisu::expr operator%(tiramisu::expr e1, T val)
     {
         if ((std::is_same<T, uint8_t>::value) ||
-            (std::is_same<T, int8_t>::value) ||
-            (std::is_same<T, uint16_t>::value) ||
-            (std::is_same<T, int16_t>::value) ||
-            (std::is_same<T, int32_t>::value) ||
-            (std::is_same<T, uint32_t>::value))
+                (std::is_same<T, int8_t>::value) ||
+                (std::is_same<T, uint16_t>::value) ||
+                (std::is_same<T, int16_t>::value) ||
+                (std::is_same<T, int32_t>::value) ||
+                (std::is_same<T, uint32_t>::value))
         {
             return tiramisu::expr(tiramisu::o_mod, e1, tiramisu::expr((T) val));
         }
@@ -905,76 +941,96 @@ public:
                     std::cout << "Expression type:" << str_from_tiramisu_type_expr(this->etype) << std::endl;
                     switch (this->etype)
                     {
-                        case tiramisu::e_op:
+                    case tiramisu::e_op:
+                    {
+                        std::cout << "Expression operator type:" << str_tiramisu_type_op(this->_operator) << std::endl;
+                        if (this->get_n_arg() > 0)
                         {
-                            std::cout << "Expression operator type:" << str_tiramisu_type_op(this->_operator) << std::endl;
-                            if (this->get_n_arg() > 0)
+                            std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
+                            std::cout << "Dumping the operands:" << std::endl;
+                            for (int i = 0; i < this->get_n_arg(); i++)
                             {
-                                std::cout << "Number of operands:" << this->get_n_arg() << std::endl;
-                                std::cout << "Dumping the operands:" << std::endl;
-                                for (int i = 0; i < this->get_n_arg(); i++)
-                                {
-                                    std::cout << "Operand " << std::to_string(i) << "." << std::endl;
-                                    this->op[i].dump(exhaustive);
-                                }
+                                std::cout << "Operand " << std::to_string(i) << "." << std::endl;
+                                this->op[i].dump(exhaustive);
                             }
-                            if ((this->get_op_type() == tiramisu::o_access))
-                            {
-                                std::cout << "Access to " +  this->get_name() + ". Access expressions:" << std::endl;
-                                for (const auto &e: this->get_access())
-                                {
-                                    e.dump(exhaustive);
-                                }
-                            }
-                            if ((this->get_op_type() == tiramisu::o_call))
-                            {
-                                std::cout << "call to " +  this->get_name() + ". Argument expressions:" << std::endl;
-                                for (const auto &e: this->get_arguments())
-                                {
-                                    e.dump(exhaustive);
-                                }
-                            }
-                            if ((this->get_op_type() == tiramisu::o_address))
-                            {
-                                std::cout << "Address of the following access : " << std::endl;
-                                this->get_operand(0).dump(true);
-                            }
-                            break;
                         }
-                        case (tiramisu::e_val):
+                        if ((this->get_op_type() == tiramisu::o_access))
                         {
-                            std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
+                            std::cout << "Access to " +  this->get_name() + ". Access expressions:" << std::endl;
+                            for (const auto &e : this->get_access())
+                            {
+                                e.dump(exhaustive);
+                            }
+                        }
+                        if ((this->get_op_type() == tiramisu::o_call))
+                        {
+                            std::cout << "call to " +  this->get_name() + ". Argument expressions:" << std::endl;
+                            for (const auto &e : this->get_arguments())
+                            {
+                                e.dump(exhaustive);
+                            }
+                        }
+                        if ((this->get_op_type() == tiramisu::o_address))
+                        {
+                            std::cout << "Address of the following access : " << std::endl;
+                            this->get_operand(0).dump(true);
+                        }
+                        break;
+                    }
+                    case (tiramisu::e_val):
+                    {
+                        std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
 
-                            if (this->get_data_type() == tiramisu::p_uint8)
-                                std::cout << "Value:" << this->get_uint8_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_int8)
-                                std::cout << "Value:" << this->get_int8_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_uint16)
-                                std::cout << "Value:" << this->get_uint16_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_int16)
-                                std::cout << "Value:" << this->get_int16_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_uint32)
-                                std::cout << "Value:" << this->get_uint32_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_int32)
-                                std::cout << "Value:" << this->get_int32_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_uint64)
-                                std::cout << "Value:" << this->get_uint64_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_int64)
-                                std::cout << "Value:" << this->get_int64_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_float32)
-                                std::cout << "Value:" << this->get_float32_value() << std::endl;
-                            else if (this->get_data_type() == tiramisu::p_float64)
-                                std::cout << "Value:" << this->get_float64_value() << std::endl;
-                            break;
-                        }
-                        case (tiramisu::e_var):
+                        if (this->get_data_type() == tiramisu::p_uint8)
                         {
-                            std::cout << "Var name:" << this->get_name() << std::endl;
-                            std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
-                            break;
+                            std::cout << "Value:" << this->get_uint8_value() << std::endl;
                         }
-                        default:
-                            tiramisu::error("Expression type not supported.", true);
+                        else if (this->get_data_type() == tiramisu::p_int8)
+                        {
+                            std::cout << "Value:" << this->get_int8_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_uint16)
+                        {
+                            std::cout << "Value:" << this->get_uint16_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_int16)
+                        {
+                            std::cout << "Value:" << this->get_int16_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_uint32)
+                        {
+                            std::cout << "Value:" << this->get_uint32_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_int32)
+                        {
+                            std::cout << "Value:" << this->get_int32_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_uint64)
+                        {
+                            std::cout << "Value:" << this->get_uint64_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_int64)
+                        {
+                            std::cout << "Value:" << this->get_int64_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_float32)
+                        {
+                            std::cout << "Value:" << this->get_float32_value() << std::endl;
+                        }
+                        else if (this->get_data_type() == tiramisu::p_float64)
+                        {
+                            std::cout << "Value:" << this->get_float64_value() << std::endl;
+                        }
+                        break;
+                    }
+                    case (tiramisu::e_var):
+                    {
+                        std::cout << "Var name:" << this->get_name() << std::endl;
+                        std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
+                        break;
+                    }
+                    default:
+                        tiramisu::error("Expression type not supported.", true);
 
                     }
                 }
@@ -983,282 +1039,306 @@ public:
             {
                 switch (this->etype)
                 {
-                    case tiramisu::e_op:
+                case tiramisu::e_op:
+                {
+                    switch (this->get_op_type())
                     {
-                        switch(this->get_op_type())
+                    case tiramisu::o_logical_and:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") &&" << "(";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_logical_or:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ||" << "(";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_max:
+                        std::cout << "max(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ", ";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_min:
+                        std::cout << "min(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ", ";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_minus:
+                        std::cout << "-(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_add:
+                        std::cout << "";
+                        this->get_operand(0).dump(false);
+                        std::cout << " + ";
+                        this->get_operand(1).dump(false);
+                        std::cout << "";
+                        break;
+                    case tiramisu::o_sub:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") - (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_mul:
+                        std::cout << "";
+                        this->get_operand(0).dump(false);
+                        std::cout << "*";
+                        this->get_operand(1).dump(false);
+                        std::cout << "";
+                        break;
+                    case tiramisu::o_div:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ")/(";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_mod:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ")%(";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_select:
+                        std::cout << "select(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ", ";
+                        this->get_operand(1).dump(false);
+                        std::cout << ", ";
+                        this->get_operand(2).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_le:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") <= (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_lt:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") < (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_ge:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") >= (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_gt:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") > (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_logical_not:
+                        std::cout << "!(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_eq:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") == (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_ne:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") != (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_right_shift:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") >> (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_left_shift:
+                        std::cout << "(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") << (";
+                        this->get_operand(1).dump(false);
+                        std::cout << ")";
+                        break;
+                    case tiramisu::o_floor:
+                        std::cout << "floor(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_sin:
+                        std::cout << "sin(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_cos:
+                        std::cout << "cos(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_tan:
+                        std::cout << "tan(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_atan:
+                        std::cout << "atan(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_acos:
+                        std::cout << "acos(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_asin:
+                        std::cout << "asin(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_abs:
+                        std::cout << "abs(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_sqrt:
+                        std::cout << "sqrt(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_expo:
+                        std::cout << "exp(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_log:
+                        std::cout << "log(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_ceil:
+                        std::cout << "ceil(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_round:
+                        std::cout << "round(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_trunc:
+                        std::cout << "trunc(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_cast:
+                        std::cout << "cast(";
+                        this->get_operand(0).dump(false);
+                        std::cout << ") ";
+                        break;
+                    case tiramisu::o_access:
+                        std::cout << this->get_name() << "(";
+                        for (int k = 0; k < this->get_access().size(); k++)
                         {
-                            case tiramisu::o_logical_and:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") &&" << "(";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_logical_or:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ||" << "(";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_max:
-                                std::cout << "max(";
-                                this->get_operand(0).dump(false);
+                            if (k != 0)
+                            {
                                 std::cout << ", ";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_min:
-                                std::cout << "min(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ", ";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_minus:
-                                std::cout << "-(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_add:
-                                std::cout << "";
-                                this->get_operand(0).dump(false);
-                                std::cout << " + ";
-                                this->get_operand(1).dump(false);
-                                std::cout << "";
-                                break;
-                            case tiramisu::o_sub:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") - (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_mul:
-                                std::cout << "";
-                                this->get_operand(0).dump(false);
-                                std::cout << "*";
-                                this->get_operand(1).dump(false);
-                                std::cout << "";
-                                break;
-                            case tiramisu::o_div:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ")/(";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                             case tiramisu::o_mod:
-                                 std::cout << "(";
-                                 this->get_operand(0).dump(false);
-                                 std::cout << ")%(";
-                                 this->get_operand(1).dump(false);
-                                 std::cout << ")";
-                                 break;
-                            case tiramisu::o_select:
-                                std::cout << "select(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ", ";
-                                this->get_operand(1).dump(false);
-                                std::cout << ", ";
-                                this->get_operand(2).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_le:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") <= (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_lt:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") < (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_ge:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") >= (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_gt:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") > (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_logical_not:
-                                std::cout << "!(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_eq:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") == (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_ne:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") != (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_right_shift:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") >> (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_left_shift:
-                                std::cout << "(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") << (";
-                                this->get_operand(1).dump(false);
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_floor:
-                                std::cout << "floor(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_sin:
-                                std::cout << "sin(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_cos:
-                                std::cout << "cos(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_tan:
-                                std::cout << "tan(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_atan:
-                                std::cout << "atan(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_acos:
-                                std::cout << "acos(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_asin:
-                                std::cout << "asin(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_abs:
-                                std::cout << "abs(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_sqrt:
-                                std::cout << "sqrt(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_expo:
-                                std::cout << "exp(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_log:
-                                std::cout << "log(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_ceil:
-                                std::cout << "ceil(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_round:
-                                std::cout << "round(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_trunc:
-                                std::cout << "trunc(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_cast:
-                                std::cout << "cast(";
-                                this->get_operand(0).dump(false);
-                                std::cout << ") ";
-                                break;
-                            case tiramisu::o_access:
-                                std::cout << this->get_name() << "(";
-                                for (int k = 0; k < this->get_access().size(); k++)
-                                {
-                                    if (k != 0)
-                                        std::cout << ", ";
-                                    this->get_access()[k].dump(false);
-                                }
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_call:
-                                std::cout << this->get_name() << "(";
-                                for (int k = 0; k < this->get_arguments().size(); k++)
-                                {
-                                    if (k != 0)
-                                        std::cout << ", ";
-                                    this->get_arguments()[k].dump(false);
-                                }
-                                std::cout << ")";
-                                break;
-                            case tiramisu::o_address:
-                                std::cout << "&" << this->get_operand(0).get_name();
-                                break;
-                            default:
-                                tiramisu::error("Dumping an unsupported tiramisu expression.", 1);
+                            }
+                            this->get_access()[k].dump(false);
                         }
+                        std::cout << ")";
                         break;
-                    }
-                    case (tiramisu::e_val):
-                    {
-                        if (this->get_data_type() == tiramisu::p_uint8)
-                            std::cout << this->get_uint8_value();
-                        else if (this->get_data_type() == tiramisu::p_int8)
-                            std::cout << this->get_int8_value();
-                        else if (this->get_data_type() == tiramisu::p_uint16)
-                            std::cout << this->get_uint16_value();
-                        else if (this->get_data_type() == tiramisu::p_int16)
-                            std::cout << this->get_int16_value();
-                        else if (this->get_data_type() == tiramisu::p_uint32)
-                            std::cout << this->get_uint32_value();
-                        else if (this->get_data_type() == tiramisu::p_int32)
-                            std::cout << this->get_int32_value();
-                        else if (this->get_data_type() == tiramisu::p_uint64)
-                            std::cout << this->get_uint64_value();
-                        else if (this->get_data_type() == tiramisu::p_int64)
-                            std::cout << this->get_int64_value();
-                        else if (this->get_data_type() == tiramisu::p_float32)
-                            std::cout << this->get_float32_value();
-                        else if (this->get_data_type() == tiramisu::p_float64)
-                            std::cout << this->get_float64_value();
+                    case tiramisu::o_call:
+                        std::cout << this->get_name() << "(";
+                        for (int k = 0; k < this->get_arguments().size(); k++)
+                        {
+                            if (k != 0)
+                            {
+                                std::cout << ", ";
+                            }
+                            this->get_arguments()[k].dump(false);
+                        }
+                        std::cout << ")";
                         break;
-                    }
-                    case (tiramisu::e_var):
-                    {
-                        std::cout << this->get_name();
+                    case tiramisu::o_address:
+                        std::cout << "&" << this->get_operand(0).get_name();
                         break;
-                    }
                     default:
-                        tiramisu::error("Expression type not supported.", true);
+                        tiramisu::error("Dumping an unsupported tiramisu expression.", 1);
+                    }
+                    break;
+                }
+                case (tiramisu::e_val):
+                {
+                    if (this->get_data_type() == tiramisu::p_uint8)
+                    {
+                        std::cout << this->get_uint8_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_int8)
+                    {
+                        std::cout << this->get_int8_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_uint16)
+                    {
+                        std::cout << this->get_uint16_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_int16)
+                    {
+                        std::cout << this->get_int16_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_uint32)
+                    {
+                        std::cout << this->get_uint32_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_int32)
+                    {
+                        std::cout << this->get_int32_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_uint64)
+                    {
+                        std::cout << this->get_uint64_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_int64)
+                    {
+                        std::cout << this->get_int64_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_float32)
+                    {
+                        std::cout << this->get_float32_value();
+                    }
+                    else if (this->get_data_type() == tiramisu::p_float64)
+                    {
+                        std::cout << this->get_float64_value();
+                    }
+                    break;
+                }
+                case (tiramisu::e_var):
+                {
+                    std::cout << this->get_name();
+                    break;
+                }
+                default:
+                    tiramisu::error("Expression type not supported.", true);
 
                 }
             }
@@ -1322,8 +1402,8 @@ public:
   * Convert a Tiramisu expression into a Halide expression.
   */
 Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-                                            std::vector<isl_ast_expr *> &index_expr,
-                                            const tiramisu::expr &tiramisu_expr);
+        std::vector<isl_ast_expr *> &index_expr,
+        const tiramisu::expr &tiramisu_expr);
 
 }
 

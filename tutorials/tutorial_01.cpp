@@ -37,7 +37,8 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output, &function0);
+    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output,
+                &function0);
 
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    S0.tile(0,1,2,2);
+    S0.tile(0, 1, 2, 2);
     S0.tag_parallel_level(0);
 
     // Dump the schedule.

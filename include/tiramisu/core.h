@@ -35,7 +35,8 @@ class constant;
   */
 isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
-struct HalideCodegenOutput {
+struct HalideCodegenOutput
+{
     std::map<std::string, tiramisu::computation *> computation_list;
     std::map<std::string, tiramisu::constant *> constant_list;
     std::map<std::string, tiramisu::buffer *> output_buffers;
@@ -207,12 +208,12 @@ private:
       */
     void add_vector_dimension(std::string computation_name, int vec_dim);
 
-     /**
-       * Tag the loop level \p L of the computation
-       * \p computation_name to be unrolled.
-       * The dimension 0 represents the outermost loop level (it
-       * corresponds to the leftmost dimension in the iteration space).
-       */
+    /**
+      * Tag the loop level \p L of the computation
+      * \p computation_name to be unrolled.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
     void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
@@ -282,21 +283,21 @@ protected:
       */
     void add_gpu_block_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
-     /**
-      * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
-      * \p computation_name to be mapped to GPU threads.
-      * The dimension 0 represents the outermost loop level (it
-      * corresponds to the leftmost dimension in the iteration space).
-      *
-      * If the user does not want to tag \p dim1 or \p dim2, he can leave
-      * their values to default value (i.e., -1).  They will not be tagged.
-      *
-      * For example
-      *
-      * add_gpu_block_dimensions("S0", 1, -1, -1);
-      *
-      * Will tag the dimension 1 to be transformed to GPU threads.
-      */
+    /**
+     * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
+     * \p computation_name to be mapped to GPU threads.
+     * The dimension 0 represents the outermost loop level (it
+     * corresponds to the leftmost dimension in the iteration space).
+     *
+     * If the user does not want to tag \p dim1 or \p dim2, he can leave
+     * their values to default value (i.e., -1).  They will not be tagged.
+     *
+     * For example
+     *
+     * add_gpu_block_dimensions("S0", 1, -1, -1);
+     *
+     * Will tag the dimension 1 to be transformed to GPU threads.
+     */
     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
 public:
@@ -434,7 +435,7 @@ public:
       */
     // @{
     void gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
-                         Halide::Target::Arch arch, int bits) const;
+                        Halide::Target::Arch arch, int bits) const;
 
     void gen_halide_obj(std::string obj_file_name) const;
     // @}
@@ -551,7 +552,7 @@ public:
     /**
       * Get the iterator names of the function.
       */
-    const std::vector<std::string>& get_iterator_names() const;
+    const std::vector<std::string> &get_iterator_names() const;
 
     /**
       * Return a set that represents the parameters of the function
@@ -619,7 +620,7 @@ public:
       * Set the iterator names of the function.
       * This function overrides any previously set iterator names.
       */
-    void set_iterator_names(const std::vector<std::string>& iteratorNames);
+    void set_iterator_names(const std::vector<std::string> &iteratorNames);
 
     /**
       * Return true if the computation \p comp should be mapped to GPU block
@@ -827,7 +828,8 @@ public:
   * - Level 3: this level is similar to Level 2 but it specifies where
   *   computations should be stored in memory and the data layout.
   */
-class computation {
+class computation
+{
 private:
 
     /**
@@ -926,7 +928,7 @@ private:
       * In this case, the computation is not scheduled and no code for the
       * computation is generated.
       */
-     bool schedule_this_computation;
+    bool schedule_this_computation;
 
     /**
       * The name of this computation.
@@ -983,8 +985,8 @@ private:
       */
     void set_iteration_domain(isl_set *domain);
 
-    tiramisu::constant* create_separator_and_add_constraints_to_context(
-                const tiramisu::expr& loop_upper_bound, int v);
+    tiramisu::constant *create_separator_and_add_constraints_to_context(
+        const tiramisu::expr &loop_upper_bound, int v);
 
     /**
       * Apply a duplication transformation from iteration space to
@@ -1008,8 +1010,8 @@ private:
       * Intersect \p set with the context of the computation.
       */
     // @{
-    isl_set* intersect_set_with_context(isl_set* set);
-    isl_map* intersect_map_domain_with_context(isl_map* map);
+    isl_set *intersect_set_with_context(isl_set *set);
+    isl_map *intersect_map_domain_with_context(isl_map *map);
     // @}
 
     /**
@@ -1056,8 +1058,8 @@ private:
       * set coalescing.
       */
     // @{
-    isl_set* simplify(isl_set* set);
-    isl_map* simplify(isl_map* map);
+    isl_set *simplify(isl_set *set);
+    isl_map *simplify(isl_map *map);
     // @}
 
 
@@ -1676,7 +1678,8 @@ public:
       * This function returns a vector of two computations, the first element in the vector
       * is the original computation and the second is the duplicated computation.
       */
-    std::vector<tiramisu::computation *> duplicate(std::string domain_constraints, std::string range_constraints);
+    std::vector<tiramisu::computation *> duplicate(std::string domain_constraints,
+            std::string range_constraints);
 
     /**
       * Fuse the loop over this computation with the loop over the
@@ -1740,7 +1743,9 @@ public:
             this->after(computations[0], lev);
 
             for (int i = 0; i < computations.size() - 1; i++)
-                computations[i].after(computations[i+1], lev);
+            {
+                computations[i].after(computations[i + 1], lev);
+            }
         }
     }
 
@@ -1783,7 +1788,7 @@ public:
       * C0.select(1).tile(0,1, 32,32);
       * C0.select(1).vectorize(3, 4);
       */
-    computation* select(int ID);
+    computation *select(int ID);
 
     /**
       * Shift the loop level \p L0 of the iteration space by
@@ -1813,11 +1818,11 @@ public:
       *
       * The outermost loop level is 0.
       */
-     // @{
+    // @{
     void tag_gpu_level(int L0, int L1);
     void tag_gpu_level(int L0, int L1, int L2, int L3);
     void tag_gpu_level(int L0, int L1, int L2, int L3, int L4, int L5);
-     // @}
+    // @}
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU block

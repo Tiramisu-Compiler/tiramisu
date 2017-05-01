@@ -7,7 +7,7 @@
 
 #define NN 10
 
-int main(int, char**)
+int main(int, char **)
 {
     // Outputs
     Halide::Buffer<uint8_t> b0(NN);

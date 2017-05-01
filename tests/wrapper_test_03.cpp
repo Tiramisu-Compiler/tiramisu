@@ -8,7 +8,7 @@
 #define NN 1000
 #define MM 1000
 
-int main(int, char**)
+int main(int, char **)
 {
     Halide::Buffer<uint8_t> reference_buf(NN, MM);
     init_buffer(reference_buf, (uint8_t)7);
@@ -18,7 +18,8 @@ int main(int, char**)
 
     assign_7_to_1000x1000_2D_array_with_tiling_parallelism(output_buf.raw_buffer());
 
-    compare_buffers("assign_7_to_1000x1000_2D_array_with_tiling_parallelism", output_buf, reference_buf);
+    compare_buffers("assign_7_to_1000x1000_2D_array_with_tiling_parallelism", output_buf,
+                    reference_buf);
 
     return 0;
 }

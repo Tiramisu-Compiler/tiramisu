@@ -19,9 +19,12 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::global::set_auto_data_mapping(false); // No automatic data mapping.
 
     tiramisu::function function0(name);
-    tiramisu::computation S0("{S0[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
-    tiramisu::computation S1("{S1[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
-    tiramisu::computation S2("{S2[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8, &function0);
+    tiramisu::computation S0("{S0[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8,
+                             &function0);
+    tiramisu::computation S1("{S1[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8,
+                             &function0);
+    tiramisu::computation S2("{S2[i]: 0<=i<10}", tiramisu::expr((uint8_t) 4), true, p_uint8,
+                             &function0);
 
     tiramisu::buffer buf0("buf0", 1, {size}, tiramisu::p_uint8, NULL, a_output, &function0);
     S0.set_access("{S0[i]->buf0[i]}");

@@ -8,9 +8,9 @@
 #define NN 1000
 #define MM 1000
 
-int main(int, char**)
+int main(int, char **)
 {
-	Halide::Buffer<uint8_t> reference_buf(NN, MM);
+    Halide::Buffer<uint8_t> reference_buf(NN, MM);
     init_buffer(reference_buf, (uint8_t)20);
 
     Halide::Buffer<uint8_t> output_buf(NN, MM);

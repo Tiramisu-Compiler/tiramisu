@@ -23,56 +23,79 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     // Output buffers.
     int f_extent_1 = size1;
     int f_extent_0 = size0;
-    tiramisu::buffer buff_f("buff_f", 2, {tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &test_reduction_operator);
+    tiramisu::buffer buff_f("buff_f", 2, {tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
+                            tiramisu::p_uint8, NULL, tiramisu::a_output, &test_reduction_operator);
 
     // Input buffers.
 
     // Define temporary buffers for "input".
-    tiramisu::buffer buff_input("buff_input", 3, {tiramisu::expr((int32_t)10), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_temporary, &test_reduction_operator);
+    tiramisu::buffer buff_input("buff_input", 3, {tiramisu::expr((int32_t)10), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
+                                tiramisu::p_uint8, NULL, tiramisu::a_temporary, &test_reduction_operator);
 
     // Define loop bounds for dimension "input_s0_z".
-    tiramisu::constant input_s0_z_loop_min("input_s0_z_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant input_s0_z_loop_extent("input_s0_z_loop_extent", tiramisu::expr((int32_t)10), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant input_s0_z_loop_min("input_s0_z_loop_min", tiramisu::expr((int32_t)0),
+                                           tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant input_s0_z_loop_extent("input_s0_z_loop_extent", tiramisu::expr((int32_t)10),
+            tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
 
     // Define loop bounds for dimension "input_s0_y".
-    tiramisu::constant input_s0_y_loop_min("input_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant input_s0_y_loop_extent("input_s0_y_loop_extent", tiramisu::expr(f_extent_1), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant input_s0_y_loop_min("input_s0_y_loop_min", tiramisu::expr((int32_t)0),
+                                           tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant input_s0_y_loop_extent("input_s0_y_loop_extent", tiramisu::expr(f_extent_1),
+            tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
 
     // Define loop bounds for dimension "input_s0_x".
-    tiramisu::constant input_s0_x_loop_min("input_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant input_s0_x_loop_extent("input_s0_x_loop_extent", tiramisu::expr(f_extent_0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::computation input_s0("[input_s0_z_loop_min, input_s0_z_loop_extent, input_s0_y_loop_min, input_s0_y_loop_extent, input_s0_x_loop_min, input_s0_x_loop_extent]->{input_s0[input_s0_z, input_s0_y, input_s0_x]: "
-                        "(input_s0_z_loop_min <= input_s0_z <= ((input_s0_z_loop_min + input_s0_z_loop_extent) + -1)) and (input_s0_y_loop_min <= input_s0_y <= ((input_s0_y_loop_min + input_s0_y_loop_extent) + -1)) and (input_s0_x_loop_min <= input_s0_x <= ((input_s0_x_loop_min + input_s0_x_loop_extent) + -1))}",
-                        tiramisu::expr((uint8_t)val0), true, tiramisu::p_uint8, &test_reduction_operator);
+    tiramisu::constant input_s0_x_loop_min("input_s0_x_loop_min", tiramisu::expr((int32_t)0),
+                                           tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant input_s0_x_loop_extent("input_s0_x_loop_extent", tiramisu::expr(f_extent_0),
+            tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::computation
+    input_s0("[input_s0_z_loop_min, input_s0_z_loop_extent, input_s0_y_loop_min, input_s0_y_loop_extent, input_s0_x_loop_min, input_s0_x_loop_extent]->{input_s0[input_s0_z, input_s0_y, input_s0_x]: "
+             "(input_s0_z_loop_min <= input_s0_z <= ((input_s0_z_loop_min + input_s0_z_loop_extent) + -1)) and (input_s0_y_loop_min <= input_s0_y <= ((input_s0_y_loop_min + input_s0_y_loop_extent) + -1)) and (input_s0_x_loop_min <= input_s0_x <= ((input_s0_x_loop_min + input_s0_x_loop_extent) + -1))}",
+             tiramisu::expr((uint8_t)val0), true, tiramisu::p_uint8, &test_reduction_operator);
     input_s0.set_access("{input_s0[input_s0_z, input_s0_y, input_s0_x]->buff_input[input_s0_z, input_s0_y, input_s0_x]}");
 
     // Define loop bounds for dimension "f_s0_y".
-    tiramisu::constant f_s0_y_loop_min("f_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant f_s0_y_loop_extent("f_s0_y_loop_extent", tiramisu::expr(f_extent_1), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s0_y_loop_min("f_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32,
+                                       true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s0_y_loop_extent("f_s0_y_loop_extent", tiramisu::expr(f_extent_1),
+                                          tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
 
     // Define loop bounds for dimension "f_s0_x".
-    tiramisu::constant f_s0_x_loop_min("f_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant f_s0_x_loop_extent("f_s0_x_loop_extent", tiramisu::expr(f_extent_0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::computation f_s0("[f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_y, f_s0_x]: "
-                        "(f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
-                        tiramisu::expr((uint8_t)val1), true, tiramisu::p_uint8, &test_reduction_operator);
+    tiramisu::constant f_s0_x_loop_min("f_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32,
+                                       true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s0_x_loop_extent("f_s0_x_loop_extent", tiramisu::expr(f_extent_0),
+                                          tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::computation
+    f_s0("[f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_y, f_s0_x]: "
+         "(f_s0_y_loop_min <= f_s0_y <= ((f_s0_y_loop_min + f_s0_y_loop_extent) + -1)) and (f_s0_x_loop_min <= f_s0_x <= ((f_s0_x_loop_min + f_s0_x_loop_extent) + -1))}",
+         tiramisu::expr((uint8_t)val1), true, tiramisu::p_uint8, &test_reduction_operator);
     f_s0.set_access("{f_s0[f_s0_y, f_s0_x]->buff_f[f_s0_y, f_s0_x]}");
 
     // Define loop bounds for dimension "f_s1_y".
-    tiramisu::constant f_s1_y_loop_min("f_s1_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant f_s1_y_loop_extent("f_s1_y_loop_extent", tiramisu::expr(f_extent_1), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s1_y_loop_min("f_s1_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32,
+                                       true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s1_y_loop_extent("f_s1_y_loop_extent", tiramisu::expr(f_extent_1),
+                                          tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
 
     // Define loop bounds for dimension "f_s1_x".
-    tiramisu::constant f_s1_x_loop_min("f_s1_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant f_s1_x_loop_extent("f_s1_x_loop_extent", tiramisu::expr(f_extent_0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s1_x_loop_min("f_s1_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32,
+                                       true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s1_x_loop_extent("f_s1_x_loop_extent", tiramisu::expr(f_extent_0),
+                                          tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
 
     // Define loop bounds for dimension "f_s1_r4__x".
-    tiramisu::constant f_s1_r4__x_loop_min("f_s1_r4__x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::constant f_s1_r4__x_loop_extent("f_s1_r4__x_loop_extent", tiramisu::expr((int32_t)10), tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
-    tiramisu::computation f_s1("[f_s1_y_loop_min, f_s1_y_loop_extent, f_s1_x_loop_min, f_s1_x_loop_extent, f_s1_r4__x_loop_min, f_s1_r4__x_loop_extent]->{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]: "
-                        "(f_s1_y_loop_min <= f_s1_y <= ((f_s1_y_loop_min + f_s1_y_loop_extent) + -1)) and (f_s1_x_loop_min <= f_s1_x <= ((f_s1_x_loop_min + f_s1_x_loop_extent) + -1)) and (f_s1_r4__x_loop_min <= f_s1_r4__x <= ((f_s1_r4__x_loop_min + f_s1_r4__x_loop_extent) + -1))}",
-                        tiramisu::expr(), true, tiramisu::p_uint8, &test_reduction_operator);
-    f_s1.set_expression((f_s1(tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"), (tiramisu::var("f_s1_r4__x") - tiramisu::expr((int32_t)1))) + input_s0(tiramisu::var("f_s1_r4__x"), tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"))));
+    tiramisu::constant f_s1_r4__x_loop_min("f_s1_r4__x_loop_min", tiramisu::expr((int32_t)0),
+                                           tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::constant f_s1_r4__x_loop_extent("f_s1_r4__x_loop_extent", tiramisu::expr((int32_t)10),
+            tiramisu::p_int32, true, NULL, 0, &test_reduction_operator);
+    tiramisu::computation
+    f_s1("[f_s1_y_loop_min, f_s1_y_loop_extent, f_s1_x_loop_min, f_s1_x_loop_extent, f_s1_r4__x_loop_min, f_s1_r4__x_loop_extent]->{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]: "
+         "(f_s1_y_loop_min <= f_s1_y <= ((f_s1_y_loop_min + f_s1_y_loop_extent) + -1)) and (f_s1_x_loop_min <= f_s1_x <= ((f_s1_x_loop_min + f_s1_x_loop_extent) + -1)) and (f_s1_r4__x_loop_min <= f_s1_r4__x <= ((f_s1_r4__x_loop_min + f_s1_r4__x_loop_extent) + -1))}",
+         tiramisu::expr(), true, tiramisu::p_uint8, &test_reduction_operator);
+    f_s1.set_expression((f_s1(tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"),
+                              (tiramisu::var("f_s1_r4__x") - tiramisu::expr((int32_t)1))) + input_s0(tiramisu::var("f_s1_r4__x"),
+                                      tiramisu::var("f_s1_y"), tiramisu::var("f_s1_x"))));
     f_s1.set_access("{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]->buff_f[f_s1_y, f_s1_x]}");
 
     // Define compute level for "f".

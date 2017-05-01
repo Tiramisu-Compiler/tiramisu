@@ -5,9 +5,9 @@
 #include <cstdlib>
 #include <iostream>
 
-int main(int, char**)
+int main(int, char **)
 {
-	Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
+    Halide::Buffer<uint8_t> reference_buf(SIZE0, SIZE1);
     init_buffer(reference_buf, (uint8_t)1);
 
     Halide::Buffer<uint8_t> output_buf(SIZE0, SIZE1);
@@ -18,5 +18,5 @@ int main(int, char**)
 
     compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf, reference_buf);
 
-   return 0;
+    return 0;
 }

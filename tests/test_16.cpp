@@ -19,25 +19,25 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant M("M", tiramisu::expr((int32_t) size/2), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant M("M", tiramisu::expr((int32_t) size / 2), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}", e0, true, p_uint8, &function0);
 
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
-    tiramisu::expr e1 = tiramisu::expr(S0(i+i+0, j+j+0));
+    tiramisu::expr e1 = tiramisu::expr(S0(i + i + 0, j + j + 0));
     tiramisu::computation S1("[N,M]->{S1[i,j]: 0<=i<M and 0<=j<M}", e1, true, p_uint8, &function0);
 
-    tiramisu::expr e2 = tiramisu::expr(S0(2*i-i*2+2*i,1+2*j-1));
+    tiramisu::expr e2 = tiramisu::expr(S0(2 * i - i * 2 + 2 * i, 1 + 2 * j - 1));
     tiramisu::computation S2("[N,M]->{S2[i,j]: 0<=i<M and 0<=j<M}", e2, true, p_uint8, &function0);
 
-    tiramisu::expr e3 = tiramisu::expr(S0(0,-0));
+    tiramisu::expr e3 = tiramisu::expr(S0(0, -0));
     tiramisu::computation S3("[N,M]->{S3[i,j]: 0<=i<M and 0<=j<M}", e3, true, p_uint8, &function0);
 
-    tiramisu::expr e4 = tiramisu::expr(S0(0,i));
+    tiramisu::expr e4 = tiramisu::expr(S0(0, i));
     tiramisu::computation S4("[N,M]->{S4[i,j]: 0<=i<M and 0<=j<M}", e4, true, p_uint8, &function0);
 
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]: 0<=i<N and 0<=j<N}");

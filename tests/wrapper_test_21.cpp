@@ -18,7 +18,7 @@ int my_external(halide_buffer_t *buf0)
 }  // extern "C"
 #endif
 
-int main(int, char**)
+int main(int, char **)
 {
     buffer_t reference_buf = allocate_2D_buffer(SIZE0, SIZE1);
     init_2D_buffer_val(&reference_buf, SIZE0, SIZE1, 1);
@@ -35,7 +35,8 @@ int main(int, char**)
     // Call the Tiramisu generated code
     tiramisu_generated_code(halide_output_buf1.raw_buffer(), halide_output_buf2.raw_buffer());
 
-    compare_2_2D_arrays("test_"+std::string(TEST_NAME_STR), halide_output_buf1.data(), reference_buf.host, SIZE0, SIZE1);
+    compare_2_2D_arrays("test_" + std::string(TEST_NAME_STR), halide_output_buf1.data(),
+                        reference_buf.host, SIZE0, SIZE1);
 
     return 0;
 }

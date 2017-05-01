@@ -7,18 +7,18 @@
 #include <cstdlib>
 #include <iostream>
 
-int main(int, char**)
+int main(int, char **)
 {
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
+    std::vector<std::chrono::duration<double, std::milli>> duration_vector_1;
 
     Halide::Buffer<uint16_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    for (int i=0; i<NB_TESTS; i++)
+    for (int i = 0; i < NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
         stencil1_tiramisu(input.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration1 = end1 - start1;
+        std::chrono::duration<double, std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
     }
 

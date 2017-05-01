@@ -7,7 +7,7 @@
 
 #define NN 10
 
-int main(int, char**)
+int main(int, char **)
 {
     Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./images/rgb.png");
     Halide::Buffer<uint8_t> output_buf(image.extent(0), image.extent(1));
@@ -22,5 +22,5 @@ int main(int, char**)
     copy_buffer(output_buf, image);
     Halide::Tools::save_image(image, "./build/tutorial_02.png");
 
-   return 0;
+    return 0;
 }
