@@ -211,8 +211,11 @@ public:
 
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
+        DEBUG(10, tiramisu::str_dump("Expr0:"); expr0.dump(false));
+        DEBUG(10, tiramisu::str_dump("Expr1:"); expr1.dump(false));
+
         assert(expr0.get_data_type() == expr1.get_data_type()
-               && "expr0 and expr1 should be of the same type.");
+               && "expr0 and expr1 should be of the same type. Dumping expr0 and expr1.");
 
         this->_operator = o;
         this->etype = tiramisu::e_op;
