@@ -25,6 +25,8 @@ int main(int, char **)
 
     Halide::Buffer<uint8_t> output_buf1(SIZE0, SIZE1);
     Halide::Buffer<uint8_t> output_buf2(SIZE0, SIZE1);
+    init_buffer(output_buf1, (uint8_t) 9);
+    init_buffer(output_buf2, (uint8_t) 0);
 
     // Call the Tiramisu generated code
     tiramisu_generated_code(output_buf1.raw_buffer(), output_buf2.raw_buffer());

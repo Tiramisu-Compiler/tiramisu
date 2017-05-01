@@ -23,6 +23,11 @@ int main(int, char **)
     Halide::Buffer<uint8_t> output_buf2(SIZE0, SIZE1);
     Halide::Buffer<uint8_t> output_buf3(SIZE0, SIZE1);
     Halide::Buffer<uint8_t> output_buf4(SIZE0, SIZE1);
+    init_buffer(output_buf0, (uint8_t)0);
+    init_buffer(output_buf1, (uint8_t)0);
+    init_buffer(output_buf2, (uint8_t)0);
+    init_buffer(output_buf3, (uint8_t)0);
+    init_buffer(output_buf4, (uint8_t)0);
 
     // Call the Tiramisu generated code
     tiramisu_generated_code(output_buf0.raw_buffer(),
@@ -31,9 +36,7 @@ int main(int, char **)
                             output_buf3.raw_buffer(),
                             output_buf4.raw_buffer());
 
-    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf0, reference_buf);
-
-    print_buffer(output_buf4);
+    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf4, reference_buf);
 
     return 0;
 }
