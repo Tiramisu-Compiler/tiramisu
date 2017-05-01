@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-int my_external(halide_buffer_t *buf0)
+uint8_t my_external(halide_buffer_t *buf0)
 {
     return buf0->host[0];
 }
@@ -21,13 +21,13 @@ int my_external(halide_buffer_t *buf0)
 int main(int, char **)
 {
     buffer_t reference_buf = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&reference_buf, SIZE0, SIZE1, 1);
+    init_2D_buffer_val(&reference_buf, SIZE0, SIZE1, 9);
 
     buffer_t output_buf1 = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&output_buf1, SIZE0, SIZE1, 1);
+    init_2D_buffer_val(&output_buf1, SIZE0, SIZE1, 0);
 
     buffer_t output_buf2 = allocate_2D_buffer(SIZE0, SIZE1);
-    init_2D_buffer_val(&output_buf2, SIZE0, SIZE1, 99);
+    init_2D_buffer_val(&output_buf2, SIZE0, SIZE1, 0);
 
     Halide::Buffer<uint8_t> halide_output_buf1(output_buf1);
     Halide::Buffer<uint8_t> halide_output_buf2(output_buf2);

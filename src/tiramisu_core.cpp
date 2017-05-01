@@ -102,6 +102,146 @@ const std::vector<tiramisu::buffer *> &function::get_arguments() const
 }
 // @}
 
+isl_union_map *tiramisu::function::compute_dep_graph()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_union_map *result = NULL;
+
+    for (auto consumer: this->get_computations())
+    {
+        DEBUG(3, tiramisu::str_dump("Computing the dependences involving the computation " + consumer->get_name() + "."));
+        DEBUG(3, tiramisu::str_dump("Computing the accesses of the computation."));
+
+        isl_union_map *accesses_union_map = NULL;
+        std::vector<isl_map *> accesses_vector;
+        get_rhs_accesses(this, consumer, accesses_vector, false);
+
+        DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
+
+        if (accesses_vector.size() > 0)
+        {
+            // Create a union map of the accesses to the producer.
+            if (accesses_union_map == NULL)
+            {
+                isl_space *space = NULL;
+                space = isl_map_get_space(isl_map_copy(accesses_vector[0]));
+                assert(space != NULL);
+                accesses_union_map = isl_union_map_empty(isl_space_copy(space));
+            }
+
+            for (const auto access : accesses_vector)
+            {
+                isl_map *reverse_access = isl_map_reverse(isl_map_copy(access));
+                accesses_union_map = isl_union_map_union(isl_union_map_from_map(isl_map_copy(reverse_access)), accesses_union_map);
+            }
+
+            //accesses_union_map = isl_union_map_intersect_range(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
+            //accesses_union_map = isl_union_map_intersect_domain(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
+
+            DEBUG(3, tiramisu::str_dump("Accesses after filtering."));
+            DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(accesses_union_map)));
+
+            if (result == NULL)
+                result = isl_union_map_copy(accesses_union_map);
+            else
+                result = isl_union_map_union(result, isl_union_map_copy(accesses_union_map));
+        }
+    }
+
+    DEBUG(3, tiramisu::str_dump("Dep graph:"));
+    DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(result)));
+
+    DEBUG_INDENT(-4);
+    DEBUG(3, tiramisu::str_dump("End of function"));
+
+    return result;
+}
+
+std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
+{
+    std::vector<tiramisu::computation *> last;
+
+    int l = this->get_computations().size() - 1;
+    last.push_back(this->get_computations()[l]);
+
+    return last;
+}
+
+void tiramisu::function::compute_bounds()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_union_map *Dep = this->compute_dep_graph();
+    DEBUG(3, tiramisu::str_dump("Dependences computed."));
+    isl_union_map *Reverse = isl_union_map_reverse(isl_union_map_copy(Dep));
+    DEBUG(3, tiramisu::str_dump("Reverse of dependences:", isl_union_map_to_str(Reverse)));
+    // Compute the vector of the last computations in the dependence graph
+    // (i.e., the computations that do not have any consumer).
+    std::vector<tiramisu::computation *> last = this->get_last_consumers();
+
+    assert(last.size() > 0);
+
+    isl_union_set *Domains = NULL;
+    Domains = isl_union_set_empty(isl_set_get_space(last[0]->get_iteration_domain()));
+    for (auto c: last)
+        Domains = isl_union_set_union(Domains, isl_union_set_from_set(isl_set_copy(c->get_iteration_domain())));
+    DEBUG(3, tiramisu::str_dump("The domains of the last computations are:", isl_union_set_to_str(Domains)));
+
+    // Compute "Producers", the union of the iteration domains of the computations
+    // that computed "last".
+    isl_union_set *Producers = isl_union_set_apply(isl_union_set_copy(Domains), isl_union_map_copy(Reverse));
+    DEBUG(3, tiramisu::str_dump("The producers of the last computations are:", isl_union_set_to_str(Producers)));
+
+    DEBUG(3, tiramisu::str_dump("Propagating the bounds over all computations."));
+    DEBUG_INDENT(4);
+    while (isl_union_set_is_empty(Producers) == isl_bool_false)
+    {
+        for (auto c: this->get_computations())
+        {
+            DEBUG(3, tiramisu::str_dump("Computing the domain (bounds) of the computation: " + c->get_name()));
+            isl_union_set *s1 = isl_union_set_from_set(isl_set_copy(c->get_iteration_domain()));
+            DEBUG(3, tiramisu::str_dump("Domain of the computation: ", isl_union_set_to_str(s1)));
+            isl_union_set *s2 = isl_union_set_copy(Producers);
+            DEBUG(3, tiramisu::str_dump("Producers : ", isl_union_set_to_str(s2)));
+            // Filter the producers to remove the domains of all the computations except the domain of s1
+            // Keep only the computations that have the same space as s1.
+            isl_union_set *filter = isl_union_set_universe(isl_union_set_copy(s1));
+            s2 = isl_union_set_intersect(isl_union_set_copy(filter), s2);
+            if ((isl_union_set_is_empty(s2) == isl_bool_false))
+            {
+                isl_union_set *s3 = isl_union_set_copy(isl_union_set_intersect(isl_union_set_copy(s1),
+                                                                               isl_union_set_copy(s2)));
+
+                if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true) ||
+                    (isl_union_set_is_subset(s1, s3)))
+                {
+                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = Producers intersect the old domain = ", isl_union_set_to_str(s3)));
+                    c->set_iteration_domain(isl_set_from_union_set(s3));
+                }
+            }
+        }
+
+        Producers = isl_union_set_apply(isl_union_set_copy(Producers), isl_union_map_copy(Reverse));
+        DEBUG(3, tiramisu::str_dump("The new Producers : ", isl_union_set_to_str(Producers)));
+    }
+    DEBUG_INDENT(-4);
+
+    DEBUG_INDENT(-4);
+    DEBUG(3, tiramisu::str_dump("End of function"));
+}
+
+
+void tiramisu::function::dump_dep_graph()
+{
+
+    tiramisu::str_dump("Dependence graph:\n");
+    isl_union_map *deps = isl_union_map_copy(this->compute_dep_graph());
+    isl_union_map_dump(deps);
+}
+
 /**
   * Return a map that represents the buffers of the function.
   * The buffers of the function are buffers that are either passed

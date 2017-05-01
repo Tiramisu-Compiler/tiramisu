@@ -34,7 +34,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}", e0, false, p_uint8, &function0);
 
     tiramisu::expr e1 = tiramisu::expr(tiramisu::o_call, "my_external", {tiramisu::expr(o_address, tiramisu::var("S0"))},
-                                       tiramisu::p_int32);
+                                       tiramisu::p_uint8);
     tiramisu::computation S1("[N,M]->{S1[i,j]: 0<=i<M and 0<=j<M}", e1, true, p_uint8, &function0);
 
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]: 0<=i<N and 0<=j<N}");

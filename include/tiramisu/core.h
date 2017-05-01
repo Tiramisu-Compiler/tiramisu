@@ -227,6 +227,11 @@ private:
     void align_schedules();
 
     /**
+     * Get the last consumers in a function.
+     */
+    std::vector<tiramisu::computation *> get_last_consumers();
+
+    /**
      * This functions iterates over the schedules of the function (the schedule
      * of each computation in the function) and computes the maximal dimension
      * among the dimensions of the ranges of all the schedules.
@@ -352,10 +357,21 @@ public:
     void add_iterator_name(const std::string iteratorName);
 
     /**
-     * Compute the graph of dependences between the computations of
-     * the function.
-     */
-    void compute_dep_graph();
+      * Compute the graph of dependences between the computations of
+      * the function.
+      */
+    isl_union_map *compute_dep_graph();
+
+    /**
+      * Compute the bounds of each computation. i.e., compute the constraints
+      * over the iteration domains of each computation in the function.
+      *
+      * In order to deduce bounds, Tiramisu first identifies the final consumers
+      * in the function (i.e., computations that does not have any consumer).
+      * Then, it propagates the bounds over the final consumers to their producers.
+      * The bounds of each consumer are used to deduce the bounds over its producer.
+      */
+    void compute_bounds();
 
     /**
       * Dump the function on standard output (dump most of the fields of
@@ -366,6 +382,12 @@ public:
       * initialization problems.
       */
     void dump(bool exhaustive) const;
+
+
+    /**
+     * Dump the graph of dependences between computations.
+     */
+    void dump_dep_graph();
 
     /**
       * Dump a Halide stmt that represents the function.
@@ -830,6 +852,8 @@ public:
   */
 class computation
 {
+    friend tiramisu::function;
+
 private:
 
     /**
