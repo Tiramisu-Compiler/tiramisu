@@ -1295,11 +1295,11 @@ public:
                 {
                     if (this->get_data_type() == tiramisu::p_uint8)
                     {
-                        std::cout << this->get_uint8_value();
+                        std::cout << (int)this->get_uint8_value();
                     }
                     else if (this->get_data_type() == tiramisu::p_int8)
                     {
-                        std::cout << this->get_int8_value();
+                        std::cout << (int)this->get_int8_value();
                     }
                     else if (this->get_data_type() == tiramisu::p_uint16)
                     {

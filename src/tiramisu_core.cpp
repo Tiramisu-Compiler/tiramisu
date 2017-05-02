@@ -3120,8 +3120,8 @@ void computation::split(int L0, int sizeX)
 
     for (int i = 0; i < n_dims; i++)
     {
-        // std::string dim_str = generate_new_variable_name();
-        // dimensions_str.push_back(dim_str);
+        std::string dim_str = generate_new_variable_name();
+        dimensions_str.push_back(dim_str);
         map = map + dimensions_str[i];
 
         if (i != n_dims - 1)
