@@ -45,7 +45,7 @@ int main(int, char**)
     }
 
     print_time("performance_CPU.csv", "heat2d",
-               {"  Tiramisu "," Halide "},
+               {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
     Halide::Tools::save_image(output1, "./build/heat2d_tiramisu.png");

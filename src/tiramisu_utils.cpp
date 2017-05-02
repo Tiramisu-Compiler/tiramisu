@@ -4,8 +4,10 @@
 #include <iomanip>
 #include <fstream>
 
+using std::string;
+using std::vector;
 
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+double median(vector<std::chrono::duration<double, std::milli>> scores)
 {
     double median;
     size_t size = scores.size();
@@ -24,33 +26,44 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
     return median;
 }
 
-void print_time(std::string file_name, std::string kernel_name,
-                std::vector<std::string> header_text,
-                std::vector<double> time_vector)
+string str_identation(int size)
+{
+    assert(size >= 0);
+    std::ostringstream ss;
+    for (size_t i = 0; i < size; ++i) {
+        ss << " ";
+    }
+    return ss.str();
+}
+
+void print_time(const string &file_name, const string &kernel_name,
+                const vector<string> &header_text,
+                const vector<double> &time_vector)
 {
     std::ofstream file;
 
     file.open(file_name, std::ios::app);
     file << std::fixed << std::setprecision(6);
 
-    file << kernel_name << " ; ";
-    for (auto t : time_vector)
+    file << kernel_name << "; ";
+    for (const auto &t : time_vector)
     {
-        file << t << " ;";
+        file << t << "; ";
     }
     file << std::endl;
 
-    std::cout << "Kernel : ";
-    for (auto t : header_text)
+    std::cout << "Kernel" << str_identation(14) << ": ";
+    for (const auto &t : header_text)
     {
-        std::cout << t << " ;";
+        std::cout << t << str_identation(15 - t.size()) << "; ";
     }
     std::cout << std::endl;
 
-    std::cout << kernel_name << " : ";
-    for (auto t : time_vector)
+    std::cout << kernel_name << str_identation(20 - kernel_name.size()) << ": ";
+    for (const auto &t : time_vector)
     {
-        std::cout << t << " ;";
+        string str = std::to_string(t);
+        std::cout << str << str_identation(15 - str.size()) << "; ";
     }
     std::cout << std::endl;
 

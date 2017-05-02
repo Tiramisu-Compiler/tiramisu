@@ -10,9 +10,9 @@
 #include <vector>
 
 double median(std::vector<std::chrono::duration<double, std::milli>> scores);
-void print_time(std::string file_name, std::string kernel_name,
-                std::vector<std::string> header_text,
-                std::vector<double> time_vector);
+void print_time(const std::string &file_name, const std::string &kernel_name,
+                const std::vector<std::string> &header_text,
+                const std::vector<double> &time_vector);
 
 // TODO(psuriana): init_buffer, print_buffer, copy_buffers, and compare_buffers
 // assume the buffers can only be at most 3 dimensions. Make the functions

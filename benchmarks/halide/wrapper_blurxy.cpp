@@ -38,7 +38,7 @@ int main(int, char**)
     }
 
     print_time("performance_CPU.csv", "blurxy",
-               {"  Tiramisu "," Halide "},
+               {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
 //  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
