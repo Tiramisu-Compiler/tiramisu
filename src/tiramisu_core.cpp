@@ -167,10 +167,50 @@ isl_union_map *tiramisu::function::compute_dep_graph()
 
 std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
 {
-    std::vector<tiramisu::computation *> last;
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
 
-    int l = this->get_computations().size() - 1;
-    last.push_back(this->get_computations()[l]);
+    std::vector<tiramisu::computation *> last;
+    isl_union_map *deps = this->compute_dep_graph();
+
+    // The domains and the ranges of the dependences
+    isl_union_set *domains = isl_union_map_domain(isl_union_map_copy(deps));
+    isl_union_set *ranges = isl_union_map_range(isl_union_map_copy(deps));
+
+    DEBUG(3, tiramisu::str_dump("Ranges of the dependence graph.", isl_union_set_to_str(ranges)));
+    DEBUG(3, tiramisu::str_dump("Domains of the dependence graph.", isl_union_set_to_str(domains)));
+
+    /** In a dependence graph, since dependences create a chain (i.e., the end of
+     *  a dependence is the beginning of the following), then each range of
+     *  a dependence has a set domains that correspond to it (i.e., that their
+     *  union is equal to it).  If range exists but does not have domains that
+     *  are equal to it, then that range is the last range.
+     *
+     *  To compute those ranges that do not have corresponding domains, we
+     *  compute (ranges - domains).
+     */
+    isl_union_set *last_ranges = isl_union_set_subtract(ranges, domains);
+    DEBUG(3, tiramisu::str_dump("Ranges - Domains :", isl_union_set_to_str(last_ranges)));
+
+    for (const auto c: this->get_computations())
+    {
+        isl_space *sp = isl_set_get_space(c->get_iteration_domain());
+        isl_set *s = isl_set_universe(isl_space_copy(sp));
+        isl_union_set *intersect =
+                isl_union_set_intersect(isl_union_set_from_set(s),
+                                        isl_union_set_copy(last_ranges));
+
+        if (isl_union_set_is_empty(intersect) == isl_bool_false)
+        {
+            last.push_back(c);
+        }
+    }
+
+    DEBUG(3, tiramisu::str_dump("Last computations:"));
+    for (auto c: last)
+        DEBUG(3, tiramisu::str_dump(c->get_name() + " "));
+
+    DEBUG_INDENT(-4);
 
     return last;
 }
