@@ -11,12 +11,12 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_22.h"
+#include "wrapper_test_23.h"
 
 using namespace tiramisu;
 
 /**
- * Test computing dependence graph and bound inference.
+ * Test computing dependence graph and bound inference. Part II.
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -35,14 +35,14 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
-    tiramisu::computation S0("[N,M]->{S0[i,j]                   }", tiramisu::expr((uint8_t) val0),                 true, p_uint8, &function0);
-    tiramisu::computation S1("[N,M]->{S1[i,j]                   }", S0(i,j),                                        true, p_uint8, &function0);
-    tiramisu::computation S2("[N,M]->{S2[i,j]                   }", S0(i,j) + S0(i,j) + S1(0,1),            true, p_uint8, &function0);
-    tiramisu::computation S3("[N,M]->{S3[i,j]                   }", S2(i,j) + S2(i,j) + S1(i,j) + S0(i,j),  true, p_uint8, &function0);
-    tiramisu::computation S4("[N,M]->{S4[i,j]: 0<=i<M and 0<=j<M}", S3(i,j) + tiramisu::expr((uint8_t) 1),          true, p_uint8, &function0);
+    tiramisu::computation S0("[N,M]->{S0[i,j]                   }", tiramisu::expr((uint8_t) val0),        true, p_uint8, &function0);
+    tiramisu::computation S1("[N,M]->{S1[i,j]: 0<=i<M and 0<=j<M}", S0(0,1),                               true, p_uint8, &function0);
+    tiramisu::computation S2("[N,M]->{S2[i,j]                   }", S0(i,j) + S0(i,j),                     true, p_uint8, &function0);
+    tiramisu::computation S3("[N,M]->{S3[i,j]                   }", S2(i,j) + S0(i,j),                     true, p_uint8, &function0);
+    tiramisu::computation S4("[N,M]->{S4[i,j]: 0<=i<M and 0<=j<M}", S3(i,j) + tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
 
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]                   }");
-    S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]                   }");
+    S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
     S2.set_access("[N,M]->{S2[i,j]->buf2[i,j]                   }");
     S3.set_access("[N,M]->{S3[i,j]->buf3[i,j]                   }");
     S4.set_access("[N,M]->{S4[i,j]->buf4[i,j]: 0<=i<N and 0<=j<N}");

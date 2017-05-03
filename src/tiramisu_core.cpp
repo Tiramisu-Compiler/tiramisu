@@ -254,33 +254,53 @@ void tiramisu::function::compute_bounds()
         for (auto c : this->get_computations())
         {
             DEBUG(3, tiramisu::str_dump("Computing the domain (bounds) of the computation: " + c->get_name()));
-            isl_union_set *s1 = isl_union_set_from_set(isl_set_copy(c->get_iteration_domain()));
-            DEBUG(3, tiramisu::str_dump("Domain of the computation: ", isl_union_set_to_str(s1)));
-            isl_union_set *s2 = isl_union_set_copy(Producers);
-            DEBUG(3, tiramisu::str_dump("Producers : ", isl_union_set_to_str(s2)));
+            isl_union_set *c_dom = isl_union_set_from_set(isl_set_copy(c->get_iteration_domain()));
+            DEBUG(3, tiramisu::str_dump("Domain of the computation: ", isl_union_set_to_str(c_dom)));
+            isl_union_set *prods = isl_union_set_copy(Producers);
+            DEBUG(3, tiramisu::str_dump("Producers : ", isl_union_set_to_str(prods)));
             // Filter the producers to remove the domains of all the computations except the domain of s1
             // Keep only the computations that have the same space as s1.
-            isl_union_set *filter = isl_union_set_universe(isl_union_set_copy(s1));
-            s2 = isl_union_set_intersect(isl_union_set_copy(filter), s2);
-            if ((isl_union_set_is_empty(s2) == isl_bool_false))
-            {
-                isl_union_set *s3 = isl_union_set_copy(isl_union_set_intersect(isl_union_set_copy(s1),
-                                                       isl_union_set_copy(s2)));
+            isl_union_set *filter = isl_union_set_universe(isl_union_set_copy(c_dom));
+            isl_union_set *c_prods = isl_union_set_intersect(isl_union_set_copy(filter), prods);
+            DEBUG(3, tiramisu::str_dump("After keeping only the producers that have the same space as the domain.", isl_union_set_to_str(c_prods)));
 
-                if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true) ||
-                        (isl_union_set_is_subset(s1, s3)))
+            if ((isl_union_set_is_empty(c_prods) == isl_bool_false))
+            {
+                if (isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true)
                 {
-                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = Producers intersect the old domain = ",
-                                                isl_union_set_to_str(s3)));
-                    c->set_iteration_domain(isl_set_from_union_set(s3));
+                    DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is a universe."));
                 }
+                else
+                    DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is NOT a universe."));
+
+                if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true))
+                {
+                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
+                                                isl_union_set_to_str(c_prods)));
+                    c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(c_prods)));
+                }
+                else
+                {
+                    isl_union_set *u = isl_union_set_union(isl_union_set_copy(c_prods),
+                                                           isl_union_set_copy(c_dom));
+                    c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(u)));
+                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
+                                                 isl_union_set_to_str(u)));
+                }
+
             }
+
+            DEBUG(3, tiramisu::str_dump(""));
         }
 
         Producers = isl_union_set_apply(isl_union_set_copy(Producers), isl_union_map_copy(Reverse));
         DEBUG(3, tiramisu::str_dump("The new Producers : ", isl_union_set_to_str(Producers)));
     }
     DEBUG_INDENT(-4);
+
+    DEBUG(3, tiramisu::str_dump("After propagating bounds:"));
+    for (auto c : this->get_computations())
+        DEBUG(3, tiramisu::str_dump(isl_set_to_str(c->get_iteration_domain())));
 
     DEBUG_INDENT(-4);
     DEBUG(3, tiramisu::str_dump("End of function"));
