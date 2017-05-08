@@ -42,7 +42,7 @@ extern int tiramisu_indentation;
 /**
   * Run \p STMT if the debugging level is above \p LEVEL.
   */
-#define DEBUG(LEVEL,STMT) {                     \
+#define DEBUG(LEVEL, STMT) {                    \
     if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \
         tiramisu::print_indentation();          \
         STMT;                                   \
@@ -55,7 +55,7 @@ extern int tiramisu_indentation;
   * If \p NEW_LINE is set to true, then a new line is printed at
   * the end of DEBUG.
   */
-#define DEBUG_NO_NEWLINE(LEVEL,STMT) {          \
+#define DEBUG_NO_NEWLINE(LEVEL, STMT) {         \
     if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \
         tiramisu::print_indentation();          \
         STMT;                                   \

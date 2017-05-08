@@ -651,7 +651,7 @@ tiramisu::HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     Scope<Expr> scope;
 
     // Allocate the output buffers
-    for (Function f : outputs)
+    for (const Function &f : outputs)
     {
         const auto iter = output_buffers_size.find(f.name());
         assert(iter != output_buffers_size.end());

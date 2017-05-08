@@ -20,18 +20,18 @@ namespace tiramisu
 {
 
 Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
-Halide::Expr linearize_access(int dims, halide_dimension_t *shape, isl_ast_expr *index_expr);
+Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr);
 std::string generate_new_variable_name();
 
 std::vector<computation *> function::get_computation_by_name(std::string name) const
 {
-    assert(name.size() > 0);
+    assert(!name.empty());
 
     DEBUG(10, tiramisu::str_dump("Searching computation " + name));
 
     std::vector<tiramisu::computation *> res_comp;
 
-    for (auto &comp : this->get_computations())
+    for (const auto &comp : this->get_computations())
     {
         if (name == comp->get_name())
         {
@@ -39,7 +39,7 @@ std::vector<computation *> function::get_computation_by_name(std::string name) c
         }
     }
 
-    if (res_comp.size() == 0)
+    if (res_comp.empty())
     {
         DEBUG(10, tiramisu::str_dump("Computation not found."));
     }
@@ -60,8 +60,9 @@ std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function 
     isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
     isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
     isl_id *id = isl_ast_expr_get_id(arg);
-    isl_ast_expr_free(arg);
     std::string computation_name(isl_id_get_name(id));
+    isl_ast_expr_free(expr);
+    isl_ast_expr_free(arg);
     isl_id_free(id);
     std::vector<tiramisu::computation *> comp = fct->get_computation_by_name(computation_name);
 
@@ -85,12 +86,12 @@ isl_map *create_map_from_domain_and_range(isl_set *domain, isl_set *range)
     // Create the space access_domain -> sched_range.
     isl_space *sp = isl_space_map_from_domain_and_range(
                         isl_space_copy(sp1), isl_space_copy(sp2));
-    isl_map *adapter = isl_map_universe (sp);
+    isl_map *adapter = isl_map_universe(sp);
     DEBUG(3, tiramisu::str_dump("Transformation map:", isl_map_to_str(adapter)));
     isl_space *sp_map = isl_map_get_space(adapter);
-    isl_local_space *l_sp = isl_local_space_from_space (sp_map);
+    isl_local_space *l_sp = isl_local_space_from_space(sp_map);
     // Add equality constraints.
-    for (int i = 0; i < isl_space_dim (sp1, isl_dim_set); i++)
+    for (int i = 0; i < isl_space_dim(sp1, isl_dim_set); i++)
     {
         if (isl_space_has_dim_id(sp1, isl_dim_set, i) == true)
         {
@@ -100,21 +101,28 @@ isl_map *create_map_from_domain_and_range(isl_set *domain, isl_set *range)
                 {
                     isl_id *id1 = isl_space_get_dim_id(sp1, isl_dim_set, i);
                     isl_id *id2 = isl_space_get_dim_id(sp2, isl_dim_set, j);
-                    if (strcmp (isl_id_get_name(id1), isl_id_get_name(id2)) == 0)
+                    if (strcmp(isl_id_get_name(id1), isl_id_get_name(id2)) == 0)
                     {
                         isl_constraint *cst = isl_equality_alloc(
                                                   isl_local_space_copy(l_sp));
                         cst = isl_constraint_set_coefficient_si(cst,
-                                isl_dim_in,
-                                i, 1);
+                                                                isl_dim_in,
+                                                                i, 1);
                         cst = isl_constraint_set_coefficient_si(
                                   cst, isl_dim_out, j, -1);
                         adapter = isl_map_add_constraint(adapter, cst);
                     }
+                    isl_id_free(id1);
+                    isl_id_free(id2);
                 }
             }
         }
     }
+
+    isl_space_free(sp1);
+    isl_space_free(sp2);
+    isl_local_space_free(l_sp);
+
     DEBUG(3, tiramisu::str_dump(
               "Transformation map after adding equality constraints:",
               isl_map_to_str(adapter)));
@@ -154,15 +162,16 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
                      isl_pw_multi_aff_dump(iterator_map));
     isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(
                                    build,
-                                   isl_pw_multi_aff_copy(iterator_map));
+                                   iterator_map);
     DEBUG(3, tiramisu::str_dump("isl_ast_build_access_from_pw_multi_aff(build, iterator_map):",
-                                (const char * ) isl_ast_expr_to_C_str(index_expr)));
+                                (const char *)isl_ast_expr_to_C_str(index_expr)));
 
     DEBUG_INDENT(-4);
 
+    isl_map_free(schedule);
+
     return index_expr;
 }
-
 
 bool access_has_id(const tiramisu::expr &exp)
 {
@@ -243,7 +252,6 @@ bool access_has_id(const tiramisu::expr &exp)
 
     return has_id;
 }
-
 
 bool access_is_affine(const tiramisu::expr &exp)
 {
@@ -353,33 +361,31 @@ bool access_is_affine(const tiramisu::expr &exp)
  */
 isl_constraint *get_constraint_for_access(int access_dimension,
         const tiramisu::expr &access_expression,
-        isl_map *&access_relation,
+        isl_map *access_relation,
         isl_constraint *cst,
         int coeff,
-        tiramisu::function *fct)
+        const tiramisu::function *fct)
 {
-    /*
-     * An e_val can appear in an expression passed to this function in two cases:
-     *  I- the e_val refers to the constant of the constraint (for example in
-     *  "i + 1", the "+1" refers to the constant of the constraint).
-     *  II- the e_val is a coefficient of a dimension. For example, in "2*i"
-     *  the "+2" is a coefficient of "i".
-     *
-     *  The case (I) is handled in the following block, while the case (II)
-     *  is handled in the block handling o_mul. The "+2" in that case is
-     *  used to update coeff.
-     */
-    if (access_expression.get_expr_type () == tiramisu::e_val)
+    // An e_val can appear in an expression passed to this function in two cases:
+    // I- the e_val refers to the constant of the constraint (for example in
+    // "i + 1", the "+1" refers to the constant of the constraint).
+    // II- the e_val is a coefficient of a dimension. For example, in "2*i"
+    // the "+2" is a coefficient of "i".
+    //
+    // The case (I) is handled in the following block, while the case (II)
+    // is handled in the block handling o_mul. The "+2" in that case is
+    // used to update coeff.
+    if (access_expression.get_expr_type() == tiramisu::e_val)
     {
-        int64_t val = coeff * access_expression.get_int_val() + (-1) * isl_val_get_num_si(
-                          isl_constraint_get_constant_val(cst));
-        cst = isl_constraint_set_constant_si(cst, (-1) * val);
-        DEBUG(3, tiramisu::str_dump("Assigning (-1)*(coeff * access_expression.get_int_val() + (-1)*isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : "
+        int64_t val = coeff * access_expression.get_int_val() -
+                      isl_val_get_num_si(isl_constraint_get_constant_val(cst));
+        cst = isl_constraint_set_constant_si(cst, -val);
+        DEBUG(3, tiramisu::str_dump("Assigning -(coeff * access_expression.get_int_val() - isl_val_get_num_si(isl_constraint_get_constant_val(cst))) to the cst dimension. The value assigned is : "
                                     + std::to_string(-val)));
     }
-    else if (access_expression.get_expr_type () == tiramisu::e_var)
+    else if (access_expression.get_expr_type() == tiramisu::e_var)
     {
-        assert(access_expression.get_name().length() > 0);
+        assert(!access_expression.get_name().empty());
 
         DEBUG(3, tiramisu::str_dump("Looking for a dimension named ");
               tiramisu::str_dump(access_expression.get_name());
@@ -389,23 +395,22 @@ isl_constraint *get_constraint_for_access(int access_dimension,
                                               access_expression.get_name().c_str());
         if (dim0 >= 0)
         {
-            int current_coeff = (-1) * isl_val_get_num_si(isl_constraint_get_coefficient_val(cst, isl_dim_in,
-                                dim0));
+            int current_coeff = -isl_val_get_num_si(isl_constraint_get_coefficient_val(cst, isl_dim_in, dim0));
             coeff = current_coeff + coeff;
-            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, (coeff) * (-1));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_in, dim0, -coeff);
             DEBUG(3, tiramisu::str_dump("Dimension found. Assigning -1 to the input coefficient of dimension " +
-                                        std::to_string (dim0)));
+                                        std::to_string(dim0)));
         }
         else
         {
-            DEBUG(3, tiramisu::str_dump("Dimension not found.  Adding dimension as a parameter."));
+            DEBUG(3, tiramisu::str_dump("Dimension not found. Adding dimension as a parameter."));
             access_relation = isl_map_add_dims(access_relation, isl_dim_param, 1);
             int pos = isl_map_dim(access_relation, isl_dim_param);
             isl_id *param_id = isl_id_alloc(fct->get_isl_ctx(), access_expression.get_name().c_str (), NULL);
             access_relation = isl_map_set_dim_id(access_relation, isl_dim_param, pos - 1, param_id);
-            isl_local_space *ls2 = isl_local_space_from_space(isl_map_get_space(isl_map_copy(access_relation)));
-            cst = isl_constraint_alloc_equality(isl_local_space_copy(ls2));
-            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos - 1, (coeff) * (-1));
+            isl_local_space *ls2 = isl_local_space_from_space(isl_map_get_space(access_relation));
+            cst = isl_constraint_alloc_equality(ls2);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos - 1, -coeff);
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
             DEBUG(3, tiramisu::str_dump("After adding a parameter:", isl_map_to_str(access_relation)));
         }
@@ -414,35 +419,35 @@ isl_constraint *get_constraint_for_access(int access_dimension,
     {
         if (access_expression.get_op_type() == tiramisu::o_add)
         {
-            tiramisu::expr op0 = access_expression.get_operand (0);
-            tiramisu::expr op1 = access_expression.get_operand (1);
+            tiramisu::expr op0 = access_expression.get_operand(0);
+            tiramisu::expr op1 = access_expression.get_operand(1);
             cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
             isl_constraint_dump(cst);
             cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
             isl_constraint_dump(cst);
         }
-        else if (access_expression.get_op_type () == tiramisu::o_sub)
+        else if (access_expression.get_op_type() == tiramisu::o_sub)
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
             tiramisu::expr op1 = access_expression.get_operand(1);
             cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
             cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, -coeff, fct);
         }
-        else if (access_expression.get_op_type () == tiramisu::o_minus)
+        else if (access_expression.get_op_type() == tiramisu::o_minus)
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
             cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, -coeff, fct);
         }
-        else if (access_expression.get_op_type () == tiramisu::o_mul)
+        else if (access_expression.get_op_type() == tiramisu::o_mul)
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
             tiramisu::expr op1 = access_expression.get_operand(1);
-            if (op0.get_expr_type () == tiramisu::e_val)
+            if (op0.get_expr_type() == tiramisu::e_val)
             {
                 coeff = coeff * op0.get_int_val();
                 cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
             }
-            else if (op1.get_expr_type () == tiramisu::e_val)
+            else if (op1.get_expr_type() == tiramisu::e_val)
             {
                 coeff = coeff * op1.get_int_val();
                 cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
@@ -466,25 +471,26 @@ tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::compu
 {
     tiramisu::computation *res = NULL;
 
-    for (int i = 0; i < comp_vec.size(); i++)
+    for (size_t i = 0; i < comp_vec.size(); i++)
     {
         isl_set *comp_domain = comp_vec[i]->get_iteration_domain();
         isl_map *sched = comp_vec[i]->get_trimmed_union_of_schedules();
         isl_set *scheduled_comp_domain = isl_set_apply(isl_set_copy(comp_domain), isl_map_copy(sched));
-        isl_union_set *intersection = isl_union_set_intersect(isl_union_set_copy(node_domain),
-                                      isl_union_set_copy(isl_union_set_from_set(scheduled_comp_domain)));
+        isl_union_set *intersection =
+            isl_union_set_intersect(isl_union_set_copy(node_domain),
+                                    isl_union_set_from_set(scheduled_comp_domain));
 
         if (isl_union_set_is_empty(intersection) == isl_bool_false)
         {
             res = comp_vec[i];
         }
+        isl_union_set_free(intersection);
     }
 
     assert((res != NULL) && "Computation not found.");
 
     return res;
 }
-
 
 /**
  * Traverse the tiramisu expression and extract the access of the access
@@ -499,13 +505,14 @@ tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::compu
  * that corresponds to the current statement if many computations that have
  * the name comp.get_name() exist.
  */
-void traverse_expr_and_extract_accesses(tiramisu::function *fct,
-                                        tiramisu::computation *comp,
+void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
+                                        const tiramisu::computation *comp,
                                         const tiramisu::expr &exp,
                                         std::vector<isl_map *> &accesses,
                                         bool return_buffer_accesses)
 {
     assert(fct != NULL);
+    assert(comp != NULL);
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -524,18 +531,15 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
 
         DEBUG(10, tiramisu::str_dump("Obtained accessed computation."));
 
-        isl_set *lhs_comp_domain = isl_set_copy(isl_set_universe(
-                isl_set_get_space(
-                    isl_set_copy(comp->get_iteration_domain()))));
+        isl_set *lhs_comp_domain = isl_set_universe(isl_set_get_space(comp->get_iteration_domain()));
+        isl_set *rhs_comp_domain = isl_set_universe(isl_set_get_space(
+                                       access_op_comp->get_iteration_domain()));
+        isl_map *access_map = create_map_from_domain_and_range(lhs_comp_domain, rhs_comp_domain);
+        isl_set_free(lhs_comp_domain);
+        isl_set_free(rhs_comp_domain);
 
-        isl_set *rhs_comp_domain = isl_set_copy(isl_set_universe(
-                isl_set_get_space(
-                    isl_set_copy(access_op_comp->get_iteration_domain()))));
-
-        isl_map *access_to_comp = create_map_from_domain_and_range(isl_set_copy(lhs_comp_domain),
-                                  isl_set_copy(rhs_comp_domain));
-
-        access_to_comp = isl_map_universe(isl_map_get_space(access_to_comp));
+        isl_map *access_to_comp = isl_map_universe(isl_map_get_space(access_map));
+        isl_map_free(access_map);
 
         DEBUG(3, tiramisu::str_dump("Transformation map before adding constraints:",
                                     isl_map_to_str(access_to_comp)));
@@ -547,10 +551,10 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         {
             DEBUG(3, tiramisu::str_dump("Assigning 1 to the coefficient of output dimension " +
                                         std::to_string (access_dimension)));
-            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(isl_local_space_from_space(
-                                      isl_map_get_space(isl_map_copy(access_to_comp)))));
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_from_space(isl_map_get_space(
+                                      access_to_comp)));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
-            cst = get_constraint_for_access(access_dimension, access, access_to_comp, cst, +1, fct);
+            cst = get_constraint_for_access(access_dimension, access, access_to_comp, cst, 1, fct);
             access_to_comp = isl_map_add_constraint(access_to_comp, cst);
             DEBUG(3, tiramisu::str_dump("After adding a constraint:", isl_map_to_str(access_to_comp)));
             access_dimension++;
@@ -559,23 +563,23 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         DEBUG(3, tiramisu::str_dump("Transformation function after adding constraints:",
                                     isl_map_to_str(access_to_comp)));
 
-        if (return_buffer_accesses == true)
+        if (return_buffer_accesses)
         {
             isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
             DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
                                         isl_map_to_str(access_to_buff)));
 
-            access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), isl_map_copy(access_to_buff));
+            access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), access_to_buff);
             DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:",
                                         isl_map_to_str(access_to_buff)));
 
-            // Run the following block (i.e., apply the schedule on the access function) only if
-            // we are looking for the buffer access functions (i.e., return_buffer_accesses == true)
+            // Run the following block (i.e. apply the schedule on the access function) only if
+            // we are looking for the buffer access functions (i.e. return_buffer_accesses == true)
             // otherwise return the access function that is not transformed into time-processor space
             // this is mainly because the function that calls this function expects the access function
             // to be in the iteration domain.
-            if ((global::is_auto_data_mapping_set() == true))
+            if (global::is_auto_data_mapping_set())
             {
                 DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:",
                                             isl_map_to_str(access_to_buff)));
@@ -587,10 +591,11 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
             }
 
             accesses.push_back(access_to_buff);
+            isl_map_free(access_to_comp);
         }
         else
         {
-            accesses.push_back(isl_map_copy(access_to_comp));
+            accesses.push_back(access_to_comp);
         }
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
@@ -659,7 +664,7 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
         }
         case tiramisu::o_call:
         {
-            for (const auto e : exp.get_arguments())
+            for (const auto &e : exp.get_arguments())
             {
                 traverse_expr_and_extract_accesses(fct, comp, e, accesses, return_buffer_accesses);
             }
@@ -673,7 +678,6 @@ void traverse_expr_and_extract_accesses(tiramisu::function *fct,
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
 }
-
 
 /**
  * Traverse the tiramisu expression and replace non-affine accesses by a constant.
@@ -706,7 +710,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
         }
 
         // Check if the access expressions of exp are affine (exp is an access operation).
-        for (int i = 0; i < exp2.get_access().size(); i++)
+        for (size_t i = 0; i < exp2.get_access().size(); i++)
         {
             // If the access is not affine, create a new constant that computes it
             // and use it as an access expression.
@@ -785,7 +789,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3, exp4);
             break;
         case tiramisu::o_call:
-            for (const auto e : exp.get_arguments())
+            for (const auto &e : exp.get_arguments())
             {
                 exp2 = traverse_expr_and_replace_non_affine_accesses(comp, e);
                 new_arguments.push_back(exp2);
@@ -803,8 +807,6 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
     return output_expr;
 }
 
-
-
 /**
  * Compute the accesses of the RHS of the computation
  * \p comp and store them in the accesses vector.
@@ -812,7 +814,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * If \p return_buffer_accesses is set to true, this function returns access functions to
  * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp,
+void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computation *comp,
                       std::vector<isl_map *> &accesses, bool return_buffer_accesses)
 {
     DEBUG_FCT_NAME(3);
@@ -827,30 +829,30 @@ void get_rhs_accesses(tiramisu::function *func, tiramisu::computation *comp,
 
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
- * computation).  Store the access in computation->access.
+ * computation). Store the access in computation->access.
  */
 isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
-    assert(build != NULL);
     assert(node != NULL);
+    assert(build != NULL);
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    tiramisu::function *func = (tiramisu::function *) user;
+    tiramisu::function *func = (tiramisu::function *)user;
 
     // Find the name of the computation associated to this AST leaf node.
     std::vector<tiramisu::computation *> comp_vec = get_computation_by_node(func, node);
-    assert((comp_vec.size() > 0) && "get_computation_by_node() returned an empty vector !");
-    isl_union_map *sched = isl_union_map_copy(isl_ast_build_get_schedule(build));
+    assert(!comp_vec.empty() && "get_computation_by_node() returned an empty vector!");
+    isl_union_map *sched = isl_ast_build_get_schedule(build);
     isl_union_set *sched_range = isl_union_map_domain(sched);
     assert((sched_range != NULL) && "Range of schedule is NULL.");
-    tiramisu::computation *comp = filter_computations_by_domain(comp_vec,
-                                  isl_union_set_copy(sched_range));
+    tiramisu::computation *comp = filter_computations_by_domain(comp_vec, sched_range);
+    isl_union_set_free(sched_range);
 
     // Mark "comp" as the computation associated with this node.
-    isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *) comp);
-    node = isl_ast_node_set_annotation(node, isl_id_copy(annotation_id));
+    isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *)comp);
+    node = isl_ast_node_set_annotation(node, annotation_id);
 
     assert((comp != NULL) && "Computation not found!");;
 
@@ -864,11 +866,11 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     // Add the accesses of the RHS to the accesses vector
     get_rhs_accesses(func, comp, accesses, true);
 
-    if (accesses.size() > 0)
+    if (!accesses.empty())
     {
         DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
         DEBUG_INDENT(4);
-        for (int i = 0; i < accesses.size(); i++)
+        for (size_t i = 0; i < accesses.size(); i++)
         {
             if (accesses[i] != NULL)
             {
@@ -885,18 +887,18 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
         std::vector<isl_ast_expr *> index_expressions;
         // For each access in accesses (i.e. for each access in the computation),
         // compute the corresponding isl_ast expression.
-        for (auto &access : accesses)
+        for (size_t i = 0; i < accesses.size(); ++i)
         {
-            if (access != NULL)
+            if (accesses[i] != NULL)
             {
                 DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
-                                            isl_map_to_str(access)));
-                index_expressions.push_back(create_isl_ast_index_expression(build, access));
+                                            isl_map_to_str(accesses[i])));
+                index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
+                isl_map_free(accesses[i]);
             }
             else
             {
-                if (!comp->is_let_stmt()) // If this is not let stmt,
-                    // it should have an access function.
+                if (!comp->is_let_stmt()) // If this is not let stmt, it should have an access function.
                 {
                     tiramisu::error("An access function should be provided before generating code.", true);
                 }
@@ -924,7 +926,6 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     DEBUG(3, tiramisu::str_dump("\n\n"));
     DEBUG_INDENT(-4);
 
-
     return node;
 }
 
@@ -932,13 +933,13 @@ void print_isl_ast_expr_vector(
     const std::vector<isl_ast_expr *> &index_expr_cp)
 {
     DEBUG(3, tiramisu::str_dump("List of index expressions."));
-    for (auto &i_expr : index_expr_cp)
+    for (const auto &i_expr : index_expr_cp)
     {
-        DEBUG(3, tiramisu::str_dump(" ", (const char * ) isl_ast_expr_to_C_str (i_expr)));
+        DEBUG(3, tiramisu::str_dump(" ", (const char *)isl_ast_expr_to_C_str(i_expr)));
     }
 }
 
-Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
+Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
         std::vector<isl_ast_expr *> &index_expr,
         const tiramisu::expr &tiramisu_expr)
 {
@@ -1127,13 +1128,13 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
             const char *buffer_name = isl_space_get_tuple_name(
                                           isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()),
                                           isl_dim_out);
-            DEBUG(3, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
             assert(buffer_name != NULL);
+            DEBUG(3, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
 
-            auto buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
+            const auto &buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
             assert(buffer_entry != comp->get_function()->get_buffers().end());
 
-            auto tiramisu_buffer = buffer_entry->second;
+            const auto &tiramisu_buffer = buffer_entry->second;
 
             Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
 
@@ -1141,15 +1142,13 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
             // to outermost; thus, we need to reverse the order
             halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
             int stride = 1;
-
-            for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+            for (size_t i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
             {
                 shape[i].min = 0;
-                shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i
-                                  - 1].get_int_val();
+                int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                shape[i].extent = (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
                 shape[i].stride = stride;
-                stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i -
-                          1].get_int_val();
+                stride *= (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
             }
 
             if (tiramisu_expr.get_op_type() == tiramisu::o_access)
@@ -1162,21 +1161,16 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
 
                 if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
                 {
-                    Halide::Buffer<> *buffer =
-                        new Halide::Buffer<>(
-                        type,
-                        tiramisu_buffer->get_data(),
-                        tiramisu_buffer->get_dim_sizes().size(),
-                        shape,
-                        tiramisu_buffer->get_name());
+                    Halide::Buffer<> buffer = Halide::Buffer<>(
+                                                  type,
+                                                  tiramisu_buffer->get_data(),
+                                                  tiramisu_buffer->get_dim_sizes().size(),
+                                                  shape,
+                                                  tiramisu_buffer->get_name());
 
-                    // TODO(psuriana): Not sure if this the right way to handle external input
-                    /*Halide::Internal::Parameter param(
-                        buffer->type(), true, buffer->dimensions(), buffer->name());
-                    param.set_buffer(*buffer);*/
-
+                    // TODO(psuriana): ImageParam is not currently supported.
                     result = Halide::Internal::Load::make(
-                                 type, tiramisu_buffer->get_name(), index, *buffer,
+                                 type, tiramisu_buffer->get_name(), index, buffer,
                                  Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
                 }
                 else
@@ -1266,7 +1260,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
         case tiramisu::o_call:
         {
             std::vector<Halide::Expr> vec;
-            for (auto e : tiramisu_expr.get_arguments())
+            for (const auto &e : tiramisu_expr.get_arguments())
             {
                 Halide::Expr he = halide_expr_from_tiramisu_expr(comp, index_expr, e);
                 vec.push_back(he);
@@ -1283,9 +1277,11 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
         }
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_var)
+    {
         result = Halide::Internal::Variable::make(
                      halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
                      tiramisu_expr.get_name());
+    }
     else
     {
         tiramisu::str_dump("tiramisu type of expr: ",
@@ -1293,10 +1289,10 @@ Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
         tiramisu::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
     }
 
-    if (result.defined() == true)
+    if (result.defined())
     {
-        DEBUG(10, tiramisu::str_dump("Generated stmt: ");
-    } std::cout << result);
+        DEBUG(10, tiramisu::str_dump("Generated stmt: "); std::cout << result);
+    }
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
@@ -1312,27 +1308,35 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     {
         isl_val *init_val = isl_ast_expr_get_val(isl_expr);
         result = Halide::Expr((int32_t)isl_val_get_num_si(init_val));
+        isl_val_free(init_val);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
     {
         isl_id *identifier = isl_ast_expr_get_id(isl_expr);
         std::string name_str(isl_id_get_name(identifier));
+        isl_id_free(identifier);
         result = Halide::Internal::Variable::make(Halide::Int(32), name_str);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
     {
         Halide::Expr op0, op1, op2;
 
-        op0 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 0));
+        isl_ast_expr *expr0 = isl_ast_expr_get_op_arg(isl_expr, 0);
+        op0 = halide_expr_from_isl_ast_expr(expr0);
+        isl_ast_expr_free(expr0);
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
         {
-            op1 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 1));
+            isl_ast_expr *expr1 = isl_ast_expr_get_op_arg(isl_expr, 1);
+            op1 = halide_expr_from_isl_ast_expr(expr1);
+            isl_ast_expr_free(expr1);
         }
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
         {
-            op2 = halide_expr_from_isl_ast_expr(isl_ast_expr_get_op_arg(isl_expr, 2));
+            isl_ast_expr *expr2 = isl_ast_expr_get_op_arg(isl_expr, 2);
+            op2 = halide_expr_from_isl_ast_expr(expr2);
+            isl_ast_expr_free(expr2);
         }
 
         switch (isl_ast_expr_get_op_type(isl_expr))
@@ -1404,7 +1408,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
             break;
         default:
             tiramisu::str_dump("Transforming the following expression",
-                               (const char *) isl_ast_expr_to_C_str(isl_expr));
+                               (const char *)isl_ast_expr_to_C_str(isl_expr));
             tiramisu::str_dump("\n");
             tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
         }
@@ -1412,7 +1416,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     else
     {
         tiramisu::str_dump("Transforming the following expression",
-                           (const char *) isl_ast_expr_to_C_str(isl_expr));
+                           (const char *)isl_ast_expr_to_C_str(isl_expr));
         tiramisu::str_dump("\n");
         tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
     }
@@ -1427,27 +1431,25 @@ std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
 tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
 {
     // Retrieve the computation of the node.
-    isl_id *comp_id = isl_ast_node_get_annotation (node);
-    tiramisu::computation *comp =
-        (tiramisu::computation *) (isl_id_get_user(comp_id));
+    isl_id *comp_id = isl_ast_node_get_annotation(node);
+    tiramisu::computation *comp = (tiramisu::computation *)isl_id_get_user(comp_id);
+    isl_id_free(comp_id);
     return comp;
 }
 
 /**
   * Generate a Halide statement from an ISL ast node object in the ISL ast
   * tree.
-  * Level represents the level of the node in the schedule.  0 means root.
+  * Level represents the level of the node in the schedule. 0 means root.
   */
-Halide::Internal::Stmt *halide_stmt_from_isl_node(
-    tiramisu::function fct, isl_ast_node *node,
+Halide::Internal::Stmt halide_stmt_from_isl_node(
+    const tiramisu::function &fct, isl_ast_node *node,
     int level, std::vector<std::string> &tagged_stmts)
 {
     assert(node != NULL);
     assert(level >= 0);
 
-
-    Halide::Internal::Stmt *result = new Halide::Internal::Stmt();
-    int i;
+    Halide::Internal::Stmt result;
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1457,78 +1459,82 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         DEBUG(3, tiramisu::str_dump("Generating code for a block"));
 
         isl_ast_node_list *list = isl_ast_node_block_get_children(node);
-        isl_ast_node *child1;
 
-        for (i = isl_ast_node_list_n_ast_node(list) - 1; i >= 0; i--)
+        for (int i = isl_ast_node_list_n_ast_node(list) - 1; i >= 0; i--)
         {
-            child1 = isl_ast_node_list_get_ast_node(list, i);
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
 
             DEBUG(3, tiramisu::str_dump("Generating block."));
 
-            Halide::Internal::Stmt *block1 =
-                tiramisu::halide_stmt_from_isl_node(fct, child1, level, tagged_stmts);
+            Halide::Internal::Stmt block =
+                tiramisu::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
+            isl_ast_node_free(child);
 
-            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Generated block: "); std::cout << *block1);
+            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Generated block: "); std::cout << block);
 
-            if (block1->defined() == false) // Probably block1 is a let stmt.
+            if (!block.defined()) // Probably block is a let stmt.
             {
-                if (let_stmts_vector.empty() == false) // i.e. non-consumed let statements
+                if (!let_stmts_vector.empty()) // i.e. non-consumed let statements
                 {
-                    if (result->defined() == true) // if some stmts have already been created
-                        // in this loop we can generate letStmt
+                    // if some stmts have already been created in this loop we can generate LetStmt
+                    if (result.defined())
                     {
-                        for (auto l_stmt : let_stmts_vector)
+                        for (const auto &l_stmt : let_stmts_vector)
                         {
                             DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
                             DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
                             DEBUG(3, tiramisu::str_dump("Expression of the let statement: ");
                                   std::cout << l_stmt.second);
 
-                            *result = Halide::Internal::LetStmt::make(
-                                          l_stmt.first,
-                                          l_stmt.second,
-                                          *result);
+                            result = Halide::Internal::LetStmt::make(
+                                         l_stmt.first,
+                                         l_stmt.second,
+                                         result);
 
                             DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
-                            DEBUG_NO_NEWLINE(10, std::cout << *result);
+                            DEBUG_NO_NEWLINE(10, std::cout << result);
                         }
                         let_stmts_vector.clear();
                     }
-                    // else, if (result->defined() == false), continue creating stmts
+                    // else, if (!result.defined()), continue creating stmts
                     // until the first actual stmt (result) is created.
                 }
-                // else, if (let_stmts_vector.empty() == true), continue looping to
+                // else, if (let_stmts_vector.empty()), continue looping to
                 // create more let stmts and to encounter a real statement
             }
-            else // ((block1->defined() == true)
+            else // ((block.defined())
             {
-                if (result->defined() == true)
+                if (result.defined())
                 {
-                    *result = Halide::Internal::Block::make(
-                                  *block1,
-                                  *result);
+                    result = Halide::Internal::Block::make(block, result);
                 }
-                else // (result->defined() == false)
+                else // (!result.defined())
                 {
-                    result = block1;
+                    result = block;
                 }
             }
         }
+        isl_ast_node_list_free(list);
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_for)
     {
         DEBUG(3, tiramisu::str_dump("Generating code for Halide::For"));
 
         isl_ast_expr *iter = isl_ast_node_for_get_iterator(node);
-        std::string iterator_str = std::string(isl_ast_expr_to_C_str(iter));
+        char *cstr = isl_ast_expr_to_C_str(iter);
+        std::string iterator_str = std::string(cstr);
 
         isl_ast_expr *init = isl_ast_node_for_get_init(node);
         isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
         isl_ast_expr *inc  = isl_ast_node_for_get_inc(node);
 
-        if (!isl_val_is_one(isl_ast_expr_get_val(inc)))
+        isl_val *inc_val = isl_ast_expr_get_val(inc);
+        if (!isl_val_is_one(inc_val))
+        {
             tiramisu::error("The increment in one of the loops is not +1."
                             "This is not supported by Halide", 1);
+        }
+        isl_val_free(inc_val);
 
         isl_ast_node *body = isl_ast_node_for_get_body(node);
         isl_ast_expr *cond_upper_bound_isl_format = NULL;
@@ -1560,36 +1566,39 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         {
             tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt" , 1);
         }
-
         assert(cond_upper_bound_isl_format != NULL);
         DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
 
         Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
-        if (init_expr.type() != halide_type_from_tiramisu_type(
-                    global::get_loop_iterator_default_data_type()))
+        if (init_expr.type() !=
+                halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
         {
-            init_expr = Halide::Internal::Cast::make(halide_type_from_tiramisu_type(
-                            global::get_loop_iterator_default_data_type()), init_expr);
+            init_expr =
+                Halide::Internal::Cast::make(
+                    halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()),
+                    init_expr);
         }
         DEBUG(3, tiramisu::str_dump("init expression: "); std::cout << init_expr);
         Halide::Expr cond_upper_bound_halide_format =
-            halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format);
-        cond_upper_bound_halide_format = simplify(cond_upper_bound_halide_format);
-        if (cond_upper_bound_halide_format.type() != halide_type_from_tiramisu_type(
-                    global::get_loop_iterator_default_data_type()))
+            simplify(halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format));
+        if (cond_upper_bound_halide_format.type() !=
+                halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
+        {
             cond_upper_bound_halide_format =
-                Halide::Internal::Cast::make(halide_type_from_tiramisu_type(
-                                                 global::get_loop_iterator_default_data_type()), cond_upper_bound_halide_format);
+                Halide::Internal::Cast::make(
+                    halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()),
+                    cond_upper_bound_halide_format);
+        }
         DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
               std::cout << cond_upper_bound_halide_format);
-        Halide::Internal::Stmt *halide_body = tiramisu::halide_stmt_from_isl_node(fct, body, level + 1,
-                                              tagged_stmts);
+        Halide::Internal::Stmt halide_body =
+            tiramisu::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts);
         Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
         Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
         // Change the type from Serial to parallel or vector if the
         // current level was marked as such.
-        for (int tt = 0; tt < tagged_stmts.size(); tt++)
+        for (size_t tt = 0; tt < tagged_stmts.size(); tt++)
         {
             if (fct.should_parallelize(tagged_stmts[tt], level))
             {
@@ -1619,37 +1628,29 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             {
                 fortype = Halide::Internal::ForType::Parallel;
                 dev_api = Halide::DeviceAPI::OpenCL;
-                std::string gpu_iter = fct.get_gpu_thread_iterator(
-                                           tagged_stmts[tt], level);
+                std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
                 Halide::Expr new_iterator_var =
-                    Halide::Internal::Variable::make(
-                        Halide::Int(32),
-                        gpu_iter);
-                *halide_body = Halide::Internal::LetStmt::make(
-                                   iterator_str,
-                                   new_iterator_var,
-                                   *halide_body);
+                    Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                halide_body = Halide::Internal::LetStmt::make(
+                                  iterator_str,
+                                  new_iterator_var,
+                                  halide_body);
                 iterator_str = gpu_iter;
-                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
-                                            " created.\n"));
+                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
             }
             else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
             {
                 fortype = Halide::Internal::ForType::Parallel;
                 dev_api = Halide::DeviceAPI::OpenCL;
-                std::string gpu_iter = fct.get_gpu_block_iterator(
-                                           tagged_stmts[tt], level);
+                std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
                 Halide::Expr new_iterator_var =
-                    Halide::Internal::Variable::make(
-                        Halide::Int(32),
-                        gpu_iter);
-                *halide_body = Halide::Internal::LetStmt::make(
-                                   iterator_str,
-                                   new_iterator_var,
-                                   *halide_body);
+                    Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                halide_body = Halide::Internal::LetStmt::make(
+                                  iterator_str,
+                                  new_iterator_var,
+                                  halide_body);
                 iterator_str = gpu_iter;
-                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter +
-                                            " created.\n"));
+                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
             }
             else if (fct.should_unroll(tagged_stmts[tt], level))
             {
@@ -1672,11 +1673,18 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         }
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
-        *result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format,
-                                              fortype,
-                                              dev_api, *halide_body);
+        result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format,
+                                             fortype, dev_api, halide_body);
         DEBUG(3, tiramisu::str_dump("For loop created."));
-        DEBUG(10, std::cout << *result);
+        DEBUG(10, std::cout << result);
+
+        isl_ast_expr_free(iter);
+        free(cstr);
+        isl_ast_expr_free(init);
+        isl_ast_expr_free(cond);
+        isl_ast_expr_free(inc);
+        isl_ast_node_free(body);
+        isl_ast_expr_free(cond_upper_bound_isl_format);
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_user)
     {
@@ -1685,6 +1693,7 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
         isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
         isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
         isl_ast_expr_free(arg);
         std::string computation_name(isl_id_get_name(id));
         DEBUG(3, tiramisu::str_dump("Computation name: "); tiramisu::str_dump(computation_name));
@@ -1710,9 +1719,9 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
 
         comp->create_halide_assignment();
 
-        *result = comp->get_generated_halide_stmt();
+        result = comp->get_generated_halide_stmt();
 
-        for (const auto l_stmt : comp->get_associated_let_stmts())
+        for (const auto &l_stmt : comp->get_associated_let_stmts())
         {
             DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
             DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
@@ -1720,13 +1729,13 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             l_stmt.second.dump(false);
 
             std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
-            *result = Halide::Internal::LetStmt::make(
-                          l_stmt.first,
-                          halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
-                          *result);
+            result = Halide::Internal::LetStmt::make(
+                         l_stmt.first,
+                         halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                         result);
 
             DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
-            DEBUG_NO_NEWLINE(10, std::cout << *result);
+            DEBUG_NO_NEWLINE(10, std::cout << result);
         }
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_if)
@@ -1742,21 +1751,19 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
         DEBUG(3, tiramisu::str_dump("Condition: "); std::cout << c);
         DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
-        Halide::Internal::Stmt *if_s =
+        Halide::Internal::Stmt if_s =
             tiramisu::halide_stmt_from_isl_node(fct, if_stmt,
                                                 level, tagged_stmts);
 
-        DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << *if_s);
+        DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
 
-        Halide::Internal::Stmt else_s = Halide::Internal::Stmt();
+        Halide::Internal::Stmt else_s;
 
         if (else_stmt != NULL)
         {
             DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
 
-            else_s =
-                *tiramisu::halide_stmt_from_isl_node(fct, else_stmt,
-                        level, tagged_stmts);
+            else_s = tiramisu::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
 
             DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
         }
@@ -1765,13 +1772,12 @@ Halide::Internal::Stmt *halide_stmt_from_isl_node(
             DEBUG(3, tiramisu::str_dump("Else statement is NULL."));
         }
 
-        *result = Halide::Internal::IfThenElse::make(
-                      c,
-                      *if_s,
-                      else_s);
+        result = Halide::Internal::IfThenElse::make(c, if_s, else_s);
+        DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << result);
 
-        DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << *result);
-
+        isl_ast_expr_free(cond);
+        isl_ast_node_free(if_stmt);
+        isl_ast_node_free(else_stmt);
     }
 
     DEBUG_INDENT(-4);
@@ -1791,7 +1797,7 @@ void function::gen_halide_stmt()
     // out what are the statements that have already been visited in the
     // AST tree.
     std::vector<std::string> generated_stmts;
-    Halide::Internal::Stmt *stmt = new Halide::Internal::Stmt();
+    Halide::Internal::Stmt stmt;
 
     // Generate code to free buffers that are not passed as an argument to the function
     // TODO: Add Free().
@@ -1801,7 +1807,7 @@ void function::gen_halide_stmt()
         // Allocate only arrays that are not passed to the function as arguments.
         if (buf->is_argument() == false)
         {
-            *stmt = Halide::Internal::Block::make(Halide::Internal::Free::make(buf->get_name()), *stmt);
+            stmt = Halide::Internal::Block::make(Halide::Internal::Free::make(buf->get_name()), stmt);
         }
     }*/
 
@@ -1830,14 +1836,14 @@ void function::gen_halide_stmt()
                 std::vector<isl_ast_expr *> ie = {};
                 halide_dim_sizes.push_back(halide_expr_from_tiramisu_expr(NULL, ie, sz));
             }
-            *stmt = Halide::Internal::Allocate::make(
-                        buf->get_name(),
-                        halide_type_from_tiramisu_type(buf->get_elements_type()),
-                        halide_dim_sizes, Halide::Internal::const_true(), *stmt);
+            stmt = Halide::Internal::Allocate::make(
+                       buf->get_name(),
+                       halide_type_from_tiramisu_type(buf->get_elements_type()),
+                       halide_dim_sizes, Halide::Internal::const_true(), stmt);
         }
     }
 
-    auto invariant_vector = this->get_invariants();
+    const auto &invariant_vector = this->get_invariants();
 
     // Generate the invariants of the function.
     // Traverse the vector of invariants in reverse order (this because
@@ -1851,18 +1857,18 @@ void function::gen_halide_stmt()
     // initialized).
     for (int i = invariant_vector.size() - 1; i >= 0; i--)
     {
-        const auto param = invariant_vector[i]; // Get the i'th invariant
+        const auto &param = invariant_vector[i]; // Get the i'th invariant
         std::vector<isl_ast_expr *> ie = {};
-        *stmt = Halide::Internal::LetStmt::make(
-                    param.get_name(),
-                    halide_expr_from_tiramisu_expr(NULL, ie, param.get_expr()),
-                    *stmt);
+        stmt = Halide::Internal::LetStmt::make(
+                   param.get_name(),
+                   halide_expr_from_tiramisu_expr(NULL, ie, param.get_expr()),
+                   stmt);
     }
 
     this->halide_stmt = stmt;
 
     DEBUG(3, tiramisu::str_dump("\n\nGenerated Halide stmt before lowering:"));
-    DEBUG(3, std::cout << (*stmt));
+    DEBUG(3, std::cout << stmt);
 
     DEBUG_INDENT(-4);
 }
@@ -1879,7 +1885,7 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr linearize_access(int dims, halide_dimension_t *shape, isl_ast_expr *index_expr)
+Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
 
@@ -1888,13 +1894,13 @@ Halide::Expr linearize_access(int dims, halide_dimension_t *shape, isl_ast_expr 
 
     // ISL dimension is ordered from outermost to innermost.
 
-    isl_ast_expr *operand;
     Halide::Expr index = 0;
     for (int i = dims; i >= 1; --i)
     {
-        operand = isl_ast_expr_get_op_arg(index_expr, i);
+        isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
         Halide::Expr operand_h = halide_expr_from_isl_ast_expr(operand);
-        index += operand_h * Halide::Expr(shape[dims - i].stride);
+        index += operand_h * shape[dims - i].stride;
+        isl_ast_expr_free(operand);
     }
 
     DEBUG_INDENT(-4);
@@ -1932,20 +1938,20 @@ void computation::create_halide_assignment()
             result = Halide::Internal::Cast::make(l_type, result);
         }
 
-        std::string let_stmt_name = this->get_name();
+        const std::string &let_stmt_name = this->get_name();
 
-        let_stmts_vector.push_back(std::pair<std::string, Halide::Expr>(
-                                       let_stmt_name,
-                                       result));
+        let_stmts_vector.push_back(
+            std::pair<std::string, Halide::Expr>(let_stmt_name, result));
         DEBUG(10, tiramisu::str_dump("A let statement was added to the vector of let statements."));
     }
     else
     {
         DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
-        const char *buffer_name = isl_space_get_tuple_name(
-                                      isl_map_get_space(this->get_access_relation_adapted_to_time_processor_domain()),
-                                      isl_dim_out);
+        const char *buffer_name =
+            isl_space_get_tuple_name(
+                isl_map_get_space(this->get_access_relation_adapted_to_time_processor_domain()),
+                isl_dim_out);
         assert(buffer_name != NULL);
 
         DEBUG(3, tiramisu::str_dump("Buffer name extracted from the access relation: ", buffer_name));
@@ -1957,10 +1963,10 @@ void computation::create_halide_assignment()
         int access_dims = isl_space_dim(space, isl_dim_out);
 
         // Fetch the actual buffer.
-        auto buffer_entry = this->function->get_buffers().find(buffer_name);
+        const auto &buffer_entry = this->function->get_buffers().find(buffer_name);
         assert(buffer_entry != this->function->get_buffers().end());
 
-        auto tiramisu_buffer = buffer_entry->second;
+        const auto &tiramisu_buffer = buffer_entry->second;
         DEBUG(3, tiramisu::str_dump("A Tiramisu buffer that corresponds to the buffer indicated in the access relation was found."));
 
         DEBUG(10, tiramisu_buffer->dump(true));
@@ -1975,11 +1981,10 @@ void computation::create_halide_assignment()
         for (int i = 0; i < buf_dims; i++)
         {
             shape[i].min = 0;
-            shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i
-                              - 1].get_int_val();
+            int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+            shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
             shape[i].stride = stride;
-            stride *= (int) tiramisu_buffer->get_dim_sizes()[tiramisu_buffer->get_dim_sizes().size() - i -
-                      1].get_int_val();
+            stride *= (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
         }
 
         // The number of dimensions in the Halide buffer should be equal to
@@ -1999,15 +2004,15 @@ void computation::create_halide_assignment()
 
         if (tiramisu_buffer->get_argument_type() == tiramisu::a_output)
         {
-            Halide::Buffer<> *buffer =
-                new Halide::Buffer<>(
-                halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
-                tiramisu_buffer->get_data(),
-                tiramisu_buffer->get_dim_sizes().size(),
-                shape,
-                tiramisu_buffer->get_name());
-            param = Halide::Internal::Parameter(buffer->type(), true, buffer->dimensions(), buffer->name());
-            param.set_buffer(*buffer);
+            Halide::Buffer<> buffer =
+                Halide::Buffer<>(
+                    halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                    tiramisu_buffer->get_data(),
+                    tiramisu_buffer->get_dim_sizes().size(),
+                    shape,
+                    tiramisu_buffer->get_name());
+            param = Halide::Internal::Parameter(buffer.type(), true, buffer.dimensions(), buffer.name());
+            param.set_buffer(buffer);
             DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
         }
 
@@ -2029,14 +2034,14 @@ void computation::create_halide_assignment()
     DEBUG_INDENT(-4);
 }
 
-void function::gen_halide_obj(std::string obj_file_name, Halide::Target::OS os,
+void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                               Halide::Target::Arch arch, int bits) const
 {
-    std::vector<Halide::Target::Feature> x86_features;
-    x86_features.push_back(Halide::Target::AVX);
-    x86_features.push_back(Halide::Target::SSE41);
+    std::vector<Halide::Target::Feature> x86_features =
+    {
+        Halide::Target::AVX, Halide::Target::SSE41
+    };
     Halide::Target target(os, arch, bits, x86_features);
-
     Halide::Module m(obj_file_name, target);
 
     std::vector<Halide::Argument> fct_arguments;

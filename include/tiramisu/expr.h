@@ -575,7 +575,7 @@ public:
       * Return the value of the \p i 'th operand of the expression.
       * \p i can be 0, 1 or 2.
       */
-    tiramisu::expr get_operand(int i) const
+    const tiramisu::expr &get_operand(int i) const
     {
         assert(this->get_expr_type() == tiramisu::e_op);
         assert((i < (int)this->op.size()) && "Operand index is out of bounds.");
@@ -612,7 +612,7 @@ public:
     /**
       * Get the name of the ID or the variable represented by this expressions.
       */
-    std::string get_name() const
+    const std::string &get_name() const
     {
         assert((this->get_expr_type() == tiramisu::e_var) ||
                (this->get_op_type() == tiramisu::o_access) ||
@@ -637,7 +637,7 @@ public:
       * are both tiramisu expressions.
       * For a buffer access A[i+1,j], it will return also {i+1, j}.
       */
-    std::vector<tiramisu::expr> get_access() const
+    const std::vector<tiramisu::expr> &get_access() const
     {
         assert(this->get_expr_type() == tiramisu::e_op);
         assert(this->get_op_type() == tiramisu::o_access);
@@ -648,14 +648,13 @@ public:
     /**
       * Return the arguments of an external function call.
       */
-    std::vector<tiramisu::expr> get_arguments() const
+    const std::vector<tiramisu::expr> &get_arguments() const
     {
         assert(this->get_expr_type() == tiramisu::e_op);
         assert(this->get_op_type() == tiramisu::o_call);
 
         return argument_vector;
     }
-
 
     /**
       * Get the number of dimensions in the access vector.
@@ -1373,7 +1372,7 @@ public:
       */
     var(tiramisu::primitive_t type, std::string name)
     {
-        assert(name.length() > 0);
+        assert(!name.empty());
 
         this->name = name;
         this->etype = tiramisu::e_var;
@@ -1393,7 +1392,7 @@ public:
      */
     var(std::string name)
     {
-        assert(name.length() > 0);
+        assert(!name.empty());
 
         this->name = name;
         this->etype = tiramisu::e_var;
@@ -1404,9 +1403,10 @@ public:
 /**
   * Convert a Tiramisu expression into a Halide expression.
   */
-Halide::Expr halide_expr_from_tiramisu_expr(tiramisu::computation *comp,
-        std::vector<isl_ast_expr *> &index_expr,
-        const tiramisu::expr &tiramisu_expr);
+Halide::Expr halide_expr_from_tiramisu_expr(
+    const tiramisu::computation *comp,
+    std::vector<isl_ast_expr *> &index_expr,
+    const tiramisu::expr &tiramisu_expr);
 
 }
 
