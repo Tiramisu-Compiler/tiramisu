@@ -8,30 +8,121 @@ HALIDE_LIB_DIRECTORY=Halide/lib
 #ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
 #ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
 
-CXX=g++
-CXXFLAGS=-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
-INCLUDES=-Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
-LIBRARIES=-L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags` -ljpeg
-HEADER_FILES=include/tiramisu/core.h include/tiramisu/debug.h include/tiramisu/utils.h include/tiramisu/expr.h include/tiramisu/type.h
-OBJ=build/tiramisu_core.o build/tiramisu_codegen_halide.o build/tiramisu_codegen_c.o build/tiramisu_debug.o build/tiramisu_utils.o build/tiramisu_codegen_halide_lowering.o build/tiramisu_codegen_from_halide.o
+CXX = g++
+CXXFLAGS = -g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
+INCLUDES = -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
+LIBRARIES = -L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags` -ljpeg
+HEADER_FILES = \
+	include/tiramisu/core.h \
+	include/tiramisu/debug.h \
+	include/tiramisu/utils.h \
+	include/tiramisu/expr.h \
+	include/tiramisu/type.h
+OBJ = \
+	build/tiramisu_core.o \
+	build/tiramisu_codegen_halide.o \
+	build/tiramisu_codegen_c.o \
+	build/tiramisu_debug.o \
+	build/tiramisu_utils.o \
+	build/tiramisu_codegen_halide_lowering.o \
+	build/tiramisu_codegen_from_halide.o
 
-TUTO_GEN=build/tutorial_01_fct_generator build/tutorial_02_fct_generator build/tutorial_03_fct_generator build/tutorial_04_fct_generator build/tutorial_05_fct_generator
-TUTO_BIN=build/tutorial_01 build/tutorial_02 build/tutorial_03 build/tutorial_04 build/tutorial_05
+TUTO_GEN = \
+	build/tutorial_01_fct_generator \
+	build/tutorial_02_fct_generator \
+	build/tutorial_03_fct_generator \
+	build/tutorial_04_fct_generator \
+	build/tutorial_05_fct_generator
+TUTO_BIN = \
+	build/tutorial_01 \
+	build/tutorial_02 \
+	build/tutorial_03 \
+	build/tutorial_04 \
+	build/tutorial_05
 
-TEST_GEN=build/test_01_fct_generator build/test_02_fct_generator build/test_03_fct_generator build/test_04_fct_generator build/test_05_fct_generator build/test_06_fct_generator build/test_08_fct_generator build/test_09_fct_generator build/test_10_fct_generator build/test_11_fct_generator build/test_12_fct_generator build/test_13_fct_generator build/test_14_fct_generator build/test_15_fct_generator build/test_16_fct_generator build/test_17_fct_generator build/test_18_fct_generator build/test_19_fct_generator build/test_20_fct_generator build/test_21_fct_generator build/test_22_fct_generator build/test_23_fct_generator build/test_24_fct_generator
+TEST_GEN = \
+	build/test_01_fct_generator \
+	build/test_02_fct_generator \
+	build/test_03_fct_generator \
+	build/test_04_fct_generator \
+	build/test_05_fct_generator \
+	build/test_06_fct_generator \
+	build/test_08_fct_generator \
+	build/test_09_fct_generator \
+	build/test_10_fct_generator \
+	build/test_11_fct_generator \
+	build/test_12_fct_generator \
+	build/test_13_fct_generator \
+	build/test_14_fct_generator \
+	build/test_15_fct_generator \
+	build/test_16_fct_generator \
+	build/test_17_fct_generator \
+	build/test_18_fct_generator \
+	build/test_19_fct_generator \
+	build/test_20_fct_generator \
+	build/test_21_fct_generator \
+	build/test_22_fct_generator \
+	build/test_23_fct_generator build/test_24_fct_generator
 #build/test_07_fct_generator
-TEST_BIN=build/test_01 build/test_02 build/test_03 build/test_04 build/test_05 build/test_06 build/test_08 build/test_09 build/test_10 build/test_11 build/test_12 build/test_13 build/test_14 build/test_15 build/test_16 build/test_17 build/test_18 build/test_19 build/test_20 build/test_21 build/test_22 build/test_23 build/test_24
+
+TEST_BIN = \
+	build/test_01 \
+	build/test_02 \
+	build/test_03 \
+	build/test_04 \
+	build/test_05 \
+	build/test_06 \
+	build/test_08 \
+	build/test_09 \
+	build/test_10 \
+	build/test_11 \
+	build/test_12 \
+	build/test_13 \
+	build/test_14 \
+	build/test_15 \
+	build/test_16 \
+	build/test_17 \
+	build/test_18 \
+	build/test_19 \
+	build/test_20 \
+	build/test_21 \
+	build/test_22 \
+	build/test_23 \
+	build/test_24
 #build/test_07
 
-BENCH_REF_GEN=build/bench_halide_divergence2d_generator build/bench_halide_heat2d_generator build/bench_halide_cvtcolor_generator build/bench_halide_filter2D_generator build/bench_halide_blurxy_generator build/bench_halide_recfilter_generator build/bench_halide_gaussian_generator build/bench_halide_fusion_generator build/bench_halide_recfilter_generator build/bench_halide_heat2d_generator build/bench_halide_divergence2d_generator
+BENCH_REF_GEN = \
+	build/bench_halide_recfilter_generator \
+	build/bench_halide_divergence2d_generator \
+	build/bench_halide_heat2d_generator \
+	build/bench_halide_cvtcolor_generator \
+	build/bench_halide_filter2D_generator \
+	build/bench_halide_blurxy_generator \
+	build/bench_halide_gaussian_generator \
+	build/bench_halide_fusion_generator
 # Not supported yet: build/bench_halide_rgbyuv420_generator
-BENCH_TIRAMISU_GEN=build/bench_tiramisu_divergence2d_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_cvtcolor_generator build/bench_tiramisu_filter2D_generator build/bench_tiramisu_blurxy_generator build/bench_tiramisu_recfilter_generator build/bench_halide_recfilter_generator build/bench_tiramisu_fusion_generator build/bench_tiramisu_gaussian_generator build/bench_tiramisu_heat2d_generator build/bench_tiramisu_divergence2d_generator
+BENCH_TIRAMISU_GEN = \
+	build/bench_tiramisu_recfilter_generator \
+	build/bench_tiramisu_divergence2d_generator \
+	build/bench_tiramisu_heat2d_generator \
+	build/bench_tiramisu_cvtcolor_generator \
+	build/bench_tiramisu_filter2D_generator \
+	build/bench_tiramisu_blurxy_generator \
+	build/bench_tiramisu_gaussian_generator \
+	build/bench_tiramisu_fusion_generator
 # Not supported yet: build/bench_tiramisu_rgbyuv420_generator
-BENCH_BIN=build/bench_divergence2d build/bench_heat2d build/bench_cvtcolor build/bench_filter2D build/bench_blurxy build/bench_recfilter build/bench_fusion build/bench_gaussian build/bench_heat2d build/bench_divergence2d
+BENCH_BIN = \
+	build/bench_recfilter \
+	build/bench_divergence2d \
+	build/bench_heat2d \
+	build/bench_cvtcolor \
+	build/bench_filter2D \
+	build/bench_blurxy \
+	build/bench_gaussian \
+	build/bench_fusion
 # Not supported yet: build/bench_rgbyuv420
 
 all: builddir ${OBJ}
-
 
 builddir:
 	@if [ ! -d "build" ]; then mkdir -p build; fi
@@ -86,10 +177,8 @@ run_benchmarks:
 	@for tt in ${BENCH_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
-
 doc:
 	doxygen Doxyfile
-
 
 clean:
 	rm -rf *~ src/*~ include/*~ build/* doc/

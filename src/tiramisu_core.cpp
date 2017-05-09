@@ -429,7 +429,6 @@ const std::vector<std::string> &function::get_iterator_names() const
     return iterator_names;
 }
 
-
 /**
   * Return true if the computation \p comp should be parallelized
   * at the loop level \p lev.
@@ -450,7 +449,6 @@ bool function::should_parallelize(const std::string &comp, int lev) const
     return found;
 }
 
-
 /**
 * Return true if the computation \p comp should be vectorized
 * at the loop level \p lev.
@@ -470,7 +468,6 @@ bool function::should_vectorize(const std::string &comp, int lev) const
     }
     return found;
 }
-
 
 void function::set_context_set(isl_set *context)
 {
@@ -2257,7 +2254,6 @@ std::vector<tiramisu::computation *> computation::duplicate(std::string domain_c
 
     return duplicates;
 }
-
 
 // TODO: fix this function
 isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_coefficient,
