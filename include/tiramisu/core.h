@@ -354,7 +354,7 @@ public:
     /**
       * Add an iterator to the function.
       */
-    void add_iterator_name(const std::string &iteratorName);
+    void add_iterator_name(const std::string &it_name);
 
     /**
       * Compute the graph of dependences between the computations of
@@ -501,7 +501,7 @@ public:
       * The order of execution of computations is specified through the
       * schedule.
       */
-    const std::vector<computation *> get_computations() const;
+    const std::vector<computation *> &get_computations() const;
 
     /**
       * Return the computation of the function that has
@@ -642,7 +642,7 @@ public:
       * Set the iterator names of the function.
       * This function overrides any previously set iterator names.
       */
-    void set_iterator_names(const std::vector<std::string> &iteratorNames);
+    void set_iterator_names(const std::vector<std::string> &it_names);
 
     /**
       * Return true if the computation \p comp should be mapped to GPU block
@@ -1200,7 +1200,7 @@ public:
       * The scope of the variable defined by the let statement is this
       * computation alone. i.e., it is not defined in other computations.
       */
-    std::vector<std::pair<std::string, tiramisu::expr>> get_associated_let_stmts();
+    const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
 
     /**
       * Return the context of the computations.
