@@ -797,7 +797,6 @@ tiramisu::computation *tiramisu::computation::copy()
     {
         auto s = this->schedules[i];
         new_c->schedules[i] = isl_map_copy(s);
-        i++;
     }
 
     new_c->access = isl_map_copy(this->access);
