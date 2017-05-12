@@ -218,6 +218,26 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
     return last;
 }
 
+bool tiramisu::computation::is_update() const
+{
+    bool is_update = false;
+
+    std::string name = this->get_name();
+    assert(name.size() > 0);
+
+    std::vector<tiramisu::computation *> computations =
+            this->get_function()->get_computation_by_name(name);
+
+    // If many computations of the same name exist, then this
+    // computation is an update, otherwise it is a pure definition.
+    if (computations.size() > 1)
+        is_update = true;
+    else
+        is_update = false;
+
+    return is_update;
+}
+
 void tiramisu::function::compute_bounds()
 {
     DEBUG_FCT_NAME(3);
@@ -250,6 +270,24 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("The producers of the last computations are:",
                                 isl_union_set_to_str(Producers)));
 
+    // If the graph of dependences has recursive dependences, then the intersection of
+    // the old producers and the new producers will not be empty (i.e., the old producer and the new producer
+    // are the same).
+    // In this case, we should subtract the common domain so that in the next iterations of the
+    // the algorithm we do not get the same computation again and again (since we have a recursive dependence).
+    // This is equivalent to removing the recursive dependence (we remove its image instead of removing it).
+    isl_union_set *old_Producers = isl_union_set_copy(Domains);
+    isl_union_set *intersection = isl_union_set_intersect(old_Producers, isl_union_set_copy(Producers));
+    if (isl_union_set_is_empty(intersection) == isl_bool_false)
+    {
+        isl_union_set *common_computations = isl_union_set_universe(intersection);
+        Producers = isl_union_set_subtract(Producers, common_computations);
+        DEBUG(3, tiramisu::str_dump("After eliminating the effect of recursive dependences.",
+                                isl_union_set_to_str(Producers)));
+    }
+
+
+    // Propagation of bounds
     DEBUG(3, tiramisu::str_dump("Propagating the bounds over all computations."));
     DEBUG_INDENT(4);
     while (isl_union_set_is_empty(Producers) == isl_bool_false)
@@ -268,39 +306,59 @@ void tiramisu::function::compute_bounds()
             DEBUG(3, tiramisu::str_dump("After keeping only the producers that have the same space as the domain.",
                                         isl_union_set_to_str(c_prods)));
 
-            if ((isl_union_set_is_empty(c_prods) == isl_bool_false))
+            // If this is not an update operation, we can update its domain, otherwise
+            // we do not update the domain and keep the one provided by the user.
+            if (c->is_update() == false)
             {
-                if (isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true)
+                // REC TODO: in the documentation of compute_bounds indicate that compute_bounds does not update the bounds of update operations
+                if ((isl_union_set_is_empty(c_prods) == isl_bool_false))
                 {
-                    DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is a universe."));
+                    if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true))
+                    {
+                        DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is a universe."));
+                        DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
+                                                    isl_union_set_to_str(c_prods)));
+                        c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(c_prods)));
+                    }
+                    else
+                    {
+                        DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is NOT a universe."));
+                        isl_union_set *u = isl_union_set_union(isl_union_set_copy(c_prods),
+                                                               isl_union_set_copy(c_dom));
+                        c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(u)));
+                        DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
+                                                    isl_union_set_to_str(u)));
+                    }
                 }
-                else
-                {
-                    DEBUG(3, tiramisu::str_dump("The iteration domain of the computation is NOT a universe."));
-                }
-
-                if ((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_true))
-                {
-                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
-                                                isl_union_set_to_str(c_prods)));
-                    c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(c_prods)));
-                }
-                else
-                {
-                    isl_union_set *u = isl_union_set_union(isl_union_set_copy(c_prods),
-                                                           isl_union_set_copy(c_dom));
-                    c->set_iteration_domain(isl_set_from_union_set(isl_union_set_copy(u)));
-                    DEBUG(3, tiramisu::str_dump("The new domain of the computation = ",
-                                                isl_union_set_to_str(u)));
-                }
-
+            }
+            else
+            {
+                assert((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_false) && "The iteration domain of an update should not be universe.");
+                assert((isl_set_is_empty(c->get_iteration_domain()) == isl_bool_false) && "The iteration domain of an update should not be empty.");
             }
 
             DEBUG(3, tiramisu::str_dump(""));
         }
 
+        old_Producers = isl_union_set_copy(Producers);
         Producers = isl_union_set_apply(isl_union_set_copy(Producers), isl_union_map_copy(Reverse));
         DEBUG(3, tiramisu::str_dump("The new Producers : ", isl_union_set_to_str(Producers)));
+
+        // If the graph of dependences has recursive dependences, then the intersection of
+        // the old producers and the new producers will not be empty (i.e., the old producer and the new producer
+        // are the same).
+        // In this case, we should subtract the common domain so that in the next iterations of the
+        // the algorithm we do not get the same computation again and again (since we have a recursive dependence).
+        // This is equivalent to removing the recursive dependence (we remove its image instead of removing it).
+        intersection = isl_union_set_intersect(old_Producers, isl_union_set_copy(Producers));
+        if (isl_union_set_is_empty(intersection) == isl_bool_false)
+        {
+            isl_union_set *common_computations = isl_union_set_universe(intersection);
+            Producers = isl_union_set_subtract(Producers, common_computations);
+            DEBUG(3, tiramisu::str_dump("After eliminating the effect of recursive dependences.",
+                                    isl_union_set_to_str(Producers)));
+        }
+
     }
     DEBUG_INDENT(-4);
 

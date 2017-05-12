@@ -1334,6 +1334,19 @@ public:
     bool is_let_stmt() const;
 
     /**
+     * Return true if the computation is an update.  A computation is an update
+     * if it is defined more than once.  In the following example, we have two
+     * update definitions of the computation C and a pure definition of the D
+     * computation (a computation is pure if it is not an update).
+     *
+     * C(0) = 0
+     * C(i) = C(i-1) + 1
+     * D(i) = C(i) + 1
+     *
+     */
+    bool is_update() const;
+
+    /**
       * Return true if the this computation is supposed to be scheduled
       * by Tiramisu.
       */
