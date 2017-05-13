@@ -26,7 +26,14 @@ reorder_storage():
 	  exactly like we do for the interchange() command in Tiramisu (which
 	  interchanges loop nest levels).
 
+- Bound inference
+	- An example of how to do bound inference in case of non-affine bounds
+	is provided in test_24. Basically, the non-affine bounds are "hidden"
+	in constants (in test_24, we create T1 and T2 to hide the non-affine
+	bounds).
+
 - Reduction
 
-- Update
+- Update:
+	- Example provided in test_25
 
