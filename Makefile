@@ -62,7 +62,10 @@ TEST_GEN = \
 	build/test_20_fct_generator \
 	build/test_21_fct_generator \
 	build/test_22_fct_generator \
-	build/test_23_fct_generator build/test_24_fct_generator
+	build/test_23_fct_generator \
+	build/test_24_fct_generator \
+	build/test_25_fct_generator
+
 #build/test_07_fct_generator
 
 TEST_BIN = \
@@ -88,7 +91,9 @@ TEST_BIN = \
 	build/test_21 \
 	build/test_22 \
 	build/test_23 \
-	build/test_24
+	build/test_24 \
+	build/test_25
+
 #build/test_07
 
 BENCH_REF_GEN = \

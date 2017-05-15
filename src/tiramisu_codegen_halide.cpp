@@ -466,10 +466,10 @@ isl_constraint *get_constraint_for_access(int access_dimension,
  * Traverse the vector of computations \p comp_vec and return the computations
  * that have a domain that intersects with \p domain.
  */
-tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
+std::vector<tiramisu::computation *> filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
         isl_union_set *node_domain)
 {
-    tiramisu::computation *res = NULL;
+    std::vector<tiramisu::computation *> res;
 
     for (size_t i = 0; i < comp_vec.size(); i++)
     {
@@ -482,12 +482,12 @@ tiramisu::computation *filter_computations_by_domain(std::vector<tiramisu::compu
 
         if (isl_union_set_is_empty(intersection) == isl_bool_false)
         {
-            res = comp_vec[i];
+            res.push_back(comp_vec[i]);
         }
         isl_union_set_free(intersection);
     }
 
-    assert((res != NULL) && "Computation not found.");
+    assert((res.size() > 0) && "Computation not found.");
 
     return res;
 }
@@ -522,12 +522,26 @@ void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
         DEBUG(3, tiramisu::str_dump("Extracting access from o_access."));
 
         // Get the domain of the computation that corresponds to the access.
-        // Even if there are many computations, we take the first because the
-        // domain is the same any way.
-        // The computation that represents the access operation.
-        // TODO: if there multiple computations (in the case of an update for example),
-        // the following should retrieve the right computation.
-        tiramisu::computation *access_op_comp = fct->get_computation_by_name(exp.get_name())[0];
+        // Even if there are many computations, we take the first because we are
+        // only interested in getting the space of those computations and we assume
+        // in Tiramisu that all the computations that have the same, have the same
+        // space.
+        std::vector<tiramisu::computation *> computations_vector = fct->get_computation_by_name(exp.get_name());
+
+        // Since we modify the names of update computations but do not modify the
+        // expressions.  When accessing the expressions we find the old names, so
+        // we need to look for the new names instead of the old names.
+        // We do this instead of actually changing the expressions, because changing
+        // the expressions will make the semantics of the printed program ambiguous,
+        // since we do not have any way to distinguish between which update is the
+        // consumer is consuming exactly.
+        if (computations_vector.size() == 0)
+        {
+            // Search for update computations.
+            computations_vector = fct->get_computation_by_name("_" + exp.get_name() + "_update_0");
+            assert((computations_vector.size() > 0) && "Computation not found.");
+        }
+        tiramisu::computation *access_op_comp = computations_vector[0];
 
         DEBUG(10, tiramisu::str_dump("Obtained accessed computation."));
 
@@ -847,79 +861,83 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
     isl_union_map *sched = isl_ast_build_get_schedule(build);
     isl_union_set *sched_range = isl_union_map_domain(sched);
     assert((sched_range != NULL) && "Range of schedule is NULL.");
-    tiramisu::computation *comp = filter_computations_by_domain(comp_vec, sched_range);
+
+    std::vector<tiramisu::computation *> filtered_comp_vec = filter_computations_by_domain(comp_vec, sched_range);
     isl_union_set_free(sched_range);
 
-    // Mark "comp" as the computation associated with this node.
-    isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *)comp);
-    node = isl_ast_node_set_annotation(node, annotation_id);
-
-    assert((comp != NULL) && "Computation not found!");;
-
-    DEBUG(3, tiramisu::str_dump("Computation:", comp->get_name().c_str()));
-
-    // Get the accesses of the computation.  The first access is the access
-    // for the LHS.  The following accesses are for the RHS.
-    std::vector<isl_map *> accesses;
-    isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
-    accesses.push_back(access);
-    // Add the accesses of the RHS to the accesses vector
-    get_rhs_accesses(func, comp, accesses, true);
-
-    if (!accesses.empty())
+    for (auto comp: filtered_comp_vec)
     {
-        DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
-        DEBUG_INDENT(4);
-        for (size_t i = 0; i < accesses.size(); i++)
-        {
-            if (accesses[i] != NULL)
-            {
-                DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ":", isl_map_to_str(accesses[i])));
-            }
-            else
-            {
-                DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ": NULL"));
-            }
-        }
+        // Mark "comp" as the computation associated with this node.
+        isl_id *annotation_id = isl_id_alloc(func->get_isl_ctx(), "", (void *)comp);
+        node = isl_ast_node_set_annotation(node, annotation_id);
 
-        DEBUG_INDENT(-4);
+        assert((comp != NULL) && "Computation not found!");;
 
-        std::vector<isl_ast_expr *> index_expressions;
-        // For each access in accesses (i.e. for each access in the computation),
-        // compute the corresponding isl_ast expression.
-        for (size_t i = 0; i < accesses.size(); ++i)
+        DEBUG(3, tiramisu::str_dump("Computation:", comp->get_name().c_str()));
+
+        // Get the accesses of the computation.  The first access is the access
+        // for the LHS.  The following accesses are for the RHS.
+        std::vector<isl_map *> accesses;
+        isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
+        accesses.push_back(access);
+        // Add the accesses of the RHS to the accesses vector
+        get_rhs_accesses(func, comp, accesses, true);
+
+        if (!accesses.empty())
         {
-            if (accesses[i] != NULL)
+            DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
+            DEBUG_INDENT(4);
+            for (size_t i = 0; i < accesses.size(); i++)
             {
-                DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
-                                            isl_map_to_str(accesses[i])));
-                index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
-                isl_map_free(accesses[i]);
-            }
-            else
-            {
-                if (!comp->is_let_stmt()) // If this is not let stmt, it should have an access function.
+                if (accesses[i] != NULL)
                 {
-                    tiramisu::error("An access function should be provided before generating code.", true);
+                    DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ":", isl_map_to_str(accesses[i])));
+                }
+                else
+                {
+                    DEBUG(3, tiramisu::str_dump("Access " + std::to_string(i) + ": NULL"));
                 }
             }
-        }
 
-        // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
-        for (int i = index_expressions.size() - 1; i >= 0; i--)
-        {
-            comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
-        }
+            DEBUG_INDENT(-4);
 
-        for (const auto &i_expr : comp->get_index_expr())
-        {
-            DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
-                                        isl_ast_expr_to_C_str(i_expr)));
+            std::vector<isl_ast_expr *> index_expressions;
+            // For each access in accesses (i.e. for each access in the computation),
+            // compute the corresponding isl_ast expression.
+            for (size_t i = 0; i < accesses.size(); ++i)
+            {
+                if (accesses[i] != NULL)
+                {
+                    DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
+                                                isl_map_to_str(accesses[i])));
+                    index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
+                    isl_map_free(accesses[i]);
+                }
+                else
+                {
+                    if (!comp->is_let_stmt()) // If this is not let stmt, it should have an access function.
+                    {
+                        tiramisu::error("An access function should be provided before generating code.", true);
+                    }
+                }
+            }
+
+            // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
+            for (int i = index_expressions.size() - 1; i >= 0; i--)
+            {
+                comp->get_index_expr().insert(comp->get_index_expr().begin(), index_expressions[i]);
+            }
+
+            for (const auto &i_expr : comp->get_index_expr())
+            {
+                DEBUG(3, tiramisu::str_dump("Generated Index expression:", (const char *)
+                                            isl_ast_expr_to_C_str(i_expr)));
+            }
         }
-    }
-    else
-    {
-        DEBUG(3, tiramisu::str_dump("Generated RHS empty."));
+        else
+        {
+            DEBUG(3, tiramisu::str_dump("Generated RHS empty."));
+        }
     }
 
     DEBUG_FCT_NAME(3);
@@ -1119,11 +1137,26 @@ Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
 
             DEBUG(3, tiramisu::str_dump("Computation being accessed: "); tiramisu::str_dump(access_comp_name));
 
-            // TODO: We assume that computations that have the same name write all to the same buffer
-            // but may have different access relations (the difference is in the domains of their access relations).
-            // This assumption should be eliminated.
-            tiramisu::computation *access_comp = comp->get_function()->get_computation_by_name(
-                    access_comp_name)[0];
+            // Since we modify the names of update computations but do not modify the
+            // expressions.  When accessing the expressions we find the old names, so
+            // we need to look for the new names instead of the old names.
+            // We do this instead of actually changing the expressions, because changing
+            // the expressions will make the semantics of the printed program ambiguous,
+            // since we do not have any way to distinguish between which update is the
+            // consumer is consuming exactly.
+            std::vector<tiramisu::computation *> computations_vector
+                    = comp->get_function()->get_computation_by_name(access_comp_name);
+            if (computations_vector.size() == 0)
+            {
+                // Search for update computations.
+                computations_vector
+                    = comp->get_function()->get_computation_by_name("_" + std::string(access_comp_name) + "_update_0");
+                assert((computations_vector.size() > 0) && "Computation not found.");
+            }
+
+            // We assume that computations that have the same name write all to the same buffer
+            // but may have different access relations.
+            tiramisu::computation *access_comp = computations_vector[0];
             assert((access_comp != NULL) && "Accessed computation is NULL.");
             const char *buffer_name = isl_space_get_tuple_name(
                                           isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()),

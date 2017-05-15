@@ -269,6 +269,17 @@ private:
       */
     isl_union_map *get_aligned_identity_schedules() const;
 
+    /**
+     * A pass to rename computations.
+     * Computation that are defined multiple times need to be renamed, because
+     * those computations in general have different expressions and the code
+     * generator expects that computations that have the same name always have
+     * the same expression and access relation. So we should rename them to avoid
+     * any ambiguity for the code generator.
+     *
+     */
+    void rename_computations();
+
 protected:
 
     /**
@@ -370,6 +381,42 @@ public:
       * in the function (i.e., computations that does not have any consumer).
       * Then, it propagates the bounds over the final consumers to their producers.
       * The bounds of each consumer are used to deduce the bounds over its producer.
+      *
+      * To take benefit of bound inference, the user can declare computations
+      * without providing constraints on their iteration domains. For example
+      * the user can declare the following computations (the left side is the
+      * iteration domain, while the right side is the expression attached to
+      * each computation)
+      *
+      *
+      * {A[i]        } : 0
+      * {B[i]        } : 0
+      * {C[i]        } : A[i] + B[i]
+      * {D[i]: 0<=i<N} : 2*C[i]
+      *
+      *
+      * The user needs only to provide constraints over the domains of the
+      * last computations (last consumers), and Tiramisu will propagate
+      * these constraints to all the chain of computations that precede
+      * those consumers.
+      * In the previous example, constraints over the iteration domain were
+      * only provided for the last consumer "D[i]" and no constraints were
+      * provided for the other computations.  Bound inference would deduce
+      * the constraints for the computations A[i], B[i] and C[i].
+      *
+      * Note that bound inference is not possible if you have multiple definitions
+      * of the same computation. For example, if you have multiple definitions
+      * of the same computations, in such a case the user should provide
+      * constraints of the iteration domain of the computation.  Example:
+      *
+      * {A[i]        } : 0
+      * {C[i]: i=0   } : 0
+      * {C[i]: 1<=i<N} : C[i-1] + A[i]
+      * {D[i]: 0<=i<N} : 2*C[i]
+      *
+      * In this case, constraints over the computations defining C[i] are provided.
+      *
+      * Examples about bound inference are provided in test_22 to test_25.
       */
     void compute_bounds();
 
@@ -886,6 +933,13 @@ private:
     tiramisu::primitive_t data_type;
 
     /**
+     * Indicate whether the computation is defined multiple times (i.e.,
+     * whether there are many computations with the same name). An update
+     * is a special case of a computation defined multiple times.
+     */
+    bool multiple_definitions;
+
+    /**
       * An expression representing the computation
       * ("what" should be computed).
       */
@@ -897,11 +951,46 @@ private:
     tiramisu::function *function;
 
     /**
+      * An isl_ast_expr representing the index of the array where the computation
+      * will be stored.  This index is computed after the scheduling is done.
+      */
+    std::vector<isl_ast_expr *> index_expr;
+
+    /**
+      * Does this computation represent a let statement ?
+      *
+      * Let statements should be treated differently:
+      * - During Halide code generation a Halide let statement should be
+      * created instead of an assignment statement.
+      * - A let statement does not have/need an access function because
+      * it writes directly to a scalar.
+      * - When targeting Halide, let statements should be created after
+      * their body is created, because the body is an argument needed
+      * for the creation of the let statement.
+      */
+    bool is_let;
+
+    /**
       * Iteration domain of the computation.
       * In this representation, the order of execution of computations
       * is not specified, the computations are also not mapped to memory.
      */
     isl_set *iteration_domain;
+
+    /**
+      * The name of this computation.
+      * Computation names should not start with _ (an underscore).
+      * Names starting with _ are reserved names.
+      */
+    std::string name;
+
+    /**
+      * A logical time that indicates the relative order of this computation
+      * compared to other computations.
+      * This should only be used by the .after() function and should not be
+      * used directly by users.
+      */
+    unsigned long relative_order;
 
     /**
       * A vector of the schedules of the computation.
@@ -920,28 +1009,6 @@ private:
     std::vector<isl_map *> schedules;
 
     /**
-      * A logical time that indicates the relative order of this computation
-      * compared to other computations.
-      * This should only be used by the .after() function and should not be
-      * used directly by users.
-      */
-    unsigned long relative_order;
-
-    /**
-      * Does this computation represent a let statement ?
-      *
-      * Let statements should be treated differently:
-      * - During Halide code generation a Halide let statement should be
-      * created instead of an assignment statement.
-      * - A let statement does not have/need an access function because
-      * it writes directly to a scalar.
-      * - When targeting Halide, let statements should be created after
-      * their body is created, because the body is an argument needed
-      * for the creation of the let statement.
-      */
-    bool _is_let_stmt;
-
-    /**
       * TODO: use buffers directly from computations, no need to have
       * bindings.
       *
@@ -954,13 +1021,6 @@ private:
       * computation is generated.
       */
     bool schedule_this_computation;
-
-    /**
-      * The name of this computation.
-      * Computation names should not start with _ (an underscore).
-      * Names starting with _ are reserved names.
-      */
-    std::string name;
 
     /**
       * A computation can have multiple duplicates.  When the user applies
@@ -992,23 +1052,12 @@ private:
       */
     isl_set *time_processor_domain;
 
-    /**
-      * An isl_ast_expr representing the index of the array where the computation
-      * will be stored.  This index is computed after the scheduling is done.
-      */
-    std::vector<isl_ast_expr *> index_expr;
-
     // Private class methods.
 
     /**
       * Get the ID of the selected duplicate.
       */
     int get_selected_duplicate_ID() const;
-
-    /**
-      * Set the iteration domain of the computation
-      */
-    void set_iteration_domain(isl_set *domain);
 
     tiramisu::constant *create_separator_and_add_constraints_to_context(
         const tiramisu::expr &loop_upper_bound, int v);
@@ -1032,12 +1081,33 @@ private:
     void create_duplication_transformation(std::string map_str);
 
     /**
+     * Return true if the computation has multiple definitions.
+     * i.e., whether the computation is defined multiple times (i.e.,
+     * whether there are many computations with the same name). An
+     * update is a special case of a computation defined multiple
+     * times.
+     */
+    const bool has_multiple_definitions() const;
+
+    /**
       * Intersect \p set with the context of the computation.
       */
     // @{
     isl_set *intersect_set_with_context(isl_set *set);
     isl_map *intersect_map_domain_with_context(isl_map *map);
     // @}
+
+    /**
+     * Rename this computation and modify the schedule and the access relation
+     * accordingly.
+     *
+     * Computation that are defined multiple times need to be renamed, because
+     * those computations in general have different expressions and the code
+     * generator expects that computations that have the same name always have
+     * the same expression and access relation. So we should rename them to avoid
+     * any ambiguity for the code generator.
+     */
+    void rename_computation(std::string new_name);
 
     /**
       * Reset the selected duplicate ID.
@@ -1077,6 +1147,20 @@ private:
       *
       */
     std::vector<tiramisu::computation *> separate(int dim, tiramisu::constant &C);
+
+    /**
+      * Set the iteration domain of the computation
+      */
+    void set_iteration_domain(isl_set *domain);
+
+    /**
+     * Set whether a computation has multiple definitions.
+     * i.e., whether the computation is defined multiple times (i.e.,
+     * whether there are many computations with the same name). An
+     * update is a special case of a computation defined multiple
+     * times.
+     */
+    void set_has_multiple_definitions(bool val);
 
     /**
       * Simplify \p set using the context and by calling
@@ -1170,10 +1254,33 @@ public:
       *
       * \p fct is a pointer to the Tiramisu function where this computation
       * should be added.
+      *
+      * Bound Inference:
+      * The user can declare computations without providing any constraint
+      * about the iteration domain, in this case he can rely on bound inference
+      * to infer the constraints about each iteration domain. The user needs only
+      * to provide constraints over the domains of the last computations (last
+      * consumers), and Tiramisu will propagate these constraints to all the
+      * chain of computations that precede those consumers.
+      * Note that bound inference is not possible if you have multiple definitions
+      * of the same computation. For example, if you have multiple definitions
+      * of the same computations, in such a case the user should provide
+      * constraints of the iteration domain of the computation.
+      *
+      * Examples about bound inference are provided in test_22 to test_25.
       */
     computation(std::string iteration_domain_str, tiramisu::expr e,
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
+
+    /**
+     * Add an update definition of the computation.
+     * The arguments of this function are identical to the arguments of the
+     * constructor.
+     */
+    computation *add_update(std::string iteration_domain_str, tiramisu::expr e,
+                            bool schedule_this_computation, tiramisu::primitive_t t,
+                            tiramisu::function *fct);
 
     /**
       * Return the access function of the computation.

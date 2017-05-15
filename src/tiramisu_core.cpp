@@ -168,52 +168,81 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    assert((this->get_computations().size()>0) && "The function should have at least one computation.");
+
     std::vector<tiramisu::computation *> last;
     isl_union_map *deps = this->compute_dep_graph();
 
-    // The domains and the ranges of the dependences
-    isl_union_set *domains = isl_union_map_domain(isl_union_map_copy(deps));
-    isl_union_set *ranges = isl_union_map_range(isl_union_map_copy(deps));
-
-    DEBUG(3, tiramisu::str_dump("Ranges of the dependence graph.", isl_union_set_to_str(ranges)));
-    DEBUG(3, tiramisu::str_dump("Domains of the dependence graph.", isl_union_set_to_str(domains)));
-
-    /** In a dependence graph, since dependences create a chain (i.e., the end of
-     *  a dependence is the beginning of the following), then each range of
-     *  a dependence has a set domains that correspond to it (i.e., that their
-     *  union is equal to it).  If range exists but does not have domains that
-     *  are equal to it, then that range is the last range.
-     *
-     *  To compute those ranges that do not have corresponding domains, we
-     *  compute (ranges - domains).
-     */
-    isl_union_set *last_ranges = isl_union_set_subtract(ranges, domains);
-    DEBUG(3, tiramisu::str_dump("Ranges - Domains :", isl_union_set_to_str(last_ranges)));
-
-    for (const auto &c : this->get_computations())
+    if (deps != NULL)
     {
-        isl_space *sp = isl_set_get_space(c->get_iteration_domain());
-        isl_set *s = isl_set_universe(sp);
-        isl_union_set *intersect =
-            isl_union_set_intersect(isl_union_set_from_set(s),
-                                    isl_union_set_copy(last_ranges));
-
-        if (isl_union_set_is_empty(intersect) == isl_bool_false)
+        if (isl_union_map_is_empty(deps) == isl_bool_false)
         {
-            last.push_back(c);
+            // The domains and the ranges of the dependences
+            isl_union_set *domains = isl_union_map_domain(isl_union_map_copy(deps));
+            isl_union_set *ranges = isl_union_map_range(isl_union_map_copy(deps));
+
+            DEBUG(3, tiramisu::str_dump("Ranges of the dependence graph.", isl_union_set_to_str(ranges)));
+            DEBUG(3, tiramisu::str_dump("Domains of the dependence graph.", isl_union_set_to_str(domains)));
+
+            /** In a dependence graph, since dependences create a chain (i.e., the end of
+             *  a dependence is the beginning of the following), then each range of
+             *  a dependence has a set domains that correspond to it (i.e., that their
+             *  union is equal to it).  If range exists but does not have domains that
+             *  are equal to it, then that range is the last range.
+             *
+             *  To compute those ranges that do not have corresponding domains, we
+             *  compute (ranges - domains).
+             */
+            isl_union_set *last_ranges = isl_union_set_subtract(ranges, domains);
+            DEBUG(3, tiramisu::str_dump("Ranges - Domains :", isl_union_set_to_str(last_ranges)));
+
+            if (isl_union_set_is_empty(last_ranges) == isl_bool_false)
+            {
+                for (const auto &c : this->get_computations())
+                {
+                    isl_space *sp = isl_set_get_space(c->get_iteration_domain());
+                    isl_set *s = isl_set_universe(sp);
+                    isl_union_set *intersect =
+                        isl_union_set_intersect(isl_union_set_from_set(s),
+                                                isl_union_set_copy(last_ranges));
+
+                    if (isl_union_set_is_empty(intersect) == isl_bool_false)
+                    {
+                        last.push_back(c);
+                    }
+                    isl_union_set_free(intersect);
+                }
+
+                DEBUG(3, tiramisu::str_dump("Last computations:"));
+                for (const auto &c : last)
+                {
+                    DEBUG(3, tiramisu::str_dump(c->get_name() + " "));
+                }
+            }
+            else
+            {
+                // If the difference between ranges and domains is empty, then
+                // all the computations of the program are recursive (assuming
+                // that the set of dependences is empty).
+                last = this->get_computations();
+            }
+
+            isl_union_set_free(last_ranges);
         }
-        isl_union_set_free(intersect);
+        else
+        {
+            // If the program does not have any dependence, then
+            // all the computations should be considered as the last
+            // computations.
+            last = this->get_computations();
+        }
+
+        isl_union_map_free(deps);
     }
 
-    DEBUG(3, tiramisu::str_dump("Last computations:"));
-    for (const auto &c : last)
-    {
-        DEBUG(3, tiramisu::str_dump(c->get_name() + " "));
-    }
+    assert((last.size()>0) && "The function should have at least one last computation.");
+
     DEBUG_INDENT(-4);
-
-    isl_union_set_free(last_ranges);
-    isl_union_map_free(deps);
 
     return last;
 }
@@ -370,6 +399,17 @@ void tiramisu::function::compute_bounds()
 
     DEBUG_INDENT(-4);
     DEBUG(3, tiramisu::str_dump("End of function"));
+}
+
+tiramisu::computation *tiramisu::computation::add_update(std::string iteration_domain_str, tiramisu::expr e,
+                        bool schedule_this_computation, tiramisu::primitive_t t,
+                        tiramisu::function *fct)
+{
+    tiramisu::computation *C =
+            new tiramisu::computation(iteration_domain_str, e,
+                                      schedule_this_computation, t, fct);
+
+    return C;
 }
 
 void tiramisu::function::dump_dep_graph()
@@ -597,6 +637,86 @@ void function::gen_halide_obj(const std::string &obj_file_name) const
 }
 // @}
 
+
+void tiramisu::computation::rename_computation(std::string new_name)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(this->get_function()->get_computation_by_name(new_name).empty());
+
+    std::string old_name = this->get_name();
+
+    this->set_name(new_name);
+
+    // Rename the iteration domain.
+    isl_set *dom = this->get_iteration_domain();
+    dom = isl_set_set_tuple_name(dom, new_name.c_str());
+    DEBUG(10, tiramisu::str_dump("Setting the iteration domain to ", isl_set_to_str(dom)));
+    this->set_iteration_domain(dom);
+
+    // Rename the access relation of the computation.
+    isl_map *access = this->get_access_relation();
+    access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
+    DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
+    this->set_access(access);
+
+    // Rename the schedule
+    isl_map *sched = this->get_schedule(0);
+    sched = isl_map_set_tuple_name(sched, isl_dim_in, new_name.c_str());
+    sched = isl_map_set_tuple_name(sched, isl_dim_out, new_name.c_str());
+    DEBUG(10, tiramisu::str_dump("Setting the schedule relation to ", isl_map_to_str(sched)));
+    this->set_schedule(sched);
+
+    DEBUG_INDENT(-4);
+}
+
+
+/**
+ * A pass to rename computations.
+ * Computation that are defined multiple times need to be renamed, because
+ * those computations in general have different expressions and the code
+ * generator expects that computations that have the same name always have
+ * the same expression and access relation. So we should rename them to avoid
+ * any ambiguity for the code generator.
+ *
+ */
+void tiramisu::function::rename_computations()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // Computations that have been defined multiple times should
+    // be renamed. ISL code generator expects computations with the
+    // same name to have the same expressions and the same access
+    // relation. So, "update" computations that have the same name
+    // but have different expressions should be renamed first so
+    // that we can use the original code generator without any
+    // modification.
+    for (auto const comp: this->get_computations())
+    {
+        std::vector<tiramisu::computation *> same_name_computations =
+                this->get_computation_by_name(comp->get_name());
+
+        int i = 0;
+
+        if (same_name_computations.size() > 1)
+            for (auto c: same_name_computations)
+            {
+                std::string new_name = "_" + c->get_name() + "_update_" + std::to_string(i);
+                c->rename_computation(new_name);
+                i++;
+            }
+    }
+
+    DEBUG(3, tiramisu::str_dump("After renaming the computations."));
+    DEBUG(3, this->dump(false));
+
+    DEBUG_INDENT(-4);
+}
+
+
+
 /**
   * Generate an isl AST for the function.
   */
@@ -609,7 +729,6 @@ void function::gen_isl_ast()
     // TODO: check that the access was provided.
     assert(this->get_trimmed_time_processor_domain() != NULL);
     assert(this->get_aligned_identity_schedules() != NULL);
-
 
     isl_ctx *ctx = this->get_isl_ctx();
     isl_ast_build *ast_build;
@@ -859,7 +978,7 @@ tiramisu::computation *tiramisu::computation::copy()
 
     new_c->access = isl_map_copy(this->access);
     new_c->relative_order = this->relative_order;
-    new_c->_is_let_stmt = this->_is_let_stmt;
+    new_c->is_let = this->is_let;
 
     DEBUG_INDENT(-4);
 
@@ -1174,10 +1293,26 @@ void function::dump_time_processor_domain() const
     }
 }
 
+const bool tiramisu::computation::has_multiple_definitions() const
+{
+    return this->multiple_definitions;
+}
+
+void tiramisu::computation::set_has_multiple_definitions(bool val)
+{
+    this->multiple_definitions = val;
+}
+
 void function::gen_time_processor_domain()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    // Rename updates so that they have different names because
+    // the code generator expects each uniqueme name to have
+    // an expression, different computations that have the same
+    // name cannot have different expressions.
+    this->rename_computations();
 
     this->align_schedules();
 
@@ -4213,6 +4348,29 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->set_identity_schedule_based_on_iteration_domain();
     this->set_expression(e);
 
+    // If there are computations that have already been defined and that
+    // have the same name, check that they constraints over their iteration
+    // domains.
+    std::vector<tiramisu::computation *> same_name_computations =
+            this->get_function()->get_computation_by_name(name);
+    if (same_name_computations.size() > 1)
+    {
+        if (isl_set_plain_is_universe(this->get_iteration_domain()))
+            tiramisu::error("Computations defined multiple times should"
+                    " have bounds on their iteration domain", true);
+
+        for (auto c: same_name_computations)
+        {
+            c->set_has_multiple_definitions(true);
+
+            if (isl_set_plain_is_universe(c->get_iteration_domain()))
+                tiramisu::error("Computations defined multiple times should"
+                        " have bounds on their iteration domain", true);
+        }
+    }
+    else
+        this->set_has_multiple_definitions(false);
+
     DEBUG_INDENT(-4);
 }
 
@@ -4248,7 +4406,8 @@ tiramisu::computation::computation()
     this->iteration_domain = NULL;
     this->name = "";
     this->function = NULL;
-    this->_is_let_stmt = false;
+    this->is_let = false;
+    this->multiple_definitions = false;
 }
 
 /**
@@ -4320,7 +4479,7 @@ tiramisu::computation::computation(std::string iteration_domain_str, tiramisu::e
     DEBUG_INDENT(4);
 
     init_computation(iteration_domain_str, fct, e, schedule_this_computation, t);
-    _is_let_stmt = false;
+    is_let = false;
 
     DEBUG_INDENT(-4);
 }
@@ -4494,7 +4653,7 @@ isl_map *tiramisu::computation::get_trimmed_union_of_schedules() const
  */
 bool tiramisu::computation::is_let_stmt() const
 {
-    return _is_let_stmt;
+    return is_let;
 }
 
 /**
@@ -4626,6 +4785,17 @@ void tiramisu::computation::set_access(std::string access_str)
             assert(separated_computation->get_access_relation() != NULL);
         }
     }
+
+    /**
+     * Check that if there are other computations that have the same name
+     * as this computation, then the access of all of these computations
+     * should be the same.
+     */
+    std::vector<tiramisu::computation *> computations =
+            this->get_function()->get_computation_by_name(this->get_name());
+    for (auto c: computations)
+        if (isl_map_is_equal(this->get_access_relation(), c->get_access_relation()) == isl_bool_false)
+            tiramisu::error("Computations that have the same name should also have the same access relation.", true);
 }
 
 /**
@@ -4818,7 +4988,7 @@ void tiramisu::computation::bind_to(buffer *buff)
 
 void tiramisu::computation::mark_as_let_statement()
 {
-    this->_is_let_stmt = true;
+    this->is_let = true;
 }
 
 /****************************************************************************
