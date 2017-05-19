@@ -21,7 +21,7 @@
 	- split(y, y1, y2, val)
 	- tag_parallel_level(y1) or tag_parallel_level(y2) (not sure what are the semantics of parallel in Halide).
 
-reorder_storage():
+- reorder_storage():
 	- Should be implemented by creating a map that reorders dimensions
 	  exactly like we do for the interchange() command in Tiramisu (which
 	  interchanges loop nest levels).
@@ -34,6 +34,18 @@ reorder_storage():
 
 - Reduction
 
-- Update:
-	- Example provided in test_25
+- Update
+	- Use add_update(),
+	- An example is provided in test_25.
+
+- store_at()
+	- It provides two information (thus it should be translated into
+	  a Tiramisu code that expresses these two information):
+		-- It indicates the schedule of the allocation (i.e., when
+		should we allocate an array). In order to specify the schedule
+		of allocation of a buffer buf0, one can call buf0.allocate_at().
+		-- The size of the buffer to be allocated, which can be retrieved
+		from the loop bounds using:
+		computation.get_upper_bound(level)
+		computation.get_lower_bound(level)
 
