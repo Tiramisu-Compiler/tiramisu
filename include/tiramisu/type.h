@@ -48,33 +48,10 @@ enum primitive_t
   */
 enum op_t
 {
+    // Unary operators
+    // The argument of the following operators is a tiramisu::expr.
     o_minus,
-    o_add,
-    o_sub,
-    o_mul,
-    o_div,
-    o_mod,
-
-    o_logical_and,
-    o_logical_or,
-    o_logical_not,
-    o_select,
-    o_cond,
-    o_eq,
-    o_ne,
-    o_le,
-    o_lt,
-    o_ge,
-    o_gt,
-
-    o_max,
-    o_min,
-    o_right_shift,
-    o_left_shift,
     o_floor,
-    o_cast,
-    o_address,
-
     o_sin,
     o_cos,
     o_tan,
@@ -88,7 +65,43 @@ enum op_t
     o_ceil,
     o_round,
     o_trunc,
+    // The argument of the following operators is a string representing
+    // the name of the buffer to allocate.
+    o_allocate,
+    o_free,
+    // Other arguments
+    o_cast, // The argument is an expression and a type.
+    o_address, // The argument is a tiramisu::var() that represents a buffer.
 
+
+    // Binary operator
+    // The arguments are tiramisu::expr.
+    o_add,
+    o_sub,
+    o_mul,
+    o_div,
+    o_mod,
+    o_logical_and,
+    o_logical_or,
+    o_logical_not,
+    o_eq,
+    o_ne,
+    o_le,
+    o_lt,
+    o_ge,
+    o_gt,
+    o_max,
+    o_min,
+    o_right_shift,
+    o_left_shift,
+
+
+    // Ternary operators
+    // The arguments are tiramisu::expr.
+    o_select,
+    o_cond,
+
+    // Operators taking a name and a vector of expressions.
     o_call,
     o_access,
 
