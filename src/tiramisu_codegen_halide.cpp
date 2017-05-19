@@ -1706,7 +1706,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
         }
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
-        result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format,
+        result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format - init_expr,
                                              fortype, dev_api, halide_body);
         DEBUG(3, tiramisu::str_dump("For loop created."));
         DEBUG(10, std::cout << result);

@@ -36,6 +36,12 @@ inline void init_buffer(Halide::Buffer<T> &buf, T val)
 template<typename T>
 inline void print_buffer(const Halide::Buffer<T> &buf)
 {
+    std::string channels_size = ((buf.channels()>1)?std::to_string(buf.channels())+",":"");
+    std::string heigth_size = ((buf.height()>1)?std::to_string(buf.height())+",":"");
+    std::string width_size = ((buf.width()>=0)?std::to_string(buf.width()):"");
+
+    std::cout << "Printing " << buf.name() << "[" << channels_size << heigth_size << width_size << "]: " << std::endl;
+
     for (int z = 0; z < buf.channels(); z++)
     {
         for (int y = 0; y < buf.height(); y++)
@@ -52,7 +58,7 @@ inline void print_buffer(const Halide::Buffer<T> &buf)
             }
             std::cout << "\n";
         }
-        std::cout << "\n";
+        std::cout << ((buf.height()>1)?"\n":"");
     }
     std::cout << "\n";
 }
