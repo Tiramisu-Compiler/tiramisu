@@ -33,6 +33,7 @@
 	bounds).
 
 - Reduction
+	- An example is provided in test_26.
 
 - Update
 	- Use add_update(),
