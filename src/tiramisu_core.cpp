@@ -1330,24 +1330,11 @@ void computation::dump_schedule() const
 
     if (ENABLE_DEBUG)
     {
-        tiramisu::str_dump("Dumping schedules of the computation " + this->get_name() + " :\n");
+        tiramisu::str_dump("Dumping schedules of the computation " + this->get_name() + " : ");
 
-        int i = 0;
+        std::flush(std::cout);
         for (const auto &m : this->get_vector_of_schedules())
-        {
-            std::string str;
-            if (i == 0)
-            {
-                str = "Schedule of the original computation (ID = " + std::to_string(i) + ").\n";
-            }
-            else
-            {
-                str = "Schedule of a duplicate computation (ID = " + std::to_string(i) + ").\n";
-            }
-            tiramisu::str_dump(str);
             isl_map_dump(m);
-            i++;
-        }
     }
 
     DEBUG_INDENT(-4);
@@ -1357,18 +1344,23 @@ void computation::dump() const
 {
     if (ENABLE_DEBUG)
     {
+        std::cout << std::endl << "Dumping the computation \"" + this->get_name() + "\" :" << std::endl;
         std::cout << "Iteration domain of the computation \"" << this->name << "\" : ";
         std::flush(std::cout);
         isl_set_dump(this->get_iteration_domain());
+        std::flush(std::cout);
         this->dump_schedule();
 
-        std::cout << "Expression  : ";
         std::flush(std::cout);
+        std::cout << "Expression of the computation : "; std::flush(std::cout);
         this->get_expr().dump(false);
-        std::cout << std::endl;
+        std::cout << std::endl; std::flush(std::cout);
 
-        std::cout << "Access  : "; std::flush(std::cout);
+        std::cout << "Access relation of the computation : "; std::flush(std::cout);
         isl_map_dump(this->get_access_relation());
+        if (this->get_access_relation() == NULL)
+            std::cout << "\n";
+        std::flush(std::cout);
 
         if (this->get_time_processor_domain() != NULL)
         {
@@ -1400,6 +1392,66 @@ void computation::dump() const
         tiramisu::str_dump("\n");
         tiramisu::str_dump("\n");
     }
+}
+
+
+int max_elem(std::vector<int> vec)
+{
+    int res = -1;
+
+    for (auto v: vec)
+        res = std::max(v, res);
+
+    return res;
+}
+
+tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(C != NULL);
+    assert(level >= tiramisu::computation::root_dimension);
+    assert(level < isl_set_dim(C->get_iteration_domain(), isl_dim_set));
+
+    isl_set *iter = C->get_iteration_domain();
+    int projection_dimension = level + 1;
+    iter = isl_set_project_out(isl_set_copy(iter),
+                               isl_dim_set,
+                               projection_dimension,
+                               isl_set_dim(iter, isl_dim_set) - projection_dimension);
+    std::string new_name = "_allocation_" + generate_new_variable_name();
+    iter = isl_set_set_tuple_name(iter, new_name.c_str());
+    std::string iteration_domain_str = isl_set_to_str(iter);
+
+    DEBUG(3, tiramisu::str_dump(
+              "Computed iteration domain for the allocate() operation",
+              isl_set_to_str(iter)));
+
+    tiramisu::expr *new_expression = new tiramisu::expr(tiramisu::o_allocate, this->get_name());
+
+    tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
+                                                             *new_expression,
+                                                             true, p_none, C->get_function());
+
+    this->set_auto_allocate(false);
+
+    DEBUG(3, tiramisu::str_dump("The computation representing the allocate() operator:");
+          alloc->dump());
+
+    DEBUG_INDENT(-4);
+
+    return alloc;
+}
+
+void buffer::set_auto_allocate(bool auto_allocation)
+{
+    this->auto_allocate = auto_allocation;
+}
+
+bool buffer::get_auto_allocate()
+{
+    return this->auto_allocate;
 }
 
 void computation::set_schedule(std::string map_str, int ID)
@@ -1823,6 +1875,13 @@ int loop_level_into_static_dimension(int level)
     return loop_level_into_dynamic_dimension(level) + 1;
 }
 
+void computation::after(computation &comp, std::vector<int> levels, int first_duplicate_ID)
+{
+    for (auto level: levels)
+        this->after(comp, level, first_duplicate_ID);
+}
+
+
 /**
   * Implementation internals.
   *
@@ -1916,6 +1975,21 @@ void computation::after(computation &comp, int level, int first_duplicate_ID)
     this->reset_selected_duplicate();
     DEBUG_INDENT(-4);
 }
+
+
+void computation::before(computation &comp, std::vector<int> dims)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    for (auto dim: dims)
+        comp.after(*this, dim);
+
+    this->reset_selected_duplicate();
+
+    DEBUG_INDENT(-4);
+}
+
 
 void computation::before(computation &comp, int dim)
 {
@@ -3642,21 +3716,27 @@ void tiramisu::function::dump(bool exhaustive) const
 {
     if (ENABLE_DEBUG)
     {
-        std::cout << "\n\nFunction \"" << this->name << "\"" << std::endl;
+        std::cout << "\n\nFunction \"" << this->name << "\"" << std::endl << std::endl;
 
-        std::cout << "Function arguments (tiramisu buffers):" << std::endl;
-        for (const auto &buf : this->function_arguments)
+        if (this->function_arguments.size() > 0)
         {
-            buf->dump(exhaustive);
+            std::cout << "Function arguments (tiramisu buffers):" << std::endl;
+            for (const auto &buf : this->function_arguments)
+            {
+                buf->dump(exhaustive);
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
 
-        std::cout << "Function invariants:" << std::endl;
-        for (const auto &inv : this->invariants)
+        if (this->invariants.size() > 0)
         {
-            inv.dump(exhaustive);
+            std::cout << "Function invariants:" << std::endl;
+            for (const auto &inv : this->invariants)
+            {
+                inv.dump(exhaustive);
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
 
         if (this->get_program_context() != NULL)
         {
@@ -3670,7 +3750,6 @@ void tiramisu::function::dump(bool exhaustive) const
         {
             cpt->dump();
         }
-
         std::cout << std::endl;
 
         if (this->halide_stmt.defined())
@@ -4014,6 +4093,10 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
         return "left-shift";
     case tiramisu::o_floor:
         return "floor";
+    case tiramisu::o_allocate:
+        return "allocate";
+    case tiramisu::o_free:
+        return "free";
     case tiramisu::o_cast:
         return "cast";
     case tiramisu::o_sin:
@@ -4046,6 +4129,16 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
         tiramisu::error("Tiramisu op not supported.", true);
         return "";
     }
+}
+
+const bool tiramisu::buffer::is_allocated() const
+{
+    return this->allocated;
+}
+
+void tiramisu::buffer::mark_as_allocated()
+{
+    this->allocated = true;
 }
 
 std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
@@ -4157,8 +4250,8 @@ std::string str_from_is_null(void *ptr)
 tiramisu::buffer::buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type, uint8_t *data,
                          tiramisu::argument_t argt, tiramisu::function *fct):
-    name(name), nb_dims(nb_dims), dim_sizes(dim_sizes), type(type),
-    data(data), fct(fct), argtype(argt)
+        allocated(false), argtype(argt), auto_allocate(true), data(data), dim_sizes(dim_sizes), fct(fct),
+        name(name), nb_dims(nb_dims), type(type)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(nb_dims > 0 && "Buffer dimensions <= 0");
@@ -4334,7 +4427,6 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     relative_order = 0;
     selected_ID = 0;
 
-    this->statements_to_compute_before_me = NULL;
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
 
@@ -4399,7 +4491,6 @@ tiramisu::computation::computation()
     this->schedule_this_computation = false;
     this->data_type = p_none;
     this->expression = tiramisu::expr();
-    this->statements_to_compute_before_me = NULL;
 
     this->ctx = NULL;
 
@@ -4512,6 +4603,8 @@ isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_do
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert((this->has_accesses() == true) && ("This computation must have accesses."));
 
     isl_map *access = isl_map_copy(this->get_access_relation());
 
@@ -4935,6 +5028,15 @@ const std::vector<std::pair<std::string, tiramisu::expr>> &tiramisu::computation
     return this->associated_let_stmts;
 }
 
+bool tiramisu::computation::has_accesses() const
+{
+    if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
+        (this->get_expr().get_op_type() == tiramisu::o_free))
+        return false;
+    else
+        return true;
+}
+
 /**
  * Set the expression of the computation.
  */
@@ -4953,7 +5055,7 @@ void tiramisu::computation::set_expression(const tiramisu::expr &e)
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The new expression is: "); modified_e.dump(false););
     DEBUG(3, tiramisu::str_dump(""));
 
-    this->expression = modified_e;
+    this->expression = modified_e.copy();
 
     DEBUG_INDENT(-4);
 }
@@ -5053,11 +5155,6 @@ tiramisu::constant::constant(
                          tiramisu::str_dump("The computation representing the assignment:");
                          this->dump(true));
 
-        // Compute this statement before computing the "with_coputation".
-        // Since this statement is a let statement the "with_computation"
-        // will consumer it.
-        with_computation->statements_to_compute_before_me = this;
-
         // Set the schedule of this computation to be executed
         // before the computation.
         this->before(*with_computation, at_loop_level);
@@ -5075,7 +5172,7 @@ void tiramisu::constant::dump(bool exhaustive) const
     {
         std::cout << "Invariant \"" << this->get_name() << "\"" << std::endl;
         std::cout << "Expression: ";
-        this->get_expr().dump(exhaustive);
+        this->get_expr().dump(false);
         std::cout << std::endl;
     }
 }

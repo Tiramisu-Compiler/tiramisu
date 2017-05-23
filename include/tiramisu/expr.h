@@ -191,7 +191,7 @@ public:
     }
 
     /**
-      * Create a expression for a unary operator.
+      * Create an expression for a unary operator.
       */
     expr(tiramisu::op_t o, tiramisu::expr expr0)
     {
@@ -210,6 +210,23 @@ public:
         this->op.push_back(expr0);
     }
 
+    /**
+      * Create an expression for a unary operator that applies
+      * on a variable. For example: allocate(A) or free(B).
+      */
+    expr(tiramisu::op_t o, std::string name)
+    {
+        this->_operator = o;
+        this->etype = tiramisu::e_op;
+        this->dtype = tiramisu::p_none;
+        this->defined = true;
+
+        this->name = name;
+    }
+
+    /**
+     * Construct an expression for a binary operator.
+     */
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
         DEBUG(10, tiramisu::str_dump("Expr0:"); expr0.dump(false));
@@ -227,6 +244,9 @@ public:
         this->op.push_back(expr1);
     }
 
+    /**
+     * Construct an expression for a ternary operator.
+     */
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1, tiramisu::expr expr2)
     {
         assert(expr1.get_data_type() == expr2.get_data_type() &&
@@ -242,12 +262,16 @@ public:
         this->op.push_back(expr2);
     }
 
+    /**
+     * Construct an access or a call.
+     */
     expr(tiramisu::op_t o, std::string name,
          std::vector<tiramisu::expr> vec,
          tiramisu::primitive_t type)
     {
         assert(((o == tiramisu::o_access) || (o == tiramisu::o_call)) &&
-               "The operator is not an access operator.");
+               "The operator is not an access or a call operator.");
+
         assert(vec.size() > 0);
         assert(name.size() > 0);
 
@@ -390,6 +414,70 @@ public:
     }
 
     /**
+     * Copy an expression.
+     */
+    tiramisu::expr copy()
+    {
+        tiramisu::expr *e = new tiramisu::expr();
+
+        e->_operator = this->_operator;
+        e->op = this->op;
+        e->access_vector = this->access_vector;
+        e->argument_vector = this->argument_vector;
+        e->defined = this->defined;
+        e->name = this->name;
+        e->dtype = this->dtype;
+        e->etype = this->etype;
+
+        // Copy the integer value
+        if (this->get_expr_type() == tiramisu::e_val)
+        {
+            if (this->get_data_type() == tiramisu::p_uint8)
+            {
+                e->uint8_value = this->get_uint8_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_int8)
+            {
+                e->int8_value = this->get_int8_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_uint16)
+            {
+                e->uint16_value = this->get_uint16_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_int16)
+            {
+                e->int16_value = this->get_int16_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_uint32)
+            {
+                e->uint32_value = this->get_uint32_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_int32)
+            {
+                e->int32_value = this->get_int32_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_uint64)
+            {
+                e->uint64_value = this->get_uint64_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_int64)
+            {
+                e->int64_value = this->get_int64_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_float32)
+            {
+                e->float32_value = this->get_float32_value();
+            }
+            else if (this->get_data_type() == tiramisu::p_float64)
+            {
+                e->float64_value = this->get_float64_value();
+            }
+        }
+
+        return (*e);
+    }
+
+    /**
       * Construct a 64-bit float expression.
       */
     expr(double val)
@@ -400,14 +488,6 @@ public:
 
         this->dtype = tiramisu::p_float64;
         this->float64_value = val;
-    }
-
-    /**
-      * Return true if the expression is defined.
-      */
-    bool is_defined() const
-    {
-        return defined;
     }
 
     /**
@@ -616,7 +696,9 @@ public:
     {
         assert((this->get_expr_type() == tiramisu::e_var) ||
                (this->get_op_type() == tiramisu::o_access) ||
-               (this->get_op_type() == tiramisu::o_call));
+               (this->get_op_type() == tiramisu::o_call) ||
+               (this->get_op_type() == tiramisu::o_allocate) ||
+               (this->get_op_type() == tiramisu::o_free));
 
         return name;
     }
@@ -665,6 +747,14 @@ public:
         assert(this->get_op_type() == tiramisu::o_access);
 
         return access_vector.size();
+    }
+
+    /**
+      * Return true if the expression is defined.
+      */
+    bool is_defined() const
+    {
+        return defined;
     }
 
     /**
@@ -977,6 +1067,14 @@ public:
                             std::cout << "Address of the following access : " << std::endl;
                             this->get_operand(0).dump(true);
                         }
+                        if ((this->get_op_type() == tiramisu::o_allocate))
+                        {
+                            std::cout << "allocate(" << this->get_name() << ")" << std::endl;
+                        }
+                        if ((this->get_op_type() == tiramisu::o_free))
+                        {
+                            std::cout << "free(" << this->get_name() << ")" << std::endl;
+                        }
                         break;
                     }
                     case (tiramisu::e_val):
@@ -1033,7 +1131,6 @@ public:
                     }
                     default:
                         tiramisu::error("Expression type not supported.", true);
-
                     }
                 }
             }
@@ -1285,6 +1382,12 @@ public:
                     case tiramisu::o_address:
                         std::cout << "&" << this->get_operand(0).get_name();
                         break;
+                    case tiramisu::o_allocate:
+                        std::cout << "allocate(" << this->get_name() << ")";
+                        break;
+                    case tiramisu::o_free:
+                        std::cout << "free(" << this->get_name() << ")";
+                        break;
                     default:
                         tiramisu::error("Dumping an unsupported tiramisu expression.", 1);
                     }
@@ -1347,18 +1450,6 @@ public:
         }
     }
 };
-
-/**
-  * A class that represents index expressions
-  */
-class idx: public tiramisu::expr
-{
-public:
-    /**
-      * Construct an expression that represents an id.
-      */
-};
-
 
 /**
   * A class that represents constant variable references

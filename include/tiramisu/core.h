@@ -68,7 +68,8 @@ void halide_pipeline_to_c(
   */
 class function
 {
-    // The computation class can access the private members of function.
+    // The "computation" and the "buffer" classes can access the
+    // private members of the "function" class.
     friend tiramisu::computation;
 
 private:
@@ -731,7 +732,52 @@ public:
   */
 class buffer
 {
+
+    friend tiramisu::function;
+
 private:
+    /**
+     * A boolean that indicates whether a buffer is allocated or not.
+     */
+    bool allocated;
+
+    /**
+      * Type of the argument (if the buffer is an argument):
+      * Three possible types:
+      *  - a_input: for inputs of the function,
+      *  - a_output: for outputs of the function,
+      *  - a_temporary: for buffers used as temporary buffers within
+      *  the function (any temporary buffer is allocated automatically by
+      *  the Tiramisu runtime at the entry of the function and is
+      *  deallocated at the exit of the function).
+      */
+    tiramisu::argument_t argtype;
+
+    /**
+     * A boolean indicating whether the buffer should be allocated
+     * automatically by Tiramisu.
+     */
+    bool auto_allocate;
+
+    /**
+      * Buffer data.
+      */
+    uint8_t *data;
+
+    /**
+      * The sizes of the dimensions of the buffer.  Assuming the following
+      * buffer: buf[N0][N1][N2].  The first vector element represents the
+      * size of rightmost dimension of the buffer (i.e. N2), the second
+      * vector element is N1, and the last vector element is N0.
+      */
+    std::vector<tiramisu::expr> dim_sizes;
+
+    /**
+      * The tiramisu function where this buffer is declared or where the
+      * buffer is an argument.
+      */
+    tiramisu::function *fct;
+
     /**
       * The name of the buffer.
       * Buffer names should not start with _ (an underscore).
@@ -745,40 +791,20 @@ private:
     int nb_dims;
 
     /**
-      * The sizes of the dimensions of the buffer.  Assuming the following
-      * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * size of rightmost dimension of the buffer (i.e. N2), the second
-      * vector element is N1, and the last vector element is N0.
-      */
-    std::vector<tiramisu::expr> dim_sizes;
-
-    /**
       * The type of the elements of the buffer.
       */
     tiramisu::primitive_t type;
 
+protected:
     /**
-      * Buffer data.
+      * Return whether the buffer should be allocated automatically.
       */
-    uint8_t *data;
+     bool get_auto_allocate();
 
     /**
-      * The tiramisu function where this buffer is declared or where the
-      * buffer is an argument.
+      * Set whether the buffer should be allocated automatically.
       */
-    tiramisu::function *fct;
-
-    /**
-      * Type of the argument (if the buffer is an argument):
-      * Three possible types:
-      *  - a_input: for inputs of the function,
-      *  - a_output: for outputs of the function,
-      *  - a_temporary: for buffers used as temporary buffers within
-      *  the function (any temporary buffer is allocated automatically by
-      *  the Tiramisu runtime at the entry of the function and is
-      *  deallocated at the exit of the function).
-      */
-    tiramisu::argument_t argtype;
+     void set_auto_allocate(bool auto_allocation);
 
 public:
     /**
@@ -826,6 +852,67 @@ public:
            tiramisu::argument_t argt, tiramisu::function *fct);
 
     /**
+     * Indicate when to allocate the buffer (i.e., the schedule).
+     *
+     * The buffer is allocated in the same loop of the computation \p C
+     * at the loop level \p level (but the order between the two is not
+     * specified).
+     *
+     * For example, let's assume that buf0 is a buffer, and let's assume
+     * that we have three computations C1, C2 and C3 scheduled as follow
+     *
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     *
+     * The following Tiramisu code
+     *
+     * tiramisu::computation *C4 = buf0.allocate_before(C2, 1);
+     * C4->before(C2, 1);
+     *
+     * would allocate buf0 in the loop surrounding C2 at the loop
+     * level 0. The allocation computation is called C4, where
+     * C4 is scheduled to execute before C2 at the loop level 1.
+     * The generated code would look like the following code:
+     *
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *      {
+     *           allocate(buf0, buffer_size, buffer_type);
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     *      }
+     */
+    tiramisu::computation *allocate_at(tiramisu::computation *C, int level);
+
+    /**
+      * Dump the function on standard output (dump most of the fields of
+      * the buffer class).
+      * This is mainly useful for debugging.
+      * If \p exhaustive is set to true, all the fields of the buffer
+      * class are printed.  This is useful to find potential initialization
+      * problems.
+      */
+    void dump(bool exhaustive) const;
+
+    /**
       * Return the type of the argument (if the buffer is an argument).
       * Three possible types:
       *  - a_input: for inputs of the function,
@@ -867,14 +954,15 @@ public:
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
 
     /**
-      * Dump the function on standard output (dump most of the fields of
-      * the buffer class).
-      * This is mainly useful for debugging.
-      * If \p exhaustive is set to true, all the fields of the buffer
-      * class are printed.  This is useful to find potential initialization
-      * problems.
-      */
-    void dump(bool exhaustive) const;
+     * Return true if a statement that allocates the buffer was
+     * already generated.
+     */
+    const bool is_allocated() const;
+
+    /**
+     * Mark an array as allocated.
+     */
+    void mark_as_allocated();
 };
 
 /**
@@ -1426,6 +1514,14 @@ public:
     isl_set *get_trimmed_time_processor_domain();
 
     /**
+     * Return true if this computation is supposed to have an access to other
+     * computations.
+     * Knowing this is important so that tiramisu does not try to compute
+     * the accesses of the RHS.
+     */
+    bool has_accesses() const;
+
+    /**
       * Return if this computation represents a let statement.
       *
       * Let statements should be treated differently because:
@@ -1720,19 +1816,31 @@ public:
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S1;
+      *
+      * To specify multiple levels the user can use \p levels.
       */
+    // @{
     void after(computation &comp, int level, int first_duplicate_ID = 0);
+    void after(computation &comp, std::vector<int> levels, int first_duplicate_ID = 0);
+    // @}
 
     /**
-      * Schedule this computation to run before the computation \p comp
+      * Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.  The outermost loop level is 0.
       *
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost processor-time dimension).
       *
       * The outermost loop has a loop level equal to zero.
+      *
+      * To specify multiple levels simultaneously, the user can use
+      * \p Levels (a vector of the levels in which this computation
+      * is before \p consumer).
       */
+    // @{
     void before(computation &consumer, int L);
+    void before(computation &consumer, std::vector<int> Levels);
+    // @}
 
     /**
       * This function assumes that \p consumer consumes values produced by
@@ -2276,15 +2384,6 @@ public:
       * (before the loop level 1, c0 and c1 have the same order).
       */
     const static int root_dimension = -1;
-
-    /**
-      * Let statements that should be computed before this computation.
-      *
-      * This is mainly useful when this computation consumes values
-      * computed in let statements, so those let statements should
-      * be executed before this computation.
-      */
-    tiramisu::computation *statements_to_compute_before_me;
 
     /**
       * Dump the iteration domain of the computation.

@@ -196,6 +196,8 @@ bool access_has_id(const tiramisu::expr &exp)
         case tiramisu::o_access:
         case tiramisu::o_call:
         case tiramisu::o_address:
+        case tiramisu::o_allocate:
+        case tiramisu::o_free:
             has_id = false;
             break;
         case tiramisu::o_minus:
@@ -274,6 +276,8 @@ bool access_is_affine(const tiramisu::expr &exp)
         case tiramisu::o_access:
         case tiramisu::o_call:
         case tiramisu::o_address:
+        case tiramisu::o_allocate:
+        case tiramisu::o_free:
             affine = false;
             break;
         case tiramisu::o_minus:
@@ -684,6 +688,10 @@ void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
             }
             break;
         }
+        case tiramisu::o_allocate:
+        case tiramisu::o_free:
+            // They do not have any access.
+            break;
         default:
             tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
         }
@@ -810,6 +818,10 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             }
             output_expr = tiramisu::expr(o_call, exp.get_name(), new_arguments, exp.get_data_type());
             break;
+        case tiramisu::o_allocate:
+        case tiramisu::o_free:
+            output_expr = exp;
+            break;
         default:
             tiramisu::error("Unsupported tiramisu expression passed to traverse_expr_and_replace_non_affine_accesses().",
                             1);
@@ -878,10 +890,13 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
         // Get the accesses of the computation.  The first access is the access
         // for the LHS.  The following accesses are for the RHS.
         std::vector<isl_map *> accesses;
-        isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
-        accesses.push_back(access);
-        // Add the accesses of the RHS to the accesses vector
-        get_rhs_accesses(func, comp, accesses, true);
+        if (comp->has_accesses() == true)
+        {
+            isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
+            accesses.push_back(access);
+            // Add the accesses of the RHS to the accesses vector
+            get_rhs_accesses(func, comp, accesses, true);
+        }
 
         if (!accesses.empty())
         {
@@ -902,22 +917,30 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
             DEBUG_INDENT(-4);
 
             std::vector<isl_ast_expr *> index_expressions;
-            // For each access in accesses (i.e. for each access in the computation),
-            // compute the corresponding isl_ast expression.
-            for (size_t i = 0; i < accesses.size(); ++i)
+
+            if (comp->has_accesses())
             {
-                if (accesses[i] != NULL)
+                comp->dump();
+
+                // For each access in accesses (i.e. for each access in the computation),
+                // compute the corresponding isl_ast expression.
+                for (size_t i = 0; i < accesses.size(); ++i)
                 {
-                    DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
-                                                isl_map_to_str(accesses[i])));
-                    index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
-                    isl_map_free(accesses[i]);
-                }
-                else
-                {
-                    if (!comp->is_let_stmt()) // If this is not let stmt, it should have an access function.
+                    if (accesses[i] != NULL)
                     {
-                        tiramisu::error("An access function should be provided before generating code.", true);
+                        DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
+                                                    isl_map_to_str(accesses[i])));
+                        index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
+                        isl_map_free(accesses[i]);
+                    }
+                    else
+                    {
+                        if ((!comp->is_let_stmt()))
+                        // If this is not a let stmt and it is supposed to have accesses to other computations,
+                        // it should have an access function.
+                        {
+                            tiramisu::error("An access function should be provided before generating code.", true);
+                        }
                     }
                 }
             }
@@ -1305,6 +1328,11 @@ Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
             DEBUG(3, tiramisu::str_dump("op type: o_call"));
             break;
         }
+        case tiramisu::o_allocate:
+        case tiramisu::o_free:
+             tiramisu::error("An expression of type o_allocate or o_free "
+                             "should not be passed to this function", true);
+        break;
         default:
             tiramisu::error("Translating an unsupported ISL expression into a Halide expression.", 1);
         }
@@ -1497,15 +1525,65 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
         {
             isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
 
-            DEBUG(3, tiramisu::str_dump("Generating block."));
+            Halide::Internal::Stmt block;
+            // We use this variable to figure out if the block is already constructed
+            // using a call to allocate() for example. If this is the case, no need to
+            // construct the block explicitly using block::make.
+            bool block_already_constructed = false;
 
-            Halide::Internal::Stmt block =
-                tiramisu::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
+            if ((isl_ast_node_get_type(child) == isl_ast_node_user) &&
+                ((get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_allocate) ||
+                 (get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_free)))
+            {
+                tiramisu::computation *comp = get_computation_annotated_in_a_node(child);
+                assert(comp != NULL);
+                DEBUG(10, tiramisu::str_dump("The computation that corresponds to the child of this node: "); comp->dump());
+
+                std::string buffer_name = comp->get_expr().get_name();
+                DEBUG(10, tiramisu::str_dump("The computation of the node is an allocate or a free IR node."));
+                DEBUG(10, tiramisu::str_dump("The buffer that should be allocated or freed is " + buffer_name));
+                tiramisu::buffer *buf = comp->get_function()->get_buffers().find(buffer_name)->second;
+
+                std::vector<Halide::Expr> halide_dim_sizes;
+                // Create a vector indicating the size that should be allocated.
+                // Tiramisu buffer is defined from outermost to innermost, whereas Halide is from
+                // innermost to outermost; thus, we need to reverse the order.
+                for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
+                {
+                    // TODO: if the size of an array is a computation access
+                    // this is not supported yet. Mainly because in the code below
+                    // we pass NULL pointers for parameters that are necessary
+                    // in case we are computing the halide expression from a tiramisu expression
+                    // that represents a computation access.
+                    const auto sz = buf->get_dim_sizes()[i];
+                    std::vector<isl_ast_expr *> ie = {};
+                    halide_dim_sizes.push_back(halide_expr_from_tiramisu_expr(NULL, ie, sz));
+                }
+
+                if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
+                {
+                    block = Halide::Internal::Allocate::make(
+                           buf->get_name(),
+                           halide_type_from_tiramisu_type(buf->get_elements_type()),
+                           halide_dim_sizes, Halide::Internal::const_true(), result);
+
+                    buf->mark_as_allocated();
+
+                    block_already_constructed = true;
+                }
+                else
+                    block = Halide::Internal::Free::make(buf->get_name());
+            }
+            else
+            {
+                DEBUG(3, tiramisu::str_dump("Generating block."));
+                block = tiramisu::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
+            }
             isl_ast_node_free(child);
 
             DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Generated block: "); std::cout << block);
 
-            if (!block.defined()) // Probably block is a let stmt.
+            if (block.defined() == false) // Probably block is a let stmt.
             {
                 if (!let_stmts_vector.empty()) // i.e. non-consumed let statements
                 {
@@ -1537,7 +1615,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
             }
             else // ((block.defined())
             {
-                if (result.defined())
+                if (result.defined() && block_already_constructed == false)
                 {
                     result = Halide::Internal::Block::make(block, result);
                 }
@@ -1748,11 +1826,11 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
 
         // Retrieve the computation of the node.
         tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
-        DEBUG(10, comp->dump());
+        DEBUG(10, tiramisu::str_dump("The computation that corresponds to this node: "); comp->dump());
 
         comp->create_halide_assignment();
-
         result = comp->get_generated_halide_stmt();
+
 
         for (const auto &l_stmt : comp->get_associated_let_stmts())
         {
@@ -1832,27 +1910,15 @@ void function::gen_halide_stmt()
     std::vector<std::string> generated_stmts;
     Halide::Internal::Stmt stmt;
 
-    // Generate code to free buffers that are not passed as an argument to the function
-    // TODO: Add Free().
-    /*  for (const auto &b: this->get_buffers_list())
-    {
-        const tiramisu::buffer *buf = b.second;
-        // Allocate only arrays that are not passed to the function as arguments.
-        if (buf->is_argument() == false)
-        {
-            stmt = Halide::Internal::Block::make(Halide::Internal::Free::make(buf->get_name()), stmt);
-        }
-    }*/
-
     // Generate the statement that represents the whole function
     stmt = tiramisu::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
 
     // Allocate buffers that are not passed as an argument to the function
     for (const auto &b : this->get_buffers())
     {
-        const tiramisu::buffer *buf = b.second;
+        tiramisu::buffer *buf = b.second;
         // Allocate only arrays that are not passed to the function as arguments.
-        if (buf->get_argument_type() == tiramisu::a_temporary)
+        if (buf->get_argument_type() == tiramisu::a_temporary && buf->get_auto_allocate() == true)
         {
             std::vector<Halide::Expr> halide_dim_sizes;
             // Create a vector indicating the size that should be allocated.
@@ -1873,6 +1939,8 @@ void function::gen_halide_stmt()
                        buf->get_name(),
                        halide_type_from_tiramisu_type(buf->get_elements_type()),
                        halide_dim_sizes, Halide::Internal::const_true(), stmt);
+
+            buf->mark_as_allocated();
         }
     }
 
