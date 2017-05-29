@@ -17,6 +17,13 @@ using namespace tiramisu;
 
 /**
  * Test update computations.
+ *
+ * The goal is to implement code equivalent to the following.
+ * 
+ * C[0] = val0;
+ * C[1] = val0;
+ * C[i] = (C[i-1] + C[i-2])/2
+ *
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -35,9 +42,9 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation *C2 = C.add_update("[N]->{C[i]: 2<=i<N}",
                                 (C(i - 1) + C(i - 2)) / ((uint8_t)2), true, p_uint8, &function0);
 
-    C.set_access("[N,M]->{C[i]->buf0[i]}");
-    C1->set_access("[N,M]->{C[i]->buf0[i]}");
-    C2->set_access("[N,M]->{C[i]->buf0[i]}");
+    C.set_access("[N]->{C[i]->buf0[i]}");
+    C1->set_access("[N]->{C[i]->buf0[i]}");
+    C2->set_access("[N]->{C[i]->buf0[i]}");
 
     C1->after(C, computation::root_dimension);
     C2->after((*C1), computation::root_dimension);
