@@ -33,9 +33,9 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation *C1 = C.add_update("[N]->{C[1]}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
     tiramisu::computation *C2 = C.add_update("[N]->{C[i]: 2<=i<N}", (C(i-1) + C(i-2))/((uint8_t)2), true, p_uint8, &function0);
 
-    C.set_access("[N,M]->{C[i]->buf0[i]}");
-    C1->set_access("[N,M]->{C[i]->buf0[i]}");
-    C2->set_access("[N,M]->{C[i]->buf0[i]}");
+    C.set_access("[N]->{C[i]->buf0[i]}");
+    C1->set_access("[N]->{C[i]->buf0[i]}");
+    C2->set_access("[N]->{C[i]->buf0[i]}");
 
     C1->after(C, computation::root_dimension);
     C2->after((*C1), computation::root_dimension);
