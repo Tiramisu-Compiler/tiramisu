@@ -35,8 +35,6 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     S1.set_schedule("{S1[i]->S0[0,0,i,1]}");
     S2.set_schedule("{S2[i]->S0[1,0,i,0]}");
 
-    //S0.tag_parallel_dimension(0);
-
     function0.set_arguments({&buf0});
     function0.gen_time_processor_domain();
     function0.gen_isl_ast();

@@ -27,7 +27,6 @@ int main(int argc, char **argv)
 
     tiramisu::function blurxy_tiramisu("blurxy_tiramisu_test");
 
-
     Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
     int SIZE0 = in_image.extent(0);
     int SIZE1 = in_image.extent(1);
@@ -49,7 +48,8 @@ int main(int argc, char **argv)
                              tiramisu::p_uint8, NULL, tiramisu::a_output, &blurxy_tiramisu);
 
 
-    tiramisu::computation p0("[SIZE2, SIZE1, SIZE0]->{p0[i2, i1, i0]: (0 <= i2 <= (SIZE2 -1)) and (0 <= i1 <= (SIZE1 -1)) and (0 <= i0 <= (SIZE0 -1))}",
+    tiramisu::computation
+    p0("[SIZE2, SIZE1, SIZE0]->{p0[i2, i1, i0]: (0 <= i2 <= (SIZE2 -1)) and (0 <= i1 <= (SIZE1 -1)) and (0 <= i0 <= (SIZE0 -1))}",
        expr(), false, tiramisu::p_uint8, &blurxy_tiramisu);
     p0.set_access("{p0[i2, i1, i0]->buff_p0[i2, i1, i0]}");
 

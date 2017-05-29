@@ -34,7 +34,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::expr e2 = tiramisu::expr(S0(2 * i - i * 2 + 2 * i, 1 + 2 * j - 1));
     tiramisu::computation S2("[N,M]->{S2[i,j]: 0<=i<M and 0<=j<M}", e2, true, p_uint8, &function0);
 
-    tiramisu::expr e3 = tiramisu::expr(S0(0, -0));
+    tiramisu::expr e3 = tiramisu::expr(S0(0, 0));
     tiramisu::computation S3("[N,M]->{S3[i,j]: 0<=i<M and 0<=j<M}", e3, true, p_uint8, &function0);
 
     tiramisu::expr e4 = tiramisu::expr(S0(0, i));
