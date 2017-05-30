@@ -662,7 +662,7 @@ void tiramisu::computation::rename_computation(std::string new_name)
     this->set_access(access);
 
     // Rename the schedule
-    isl_map *sched = this->get_schedule(0);
+    isl_map *sched = this->get_schedule();
     sched = isl_map_set_tuple_name(sched, isl_dim_in, new_name.c_str());
     sched = isl_map_set_tuple_name(sched, isl_dim_out, new_name.c_str());
     DEBUG(10, tiramisu::str_dump("Setting the schedule relation to ", isl_map_to_str(sched)));
@@ -970,11 +970,7 @@ tiramisu::computation *tiramisu::computation::copy()
                                   this->get_data_type(),
                                   this->get_function());
 
-    for (int i = 0; i < this->schedules.size(); i++)
-    {
-        auto s = this->schedules[i];
-        new_c->schedules[i] = isl_map_copy(s);
-    }
+    new_c->set_schedule(isl_map_copy(this->get_schedule()));
 
     new_c->access = isl_map_copy(this->access);
     new_c->relative_order = this->relative_order;
@@ -1330,11 +1326,10 @@ void computation::dump_schedule() const
 
     if (ENABLE_DEBUG)
     {
-        tiramisu::str_dump("Dumping schedules of the computation " + this->get_name() + " : ");
+        tiramisu::str_dump("Dumping the schedule of the computation " + this->get_name() + " : ");
 
         std::flush(std::cout);
-        for (const auto &m : this->get_vector_of_schedules())
-            isl_map_dump(m);
+        isl_map_dump(this->get_schedule());
     }
 
     DEBUG_INDENT(-4);
@@ -1454,7 +1449,7 @@ bool buffer::get_auto_allocate()
     return this->auto_allocate;
 }
 
-void computation::set_schedule(std::string map_str, int ID)
+void computation::set_schedule(std::string map_str)
 {
     assert(!map_str.empty());
     assert(this->ctx != NULL);
@@ -1462,10 +1457,10 @@ void computation::set_schedule(std::string map_str, int ID)
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
     assert(map != NULL);
 
-    this->set_schedule(map, ID);
+    this->set_schedule(map);
 }
 
-void computation::apply_transformation_on_schedule(std::string map_str, int ID)
+void computation::apply_transformation_on_schedule(std::string map_str)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1476,29 +1471,20 @@ void computation::apply_transformation_on_schedule(std::string map_str, int ID)
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
     assert(map != NULL);
 
-    DEBUG(3, tiramisu::str_dump("Applying the following transformation on the duplicate " +
-                                std::to_string(ID) + " : "));
+    DEBUG(3, tiramisu::str_dump("Applying the following transformation on the schedule : "));
     DEBUG(3, tiramisu::str_dump(isl_map_to_str(map)));
 
-    isl_map *sched = this->get_schedule(ID);
+    isl_map *sched = this->get_schedule();
     sched = isl_map_apply_range(isl_map_copy(sched), isl_map_copy(map));
-
-    if (ID <= this->get_duplicate_schedules_number())
-    {
-        this->set_schedule(sched, ID);
-    }
-    else
-    {
-        this->add_new_duplicate_schedule(sched);
-    }
+    this->set_schedule(sched);
 
     DEBUG(3, tiramisu::str_dump("Schedule after transformation : "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule(ID))));
+    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
 
-void computation::apply_transformation_on_schedule_domain(std::string map_str, int ID)
+void computation::apply_transformation_on_schedule_domain(std::string map_str)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1509,38 +1495,36 @@ void computation::apply_transformation_on_schedule_domain(std::string map_str, i
     isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
     assert(map != NULL);
 
-    DEBUG(3, tiramisu::str_dump("Applying the following transformation on the domain of the duplicate "
-                                + std::to_string(ID) + " : "));
+    DEBUG(3, tiramisu::str_dump("Applying the following transformation on the domain of the schedule : "));
     DEBUG(3, tiramisu::str_dump(isl_map_to_str(map)));
 
-    isl_map *sched = this->get_schedule(ID);
+    isl_map *sched = this->get_schedule();
     sched = isl_map_apply_domain(isl_map_copy(sched), isl_map_copy(map));
 
-    this->set_schedule(sched, ID);
+    this->set_schedule(sched);
 
     DEBUG(3, tiramisu::str_dump("Schedule after transformation : "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule(ID))));
+    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
 
 void computation::add_schedule_constraint(std::string domain_constraints,
-        std::string range_constraints, int ID)
+                                          std::string range_constraints)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
 
     assert(this->ctx != NULL);
-    isl_map *sched = this->get_schedule(ID);
+    isl_map *sched = this->get_schedule();
 
     if (!domain_constraints.empty())
     {
         isl_set *domain_cst = isl_set_read_from_str(this->ctx, domain_constraints.c_str());
         assert(domain_cst != NULL);
 
-        DEBUG(3, tiramisu::str_dump("Adding the following constraints to the domain of the schedule of the duplicate "
-                                    + std::to_string(ID) + " : "));
+        DEBUG(3, tiramisu::str_dump("Adding the following constraints to the domain of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(domain_cst)));
 
         sched = isl_map_intersect_domain(isl_map_copy(sched), isl_set_copy(domain_cst));
@@ -1551,46 +1535,22 @@ void computation::add_schedule_constraint(std::string domain_constraints,
     {
         isl_set *range_cst = isl_set_read_from_str(this->ctx, range_constraints.c_str());
 
-        DEBUG(3, tiramisu::str_dump("Adding the following constraints to the range of the schedule of the duplicate "
-                                    + std::to_string(ID) + " : "));
+        DEBUG(3, tiramisu::str_dump("Adding the following constraints to the range of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(range_cst)));
 
         sched = isl_map_intersect_range(isl_map_copy(sched), isl_set_copy(range_cst));
     }
 
-    this->set_schedule(sched, ID);
+    this->set_schedule(sched);
 
     DEBUG(3, tiramisu::str_dump("Schedule after transformation : "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule(ID))));
-
-    DEBUG_INDENT(-4);
-}
-
-void computation::create_duplication_transformation(std::string map_str)
-{
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    assert(!map_str.empty());
-    assert(this->ctx != NULL);
-
-    isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
-    assert(map != NULL);
-
-    DEBUG(3, tiramisu::str_dump("Creating the following duplication transformation : "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(map)));
-
-    this->add_new_duplicate_schedule(map);
-
-    DEBUG(3, tiramisu::str_dump("Schedule after transformation : "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule(
-                                    this->get_duplicate_schedules_number()))));
+    DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
 
 /**
-  * Set the schedule \p map of the duplicate \p ID.
+  * Set the schedule of the computation.
   *
   * \p map is a string that represents a mapping from the iteration domain
   *  to the time-processor domain (the mapping is in the ISL format:
@@ -1598,19 +1558,15 @@ void computation::create_duplication_transformation(std::string map_str)
   *
   * The name of the domain and range space must be identical.
   */
-void tiramisu::computation::set_schedule(isl_map *map, int ID)
+void tiramisu::computation::set_schedule(isl_map *map)
 {
-    assert(ID >= 0);
-    assert(ID <= this->get_duplicate_schedules_number());
-
-    this->schedules[ID] = map;
+    this->schedule = map;
 }
 
 struct param_pack_1
 {
     int in_dim;
     int out_constant;
-    int duplicate_ID;
 };
 
 /**
@@ -1626,40 +1582,17 @@ isl_stat extract_static_dim_value_from_bmap(__isl_take isl_basic_map *bmap, void
     isl_constraint_list *list = isl_basic_map_get_constraint_list(bmap);
     int n_constraints = isl_constraint_list_n_constraint(list);
 
-    bool found = true;
-
-    // Check if this basic map is for duplicate that has data->duplicate_ID as an ID.
-    // Go through all the constraints, get the constraint on the first dimension
-    // the constant in that constraint has to be duplicate_ID
     for (int i = 0; i < n_constraints; i++)
     {
         isl_constraint *cst = isl_constraint_list_get_constraint(list, i);
-        isl_val *val = isl_constraint_get_coefficient_val(cst, isl_dim_out, 0);
-        if (isl_val_is_one(val)) // i.e., the coefficient of the dimension 0 is 1
+        isl_val *val = isl_constraint_get_coefficient_val(cst, isl_dim_out, data->in_dim);
+        if (isl_val_is_one(val)) // i.e., the coefficient of the dimension data->in_dim is 1
         {
             isl_val *val2 = isl_constraint_get_constant_val(cst);
             int const_val = (-1) * isl_val_get_num_si(val2);
-            if (const_val == data->duplicate_ID)
-            {
-                found = true;
-            }
-        }
-    }
-
-    if (found) // i.e., this bmap is the map concerning duplicate_ID
-    {
-        for (int i = 0; i < n_constraints; i++)
-        {
-            isl_constraint *cst = isl_constraint_list_get_constraint(list, i);
-            isl_val *val = isl_constraint_get_coefficient_val(cst, isl_dim_out, data->in_dim);
-            if (isl_val_is_one(val)) // i.e., the coefficient of the dimension data->in_dim is 1
-            {
-                isl_val *val2 = isl_constraint_get_constant_val(cst);
-                int const_val = (-1) * isl_val_get_num_si(val2);
-                data->out_constant = const_val;
-                DEBUG(3, tiramisu::str_dump("Dimensions found.  Constant = " +
-                                            std::to_string(const_val)));
-            }
+            data->out_constant = const_val;
+            DEBUG(3, tiramisu::str_dump("Dimensions found.  Constant = " +
+                                        std::to_string(const_val)));
         }
     }
 
@@ -1696,13 +1629,11 @@ isl_stat extract_constant_value_from_bset(__isl_take isl_basic_set *bset, void *
 
 /**
  * Return the value of the static dimension.
- * If multiple duplicates are available, return the static dimension
- * in the duplicate indicated by \p duplicate_ID.
  *
  * For example, if we have a map M = {S0[i,j]->[0,0,i,1,j,2]; S0[i,j]->[1,0,i,1,j,3]}
  * and call isl_map_get_static_dim(M, 5, 1), it will return 3.
  */
-int isl_map_get_static_dim(isl_map *map, int dim_pos, int duplicate_ID)
+int isl_map_get_static_dim(isl_map *map, int dim_pos)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1714,14 +1645,11 @@ int isl_map_get_static_dim(isl_map *map, int dim_pos, int duplicate_ID)
     DEBUG(3, tiramisu::str_dump("Getting the constant coefficient of ",
                                 isl_map_to_str(map));
           tiramisu::str_dump(" at dimension ");
-          tiramisu::str_dump(std::to_string(dim_pos));
-          tiramisu::str_dump(" from duplicate ");
-          tiramisu::str_dump(std::to_string(duplicate_ID)));
+          tiramisu::str_dump(std::to_string(dim_pos)));
 
     struct param_pack_1 *data = (struct param_pack_1 *) malloc(sizeof(struct param_pack_1));
     data->out_constant = 0;
     data->in_dim = dim_pos;
-    data->duplicate_ID = duplicate_ID;
 
     isl_map_foreach_basic_map(isl_map_copy(map),
                               &extract_static_dim_value_from_bmap,
@@ -1875,10 +1803,10 @@ int loop_level_into_static_dimension(int level)
     return loop_level_into_dynamic_dimension(level) + 1;
 }
 
-void computation::after(computation &comp, std::vector<int> levels, int first_duplicate_ID)
+void computation::after(computation &comp, std::vector<int> levels)
 {
     for (auto level: levels)
-        this->after(comp, level, first_duplicate_ID);
+        this->after(comp, level);
 }
 
 
@@ -1924,20 +1852,11 @@ void computation::after(computation &comp, std::vector<int> levels, int first_du
   * c1 after c0 in the loop nest.
   *
   * \p dim has to be a static dimension, i.e. 0, 2, 4, 6, ...
-  *
-  * \p first_duplicate_ID indicates the ID of the duplicate that this
-  * computation will be placed after.
-  *
-  * \p second_duplicate_ID indicates the schedule of which duplicate
-  * of this computation will be modified.
-  *
   */
-void computation::after(computation &comp, int level, int first_duplicate_ID)
+void computation::after(computation &comp, int level)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
-    int second_duplicate_ID = get_selected_duplicate_ID();
 
     // for loop level i return 2*i+1 which represents the
     // the static dimension just after the dynamic dimension that
@@ -1955,24 +1874,22 @@ void computation::after(computation &comp, int level, int first_duplicate_ID)
 
     DEBUG(3, tiramisu::str_dump("Preparing to adjust the schedule of the computation ");
           tiramisu::str_dump(this->get_name()));
-    DEBUG(3, tiramisu::str_dump("Original schedule: ",
-                                isl_map_to_str(this->get_schedule(second_duplicate_ID))));
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(this->get_schedule())));
 
-    assert(this->get_schedule(second_duplicate_ID) != NULL);
+    assert(this->get_schedule() != NULL);
     DEBUG(3, tiramisu::str_dump("Dimension level in which ordering dimensions will be inserted : ");
           tiramisu::str_dump(std::to_string(dim)));
-    assert(dim < (signed int) isl_map_dim(this->get_schedule(second_duplicate_ID), isl_dim_out));
+    assert(dim < (signed int) isl_map_dim(this->get_schedule(), isl_dim_out));
     assert(dim >= computation::root_dimension);
 
     // Get the constant in comp, add +1 to it and set it to sched1
-    int order = isl_map_get_static_dim(comp.get_schedule(first_duplicate_ID), dim, first_duplicate_ID);
-    isl_map *new_sched = isl_map_copy(this->get_schedule(second_duplicate_ID));
+    int order = isl_map_get_static_dim(comp.get_schedule(), dim);
+    isl_map *new_sched = isl_map_copy(this->get_schedule());
     new_sched = add_eq_to_schedule_map(dim, 0, -1, order + 1, new_sched);
-    this->set_schedule(new_sched, second_duplicate_ID);
+    this->set_schedule(new_sched);
     DEBUG(3, tiramisu::str_dump("Schedule adjusted: ",
-                                isl_map_to_str(this->get_schedule(second_duplicate_ID))));
+                                isl_map_to_str(this->get_schedule())));
 
-    this->reset_selected_duplicate();
     DEBUG_INDENT(-4);
 }
 
@@ -1985,8 +1902,6 @@ void computation::before(computation &comp, std::vector<int> dims)
     for (auto dim: dims)
         comp.after(*this, dim);
 
-    this->reset_selected_duplicate();
-
     DEBUG_INDENT(-4);
 }
 
@@ -1998,14 +1913,7 @@ void computation::before(computation &comp, int dim)
 
     comp.after(*this, dim);
 
-    this->reset_selected_duplicate();
-
     DEBUG_INDENT(-4);
-}
-
-int computation::get_selected_duplicate_ID() const
-{
-    return this->selected_ID;
 }
 
 void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
@@ -2048,21 +1956,14 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(sizeY > 0);
     assert(this->get_iteration_domain() != NULL);
 
-    int duplicate_ID = get_selected_duplicate_ID();
-
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule(
-                duplicate_ID)), isl_dim_out));
-    assert(duplicate_ID >= 0);
-    assert(duplicate_ID <= this->get_duplicate_schedules_number());
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    this->select(duplicate_ID)->split(L0, sizeX);
-    this->select(duplicate_ID)->split(L1 + 1, sizeY);
-    this->select(duplicate_ID)->interchange(L0 + 1, L1 + 1);
-
-    this->reset_selected_duplicate();
+    this->split(L0, sizeX);
+    this->split(L1 + 1, sizeY);
+    this->interchange(L0 + 1, L1 + 1);
 
     DEBUG_INDENT(-4);
 }
@@ -2081,16 +1982,9 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     assert(sizeZ > 0);
     assert(this->get_iteration_domain() != NULL);
 
-    int duplicate_ID = get_selected_duplicate_ID();
-
-    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(this->get_schedule(
-                duplicate_ID)), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule(
-                duplicate_ID)), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(this->get_schedule(
-                duplicate_ID)), isl_dim_out));
-    assert(duplicate_ID >= 0);
-    assert(duplicate_ID <= this->get_duplicate_schedules_number());
+    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2100,7 +1994,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //    L1
     //      L2
 
-    this->select(duplicate_ID)->split(L0, sizeX); // Split L0 into L0 and L0_prime
+    this->split(L0, sizeX); // Split L0 into L0 and L0_prime
     // Compute the new L1 and the new L2 and the newly created L0 (called L0 prime)
     int L0_prime = L0 + 1;
     L1 = L1 + 1;
@@ -2112,7 +2006,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //      L1
     //        L2
 
-    this->select(duplicate_ID)->split(L1, sizeY);
+    this->split(L1, sizeY);
     int L1_prime = L1 + 1;
     L2 = L2 + 1;
 
@@ -2123,7 +2017,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //        L1_prime
     //          L2
 
-    this->select(duplicate_ID)->split(L2, sizeZ);
+    this->split(L2, sizeZ);
 
     //  Loop after transformation
     //  L0
@@ -2133,7 +2027,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //          L2
     //            L2_prime
 
-    this->select(duplicate_ID)->interchange(L0_prime, L1);
+    this->interchange(L0_prime, L1);
     // Change the position of L0_prime to the new position
     int temp = L0_prime;
     L0_prime = L1;
@@ -2147,7 +2041,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //          L2
     //            L2_prime
 
-    this->select(duplicate_ID)->interchange(L0_prime, L2);
+    this->interchange(L0_prime, L2);
     // Change the position of L0_prime to the new position
     temp = L0_prime;
     L0_prime = L2;
@@ -2161,7 +2055,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //          L0_prime
     //            L2_prime
 
-    this->select(duplicate_ID)->interchange(L1_prime, L0_prime);
+    this->interchange(L1_prime, L0_prime);
 
     //  Loop after transformation
     //  L0
@@ -2170,8 +2064,6 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //        L0_prime
     //          L1_prime
     //            L2_prime
-
-    this->reset_selected_duplicate();
 
     DEBUG_INDENT(-4);
 }
@@ -2185,22 +2077,19 @@ void computation::interchange(int L0, int L1)
     int inDim0 = loop_level_into_dynamic_dimension(L0);
     int inDim1 = loop_level_into_dynamic_dimension(L1);
 
-    int duplicate_ID = get_selected_duplicate_ID();
-
     assert(inDim0 >= 0);
-    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)),
+    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()),
                                   isl_dim_out));
     assert(inDim1 >= 0);
-    assert(inDim1 < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)),
+    assert(inDim1 < isl_space_dim(isl_map_get_space(this->get_schedule()),
                                   isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    isl_map *schedule = this->get_schedule(duplicate_ID);
+    isl_map *schedule = this->get_schedule();
 
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
-    DEBUG(3, tiramisu::str_dump("Interchanging the duplicate " + std::to_string(duplicate_ID)));
     DEBUG(3, tiramisu::str_dump("Interchanging the dimensions " + std::to_string(
                                     L0) + " and " + std::to_string(L1)));
 
@@ -2221,6 +2110,7 @@ void computation::interchange(int L0, int L1)
     {
         if (i == 0)
         {
+            int duplicate_ID = isl_map_get_static_dim(schedule, 0);
             map = map + std::to_string(duplicate_ID);
         }
         else
@@ -2246,6 +2136,7 @@ void computation::interchange(int L0, int L1)
     {
         if (i == 0)
         {
+            int duplicate_ID = isl_map_get_static_dim(schedule, 0);
             map = map + std::to_string(duplicate_ID);
         }
         else
@@ -2299,91 +2190,13 @@ void computation::interchange(int L0, int L1)
         assert(isl_map_has_dim_name(transformation_map, isl_dim_out, i));
     }
 
-
-    // ------------------------------------------------------------
-    // Create a map for that keeps the other schedules.
-    // ------------------------------------------------------------
-    dimensions.clear();
-
-    map = "{ " + this->get_name() + "[";
-
-    std::string first_dim;
-
-    for (int i = 0; i < n_dims; i++)
-    {
-        if (isl_map_get_dim_name(schedule, isl_dim_out, i) == NULL)
-        {
-            isl_id *new_id = isl_id_alloc(this->get_ctx(), generate_new_variable_name().c_str(), NULL);
-            schedule = isl_map_set_dim_id(schedule, isl_dim_out, i, new_id);
-        }
-
-        if (i == 0)
-        {
-            first_dim = isl_map_get_dim_name(schedule, isl_dim_out, i);
-        }
-
-        map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
-        if (i != n_dims - 1)
-        {
-            map = map + ",";
-        }
-    }
-
-    map = map + "] ->" + this->get_name() + "[";
-
-    for (int i = 0; i < n_dims; i++)
-    {
-        map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
-        dimensions.push_back(isl_map_get_dim_id(schedule, isl_dim_out, i));
-
-        if (i != n_dims - 1)
-        {
-            map = map + ",";
-        }
-    }
-
-    map = map + "]: " + first_dim + " >= " + std::to_string(duplicate_ID + 1);
-
-    if (duplicate_ID > 0)
-    {
-        map = map + " or " + first_dim + " <= " + std::to_string(duplicate_ID - 1);
-    }
-
-    map = map + "}";
-
-    DEBUG(3, tiramisu::str_dump("Map that keeps the schedule as it is for other duplicates (string format):"));
-    DEBUG(3, tiramisu::str_dump(map.c_str()));
-
-    isl_map *transformation_map2 = isl_map_read_from_str(this->get_ctx(), map.c_str());
-    transformation_map2 = isl_map_set_tuple_id(
-                              transformation_map2, isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
-    id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
-    transformation_map2 = isl_map_set_tuple_id(
-                              transformation_map2, isl_dim_out, id_range);
-
-
-    for (int i = 1; i < isl_map_dim(transformation_map, isl_dim_in); i++)
-    {
-        isl_id *dim_id = isl_id_copy(dimensions[i - 1]);
-        transformation_map = isl_map_set_dim_id(transformation_map, isl_dim_out, i, dim_id);
-        assert(isl_map_has_dim_name(transformation_map, isl_dim_in, i));
-        assert(isl_map_has_dim_name(transformation_map, isl_dim_out, i));
-    }
-
-
-    transformation_map = isl_map_union(transformation_map, transformation_map2);
-
-    // ------------------------------------------------------------
-
     DEBUG(3, tiramisu::str_dump("Final transformation map : ", isl_map_to_str(transformation_map)));
 
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
 
-    this->set_schedule(schedule, duplicate_ID);
-
-    this->reset_selected_duplicate();
+    this->set_schedule(schedule);
 
     DEBUG_INDENT(-4);
 }
@@ -2444,7 +2257,8 @@ tiramisu::computation *computation::duplicate(std::string domain_constraints_set
 
     DEBUG(3, tiramisu::str_dump("Now creating a map for the new duplicate."));
     int new_ID = this->get_duplicate_schedules_number() + 1;
-    isl_map *new_sched = this->get_schedule(0);
+    this->duplicate_number++; // Increment the duplicate number.
+    isl_map *new_sched = isl_map_copy(this->get_schedule());
     DEBUG(3, tiramisu::str_dump("The map of the original: ", isl_map_to_str(new_sched)));
 
     // Intersecting the range of the schedule with the domain and range provided by the user.
@@ -2489,16 +2303,12 @@ tiramisu::computation *computation::duplicate(std::string domain_constraints_set
 
     // Create the duplicate computation.
     tiramisu::computation *new_c = this->copy();
-    new_c->set_schedule(isl_map_copy(new_sched), 0);
+    new_c->set_schedule(isl_map_copy(new_sched));
 
-    DEBUG(3, tiramisu::str_dump("All the duplicate schedules: "));
-    for (const auto &m : this->get_vector_of_schedules())
-    {
-        isl_map_dump(m);
-    }
-
-    DEBUG(3, tiramisu::str_dump("New schedule of the computation after adding the duplicate: ",
-                                isl_map_to_str(this->get_union_of_schedules())));
+    DEBUG(3, tiramisu::str_dump("The schedule of the original computation: "));
+    isl_map_dump(this->get_schedule());
+    DEBUG(3, tiramisu::str_dump("The schedule of the duplicate: "));
+    isl_map_dump(new_c->get_schedule());
 
     DEBUG_INDENT(-4);
 
@@ -2686,13 +2496,11 @@ void computation::shift(int L0, int n)
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
 
-    int duplicate_ID = get_selected_duplicate_ID();
-
     assert(this->get_union_of_schedules() != NULL);
-    assert(this->get_schedule(duplicate_ID) != NULL);
+    assert(this->get_schedule() != NULL);
     assert(dim0 >= 0);
-    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
-    assert(duplicate_ID >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+
 
     DEBUG(3, tiramisu::str_dump("Creating a schedule that shifts the loop level ");
           tiramisu::str_dump(std::to_string(L0));
@@ -2702,20 +2510,16 @@ void computation::shift(int L0, int n)
           tiramisu::str_dump(std::to_string(n)));
 
     this->get_function()->align_schedules();
-    assert(this->get_schedule(duplicate_ID) != NULL);
+    assert(this->get_schedule() != NULL);
 
     DEBUG(3, tiramisu::str_dump("Original schedule: ",
-                                isl_map_to_str(this->get_schedule(duplicate_ID))));
-    DEBUG(3, tiramisu::str_dump("The ID of the duplicate to be shifted is : " + std::to_string(
-                                    duplicate_ID)));
+                                isl_map_to_str(this->get_schedule())));
 
-    isl_map *new_sched = isl_map_copy(this->get_schedule(duplicate_ID));
+    isl_map *new_sched = isl_map_copy(this->get_schedule());
     new_sched = add_eq_to_schedule_map(dim0, -1, -1, n, new_sched);
-    this->set_schedule(new_sched, duplicate_ID);
+    this->set_schedule(new_sched);
     DEBUG(3, tiramisu::str_dump("Schedule after shifting: ",
-                                isl_map_to_str(this->get_schedule(duplicate_ID))));
-
-    this->reset_selected_duplicate();
+                                isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
@@ -3222,9 +3026,9 @@ void computation::compute_at(computation &consumer, int L)
     duplicated_computation->dump_schedule();
 
     DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
-    original_computation->after((*duplicated_computation), L, 0);
-    consumer.after((*duplicated_computation), L, 0);
-    consumer.after((*original_computation), L, 0);
+    original_computation->after((*duplicated_computation), L);
+    consumer.after((*duplicated_computation), L);
+    consumer.after((*original_computation), L);
     DEBUG(3, tiramisu::str_dump("Dumping the schedule of the producer and consumer."));
     this->dump_schedule();
     consumer.dump_schedule();
@@ -3250,17 +3054,17 @@ void computation::split(int L0, int sizeX)
 {
     int inDim0 = loop_level_into_dynamic_dimension(L0);
 
-    int duplicate_ID = get_selected_duplicate_ID();
-
-    assert(this->get_schedule(duplicate_ID) != NULL);
+    assert(this->get_schedule() != NULL);
     assert(inDim0 >= 0);
-    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule(duplicate_ID)), isl_dim_out));
+    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
     assert(sizeX >= 1);
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    isl_map *schedule = this->get_schedule(duplicate_ID);
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
     schedule = isl_map_copy(schedule);
     schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
                                     isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
@@ -3269,15 +3073,13 @@ void computation::split(int L0, int sizeX)
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Splitting dimension " + std::to_string(inDim0)
                                 + " with split size " + std::to_string(sizeX)));
-    DEBUG(3, tiramisu::str_dump("Splitting the schedule of the duplicate " + std::to_string(
-                                    duplicate_ID)));
 
     std::string inDim0_str;
 
     std::string outDim0_str = generate_new_variable_name();
     std::string outDim1_str = generate_new_variable_name();
 
-    int n_dims = isl_map_dim(this->get_schedule(duplicate_ID), isl_dim_out);
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
     std::vector<std::string> dimensions_str;
     std::string map = "{";
@@ -3368,16 +3170,14 @@ void computation::split(int L0, int sizeX)
     isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
     transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
 
-    DEBUG(3, tiramisu::str_dump("The map that transforms the duplicate : ",
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
                                 isl_map_to_str(transformation_map)));
 
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
     DEBUG(3, tiramisu::str_dump("Schedule after splitting: ", isl_map_to_str(schedule)));
 
-    this->set_schedule(schedule, duplicate_ID);
-
-    this->reset_selected_duplicate();
+    this->set_schedule(schedule);
 
     DEBUG_INDENT(-4);
 }
@@ -3580,11 +3380,9 @@ int tiramisu::function::get_max_schedules_range_dim() const
     int max_dim = 0;
     for (const auto &comp : this->get_computations())
     {
-        for (const auto &sched : comp->get_vector_of_schedules())
-        {
-            int m = isl_map_dim(sched, isl_dim_out);
-            max_dim = std::max(max_dim, m);
-        }
+        isl_map *sched = comp->get_schedule();
+        int m = isl_map_dim(sched, isl_dim_out);
+        max_dim = std::max(max_dim, m);
     }
 
     DEBUG_INDENT(-4);
@@ -3664,11 +3462,6 @@ isl_union_map *tiramisu::function::get_aligned_identity_schedules() const
     return result;
 }
 
-const std::vector<isl_map *> &computation::get_vector_of_schedules() const
-{
-    return this->schedules;
-}
-
 void tiramisu::function::align_schedules()
 {
     DEBUG_FCT_NAME(3);
@@ -3678,13 +3471,10 @@ void tiramisu::function::align_schedules()
 
     for (auto &comp : this->get_computations())
     {
-        for (size_t i = 0; i < comp->get_vector_of_schedules().size(); i++)
-        {
-            isl_map *dup_sched = comp->get_schedule(i);
+            isl_map *dup_sched = comp->get_schedule();
             assert((dup_sched != NULL) && "Schedules should be set before calling align_schedules");
             dup_sched = isl_map_align_range_dims(dup_sched, max_dim);
-            comp->set_schedule(dup_sched, i);
-        }
+            comp->set_schedule(dup_sched);
     }
 
     DEBUG_INDENT(-4);
@@ -4416,7 +4206,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     stmt = Halide::Internal::Stmt();
     time_processor_domain = NULL;
     relative_order = 0;
-    selected_ID = 0;
+    duplicate_number = 0;
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
@@ -4457,27 +4247,17 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::reset_selected_duplicate()
-{
-    this->selected_ID = 0;
-}
-
-tiramisu::computation *tiramisu::computation::select(int ID)
-{
-    this->selected_ID = ID;
-    return (this);
-}
-
 /**
  * Dummy constructor for derived classes.
  */
 tiramisu::computation::computation()
 {
     this->access = NULL;
+    this->schedule = NULL;
     this->stmt = Halide::Internal::Stmt();
     this->time_processor_domain = NULL;
     this->relative_order = 0;
-    this->selected_ID = 0;
+    this->duplicate_number = 0;
 
     this->schedule_this_computation = false;
     this->data_type = p_none;
@@ -4691,26 +4471,7 @@ isl_set *tiramisu::computation::get_time_processor_domain() const
   */
 isl_map *tiramisu::computation::get_union_of_schedules() const
 {
-    isl_map *result = NULL;
-    isl_space *space = NULL;
-
-    if (this->schedules[0] != NULL)
-    {
-        space = isl_map_get_space(isl_map_copy(this->schedules[0]));
-    }
-    else
-    {
-        return NULL;
-    }
-
-    assert(space != NULL);
-    result = isl_map_empty(isl_space_copy(space));
-
-    for (const auto &map : this->schedules)
-    {
-        isl_map *m = isl_map_copy(map);
-        result = isl_map_union(m, result);
-    }
+    isl_map *result = isl_map_copy(this->get_schedule());
 
     result = isl_map_intersect_domain(result, isl_set_copy(this->get_iteration_domain()));
 
@@ -4962,7 +4723,7 @@ void tiramisu::computation::set_identity_schedule_based_on_iteration_domain()
     isl_map *sched = this->gen_identity_schedule_for_iteration_domain();
     DEBUG(3, tiramisu::str_dump("The following identity schedule is generated (setting schedule 0): "));
     DEBUG(3, tiramisu::str_dump(isl_map_to_str(sched)));
-    this->add_new_duplicate_schedule(sched);
+    this->set_schedule(sched);
     DEBUG(3, tiramisu::str_dump("The identity schedule for the original computation is set."));
 
     DEBUG_INDENT(-4);
@@ -4970,29 +4731,12 @@ void tiramisu::computation::set_identity_schedule_based_on_iteration_domain()
 
 int computation::get_duplicate_schedules_number() const
 {
-    return this->schedules.size() - 1;
+    return this->duplicate_number;
 }
 
-void computation::add_new_duplicate_schedule(isl_map *map)
+isl_map *computation::get_schedule() const
 {
-    assert(map != NULL);
-
-    this->schedules.push_back(map);
-}
-
-isl_map *computation::get_schedule(int duplicate_ID) const
-{
-    assert(duplicate_ID >= 0);
-    assert(duplicate_ID <= this->get_duplicate_schedules_number());
-
-    return this->schedules[duplicate_ID];
-}
-
-void tiramisu::computation::add_schedule_to_duplicate_schedule(isl_map *map, int duplicate)
-{
-    assert(map != NULL);
-
-    this->set_schedule(isl_map_union(this->get_schedule(duplicate), map), duplicate);
+    return this->schedule;
 }
 
 void tiramisu::computation::add_associated_let_stmt(std::string variable_name, tiramisu::expr e)

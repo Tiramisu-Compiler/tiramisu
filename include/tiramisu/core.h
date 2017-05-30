@@ -1021,6 +1021,13 @@ private:
     tiramisu::primitive_t data_type;
 
     /**
+     * An integer indicating the number of duplicates of this computation.
+     * We use this to set the duplicate ID of any newly created computation.
+     * Whenever a new duplicate is create, this number is incremented.
+     */
+    int duplicate_number;
+
+    /**
      * Indicate whether the computation is defined multiple times (i.e.,
      * whether there are many computations with the same name). An update
      * is a special case of a computation defined multiple times.
@@ -1081,20 +1088,9 @@ private:
     unsigned long relative_order;
 
     /**
-      * A vector of the schedules of the computation.
-      *
-      * In Tiramisu, for a given computation computation object, we have
-      * the original iteration domain of the computation and we may have
-      * duplicate iteration domains.  The schedules that transform the
-      * original iteration domain into duplicates and that transform the
-      * duplicates into time-processor domain are all stored in this vector.
-      *
-      * schedules[0] is the schedule of the original computation (which has an ID = 0),
-      * schedules[1] is the schedule of the duplicate computation that has an ID = 1,
-      * schedules[2] is the schedule of the duplicate computation that has an ID = 2,
-      * and so on, ...
+      * The schedules of the computation.
       */
-    std::vector<isl_map *> schedules;
+    isl_map * schedule;
 
     /**
       * TODO: use buffers directly from computations, no need to have
@@ -1109,21 +1105,6 @@ private:
       * computation is generated.
       */
     bool schedule_this_computation;
-
-    /**
-      * A computation can have multiple duplicates.  When the user applies
-      * a transformation, that transformation can be applied either on the
-      * original computation or on one of its duplicates.
-      * Tiramisu should know on which one the transformation should be applied.
-      *
-      * We use this variable to indicate which duplicate of the computation
-      * is selected currently. The selected duplicate is the one on which
-      * all the transformations will be applied.
-      *
-      * By default, the original computation is selected (ID = 0). The user
-      * can select another duplicate using the select(ID) command.
-      */
-    int selected_ID;
 
     // Private class members that are computed during code generation.
 
@@ -1141,11 +1122,6 @@ private:
     isl_set *time_processor_domain;
 
     // Private class methods.
-
-    /**
-      * Get the ID of the selected duplicate.
-      */
-    int get_selected_duplicate_ID() const;
 
     tiramisu::constant *create_separator_and_add_constraints_to_context(
         const tiramisu::expr &loop_upper_bound, int v);
@@ -1196,11 +1172,6 @@ private:
      * any ambiguity for the code generator.
      */
     void rename_computation(std::string new_name);
-
-    /**
-      * Reset the selected duplicate ID.
-      */
-    void reset_selected_duplicate();
 
     /**
       * Separate the iteration domain into two iteration domains using
@@ -1408,14 +1379,9 @@ public:
     tiramisu::primitive_t get_data_type() const;
 
     /**
-      * Get the schedule of the computation or a duplicate of the
-      * computation.
-      * \p duplicate_ID should be used to indicate the ID of the duplicate
-      * of which you want to get the schedule.
-      * By default, this function returns the schedule of the original
-      * computation which has an ID = 0.
+      * Get the schedule of the computation.
       */
-    isl_map *get_schedule(int duplicate_ID = 0) const;
+    isl_map *get_schedule() const;
 
     /**
       * Return the number of schedules of duplicate computations.
@@ -1470,17 +1436,6 @@ public:
       * schedules.
       */
     isl_map *get_union_of_schedules() const;
-
-    /**
-      * Return a vector of the schedules.
-      * This vector holds both the schedule of the original computation and
-      * the schedule of each duplicate computation.
-      * The element 0 in the vector is the schedule of the original computation.
-      * The elements from 1 to the number of duplicates are the schedules that transform
-      * the original computation into duplicate computations and map them to the
-      * time-processor domain.
-      */
-    const std::vector<isl_map *> &get_vector_of_schedules() const;
 
     /**
       * Trim the union of schedules of the computation and
@@ -1652,7 +1607,7 @@ public:
       * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
       *
       * The first dimension called "redundancy ID" is only meaningful if the
-      * computed with redundancy. i.e., some parts of the computation are
+      * computation is redundant. i.e., some parts of the computation are
       * redundantly computed.  Redundant computations are in general used to
       * maximize parallelism and data locality on the expense of doing some
       * computations redundantly.
@@ -1675,7 +1630,7 @@ public:
       * should be computed redundantly. That chunk has an arbitrary ID (which
       * is a simple constant).  The original computation always has a redundancy
       * ID equal to 0 (which means this is the original computation).
-      * The redundant computations have an ID that is equal to 1 or 2 or 3, ...
+      * The redundant computations have an ID that is equal to 1 or 2 or 3 or ...
       *
       * For example if we want to compute all of c0 three times (that is,
       * compute the original computation and compute two redundant computations),
@@ -1692,13 +1647,10 @@ public:
       *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
       *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       *
-      * \p ID indicates the duplicate computation that you want to set
-      * the schedule for.  By default, this function sets the schedule of the
-      * original computation.
       */
     // @{
-    void set_schedule(isl_map *map, int ID = 0);
-    void set_schedule(std::string map_str, int ID = 0);
+    void set_schedule(isl_map *map);
+    void set_schedule(std::string map_str);
     // @}
 
     /**
@@ -1736,12 +1688,8 @@ public:
       * To apply an interchange, you would do
       *
       * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
-      *
-      * The transformation is applied on the duplicate \p ID.  By default,
-      * the transformations are applied on the original computation.
-      *
       */
-    void apply_transformation_on_schedule(std::string map_str, int ID = 0);
+    void apply_transformation_on_schedule(std::string map_str);
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -1752,27 +1700,20 @@ public:
       * of C0, you can apply the transformation
       *
       * C0[i, j] -> C0[i+2, j]
-      *
-      * The transformation is applied on the duplicate \p ID.  By default,
-      * the transformations are applied on the original computation.
-      *
       */
-    void apply_transformation_on_schedule_domain(std::string map_str, int ID = 0);
+    void apply_transformation_on_schedule_domain(std::string map_str);
 
     /**
       * Add the set of constraints \p domain_constraints to the domain
       * of the schedule and add the set of constraints \p range_constraints
       * to the range of the schedule.
       */
-    void add_schedule_constraint(std::string domain_constraints, std::string range_constraints, int ID);
+    void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
 
     /**
-      * Schedule the duplicate \p second_duplicate_ID of this computation to run
-      * after the duplicate \p first_duplicate_ID of the computation \p comp.
+      * Schedule this computation to run after the computation \p comp.
       * The computations are placed after each other in the loop level \p level.
       * The outermost loop level is 0.
-      * By default the original computations (rather than any duplicate) are
-      * scheduled after each other.
       *
       * For example assuming we have the two computations
       *
@@ -1820,8 +1761,8 @@ public:
       * To specify multiple levels the user can use \p levels.
       */
     // @{
-    void after(computation &comp, int level, int first_duplicate_ID = 0);
-    void after(computation &comp, std::vector<int> levels, int first_duplicate_ID = 0);
+    void after(computation &comp, int level);
+    void after(computation &comp, std::vector<int> levels);
     // @}
 
     /**
