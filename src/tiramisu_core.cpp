@@ -2416,7 +2416,7 @@ isl_map *isl_map_filter_bmap_by_dupliate_ID(int ID, isl_map *map)
  * range_constraints_set: a set defined on the space of the range of the
  * schedule.
  */
-std::vector<tiramisu::computation *> computation::duplicate(std::string domain_constraints_set,
+tiramisu::computation *computation::duplicate(std::string domain_constraints_set,
         std::string range_constraints_set)
 {
     DEBUG_FCT_NAME(3);
@@ -2429,13 +2429,6 @@ std::vector<tiramisu::computation *> computation::duplicate(std::string domain_c
           tiramisu::str_dump(domain_constraints_set));
     DEBUG(3, tiramisu::str_dump("and the following constraints on the range of the schedule: ");
           tiramisu::str_dump(range_constraints_set));
-
-    // Declare the vector that will hold the results.
-    // This function returns a vector of two elements, the first is "this" computation
-    // without any change while the second is a copy of this computation where the
-    // schedule is modified.
-    std::vector<tiramisu::computation *> duplicates;
-    duplicates.push_back(this);
 
     this->get_function()->align_schedules();
 
@@ -2497,7 +2490,6 @@ std::vector<tiramisu::computation *> computation::duplicate(std::string domain_c
     // Create the duplicate computation.
     tiramisu::computation *new_c = this->copy();
     new_c->set_schedule(isl_map_copy(new_sched), 0);
-    duplicates.push_back(new_c);
 
     DEBUG(3, tiramisu::str_dump("All the duplicate schedules: "));
     for (const auto &m : this->get_vector_of_schedules())
@@ -2510,7 +2502,7 @@ std::vector<tiramisu::computation *> computation::duplicate(std::string domain_c
 
     DEBUG_INDENT(-4);
 
-    return duplicates;
+    return new_c;
 }
 
 // TODO: fix this function
@@ -3222,13 +3214,12 @@ void computation::compute_at(computation &consumer, int L)
     }
 
     // Duplicate the producer using the missing set which is in the time-processor domain.
-    std::vector<tiramisu::computation *> duplicates = this->duplicate("", isl_set_to_str(missing));
-    tiramisu::computation *original_computation = duplicates[0];
-    tiramisu::computation *duplicated_computation = duplicates[1];
+    tiramisu::computation *original_computation = this;
+    tiramisu::computation *duplicated_computation = this->duplicate("", isl_set_to_str(missing));
     DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the schedule of the original computation."));
-    duplicates[0]->dump_schedule();
+    original_computation->dump_schedule();
     DEBUG(3, tiramisu::str_dump("Dumping the schedule of the duplicate computation."));
-    duplicates[1]->dump_schedule();
+    duplicated_computation->dump_schedule();
 
     DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
     original_computation->after((*duplicated_computation), L, 0);

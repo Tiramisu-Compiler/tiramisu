@@ -1857,81 +1857,53 @@ public:
     void compute_at(computation &comp, int L);
 
     /**
-      * Duplicate a part of the computation.  The duplicated part
-      * is identified using a disjunction of conjunctions of constraints.
+      * Duplicate a part of this computation (or all of it) and return
+      * the duplicate computation.
+      * The duplicate computation is identical to this computation
+      * in every aspect except that its iteration domain is the intersection
+      * of the iteration domain of the original computation and the domain
+      * provided in \p domain_constraints.
       *
-      * For example, let us assume that you have the following computation
+      * Example: let us assume that you have the following computation
       *
       * {C0[i,j]: 0<=i<N and 0<=j<N}
       *
-      * If you want to create a duplicate of a block of the computations
-      * of C0 that satisfy the has the iteration domain
+      * If you want to create a duplicate of this computation
+      * that has the following iteration domain
+      *
       *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+      *
       * you can write
       *
       * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
       *
       * This will keep the original computation C0 and will create a
-      * new computation that is a subset of C0 and that its domain
-      * is restricted to the domain "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
-      * (the function actually intersects the domain provided with
+      * new computation (duplicate of C0) that has
+      * "{C0[i,j]: 0<=i<=10 and 0<=j<=5". as iteration domain.
+      * (duplicate() in fact intersects the domain provided with
       * the original domain).
       *
-      * C0 is called the original computation while the newly created
-      * computation is called the duplicate computation, both have
-      * the name C0.  To differentiate between the two computations,
-      * we introduce the notion of "duplicate ID".
-      *
-      * The duplicate ID of the original computation is always 0. The ID
-      * of the newly created computation is generated automatically and
-      * is 1 for the first duplicate, 2 for the second duplicate, ...
-      *
       * The duplicate computation is an exact copy of the original
-      * computation except in two things:
-      * (1) the iteration domain of the duplicate computation is
+      * computation except in one thing:
+      * The iteration domain of the duplicate computation is
       * the intersection of the iteration domain of the original
       * computation with the constraints provided as an argument
       * to the duplicate command; this means that the iteration domain
       * of the duplicate computation is always a subset of the original
       * iteration domain;
-      * (2) the duplicate ID of the two computations is different, the
-      * original computation has an ID equal to zero while the newly
-      * created duplicate has an ID equal to the number of duplicates
-      * already created + 1.
       *
-      * The duplicated computation will have a schedule equal to the schedule
-      * of the original computation up to the point where the duplication happens.
-      * After duplication, any schedule that is applied on the original computation
-      * will not be applied automatically on the duplicate computation.
-      * To apply a schedule on the duplicate computation, you should specify
-      * the duplicate ID in the scheduling command.  By default, all the scheduling
-      * commands apply on the original computation.  For example, to tile the
-      * dimensions 3 and 4 of the duplicate computation that has an ID equal to
-      * 1 with a tile size 32x32, you can call
-      *
-      * C0.tile(1, 3,4, 32,32);
-      *
-      * To tile the original computation with the same tiling, you can call
-      *
-      * C0.tile(0, 3,4, 32,32);
-      *
-      * Or simply call
-      *
-      * C0.tile(3,4, 32,32);
-      *
-      * Since all the scheduling commands by default apply on the original
-      * computation.
+      * If you schedule a computation C, then duplicate it, then the duplicate
+      * will have exactly the same schedule as the original computation.
+      * After duplication, any schedule applied on the original computation
+      * will not be applied automatically on the duplicate computation. They
+      * become two separate computations that need to be scheduled separately.
       *
       * \p domain_constraints is a set of constraints on the iteration domain that
       * define the duplicate.
       * \p range_constraints is a set of constraints on the time-processor domain
       * that define the duplicate.
-      * The set of range_constraints is supposed to have an ID 0.
-      *
-      * This function returns a vector of two computations, the first element in the vector
-      * is the original computation and the second is the duplicated computation.
       */
-    std::vector<tiramisu::computation *> duplicate(std::string domain_constraints,
+    tiramisu::computation *duplicate(std::string domain_constraints,
             std::string range_constraints);
 
     /**
