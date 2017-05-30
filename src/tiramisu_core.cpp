@@ -2253,10 +2253,10 @@ tiramisu::computation *computation::duplicate(std::string domain_constraints_set
     assert(this->get_union_of_schedules() != NULL);
 
     DEBUG(3, tiramisu::str_dump("The ID of the last duplicate of this computation (i.e., number of duplicates) is : "
-                                + std::to_string(this->get_duplicate_schedules_number())));
+                                + std::to_string(this->get_duplicates_number())));
 
     DEBUG(3, tiramisu::str_dump("Now creating a map for the new duplicate."));
-    int new_ID = this->get_duplicate_schedules_number() + 1;
+    int new_ID = this->get_duplicates_number() + 1;
     this->duplicate_number++; // Increment the duplicate number.
     isl_map *new_sched = isl_map_copy(this->get_schedule());
     DEBUG(3, tiramisu::str_dump("The map of the original: ", isl_map_to_str(new_sched)));
@@ -4729,7 +4729,7 @@ void tiramisu::computation::set_identity_schedule_based_on_iteration_domain()
     DEBUG_INDENT(-4);
 }
 
-int computation::get_duplicate_schedules_number() const
+int computation::get_duplicates_number() const
 {
     return this->duplicate_number;
 }

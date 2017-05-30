@@ -1384,9 +1384,9 @@ public:
     isl_map *get_schedule() const;
 
     /**
-      * Return the number of schedules of duplicate computations.
+      * Return the number of the duplicates of this computation.
       */
-    int get_duplicate_schedules_number() const;
+    int get_duplicates_number() const;
 
     /**
       * Return the Tiramisu expression associated with the computation.
