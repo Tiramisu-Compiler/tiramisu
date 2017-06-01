@@ -1435,14 +1435,6 @@ public:
     int get_n_dimensions();
 
     /**
-      * Return the union of the schedules of the original computation
-      * and it duplicates (if it has).
-      * The return map is an isl_map that represents the union of the
-      * schedules.
-      */
-    isl_map *get_union_of_schedules() const;
-
-    /**
       * Trim the union of schedules of the computation and
       * return the result.
       * The trimmed union of schedules is the schedule without the

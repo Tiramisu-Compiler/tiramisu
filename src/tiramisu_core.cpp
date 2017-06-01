@@ -4466,18 +4466,6 @@ isl_set *tiramisu::computation::get_time_processor_domain() const
 }
 
 /**
-  * Return the schedule of the computation.
-  */
-isl_map *tiramisu::computation::get_union_of_schedules() const
-{
-    isl_map *result = isl_map_copy(this->get_schedule());
-
-    result = isl_map_intersect_domain(result, isl_set_copy(this->get_iteration_domain()));
-
-    return result;
-}
-
-/**
   * Return the trimmed schedule of the computation.
   * The trimmed schedule is the schedule without the
   * duplication dimension.
