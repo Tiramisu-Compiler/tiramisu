@@ -115,7 +115,7 @@ isl_union_map *tiramisu::function::compute_dep_graph()
 
         isl_union_map *accesses_union_map = NULL;
         std::vector<isl_map *> accesses_vector;
-        get_rhs_accesses(this, consumer, accesses_vector, false);
+        generator::get_rhs_accesses(this, consumer, accesses_vector, false);
 
         DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
 
@@ -746,7 +746,7 @@ void function::gen_isl_ast()
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
     ast_build = isl_ast_build_set_after_each_for(ast_build, &tiramisu::for_code_generator_after_for,
                 NULL);
-    ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::stmt_code_generator, this);
+    ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::generator::stmt_code_generator, this);
 
     // Set iterator names
     isl_id_list *iterators = isl_id_list_alloc(ctx, this->get_iterator_names().size());
@@ -2763,7 +2763,7 @@ void computation::compute_at(computation &consumer, int L)
 
     // Compute the access relation of the consumer computation.
     std::vector<isl_map *> accesses_vector;
-    get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
+    generator::get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
     assert(accesses_vector.size() > 0);
 
     DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
@@ -4117,7 +4117,7 @@ void tiramisu::buffer::dump(bool exhaustive) const
             // TODO: create_halide_expr_from_tiramisu_expr does not support
             // the case where the buffer size is a computation access.
             std::vector<isl_ast_expr *> ie = {};
-            std::cout << halide_expr_from_tiramisu_expr(NULL, ie, size) << ", ";
+            std::cout << generator::halide_expr_from_tiramisu_expr(NULL, ie, size) << ", ";
         }
         std::cout << std::endl;
 

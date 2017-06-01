@@ -1152,6 +1152,15 @@ private:
     isl_map *get_access_relation() const;
 
     /**
+      * Return the access function of the computation after transforming
+      * it to the time-processor domain.
+      * The domain of the access function is transformed to the
+      * time-processor domain using the schedule, and then the transformed
+      * access function is returned.
+      */
+    isl_map *get_access_relation_adapted_to_time_processor_domain() const;
+
+    /**
       * Return vector of associated let statements.
       *
       * This is a vector that contains the list of let statements
@@ -1168,6 +1177,11 @@ private:
       * Return the context of the computations.
       */
     isl_ctx *get_ctx() const;
+
+    /**
+      * Get the data type of the computation.
+      */
+    tiramisu::primitive_t get_data_type() const;
 
     /**
      * Return true if the computation has multiple definitions.
@@ -1400,20 +1414,6 @@ public:
     computation *add_computations(std::string iteration_domain_str, tiramisu::expr e,
                             bool schedule_this_computation, tiramisu::primitive_t t,
                             tiramisu::function *fct);
-
-    /**
-      * Return the access function of the computation after transforming
-      * it to the time-processor domain.
-      * The domain of the access function is transformed to the
-      * time-processor domain using the schedule, and then the transformed
-      * access function is returned.
-      */
-    isl_map *get_access_relation_adapted_to_time_processor_domain() const;
-
-    /**
-      * Get the data type of the computation.
-      */
-    tiramisu::primitive_t get_data_type() const;
 
     /**
       * Get the schedule of the computation.
@@ -2419,7 +2419,21 @@ public:
 */
 class generator
 {
-public:
+    friend tiramisu::function;
+    friend tiramisu::computation;
+    friend tiramisu::buffer;
+
+protected:
+
+    /**
+     * Compute the accesses of the RHS of the computation
+     * \p comp and store them in the accesses vector.
+     *
+     * If \p return_buffer_accesses is set to true, this function returns access functions to
+     * buffers. Otherwise it returns access functions to computations.
+     */
+    static void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computation *comp,
+                          std::vector<isl_map *> &accesses, bool return_buffer_accesses);
 
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast
@@ -2433,6 +2447,19 @@ public:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
         int level, std::vector<std::string> &tagged_stmts);
+
+    /**
+     * Create a Halide expression from a  Tiramisu expression.
+     */
+    static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
+            std::vector<isl_ast_expr *> &index_expr,
+            const tiramisu::expr &tiramisu_expr);
+
+    /**
+     * Retrieve the access function of the ISL AST leaf node (which represents a
+     * computation). Store the access in computation->access.
+     */
+    static isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void *user);
 
     /**
      * Traverse a tiramisu expression (\p exp) and extract the access relations

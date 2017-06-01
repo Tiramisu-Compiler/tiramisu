@@ -840,7 +840,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * If \p return_buffer_accesses is set to true, this function returns access functions to
  * buffers. Otherwise it returns access functions to computations.
  */
-void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computation *comp,
+void generator::get_rhs_accesses(const tiramisu::function *func, const tiramisu::computation *comp,
                       std::vector<isl_map *> &accesses, bool return_buffer_accesses)
 {
     DEBUG_FCT_NAME(3);
@@ -857,7 +857,7 @@ void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computatio
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
  */
-isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
+isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void *user)
 {
     assert(node != NULL);
     assert(build != NULL);
@@ -895,7 +895,7 @@ isl_ast_node *stmt_code_generator(isl_ast_node *node, isl_ast_build *build, void
             isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
             accesses.push_back(access);
             // Add the accesses of the RHS to the accesses vector
-            get_rhs_accesses(func, comp, accesses, true);
+            generator::get_rhs_accesses(func, comp, accesses, true);
         }
 
         if (!accesses.empty())
@@ -980,7 +980,7 @@ void print_isl_ast_expr_vector(
     }
 }
 
-Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
+Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
         std::vector<isl_ast_expr *> &index_expr,
         const tiramisu::expr &tiramisu_expr)
 {
@@ -1044,19 +1044,19 @@ Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
         if (tiramisu_expr.get_n_arg() > 0)
         {
             tiramisu::expr expr0 = tiramisu_expr.get_operand(0);
-            op0 = halide_expr_from_tiramisu_expr(comp, index_expr, expr0);
+            op0 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr0);
         }
 
         if (tiramisu_expr.get_n_arg() > 1)
         {
             tiramisu::expr expr1 = tiramisu_expr.get_operand(1);
-            op1 = halide_expr_from_tiramisu_expr(comp, index_expr, expr1);
+            op1 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr1);
         }
 
         if (tiramisu_expr.get_n_arg() > 2)
         {
             tiramisu::expr expr2 = tiramisu_expr.get_operand(2);
-            op2 = halide_expr_from_tiramisu_expr(comp, index_expr, expr2);
+            op2 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr2);
         }
 
         switch (tiramisu_expr.get_op_type())
@@ -1318,7 +1318,7 @@ Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
             std::vector<Halide::Expr> vec;
             for (const auto &e : tiramisu_expr.get_arguments())
             {
-                Halide::Expr he = halide_expr_from_tiramisu_expr(comp, index_expr, e);
+                Halide::Expr he = generator::halide_expr_from_tiramisu_expr(comp, index_expr, e);
                 vec.push_back(he);
             }
             result = Halide::Internal::Call::make(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
@@ -1561,7 +1561,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     // that represents a computation access.
                     const auto sz = buf->get_dim_sizes()[i];
                     std::vector<isl_ast_expr *> ie = {};
-                    halide_dim_sizes.push_back(halide_expr_from_tiramisu_expr(NULL, ie, sz));
+                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
                 }
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
@@ -1846,7 +1846,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
             result = Halide::Internal::LetStmt::make(
                          l_stmt.first,
-                         halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                         generator::halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
                          result);
 
             DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
@@ -1937,7 +1937,7 @@ void function::gen_halide_stmt()
                 // that represents a computation access.
                 const auto sz = buf->get_dim_sizes()[i];
                 std::vector<isl_ast_expr *> ie = {};
-                halide_dim_sizes.push_back(halide_expr_from_tiramisu_expr(NULL, ie, sz));
+                halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
             }
             stmt = Halide::Internal::Allocate::make(
                        buf->get_name(),
@@ -1966,7 +1966,7 @@ void function::gen_halide_stmt()
         std::vector<isl_ast_expr *> ie = {};
         stmt = Halide::Internal::LetStmt::make(
                    param.get_name(),
-                   halide_expr_from_tiramisu_expr(NULL, ie, param.get_expr()),
+                   generator::halide_expr_from_tiramisu_expr(NULL, ie, param.get_expr()),
                    stmt);
     }
 
@@ -2032,7 +2032,7 @@ void computation::create_halide_assignment()
                          this->expression.dump(false));
         DEBUG_NEWLINE(10);
 
-        Halide::Expr result = halide_expr_from_tiramisu_expr(this,
+        Halide::Expr result = generator::halide_expr_from_tiramisu_expr(this,
                               this->get_index_expr(),
                               this->expression);
 
@@ -2126,7 +2126,7 @@ void computation::create_halide_assignment()
 
         this->stmt = Halide::Internal::Store::make (
                          buffer_name,
-                         halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
+                         generator::halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
                          index, param, Halide::Internal::const_true(type.lanes()));
 
         DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
