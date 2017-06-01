@@ -26,6 +26,7 @@ class function;
 class computation;
 class buffer;
 class constant;
+class generator;
 
 /**
   * Add a dimension to the range of a map in the specified position.
@@ -989,6 +990,7 @@ public:
 class computation
 {
     friend tiramisu::function;
+    friend tiramisu::generator;
 
 private:
 
@@ -1143,6 +1145,24 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
+
+    /**
+      * Return vector of associated let statements.
+      *
+      * This is a vector that contains the list of let statements
+      * associated with this computation.
+      *
+      * A let statement that is associated with the computation is a
+      * let statement that will be added just before the computation.
+      * The scope of the variable defined by the let statement is this
+      * computation alone. i.e., it is not defined in other computations.
+      */
+    const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
+
+    /**
+      * Return the context of the computations.
+      */
+    isl_ctx *get_ctx() const;
 
     /**
      * Return true if the computation has multiple definitions.
@@ -1354,24 +1374,6 @@ public:
       * access function is returned.
       */
     isl_map *get_access_relation_adapted_to_time_processor_domain() const;
-
-    /**
-      * Return vector of associated let statements.
-      *
-      * This is a vector that contains the list of let statements
-      * associated with this computation.
-      *
-      * A let statement that is associated with the computation is a
-      * let statement that will be added just before the computation.
-      * The scope of the variable defined by the let statement is this
-      * computation alone. i.e., it is not defined in other computations.
-      */
-    const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
-
-    /**
-      * Return the context of the computations.
-      */
-    isl_ctx *get_ctx() const;
 
     /**
       * Get the data type of the computation.
