@@ -28,13 +28,17 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
-    tiramisu::computation temp("[N]->{temp[i,j]: 0<=i<N and 0<=j<N}", (tiramisu::expr((uint8_t) 1)), true, p_uint8, &function0);
-    tiramisu::computation result("[N]->{result[i,j]: 0<=i<N and 0<=j<N}", (temp(i,j) + (uint8_t) 1), true, p_uint8, &function0);
+    tiramisu::computation temp("[N]->{temp[i,j]: 0<=i<N and 0<=j<N}", (tiramisu::expr((uint8_t) 1)),
+                               true, p_uint8, &function0);
+    tiramisu::computation result("[N]->{result[i,j]: 0<=i<N and 0<=j<N}", (temp(i, j) + (uint8_t) 1),
+                                 true, p_uint8, &function0);
     function0.compute_bounds();
 
     // Data mapping
-    tiramisu::buffer temp_buffer("temp_buffer", 1, {size}, tiramisu::p_uint8, NULL, a_temporary, &function0);
-    tiramisu::buffer result_buffer("result_buffer", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer temp_buffer("temp_buffer", 1, {size}, tiramisu::p_uint8, NULL, a_temporary,
+                                 &function0);
+    tiramisu::buffer result_buffer("result_buffer", 2, {size, size}, tiramisu::p_uint8, NULL, a_output,
+                                   &function0);
     temp.set_access("[N]->{temp[i,j]->temp_buffer[j]}");
     result.set_access("[N]->{result[i,j]->result_buffer[i,j]}");
     tiramisu::computation *allocation = temp_buffer.allocate_at(&temp, 0);

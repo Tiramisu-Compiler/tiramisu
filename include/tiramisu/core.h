@@ -800,12 +800,12 @@ protected:
     /**
       * Return whether the buffer should be allocated automatically.
       */
-     bool get_auto_allocate();
+    bool get_auto_allocate();
 
     /**
       * Set whether the buffer should be allocated automatically.
       */
-     void set_auto_allocate(bool auto_allocation);
+    void set_auto_allocate(bool auto_allocation);
 
 public:
     /**

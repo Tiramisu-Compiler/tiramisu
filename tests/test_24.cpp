@@ -29,19 +29,22 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant T1("T1", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::constant T2("T2", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf1("buf1", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf2("buf2", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf3("buf3", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf4("buf4", 2, {size,size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf1("buf1", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf2("buf2", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf3("buf3", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf4("buf4", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
-    tiramisu::computation S0("[N,M]->{S0[i,j]                   }", tiramisu::expr((uint8_t) val0),        true, p_uint8, &function0);
-    tiramisu::computation S1("[N,M,T1]->{S1[i,j]: 0<=i<M and 0<=j<T1}", S0(0,1),                               true, p_uint8, &function0);
-    tiramisu::computation S2("[N,M]->{S2[i,j]                   }", S0(i,j) + S0(i,j),                     true, p_uint8, &function0);
-    tiramisu::computation S3("[N,M]->{S3[i,j]                   }", S2(i,j) + S0(i,j),                     true, p_uint8, &function0);
-    tiramisu::computation S4("[N,M,T2]->{S4[i,j]: 0<=i<max(N,M) and 0<=j<T2}", S3(i,j) + tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
+    tiramisu::computation S0("[N,M]->{S0[i,j]}", tiramisu::expr((uint8_t) val0), true, p_uint8,
+                             &function0);
+    tiramisu::computation S1("[N,M,T1]->{S1[i,j]: 0<=i<M and 0<=j<T1}", S0(0, 1), true, p_uint8,
+                             &function0);
+    tiramisu::computation S2("[N,M]->{S2[i,j]}", S0(i, j) + S0(i, j), true, p_uint8, &function0);
+    tiramisu::computation S3("[N,M]->{S3[i,j]}", S2(i, j) + S0(i, j), true, p_uint8, &function0);
+    tiramisu::computation S4("[N,M,T2]->{S4[i,j]: 0<=i<max(N,M) and 0<=j<T2}", S3(i,
+                             j) + tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
 
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]}");
     S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]}");

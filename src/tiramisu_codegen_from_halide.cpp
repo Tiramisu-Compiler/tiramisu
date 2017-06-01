@@ -239,6 +239,8 @@ protected:
     void visit(const Broadcast *)   { error(); }
     void visit(const IfThenElse *)  { error(); }
     void visit(const Free *)        { error(); }
+    //void visit(const Shuffle *);    { error(); }
+    //void visit(const Prefetch *);   { error(); }
 
     void visit(const Store *)       { error(); } // Should pass the unflatten version to Tiramisu
     void visit(const Allocate *)    { error(); } // Should pass the unflatten version to Tiramisu
