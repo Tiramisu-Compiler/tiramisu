@@ -1502,8 +1502,12 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
   * Generate a Halide statement from an ISL ast node object in the ISL ast
   * tree.
   * Level represents the level of the node in the schedule. 0 means root.
+  * It taks as input:
+  *     - a function \p fct for which we are generating code,
+  *     - a \p node,
+  *     - \p level represents the current loop level being traversed (0 means the outer level.
   */
-Halide::Internal::Stmt halide_stmt_from_isl_node(
+Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
     const tiramisu::function &fct, isl_ast_node *node,
     int level, std::vector<std::string> &tagged_stmts)
 {
@@ -1577,7 +1581,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
             else
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
-                block = tiramisu::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
             }
             isl_ast_node_free(child);
 
@@ -1703,7 +1707,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
         DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
               std::cout << cond_upper_bound_halide_format);
         Halide::Internal::Stmt halide_body =
-            tiramisu::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts);
+                tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts);
         Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
         Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
@@ -1863,7 +1867,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
         DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
         Halide::Internal::Stmt if_s =
-            tiramisu::halide_stmt_from_isl_node(fct, if_stmt,
+                tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt,
                                                 level, tagged_stmts);
 
         DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
@@ -1874,7 +1878,7 @@ Halide::Internal::Stmt halide_stmt_from_isl_node(
         {
             DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
 
-            else_s = tiramisu::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
+            else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
 
             DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
         }
@@ -1911,7 +1915,7 @@ void function::gen_halide_stmt()
     Halide::Internal::Stmt stmt;
 
     // Generate the statement that represents the whole function
-    stmt = tiramisu::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
 
     // Allocate buffers that are not passed as an argument to the function
     for (const auto &b : this->get_buffers())

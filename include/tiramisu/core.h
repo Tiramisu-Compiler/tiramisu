@@ -1385,6 +1385,9 @@ public:
 
     /**
       * Return the number of the duplicates of this computation.
+      *
+      * The number of duplicates is incremented if the computation is duplicated using
+      * the duplicate() function.
       */
     int get_duplicates_number() const;
 
@@ -2380,6 +2383,29 @@ public:
       */
     void dump(bool exhaustive) const;
 };
+
+
+/**
+* A class for code generation.
+*/
+class generator
+{
+public:
+
+    /**
+      * Generate a Halide statement from an ISL ast node object in the ISL ast
+      * tree.
+      * Level represents the level of the node in the schedule. 0 means root.
+      * It taks as input:
+      *     - a function \p fct for which we are generating code,
+      *     - a \p node,
+      *     - \p level represents the current loop level being traversed (0 means the outer level.
+      */
+    static Halide::Internal::Stmt halide_stmt_from_isl_node(
+        const tiramisu::function &fct, isl_ast_node *node,
+        int level, std::vector<std::string> &tagged_stmts);
+};
+
 
 // Halide IR specific functions
 
