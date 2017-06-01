@@ -401,7 +401,7 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
-tiramisu::computation *tiramisu::computation::add_update(std::string iteration_domain_str, tiramisu::expr e,
+tiramisu::computation *tiramisu::computation::add_computations(std::string iteration_domain_str, tiramisu::expr e,
                         bool schedule_this_computation, tiramisu::primitive_t t,
                         tiramisu::function *fct)
 {

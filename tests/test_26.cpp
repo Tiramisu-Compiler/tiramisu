@@ -58,7 +58,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var i = tiramisu::var("i");
     tiramisu::computation input("[N]->{input[i]}", tiramisu::expr(), false, p_uint8, &function0);
     tiramisu::computation result("[N]->{result[0]}", tiramisu::expr(input(0)), true, p_uint8, &function0);
-    tiramisu::computation *result1 = result.add_update("[N]->{result[i]: 1<=i<N}", (result(i-1) + input(i)), true, p_uint8, &function0);
+    tiramisu::computation *result1 = result.add_computations("[N]->{result[i]: 1<=i<N}", (result(i-1) + input(i)), true, p_uint8, &function0);
 
     input.set_access("[N]->{input[i]->input_buffer[i]}");
     result.set_access("[N]->{result[i]->result_scalar[0]}");

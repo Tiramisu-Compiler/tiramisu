@@ -1319,6 +1319,10 @@ public:
       * names.
       *
       * \p e is the expression computed by the computation.
+      * It is possible to declare the computation without specifying the expression.
+      * The expression can be specified later using computation::set_expression().
+      * An example of setting the expression after declaring the computation
+      * is presented in tests/test_04.cpp.
       *
       * \p schedule_this_computation should be set to true if the computation
       * is supposed to be schedule and code is supposed to be generated from
@@ -1326,6 +1330,8 @@ public:
       * computation to represent a buffer (that is passed as an argument
       * to the function) and you do not intend to generate code for the
       * computation.
+      * An example where this argument is set to false is presented in
+      * tests/test_14.cpp.
       *
       * \p t is the type of the computation, i.e. the type of the expression
       * computed by the computation. Example of types include (p_uint8,
@@ -1342,9 +1348,8 @@ public:
       * consumers), and Tiramisu will propagate these constraints to all the
       * chain of computations that precede those consumers.
       * Note that bound inference is not possible if you have multiple definitions
-      * of the same computation. For example, if you have multiple definitions
-      * of the same computations, in such a case the user should provide
-      * constraints of the iteration domain of the computation.
+      * of the same computation. In such a case, you should provide constraints
+      * over the iteration domain when you declare the computation.
       *
       * Examples about bound inference are provided in test_22 to test_25.
       */
@@ -1353,11 +1358,43 @@ public:
                 tiramisu::function *fct);
 
     /**
-     * Add an update definition of the computation.
-     * The arguments of this function are identical to the arguments of the
-     * constructor.
+     * Add new computations to this computation.  The arguments of this function
+     * are identical to the arguments of the computation constructor.  In general,
+     * this function is used to express reductions and to express computation
+     * updates.
+     *
+     * The class "computation" is usually used to represent a set of computations,
+     * for example each one of C(0), C(1) and C(2) is considered to be a computation,
+     * and all of them together are instances C.
+     *
+     * If the user has already declare a set of computations C and wants to add more
+     * computations to this set he can use this function. For example, let's assume
+     * we have declared the following set of computations
+     *
+     * {C[i]: 0<=i<10}: 0
+     * {C[i]: 10<=i<20}: 1
+     *
+     * These are two sets declaring 10 computations of C each.
+     * The user can declare the first set of computations as usual (using the computation()
+     * constructor) and should add the second set of computations using add_computations()
+     *
+     * The newly added computations must have the same name and the same access function
+     * as the initial set of computations but can have a different expression.
+     *
+     * The use of add_computation is purely due to restrictions imposed by the C++ language
+     * and not by the Tiramisu framework itself.  This is mainly because in C++, it is not
+     * possible to declare two objects with the same name, for example one cannot do
+     *
+     * computation C(...);
+     * computation C(...);
+     *
+     * In order to declare the second set of computations, we chose to use the add_computations
+     * function to avoid this problem.
+     *
+     * An example of using this function is available in test_26 and test_26.
+     *
      */
-    computation *add_update(std::string iteration_domain_str, tiramisu::expr e,
+    computation *add_computations(std::string iteration_domain_str, tiramisu::expr e,
                             bool schedule_this_computation, tiramisu::primitive_t t,
                             tiramisu::function *fct);
 
