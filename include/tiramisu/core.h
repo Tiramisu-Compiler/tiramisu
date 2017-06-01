@@ -1147,6 +1147,11 @@ private:
     void create_duplication_transformation(std::string map_str);
 
     /**
+      * Return the access function of the computation.
+      */
+    isl_map *get_access_relation() const;
+
+    /**
       * Return vector of associated let statements.
       *
       * This is a vector that contains the list of let statements
@@ -1249,8 +1254,6 @@ private:
     isl_set *simplify(isl_set *set);
     isl_map *simplify(isl_map *map);
     // @}
-
-
 
 protected:
 
@@ -1397,11 +1400,6 @@ public:
     computation *add_computations(std::string iteration_domain_str, tiramisu::expr e,
                             bool schedule_this_computation, tiramisu::primitive_t t,
                             tiramisu::function *fct);
-
-    /**
-      * Return the access function of the computation.
-      */
-    isl_map *get_access_relation() const;
 
     /**
       * Return the access function of the computation after transforming
@@ -2435,6 +2433,21 @@ public:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
         int level, std::vector<std::string> &tagged_stmts);
+
+    /**
+     * Traverse a tiramisu expression (\p exp) and extract the access relations
+     * from the access operation passed in \p exp.  The access relations are added
+     * to the vector \p accesses.
+     * The access relation is from the domain of the computation \p comp to the
+     * domain of the computation accessed by the access operation.
+     * If \p return_buffer_accesses = true, an access to a buffer is created
+     * instead of an access to computations.
+     */
+    static void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
+                                            const tiramisu::computation *comp,
+                                            const tiramisu::expr &exp,
+                                            std::vector<isl_map *> &accesses,
+                                            bool return_buffer_accesses);
 };
 
 

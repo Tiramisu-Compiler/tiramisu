@@ -509,7 +509,7 @@ std::vector<tiramisu::computation *> filter_computations_by_domain(std::vector<t
  * that corresponds to the current statement if many computations that have
  * the name comp.get_name() exist.
  */
-void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
+void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct,
                                         const tiramisu::computation *comp,
                                         const tiramisu::expr &exp,
                                         std::vector<isl_map *> &accesses,
@@ -642,7 +642,7 @@ void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
         case tiramisu::o_address:
         {
             tiramisu::expr exp0 = exp.get_operand(0);
-            traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
             break;
         }
         case tiramisu::o_logical_and:
@@ -665,8 +665,8 @@ void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
         {
             tiramisu::expr exp0 = exp.get_operand(0);
             tiramisu::expr exp1 = exp.get_operand(1);
-            traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
-            traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, exp0, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, exp1, accesses, return_buffer_accesses);
             break;
         }
         case tiramisu::o_select:
@@ -675,16 +675,16 @@ void traverse_expr_and_extract_accesses(const tiramisu::function *fct,
             tiramisu::expr expr0 = exp.get_operand(0);
             tiramisu::expr expr1 = exp.get_operand(1);
             tiramisu::expr expr2 = exp.get_operand(2);
-            traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses);
-            traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses);
-            traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, expr0, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, expr1, accesses, return_buffer_accesses);
+            generator::traverse_expr_and_extract_accesses(fct, comp, expr2, accesses, return_buffer_accesses);
             break;
         }
         case tiramisu::o_call:
         {
             for (const auto &e : exp.get_arguments())
             {
-                traverse_expr_and_extract_accesses(fct, comp, e, accesses, return_buffer_accesses);
+                generator::traverse_expr_and_extract_accesses(fct, comp, e, accesses, return_buffer_accesses);
             }
             break;
         }
@@ -847,7 +847,7 @@ void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computatio
     DEBUG_INDENT(4);
 
     const tiramisu::expr &rhs = comp->get_expr();
-    traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
+    generator::traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
 
     DEBUG_INDENT(-4);
     DEBUG_FCT_NAME(3);
