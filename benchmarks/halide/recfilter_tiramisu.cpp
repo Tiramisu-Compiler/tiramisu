@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     rec_filter_s1.tag_parallel_level(0);
 
     recfilter_tiramisu.set_arguments({&buff_b0, &buff_rec_filter});
-    recfilter_tiramisu.gen_time_processor_domain();
+    recfilter_tiramisu.gen_time_space_domain();
     recfilter_tiramisu.gen_isl_ast();
     recfilter_tiramisu.gen_halide_stmt();
     recfilter_tiramisu.dump_halide_stmt();

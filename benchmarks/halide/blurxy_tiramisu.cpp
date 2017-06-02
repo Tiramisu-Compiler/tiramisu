@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     blur_y_s0.tag_parallel_level(0);
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_blur_y});
-    blurxy_tiramisu.gen_time_processor_domain();
+    blurxy_tiramisu.gen_time_space_domain();
     blurxy_tiramisu.gen_isl_ast();
     blurxy_tiramisu.gen_halide_stmt();
     blurxy_tiramisu.dump_halide_stmt();

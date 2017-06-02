@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     // Add schedules.
 
     gaussian_tiramisu.set_arguments({&buff_input, &buff_kernelx, &buff_kernely, &buff_gaussian});
-    gaussian_tiramisu.gen_time_processor_domain();
+    gaussian_tiramisu.gen_time_space_domain();
     gaussian_tiramisu.gen_isl_ast();
     gaussian_tiramisu.gen_halide_stmt();
     gaussian_tiramisu.dump_halide_stmt();

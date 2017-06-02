@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     RGB2Gray_s0.tag_parallel_level(0);
 
     cvtcolor_tiramisu.set_arguments({&buff_input, &buff_RGB2Gray});
-    cvtcolor_tiramisu.gen_time_processor_domain();
+    cvtcolor_tiramisu.gen_time_space_domain();
     cvtcolor_tiramisu.gen_isl_ast();
     cvtcolor_tiramisu.gen_halide_stmt();
     cvtcolor_tiramisu.dump_halide_stmt();

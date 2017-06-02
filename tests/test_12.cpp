@@ -26,7 +26,7 @@ void generate_function_1(std::string name, int size, int val0)
     S0.unroll(1, 5, tiramisu::var(p_int32, "N"));
 
     function0.set_arguments({&buf0});
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.gen_halide_obj("build/generated_fct_test_12.o");

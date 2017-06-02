@@ -72,7 +72,7 @@ void generate_function(std::string name, int size, int val0)
     result1->after(result, computation::root_dimension);
 
     function0.set_arguments({&input_buffer, &result_scalar});
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.gen_c_code();

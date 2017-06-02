@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     divergence2d_s1.tag_parallel_level(0);
 
     divergence2d_tiramisu.set_arguments({&buff_input, &buff_divergence2d});
-    divergence2d_tiramisu.gen_time_processor_domain();
+    divergence2d_tiramisu.gen_time_space_domain();
     divergence2d_tiramisu.gen_isl_ast();
     divergence2d_tiramisu.gen_halide_stmt();
     divergence2d_tiramisu.dump_halide_stmt();

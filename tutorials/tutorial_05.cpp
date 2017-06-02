@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     sequence.set_arguments({&b0, &b1, &b2, &b3});
 
     // Generate code
-    sequence.gen_time_processor_domain();
+    sequence.gen_time_space_domain();
     sequence.gen_isl_ast();
     sequence.gen_halide_stmt();
     sequence.gen_halide_obj("build/generated_fct_tutorial_05.o");

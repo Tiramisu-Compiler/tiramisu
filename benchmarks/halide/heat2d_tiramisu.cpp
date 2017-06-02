@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     heat2d_s1.tag_parallel_level(0);
 
     heat2d_tiramisu.set_arguments({&buff_input, &buff_heat2d});
-    heat2d_tiramisu.gen_time_processor_domain();
+    heat2d_tiramisu.gen_time_space_domain();
     heat2d_tiramisu.gen_isl_ast();
     heat2d_tiramisu.gen_halide_stmt();
     heat2d_tiramisu.dump_halide_stmt();

@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
 
     // Generate code
-    spmv.gen_time_processor_domain();
+    spmv.gen_time_space_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();
     spmv.gen_halide_obj("build/generated_fct_tutorial_04.o");

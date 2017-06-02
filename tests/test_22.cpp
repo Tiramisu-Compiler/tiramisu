@@ -61,7 +61,7 @@ void generate_function(std::string name, int size, int val0)
     function0.compute_bounds();
 
     function0.set_arguments({&buf0, &buf1, &buf2, &buf3, &buf4});
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.gen_c_code();

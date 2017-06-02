@@ -50,7 +50,7 @@ void generate_tiramisu_obj_file()
     c_b1.set_schedule("{c_b1[i]->c_b1[0, 0, i0, 3, i1, 1, 0, 0]: i0=floor(i/4) and i1=i%4}");
 
     // Generate code
-    stencil1.gen_time_processor_domain();
+    stencil1.gen_time_space_domain();
     stencil1.gen_isl_ast();
     stencil1.gen_c_code();
     stencil1.gen_halide_stmt();

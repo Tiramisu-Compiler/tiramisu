@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     // Set the arguments to blurxy
     blurxy.set_arguments({&b_input, &b_blury});
     // Generate code
-    blurxy.gen_time_processor_domain();
+    blurxy.gen_time_space_domain();
     blurxy.gen_isl_ast();
     blurxy.gen_halide_stmt();
     blurxy.gen_halide_obj("build/generated_fct_tutorial_02.o");

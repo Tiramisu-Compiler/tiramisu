@@ -41,7 +41,7 @@ void generate_function(std::string name, int size, int val0)
     S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
 
     function0.set_arguments({&buf0, &buf1});
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.gen_c_code();

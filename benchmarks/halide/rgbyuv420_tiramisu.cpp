@@ -106,7 +106,7 @@ int main(int argc, char **argv)
     // Add schedules.
 
     rgbyuv420.set_arguments({&buff_p0, &buff_u_part, &buff_v_part, &buff_y_part});
-    rgbyuv420.gen_time_processor_domain();
+    rgbyuv420.gen_time_space_domain();
     rgbyuv420.gen_isl_ast();
     rgbyuv420.gen_halide_stmt();
     rgbyuv420.dump_halide_stmt();

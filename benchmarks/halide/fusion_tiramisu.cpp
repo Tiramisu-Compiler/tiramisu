@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 
     fusion_tiramisu.set_arguments({&buff_input, &buff_f, &buff_g, &buff_h, &buff_k});
-    fusion_tiramisu.gen_time_processor_domain();
+    fusion_tiramisu.gen_time_space_domain();
     fusion_tiramisu.gen_isl_ast();
     fusion_tiramisu.gen_halide_stmt();
     fusion_tiramisu.dump_halide_stmt();

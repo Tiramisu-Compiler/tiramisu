@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     // and dump it on stdout.
     // This is purely for debugging, the tim-processor representation
     // is not used later on.
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
     function0.dump_time_processor_domain();
 
     // Generate an AST (abstract Syntax Tree)

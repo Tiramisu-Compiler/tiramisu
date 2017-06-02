@@ -1299,7 +1299,7 @@ void tiramisu::computation::set_has_multiple_definitions(bool val)
     this->multiple_definitions = val;
 }
 
-void function::gen_time_processor_domain()
+void function::gen_time_space_domain()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1314,7 +1314,7 @@ void function::gen_time_processor_domain()
 
     for (auto &comp : this->get_computations())
     {
-        comp->gen_time_processor_domain();
+        comp->gen_time_space_domain();
     }
 
     DEBUG_INDENT(-4);
@@ -4550,7 +4550,7 @@ bool tiramisu::computation::operator==(tiramisu::computation comp1)
   * specified.  The memory location where computations will be
   * stored in memory is not specified at the level.
   */
-void tiramisu::computation::gen_time_processor_domain()
+void tiramisu::computation::gen_time_space_domain()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);

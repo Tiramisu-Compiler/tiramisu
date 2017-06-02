@@ -612,12 +612,13 @@ public:
     void gen_isl_ast();
 
     /**
-      * Generate the time-processor domain of the function.
+      * Generate the time-space domain of the function.
+      *
       * In this representation, the logical time of execution and the
       * processor where the computation will be executed are both
       * specified.
       */
-    void gen_time_processor_domain();
+    void gen_time_space_domain();
 
     /**
       * Get the arguments of the function.
@@ -1129,6 +1130,28 @@ private:
 
     // Private class methods.
 
+    /**
+      * Apply a transformation on the domain of the schedule.
+      * This is a transformation from iteration domain to the time-processor
+      * domain.
+      *
+      * For example, to apply to shift the i dimension of the iteration domain
+      * of C0, you can apply the transformation
+      *
+      * C0[i, j] -> C0[i+2, j]
+      */
+    void apply_transformation_on_schedule_domain(std::string map_str);
+
+    /**
+      * Add the set of constraints \p domain_constraints to the domain
+      * of the schedule and add the set of constraints \p range_constraints
+      * to the range of the schedule.
+      *
+      * \p domain_constraints and \p range_constraints are both ISL sets in
+      * the ISL string format.
+      */
+    void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
+
     tiramisu::constant *create_separator_and_add_constraints_to_context(
         const tiramisu::expr &loop_upper_bound, int v);
 
@@ -1149,6 +1172,55 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
+
+    /**
+       * Duplicate a part of this computation (or all of it) and return
+       * the duplicate computation.  The duplicate computation is identical
+       * to this computation in every aspect except that its iteration domain
+       * is the intersection of the iteration domain of the original computation
+       * and the domain provided in \p domain_constraints.
+       *
+       * Example: let us assume that you have the following computation
+       *
+       * {C0[i,j]: 0<=i<N and 0<=j<N}
+       *
+       * If you want to create a duplicate of this computation
+       * that has the following iteration domain
+       *
+       *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
+       *
+       * you can write
+       *
+       * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
+       *
+       * This will keep the original computation C0 and will create a
+       * new computation (duplicate of C0) that has
+       * "{C0[i,j]: 0<=i<=10 and 0<=j<=5". as iteration domain.
+       * (duplicate() in fact intersects the domain provided with
+       * the original domain).
+       *
+       * The duplicate computation is an exact copy of the original
+       * computation except in one thing:
+       * The iteration domain of the duplicate computation is
+       * the intersection of the iteration domain of the original
+       * computation with the constraints provided as an argument
+       * to the duplicate command; this means that the iteration domain
+       * of the duplicate computation is always a subset of the original
+       * iteration domain;
+       *
+       * If you schedule a computation C, then duplicate it, then the duplicate
+       * will have exactly the same schedule as the original computation.
+       * After duplication, any schedule applied on the original computation
+       * will not be applied automatically on the duplicate computation. They
+       * become two separate computations that need to be scheduled separately.
+       *
+       * \p domain_constraints is a set of constraints on the iteration domain that
+       * define the duplicate.
+       * \p range_constraints is a set of constraints on the time-processor domain
+       * that define the duplicate.
+       */
+     tiramisu::computation *duplicate(std::string domain_constraints,
+             std::string range_constraints);
 
     /**
       * Return the access function of the computation.
@@ -1264,6 +1336,33 @@ private:
       * take the time-processor domain and remove the first dimension.
       */
     isl_set *get_trimmed_time_processor_domain();
+
+    /**
+      * Create a copy of this computation.
+      */
+    tiramisu::computation *copy();
+
+    /**
+      * Create a Halide statement that assigns the computations to the memory
+      * buffer and location specified by the access function.
+      */
+    void create_halide_assignment();
+
+    /**
+      * Generate an identity schedule for the computation.
+      *
+      * This identity schedule is an identity relation created from the iteration
+      * domain.
+      */
+    isl_map *gen_identity_schedule_for_iteration_domain();
+
+    /**
+      * Generate an identity schedule for the computation.
+      *
+      * This identity schedule is an identity relation created from the
+      * time-processor domain.
+      */
+    isl_map *gen_identity_schedule_for_time_space_domain();
 
     /**
      * Return true if this computation is supposed to have an access to other
@@ -1531,6 +1630,15 @@ public:
                 tiramisu::function *fct);
 
     /**
+       * Add a let statement that is associated to this computation.
+       * The let statement will be added just before the computation. The
+       * variable defined by the let statement will be accessible by this
+       * computation alone. i.e., it will not be defined in any other
+       * computation.
+       */
+     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
+
+    /**
      * Add new computations to this computation.  The arguments of this function
      * are identical to the arguments of the computation constructor.  In general,
      * this function is used to express reductions and to express computation
@@ -1572,192 +1680,9 @@ public:
                             tiramisu::function *fct);
 
     /**
-      * Set the access relation of the computation.
-      *
-      * The access relation is a relation from computations to buffer locations.
-      * \p access_str is a string that represents the relation. It is encoded
-      * in the ISL format, http://isl.gforge.inria.fr/user.html#Sets-and-Relations
-      * of relations.
-      */
-    // @{
-    void set_access(std::string access_str);
-    void set_access(isl_map *access);
-    // @}
-
-    /**
-      * Set the expression of the computation.
-      */
-    void set_expression(const tiramisu::expr &e);
-
-    /**
-      * Set the schedule indicated by \p map.
-      *
-      * \p map is a string that represents a mapping from the iteration domain
-      * to the time-space domain (the ISL format to represent maps is
-      * documented in http://barvinok.gforge.inria.fr/barvinok.pdf in Sec 1.2.2).
-      *
-      * The schedule is a map from the iteration domain to a time space
-      * domain. The same name of space should be used for both the range
-      * and the domain of the schedule.
-      *
-      * In general, users can set the schedule using high level functions such
-      * as before(), after(), tile(), compute_at(), vectorize(), split(), ...
-      * The use of this function is only reserved for advanced users who want
-      * a low level control of the schedule.
-      *
-      * Vectors in the time-space domain have the following form
-      *
-      * computation_name[redundancy_ID,static,dynamic,static,dynamic,static,dynamic,static,...]
-      *
-      * The first dimension of the vector is used to indicate the redundancy ID
-      * (the notion of the redundancy ID is explained later).
-      *
-      * The following dimensions are interleaved dimensions: static, dynamic, static,
-      * dynamic, ...
-      * Dynamic dimensions represent the loop levels, while static dimensions are
-      * used to order statements within a given block of statements in a given loop
-      * level.
-      * For example, the computations c0 and c1 in the following loop nest
-      *
-      * for (i=0; i<N: i++)
-      *   for (j=0; j<N; j++)
-      *   {
-      *     c0;
-      *     c1;
-      *   }
-      *
-      * have the following representations in the iteration domain
-      *
-      * {c0[i,j]: 0<=i<N and 0<=j<N}
-      * {c1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * and the following representation in the time-space domain
-      *
-      * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
-      *
-      * The first dimension (dimension 0) in the time-space
-      * domain (the leftmost dimension) is the redundancy ID
-      * (in this case it is 0, the meaning of this ID will be explained later).
-      * The second dimension (starting from the left) is a static dimension,
-      * the third dimension is a dynamic dimension that
-      * represents the loop level i, ..., the fifth dimension is a dynamic
-      * dimension that represents the loop level j and the last dimension
-      * (dimension 5) is a static dimension and allows the ordering of
-      * c1 after c0 in the loop nest.
-      *
-      * To transform the previous iteration domain to the
-      * time-space domain, the following schedule should be used:
-      *
-      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
-      *
-      * The first dimension called "redundancy ID" is only meaningful if the
-      * computation is redundant. i.e., some parts of the computation are
-      * redundantly computed.  Redundant computations are in general used to
-      * maximize parallelism and data locality on the expense of doing some
-      * computations redundantly.
-      * For example, if the two computations c1(i,j) and c2(i,j) both depend
-      * on the computation c0(i,j), instead of waiting for c0(i,j) to be
-      * computed and then computing c1(i,j) and c2(i,j) in parallel, the thread
-      * executing c1(i,j) can compute c0(i,j) by itself and then run c1(i,j).
-      * The thread that computes c2(i,j) can do the same and compute c0(i,j)
-      * by itself and then compute c2(i,j). In this case the two threads do not
-      * need to wait. This is done at the expense of redundant computation since
-      * c0(i,j) is computed by both threads.
-      *
-      * In general redundant computations are useful when tiling stencil
-      * computations.  In the context of stencils such a tiling is called
-      * "overlapped tiling".  Tiles that depend on results computed by other
-      * tiles that run in parallel can compute the boundaries redundantly which
-      * allows them to avoid waiting and thus can run in parallel.
-      *
-      * In Tiramisu, the user can indicate that a chunk of a computation
-      * should be computed redundantly. The original computation always has a redundancy
-      * ID equal to 0 (which means this is the original computation).
-      * The redundant chunk has an ID that is different from 0 and that is
-      * used to uniquely identify it.
-      *
-      * For example if we want to compute all of c0 three times (that is,
-      * compute the original computation and compute two redundant computations),
-      * we can use the following schedules:
-      *
-      * The schedule of the original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * The schedule of the redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * The schedule of the redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      *
-      * The schedule of c0 in this case would be three maps that map c0[i,j] to
-      * the three different redundant computations in the time-processor domain:
-      *
-      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
-      *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
-      *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      *
-      * The function set_schedule() overrides any other schedule set by the high level
-      * scheduling functions.  Currently the user has to choose between using the high
-      * level scheduling functions or using this low level set_schedule function. The user
-      * cannot mix the use of the two in the same program because they are not compatible.
-      */
-    // @{
-    void set_schedule(isl_map *map);
-    void set_schedule(std::string map_str);
-    // @}
-
-    /**
-      * Access operator: C0(i,j) represents an access to
-      * the element (i,j) of the computation C0.
-      * C0(i,j) represents the value computed by the computation
-      * C0(i,j)
-      */
-    template<typename... Args> tiramisu::expr operator()(Args... args)
-    {
-        std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        return tiramisu::expr(tiramisu::o_access,
-                              this->get_name(),
-                              access_expressions,
-                              this->get_data_type());
-    }
-
-    /**
-      * Apply a transformation on the schedule. This transformation is from
-      * the time-space domain to the time-space domain.  This transformation
-      * is applied on the range of the schedule (i.e., on the output of the
-      * schedule relation).
-      *
-      * For example, to shift the i dimension of the time-processor domain
-      * of C0, you can apply the transformation
-      *
-      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
-      *
-      * To apply an interchange, you would do
-      *
-      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
-      */
-    void apply_transformation_on_schedule(std::string map_str);
-
-    /**
-      * Apply a transformation on the domain of the schedule.
-      * This is a transformation from iteration domain to the time-processor
-      * domain.
-      *
-      * For example, to apply to shift the i dimension of the iteration domain
-      * of C0, you can apply the transformation
-      *
-      * C0[i, j] -> C0[i+2, j]
-      */
-    void apply_transformation_on_schedule_domain(std::string map_str);
-
-    /**
-      * Add the set of constraints \p domain_constraints to the domain
-      * of the schedule and add the set of constraints \p range_constraints
-      * to the range of the schedule.
-      */
-    void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
-
-    /**
       * Schedule this computation to run after the computation \p comp.
       * The computations are placed after each other in the loop level \p level.
-      * The outermost loop level is 0.
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
       *
       * For example assuming we have the two computations
       *
@@ -1802,7 +1727,12 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       *
-      * To specify multiple levels the user can use \p levels.
+      * To specify that this computation is after \p comp in multiple levels,
+      * the user can provide those levels in the \p levels vector.
+      *
+      * S1.after(S0, {0,1})
+      *
+      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
       */
     // @{
     void after(computation &comp, int level);
@@ -1810,22 +1740,66 @@ public:
     // @}
 
     /**
+      * Apply a transformation on the schedule. This transformation is from
+      * the time-space domain to the time-space domain.  It is applied on
+      * the range of the schedule (i.e., on the output of the schedule relation).
+      *
+      * For example, to shift the i dimension of the time-processor domain
+      * of C0, you can apply the transformation
+      *
+      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
+      *
+      * To apply an interchange, you would do
+      *
+      * C0[0, 0, i, 0, j, 0] -> C0[0, 0, j, 0, i, 0]
+      */
+    void apply_transformation_on_schedule(std::string map_str);
+
+    /**
       * Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.  The outermost loop level is 0.
       *
       * Use computation::root_dimension to indicate the root dimension
-      * (i.e. the outermost processor-time dimension).
-      *
-      * The outermost loop has a loop level equal to zero.
+      * (i.e. the outermost time-space dimension).
       *
       * To specify multiple levels simultaneously, the user can use
-      * \p Levels (a vector of the levels in which this computation
-      * is before \p consumer).
+      * the vector \p levels (a vector of the levels in which this
+      * computation is before \p consumer).  For example,
+      *
+      * S0.before(S1, {2,3})
+      *
+      * means that S0 is before S1 in the loop level 2 and in the loop level 3.
       */
     // @{
     void before(computation &consumer, int L);
-    void before(computation &consumer, std::vector<int> Levels);
+    void before(computation &consumer, std::vector<int> levels);
     // @}
+
+    /**
+       * Bind this computation to a buffer.  i.e., create a one-to-one data
+       * mapping between the computation and the buffer.
+       *
+       * In Tiramisu, a tiramisu computation cannot directly consume values
+       * from buffers.  Buffers should first be wrapped in computations.
+       *
+       * For example, a Tiramisu function receives a buffer b0 as input.
+       * Let's assume that this function has a computation C0 that adds
+       * 1 to the elements of the buffer.  The user cannot use b0 directly
+       * in C0.  He should first declare a computation that wraps b0 and then
+       * use that computation.
+       *
+       * // the wrapper computation. Wrapper computation have empty expressions
+       * // attached to them.
+       * {wb0[i]: 0<=i<N}: expr()
+       *
+       * // Declare the computation C0 that uses the wrapper wb0
+       * {C0[i]: 0<=i<N}: wb0(i) + 1
+       *
+       * // Bind the wrapper wb0 to the buffer b0.  This binding means that
+       * // each element wb0[i] correspond to an element b0[i] in the buffer.
+       * wb0.bind_to(b0)
+       */
+     void bind_to(buffer *buff);
 
     /**
       * This function assumes that \p consumer consumes values produced by
@@ -1839,69 +1813,41 @@ public:
       * be performed, the function creates the necessary redundant
       * computations and schedules them before the consumer.
       */
-    void compute_at(computation &comp, int L);
+    void compute_at(computation &consumer, int L);
 
     /**
-      * Duplicate a part of this computation (or all of it) and return
-      * the duplicate computation.
-      * The duplicate computation is identical to this computation
-      * in every aspect except that its iteration domain is the intersection
-      * of the iteration domain of the original computation and the domain
-      * provided in \p domain_constraints.
-      *
-      * Example: let us assume that you have the following computation
-      *
-      * {C0[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * If you want to create a duplicate of this computation
-      * that has the following iteration domain
-      *
-      *          "{C0[i,j]: 0<=i<=10 and 0<=j<=5"
-      *
-      * you can write
-      *
-      * C0.duplicate("{C0[i,j]: 0<=i<=10 and 0<=j<=5");
-      *
-      * This will keep the original computation C0 and will create a
-      * new computation (duplicate of C0) that has
-      * "{C0[i,j]: 0<=i<=10 and 0<=j<=5". as iteration domain.
-      * (duplicate() in fact intersects the domain provided with
-      * the original domain).
-      *
-      * The duplicate computation is an exact copy of the original
-      * computation except in one thing:
-      * The iteration domain of the duplicate computation is
-      * the intersection of the iteration domain of the original
-      * computation with the constraints provided as an argument
-      * to the duplicate command; this means that the iteration domain
-      * of the duplicate computation is always a subset of the original
-      * iteration domain;
-      *
-      * If you schedule a computation C, then duplicate it, then the duplicate
-      * will have exactly the same schedule as the original computation.
-      * After duplication, any schedule applied on the original computation
-      * will not be applied automatically on the duplicate computation. They
-      * become two separate computations that need to be scheduled separately.
-      *
-      * \p domain_constraints is a set of constraints on the iteration domain that
-      * define the duplicate.
-      * \p range_constraints is a set of constraints on the time-processor domain
-      * that define the duplicate.
+      * Dump the iteration domain of the computation.  This is useful for
+      * debugging.
       */
-    tiramisu::computation *duplicate(std::string domain_constraints,
-            std::string range_constraints);
+    void dump_iteration_domain() const;
 
     /**
-      * Fuse the loop over this computation with the loop over the
-      * computations passed as arguments. Fuse at the loop level
-      * \p lev.
+      * Dump the schedule of the computation.  This is mainly useful for
+      * debugging.
+      *
+      * The schedule is a relation between the iteration space and the
+      * time space.  The relation provides a logical date of execution for
+      * each point in the iteration space.
+      * The schedule needs first to be set before calling this function.
+      */
+    void dump_schedule() const;
+
+    /**
+      * Dump the computation on stdout.  This is mainly useful for
+      * debugging.
+      */
+    void dump() const;
+
+    /**
+      * Fuse this computation with the computations passed as argument
+      * in the same loop.  Fuse them at the loop level \p lev.
       *
       * For example, assuming we have the following computations
       *
       * {S0[i,j]: 0<=i<N and 0<=j<N}, {S1[i,j]: 0<=i<N and 0<=j<N}
       * and {S2[i,j]: 0<=i<N and 0<=j<N}.
       *
-      * With the default schedule, these computations would be equivalent
+      * Without fusion, these computations would be equivalent
       * to the following loops nests
       *
       * for (i=0; i<N; i++)
@@ -1916,10 +1862,12 @@ public:
       *   for (j=0; j<N; j++)
       *     S2;
       *
+      * To fuse them, one should call
+      *
       * S2.fuse_after(1, S0, S1);
       *
-      * would result in fusing S2 with S0 and S1 at loop level 1,
-      * the resulting code would look like
+      * This would result in fusing S2 with S0 and S1 at loop level 1,
+      * S2 will be scheduled for execution after S0 and S1.  The resulting code would look like
       *
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
@@ -1928,6 +1876,8 @@ public:
       *     S1;
       *     S2;
       *   }
+      *
+      * Calling
       *
       * S2.fuse_after(0, S0, S1);
       *
@@ -1960,6 +1910,16 @@ public:
     }
 
     /**
+      * Generate the time-space domain of the computation.
+      *
+      * In this representation, the logical time of execution and the
+      * processor where the computation will be executed are both
+      * specified.  The memory location where computations will be
+      * stored in memory is not specified at the level.
+      */
+    void gen_time_space_domain();
+
+    /**
       * Tile the computation and then tag the outermost tile dimension
       * to be mapped to GPU blocks and tag the innermost tile dimensions
       * to be mapped to GPU threads.
@@ -1981,24 +1941,141 @@ public:
     void interchange(int L0, int L1);
 
     /**
-      * A computation can have multiple duplicates.  When the user calls
-      * a high level transformation function such as tile(), split(), ...,
-      * Tiramisu should know on which one the transformation should be applied.
-      *
-      * We use select(ID) to select a duplicate of the computation on which
-      * all the high level transformations will be applied.
-      *
-      * By default, the original computation is selected.
-      * After each call to a high level scheduling function, the selected duplicate
-      * is reset to the default (which is the original).
-      *
-      * Example, to apply two transformations on the duplicate 1 of the computation
-      * C0:
-      *
-      * C0.select(1).tile(0,1, 32,32);
-      * C0.select(1).vectorize(3, 4);
-      */
-    computation *select(int ID);
+     * Mark this statement as a let statement.
+     */
+   void mark_as_let_statement();
+
+    /**
+       * Set the access relation of the computation.
+       *
+       * The access relation is a relation from computations to buffer locations.
+       * \p access_str is a string that represents the relation. It is encoded
+       * in the ISL format, http://isl.gforge.inria.fr/user.html#Sets-and-Relations
+       * of relations.
+       */
+     // @{
+     void set_access(std::string access_str);
+     void set_access(isl_map *access);
+     // @}
+
+     /**
+       * Set the expression of the computation.
+       */
+     void set_expression(const tiramisu::expr &e);
+
+     /**
+       * Set the schedule indicated by \p map.
+       *
+       * \p map is a string that represents a mapping from the iteration domain
+       * to the time-space domain (the ISL format to represent maps is
+       * documented in http://barvinok.gforge.inria.fr/barvinok.pdf in Sec 1.2.2).
+       *
+       * The schedule is a map from the iteration domain to a time space
+       * domain. The same name of space should be used for both the range
+       * and the domain of the schedule.
+       *
+       * In general, users can set the schedule using high level functions such
+       * as before(), after(), tile(), compute_at(), vectorize(), split(), ...
+       * The use of this function is only reserved for advanced users who want
+       * a low level control of the schedule.
+       *
+       * Vectors in the time-space domain have the following form
+       *
+       * computation_name[redundancy_ID,static,dynamic,static,dynamic,static,dynamic,static,...]
+       *
+       * The first dimension of the vector is used to indicate the redundancy ID
+       * (the notion of the redundancy ID is explained later).
+       *
+       * The following dimensions are interleaved dimensions: static, dynamic, static,
+       * dynamic, ...
+       * Dynamic dimensions represent the loop levels, while static dimensions are
+       * used to order statements within a given block of statements in a given loop
+       * level.
+       * For example, the computations c0 and c1 in the following loop nest
+       *
+       * for (i=0; i<N: i++)
+       *   for (j=0; j<N; j++)
+       *   {
+       *     c0;
+       *     c1;
+       *   }
+       *
+       * have the following representations in the iteration domain
+       *
+       * {c0[i,j]: 0<=i<N and 0<=j<N}
+       * {c1[i,j]: 0<=i<N and 0<=j<N}
+       *
+       * and the following representation in the time-space domain
+       *
+       * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+       *
+       * The first dimension (dimension 0) in the time-space
+       * domain (the leftmost dimension) is the redundancy ID
+       * (in this case it is 0, the meaning of this ID will be explained later).
+       * The second dimension (starting from the left) is a static dimension,
+       * the third dimension is a dynamic dimension that
+       * represents the loop level i, ..., the fifth dimension is a dynamic
+       * dimension that represents the loop level j and the last dimension
+       * (dimension 5) is a static dimension and allows the ordering of
+       * c1 after c0 in the loop nest.
+       *
+       * To transform the previous iteration domain to the
+       * time-space domain, the following schedule should be used:
+       *
+       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+       *
+       * The first dimension called "redundancy ID" is only meaningful if the
+       * computation is redundant. i.e., some parts of the computation are
+       * redundantly computed.  Redundant computations are in general used to
+       * maximize parallelism and data locality on the expense of doing some
+       * computations redundantly.
+       * For example, if the two computations c1(i,j) and c2(i,j) both depend
+       * on the computation c0(i,j), instead of waiting for c0(i,j) to be
+       * computed and then computing c1(i,j) and c2(i,j) in parallel, the thread
+       * executing c1(i,j) can compute c0(i,j) by itself and then run c1(i,j).
+       * The thread that computes c2(i,j) can do the same and compute c0(i,j)
+       * by itself and then compute c2(i,j). In this case the two threads do not
+       * need to wait. This is done at the expense of redundant computation since
+       * c0(i,j) is computed by both threads.
+       *
+       * In general redundant computations are useful when tiling stencil
+       * computations.  In the context of stencils such a tiling is called
+       * "overlapped tiling".  Tiles that depend on results computed by other
+       * tiles that run in parallel can compute the boundaries redundantly which
+       * allows them to avoid waiting and thus can run in parallel.
+       *
+       * In Tiramisu, the user can indicate that a chunk of a computation
+       * should be computed redundantly. The original computation always has a redundancy
+       * ID equal to 0 (which means this is the original computation).
+       * The redundant chunk has an ID that is different from 0 and that is
+       * used to uniquely identify it.
+       *
+       * For example if we want to compute all of c0 three times (that is,
+       * compute the original computation and compute two redundant computations),
+       * we can use the following schedules:
+       *
+       * The schedule of the original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       * The schedule of the redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       * The schedule of the redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       *
+       * The schedule of c0 in this case would be three maps that map c0[i,j] to
+       * the three different redundant computations in the time-processor domain:
+       *
+       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+       *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+       *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       *
+       * The function set_schedule() overrides any other schedule set by the high level
+       * scheduling functions.  Currently the user has to choose between using the high
+       * level scheduling functions or using this low level set_schedule function. The user
+       * cannot mix the use of the two in the same program because they are not compatible.
+       */
+     // @{
+     void set_schedule(isl_map *map);
+     void set_schedule(std::string map_str);
+     // @}
 
     /**
       * Shift the loop level \p L0 of the iteration space by
@@ -2207,80 +2284,6 @@ public:
     void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
 
     /**
-      * Add an let statement that is associated to this computation.
-      * The let statement will be added just before the computation and the
-      * scope of the variable defined by the let statement is this computation
-      * alone. i.e., it is not defined in other computations.
-      */
-    void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
-
-    /**
-      * Add a map to the schedule of the duplicate \p ID.
-      * This function does not override the original schedule of the duplicate
-      * but simply adds the new map to it.  The resulting schedule is a union
-      * of maps.
-      */
-    void add_schedule_to_duplicate_schedule(isl_map *map, int ID = 0);
-
-    /**
-      * Add a new duplicate schedule.
-      *
-      * This is a schedule that duplicates the original computation. That is,
-      * the domain of the map is the iteration domain of the original computation.
-      *
-      */
-    void add_new_duplicate_schedule(isl_map *map);
-
-    /**
-      * Bind the computation to a buffer.
-      * i.e. create a one-to-one data mapping between the computation
-      * and the buffer.
-      */
-    void bind_to(buffer *buff);
-
-    /**
-      * Create a copy of this computation.
-      */
-    tiramisu::computation *copy();
-
-    /**
-      * Create a Halide statement that assigns the computations to the memory
-      * buffer and location specified by the access function.
-      */
-    void create_halide_assignment();
-
-    /**
-      * Generate an identity schedule for the computation.
-      *
-      * This identity schedule is an identity relation created from the iteration
-      * domain.
-      */
-    isl_map *gen_identity_schedule_for_iteration_domain();
-
-    /**
-      * Generate an identity schedule for the computation.
-      *
-      * This identity schedule is an identity relation created from the
-      * time-processor domain.
-      */
-    isl_map *gen_identity_schedule_for_time_space_domain();
-
-    /**
-      * Generate the time-processor domain of the computation.
-      *
-      * In this representation, the logical time of execution and the
-      * processor where the computation will be executed are both
-      * specified.  The memory location where computations will be
-      * stored in memory is not specified at the level.
-      */
-    void gen_time_processor_domain();
-
-    /**
-      * Mark this statement as a let statement.
-      */
-    void mark_as_let_statement();
-
-    /**
       * root_dimension is a number used to specify the dimension level
       * known as root.
       * The root dimension level is the outermost level.  It is the level
@@ -2343,27 +2346,19 @@ public:
     const static int root_dimension = -1;
 
     /**
-      * Dump the iteration domain of the computation.
-      * This is useful for debugging.
+      * Access operator: C0(i,j) represents an access to
+      * the element (i,j) of the computation C0.
+      * C0(i,j) represents the value computed by the computation
+      * C0(i,j)
       */
-    void dump_iteration_domain() const;
-
-    /**
-      * Dump the schedule of the computation.
-      * This is mainly useful for debugging.
-      * The schedule is a relation between the iteration space and a
-      * time space.  The relation provides a logical date of execution for
-      * each point in the iteration space.
-      * The schedule needs first to be set before calling this function.
-      */
-    void dump_schedule() const;
-
-    /**
-      * Dump (on stdout) the computation (dump most of the fields of the
-      * computation class).
-      * This is mainly useful for debugging.
-      */
-    void dump() const;
+    template<typename... Args> tiramisu::expr operator()(Args... args)
+    {
+        std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
+        return tiramisu::expr(tiramisu::o_access,
+                              this->get_name(),
+                              access_expressions,
+                              this->get_data_type());
+    }
 };
 
 

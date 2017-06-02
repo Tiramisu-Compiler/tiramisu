@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     filter2D_s0.tag_vector_level(3);
 
     filter2D_tiramisu.set_arguments({&buff_input, &buff_kernel, &buff_filter2D});
-    filter2D_tiramisu.gen_time_processor_domain();
+    filter2D_tiramisu.gen_time_space_domain();
     filter2D_tiramisu.gen_isl_ast();
     filter2D_tiramisu.gen_halide_stmt();
     filter2D_tiramisu.dump_halide_stmt();

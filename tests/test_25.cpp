@@ -54,7 +54,7 @@ void generate_function(std::string name, int size, int val0)
     function0.compute_bounds();
 
     function0.set_arguments({&buf0});
-    function0.gen_time_processor_domain();
+    function0.gen_time_space_domain();
 
     function0.dump(false);
     function0.dump_time_processor_domain();
