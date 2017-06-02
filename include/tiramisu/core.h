@@ -1302,6 +1302,18 @@ private:
     bool is_update() const;
 
     /**
+      * Set an identity schedule for the computation.
+      *
+      * This identity schedule is an identity relation created from the iteration
+      * domain.
+      *
+      * This sets the schedule of the original computation
+      * and does not set the schedule of any duplicate
+      * computation.
+      */
+    void set_identity_schedule_based_on_iteration_domain();
+
+    /**
       * Return true if the this computation is supposed to be scheduled
       * by Tiramisu.
       */
@@ -1393,7 +1405,20 @@ private:
     isl_map *simplify(isl_map *map);
     // @}
 
+    /**
+      * Compare two computations.
+      *
+      * Two computations are considered to be equal if they have the
+      * same name.
+      */
+    bool operator==(tiramisu::computation comp1);
+
 protected:
+
+    /**
+      * Dummy constructor for derived classes.
+      */
+    computation();
 
     /**
       * Return the iteration domain of the computation.
@@ -1414,9 +1439,9 @@ protected:
                           tiramisu::primitive_t t);
 
     /**
-      * Dummy constructor for derived classes.
+      * Set the name of the computation.
       */
-    computation();
+    void set_name(const std::string &n);
 
 public:
 
@@ -1547,11 +1572,12 @@ public:
                             tiramisu::function *fct);
 
     /**
-      * Set the access function of the computation.
+      * Set the access relation of the computation.
       *
-      * The access function is a relation from computations to buffer locations.
-      * \p access_str is a string that represents the relation (in ISL format,
-      * http://isl.gforge.inria.fr/user.html#Sets-and-Relations).
+      * The access relation is a relation from computations to buffer locations.
+      * \p access_str is a string that represents the relation. It is encoded
+      * in the ISL format, http://isl.gforge.inria.fr/user.html#Sets-and-Relations
+      * of relations.
       */
     // @{
     void set_access(std::string access_str);
@@ -1564,37 +1590,22 @@ public:
     void set_expression(const tiramisu::expr &e);
 
     /**
-      * Set an identity schedule for the computation.
-      *
-      * This identity schedule is an identity relation created from the iteration
-      * domain.
-      *
-      * This sets the schedule of the original computation
-      * and does not set the schedule of any duplicate
-      * computation.
-      */
-    void set_identity_schedule_based_on_iteration_domain();
-
-    /**
-      * Set the name of the computation.
-      */
-    void set_name(const std::string &n);
-
-    /**
-      * Set the schedule indicated by \p map and use \p ID to indicate the ID of
-      * the duplicate to which the schedule is set (the original computation
-      * has an ID = 0 and the other computations have an ID between 1 and the
-      * number of the duplicates).
+      * Set the schedule indicated by \p map.
       *
       * \p map is a string that represents a mapping from the iteration domain
-      * to the time-processor domain (the ISL format to represent maps is
+      * to the time-space domain (the ISL format to represent maps is
       * documented in http://barvinok.gforge.inria.fr/barvinok.pdf in Sec 1.2.2).
       *
-      * The schedule is a map from the iteration domain to a time processor
+      * The schedule is a map from the iteration domain to a time space
       * domain. The same name of space should be used for both the range
       * and the domain of the schedule.
       *
-      * Vectors in the time-processor domain have the following form
+      * In general, users can set the schedule using high level functions such
+      * as before(), after(), tile(), compute_at(), vectorize(), split(), ...
+      * The use of this function is only reserved for advanced users who want
+      * a low level control of the schedule.
+      *
+      * Vectors in the time-space domain have the following form
       *
       * computation_name[redundancy_ID,static,dynamic,static,dynamic,static,dynamic,static,...]
       *
@@ -1603,9 +1614,9 @@ public:
       *
       * The following dimensions are interleaved dimensions: static, dynamic, static,
       * dynamic, ...
-      * Static dimensions are used to order statements within a given block
-      * of statements in a given loop level while dynamic dimensions represent
-      * the actual loop levels.
+      * Dynamic dimensions represent the loop levels, while static dimensions are
+      * used to order statements within a given block of statements in a given loop
+      * level.
       * For example, the computations c0 and c1 in the following loop nest
       *
       * for (i=0; i<N: i++)
@@ -1620,24 +1631,23 @@ public:
       * {c0[i,j]: 0<=i<N and 0<=j<N}
       * {c1[i,j]: 0<=i<N and 0<=j<N}
       *
-      * and the following representation in the time-processor domain
+      * and the following representation in the time-space domain
       *
       * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
       *
-      * The first dimension (dimension 0) in the time-processor
-      * representation (the leftmost dimension) is the redundancy ID
+      * The first dimension (dimension 0) in the time-space
+      * domain (the leftmost dimension) is the redundancy ID
       * (in this case it is 0, the meaning of this ID will be explained later).
-      * The second dimension (dimension 1 on the left) is a static dimension,
-      * the third dimension (dimension 2) is a dynamic dimension that
+      * The second dimension (starting from the left) is a static dimension,
+      * the third dimension is a dynamic dimension that
       * represents the loop level i, ..., the fifth dimension is a dynamic
       * dimension that represents the loop level j and the last dimension
       * (dimension 5) is a static dimension and allows the ordering of
       * c1 after c0 in the loop nest.
       *
-      * To transform the previous iteration domain representation to the
-      * time-processor domain representation, the following schedule should
-      * be used:
+      * To transform the previous iteration domain to the
+      * time-space domain, the following schedule should be used:
       *
       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
@@ -1662,19 +1672,19 @@ public:
       * tiles that run in parallel can compute the boundaries redundantly which
       * allows them to avoid waiting and thus can run in parallel.
       *
-      * In Tiramisu, the user can indicate that a chunk of the computation
-      * should be computed redundantly. That chunk has an arbitrary ID (which
-      * is a simple constant).  The original computation always has a redundancy
+      * In Tiramisu, the user can indicate that a chunk of a computation
+      * should be computed redundantly. The original computation always has a redundancy
       * ID equal to 0 (which means this is the original computation).
-      * The redundant computations have an ID that is equal to 1 or 2 or 3 or ...
+      * The redundant chunk has an ID that is different from 0 and that is
+      * used to uniquely identify it.
       *
       * For example if we want to compute all of c0 three times (that is,
       * compute the original computation and compute two redundant computations),
-      * we can use the following IDs in the redundancy IR dimension.
+      * we can use the following schedules:
       *
-      * The original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * The redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
-      * The redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The schedule of the original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The schedule of the redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The schedule of the redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       *
       * The schedule of c0 in this case would be three maps that map c0[i,j] to
       * the three different redundant computations in the time-processor domain:
@@ -1683,19 +1693,15 @@ public:
       *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
       *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       *
+      * The function set_schedule() overrides any other schedule set by the high level
+      * scheduling functions.  Currently the user has to choose between using the high
+      * level scheduling functions or using this low level set_schedule function. The user
+      * cannot mix the use of the two in the same program because they are not compatible.
       */
     // @{
     void set_schedule(isl_map *map);
     void set_schedule(std::string map_str);
     // @}
-
-    /**
-      * Compare two computations.
-      *
-      * Two computations are considered to be equal if they have the
-      * same name.
-      */
-    bool operator==(tiramisu::computation comp1);
 
     /**
       * Access operator: C0(i,j) represents an access to
@@ -1713,10 +1719,12 @@ public:
     }
 
     /**
-      * Apply a transformation from time-processor space to time-processor space.
-      * This transformation is applied on the range of the schedule.
+      * Apply a transformation on the schedule. This transformation is from
+      * the time-space domain to the time-space domain.  This transformation
+      * is applied on the range of the schedule (i.e., on the output of the
+      * schedule relation).
       *
-      * For example, to apply to shift the i dimension of the time-processor domain
+      * For example, to shift the i dimension of the time-processor domain
       * of C0, you can apply the transformation
       *
       * C0[0, 0, i, 0, j, 0] -> C0[0, 0, i+2, 0, j, 0]
