@@ -363,7 +363,7 @@ bool access_is_affine(const tiramisu::expr &exp)
  *      are going to be multiplied. This coefficient is used to implement o_minus,
  *      o_mul and o_sub.
  */
-isl_constraint *get_constraint_for_access(int access_dimension,
+isl_constraint *generator::get_constraint_for_access(int access_dimension,
         const tiramisu::expr &access_expression,
         isl_map *access_relation,
         isl_constraint *cst,
@@ -425,22 +425,22 @@ isl_constraint *get_constraint_for_access(int access_dimension,
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
             tiramisu::expr op1 = access_expression.get_operand(1);
-            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+            cst = generator::get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
             isl_constraint_dump(cst);
-            cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
+            cst = generator::get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
             isl_constraint_dump(cst);
         }
         else if (access_expression.get_op_type() == tiramisu::o_sub)
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
             tiramisu::expr op1 = access_expression.get_operand(1);
-            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
-            cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, -coeff, fct);
+            cst = generator::get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+            cst = generator::get_constraint_for_access(access_dimension, op1, access_relation, cst, -coeff, fct);
         }
         else if (access_expression.get_op_type() == tiramisu::o_minus)
         {
             tiramisu::expr op0 = access_expression.get_operand(0);
-            cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, -coeff, fct);
+            cst = generator::get_constraint_for_access(access_dimension, op0, access_relation, cst, -coeff, fct);
         }
         else if (access_expression.get_op_type() == tiramisu::o_mul)
         {
@@ -449,12 +449,12 @@ isl_constraint *get_constraint_for_access(int access_dimension,
             if (op0.get_expr_type() == tiramisu::e_val)
             {
                 coeff = coeff * op0.get_int_val();
-                cst = get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
+                cst = generator::get_constraint_for_access(access_dimension, op1, access_relation, cst, coeff, fct);
             }
             else if (op1.get_expr_type() == tiramisu::e_val)
             {
                 coeff = coeff * op1.get_int_val();
-                cst = get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
+                cst = generator::get_constraint_for_access(access_dimension, op0, access_relation, cst, coeff, fct);
             }
         }
         else
@@ -470,7 +470,7 @@ isl_constraint *get_constraint_for_access(int access_dimension,
  * Traverse the vector of computations \p comp_vec and return the computations
  * that have a domain that intersects with \p domain.
  */
-std::vector<tiramisu::computation *> filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
+std::vector<tiramisu::computation *> generator::filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
         isl_union_set *node_domain)
 {
     std::vector<tiramisu::computation *> res;
@@ -572,7 +572,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
             isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_from_space(isl_map_get_space(
                                       access_to_comp)));
             cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, access_dimension, 1);
-            cst = get_constraint_for_access(access_dimension, access, access_to_comp, cst, 1, fct);
+            cst = generator::get_constraint_for_access(access_dimension, access, access_to_comp, cst, 1, fct);
             access_to_comp = isl_map_add_constraint(access_to_comp, cst);
             DEBUG(3, tiramisu::str_dump("After adding a constraint:", isl_map_to_str(access_to_comp)));
             access_dimension++;
@@ -874,7 +874,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
     isl_union_set *sched_range = isl_union_map_domain(sched);
     assert((sched_range != NULL) && "Range of schedule is NULL.");
 
-    std::vector<tiramisu::computation *> filtered_comp_vec = filter_computations_by_domain(comp_vec, sched_range);
+    std::vector<tiramisu::computation *> filtered_comp_vec = generator::filter_computations_by_domain(comp_vec, sched_range);
     isl_union_set_free(sched_range);
 
     for (auto comp: filtered_comp_vec)
