@@ -93,6 +93,8 @@ public:
   */
 class expr
 {
+    friend var;
+
     /**
       * The type of the operator.
       */
@@ -756,6 +758,71 @@ public:
     {
         return defined;
     }
+
+    /**
+      * Return true if \p e is identical to this expression.
+      */
+        bool is_equal(tiramisu::expr e) const
+        {
+            bool equal = true;
+
+             /**
+               * The value of the expression.
+               */
+             union
+             {
+                 uint8_t     uint8_value;
+                 int8_t      int8_value;
+                 uint16_t    uint16_value;
+                 int16_t     int16_value;
+                 uint32_t    uint32_value;
+                 int32_t     int32_value;
+                 uint64_t    uint64_value;
+                 int64_t     int64_value;
+                 float       float32_value;
+                 double      float64_value;
+             };
+
+
+             std::vector<tiramisu::expr> access_vector;
+
+             std::vector<tiramisu::expr> argument_vector;
+
+            if ((this->_operator != e._operator) ||
+                (this->op.size() != e.op.size()) ||
+                (this->access_vector.size()   != e.access_vector.size())   ||
+                (this->argument_vector.size() != e.argument_vector.size()) ||
+                (this->defined != e.defined)     ||
+                (this->name != e.name)           ||
+                (this->dtype != e.dtype)         ||
+                (this->etype != e.etype))
+            {
+                    equal = false;
+                    return equal;
+            }
+
+            for (int i = 0; i < this->access_vector.size(); i++)
+                equal = equal && this->access_vector[i].is_equal(e.access_vector[i]);
+
+            for (int i = 0; i < this->op.size(); i++)
+                equal = equal && this->op[i].is_equal(e.op[i]);
+
+            for (int i = 0; i < this->argument_vector.size(); i++)
+                equal = equal && this->argument_vector[i].is_equal(e.argument_vector[i]);
+
+            if ((this->etype == e_val) && (e.etype == e_val))
+            {
+                if (this->get_int_val() != e.get_int_val())
+                        equal = false;
+                if ((this->get_data_type() == tiramisu::p_float32) ||
+                    (this->get_data_type() == tiramisu::p_float64))
+                    if (this->get_double_val() != e.get_double_val())
+                        equal = false;
+            }
+
+            return equal;
+        }
+
 
     /**
       * Addition.
@@ -1468,6 +1535,7 @@ public:
         this->name = name;
         this->etype = tiramisu::e_var;
         this->dtype = type;
+        this->defined = true;
     }
 
     /**
@@ -1488,6 +1556,7 @@ public:
         this->name = name;
         this->etype = tiramisu::e_var;
         this->dtype = global::get_loop_iterator_default_data_type();
+        this->defined = true;
     }
 };
 

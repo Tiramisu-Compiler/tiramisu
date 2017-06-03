@@ -114,6 +114,20 @@ inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &re
 }
 
 /**
+ * success: a boolean indicating whether the test succeeded.
+ */
+inline void print_test_results(const std::string &test, bool success)
+{
+    if (success == true)
+        tiramisu::str_dump("\033[1;32mTest " + test + " succeeded.\033[0m\n");
+    else
+        tiramisu::error("\033[1;31mTest " + test + " failed.\033[0m\n", false);
+
+
+}
+
+
+/**
  * Create an array {val1, val2, val1, val2, val1, val2, val1,
  * val2, ...}.
  */

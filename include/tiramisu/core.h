@@ -2289,7 +2289,10 @@ public:
       * the i2 loop is then tagged to be vectorized.
       *
       */
+    // @{
     void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
+    void vectorize(int L, int v);
+    // @}
 
     /**
       * root_dimension is a number used to specify the dimension level
@@ -2527,6 +2530,37 @@ protected:
                                             const tiramisu::expr &exp,
                                             std::vector<isl_map *> &accesses,
                                             bool return_buffer_accesses);
+};
+
+/**
+ * A class containing utility functions.
+ */
+class utility
+{
+public:
+
+    /**
+     * Return a tiramisu::expr representing the bound of
+     * the dimension \p dim in \p set.  If \p upper is true
+     * then this function returns the upper bound otherwise
+     * it returns the lower bound.
+     *
+     * For example, assuming that
+     *
+     * S = {S[i,j]: 0<=i<N and 0<=j<N and i<M}
+     *
+     * then
+     *
+     * get_upper_bound(S, 1)
+     *
+     * would return N, while
+     *
+     * get_upper_bound(S, 0)
+     *
+     * would return min(N,M)
+     */
+    static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
+
 };
 
 

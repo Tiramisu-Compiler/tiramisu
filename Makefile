@@ -68,11 +68,12 @@ TEST_GEN = \
        build/test_24_fct_generator \
        build/test_25_fct_generator \
        build/test_26_fct_generator \
-       build/test_27_fct_generator
+       build/test_27_fct_generator \
+       build/test_28_fct_generator
 
 #build/test_07_fct_generator
 
-TEST_BIN = \
+TEST_BIN = build/test_global \
        build/test_01 \
        build/test_02 \
        build/test_03 \
@@ -98,7 +99,8 @@ TEST_BIN = \
        build/test_24 \
        build/test_25 \
        build/test_26 \
-	   build/test_27
+       build/test_27 \
+       build/test_28
 
 #build/test_07
 
@@ -166,6 +168,8 @@ build/test_%_fct_generator: tests/test_%.cpp
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 build/test_%: tests/wrapper_test_%.cpp build/generated_fct_test_%.o tests/wrapper_test_%.h
 	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+build/test_global: tests/test_global.cpp
+	$(CXX) ${CXXFLAGS} ${OBJ} tests/test_global.cpp -o $@ ${INCLUDES} ${LIBRARIES}
 run_tests:
 	@for tt in ${TEST_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 

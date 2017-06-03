@@ -28,16 +28,9 @@ int id_counter = 0;
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
  */
-isl_ast_node *stmt_code_generator(
-    isl_ast_node *node, isl_ast_build *build, void *user);
-
 isl_ast_node *for_code_generator_after_for(
     isl_ast_node *node, isl_ast_build *build, void *user);
-
-
 std::string generate_new_variable_name();
-void get_rhs_accesses(const tiramisu::function *func, const tiramisu::computation *comp,
-                      std::vector<isl_map *> &accesses, bool);
 tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
         const tiramisu::expr &exp);
 
@@ -1152,6 +1145,15 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
         this->get_function()->set_context_set(new_context_set);
     }
     return separation_param;
+}
+
+void tiramisu::computation::vectorize(int L0, int v)
+{
+    tiramisu::expr loop_upper_bound =
+            tiramisu::utility::get_bound(this->get_iteration_domain(),
+                                         L0, true);
+
+    this->vectorize(L0, v, loop_upper_bound);
 }
 
 // TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
@@ -3042,6 +3044,177 @@ void computation::compute_at(computation &consumer, int L)
         }
 
     DEBUG_INDENT(-4);
+}
+
+/**
+ * Return true if \p cst is a simple constraint, i.e., it satisfies the
+ * following conditions:
+ *  - It involves only the dimension \p dim and does not involve any
+ *    other dimension,
+ *  - It has 1 as a coefficient for \p dim
+ */
+bool isl_constraint_is_simple(isl_constraint *cst, int dim)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    bool simple = true;
+
+    isl_space *space = isl_constraint_get_space(cst);
+    for (int i = 0; i<isl_space_dim(space, isl_dim_set); i++)
+        if (i != dim)
+            if (isl_constraint_involves_dims(cst, isl_dim_set, i, 1))
+            {
+                DEBUG(10, tiramisu::str_dump("Constraint involves multiple dimensions"));
+                simple = false;
+            }
+
+    isl_val *coeff = isl_constraint_get_coefficient_val(cst, isl_dim_set, dim);
+    if (isl_val_is_negone(coeff) == isl_bool_false)
+    {
+        DEBUG(10, tiramisu::str_dump("Coefficient of the dimension is not one."); isl_val_dump(coeff));
+        simple = false;
+    }
+
+    DEBUG_INDENT(-4);
+    return simple;
+}
+
+
+tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim)
+{
+    isl_space *space = isl_constraint_get_space(cst);
+    tiramisu::expr e = tiramisu::expr();
+
+    for (int i = 0; i < isl_space_dim(space, isl_dim_param); i++)
+    {
+        isl_val *coeff = isl_constraint_get_coefficient_val(cst, isl_dim_param, i);
+        if (isl_val_is_zero(coeff) == isl_bool_false)
+        {
+            const char *name = isl_space_get_dim_name(space, isl_dim_param, i);
+            tiramisu::expr param = tiramisu::var(p_int32, std::string(name));
+            if (isl_val_is_one(coeff) == isl_bool_false)
+            {
+                param = tiramisu::expr(o_mul,
+                                      tiramisu::expr((int32_t) isl_val_get_num_si(coeff)),
+                                      param);
+            }
+
+            if (e.is_defined() == false)
+                e = param;
+            else
+                e = tiramisu::expr(o_add, e, param);
+        }
+    }
+
+    isl_val *ct = isl_constraint_get_constant_val(cst);
+    if (isl_val_is_zero(ct) == isl_bool_false)
+    {
+        int v = isl_val_get_num_si(ct);
+        tiramisu::expr c = tiramisu::expr((int32_t) v);
+
+        if (e.is_defined() == false)
+            e = c;
+        else
+            e = tiramisu::expr(o_add, e, c);
+    }
+
+
+    return e;
+}
+
+tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    /**
+     * General algorithm
+     *
+     * - Go through all the constraints of \p set
+     * - If the constraint is a constraint on the dimension \p dim
+     *      - If the constraint is an upper or a lower bound
+     *           - Translate the constraint to a tiramisu expression
+     *           and add it to the vector of bounds
+     *  - If the vector of upper bounds has only one element, return
+     *  the tiramisu expression that corresponds to that isl expression
+     *  - Else, if the vector has more than one element return the min
+     *  of those elements.
+     */
+
+    assert(set != NULL);
+    assert(dim >= 0);
+    assert(dim < isl_space_dim(isl_set_get_space(set), isl_dim_set));
+    assert(isl_set_is_empty(set) == isl_bool_false);
+
+    DEBUG(10, tiramisu::str_dump("Getting the upper bound on the dimension " +
+                                 std::to_string(dim) + " of the set ",
+                                 isl_set_to_str(set)));
+
+    isl_basic_set_list *bset_list = isl_set_get_basic_set_list(set);
+    int n_bsets = isl_basic_set_list_n_basic_set(bset_list);
+    std::vector<tiramisu::expr> vector_of_bounds;
+    tiramisu::expr e = tiramisu::expr();
+
+    for (int i=0; i<n_bsets; i++)
+    {
+        isl_basic_set *bset = isl_basic_set_list_get_basic_set(bset_list, i);
+        isl_constraint_list *list = isl_basic_set_get_constraint_list(bset);
+        int n_constraints = isl_constraint_list_n_constraint(list);
+
+        for (int j=0; j<n_constraints; j++)
+        {
+            isl_constraint *cst = isl_constraint_list_get_constraint(list, j);
+
+            if (isl_constraint_involves_dims(cst, isl_dim_set, dim, 1) == isl_bool_true)
+                if (((upper == true) && (isl_constraint_is_upper_bound(cst, isl_dim_set, dim) == isl_bool_true)) ||
+                    ((upper == false) && (isl_constraint_is_lower_bound(cst, isl_dim_set, dim) == isl_bool_true)))
+                {
+
+                    // Check that the constraint is valid.
+                    if (isl_constraint_is_simple(cst, dim))
+                    {
+                        // Add the extracted tiramisu expression to the vector of upper bounds
+                        vector_of_bounds.push_back(extract_tiramisu_expr_from_cst(cst, dim));
+                    } else
+                    {
+                        DEBUG(10, tiramisu::str_dump("Non simple constraint: "); isl_constraint_dump(cst));
+                    }
+                }
+        }
+    }
+
+    // Three possible cases:
+    //  - The vector of upper bound expressions is empty, this means that the constraint
+    //    is not simple (i.e., is not supported by the tiramisu::converter),
+    //  - The vector of upper bound expressions has one element, that element is the
+    //    upper bound,
+    //  - The vector of upper bound expressions has many elements, in this case
+    //    the upper bound is the minimum of these expressions.
+    if (vector_of_bounds.size() == 0)
+    {
+        tiramisu::str_dump("Dumping the set of constraints from which we are extracting the bounding tiramisu expression: ", isl_set_to_str(set));
+        tiramisu::error("\nTiramisu expr could not be extracted from ISL constraint", true);
+    }
+    else if (vector_of_bounds.size() == 1)
+    {
+        e = vector_of_bounds[0];
+    }
+    else
+    {
+        e = vector_of_bounds[0];
+        for (int j = 1; j < vector_of_bounds.size(); j++)
+            if (upper == true)
+                e = tiramisu::expr(o_min, e, vector_of_bounds[j]);
+            else
+                e = tiramisu::expr(o_max, e, vector_of_bounds[j]);
+    }
+
+    DEBUG(10, tiramisu::str_dump("The upper bound is : "); e.dump(false));
+
+    DEBUG_INDENT(-4);
+
+    return e;
 }
 
 /**
