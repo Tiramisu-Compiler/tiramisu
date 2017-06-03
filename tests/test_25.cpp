@@ -19,7 +19,7 @@ using namespace tiramisu;
  * Test update computations.
  *
  * The goal is to implement code equivalent to the following.
- * 
+ *
  * C[0] = val0;
  * C[1] = val0;
  * C[i] = (C[i-1] + C[i-2])/2

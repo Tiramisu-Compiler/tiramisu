@@ -462,6 +462,13 @@ public:
     /**
       * Compute the graph of dependences between the computations of
       * the function.
+      *
+      * Example
+      *
+      * C[0] = 0
+      * D[1] = C[0]
+      * D[2] = C[0]
+      * {C[0] -> D[1]; C[0]->D[2]}
       */
     isl_union_map *compute_dep_graph();
 
@@ -508,7 +515,8 @@ public:
       *
       * In this case, constraints over the computations defining C[i] are provided.
       *
-      * Examples about bound inference are provided in test_22 to test_25.
+      * \example tests/test_22.cpp
+      * \example tests/test_25.cpp
       */
     void compute_bounds();
 

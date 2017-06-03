@@ -36,5 +36,8 @@
 	- An example is provided in test_26.
 
 - Update
-	- Use add_update(),
+	- Use add_computations(),
+	- No need to do any expansion because add_computations internally
+	renames computations, so it is doing something equivalent to
+	expansion).
 	- An example is provided in test_25.
