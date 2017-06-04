@@ -9,9 +9,7 @@
  *	- The \ref tiramisu::function class: a function is composed of multiple computations and a vector of arguments (functions arguments).
  *	- The \ref tiramisu::computation class: a computation is composed of an expression and an iteration space but is not associated with any memory location.
  *	- The \ref tiramisu::buffer class: a class to represent memory buffers.
- */
-
-/**
+ *
  * \example tutorials/tutorial_01.cpp 
  * \example tutorials/tutorial_02.cpp 
  * \example tutorials/tutorial_03.cpp 

@@ -514,9 +514,6 @@ public:
       * {D[i]: 0<=i<N} : 2*C[i]
       *
       * In this case, constraints over the computations defining C[i] are provided.
-      *
-      * \example tests/test_22.cpp
-      * \example tests/test_25.cpp
       */
     void compute_bounds();
 
