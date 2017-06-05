@@ -41,12 +41,13 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
+
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+
+
     function spmv("spmv");
-    buffer b_row_start("b_row_start", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_col_idx("b_col_idx", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_output, &spmv);
 
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", e_M, p_int32, true, NULL, 0, &spmv);
@@ -70,28 +71,43 @@ int main(int argc, char **argv)
     expr e_y = c_y(var("i")) + c_values(var("j")) * c_x(var("t"));
     c_y.set_expression(e_y);
 
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+
+
+    b0.set_schedule("[M]->{b0[i]->b0[0,0,i,0,0,0]: 0<=i<M}");
+    b1.set_schedule("[M]->{b1[i]->b1[0,0,i,1,0,0]: 0<=i<M}");
+    t.set_schedule("[M,b0,b1]->{t[i,j]->t[0,0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->t[0,0,i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->c_y[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->c_y[0,0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    c_y.tag_parallel_level(0);
+
+
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
+
+    buffer b_row_start("b_row_start", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_col_idx("b_col_idx", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
+    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_output, &spmv);
+
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");
     c_values.set_access("{c_values[j]->b_values[j]}");
     c_x.set_access("{c_x[j]->b_x[j]}");
     c_y.set_access("{c_y[i,j]->b_y[i]}");
 
-    b0.set_schedule("[M]->{b0[i]->b0[0,0,i,0,0,0]: 0<=i<M}");
 
-    b1.set_schedule("[M]->{b1[i]->b1[0,0,i,1,0,0]: 0<=i<M}");
+    // -------------------------------------------------------
+    // Code Generator
+    // -------------------------------------------------------
 
-    t.set_schedule("[M,b0,b1]->{t[i,j]->t[0,0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->t[0,0,i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
-
-    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->c_y[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->c_y[0,0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
-
-    //c_y.tag_vector_level(2);
-    //t.tag_vector_level(2);
-
-    c_y.tag_parallel_level(0);
 
     spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
-
-    // Generate code
     spmv.gen_time_space_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();

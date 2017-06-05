@@ -31,34 +31,53 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
-    function sequence("sequence");
-    buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output,
-              &sequence);
-    buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+
+
+    function sequence("sequence");
     expr e_M = expr((int32_t) SIZE0);
     constant M("M", e_M, p_int32, true, NULL, 0, &sequence);
-
     computation c0("[M]->{c0[i]: 0<=i<M}", tiramisu::expr((uint8_t) 4), true, p_uint8, &sequence);
     computation c1("[M]->{c1[i]: 0<=i<M}", tiramisu::expr((uint8_t) 3), true, p_uint8, &sequence);
-    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", tiramisu::expr((uint8_t) 2), true, p_uint8,
-                   &sequence);
+    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", tiramisu::expr((uint8_t) 2), true, p_uint8, &sequence);
     computation c3("[M]->{c3[i]: 0<=i<M}", tiramisu::expr((uint8_t) 1), true, p_uint8, &sequence);
+
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+
+
+    c1.after(c0, 0);
+    c2.after(c1, 0);
+    c3.after(c2, 0);
+
+
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
+
+    buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
 
     c0.set_access("{c0[i]->b0[i]}");
     c1.set_access("{c1[i]->b1[i]}");
     c2.set_access("{c2[i,j]->b2[i,j]}");
     c3.set_access("{c3[i]->b3[i]}");
 
-    c1.after(c0, 0);
-    c2.after(c1, 0);
-    c3.after(c2, 0);
+
+    // -------------------------------------------------------
+    // Code Generator
+    // -------------------------------------------------------
+
 
     sequence.set_arguments({&b0, &b1, &b2, &b3});
-
-    // Generate code
     sequence.gen_time_space_domain();
     sequence.gen_isl_ast();
     sequence.gen_halide_stmt();

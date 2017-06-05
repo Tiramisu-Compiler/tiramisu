@@ -4,3 +4,5 @@
 - tutorial 04 : CSR SPmV,
 - tutorial 05 : simple sequence of computations,
 - tutorial 06 : reduction example,
+- tutorial 07 : histogram,
+- tutorial 08 : update,
