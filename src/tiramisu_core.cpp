@@ -1156,12 +1156,30 @@ void tiramisu::computation::vectorize(int L0, int v)
     this->vectorize(L0, v, loop_upper_bound);
 }
 
+/**
+ * Algorithm:
+ * - Compute the size of the buffer:
+ *      - Use the same code that computes the needed area in compute_at,
+ *      - From the needed area, deduce the size by computing the upper
+ *      bound and the lower bound and subtracting the two.
+ * - declare a buffer with a random name, and with the computed size,
+ * - allocate the buffer and get the computation that allocates the buffer,
+ * - map the computation to the allocated buffer (one to one mapping),
+ * - schedule the computation that allocates the buffer before the consumer
+ * at loop level L0,
+ * - return the allocation computation.
+ */
+tiramisu::computation *computation::store_at(tiramisu::computation &consumer, int L0)
+{
+    return NULL;
+}
+
+
 // TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
 // as bound. Currently only loops that have a symbolic constant bound can be vectorized
 // this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
 // as input.
 // Idem for unroll.
-// TODO: make vectorize and unroll retrieve the loop bound automatically.
 void tiramisu::computation::vectorize(int L0, int v,
                                       tiramisu::expr loop_upper_bound)
 {
@@ -2719,6 +2737,136 @@ std::vector<int> get_shift_degrees(isl_set *missing, int L)
 }
 
 /**
+ * Compute the needed area.
+ */
+std::vector<isl_set *> computation::compute_needed_and_produced(computation &consumer, int L)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<isl_set *> needed_and_produced;
+
+    // Get the consumer domain and schedule and the producer domain and schedule
+    isl_set *consumer_domain = isl_set_copy(consumer.get_iteration_domain());
+    isl_map *consumer_sched = isl_map_copy(consumer.get_schedule());
+    isl_set *producer_domain = isl_set_copy(this->get_iteration_domain());
+    isl_map *producer_sched = isl_map_copy(this->get_schedule());
+
+    // Compute the access relation of the consumer computation.
+    std::vector<isl_map *> accesses_vector;
+    generator::get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
+    assert(accesses_vector.size() > 0);
+
+    DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
+
+    // Create a union map of the accesses to the producer.
+    isl_map *consumer_accesses = NULL;
+    isl_space *space = NULL;
+    space = isl_map_get_space(isl_map_copy(accesses_vector[0]));
+    assert(space != NULL);
+    consumer_accesses = isl_map_empty(isl_space_copy(space));
+    for (const auto a : accesses_vector)
+    {
+        std::string range_name = isl_map_get_tuple_name(isl_map_copy(consumer_accesses), isl_dim_out);
+
+        if (range_name == this->get_name())
+        {
+            consumer_accesses = isl_map_union(isl_map_copy(a), consumer_accesses);
+        }
+    }
+    consumer_accesses = isl_map_intersect_range(consumer_accesses,
+                        isl_set_copy(this->get_iteration_domain()));
+    consumer_accesses = isl_map_intersect_domain(consumer_accesses,
+                        isl_set_copy(consumer.get_iteration_domain()));
+    consumer_accesses = this->simplify(consumer_accesses);
+
+    DEBUG(3, tiramisu::str_dump("Accesses after keeping only those that have the producer in the range: "));
+    DEBUG(3, tiramisu::str_dump(isl_map_to_str(consumer_accesses)));
+
+    // Simplify
+    consumer_domain = this->simplify(consumer_domain);
+    consumer_sched = this->simplify(consumer_sched);
+    producer_sched = this->simplify(producer_sched);
+    producer_domain = this->simplify(producer_domain);
+
+    // Transform, into time-processor, the consumer domain and schedule and the producer domain and schedule and the access relation
+    consumer_domain = isl_set_apply(consumer_domain, isl_map_copy(consumer_sched));
+    producer_domain = isl_set_apply(producer_domain, isl_map_copy(producer_sched));
+    consumer_accesses = isl_map_apply_domain(isl_map_copy(consumer_accesses),
+                        isl_map_copy(consumer_sched));
+    consumer_accesses = isl_map_apply_range(isl_map_copy(consumer_accesses),
+                                            isl_map_copy(producer_sched));
+
+    DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
+    DEBUG(3, tiramisu::str_dump("Consumer domain (in time-processor): ",
+                                isl_set_to_str(consumer_domain)));
+    DEBUG(3, tiramisu::str_dump("Consumer accesses (in time-processor): ",
+                                isl_map_to_str(consumer_accesses)));
+    DEBUG(3, tiramisu::str_dump("Producer domain (in time-processor): ",
+                                isl_set_to_str(producer_domain)));
+
+    // Add parameter dimensions and equate the dimensions on the left of dim to these parameters
+    if (L + 1 > 0)
+    {
+        int pos_last_param0 = isl_set_dim(consumer_domain, isl_dim_param);
+        int pos_last_param1 = isl_set_dim(producer_domain, isl_dim_param);
+        consumer_domain = isl_set_add_dims(consumer_domain, isl_dim_param, L + 1);
+        producer_domain = isl_set_add_dims(producer_domain, isl_dim_param, L + 1);
+
+        // Set the names of the new parameters
+        for (int i = 0; i <= L; i++)
+        {
+            std::string new_param = generate_new_variable_name();
+            consumer_domain = isl_set_set_dim_name(consumer_domain, isl_dim_param, pos_last_param0 + i,
+                                                   new_param.c_str());
+            producer_domain = isl_set_set_dim_name(producer_domain, isl_dim_param, pos_last_param1 + i,
+                                                   new_param.c_str());
+        }
+
+        isl_space *sp = isl_set_get_space(isl_set_copy(consumer_domain));
+        isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
+
+        isl_space *sp2 = isl_set_get_space(isl_set_copy(producer_domain));
+        isl_local_space *lsp2 = isl_local_space_from_space(isl_space_copy(sp2));
+
+        for (int i = 0; i <= L; i++)
+        {
+            // Assuming that i is the dynamic dimension and T is the parameter.
+            // We want to create the following constraint: i - T = 0
+            int pos = loop_level_into_dynamic_dimension(i);
+            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_set, pos, 1);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos_last_param0 + i, -1);
+            consumer_domain = isl_set_add_constraint(consumer_domain, cst);
+
+            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp2));
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_set, pos, 1);
+            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_param, pos_last_param1 + i, -1);
+            producer_domain =  isl_set_add_constraint(producer_domain, cst2);
+        }
+    }
+    DEBUG(3, tiramisu::str_dump("Consumer domain after fixing left dimensions to parameters: ",
+                                isl_set_to_str(consumer_domain)));
+    DEBUG(3, tiramisu::str_dump("Producer domain after fixing left dimensions to parameters: ",
+                                isl_set_to_str(producer_domain)));
+
+
+    // Compute needed = consumer_access(consumer_domain)
+    isl_set *needed = isl_set_apply(isl_set_copy(consumer_domain), isl_map_copy(consumer_accesses));
+    needed = this->simplify(needed);
+    DEBUG(3, tiramisu::str_dump("Needed in time-processor = consumer_access(consumer_domain) in time-processor: ",
+                                isl_set_to_str(needed)));
+
+    needed_and_produced.push_back(needed);
+    needed_and_produced.push_back(producer_domain);
+
+    DEBUG_INDENT(-4);
+
+    return needed_and_produced;
+}
+
+
+/**
  * - Get the access function of the consumer (access to computations).
  * - Apply the schedule on the iteration domain and access functions.
  * - Keep only the access function to the producer.
@@ -2763,131 +2911,25 @@ void computation::compute_at(computation &consumer, int L)
           tiramisu::str_dump(std::to_string(dim)));
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(this->get_schedule())));
 
-    // Compute the access relation of the consumer computation.
-    std::vector<isl_map *> accesses_vector;
-    generator::get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
-    assert(accesses_vector.size() > 0);
+    // Save the position of the last parameter (this will be used later
+    // to distinguish the temporary added parameters from the original parameters).
+    int pos_last_param0 = isl_set_dim(consumer.get_iteration_domain(), isl_dim_param);
+    int pos_last_param1 = isl_set_dim(this->get_iteration_domain(), isl_dim_param);
 
-    DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
-
-    // Create a union map of the accesses to the producer.
-    isl_map *consumer_accesses = NULL;
-    isl_space *space = NULL;
-    space = isl_map_get_space(isl_map_copy(accesses_vector[0]));
-    assert(space != NULL);
-    consumer_accesses = isl_map_empty(isl_space_copy(space));
-    for (const auto a : accesses_vector)
-    {
-        std::string range_name = isl_map_get_tuple_name(isl_map_copy(consumer_accesses), isl_dim_out);
-
-        if (range_name == this->get_name())
-        {
-            consumer_accesses = isl_map_union(isl_map_copy(a), consumer_accesses);
-        }
-    }
-    consumer_accesses = isl_map_intersect_range(consumer_accesses,
-                        isl_set_copy(this->get_iteration_domain()));
-    consumer_accesses = isl_map_intersect_domain(consumer_accesses,
-                        isl_set_copy(consumer.get_iteration_domain()));
-    consumer_accesses = this->simplify(consumer_accesses);
-
-    DEBUG(3, tiramisu::str_dump("Accesses after keeping only those that have the producer in the range: "));
-    DEBUG(3, tiramisu::str_dump(isl_map_to_str(consumer_accesses)));
-
-    // Get the consumer domain and schedule and the producer domain and schedule
-    isl_set *consumer_domain = isl_set_copy(consumer.get_iteration_domain());
-    isl_map *consumer_sched = isl_map_copy(consumer.get_schedule());
-    isl_set *producer_domain = isl_set_copy(this->get_iteration_domain());
-    isl_map *producer_sched = isl_map_copy(this->get_schedule());
-
-    DEBUG(3, tiramisu::str_dump("Consumer domain (in iteration space): ",
-                                isl_set_to_str(consumer_domain)));
-    DEBUG(3, tiramisu::str_dump("Consumer schedule (in iteration space): ",
-                                isl_map_to_str(consumer_sched)));
-    DEBUG(3, tiramisu::str_dump("Producer domain (in iteration space): ",
-                                isl_set_to_str(producer_domain)));
-    DEBUG(3, tiramisu::str_dump("Producer schedule (in iteration space): ",
-                                isl_map_to_str(producer_sched)));
-
-    // Simplify
-    consumer_domain = this->simplify(consumer_domain);
-    consumer_sched = this->simplify(consumer_sched);
-    producer_sched = this->simplify(producer_sched);
-    producer_domain = this->simplify(producer_domain);
-
-    // Transform, into time-processor, the consumer domain and schedule and the producer domain and schedule and the access relation
-    consumer_domain = isl_set_apply(consumer_domain, isl_map_copy(consumer_sched));
-    producer_domain = isl_set_apply(producer_domain, isl_map_copy(producer_sched));
-    consumer_accesses = isl_map_apply_domain(isl_map_copy(consumer_accesses),
-                        isl_map_copy(consumer_sched));
-    consumer_accesses = isl_map_apply_range(isl_map_copy(consumer_accesses),
-                                            isl_map_copy(producer_sched));
-
-    DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
-    DEBUG(3, tiramisu::str_dump("Consumer domain (in time-processor): ",
-                                isl_set_to_str(consumer_domain)));
-    DEBUG(3, tiramisu::str_dump("Consumer accesses (in time-processor): ",
-                                isl_map_to_str(consumer_accesses)));
-    DEBUG(3, tiramisu::str_dump("Producer domain (in time-processor): ",
-                                isl_set_to_str(producer_domain)));
+    // Compute needed
+    std::vector<isl_set *> needed_and_produced = this->compute_needed_and_produced(consumer, L);
+    isl_set *needed = needed_and_produced[0];
+    isl_set *producer_domain = needed_and_produced[1];
 
     std::vector<std::string> param_names;
-
-    // Add parameter dimensions and equate the dimensions on the left of dim to these parameters
-    if (L + 1 > 0)
+    // Get the names of the new parameters
+    for (int i = 0; i <= L; i++)
     {
-        int pos_last_param0 = isl_set_dim(consumer_domain, isl_dim_param);
-        int pos_last_param1 = isl_set_dim(producer_domain, isl_dim_param);
-        consumer_domain = isl_set_add_dims(consumer_domain, isl_dim_param, L + 1);
-        producer_domain = isl_set_add_dims(producer_domain, isl_dim_param, L + 1);
-
-        // Set the names of the new parameters
-        for (int i = 0; i <= L; i++)
-        {
-            std::string new_param = generate_new_variable_name();
-            consumer_domain = isl_set_set_dim_name(consumer_domain, isl_dim_param, pos_last_param0 + i,
-                                                   new_param.c_str());
-            producer_domain = isl_set_set_dim_name(producer_domain, isl_dim_param, pos_last_param1 + i,
-                                                   new_param.c_str());
-
-            // Save the parameter names for later use (to eliminate them again and replace them with existential variables).
-            param_names.push_back(new_param);
-        }
-
-        isl_space *sp = isl_set_get_space(isl_set_copy(consumer_domain));
-        isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
-
-        isl_space *sp2 = isl_set_get_space(isl_set_copy(producer_domain));
-        isl_local_space *lsp2 = isl_local_space_from_space(isl_space_copy(sp2));
-
-        for (int i = 0; i <= L; i++)
-        {
-            // Assuming that i is the dynamic dimension and T is the parameter.
-            // We want to create the following constraint: i - T = 0
-            int pos = loop_level_into_dynamic_dimension(i);
-            isl_constraint *cst = isl_constraint_alloc_equality(isl_local_space_copy(lsp));
-            cst = isl_constraint_set_coefficient_si(cst, isl_dim_set, pos, 1);
-            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos_last_param0 + i, -1);
-            consumer_domain = isl_set_add_constraint(consumer_domain, cst);
-
-            isl_constraint *cst2 = isl_constraint_alloc_equality(isl_local_space_copy(lsp2));
-            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_set, pos, 1);
-            cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_param, pos_last_param1 + i, -1);
-            producer_domain =  isl_set_add_constraint(producer_domain, cst2);
-        }
+        std::string new_param =
+                isl_set_get_dim_name(needed, isl_dim_param, pos_last_param0 + pos_last_param1 + i);
+        // Save the parameter names for later use (to eliminate them again and replace them with existential variables).
+        param_names.push_back(new_param);
     }
-    DEBUG(3, tiramisu::str_dump("Consumer domain after fixing left dimensions to parameters: ",
-                                isl_set_to_str(consumer_domain)));
-    DEBUG(3, tiramisu::str_dump("Producer domain after fixing left dimensions to parameters: ",
-                                isl_set_to_str(producer_domain)));
-
-
-    // Compute needed = consuler_access(consumer_domain)
-    isl_set *needed = isl_set_apply(isl_set_copy(consumer_domain), isl_map_copy(consumer_accesses));
-    needed = this->simplify(needed);
-    DEBUG(3, tiramisu::str_dump("Needed in time-processor = consumer_access(consumer_domain) in time-processor: ",
-                                isl_set_to_str(needed)));
-
 
     // Compute missing = needed - producer
     // First, rename the needed to have the same space name as produced

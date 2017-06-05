@@ -1157,6 +1157,25 @@ private:
       */
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
 
+    /**
+     * Compute two subsets of computations:
+     *  - the first is the subset of needed computations,
+     *  - the second is the subset of produced computations,
+     *
+     * The needed computations are those that need to be consumed
+     * by the \p consumer if this computation is to be executed in the
+     * same loop as the consumer but at loop level \p L.
+     *
+     * The produced subset represent are the computations produced by
+     * this computation at the level \p L.
+     *
+     * This function takes in consideration the schedule of
+     * this computation and the schedule of consumer in order to
+     * compute the needed area.
+     */
+    std::vector<isl_set *> compute_needed_and_produced(computation &consumer, int L);
+
+
     tiramisu::constant *create_separator_and_add_constraints_to_context(
         const tiramisu::expr &loop_upper_bound, int v);
 
@@ -2104,6 +2123,21 @@ public:
       * splitting.
       */
     void split(int L0, int sizeX);
+
+    /**
+     * Store this computation in the loop nest of \p consumer at the loop
+     * level \p L0.
+     *
+     * This function does the following:
+     *  - computes the size of the buffer needed to store this computation,
+     *  - allocates a temporary buffer with the appropriate size,
+     *  - schedules the allocation operation to be executed in the loop
+     *  nest of \p consumer (before the consumer) at the loop level \p L0.
+     *
+     * The function returns the computation (operation) that allocates
+     * the buffer.  The allocated buffer is not returned.
+     */
+    tiramisu::computation *store_at(tiramisu::computation &consumer, int L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
