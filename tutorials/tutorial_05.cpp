@@ -12,7 +12,8 @@
 #include <Halide.h>
 #include "halide_image_io.h"
 
-/* CSR SpMV Simplified.
+/* Sequence of computations.
+
 for (i = 0; i < M; i++)
   S0(i) = 4;
   S1(i) = 3;

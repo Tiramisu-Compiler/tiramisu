@@ -1,0 +1,6 @@
+- tutorial_01 : simple assignment,
+- tutorial 02 : blurxy,
+- tutorial 03 : matrix multiplication,
+- tutorial 04 : CSR SPmV,
+- tutorial 05 : simple sequence of computations,
+- tutorial 06 : reduction example,

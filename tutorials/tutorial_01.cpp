@@ -31,14 +31,11 @@ int main(int argc, char **argv)
     // represented as buffers and are declared later in the tutorial.
     function function0("function0");
 
-    // Create a buffer buf0.  This buffer is supposed to be allocated outside
-    // the function "function0" and passed to it as an argument.
-    // (actually any buffer of type a_output or a_input should be allocated
-    // by the caller, in contrast to buffers of type a_temporary which are
-    // allocated automatically by the Tiramisu runtime within the callee
-    // and should not be passed as arguments to the function).
-    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output,
-                &function0);
+
+
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
 
     // Declare the invariants of the function.  An invariant can be a symbolic
     // constant or a variable that does not change during the execution of the
@@ -49,6 +46,7 @@ int main(int argc, char **argv)
     // Declare expressions that will be associated with the
     // computations.
     expr e3 = expr((uint8_t) 3) + expr((uint8_t) 4);
+
     // Declare a computation within function0.
     // To declare a computation, you need to provide:
     // (1) an ISL set representing the iteration space of the computation,
@@ -60,15 +58,14 @@ int main(int argc, char **argv)
     // (3) the function in which the computation will be declared.
     computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e3, true, p_uint8, &function0);
 
-    // Map the computations to a buffer (i.e. where each computation
-    // should be stored in the buffer).
-    // This mapping will be updated automatically when the schedule
-    // is applied. To disable automatic data mapping updates use
-    // global::set_auto_data_mapping(false).
-    S0.set_access("{S0[i,j]->buf0[i,j]}");
-
     // Dump the iteration domain (input) for the function.
     function0.dump_iteration_domain();
+
+
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
 
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
@@ -78,6 +75,34 @@ int main(int argc, char **argv)
 
     // Dump the schedule.
     function0.dump_schedule();
+
+
+
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
+    // Create a buffer buf0.  This buffer is supposed to be allocated outside
+    // the function "function0" and passed to it as an argument.
+    // (actually any buffer of type a_output or a_input should be allocated
+    // by the caller, in contrast to buffers of type a_temporary which are
+    // allocated automatically by the Tiramisu runtime within the callee
+    // and should not be passed as arguments to the function).
+    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output,
+                &function0);
+
+    // Map the computations to a buffer (i.e. where each computation
+    // should be stored in the buffer).
+    // This mapping will be updated automatically when the schedule
+    // is applied. To disable automatic data mapping updates use
+    // global::set_auto_data_mapping(false).
+    S0.set_access("{S0[i,j]->buf0[i,j]}");
+
+
+
+    // -------------------------------------------------------
+    // Code Generation
+    // -------------------------------------------------------
 
     // Add buf0 as an argument to the function.
     function0.set_arguments({&buf0});

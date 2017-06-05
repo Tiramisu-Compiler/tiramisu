@@ -38,20 +38,21 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
+
+
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+
     /*
      * Declare a function blurxy.
      * Declare two arguments (tiramisu buffers) for the function: b_input and b_blury
      * Declare an invariant for the function.
      */
     function blurxy("blurxy");
-    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input,
-                   &blurxy);
-    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
-                   a_output, &blurxy);
-    expr e_p0 = expr((int32_t) SIZE0);
-    expr e_p1 = expr((int32_t) SIZE1);
-    constant p0("N", e_p0, p_int32, true, NULL, 0, &blurxy);
-    constant p1("M", e_p1, p_int32, true, NULL, 0, &blurxy);
+
+    constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &blurxy);
+    constant p1("M", expr((int32_t) SIZE1), p_int32, true, NULL, 0, &blurxy);
 
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &blurxy);
@@ -68,14 +69,11 @@ int main(int argc, char **argv)
 
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2, true, p_uint8, &blurxy);
 
-    // Create a memory buffer (2 dimensional).
-    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
-                   a_temporary, &blurxy);
 
-    // Map the computations to a buffer.
-    c_input.set_access("{c_input[i,j]->b_input[i,j]}");
-    c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
-    c_blury.set_access("{c_blury[i,j]->b_blury[i,j]}");
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
 
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
@@ -84,6 +82,30 @@ int main(int argc, char **argv)
     c_blurx.tag_gpu_level(0, 1);
     c_blury.set_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
     c_blury.after(c_blurx, computation::root_dimension);
+
+
+
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
+    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input,
+                   &blurxy);
+    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
+                   a_output, &blurxy);
+    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
+                   a_temporary, &blurxy);
+
+    // Map the computations to a buffer.
+    c_input.set_access("{c_input[i,j]->b_input[i,j]}");
+    c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
+    c_blury.set_access("{c_blury[i,j]->b_blury[i,j]}");
+
+
+
+    // -------------------------------------------------------
+    // Code Generation
+    // -------------------------------------------------------
 
     // Set the arguments to blurxy
     blurxy.set_arguments({&b_input, &b_blury});
