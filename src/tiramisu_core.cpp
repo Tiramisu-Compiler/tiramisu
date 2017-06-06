@@ -1713,6 +1713,21 @@ int isl_set_get_const_dim(isl_set *set, int dim_pos)
     return data->out_constant;
 }
 
+/**
+ * Set the value \p val for the output dimension \p dim_pos of \p map.
+ *
+ * Example
+ *
+ * Assuming the map M = {S[i,j]->[i0,i1,i2]}
+ *
+ * M = isl_map_set_const_dim(M, 0, 0);
+ *
+ * Would create the constraint i0=0 and add it to the map.
+ * The resulting map is
+ *
+ * M = {S[i,j]->[i0,i1,i2]: i0=0}
+ *
+ */
 isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
 {
     DEBUG_FCT_NAME(3);
