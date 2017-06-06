@@ -1744,10 +1744,6 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
           tiramisu::str_dump(" into ");
           tiramisu::str_dump(std::to_string(val)));
 
-    isl_space *sp = isl_map_get_space(map);
-    isl_local_space *lsp =
-        isl_local_space_from_space(isl_space_copy(sp));
-
     isl_map *identity = isl_set_identity(isl_map_range(isl_map_copy(map)));
     // We need to create a universe of the map (i.e., an unconstrained map)
     // because isl_set_identity() create an identity transformation and
@@ -1756,8 +1752,8 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
     // a map without any constraint.
     identity = isl_map_universe(isl_map_get_space(identity));
 
-    sp = isl_map_get_space(identity);
-    lsp = isl_local_space_from_space(isl_space_copy(sp));
+    isl_space *sp = isl_map_get_space(identity);
+    isl_local_space *lsp = isl_local_space_from_space(isl_space_copy(sp));
 
     // This loops goes through the output dimensions of the map one by one
     // and adds a constraint for each dimension. IF the dimension is dim_pos
