@@ -1749,11 +1749,27 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val)
         isl_local_space_from_space(isl_space_copy(sp));
 
     isl_map *identity = isl_set_identity(isl_map_range(isl_map_copy(map)));
+    // We need to create a universe of the map (i.e., an unconstrained map)
+    // because isl_set_identity() create an identity transformation and
+    // inserts the constraints that were in the original set.  We don't
+    // want to have those constraints.  We want to have a universe map, i.e.,
+    // a map without any constraint.
     identity = isl_map_universe(isl_map_get_space(identity));
 
     sp = isl_map_get_space(identity);
     lsp = isl_local_space_from_space(isl_space_copy(sp));
 
+    // This loops goes through the output dimensions of the map one by one
+    // and adds a constraint for each dimension. IF the dimension is dim_pos
+    // it add a constraint of equality to val
+    // Otherwise it adds a constraint that keeps the original value, i.e.,
+    // (output dimension = input dimension)
+    // Example
+    //  Assuming that dim_pos = 0, val = 10 and the universe map is
+    //  {S[i0,i1]->S[j0,j1]}, this loop produces
+    //  {S[i0,i1]->S[j0,j1]: j0=0 and j1=i1}
+    //  i.e.,
+    //  {S[i0,i1]->S[0,i1]}
     for (int i = 0; i < isl_map_dim(identity, isl_dim_out); i++)
         if (i == dim_pos)
         {
