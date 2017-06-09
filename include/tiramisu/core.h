@@ -743,6 +743,7 @@ class buffer
 {
 
     friend tiramisu::function;
+    friend tiramisu::generator;
 
 private:
     /**
@@ -961,6 +962,11 @@ public:
       * and the last vector element is N0.
       */
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
+
+    /**
+     * Return true if the buffer has constant extent (literal integer extents).
+     */
+    bool has_constant_extents();
 
     /**
      * Return true if a statement that allocates the buffer was
@@ -2529,10 +2535,16 @@ protected:
       *     - a function \p fct for which we are generating code,
       *     - a \p node,
       *     - \p level represents the current loop level being traversed (0 means the outer level.
+      *     - \p is_a_child_block indicates whether the block that is ging to be
+      *     generated is a child block for an other block. In such a case, allocate
+      *     and let statements should not be generate. Allocate and let statements
+      *     should only be generated in non-child blocks so that their scope reaches
+      *     the whole block.
       */
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::string> &tagged_stmts);
+        int level, std::vector<std::string> &tagged_stmts,
+        bool is_a_child_block = false);
 
     /**
      * Create a Halide expression from a  Tiramisu expression.
@@ -2592,6 +2604,17 @@ public:
      */
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
 
+    /**
+     * Create a comma separated string that represents the list
+     * of the parameters of \p set.
+     *
+     * For example, if the set is
+     *
+     * [N,M,K]->{S[i]}
+     *
+     * this function returns the string "N,M,K".
+     */
+    static std::string get_parameters_list(isl_set *set);
 };
 
 

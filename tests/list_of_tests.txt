@@ -1,0 +1,2 @@
+- test_28: .vectorize()
+- test_29: .store_at()

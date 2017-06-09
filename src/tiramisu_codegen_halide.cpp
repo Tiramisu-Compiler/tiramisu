@@ -1198,13 +1198,16 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
             // to outermost; thus, we need to reverse the order
             halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
             int stride = 1;
-            for (size_t i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+            if (tiramisu_buffer->has_constant_extents())
             {
-                shape[i].min = 0;
-                int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
-                shape[i].extent = (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
-                shape[i].stride = stride;
-                stride *= (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                for (size_t i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+                {
+                    shape[i].min = 0;
+                    int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                    shape[i].extent = (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                    shape[i].stride = stride;
+                    stride *= (int)tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                }
             }
 
             if (tiramisu_expr.get_op_type() == tiramisu::o_access)
@@ -1213,21 +1216,28 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
 
                 Halide::Expr index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape,
                                      index_expr[0]);
+
                 index_expr.erase(index_expr.begin());
 
                 if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
                 {
-                    Halide::Buffer<> buffer = Halide::Buffer<>(
+                    /*Halide::Buffer<> buffer = Halide::Buffer<>(
                                                   type,
                                                   tiramisu_buffer->get_data(),
                                                   tiramisu_buffer->get_dim_sizes().size(),
                                                   shape,
-                                                  tiramisu_buffer->get_name());
+                                                  tiramisu_buffer->get_name());*/
+
+                    Halide::Internal::Parameter param =
+                            Halide::Internal::Parameter(halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                                                        true,
+                                                        tiramisu_buffer->get_dim_sizes().size(),
+                                                        tiramisu_buffer->get_name());
 
                     // TODO(psuriana): ImageParam is not currently supported.
                     result = Halide::Internal::Load::make(
-                                 type, tiramisu_buffer->get_name(), index, buffer,
-                                 Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                                 type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
+                                 param, Halide::Internal::const_true(type.lanes()));
                 }
                 else
                 {
@@ -1486,6 +1496,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 }
 
 std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
+std::vector<tiramisu::computation *> allocate_stmts_vector;
 
 // For each node of the ISL AST, the corresponding computation is stored.
 // This function retrieves that computation.
@@ -1509,7 +1520,8 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
   */
 Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
     const tiramisu::function &fct, isl_ast_node *node,
-    int level, std::vector<std::string> &tagged_stmts)
+    int level, std::vector<std::string> &tagged_stmts,
+    bool is_a_child_block)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1530,58 +1542,25 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
 
             Halide::Internal::Stmt block;
-            // We use this variable to figure out if the block is already constructed
-            // using a call to allocate() for example. If this is the case, no need to
-            // construct the block explicitly using block::make.
-            bool block_already_constructed = false;
 
             if ((isl_ast_node_get_type(child) == isl_ast_node_user) &&
                 ((get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_allocate) ||
                  (get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_free)))
             {
                 tiramisu::computation *comp = get_computation_annotated_in_a_node(child);
-                assert(comp != NULL);
-                DEBUG(10, tiramisu::str_dump("The computation that corresponds to the child of this node: "); comp->dump());
-
-                std::string buffer_name = comp->get_expr().get_name();
-                DEBUG(10, tiramisu::str_dump("The computation of the node is an allocate or a free IR node."));
-                DEBUG(10, tiramisu::str_dump("The buffer that should be allocated or freed is " + buffer_name));
-                tiramisu::buffer *buf = comp->get_function()->get_buffers().find(buffer_name)->second;
-
-                std::vector<Halide::Expr> halide_dim_sizes;
-                // Create a vector indicating the size that should be allocated.
-                // Tiramisu buffer is defined from outermost to innermost, whereas Halide is from
-                // innermost to outermost; thus, we need to reverse the order.
-                for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
+                if (get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_allocate)
                 {
-                    // TODO: if the size of an array is a computation access
-                    // this is not supported yet. Mainly because in the code below
-                    // we pass NULL pointers for parameters that are necessary
-                    // in case we are computing the halide expression from a tiramisu expression
-                    // that represents a computation access.
-                    const auto sz = buf->get_dim_sizes()[i];
-                    std::vector<isl_ast_expr *> ie = {};
-                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
-                }
-
-                if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
-                {
-                    block = Halide::Internal::Allocate::make(
-                           buf->get_name(),
-                           halide_type_from_tiramisu_type(buf->get_elements_type()),
-                           halide_dim_sizes, Halide::Internal::const_true(), result);
-
-                    buf->mark_as_allocated();
-
-                    block_already_constructed = true;
+                    DEBUG(3, tiramisu::str_dump("Adding a computation to vector of allocate stmts (for later construction)"));
+                    allocate_stmts_vector.push_back(comp);
                 }
                 else
-                    block = Halide::Internal::Free::make(buf->get_name());
+                    block = Halide::Internal::Free::make(comp->get_name());
             }
             else
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
-                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts);
+                // Generate a child block
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true);
             }
             isl_ast_node_free(child);
 
@@ -1616,10 +1595,11 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 // else, if (let_stmts_vector.empty()), continue looping to
                 // create more let stmts and to encounter a real statement
+
             }
             else // ((block.defined())
             {
-                if (result.defined() && block_already_constructed == false)
+                if (result.defined())
                 {
                     result = Halide::Internal::Block::make(block, result);
                 }
@@ -1628,7 +1608,69 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     result = block;
                 }
             }
+            std::cout << "Result is now: " << result;
         }
+
+        /**
+         *  Generate all the "allocate" statements (which should be declared on all the block)
+            that's why they are left to be create last.
+            We only generate "allocate" statements if we are not in a child block.
+            In ISL is is possible to have the following blocks
+
+            { // Main block
+                { // child block
+                    allocate
+                    assignment
+                }
+                assignment
+            }
+
+            But in general we want the "allocate" to be declared in the main block
+            because the two assignments are using the buffer.  So we should only
+            generate the allocate when we are in the main block, not in a child block.
+         */
+        if ((allocate_stmts_vector.size() != 0) && (is_a_child_block == false))
+        {
+            Halide::Internal::Stmt block;
+            for (auto comp: allocate_stmts_vector)
+            {
+                assert(comp != NULL);
+                DEBUG(10, tiramisu::str_dump("The computation that corresponds to the child of this node: "); comp->dump());
+
+                std::string buffer_name = comp->get_expr().get_name();
+                DEBUG(10, tiramisu::str_dump("The computation of the node is an allocate or a free IR node."));
+                DEBUG(10, tiramisu::str_dump("The buffer that should be allocated or freed is " + buffer_name));
+                tiramisu::buffer *buf = comp->get_function()->get_buffers().find(buffer_name)->second;
+
+                std::vector<Halide::Expr> halide_dim_sizes;
+                // Create a vector indicating the size that should be allocated.
+                // Tiramisu buffer is defined from outermost to innermost, whereas Halide is from
+                // innermost to outermost; thus, we need to reverse the order.
+                for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
+                {
+                    // TODO: if the size of an array is a computation access
+                    // this is not supported yet. Mainly because in the code below
+                    // we pass NULL pointers for parameters that are necessary
+                    // in case we are computing the halide expression from a tiramisu expression
+                    // that represents a computation access.
+                    const auto sz = buf->get_dim_sizes()[i];
+                    std::vector<isl_ast_expr *> ie = {};
+                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
+                }
+
+                if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
+                {
+                    result = Halide::Internal::Allocate::make(
+                           buf->get_name(),
+                           halide_type_from_tiramisu_type(buf->get_elements_type()),
+                           halide_dim_sizes, Halide::Internal::const_true(), result);
+
+                    buf->mark_as_allocated();
+                }
+            }
+            allocate_stmts_vector.clear();
+        }
+
         isl_ast_node_list_free(list);
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_for)
@@ -2083,13 +2125,17 @@ void computation::create_halide_assignment()
         // from innermost to outermost; thus, we need to reverse the order
         halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
-        for (int i = 0; i < buf_dims; i++)
+
+        if (tiramisu_buffer->has_constant_extents())
         {
-            shape[i].min = 0;
-            int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
-            shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
-            shape[i].stride = stride;
-            stride *= (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+            for (int i = 0; i < buf_dims; i++)
+            {
+                shape[i].min = 0;
+                int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                shape[i].extent = (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                shape[i].stride = stride;
+                stride *= (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+            }
         }
 
         // The number of dimensions in the Halide buffer should be equal to
@@ -2109,16 +2155,27 @@ void computation::create_halide_assignment()
 
         if (tiramisu_buffer->get_argument_type() == tiramisu::a_output)
         {
-            Halide::Buffer<> buffer =
-                Halide::Buffer<>(
-                    halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
-                    tiramisu_buffer->get_data(),
-                    tiramisu_buffer->get_dim_sizes().size(),
-                    shape,
-                    tiramisu_buffer->get_name());
-            param = Halide::Internal::Parameter(buffer.type(), true, buffer.dimensions(), buffer.name());
-            param.set_buffer(buffer);
-            DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
+            if (tiramisu_buffer->has_constant_extents())
+            {
+                Halide::Buffer<> buffer =
+                    Halide::Buffer<>(
+                        halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                        tiramisu_buffer->get_data(),
+                        tiramisu_buffer->get_dim_sizes().size(),
+                        shape,
+                        tiramisu_buffer->get_name());
+                param = Halide::Internal::Parameter(buffer.type(), true, buffer.dimensions(), buffer.name());
+                param.set_buffer(buffer);
+                DEBUG(3, tiramisu::str_dump("Halide buffer object created.  This object will be passed to the Halide function that creates an assignment to a buffer."));
+            }
+            else
+            {
+                param = Halide::Internal::Parameter(halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
+                                                    true,
+                                                    tiramisu_buffer->get_dim_sizes().size(),
+                                                    tiramisu_buffer->get_name());
+                param.set_buffer(Halide::Buffer<>());
+            }
         }
 
         DEBUG(3, tiramisu::str_dump("Calling the Halide::Internal::Store::make function which creates the store statement."));

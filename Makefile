@@ -1,6 +1,6 @@
 # Set the following PATHs before compiling Tiramisu
-ISL_INCLUDE_DIRECTORY=/usr/local/include
-ISL_LIB_DIRECTORY=/usr/local/lib
+ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
+ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
 HALIDE_SOURCE_DIRECTORY=Halide
 HALIDE_LIB_DIRECTORY=Halide/lib
 
@@ -44,8 +44,7 @@ TUTO_BIN = \
 	build/tutorial_06 \
 	build/tutorial_08
 
-TEST_GEN = \
-       build/test_01_fct_generator \
+TEST_GEN = build/test_01_fct_generator \
        build/test_02_fct_generator \
        build/test_03_fct_generator \
        build/test_04_fct_generator \
@@ -71,7 +70,9 @@ TEST_GEN = \
        build/test_25_fct_generator \
        build/test_26_fct_generator \
        build/test_27_fct_generator \
-       build/test_28_fct_generator
+       build/test_28_fct_generator \
+       build/test_29_fct_generator
+
 
 #build/test_07_fct_generator
 
@@ -102,7 +103,9 @@ TEST_BIN = build/test_global \
        build/test_25 \
        build/test_26 \
        build/test_27 \
-       build/test_28
+       build/test_28 \
+       build/test_29
+
 
 #build/test_07
 
