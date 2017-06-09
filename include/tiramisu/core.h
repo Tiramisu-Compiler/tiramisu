@@ -1178,8 +1178,15 @@ private:
      * This function takes in consideration the schedule of
      * this computation and the schedule of consumer in order to
      * compute the needed area.
+     *
+     * This function creates new parameters, these parameters are used to specialize
+     * the needed area for specific loop iterators (i.e., fix the needed area).
+     * These parameters are stored in \p param_names.
+     * This vector is used internally by Tiramisu in compute_at() which calls this
+     * function.
      */
-    std::vector<isl_set *> compute_needed_and_produced(computation &consumer, int L);
+    std::vector<isl_set *> compute_needed_and_produced(computation &consumer, int L,
+                                                       std::vector<std::string> &param_names);
 
 
     tiramisu::constant *create_separator_and_add_constraints_to_context(
