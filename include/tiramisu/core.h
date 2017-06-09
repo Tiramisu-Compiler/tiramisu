@@ -1842,20 +1842,40 @@ public:
       * This function assumes that \p consumer consumes values produced by
       * this computation (which is the producer).
       *
+      * Compute this computation as needed for each unique value of the
+      * \p consumer.
+      *
       * This computation is scheduled so that the values consumed by the
       * \p consumer are computed at the level \p L and in the same loop
       * nest of the consumer.
       *
-      * If the consumer needs redundant computations of the producer to
-      * be performed, the function creates the necessary redundant
-      * computations and schedules them before the consumer.
+      * If the consumer needs this computation to be computed redundantly,
+      * the function creates the necessary redundant computations and schedules
+      * them before the consumer.
       *
-      * The user does not need to set the access function of the duplicate
-      * computation (if a duplicate is created).  The duplicated will
-      * automatically have the same access relation as the original
-      * computation.  They must both have the same access relation.
-      * In fact, in Tiramisu, any two computations that have the same
-      * name must have the same access relation.
+      * This function performs the following:
+      *     - schedules this computation to be executed as needed before
+      *     the consumer.
+      *     - if this computation needs to be computed redundantly, redundant
+      *     computations are create.
+      *
+      * This function does not:
+      *     - create any data mapping to this computation. It is up to the
+      *     user to provide an access relation to this computation as he
+      *     would do to any other normal computation.
+      *     - it does not allocate any buffer to this computation. It is
+      *     up to the user to declare a buffer where the results of this
+      *     computation will be stored.
+      *
+      * If this functions creates a duplicate of the computation, the user
+      * does not need to set its access relation.  The duplicated computation
+      * will automatically have the same access relation as the original
+      * computation. This access relation is set automatically.
+      *
+      * This function does not return a handler to manipulate the duplicate
+      * computation. It does not allow the user to manipulate the duplicate
+      * freely.  The duplicate is scheduled automatically to be executed
+      * before the consumer.
       */
     void compute_at(computation &consumer, int L);
 

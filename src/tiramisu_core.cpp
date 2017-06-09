@@ -2998,6 +2998,7 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
  * - Order the redundant computation after the original at level L.
  * - Order the consumer after the redundant at level L.
  */
+// TODO: Test the case when \p consumer does not consume this computation.
 void computation::compute_at(computation &consumer, int L)
 {
     DEBUG_FCT_NAME(3);

@@ -16,7 +16,7 @@
 using namespace tiramisu;
 
 /**
- * Test .store_at().
+ * Test .compute_at().
  */
 
 void generate_function(std::string name, int size, int val0)
