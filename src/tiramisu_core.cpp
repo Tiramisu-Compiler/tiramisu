@@ -650,6 +650,7 @@ void tiramisu::computation::rename_computation(std::string new_name)
 
     // Rename the access relation of the computation.
     isl_map *access = this->get_access_relation();
+    assert(access != NULL);
     access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
     DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
     this->set_access(access);
@@ -1694,6 +1695,10 @@ isl_stat extract_static_dim_value_from_bmap(__isl_take isl_basic_map *bmap, void
     return isl_stat_ok;
 }
 
+// if multiple const values exist, choose the maximal value among them because we
+// want to use this value to know by how much we shift the computations back.
+// so we need to figure out the maximal const value and use it to shift the iterations
+// backward so that that iteration runs before the consumer.
 isl_stat extract_constant_value_from_bset(__isl_take isl_basic_set *bset, void *user)
 {
     struct param_pack_1 *data = (struct param_pack_1 *) user;
@@ -1713,7 +1718,7 @@ isl_stat extract_constant_value_from_bset(__isl_take isl_basic_set *bset, void *
 
             isl_val *val2 = isl_constraint_get_constant_val(cst);
             int const_val = (-1) * isl_val_get_num_si(val2);
-            data->out_constant = const_val;
+            data->out_constant = std::max(data->out_constant, const_val);
             DEBUG(3, tiramisu::str_dump("Dimensions found.  Constant = " +
                                         std::to_string(const_val)));
         }
@@ -3163,7 +3168,7 @@ void computation::compute_at(computation &consumer, int L)
         consumer.after((*duplicated_computation), L);
 
         // Computing the shift degrees.
-        for (int i = 0; i < L; i++)
+        for (int i = 0; i <= L; i++)
             if (shift_degrees[i] != 0)
             {
                 DEBUG(3, tiramisu::str_dump("Now shifting the duplicate by " + std::to_string(
@@ -4929,6 +4934,17 @@ void tiramisu::computation::set_access(std::string access_str)
     assert(!access_str.empty());
 
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+
+    /**
+     * Set the access relations of all the computations that have the same name
+     * (duplicates and updates).
+     */
+    std::vector<tiramisu::computation *> same_name_computations =
+                    this->get_function()->get_computation_by_name(this->get_name());
+
+    if (same_name_computations.size() > 1)
+        for (auto c: same_name_computations)
+            c->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 
     /**
      * Search for any other computation that starts with

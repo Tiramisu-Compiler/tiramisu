@@ -1849,6 +1849,13 @@ public:
       * If the consumer needs redundant computations of the producer to
       * be performed, the function creates the necessary redundant
       * computations and schedules them before the consumer.
+      *
+      * The user does not need to set the access function of the duplicate
+      * computation (if a duplicate is created).  The duplicated will
+      * automatically have the same access relation as the original
+      * computation.  They must both have the same access relation.
+      * In fact, in Tiramisu, any two computations that have the same
+      * name must have the same access relation.
       */
     void compute_at(computation &consumer, int L);
 

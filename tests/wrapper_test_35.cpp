@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "wrapper_test_34.h"
+#include "wrapper_test_35.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +21,7 @@ int main(int, char **)
     Halide::Buffer<uint8_t> output_buf0(SIZE1, SIZE1, "output_buf0");
     init_buffer(output_buf0, (uint8_t)0);
     tiramisu_generated_code(output_buf0.raw_buffer());
-    compare_buffers(std::string(TEST_NAME_STR) + " 2", output_buf0, reference_buf0);
+    compare_buffers(std::string(TEST_NAME_STR) + " 3", output_buf0, reference_buf0);
 
     return 0;
 }
