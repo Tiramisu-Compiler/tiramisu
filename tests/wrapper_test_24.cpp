@@ -38,8 +38,8 @@ int main(int, char **)
                             output_buf3.raw_buffer(),
                             output_buf4.raw_buffer());
 
-    compare_buffers("test_" + std::string(TEST_NAME_STR) + "_part_2", output_buf1, reference_buf1);
-    compare_buffers("test_" + std::string(TEST_NAME_STR) + "_part_3", output_buf4, reference_buf2);
+    compare_buffers(std::string(TEST_NAME_STR) + " 2", output_buf1, reference_buf1);
+    compare_buffers(std::string(TEST_NAME_STR) + " 3", output_buf4, reference_buf2);
 
     return 0;
 }

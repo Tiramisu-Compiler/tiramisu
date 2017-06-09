@@ -16,7 +16,7 @@ int main(int, char **)
     // Call the Tiramisu generated code
     TEST_NAME(output_buf.raw_buffer());
 
-    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf, reference_buf);
+    compare_buffers(std::string(TEST_NAME_STR), output_buf, reference_buf);
 
     return 0;
 }

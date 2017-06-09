@@ -2841,7 +2841,7 @@ std::vector<int> get_shift_degrees(isl_set *missing, int L)
 /**
  * Compute the needed area.
  */
-std::vector<isl_set *> computation::compute_needed_and_produced(computation &consumer, int L)
+std::vector<isl_set *> computation::compute_needed_and_produced(computation &consumer, int L, std::vector<std::string> &param_names)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2923,6 +2923,7 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
                                                    new_param.c_str());
             producer_domain = isl_set_set_dim_name(producer_domain, isl_dim_param, pos_last_param1 + i,
                                                    new_param.c_str());
+            param_names.push_back(new_param);
         }
 
         isl_space *sp = isl_set_get_space(isl_set_copy(consumer_domain));
@@ -3013,25 +3014,11 @@ void computation::compute_at(computation &consumer, int L)
           tiramisu::str_dump(std::to_string(dim)));
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(this->get_schedule())));
 
-    // Save the position of the last parameter (this will be used later
-    // to distinguish the temporary added parameters from the original parameters).
-    int pos_last_param0 = isl_set_dim(consumer.get_iteration_domain(), isl_dim_param);
-    int pos_last_param1 = isl_set_dim(this->get_iteration_domain(), isl_dim_param);
-
     // Compute needed
-    std::vector<isl_set *> needed_and_produced = this->compute_needed_and_produced(consumer, L);
+    std::vector<std::string> param_names;
+    std::vector<isl_set *> needed_and_produced = this->compute_needed_and_produced(consumer, L, param_names);
     isl_set *needed = needed_and_produced[0];
     isl_set *producer_domain = needed_and_produced[1];
-
-    std::vector<std::string> param_names;
-    // Get the names of the new parameters
-    for (int i = 0; i <= L; i++)
-    {
-        std::string new_param =
-                isl_set_get_dim_name(needed, isl_dim_param, pos_last_param0 + pos_last_param1 + i);
-        // Save the parameter names for later use (to eliminate them again and replace them with existential variables).
-        param_names.push_back(new_param);
-    }
 
     // Compute missing = needed - producer
     // First, rename the needed to have the same space name as produced
@@ -3052,140 +3039,144 @@ void computation::compute_at(computation &consumer, int L)
     DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
     isl_set *original_missing = isl_set_copy(missing);
 
-    std::vector<int> shift_degrees = get_shift_degrees(isl_set_copy(missing), L);
-
-    // Now replace the parameters by existential variables and remove them
-    if (L + 1 > 0)
+    if (!isl_set_is_empty(missing))
     {
-        int pos_last_dim = isl_set_dim(missing, isl_dim_set);
-        std::string space_name = isl_set_get_tuple_name(missing);
-        missing = isl_set_add_dims(missing, isl_dim_set, L + 1);
-        missing = isl_set_set_tuple_name(missing, space_name.c_str());
+        std::vector<int> shift_degrees = get_shift_degrees(isl_set_copy(missing), L);
 
-        // Set the names of the new dimensions.
-        for (int i = 0; i <= L; i++)
+        // Now replace the parameters by existential variables and remove them
+        if (L + 1 > 0)
         {
-            missing = isl_set_set_dim_name(missing, isl_dim_set, pos_last_dim + i,
-                                           ("p" + param_names[i]).c_str());
-        }
+            int pos_last_dim = isl_set_dim(missing, isl_dim_set);
+            std::string space_name = isl_set_get_tuple_name(missing);
+            missing = isl_set_add_dims(missing, isl_dim_set, L + 1);
+            missing = isl_set_set_tuple_name(missing, space_name.c_str());
 
-        /* Go through all the constraints of the set "missing" and replace them with new constraints.
-         * In the new constraints, each coefficient of a param is replaced by a coefficient to the new
-         * dynamic variables. Later, these dynamic variables are projected out to create existential
-         * variables.
-         *
-         * For each basic set in a set
-         *      For each constraint in a basic set
-         *          For each parameter variable created previously
-         *              If the constraint involves that parameter
-         *                  Read the coefficient of the parameter.
-         *                  Set the coefficient of the corresponding variable into that coefficient
-         *                  and set the coefficient of the parameter to 0.
-         * Project out the dynamic variables.  The parameters are kept but are not used at all in the
-         * constraints of "missing".
-         */
-        isl_set *new_missing = isl_set_universe(isl_space_copy(isl_set_get_space(isl_set_copy(missing))));
-        isl_basic_set_list *bset_list = isl_set_get_basic_set_list(isl_set_copy(missing));
-        for (int i = 0; i < isl_set_n_basic_set(missing); i++)
-        {
-            isl_basic_set *bset = isl_basic_set_list_get_basic_set(isl_basic_set_list_copy(bset_list), i);
-            isl_basic_set *new_bset = isl_basic_set_universe(isl_space_copy(isl_basic_set_get_space(
-                                          isl_basic_set_copy(bset))));
-            isl_constraint_list *cst_list = isl_basic_set_get_constraint_list(bset);
-            isl_space *sp = isl_basic_set_get_space(bset);
-            DEBUG(10, tiramisu::str_dump("Retrieving the constraints of the bset:",
-                                         isl_set_to_str(isl_set_from_basic_set(isl_basic_set_copy(bset)))));
-            DEBUG(10, tiramisu::str_dump("Number of constraints: " + std::to_string(
-                                             isl_constraint_list_n_constraint(cst_list))));
-            DEBUG(10, tiramisu::str_dump("List of constraints: "); isl_constraint_list_dump(cst_list));
-
-            for (int j = 0; j < isl_constraint_list_n_constraint(cst_list); j++)
+            // Set the names of the new dimensions.
+            for (int i = 0; i <= L; i++)
             {
-                DEBUG(10, tiramisu::str_dump("Checking the constraint number " + std::to_string(j)));
-                isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
-                DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Constraint: "); isl_constraint_dump(cst));
-                for (auto const p : param_names)
+                missing = isl_set_set_dim_name(missing, isl_dim_set, pos_last_dim + i,
+                                               ("p" + param_names[i]).c_str());
+            }
+
+            /* Go through all the constraints of the set "missing" and replace them with new constraints.
+             * In the new constraints, each coefficient of a param is replaced by a coefficient to the new
+             * dynamic variables. Later, these dynamic variables are projected out to create existential
+             * variables.
+             *
+             * For each basic set in a set
+             *      For each constraint in a basic set
+             *          For each parameter variable created previously
+             *              If the constraint involves that parameter
+             *                  Read the coefficient of the parameter.
+             *                  Set the coefficient of the corresponding variable into that coefficient
+             *                  and set the coefficient of the parameter to 0.
+             * Project out the dynamic variables.  The parameters are kept but are not used at all in the
+             * constraints of "missing".
+             */
+            isl_set *new_missing = isl_set_universe(isl_space_copy(isl_set_get_space(isl_set_copy(missing))));
+            isl_basic_set_list *bset_list = isl_set_get_basic_set_list(isl_set_copy(missing));
+            for (int i = 0; i < isl_set_n_basic_set(missing); i++)
+            {
+                isl_basic_set *bset = isl_basic_set_list_get_basic_set(isl_basic_set_list_copy(bset_list), i);
+                isl_basic_set *new_bset = isl_basic_set_universe(isl_space_copy(isl_basic_set_get_space(
+                                              isl_basic_set_copy(bset))));
+                isl_constraint_list *cst_list = isl_basic_set_get_constraint_list(bset);
+                isl_space *sp = isl_basic_set_get_space(bset);
+                DEBUG(10, tiramisu::str_dump("Retrieving the constraints of the bset:",
+                                             isl_set_to_str(isl_set_from_basic_set(isl_basic_set_copy(bset)))));
+                DEBUG(10, tiramisu::str_dump("Number of constraints: " + std::to_string(
+                                                 isl_constraint_list_n_constraint(cst_list))));
+                DEBUG(10, tiramisu::str_dump("List of constraints: "); isl_constraint_list_dump(cst_list));
+
+                for (int j = 0; j < isl_constraint_list_n_constraint(cst_list); j++)
                 {
-                    int pos = isl_space_find_dim_by_name(sp, isl_dim_param, p.c_str());
-                    if (isl_constraint_involves_dims(cst, isl_dim_param, pos, 1))
+                    DEBUG(10, tiramisu::str_dump("Checking the constraint number " + std::to_string(j)));
+                    isl_constraint *cst = isl_constraint_list_get_constraint(cst_list, j);
+                    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Constraint: "); isl_constraint_dump(cst));
+                    for (auto const p : param_names)
                     {
-                        DEBUG(10, tiramisu::str_dump("Does the constraint involve the parameter " + p + "? Yes."));
-                        DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Modifying the constraint. The original constraint:");
-                                         isl_constraint_dump(cst));
-                        isl_val *coeff = isl_constraint_get_coefficient_val(cst, isl_dim_param, pos);
-                        cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos, 0);
-                        int pos2 = isl_space_find_dim_by_name(sp, isl_dim_set, ("p" + p).c_str());
-                        cst = isl_constraint_set_coefficient_val(cst, isl_dim_set, pos2, isl_val_copy(coeff));
-                        DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The new constraint:"); isl_constraint_dump(cst));
+                        int pos = isl_space_find_dim_by_name(sp, isl_dim_param, p.c_str());
+                        if (isl_constraint_involves_dims(cst, isl_dim_param, pos, 1))
+                        {
+                            DEBUG(10, tiramisu::str_dump("Does the constraint involve the parameter " + p + "? Yes."));
+                            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Modifying the constraint. The original constraint:");
+                                             isl_constraint_dump(cst));
+                            isl_val *coeff = isl_constraint_get_coefficient_val(cst, isl_dim_param, pos);
+                            cst = isl_constraint_set_coefficient_si(cst, isl_dim_param, pos, 0);
+                            int pos2 = isl_space_find_dim_by_name(sp, isl_dim_set, ("p" + p).c_str());
+                            cst = isl_constraint_set_coefficient_val(cst, isl_dim_set, pos2, isl_val_copy(coeff));
+                            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The new constraint:"); isl_constraint_dump(cst));
+                        }
+                        else
+                        {
+                            DEBUG(10, tiramisu::str_dump("Does the constraint involve the parameter " + p + "? No."));
+                        }
                     }
-                    else
-                    {
-                        DEBUG(10, tiramisu::str_dump("Does the constraint involve the parameter " + p + "? No."));
-                    }
+                    DEBUG(10, tiramisu::str_dump(""));
+
+                    new_bset = isl_basic_set_add_constraint(new_bset, isl_constraint_copy(cst));
                 }
-                DEBUG(10, tiramisu::str_dump(""));
 
-                new_bset = isl_basic_set_add_constraint(new_bset, isl_constraint_copy(cst));
+                DEBUG(10, tiramisu::str_dump("The basic set after modifying the constraints:");
+                      isl_basic_set_dump(new_bset));
+
+                // In the first time, restrict the universal new_missing with the new bset,
+                // in the next times compute the union of the bset with new_missing.
+                if (i == 0)
+                {
+                    new_missing = isl_set_intersect(new_missing, isl_set_from_basic_set(new_bset));
+                }
+                else
+                {
+                    new_missing = isl_set_union(new_missing, isl_set_from_basic_set(new_bset));
+                }
+
+                DEBUG(10, tiramisu::str_dump("The new value of missing (after intersecting with the new bset):");
+                      isl_set_dump(new_missing));
+
             }
+            missing = new_missing;
 
-            DEBUG(10, tiramisu::str_dump("The basic set after modifying the constraints:");
-                  isl_basic_set_dump(new_bset));
+            // Project out the set dimensions to make them existential variables
+            missing = isl_set_project_out(missing, isl_dim_set, pos_last_dim, L + 1);
+            int pos_first_param = isl_space_find_dim_by_name(isl_set_get_space(missing), isl_dim_param,
+                                  param_names[0].c_str());
+            missing = isl_set_project_out(missing, isl_dim_param, pos_first_param, L + 1);
+            missing = isl_set_set_tuple_name(missing, space_name.c_str());
 
-            // In the first time, restrict the universal new_missing with the new bset,
-            // in the next times compute the union of the bset with new_missing.
-            if (i == 0)
-            {
-                new_missing = isl_set_intersect(new_missing, isl_set_from_basic_set(new_bset));
-            }
-            else
-            {
-                new_missing = isl_set_union(new_missing, isl_set_from_basic_set(new_bset));
-            }
-
-            DEBUG(10, tiramisu::str_dump("The new value of missing (after intersecting with the new bset):");
-                  isl_set_dump(new_missing));
-
+            DEBUG(3, tiramisu::str_dump("Missing before replacing the parameters with existential variables: ",
+                                        isl_set_to_str(original_missing)));
+            DEBUG(3, tiramisu::str_dump("Missing after replacing the parameters with existential variables: ",
+                                        isl_set_to_str(missing)));
+            DEBUG(3, tiramisu::str_dump(""));
         }
-        missing = new_missing;
+        // Duplicate the producer using the missing set which is in the time-processor domain.
+        tiramisu::computation *original_computation = this;
+        tiramisu::computation *duplicated_computation = this->duplicate("", isl_set_to_str(missing));
+        DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the schedule of the original computation."));
+        original_computation->dump_schedule();
+        DEBUG(3, tiramisu::str_dump("Dumping the schedule of the duplicate computation."));
+        duplicated_computation->dump_schedule();
 
-        // Project out the set dimensions to make them existential variables
-        missing = isl_set_project_out(missing, isl_dim_set, pos_last_dim, L + 1);
-        int pos_first_param = isl_space_find_dim_by_name(isl_set_get_space(missing), isl_dim_param,
-                              param_names[0].c_str());
-        missing = isl_set_project_out(missing, isl_dim_param, pos_first_param, L + 1);
-        missing = isl_set_set_tuple_name(missing, space_name.c_str());
+        DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
+        original_computation->after((*duplicated_computation), L);
+        consumer.after((*duplicated_computation), L);
 
-        DEBUG(3, tiramisu::str_dump("Missing before replacing the parameters with existential variables: ",
-                                    isl_set_to_str(original_missing)));
-        DEBUG(3, tiramisu::str_dump("Missing after replacing the parameters with existential variables: ",
-                                    isl_set_to_str(missing)));
-        DEBUG(3, tiramisu::str_dump(""));
+        // Computing the shift degrees.
+        for (int i = 0; i < L; i++)
+            if (shift_degrees[i] != 0)
+            {
+                DEBUG(3, tiramisu::str_dump("Now shifting the duplicate by " + std::to_string(
+                                                shift_degrees[i]) + " at loop level " + std::to_string(i)));
+                duplicated_computation->shift(i, shift_degrees[i]);
+            }
     }
 
-    // Duplicate the producer using the missing set which is in the time-processor domain.
     tiramisu::computation *original_computation = this;
-    tiramisu::computation *duplicated_computation = this->duplicate("", isl_set_to_str(missing));
-    DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the schedule of the original computation."));
-    original_computation->dump_schedule();
-    DEBUG(3, tiramisu::str_dump("Dumping the schedule of the duplicate computation."));
-    duplicated_computation->dump_schedule();
-
-    DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
-    original_computation->after((*duplicated_computation), L);
-    consumer.after((*duplicated_computation), L);
     consumer.after((*original_computation), L);
     DEBUG(3, tiramisu::str_dump("Dumping the schedule of the producer and consumer."));
     this->dump_schedule();
     consumer.dump_schedule();
-
-    // Computing the shift degrees.
-    for (int i = 0; i < L; i++)
-        if (shift_degrees[i] != 0)
-        {
-            DEBUG(3, tiramisu::str_dump("Now shifting the duplicate by " + std::to_string(
-                                            shift_degrees[i]) + " at loop level " + std::to_string(i)));
-            duplicated_computation->shift(i, shift_degrees[i]);
-        }
 
     DEBUG_INDENT(-4);
 }

@@ -36,7 +36,7 @@ int main(int, char **)
                             output_buf3.raw_buffer(),
                             output_buf4.raw_buffer());
 
-    compare_buffers("test_" + std::string(TEST_NAME_STR) + "_part_1", output_buf4, reference_buf);
+    compare_buffers(std::string(TEST_NAME_STR) + " 1", output_buf4, reference_buf);
 
     return 0;
 }

@@ -24,7 +24,7 @@ int main(int, char **)
     // Call the Tiramisu generated code
     tiramisu_generated_code(output_buf0.raw_buffer());
 
-    compare_buffers("test_" + std::string(TEST_NAME_STR), output_buf0, reference_buf0);
+    compare_buffers(std::string(TEST_NAME_STR), output_buf0, reference_buf0);
 
     return 0;
 }
