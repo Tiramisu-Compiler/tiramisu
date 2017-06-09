@@ -741,7 +741,7 @@ public:
   */
 class buffer
 {
-
+    friend tiramisu::computation;
     friend tiramisu::function;
     friend tiramisu::generator;
 
@@ -1280,11 +1280,6 @@ private:
     const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
 
     /**
-      * Return the context of the computations.
-      */
-    isl_ctx *get_ctx() const;
-
-    /**
       * Get the data type of the computation.
       */
     tiramisu::primitive_t get_data_type() const;
@@ -1555,6 +1550,11 @@ protected:
       * is not specified, the computations are also not mapped to memory.
       */
     isl_set *get_iteration_domain() const;
+
+    /**
+      * Return the context of the computations.
+      */
+    isl_ctx *get_ctx() const;
 
     /**
       * Initialize a computation.

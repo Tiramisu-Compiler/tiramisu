@@ -1509,15 +1509,6 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
     return comp;
 }
 
-/**
-  * Generate a Halide statement from an ISL ast node object in the ISL ast
-  * tree.
-  * Level represents the level of the node in the schedule. 0 means root.
-  * It taks as input:
-  *     - a function \p fct for which we are generating code,
-  *     - a \p node,
-  *     - \p level represents the current loop level being traversed (0 means the outer level.
-  */
 Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
     const tiramisu::function &fct, isl_ast_node *node,
     int level, std::vector<std::string> &tagged_stmts,

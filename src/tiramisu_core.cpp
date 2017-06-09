@@ -1490,14 +1490,26 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
 
     assert(C != NULL);
     assert(level >= tiramisu::computation::root_dimension);
-    assert(level < isl_set_dim(C->get_iteration_domain(), isl_dim_set));
+    assert(level < (int) isl_set_dim(C->get_iteration_domain(), isl_dim_set));
+
+    DEBUG(3, tiramisu::str_dump("Computing the iteration domain for the allocate() operation"));
 
     isl_set *iter = C->get_iteration_domain();
+
+    DEBUG(3, tiramisu::str_dump(
+              "The original iteration domain of the computation with which we allocate : ",
+              isl_set_to_str(iter)));
+
     int projection_dimension = level + 1;
-    iter = isl_set_project_out(isl_set_copy(iter),
+    if (projection_dimension != 0)
+        iter = isl_set_project_out(isl_set_copy(iter),
                                isl_dim_set,
                                projection_dimension,
                                isl_set_dim(iter, isl_dim_set) - projection_dimension);
+    else
+    {
+        iter = isl_set_read_from_str(C->get_ctx(),"{[0]}");
+    }
     std::string new_name = "_allocation_" + generate_new_variable_name();
     iter = isl_set_set_tuple_name(iter, new_name.c_str());
     std::string iteration_domain_str = isl_set_to_str(iter);
@@ -3223,7 +3235,7 @@ bool isl_constraint_is_simple(isl_constraint *cst, int dim)
  */
 tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool upper)
 {
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
     assert(cst != NULL);
@@ -3231,7 +3243,8 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
     isl_space *space = isl_constraint_get_space(cst);
     tiramisu::expr e = tiramisu::expr();
 
-    DEBUG(3, tiramisu::str_dump("Computing the expression that correspond to the following constraint at dimension " + std::to_string(dim) + " : "); isl_constraint_dump(cst));
+    DEBUG(10, tiramisu::str_dump("Computing the expression that correspond to the following constraint at dimension " + std::to_string(dim) + " : "));
+    DEBUG(10, isl_constraint_dump(cst));
 
     // Add the parameter to the expression
     for (int i = 0; i < isl_space_dim(space, isl_dim_param); i++)
@@ -3278,7 +3291,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
             e = tiramisu::expr(o_add, e, c);
     }
 
-    DEBUG(3, tiramisu::str_dump("The expression that correspond to the expression is : "); e.dump(false));
+    DEBUG(10, tiramisu::str_dump("The expression that correspond to the expression is : "); e.dump(false));
     DEBUG_INDENT(-4);
 
     return e;
