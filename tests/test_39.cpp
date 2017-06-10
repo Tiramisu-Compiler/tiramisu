@@ -11,12 +11,12 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_29.h"
+#include "wrapper_test_39.h"
 
 using namespace tiramisu;
 
 /**
- * Test .store_at().
+ * Test .compute_at() with .store_at().
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -32,23 +32,34 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var i("i");
     tiramisu::var j("j");
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
-    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i,j), true, p_uint8, &function0);
+    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 1<=j<N-1}", (S0(i,j-1) + S0(i,j) + S0(i,j+1))/((uint8_t) 3), true, p_uint8, &function0);
+    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and j=0}", (S0(i,j) + S0(i,j+1))/((uint8_t) 2), true, p_uint8, &function0);
+    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and j=N-1}", (S0(i,j-1) + S0(i,j))/((uint8_t) 2), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    S1.fuse_after(0, S0);
+
+    S0.compute_at(S1, 0);
+
+    S2.after(S0, 0);
+    S2.after(S1, 0);
+
+    S3.after(S0, 0);
+    S3.after(S1, 0);
+    S3.after(S2, 0);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
-
-    S0.store_at(0);
-
+    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_temporary, &function0);
     tiramisu::buffer buf1("buf1", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    S0.store_at(0);
     S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
+    S2.set_access("[N,M]->{S2[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
+    S3.set_access("[N,M]->{S3[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
 
     // -------------------------------------------------------
     // Code Generation

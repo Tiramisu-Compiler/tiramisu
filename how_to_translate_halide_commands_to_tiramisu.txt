@@ -41,3 +41,16 @@
 	renames computations, so it is doing something equivalent to
 	expansion).
 	- An example is provided in test_25.
+
+- store_at()
+	- store_at() in Tiramisu is different from the store_at in Halide.
+	A Halide call such as producer.store_at(consumer, level) should
+	be translated in Tiramisu to producer.store_at(level). Telling
+       Tiramisu about the "consumer" is not useful, since the function store_at
+       is not going to schedule the producer anyway. It is only going to
+       allocate a buffer and schedule the allocation operation to be executed
+       before the producer.  In Tiramisu, we assume that the producer has
+       already been scheduled (Layer II) before deciding about where it is
+       going to be stored (layer III).
+       In my understanding, the "consumer" argument in the case of Halide is
+       spurious and is not needed in our case.

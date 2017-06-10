@@ -1046,13 +1046,6 @@ private:
     int duplicate_number;
 
     /**
-     * Indicate whether the computation is defined multiple times (i.e.,
-     * whether there are many computations with the same name). An update
-     * is a special case of a computation defined multiple times.
-     */
-    bool multiple_definitions;
-
-    /**
       * An expression representing the computation
       * ("what" should be computed).
       */
@@ -1188,9 +1181,16 @@ private:
     std::vector<isl_set *> compute_needed_and_produced(computation &consumer, int L,
                                                        std::vector<std::string> &param_names);
 
+    /**
+      * Create a copy of this computation.
+      */
+    tiramisu::computation *copy();
 
-    tiramisu::constant *create_separator_and_add_constraints_to_context(
-        const tiramisu::expr &loop_upper_bound, int v);
+    /**
+      * Create a Halide statement that assigns the computations to the memory
+      * buffer and location specified by the access function.
+      */
+    void create_halide_assignment();
 
     /**
       * Apply a duplication transformation from iteration space to
@@ -1209,6 +1209,9 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
+
+    tiramisu::constant *create_separator_and_add_constraints_to_context(
+        const tiramisu::expr &loop_upper_bound, int v);
 
     /**
        * Duplicate a part of this computation (or all of it) and return
@@ -1328,6 +1331,13 @@ private:
     std::vector<isl_ast_expr *> &get_index_expr();
 
     /**
+     * Get the union of the iteration domains of this computations and
+     * all the other definitions of this computations (updates,
+     * duplicates, ...).
+     */
+    isl_set *get_iteration_domains_of_all_definitions();
+
+    /**
       * Return the name of the computation.
       */
     const std::string &get_name() const;
@@ -1370,17 +1380,6 @@ private:
     isl_set *get_trimmed_time_processor_domain();
 
     /**
-      * Create a copy of this computation.
-      */
-    tiramisu::computation *copy();
-
-    /**
-      * Create a Halide statement that assigns the computations to the memory
-      * buffer and location specified by the access function.
-      */
-    void create_halide_assignment();
-
-    /**
       * Generate an identity schedule for the computation.
       *
       * This identity schedule is an identity relation created from the iteration
@@ -1405,6 +1404,23 @@ private:
     bool has_accesses() const;
 
     /**
+     *
+     * Return true if the computation has multiple definitions.
+     * i.e., if the computation is defined multiple times.
+     * An update is a special case where a computation is defined
+     * multiple times.  Duplicate computations are another example.
+     *
+     * In the following example, C is defined multiple times whereas
+     * D is defined only once.
+     *
+     * C(0) = 0
+     * C(i) = C(i-1) + 1
+     * D(i) = C(i) + 1
+     *
+     */
+    bool has_multiple_definitions() const;
+
+    /**
       * Return if this computation represents a let statement.
       *
       * Let statements should be treated differently because:
@@ -1418,19 +1434,6 @@ private:
       *      needed for the creation of the let statement.
       */
     bool is_let_stmt() const;
-
-    /**
-     * Return true if the computation is an update.  A computation is an update
-     * if it is defined more than once.  In the following example, we have two
-     * update definitions of the computation C and a pure definition of the D
-     * computation (a computation is pure if it is not an update).
-     *
-     * C(0) = 0
-     * C(i) = C(i-1) + 1
-     * D(i) = C(i) + 1
-     *
-     */
-    bool is_update() const;
 
     /**
       * Set an identity schedule for the computation.
@@ -1449,15 +1452,6 @@ private:
       * by Tiramisu.
       */
     bool should_schedule_this_computation() const;
-
-    /**
-     * Return true if the computation has multiple definitions.
-     * i.e., whether the computation is defined multiple times (i.e.,
-     * whether there are many computations with the same name). An
-     * update is a special case of a computation defined multiple
-     * times.
-     */
-    const bool has_multiple_definitions() const;
 
     /**
       * Intersect \p set with the context of the computation.
@@ -2165,19 +2159,21 @@ public:
     void split(int L0, int sizeX);
 
     /**
-     * Store this computation in the loop nest of \p consumer at the loop
-     * level \p L0.
+     * Allocate the storage of this computation in the loop level \p L0.
      *
      * This function does the following:
-     *  - computes the size of the buffer needed to store this computation,
+     *  - computes the size of the buffer needed to store this computation
+     *  (TODO: current the size computed by Tiramisu is equal to the size
+     *  of the computation, Tiramisu does not allocate smaller buffers if
+     *  such a thing is possible, this is left for future work).
      *  - allocates a temporary buffer with the appropriate size,
      *  - schedules the allocation operation to be executed in the loop
-     *  nest of \p consumer (before the consumer) at the loop level \p L0.
+     *  nest where this computation executes at the loop level \p L0.
      *
      * The function returns the computation (operation) that allocates
      * the buffer.  The allocated buffer is not returned.
      */
-    tiramisu::computation *store_at(tiramisu::computation &consumer, int L0);
+    tiramisu::computation *store_at(int L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.

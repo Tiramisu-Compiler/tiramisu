@@ -1599,7 +1599,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     result = block;
                 }
             }
-            std::cout << "Result is now: " << result;
+            DEBUG(3, std::cout << "Result is now: " << result);
         }
 
         /**
@@ -1838,52 +1838,67 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
     {
         DEBUG(3, tiramisu::str_dump("Generating code for user node"));
 
-        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
-        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
-        isl_id *id = isl_ast_expr_get_id(arg);
-        isl_ast_expr_free(expr);
-        isl_ast_expr_free(arg);
-        std::string computation_name(isl_id_get_name(id));
-        DEBUG(3, tiramisu::str_dump("Computation name: "); tiramisu::str_dump(computation_name));
-        isl_id_free(id);
-
-        // Check if any loop around this statement should be
-        // parallelized, vectorized or mapped to GPU.
-        for (int l = 0; l < level; l++)
-        {
-            if (fct.should_parallelize(computation_name, l) ||
-                    fct.should_vectorize(computation_name, l) ||
-                    fct.should_map_to_gpu_block(computation_name, l) ||
-                    fct.should_map_to_gpu_thread(computation_name, l) ||
-                    fct.should_unroll(computation_name, l))
+        if ((isl_ast_node_get_type(node) == isl_ast_node_user) &&
+            ((get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_allocate) ||
+             (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_free)))
+          {
+            if (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_allocate)
+                tiramisu::error("Allocate node should not appear as a user ISL AST node. It should only appear with block construction (because of its scope).", true);
+            else
             {
-                tagged_stmts.push_back(computation_name);
+                tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
+                result = Halide::Internal::Free::make(comp->get_name());
             }
-        }
-
-        // Retrieve the computation of the node.
-        tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
-        DEBUG(10, tiramisu::str_dump("The computation that corresponds to this node: "); comp->dump());
-
-        comp->create_halide_assignment();
-        result = comp->get_generated_halide_stmt();
-
-
-        for (const auto &l_stmt : comp->get_associated_let_stmts())
+          }
+        else
         {
-            DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
-            DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
-            DEBUG(3, tiramisu::str_dump("Expression of the let statement: "));
-            l_stmt.second.dump(false);
+            isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+            isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+            isl_id *id = isl_ast_expr_get_id(arg);
+            isl_ast_expr_free(expr);
+            isl_ast_expr_free(arg);
+            std::string computation_name(isl_id_get_name(id));
+            DEBUG(3, tiramisu::str_dump("Computation name: "); tiramisu::str_dump(computation_name));
+            isl_id_free(id);
 
-            std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
-            result = Halide::Internal::LetStmt::make(
-                         l_stmt.first,
-                         generator::halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
-                         result);
+            // Check if any loop around this statement should be
+            // parallelized, vectorized or mapped to GPU.
+            for (int l = 0; l < level; l++)
+            {
+                if (fct.should_parallelize(computation_name, l) ||
+                        fct.should_vectorize(computation_name, l) ||
+                        fct.should_map_to_gpu_block(computation_name, l) ||
+                        fct.should_map_to_gpu_thread(computation_name, l) ||
+                        fct.should_unroll(computation_name, l))
+                {
+                    tagged_stmts.push_back(computation_name);
+                }
+            }
 
-            DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
-            DEBUG_NO_NEWLINE(10, std::cout << result);
+            // Retrieve the computation of the node.
+            tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
+            DEBUG(10, tiramisu::str_dump("The computation that corresponds to this node: "); comp->dump());
+
+            comp->create_halide_assignment();
+            result = comp->get_generated_halide_stmt();
+
+
+            for (const auto &l_stmt : comp->get_associated_let_stmts())
+            {
+                DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
+                DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
+                DEBUG(3, tiramisu::str_dump("Expression of the let statement: "));
+                l_stmt.second.dump(false);
+
+                std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
+                result = Halide::Internal::LetStmt::make(
+                             l_stmt.first,
+                             generator::halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                             result);
+
+                DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
+                DEBUG_NO_NEWLINE(10, std::cout << result);
+            }
         }
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_if)
@@ -1894,38 +1909,63 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
         isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
         isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
 
-        Halide::Expr c = halide_expr_from_isl_ast_expr(cond);
 
-        DEBUG(3, tiramisu::str_dump("Condition: "); std::cout << c);
-        DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
-
-        Halide::Internal::Stmt if_s =
-                tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt,
-                                                level, tagged_stmts);
-
-        DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
-
-        Halide::Internal::Stmt else_s;
-
-        if (else_stmt != NULL)
+        if ((isl_ast_node_get_type(if_stmt) == isl_ast_node_user) &&
+            ((get_computation_annotated_in_a_node(if_stmt)->get_expr().get_op_type() == tiramisu::o_allocate)))
         {
-            DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
-
-            else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
-
-            DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
+            tiramisu::computation *comp = get_computation_annotated_in_a_node(if_stmt);
+            if (get_computation_annotated_in_a_node(if_stmt)->get_expr().get_op_type() == tiramisu::o_allocate)
+            {
+                DEBUG(3, tiramisu::str_dump("Adding a computation to vector of allocate stmts (for later construction)"));
+                allocate_stmts_vector.push_back(comp);
+            }
         }
         else
         {
-            DEBUG(3, tiramisu::str_dump("Else statement is NULL."));
+            Halide::Expr c = halide_expr_from_isl_ast_expr(cond);
+
+            DEBUG(3, tiramisu::str_dump("Condition: "); std::cout << c);
+            DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
+
+            Halide::Internal::Stmt if_s =
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt,
+                                                    level, tagged_stmts);
+
+            DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
+
+            Halide::Internal::Stmt else_s;
+
+            if (else_stmt != NULL)
+            {
+                if ((isl_ast_node_get_type(else_stmt) == isl_ast_node_user) &&
+                    ((get_computation_annotated_in_a_node(else_stmt)->get_expr().get_op_type() == tiramisu::o_allocate)))
+                  {
+                    tiramisu::computation *comp = get_computation_annotated_in_a_node(else_stmt);
+                    if (get_computation_annotated_in_a_node(else_stmt)->get_expr().get_op_type() == tiramisu::o_allocate)
+                    {
+                      DEBUG(3, tiramisu::str_dump("Adding a computation to vector of allocate stmts (for later construction)"));
+                      allocate_stmts_vector.push_back(comp);
+                    }
+                  }
+                else
+                {
+                    DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
+                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
+                    DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
+                }
+            }
+            else
+            {
+                DEBUG(3, tiramisu::str_dump("Else statement is NULL."));
+            }
+
+            result = Halide::Internal::IfThenElse::make(c, if_s, else_s);
+            DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << result);
+
+            isl_ast_expr_free(cond);
+            isl_ast_node_free(if_stmt);
+            isl_ast_node_free(else_stmt);
         }
-
-        result = Halide::Internal::IfThenElse::make(c, if_s, else_s);
-        DEBUG(10, tiramisu::str_dump("IfThenElse statement: "); std::cout << result);
-
-        isl_ast_expr_free(cond);
-        isl_ast_node_free(if_stmt);
-        isl_ast_node_free(else_stmt);
     }
 
     DEBUG_INDENT(-4);

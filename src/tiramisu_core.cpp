@@ -240,7 +240,36 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
     return last;
 }
 
-bool tiramisu::computation::is_update() const
+
+isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
+{
+    std::string name = this->get_name();
+    assert(name.size() > 0);
+    isl_set *result = NULL;
+    isl_space *space = NULL;
+
+    assert(isl_set_is_empty(this->get_iteration_domain()) == isl_bool_false);
+    space = isl_set_get_space(this->get_iteration_domain());
+    assert(space != NULL);
+    result = isl_set_empty(space);
+
+    std::vector<tiramisu::computation *> computations =
+            this->get_function()->get_computation_by_name(name);
+
+    for (auto c: computations)
+    {
+        if (c->should_schedule_this_computation())
+        {
+            isl_set *c_iter_space = isl_set_copy(c->get_iteration_domain());
+            result = isl_set_union(c_iter_space, result);
+        }
+    }
+
+    return result;
+
+}
+
+bool tiramisu::computation::has_multiple_definitions() const
 {
     bool is_update = false;
 
@@ -250,8 +279,6 @@ bool tiramisu::computation::is_update() const
     std::vector<tiramisu::computation *> computations =
             this->get_function()->get_computation_by_name(name);
 
-    // If many computations of the same name exist, then this
-    // computation is an update, otherwise it is a pure definition.
     if (computations.size() > 1)
         is_update = true;
     else
@@ -330,7 +357,7 @@ void tiramisu::function::compute_bounds()
 
             // If this is not an update operation, we can update its domain, otherwise
             // we do not update the domain and keep the one provided by the user.
-            if (c->is_update() == false)
+            if (c->has_multiple_definitions() == false)
             {
                 // REC TODO: in the documentation of compute_bounds indicate that compute_bounds does not update the bounds of update operations
                 if ((isl_union_set_is_empty(c_prods) == isl_bool_false))
@@ -1190,11 +1217,11 @@ void tiramisu::computation::vectorize(int L0, int v)
  * - declare a buffer with a random name, and with the computed size,
  * - allocate the buffer and get the computation that allocates the buffer,
  * - map the computation to the allocated buffer (one to one mapping),
- * - schedule the computation that allocates the buffer before the consumer
+ * - schedule the computation that allocates the buffer before this computation
  * at loop level L0,
  * - return the allocation computation.
  */
-tiramisu::computation *computation::store_at(tiramisu::computation &consumer, int L0)
+tiramisu::computation *computation::store_at(int L0)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1216,9 +1243,9 @@ tiramisu::computation *computation::store_at(tiramisu::computation &consumer, in
                                                   tiramisu::a_temporary,
                                                   this->get_function());
 
-    tiramisu::computation *allocation = buff->allocate_at(&consumer, L0);
+    tiramisu::computation *allocation = buff->allocate_at(this, L0);
     this->bind_to(buff);
-    allocation->before(consumer, L0);
+    allocation->before(*this, L0);
 
     DEBUG_INDENT(-4);
 
@@ -1360,16 +1387,6 @@ void function::dump_time_processor_domain() const
     }
 }
 
-const bool tiramisu::computation::has_multiple_definitions() const
-{
-    return this->multiple_definitions;
-}
-
-void tiramisu::computation::set_has_multiple_definitions(bool val)
-{
-    this->multiple_definitions = val;
-}
-
 void function::gen_time_space_domain()
 {
     DEBUG_FCT_NAME(3);
@@ -1495,10 +1512,10 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
 
     DEBUG(3, tiramisu::str_dump("Computing the iteration domain for the allocate() operation"));
 
-    isl_set *iter = C->get_iteration_domain();
+    isl_set *iter = C->get_iteration_domains_of_all_definitions();
 
     DEBUG(3, tiramisu::str_dump(
-              "The original iteration domain of the computation with which we allocate : ",
+              "The union of iteration domains of the computations with which we allocate (all their definitions): ",
               isl_set_to_str(iter)));
 
     int projection_dimension = level + 1;
@@ -4568,7 +4585,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->set_expression(e);
 
     // If there are computations that have already been defined and that
-    // have the same name, check that they constraints over their iteration
+    // have the same name, check that they have constraints over their iteration
     // domains.
     std::vector<tiramisu::computation *> same_name_computations =
             this->get_function()->get_computation_by_name(name);
@@ -4580,15 +4597,11 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 
         for (auto c: same_name_computations)
         {
-            c->set_has_multiple_definitions(true);
-
             if (isl_set_plain_is_universe(c->get_iteration_domain()))
                 tiramisu::error("Computations defined multiple times should"
                         " have bounds on their iteration domain", true);
         }
     }
-    else
-        this->set_has_multiple_definitions(false);
 
     DEBUG_INDENT(-4);
 }
@@ -4615,7 +4628,6 @@ tiramisu::computation::computation()
     this->name = "";
     this->function = NULL;
     this->is_let = false;
-    this->multiple_definitions = false;
 }
 
 /**
@@ -4721,6 +4733,7 @@ isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_do
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(10, tiramisu::str_dump("Getting the access of the computation " + this->get_name() + " adapted to time-space."));
     assert((this->has_accesses() == true) && ("This computation must have accesses."));
 
     isl_map *access = isl_map_copy(this->get_access_relation());
@@ -4920,7 +4933,7 @@ void tiramisu::computation::set_access(isl_map *access)
 {
     assert(access != NULL);
 
-    this->access = access;
+    this->set_access(isl_map_to_str(access));
 }
 
 /**
@@ -4932,6 +4945,9 @@ void tiramisu::computation::set_access(isl_map *access)
  */
 void tiramisu::computation::set_access(std::string access_str)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(!access_str.empty());
 
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
@@ -4986,6 +5002,8 @@ void tiramisu::computation::set_access(std::string access_str)
     for (auto c: computations)
         if (isl_map_is_equal(this->get_access_relation(), c->get_access_relation()) == isl_bool_false)
             tiramisu::error("Computations that have the same name should also have the same access relation.", true);
+
+    DEBUG_INDENT(-4);
 }
 
 /**
