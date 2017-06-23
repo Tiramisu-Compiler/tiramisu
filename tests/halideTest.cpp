@@ -20,8 +20,6 @@ void generate_function(std::string f_name, int size, int pos, int val)
 
 	Halide::Expr halideTrue = Halide::Internal::const_true();
 	Halide::Internal::Stmt s = Halide::Internal::Store::make(buff_name, Halide::Expr(val), Halide::Expr(pos), p, halideTrue);
-
-	std::cout << s << std::endl;
 	s = unpack_buffers(s);
 
 	std::vector<Halide::Argument> args_vect;
