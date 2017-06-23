@@ -816,6 +816,11 @@ protected:
       */
     void set_auto_allocate(bool auto_allocation);
 
+    /**
+     * Set the size of a dimension of the buffer.
+     */
+    void set_dim_size(int dim, int size);
+
 public:
     /**
       * Create a tiramisu buffer.
@@ -2157,6 +2162,12 @@ public:
       * splitting.
       */
     void split(int L0, int sizeX);
+
+    /**
+     * Fold the storage of the computation.
+     * Fold the dimensions \p dim by a factor \p f.
+     */
+    void storage_fold(int dim, int f);
 
     /**
      * Allocate the storage of this computation in the loop level \p L0.

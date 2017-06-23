@@ -55,6 +55,7 @@ isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_co
 isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
                                   int out_dim_coefficient, int const_conefficient, isl_map *sched);
 
+
 /**
   * Add a buffer to the function.
   */
@@ -3928,7 +3929,7 @@ void tiramisu::function::dump_schedule() const
 {
     if (ENABLE_DEBUG)
     {
-        tiramisu::str_dump("\nDumping schedules of the function " + this->get_name() + " :");
+        tiramisu::str_dump("\nDumping schedules of the function " + this->get_name() + " :\n");
 
         for (const auto &cpt : this->body)
         {
@@ -5273,6 +5274,124 @@ void tiramisu::constant::dump(bool exhaustive) const
         this->get_expr().dump(false);
         std::cout << std::endl;
     }
+}
+
+void tiramisu::buffer::set_dim_size(int dim, int size)
+{
+    assert(dim >= 0);
+    assert(dim < this->dim_sizes.size());
+    assert(this->dim_sizes.size() > 0);
+    assert(size > 0);
+
+    this->dim_sizes[dim] = size;
+}
+
+void tiramisu::computation::storage_fold(int inDim0, int factor)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(this->get_access_relation() != NULL);
+    assert(inDim0 >= 0);
+    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_access_relation()), isl_dim_out));
+    assert(factor > 0);
+
+    isl_map *access_relation = this->get_access_relation();
+    std::string buffer_name = isl_map_get_tuple_name(access_relation, isl_dim_out);
+    tiramisu::buffer *buff_object = this->get_function()->get_buffers().find(buffer_name)->second;
+    buff_object->set_dim_size(inDim0, factor);
+
+    access_relation = isl_map_copy(access_relation);
+
+    DEBUG(3, tiramisu::str_dump("Original access relation: ", isl_map_to_str(access_relation)));
+    DEBUG(3, tiramisu::str_dump("Folding dimension " + std::to_string(inDim0)
+                                + " by a factor of " + std::to_string(factor)));
+
+    std::string inDim0_str;
+
+    std::string outDim0_str = generate_new_variable_name();
+    std::string outDim1_str = generate_new_variable_name();
+
+    int n_dims = isl_map_dim(access_relation, isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+
+    // -----------------------------------------------------------------
+    // Preparing a map to split the duplicate computation.
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        std::string dim_str = generate_new_variable_name();
+        dimensions_str.push_back(dim_str);
+        map = map + dim_str;
+
+        if (i == inDim0)
+                inDim0_str = dim_str;
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] -> " + buffer_name + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i != inDim0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else
+        {
+            map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] : " + outDim0_str + " = floor(" + inDim0_str + "%" +
+          std::to_string(factor) + ")}";
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(access_relation), isl_dim_out));
+
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), buffer_name.c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    access_relation = isl_map_apply_range(isl_map_copy(access_relation), isl_map_copy(transformation_map));
+
+    DEBUG(3, tiramisu::str_dump("Access relation after storage folding: ", isl_map_to_str(access_relation)));
+
+    this->set_access(access_relation);
+
+
+
+    DEBUG_INDENT(-4);
 }
 
 }
