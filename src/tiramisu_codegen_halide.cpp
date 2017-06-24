@@ -528,7 +528,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         // Get the domain of the computation that corresponds to the access.
         // Even if there are many computations, we take the first because we are
         // only interested in getting the space of those computations and we assume
-        // in Tiramisu that all the computations that have the same, have the same
+        // in Tiramisu that all the computations that have the same name, have the same
         // space.
         std::vector<tiramisu::computation *> computations_vector = fct->get_computation_by_name(exp.get_name());
 
@@ -585,7 +585,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         {
             isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
-            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
+            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before re-adapting its domain into the domain of the current access) : ",
                                         isl_map_to_str(access_to_buff)));
 
             access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), access_to_buff);

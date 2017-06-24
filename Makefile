@@ -36,13 +36,13 @@ TUTO_GEN = \
 	build/tutorial_06_fct_generator \
 	build/tutorial_08_fct_generator
 TUTO_BIN = \
-	build/tutorial_01 \
-	build/tutorial_02 \
-	build/tutorial_03 \
-	build/tutorial_04 \
-	build/tutorial_05 \
-	build/tutorial_06 \
-	build/tutorial_08
+       build/tutorial_01 \
+       build/tutorial_02 \
+       build/tutorial_03 \
+       build/tutorial_04 \
+       build/tutorial_05 \
+       build/tutorial_06 \
+       build/tutorial_08
 
 TEST_GEN = build/test_01_fct_generator \
        build/test_02_fct_generator \
@@ -79,8 +79,10 @@ TEST_GEN = build/test_01_fct_generator \
        build/test_34_fct_generator \
        build/test_35_fct_generator \
        build/test_36_fct_generator \
-       build/test_37_fct_generator
-
+       build/test_37_fct_generator \
+       build/test_38_fct_generator \
+       build/test_39_fct_generator \
+       build/test_40_fct_generator
 
 #build/test_07_fct_generator
 
@@ -120,7 +122,10 @@ TEST_BIN = build/test_global \
        build/test_34 \
        build/test_35 \
        build/test_36 \
-       build/test_37
+       build/test_37 \
+       build/test_38 \
+       build/test_39 \
+       build/test_40
 
 #build/test_07
 

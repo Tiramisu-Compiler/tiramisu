@@ -1343,11 +1343,6 @@ private:
     isl_set *get_iteration_domains_of_all_definitions();
 
     /**
-      * Return the name of the computation.
-      */
-    const std::string &get_name() const;
-
-    /**
       * Get the number of dimensions of the iteration
       * domain of the computation.
       */
@@ -1407,23 +1402,6 @@ private:
      * the accesses of the RHS.
      */
     bool has_accesses() const;
-
-    /**
-     *
-     * Return true if the computation has multiple definitions.
-     * i.e., if the computation is defined multiple times.
-     * An update is a special case where a computation is defined
-     * multiple times.  Duplicate computations are another example.
-     *
-     * In the following example, C is defined multiple times whereas
-     * D is defined only once.
-     *
-     * C(0) = 0
-     * C(i) = C(i-1) + 1
-     * D(i) = C(i) + 1
-     *
-     */
-    bool has_multiple_definitions() const;
 
     /**
       * Return if this computation represents a let statement.
@@ -1561,6 +1539,28 @@ protected:
       * Return the context of the computations.
       */
     isl_ctx *get_ctx() const;
+
+    /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
+
+    /**
+     *
+     * Return true if the computation has multiple definitions.
+     * i.e., if the computation is defined multiple times.
+     * An update is a special case where a computation is defined
+     * multiple times.  Duplicate computations are another example.
+     *
+     * In the following example, C is defined multiple times whereas
+     * D is defined only once.
+     *
+     * C(0) = 0
+     * C(i) = C(i-1) + 1
+     * D(i) = C(i) + 1
+     *
+     */
+    bool has_multiple_definitions() const;
 
     /**
       * Initialize a computation.
@@ -2015,6 +2015,11 @@ public:
        * \p access_str is a string that represents the relation. It is encoded
        * in the ISL format, http://isl.gforge.inria.fr/user.html#Sets-and-Relations
        * of relations.
+       *
+       * Note that, in TIramisu, the access relations of computation that have the same name
+       * must be identical.
+       *
+       * Examples: tutorial_01, tutorial_02, tutorial_08 (actually most tutorials have set_access()).
        */
      // @{
      void set_access(std::string access_str);

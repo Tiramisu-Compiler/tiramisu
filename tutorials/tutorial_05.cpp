@@ -45,6 +45,7 @@ int main(int argc, char **argv)
     computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", tiramisu::expr((uint8_t) 2), true, p_uint8, &sequence);
     computation c3("[M]->{c3[i]: 0<=i<M}", tiramisu::expr((uint8_t) 1), true, p_uint8, &sequence);
 
+    sequence.dump_iteration_domain();
 
     // -------------------------------------------------------
     // Layer II
@@ -55,6 +56,8 @@ int main(int argc, char **argv)
     c2.after(c1, 0);
     c3.after(c2, 0);
 
+
+    sequence.dump_schedule();
 
     // -------------------------------------------------------
     // Layer III
@@ -79,6 +82,7 @@ int main(int argc, char **argv)
 
     sequence.set_arguments({&b0, &b1, &b2, &b3});
     sequence.gen_time_space_domain();
+    sequence.dump_trimmed_time_processor_domain();
     sequence.gen_isl_ast();
     sequence.gen_halide_stmt();
     sequence.gen_halide_obj("build/generated_fct_tutorial_05.o");
