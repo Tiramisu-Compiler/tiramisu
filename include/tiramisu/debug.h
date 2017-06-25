@@ -65,6 +65,14 @@ extern int tiramisu_indentation;
     std::flush(std::cout);                      \
 };
 
+#define DEBUG_NO_NEWLINE_NO_INDENT(LEVEL, STMT) {         \
+    if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \
+        STMT;                                   \
+    }                                           \
+    std::flush(std::cout);                      \
+};
+
+
 
 #define DEBUG_NEWLINE(LEVEL) {                  \
     if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \

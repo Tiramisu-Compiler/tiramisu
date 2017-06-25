@@ -92,11 +92,11 @@ int main(int argc, char **argv)
 
 #if 0
     // Default schedule.
-    bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
-    by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 1, c, 0, y, 0, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+    bx.set_low_level_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    by.set_low_level_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 1, c, 0, y, 0, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 0
-    bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx [c,y,x]->bx [1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, ((y-2)%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
-    by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+    bx.set_low_level_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, floor(y/32), 0, floor(x/32), 0, (y%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1)); bx [c,y,x]->bx [1, 0, c, 0, floor((y-2)/32), 0, floor(x/32), 1, ((y-2)%32), 0, (x%32), 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    by.set_low_level_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, floor(y/32), 0, floor(x/32), 2, (y%32), 0, (x%32), 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 0
     // duplicate
     bx.create_duplication_transformation("[Nc, Ny, Nx]->{bx[c, y, x]->bx[1, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and ((0 <= (y%32) <= 2)) and (y>=2) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
