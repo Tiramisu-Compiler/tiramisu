@@ -1236,6 +1236,15 @@ private:
       * S1.after_low_level(S0, {0,1})
       *
       * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after_low_level(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
+      *
       */
     // @{
     void after_low_level(computation &comp, int level);
@@ -1987,6 +1996,14 @@ public:
       * S1.after(S0, {0,1})
       *
       * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
       */
     // @{
     void after(computation &comp, int level);
@@ -2023,6 +2040,14 @@ public:
       * S0.before(S1, {2,3})
       *
       * means that S0 is before S1 in the loop level 2 and in the loop level 3.
+      *
+      * Note that
+      *
+      * S0.before(S1, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S0 is before S1 in L only.  S0 is not
+      * before S1 in the loop levels that are before L.
       */
     // @{
     void before(computation &consumer, int L);

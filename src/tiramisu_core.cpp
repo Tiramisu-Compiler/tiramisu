@@ -2037,6 +2037,12 @@ void computation::after_low_level(computation &comp, int level)
           tiramisu::str_dump(comp.get_name());
           tiramisu::str_dump(" at dimension ");
           tiramisu::str_dump(std::to_string(dim)));
+    DEBUG(3, tiramisu::str_dump("Setting the schedule of ");
+          tiramisu::str_dump(this->get_name());
+          tiramisu::str_dump(" to be equal to the schedule of ");
+          tiramisu::str_dump(comp.get_name());
+          tiramisu::str_dump(" at all the dimensions before dimension ");
+          tiramisu::str_dump(std::to_string(dim)));
 
     comp.get_function()->align_schedules();
 
@@ -2050,11 +2056,26 @@ void computation::after_low_level(computation &comp, int level)
     assert(dim < (signed int) isl_map_dim(this->get_schedule(), isl_dim_out));
     assert(dim >= computation::root_dimension);
 
-    // Get the constant in comp, add +1 to it and set it to sched1
-    int order = isl_map_get_static_dim(comp.get_schedule(), dim);
-    isl_map *new_sched = isl_map_copy(this->get_schedule());
-    new_sched = add_eq_to_schedule_map(dim, 0, -1, order + 1, new_sched);
-    this->set_schedule(new_sched);
+    isl_map *new_sched = NULL;
+    for (int i = 1; i<=dim; i=i+2)
+    {
+        if (i < dim)
+        {
+            // Get the constant in comp, add +1 to it and set it to sched1
+            int order = isl_map_get_static_dim(comp.get_schedule(), i);
+            new_sched = isl_map_copy(this->get_schedule());
+            new_sched = add_eq_to_schedule_map(i, 0, -1, order, new_sched);
+        }
+        else // (i == dim)
+        {
+            // Get the constant in comp, add +1 to it and set it to sched1
+            int order = isl_map_get_static_dim(comp.get_schedule(), i);
+            new_sched = isl_map_copy(this->get_schedule());
+            new_sched = add_eq_to_schedule_map(i, 0, -1, order + 1, new_sched);
+        }
+        this->set_schedule(new_sched);
+    }
+
     DEBUG(3, tiramisu::str_dump("Schedule adjusted: ",
                                 isl_map_to_str(this->get_schedule())));
 
