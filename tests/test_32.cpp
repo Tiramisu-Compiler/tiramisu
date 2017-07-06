@@ -31,14 +31,15 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::var i("i");
     tiramisu::var j("j");
-    tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
-    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i,j), true, p_uint8, &function0);
+    tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true,
+                             p_uint8, &function0);
+    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i, j), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-     S0.compute_at(S1, 0);
+    S0.compute_at(S1, 0);
 
     // -------------------------------------------------------
     // Layer III

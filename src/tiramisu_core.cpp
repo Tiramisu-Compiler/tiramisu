@@ -127,7 +127,7 @@ isl_union_map *tiramisu::function::compute_dep_graph()
             {
                 isl_map *reverse_access = isl_map_reverse(accesses_vector[i]);
                 accesses_union_map = isl_union_map_union(isl_union_map_from_map(reverse_access),
-                                                         accesses_union_map);
+                                     accesses_union_map);
             }
 
             //accesses_union_map = isl_union_map_intersect_range(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
@@ -162,7 +162,8 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert((this->get_computations().size()>0) && "The function should have at least one computation.");
+    assert((this->get_computations().size() > 0) &&
+           "The function should have at least one computation.");
 
     std::vector<tiramisu::computation *> last;
     isl_union_map *deps = this->compute_dep_graph();
@@ -234,7 +235,7 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
         isl_union_map_free(deps);
     }
 
-    assert((last.size()>0) && "The function should have at least one last computation.");
+    assert((last.size() > 0) && "The function should have at least one last computation.");
 
     DEBUG_INDENT(-4);
 
@@ -255,9 +256,9 @@ isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
     result = isl_set_empty(space);
 
     std::vector<tiramisu::computation *> computations =
-            this->get_function()->get_computation_by_name(name);
+        this->get_function()->get_computation_by_name(name);
 
-    for (auto c: computations)
+    for (auto c : computations)
     {
         if (c->should_schedule_this_computation())
         {
@@ -278,12 +279,16 @@ bool tiramisu::computation::has_multiple_definitions() const
     assert(name.size() > 0);
 
     std::vector<tiramisu::computation *> computations =
-            this->get_function()->get_computation_by_name(name);
+        this->get_function()->get_computation_by_name(name);
 
     if (computations.size() > 1)
+    {
         is_update = true;
+    }
     else
+    {
         is_update = false;
+    }
 
     return is_update;
 }
@@ -333,7 +338,7 @@ void tiramisu::function::compute_bounds()
         isl_union_set *common_computations = isl_union_set_universe(intersection);
         Producers = isl_union_set_subtract(Producers, common_computations);
         DEBUG(3, tiramisu::str_dump("After eliminating the effect of recursive dependences.",
-                                isl_union_set_to_str(Producers)));
+                                    isl_union_set_to_str(Producers)));
     }
 
 
@@ -383,8 +388,10 @@ void tiramisu::function::compute_bounds()
             }
             else
             {
-                assert((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_false) && "The iteration domain of an update should not be universe.");
-                assert((isl_set_is_empty(c->get_iteration_domain()) == isl_bool_false) && "The iteration domain of an update should not be empty.");
+                assert((isl_set_plain_is_universe(c->get_iteration_domain()) == isl_bool_false) &&
+                       "The iteration domain of an update should not be universe.");
+                assert((isl_set_is_empty(c->get_iteration_domain()) == isl_bool_false) &&
+                       "The iteration domain of an update should not be empty.");
             }
 
             DEBUG(3, tiramisu::str_dump(""));
@@ -406,7 +413,7 @@ void tiramisu::function::compute_bounds()
             isl_union_set *common_computations = isl_union_set_universe(intersection);
             Producers = isl_union_set_subtract(Producers, common_computations);
             DEBUG(3, tiramisu::str_dump("After eliminating the effect of recursive dependences.",
-                                    isl_union_set_to_str(Producers)));
+                                        isl_union_set_to_str(Producers)));
         }
 
     }
@@ -422,13 +429,14 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
-tiramisu::computation *tiramisu::computation::add_computations(std::string iteration_domain_str, tiramisu::expr e,
-                        bool schedule_this_computation, tiramisu::primitive_t t,
-                        tiramisu::function *fct)
+tiramisu::computation *tiramisu::computation::add_computations(std::string iteration_domain_str,
+        tiramisu::expr e,
+        bool schedule_this_computation, tiramisu::primitive_t t,
+        tiramisu::function *fct)
 {
     tiramisu::computation *C =
-            new tiramisu::computation(iteration_domain_str, e,
-                                      schedule_this_computation, t, fct);
+        new tiramisu::computation(iteration_domain_str, e,
+                                  schedule_this_computation, t, fct);
 
     return C;
 }
@@ -715,15 +723,15 @@ void tiramisu::function::rename_computations()
     // but have different expressions should be renamed first so
     // that we can use the original code generator without any
     // modification.
-    for (auto const comp: this->get_computations())
+    for (auto const comp : this->get_computations())
     {
         std::vector<tiramisu::computation *> same_name_computations =
-                this->get_computation_by_name(comp->get_name());
+            this->get_computation_by_name(comp->get_name());
 
         int i = 0;
 
         if (same_name_computations.size() > 1)
-            for (auto c: same_name_computations)
+            for (auto c : same_name_computations)
             {
                 std::string new_name = "_" + c->get_name() + "_update_" + std::to_string(i);
                 c->rename_computation(new_name);
@@ -768,7 +776,8 @@ void function::gen_isl_ast()
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
     ast_build = isl_ast_build_set_after_each_for(ast_build, &tiramisu::for_code_generator_after_for,
                 NULL);
-    ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::generator::stmt_code_generator, this);
+    ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::generator::stmt_code_generator,
+                this);
 
     // Set iterator names
     isl_id_list *iterators = isl_id_list_alloc(ctx, this->get_iterator_names().size());
@@ -1103,11 +1112,13 @@ std::string utility::get_parameters_list(isl_set *set)
 
     assert(set != NULL);
 
-    for (int i=0; i<isl_set_dim(set, isl_dim_param); i++)
+    for (int i = 0; i < isl_set_dim(set, isl_dim_param); i++)
     {
         list += isl_set_get_dim_name(set, isl_dim_param, i);
-        if ((i!= isl_set_dim(set, isl_dim_param)-1))
+        if ((i != isl_set_dim(set, isl_dim_param) - 1))
+        {
             list += ",";
+        }
     }
 
     return list;
@@ -1157,8 +1168,8 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
      */
     // Create a new context set.
     std::string constraint_parameters = "[" + separation_param->get_name() +
-            ((utility::get_parameters_list(this->get_iteration_domain()).size()>0)?",":" ") +
-            utility::get_parameters_list(this->get_iteration_domain()) + "]->";
+                                        ((utility::get_parameters_list(this->get_iteration_domain()).size() > 0) ? "," : " ") +
+                                        utility::get_parameters_list(this->get_iteration_domain()) + "]->";
     std::string constraint = constraint_parameters + "{ : ("
                              + separation_param->get_name() + ") % " + std::to_string(v)
                              + " = 0 and " + "(" + separation_param->get_name() + ") <= ("
@@ -1203,8 +1214,8 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
 void tiramisu::computation::vectorize(int L0, int v)
 {
     tiramisu::expr loop_upper_bound =
-            tiramisu::utility::get_bound(this->get_iteration_domain(),
-                                         L0, true);
+        tiramisu::utility::get_bound(this->get_iteration_domain(),
+                                     L0, true);
 
     this->vectorize(L0, v, loop_upper_bound);
 }
@@ -1236,13 +1247,13 @@ tiramisu::computation *computation::store_at(int L0)
         dim_sizes.push_back(diff);
     }
 
-    tiramisu::buffer *buff = new tiramisu::buffer("buff_"+ generate_new_variable_name(),
-                                                  this->get_n_dimensions(),
-                                                  dim_sizes,
-                                                  this->get_data_type(),
-                                                  NULL,
-                                                  tiramisu::a_temporary,
-                                                  this->get_function());
+    tiramisu::buffer *buff = new tiramisu::buffer("buff_" + generate_new_variable_name(),
+            this->get_n_dimensions(),
+            dim_sizes,
+            this->get_data_type(),
+            NULL,
+            tiramisu::a_temporary,
+            this->get_function());
 
     tiramisu::computation *allocation = buff->allocate_at(this, L0);
     this->bind_to(buff);
@@ -1443,7 +1454,9 @@ void computation::dump() const
         std::cout << "Access relation of the computation : "; std::flush(std::cout);
         isl_map_dump(this->get_access_relation());
         if (this->get_access_relation() == NULL)
+        {
             std::cout << "\n";
+        }
         std::flush(std::cout);
 
         if (this->get_time_processor_domain() != NULL)
@@ -1483,8 +1496,10 @@ int max_elem(std::vector<int> vec)
 {
     int res = -1;
 
-    for (auto v: vec)
+    for (auto v : vec)
+    {
         res = std::max(v, res);
+    }
 
     return res;
 }
@@ -1496,7 +1511,9 @@ bool buffer::has_constant_extents()
     for (size_t i = 0; i < this->get_dim_sizes().size(); i++)
     {
         if (this->get_dim_sizes()[i].get_expr_type() != tiramisu::e_val)
+        {
             constant_extent = false;
+        }
     }
 
     return constant_extent;
@@ -1522,12 +1539,12 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
     int projection_dimension = level + 1;
     if (projection_dimension != 0)
         iter = isl_set_project_out(isl_set_copy(iter),
-                               isl_dim_set,
-                               projection_dimension,
-                               isl_set_dim(iter, isl_dim_set) - projection_dimension);
+                                   isl_dim_set,
+                                   projection_dimension,
+                                   isl_set_dim(iter, isl_dim_set) - projection_dimension);
     else
     {
-        iter = isl_set_read_from_str(C->get_ctx(),"{[0]}");
+        iter = isl_set_read_from_str(C->get_ctx(), "{[0]}");
     }
     std::string new_name = "_allocation_" + generate_new_variable_name();
     iter = isl_set_set_tuple_name(iter, new_name.c_str());
@@ -1540,8 +1557,8 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
     tiramisu::expr *new_expression = new tiramisu::expr(tiramisu::o_allocate, this->get_name());
 
     tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
-                                                             *new_expression,
-                                                             true, p_none, C->get_function());
+            *new_expression,
+            true, p_none, C->get_function());
 
     this->set_auto_allocate(false);
 
@@ -1624,7 +1641,7 @@ void computation::apply_transformation_on_schedule_domain(std::string map_str)
 }
 
 void computation::add_schedule_constraint(std::string domain_constraints,
-                                          std::string range_constraints)
+        std::string range_constraints)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1950,8 +1967,10 @@ int loop_level_into_static_dimension(int level)
 
 void computation::after(computation &comp, std::vector<int> levels)
 {
-    for (auto level: levels)
+    for (auto level : levels)
+    {
         this->after(comp, level);
+    }
 }
 
 
@@ -2044,8 +2063,10 @@ void computation::before(computation &comp, std::vector<int> dims)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    for (auto dim: dims)
+    for (auto dim : dims)
+    {
         comp.after(*this, dim);
+    }
 
     DEBUG_INDENT(-4);
 }
@@ -2101,7 +2122,8 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(sizeY > 0);
     assert(this->get_iteration_domain() != NULL);
 
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(
+                this->get_schedule()), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2127,9 +2149,12 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     assert(sizeZ > 0);
     assert(this->get_iteration_domain() != NULL);
 
-    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(
+                this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(
+                this->get_schedule()), isl_dim_out));
+    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(
+                this->get_schedule()), isl_dim_out));
 
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2864,7 +2889,8 @@ std::vector<int> get_shift_degrees(isl_set *missing, int L)
 /**
  * Compute the needed area.
  */
-std::vector<isl_set *> computation::compute_needed_and_produced(computation &consumer, int L, std::vector<std::string> &param_names)
+std::vector<isl_set *> computation::compute_needed_and_produced(computation &consumer, int L,
+        std::vector<std::string> &param_names)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3040,7 +3066,8 @@ void computation::compute_at(computation &consumer, int L)
 
     // Compute needed
     std::vector<std::string> param_names;
-    std::vector<isl_set *> needed_and_produced = this->compute_needed_and_produced(consumer, L, param_names);
+    std::vector<isl_set *> needed_and_produced = this->compute_needed_and_produced(consumer, L,
+            param_names);
     isl_set *needed = needed_and_produced[0];
     isl_set *producer_domain = needed_and_produced[1];
 
@@ -3220,7 +3247,7 @@ bool isl_constraint_is_simple(isl_constraint *cst, int dim)
     bool simple = true;
 
     isl_space *space = isl_constraint_get_space(cst);
-    for (int i = 0; i<isl_space_dim(space, isl_dim_set); i++)
+    for (int i = 0; i < isl_space_dim(space, isl_dim_set); i++)
         if (i != dim)
             if (isl_constraint_involves_dims(cst, isl_dim_set, i, 1))
             {
@@ -3231,7 +3258,8 @@ bool isl_constraint_is_simple(isl_constraint *cst, int dim)
     isl_val *coeff = isl_constraint_get_coefficient_val(cst, isl_dim_set, dim);
     if ((isl_val_is_negone(coeff) == isl_bool_false) && (isl_val_is_one(coeff) == isl_bool_false))
     {
-        DEBUG(10, tiramisu::str_dump("Coefficient of the dimension is not one/negative(one)."); isl_val_dump(coeff));
+        DEBUG(10, tiramisu::str_dump("Coefficient of the dimension is not one/negative(one).");
+              isl_val_dump(coeff));
         simple = false;
     }
 
@@ -3258,7 +3286,8 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
     isl_space *space = isl_constraint_get_space(cst);
     tiramisu::expr e = tiramisu::expr();
 
-    DEBUG(10, tiramisu::str_dump("Computing the expression that correspond to the following constraint at dimension " + std::to_string(dim) + " : "));
+    DEBUG(10, tiramisu::str_dump("Computing the expression that correspond to the following constraint at dimension "
+                                 + std::to_string(dim) + " : "));
     DEBUG(10, isl_constraint_dump(cst));
 
     // Add the parameter to the expression
@@ -3275,17 +3304,23 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
 
                 // For lower bounds, inverse the sign.
                 if (upper == false)
+                {
                     c = -1 * c;
+                }
 
                 param = tiramisu::expr(o_mul,
-                                      tiramisu::expr((int32_t) c),
-                                      param);
+                                       tiramisu::expr((int32_t) c),
+                                       param);
             }
 
             if (e.is_defined() == false)
+            {
                 e = param;
+            }
             else
+            {
                 e = tiramisu::expr(o_add, e, param);
+            }
         }
     }
 
@@ -3296,17 +3331,24 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
 
         // For lower bounds, inverse the sign.
         if (upper == false)
+        {
             v = -1 * v;
+        }
 
         tiramisu::expr c = tiramisu::expr((int32_t) v);
 
         if (e.is_defined() == false)
+        {
             e = c;
+        }
         else
+        {
             e = tiramisu::expr(o_add, e, c);
+        }
     }
 
-    DEBUG(10, tiramisu::str_dump("The expression that correspond to the expression is : "); e.dump(false));
+    DEBUG(10, tiramisu::str_dump("The expression that correspond to the expression is : ");
+          e.dump(false));
     DEBUG_INDENT(-4);
 
     return e;
@@ -3336,7 +3378,8 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     assert(dim < isl_space_dim(isl_set_get_space(set), isl_dim_set));
     assert(isl_set_is_empty(set) == isl_bool_false);
 
-    DEBUG(10, tiramisu::str_dump(std::string("Getting the ") + (upper?"upper":"lower") + " bound on the dimension " +
+    DEBUG(10, tiramisu::str_dump(std::string("Getting the ") + (upper ? "upper" : "lower") +
+                                 " bound on the dimension " +
                                  std::to_string(dim) + " of the set ",
                                  isl_set_to_str(set)));
 
@@ -3345,19 +3388,19 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     std::vector<tiramisu::expr> vector_of_bounds;
     tiramisu::expr e = tiramisu::expr();
 
-    for (int i=0; i<n_bsets; i++)
+    for (int i = 0; i < n_bsets; i++)
     {
         isl_basic_set *bset = isl_basic_set_list_get_basic_set(bset_list, i);
         isl_constraint_list *list = isl_basic_set_get_constraint_list(bset);
         int n_constraints = isl_constraint_list_n_constraint(list);
 
-        for (int j=0; j<n_constraints; j++)
+        for (int j = 0; j < n_constraints; j++)
         {
             isl_constraint *cst = isl_constraint_list_get_constraint(list, j);
 
             if (isl_constraint_involves_dims(cst, isl_dim_set, dim, 1) == isl_bool_true)
                 if (((upper == true) && (isl_constraint_is_upper_bound(cst, isl_dim_set, dim) == isl_bool_true)) ||
-                    ((upper == false) && (isl_constraint_is_lower_bound(cst, isl_dim_set, dim) == isl_bool_true)))
+                        ((upper == false) && (isl_constraint_is_lower_bound(cst, isl_dim_set, dim) == isl_bool_true)))
                 {
                     // Check that the constraint is valid.
                     if (isl_constraint_is_simple(cst, dim))
@@ -3365,7 +3408,8 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
                         // Add the extracted tiramisu expression to the vector of upper bounds
                         vector_of_bounds.push_back(extract_tiramisu_expr_from_cst(cst, dim, upper));
                         DEBUG(10, tiramisu::str_dump("The constraint is simple: "); isl_constraint_dump(cst));
-                    } else
+                    }
+                    else
                     {
                         DEBUG(10, tiramisu::str_dump("Non simple constraint: "); isl_constraint_dump(cst));
                     }
@@ -3382,7 +3426,8 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     //    the upper bound is the minimum of these expressions.
     if (vector_of_bounds.size() == 0)
     {
-        tiramisu::str_dump("Dumping the set of constraints from which we are extracting the bounding tiramisu expression: ", isl_set_to_str(set));
+        tiramisu::str_dump("Dumping the set of constraints from which we are extracting the bounding tiramisu expression: ",
+                           isl_set_to_str(set));
         tiramisu::str_dump("\n");
         tiramisu::error("Tiramisu expr could not be extracted from ISL constraint", true);
     }
@@ -3395,14 +3440,19 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
         e = vector_of_bounds[0];
         for (int j = 1; j < vector_of_bounds.size(); j++)
             if (upper == true)
+            {
                 e = tiramisu::expr(o_min, e, vector_of_bounds[j]);
+            }
             else
+            {
                 e = tiramisu::expr(o_max, e, vector_of_bounds[j]);
+            }
     }
 
     assert(e.is_defined() && "The computed bound expression is undefined.");
 
-    DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper?"upper":"lower") + " bound is : "); e.dump(false));
+    DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : ");
+          e.dump(false));
 
     DEBUG_INDENT(-4);
 
@@ -3835,10 +3885,10 @@ void tiramisu::function::align_schedules()
 
     for (auto &comp : this->get_computations())
     {
-            isl_map *dup_sched = comp->get_schedule();
-            assert((dup_sched != NULL) && "Schedules should be set before calling align_schedules");
-            dup_sched = isl_map_align_range_dims(dup_sched, max_dim);
-            comp->set_schedule(dup_sched);
+        isl_map *dup_sched = comp->get_schedule();
+        assert((dup_sched != NULL) && "Schedules should be set before calling align_schedules");
+        dup_sched = isl_map_align_range_dims(dup_sched, max_dim);
+        comp->set_schedule(dup_sched);
     }
 
     DEBUG_INDENT(-4);
@@ -4395,8 +4445,8 @@ std::string str_from_is_null(void *ptr)
 tiramisu::buffer::buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type, uint8_t *data,
                          tiramisu::argument_t argt, tiramisu::function *fct):
-        allocated(false), argtype(argt), auto_allocate(true), data(data), dim_sizes(dim_sizes), fct(fct),
-        name(name), nb_dims(nb_dims), type(type)
+    allocated(false), argtype(argt), auto_allocate(true), data(data), dim_sizes(dim_sizes), fct(fct),
+    name(name), nb_dims(nb_dims), type(type)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(nb_dims > 0 && "Buffer dimensions <= 0");
@@ -4589,18 +4639,18 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     // have the same name, check that they have constraints over their iteration
     // domains.
     std::vector<tiramisu::computation *> same_name_computations =
-            this->get_function()->get_computation_by_name(name);
+        this->get_function()->get_computation_by_name(name);
     if (same_name_computations.size() > 1)
     {
         if (isl_set_plain_is_universe(this->get_iteration_domain()))
             tiramisu::error("Computations defined multiple times should"
-                    " have bounds on their iteration domain", true);
+                            " have bounds on their iteration domain", true);
 
-        for (auto c: same_name_computations)
+        for (auto c : same_name_computations)
         {
             if (isl_set_plain_is_universe(c->get_iteration_domain()))
                 tiramisu::error("Computations defined multiple times should"
-                        " have bounds on their iteration domain", true);
+                                " have bounds on their iteration domain", true);
         }
     }
 
@@ -4734,7 +4784,8 @@ isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_do
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(10, tiramisu::str_dump("Getting the access of the computation " + this->get_name() + " adapted to time-space."));
+    DEBUG(10, tiramisu::str_dump("Getting the access of the computation " + this->get_name() +
+                                 " adapted to time-space."));
     assert((this->has_accesses() == true) && ("This computation must have accesses."));
 
     isl_map *access = isl_map_copy(this->get_access_relation());
@@ -4958,11 +5009,13 @@ void tiramisu::computation::set_access(std::string access_str)
      * (duplicates and updates).
      */
     std::vector<tiramisu::computation *> same_name_computations =
-                    this->get_function()->get_computation_by_name(this->get_name());
+        this->get_function()->get_computation_by_name(this->get_name());
 
     if (same_name_computations.size() > 1)
-        for (auto c: same_name_computations)
+        for (auto c : same_name_computations)
+        {
             c->access = isl_map_read_from_str(this->ctx, access_str.c_str());
+        }
 
     /**
      * Search for any other computation that starts with
@@ -4999,10 +5052,13 @@ void tiramisu::computation::set_access(std::string access_str)
      * should be the same.
      */
     std::vector<tiramisu::computation *> computations =
-            this->get_function()->get_computation_by_name(this->get_name());
-    for (auto c: computations)
+        this->get_function()->get_computation_by_name(this->get_name());
+    for (auto c : computations)
         if (isl_map_is_equal(this->get_access_relation(), c->get_access_relation()) == isl_bool_false)
-            tiramisu::error("Computations that have the same name should also have the same access relation.", true);
+        {
+            tiramisu::error("Computations that have the same name should also have the same access relation.",
+                            true);
+        }
 
     DEBUG_INDENT(-4);
 }
@@ -5122,7 +5178,8 @@ void tiramisu::computation::add_associated_let_stmt(std::string variable_name, t
     DEBUG_INDENT(-4);
 }
 
-const std::vector<std::pair<std::string, tiramisu::expr>> &tiramisu::computation::get_associated_let_stmts() const
+const std::vector<std::pair<std::string, tiramisu::expr>>
+        &tiramisu::computation::get_associated_let_stmts() const
 {
     return this->associated_let_stmts;
 }
@@ -5130,10 +5187,14 @@ const std::vector<std::pair<std::string, tiramisu::expr>> &tiramisu::computation
 bool tiramisu::computation::has_accesses() const
 {
     if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
-        (this->get_expr().get_op_type() == tiramisu::o_free))
+            (this->get_expr().get_op_type() == tiramisu::o_free))
+    {
         return false;
+    }
     else
+    {
         return true;
+    }
 }
 
 /**
@@ -5310,7 +5371,6 @@ void tiramisu::computation::storage_fold(int inDim0, int factor)
     std::string inDim0_str;
 
     std::string outDim0_str = generate_new_variable_name();
-    std::string outDim1_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(access_relation, isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -5330,7 +5390,9 @@ void tiramisu::computation::storage_fold(int inDim0, int factor)
         map = map + dim_str;
 
         if (i == inDim0)
-                inDim0_str = dim_str;
+        {
+            inDim0_str = dim_str;
+        }
 
         if (i != n_dims - 1)
         {
@@ -5383,9 +5445,11 @@ void tiramisu::computation::storage_fold(int inDim0, int factor)
     DEBUG(3, tiramisu::str_dump("Transformation map : ",
                                 isl_map_to_str(transformation_map)));
 
-    access_relation = isl_map_apply_range(isl_map_copy(access_relation), isl_map_copy(transformation_map));
+    access_relation = isl_map_apply_range(isl_map_copy(access_relation),
+                                          isl_map_copy(transformation_map));
 
-    DEBUG(3, tiramisu::str_dump("Access relation after storage folding: ", isl_map_to_str(access_relation)));
+    DEBUG(3, tiramisu::str_dump("Access relation after storage folding: ",
+                                isl_map_to_str(access_relation)));
 
     this->set_access(access_relation);
 
