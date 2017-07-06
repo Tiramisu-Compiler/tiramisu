@@ -46,8 +46,8 @@ void generate_tiramisu_obj_file()
     stencil1.set_arguments({&in, &b1});
 
     stencil1.set_context_set("[N]->{: N>1}]");
-    c_b0.set_schedule("{c_b0[i]->c_b0[0, 0, i0, 1, i1, 0, 0, 0]: i0=floor(i/4) and i1=i%4; c_b0[i]->c_b0[0, i0, 0, 0, 0, 0, 0]: i0=floor(i/4)and i%4=-1;c_b0[i]->c_b0[0, i0, 2, 0, 0, 0, 0]: i0=floor(i/4) and i%4=1}");
-    c_b1.set_schedule("{c_b1[i]->c_b1[0, 0, i0, 3, i1, 1, 0, 0]: i0=floor(i/4) and i1=i%4}");
+    c_b0.set_low_level_schedule("{c_b0[i]->c_b0[0, 0, i0, 1, i1, 0, 0, 0]: i0=floor(i/4) and i1=i%4; c_b0[i]->c_b0[0, i0, 0, 0, 0, 0, 0]: i0=floor(i/4)and i%4=-1;c_b0[i]->c_b0[0, i0, 2, 0, 0, 0, 0]: i0=floor(i/4) and i%4=1}");
+    c_b1.set_low_level_schedule("{c_b1[i]->c_b1[0, 0, i0, 3, i1, 1, 0, 0]: i0=floor(i/4) and i1=i%4}");
 
     // Generate code
     stencil1.gen_time_space_domain();

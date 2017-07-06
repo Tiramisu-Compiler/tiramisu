@@ -75,10 +75,10 @@ int main(int argc, char **argv)
     k_s0.set_access("{k_s0[k_s0_c, k_s0_y, k_s0_x]->buff_k[k_s0_c, k_s0_y, k_s0_x]}");
 
 
-    //f_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_c, f_s0_y, f_s0_x] -> f_s0[0, 0, f_s0_c, 0, f_s0_y, 0, f_s0_x, 0]}");
-    //g_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x] -> g_s0[0, 0, g_s0_c, 0, g_s0_y, 0, g_s0_x, 1]}");
-    //h_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{h_s0[h_s0_c, h_s0_y, h_s0_x] -> h_s0[0, 0, h_s0_c, 0, h_s0_y, 0, h_s0_x, 2]}");
-    //k_s0.set_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{k_s0[k_s0_c, k_s0_y, k_s0_x] -> k_s0[0, 0, k_s0_c, 0, k_s0_y, 0, k_s0_x, 3]}");
+    f_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_c, f_s0_y, f_s0_x] -> f_s0[0, 0, f_s0_c, 0, f_s0_y, 0, f_s0_x, 0]}");
+    g_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x] -> g_s0[0, 0, g_s0_c, 0, g_s0_y, 0, g_s0_x, 1]}");
+    h_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{h_s0[h_s0_c, h_s0_y, h_s0_x] -> h_s0[0, 0, h_s0_c, 0, h_s0_y, 0, h_s0_x, 2]}");
+    k_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{k_s0[k_s0_c, k_s0_y, k_s0_x] -> k_s0[0, 0, k_s0_c, 0, k_s0_y, 0, k_s0_x, 3]}");
     f_s0.tag_parallel_level(0);
     f_s0.tag_parallel_level(1);
     g_s0.tag_parallel_level(0);
