@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     // (i.e. no optimization is applied).
     c_blurx.tile(0, 1, 2, 2);
     c_blurx.tag_gpu_level(0, 1);
-    c_blury.set_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
+    c_blury.set_low_level_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
     c_blury.after(c_blurx, computation::root_dimension);
 
 

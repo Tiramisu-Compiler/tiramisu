@@ -31,9 +31,9 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     S1.set_access("{S1[i]->buf0[i]}");
     S2.set_access("{S2[i]->buf0[i]}");
 
-    S0.set_schedule("{S0[i]->S0[0,0,i,0]}");
-    S1.set_schedule("{S1[i]->S0[0,0,i,1]}");
-    S2.set_schedule("{S2[i]->S0[1,0,i,0]}");
+    S0.set_low_level_schedule("{S0[i]->S0[0,0,i,0]}");
+    S1.set_low_level_schedule("{S1[i]->S0[0,0,i,1]}");
+    S2.set_low_level_schedule("{S2[i]->S0[1,0,i,0]}");
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();

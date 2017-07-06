@@ -105,6 +105,7 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     test_reduction_operator.set_arguments({&buff_f});
     test_reduction_operator.gen_time_space_domain();
     test_reduction_operator.gen_isl_ast();
+    test_reduction_operator.gen_c_code();
     test_reduction_operator.gen_halide_stmt();
     test_reduction_operator.dump_halide_stmt();
     test_reduction_operator.gen_halide_obj("build/generated_fct_test_09.o");

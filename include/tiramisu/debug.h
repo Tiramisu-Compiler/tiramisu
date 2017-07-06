@@ -37,6 +37,7 @@ extern int tiramisu_indentation;
         tiramisu::str_dump(__FUNCTION__);       \
         tiramisu::str_dump(" function]\n");     \
     }                                           \
+    std::flush(std::cout);                      \
 };
 
 /**
@@ -48,6 +49,7 @@ extern int tiramisu_indentation;
         STMT;                                   \
         tiramisu::str_dump("\n");               \
     }                                           \
+    std::flush(std::cout);                      \
 };
 
 /**
@@ -60,13 +62,23 @@ extern int tiramisu_indentation;
         tiramisu::print_indentation();          \
         STMT;                                   \
     }                                           \
+    std::flush(std::cout);                      \
 };
+
+#define DEBUG_NO_NEWLINE_NO_INDENT(LEVEL, STMT) {         \
+    if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \
+        STMT;                                   \
+    }                                           \
+    std::flush(std::cout);                      \
+};
+
 
 
 #define DEBUG_NEWLINE(LEVEL) {                  \
     if (ENABLE_DEBUG && DEBUG_LEVEL>=LEVEL) {   \
         tiramisu::str_dump("\n");               \
     }                                           \
+    std::flush(std::cout);                      \
 };
 
 /**

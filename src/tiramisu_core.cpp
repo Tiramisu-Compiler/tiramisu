@@ -78,6 +78,7 @@ function::function(std::string name)
     halide_stmt = Halide::Internal::Stmt();
     ast = NULL;
     context_set = NULL;
+    use_low_level_scheduling_commands = false;
 
     // Allocate an ISL context.  This ISL context will be used by
     // the ISL library calls within Tiramisu.
@@ -1004,7 +1005,6 @@ tiramisu::computation *tiramisu::computation::copy()
     new_c->set_schedule(isl_map_copy(this->get_schedule()));
 
     new_c->access = isl_map_copy(this->access);
-    new_c->relative_order = this->relative_order;
     new_c->is_let = this->is_let;
 
     DEBUG_INDENT(-4);
@@ -1404,8 +1404,11 @@ void function::gen_time_space_domain()
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    // Generate the ordering based on calls to .after() and .before().
+    this->gen_ordering_schedules();
+
     // Rename updates so that they have different names because
-    // the code generator expects each uniqueme name to have
+    // the code generator expects each unique name to have
     // an expression, different computations that have the same
     // name cannot have different expressions.
     this->rename_computations();
@@ -1680,6 +1683,7 @@ void computation::add_schedule_constraint(std::string domain_constraints,
     DEBUG_INDENT(-4);
 }
 
+
 /**
   * Set the schedule of the computation.
   *
@@ -1693,6 +1697,25 @@ void tiramisu::computation::set_schedule(isl_map *map)
 {
     this->schedule = map;
 }
+
+
+void computation::set_low_level_schedule(std::string map_str)
+{
+    assert(!map_str.empty());
+    assert(this->ctx != NULL);
+
+    isl_map *map = isl_map_read_from_str(this->ctx, map_str.c_str());
+    assert(map != NULL);
+
+    this->set_low_level_schedule(map);
+}
+
+void tiramisu::computation::set_low_level_schedule(isl_map *map)
+{
+    this->function->use_low_level_scheduling_commands = true;
+    this->set_schedule(map);
+}
+
 
 struct param_pack_1
 {
@@ -2017,7 +2040,7 @@ void computation::after(computation &comp, std::vector<int> levels)
   *
   * \p dim has to be a static dimension, i.e. 0, 2, 4, 6, ...
   */
-void computation::after(computation &comp, int level)
+void computation::after_low_level(computation &comp, int level)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2033,6 +2056,12 @@ void computation::after(computation &comp, int level)
           tiramisu::str_dump(comp.get_name());
           tiramisu::str_dump(" at dimension ");
           tiramisu::str_dump(std::to_string(dim)));
+    DEBUG(3, tiramisu::str_dump("Setting the schedule of ");
+          tiramisu::str_dump(this->get_name());
+          tiramisu::str_dump(" to be equal to the schedule of ");
+          tiramisu::str_dump(comp.get_name());
+          tiramisu::str_dump(" at all the dimensions before dimension ");
+          tiramisu::str_dump(std::to_string(dim)));
 
     comp.get_function()->align_schedules();
 
@@ -2046,17 +2075,212 @@ void computation::after(computation &comp, int level)
     assert(dim < (signed int) isl_map_dim(this->get_schedule(), isl_dim_out));
     assert(dim >= computation::root_dimension);
 
-    // Get the constant in comp, add +1 to it and set it to sched1
-    int order = isl_map_get_static_dim(comp.get_schedule(), dim);
-    isl_map *new_sched = isl_map_copy(this->get_schedule());
-    new_sched = add_eq_to_schedule_map(dim, 0, -1, order + 1, new_sched);
-    this->set_schedule(new_sched);
+    isl_map *new_sched = NULL;
+    for (int i = 1; i<=dim; i=i+2)
+    {
+        if (i < dim)
+        {
+            // Get the constant in comp, add +1 to it and set it to sched1
+            int order = isl_map_get_static_dim(comp.get_schedule(), i);
+            new_sched = isl_map_copy(this->get_schedule());
+            new_sched = add_eq_to_schedule_map(i, 0, -1, order, new_sched);
+        }
+        else // (i == dim)
+        {
+            // Get the constant in comp, add +1 to it and set it to sched1
+            int order = isl_map_get_static_dim(comp.get_schedule(), i);
+            new_sched = isl_map_copy(this->get_schedule());
+            new_sched = add_eq_to_schedule_map(i, 0, -1, order + 1, new_sched);
+        }
+        this->set_schedule(new_sched);
+    }
+
     DEBUG(3, tiramisu::str_dump("Schedule adjusted: ",
                                 isl_map_to_str(this->get_schedule())));
 
     DEBUG_INDENT(-4);
 }
 
+
+void tiramisu::computation::after(computation &comp, int level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(10, tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " + comp.get_name() + " at level " + std::to_string(level)));
+    DEBUG(10, tiramisu::str_dump("Maximum dimension of iteration domains: " + std::to_string(this->get_function()->get_max_iteration_domains_dim())));
+
+    assert(level < this->get_function()->get_max_iteration_domains_dim());
+
+    int max_size = this->get_function()->get_max_iteration_domains_dim();
+    comp.function->relative_order.resize(max_size+1);
+
+    DEBUG(10, tiramisu::str_dump("The size of the relative_order vector: " + std::to_string(comp.get_function()->relative_order.size())));
+
+    assert(level < (int) comp.get_function()->relative_order.size());
+    comp.get_function()->relative_order[level+1].push_back(std::pair<tiramisu::computation *, tiramisu::computation *>(&comp, this));
+
+    DEBUG_INDENT(-4);
+}
+
+/**
+ * Find \p comp in \p vec and return a vector of the pairs where it appears.
+ * If first == true, the consider only the first element of the pairs in the search,
+ * otherwise consider only the second element in the search.
+ */
+std::vector<tiramisu::computation *> find_computation_in_relative_order_vector(
+        function &fct,
+        tiramisu::computation *comp,
+        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec,
+        int first)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    std::vector<tiramisu::computation *> result;
+
+    for (auto p: vec)
+    {
+        if ((first) && (p.first == comp))
+            result.push_back(p.first);
+        else if  ((!first) && (p.second == comp))
+            result.push_back(p.second);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+/**
+ * Find the root of the graph described by \p vec.
+ *
+ * If the computation appears as a first computation in \p vec and if it does not
+ * appear as a second computation in the same vector than we consider it as a root
+ * of the graph.
+ */
+std::vector<tiramisu::computation *> find_first_computation_in_relative_order_vector(
+        function &fct,
+        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    std::vector<tiramisu::computation *> result;
+
+    for (auto p: vec)
+    {
+        // Try to find the computation p.first as a 2nd computation in vec.
+        // If you don't find it, i.e., it does not have any predecessor, then it is a root
+        // of the graph of orders.
+        std::vector<tiramisu::computation *> second_computations =
+                find_computation_in_relative_order_vector(fct, p.first, vec, false);
+
+        if (second_computations.size() == 0)
+            result.push_back(p.first);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+/**
+ * Find the next computation in the graph.
+ */
+std::vector<tiramisu::computation *> find_next_computation_in_relative_order_vector(
+        computation *comp,
+        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    std::vector<tiramisu::computation *> result;
+
+    for (auto p: vec)
+        if (p.first == comp)
+            result.push_back(p.second);
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+
+void function::gen_ordering_schedules()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    if (this->use_low_level_scheduling_commands)
+    {
+        DEBUG(3, tiramisu::str_dump("Low level scheduling commands were used."));
+        DEBUG(3, tiramisu::str_dump("Discarding high level scheduling commands."));
+        return;
+    }
+
+
+    DEBUG(10, tiramisu::str_dump("Printing the graph of order between computations."));
+    int lev = -1;
+    for (auto level_order: this->relative_order)
+    {
+        DEBUG(10, tiramisu::str_dump("Orders in level " + std::to_string(lev)));
+
+        if (level_order.size() == 0)
+        {
+            DEBUG(10, tiramisu::str_dump("  Empty"));
+        }
+        else
+        {
+            for (auto p: level_order)
+                DEBUG(10, tiramisu::str_dump("  <" + p.first->get_name() + "," + p.second->get_name() + ">"));
+        }
+        DEBUG_NEWLINE(10);
+        lev++;
+    }
+
+    for (int level = 0; level < this->relative_order.size(); level++)
+    {
+        DEBUG(10, tiramisu::str_dump("Generating ordering schedules for level " + std::to_string(level-1)));
+
+        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> v = this->relative_order[level];
+        std::vector<tiramisu::computation *> front = find_first_computation_in_relative_order_vector(*this,v);
+
+        if (front.size() == 0)
+            DEBUG(10, tiramisu::str_dump("  \"front\" is empty at this level."));
+
+        while (front.size() > 0)
+        {
+            std::vector<tiramisu::computation *> next;
+            std::vector<tiramisu::computation *> local_next;
+
+            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Front computations in the graph: "));
+            for (auto c: front)
+                DEBUG_NO_NEWLINE_NO_INDENT(10, tiramisu::str_dump(c->get_name() + " "));
+            DEBUG_NEWLINE(10);
+
+            for (const auto f: front)
+            {
+                 local_next = find_next_computation_in_relative_order_vector(f, v);
+
+                 DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Computations next to " +  f->get_name() + " in the graph: "));
+                 for (auto c: local_next)
+                     DEBUG_NO_NEWLINE_NO_INDENT(10, tiramisu::str_dump(c->get_name() + " "));
+                 DEBUG_NEWLINE(10);
+
+                for (const auto n: local_next)
+                    n->after_low_level((*f), level-1);
+
+                for (auto a: local_next)
+                    next.push_back(a);
+            }
+            front = next;
+            next.clear();
+        }
+    }
+
+    DEBUG_INDENT(-4);
+}
 
 void computation::before(computation &comp, std::vector<int> dims)
 {
@@ -3786,6 +4010,19 @@ int tiramisu::function::get_max_identity_schedules_range_dim() const
     return max_dim;
 }
 
+int tiramisu::function::get_max_iteration_domains_dim() const
+{
+    int max_dim = 0;
+    for (const auto &comp : this->get_computations())
+    {
+        isl_set *domain = comp->get_iteration_domain();
+        int m = isl_set_dim(domain, isl_dim_set);
+        max_dim = std::max(max_dim, m);
+    }
+
+    return max_dim;
+}
+
 int tiramisu::function::get_max_schedules_range_dim() const
 {
     DEBUG_FCT_NAME(10);
@@ -4619,7 +4856,6 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     access = NULL;
     stmt = Halide::Internal::Stmt();
     time_processor_domain = NULL;
-    relative_order = 0;
     duplicate_number = 0;
 
     this->schedule_this_computation = schedule_this_computation;
@@ -4666,7 +4902,6 @@ tiramisu::computation::computation()
     this->schedule = NULL;
     this->stmt = Halide::Internal::Stmt();
     this->time_processor_domain = NULL;
-    this->relative_order = 0;
     this->duplicate_number = 0;
 
     this->schedule_this_computation = false;

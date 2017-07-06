@@ -236,6 +236,14 @@ private:
     std::vector<tiramisu::computation *> get_last_consumers();
 
     /**
+     * This functions iterates over the iteration domain of the computations
+     * of the function and computes the maximum dimension among the dimensions
+     * of these iteration domains.
+     */
+    int get_max_iteration_domains_dim() const;
+
+
+    /**
      * This functions iterates over the schedules of the function (the schedule
      * of each computation in the function) and computes the maximal dimension
      * among the dimensions of the ranges of all the schedules.
@@ -407,6 +415,49 @@ protected:
        * executed are both specified.
        */
      isl_union_set *get_time_processor_domain() const;
+
+     /**
+      * Modify the schedules of the computations of this function to reflect
+      * the order specified using the high level scheduling commands.
+      *
+      * Commands like .after() and .before() do not directly modify the schedules
+      * but rather modify the relative_oredr vector which stores the relative_oredr[].
+      */
+     void gen_ordering_schedules();
+
+     /**
+       * The relative order between computations.  This vector stores
+       * the edges of the graph the specifies the order between computations.
+       *
+       * The functions .before() and .after(), ... all modify this relative
+       * order and do not modify the schedule directly.
+       * Before code generation, this logical order is applied automatically
+       * by Tiramisu on the schedules of the computations.  We do this because
+       * making .before() and .after() modify directly the schedules would make
+       * them very complicated. In particular if the user schedules a computation
+       * to be executed before other computations that have already been scheduled,
+       * then all their previous schedules should be updated which is complicated.
+       * We use vectors (this relative order structure) to make such process easier.
+       * relative_oredr[0] specifies the order of computations in the loop level 0.
+       * relative_oredr[1] specifies the order of computations in the loop level 1.
+       * relative_oredr[2] specifies the order of computations in the loop level 2,
+       * ...
+       *
+       * relative_oredr[0] is a vector of pair.  The elements of this vector are
+       * pairs that specify the order between two computations. For example the pair
+       * <s1, s2> indicates that the computation s2 should execute the computation
+       * s1 in the loop level 0. that should execute first in level 0,
+       * the second element of the vector holds the computation that should execute
+       * second in level 0.
+       */
+     std::vector<std::vector<std::pair<tiramisu::computation *, tiramisu::computation *>>> relative_order;
+
+     /**
+      * A boolean set to true if low level scheduling was used in the program.
+      * If it is used, then high level scheduling commands such as .before(),
+      * .after(), ...
+      */
+     bool use_low_level_scheduling_commands;
 
 public:
 
@@ -1096,14 +1147,6 @@ private:
     std::string name;
 
     /**
-      * A logical time that indicates the relative order of this computation
-      * compared to other computations.
-      * This should only be used by the .after() function and should not be
-      * used directly by users.
-      */
-    unsigned long relative_order;
-
-    /**
       * The schedules of the computation.
       */
     isl_map * schedule;
@@ -1138,6 +1181,75 @@ private:
     isl_set *time_processor_domain;
 
     // Private class methods.
+
+    /**
+      * Schedule this computation to run after the computation \p comp.
+      * The computations are placed after each other in the loop level \p level.
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after_low_level(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      *
+      * S1.after_low_level(S0,1)
+      *
+      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *   {
+      *     S0;
+      *     S1;
+      *   }
+      *
+      * S1.after_low_level(S0, computation::root_dimension)
+      * means S1 is after S0 at the main program level and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S0;
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S1;
+      *
+      * To specify that this computation is after \p comp in multiple levels,
+      * the user can provide those levels in the \p levels vector.
+      *
+      * S1.after_low_level(S0, {0,1})
+      *
+      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after_low_level(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
+      *
+      */
+    // @{
+    void after_low_level(computation &comp, int level);
+    void after_low_level(computation &comp, std::vector<int> levels);
+    // @}
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -1343,11 +1455,6 @@ private:
     isl_set *get_iteration_domains_of_all_definitions();
 
     /**
-      * Return the name of the computation.
-      */
-    const std::string &get_name() const;
-
-    /**
       * Get the number of dimensions of the iteration
       * domain of the computation.
       */
@@ -1407,23 +1514,6 @@ private:
      * the accesses of the RHS.
      */
     bool has_accesses() const;
-
-    /**
-     *
-     * Return true if the computation has multiple definitions.
-     * i.e., if the computation is defined multiple times.
-     * An update is a special case where a computation is defined
-     * multiple times.  Duplicate computations are another example.
-     *
-     * In the following example, C is defined multiple times whereas
-     * D is defined only once.
-     *
-     * C(0) = 0
-     * C(i) = C(i-1) + 1
-     * D(i) = C(i) + 1
-     *
-     */
-    bool has_multiple_definitions() const;
 
     /**
       * Return if this computation represents a let statement.
@@ -1563,6 +1653,28 @@ protected:
     isl_ctx *get_ctx() const;
 
     /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
+
+    /**
+     *
+     * Return true if the computation has multiple definitions.
+     * i.e., if the computation is defined multiple times.
+     * An update is a special case where a computation is defined
+     * multiple times.  Duplicate computations are another example.
+     *
+     * In the following example, C is defined multiple times whereas
+     * D is defined only once.
+     *
+     * C(0) = 0
+     * C(i) = C(i-1) + 1
+     * D(i) = C(i) + 1
+     *
+     */
+    bool has_multiple_definitions() const;
+
+    /**
       * Initialize a computation.
       * This is a private function that should not be called explicitly
       * by users.
@@ -1577,6 +1689,121 @@ protected:
       * Set the name of the computation.
       */
     void set_name(const std::string &n);
+
+    /**
+      * Set the schedule indicated by \p map.
+      *
+      * \p map is a string that represents a mapping from the iteration domain
+      * to the time-space domain (the ISL format to represent maps is
+      * documented in http://barvinok.gforge.inria.fr/barvinok.pdf in Sec 1.2.2).
+      *
+      * The schedule is a map from the iteration domain to a time space
+      * domain. The same name of space should be used for both the range
+      * and the domain of the schedule.
+      *
+      * In general, users can set the schedule using high level functions such
+      * as before(), after(), tile(), compute_at(), vectorize(), split(), ...
+      * The use of this function is only reserved for advanced users who want
+      * a low level control of the schedule.
+      *
+      * Vectors in the time-space domain have the following form
+      *
+      * computation_name[redundancy_ID,static,dynamic,static,dynamic,static,dynamic,static,...]
+      *
+      * The first dimension of the vector is used to indicate the redundancy ID
+      * (the notion of the redundancy ID is explained later).
+      *
+      * The following dimensions are interleaved dimensions: static, dynamic, static,
+      * dynamic, ...
+      * Dynamic dimensions represent the loop levels, while static dimensions are
+      * used to order statements within a given block of statements in a given loop
+      * level.
+      * For example, the computations c0 and c1 in the following loop nest
+      *
+      * for (i=0; i<N: i++)
+      *   for (j=0; j<N; j++)
+      *   {
+      *     c0;
+      *     c1;
+      *   }
+      *
+      * have the following representations in the iteration domain
+      *
+      * {c0[i,j]: 0<=i<N and 0<=j<N}
+      * {c1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * and the following representation in the time-space domain
+      *
+      * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      *
+      * The first dimension (dimension 0) in the time-space
+      * domain (the leftmost dimension) is the redundancy ID
+      * (in this case it is 0, the meaning of this ID will be explained later).
+      * The second dimension (starting from the left) is a static dimension,
+      * the third dimension is a dynamic dimension that
+      * represents the loop level i, ..., the fifth dimension is a dynamic
+      * dimension that represents the loop level j and the last dimension
+      * (dimension 5) is a static dimension and allows the ordering of
+      * c1 after c0 in the loop nest.
+      *
+      * To transform the previous iteration domain to the
+      * time-space domain, the following schedule should be used:
+      *
+      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      *
+      * The first dimension called "redundancy ID" is only meaningful if the
+      * computation is redundant. i.e., some parts of the computation are
+      * redundantly computed.  Redundant computations are in general used to
+      * maximize parallelism and data locality on the expense of doing some
+      * computations redundantly.
+      * For example, if the two computations c1(i,j) and c2(i,j) both depend
+      * on the computation c0(i,j), instead of waiting for c0(i,j) to be
+      * computed and then computing c1(i,j) and c2(i,j) in parallel, the thread
+      * executing c1(i,j) can compute c0(i,j) by itself and then run c1(i,j).
+      * The thread that computes c2(i,j) can do the same and compute c0(i,j)
+      * by itself and then compute c2(i,j). In this case the two threads do not
+      * need to wait. This is done at the expense of redundant computation since
+      * c0(i,j) is computed by both threads.
+      *
+      * In general redundant computations are useful when tiling stencil
+      * computations.  In the context of stencils such a tiling is called
+      * "overlapped tiling".  Tiles that depend on results computed by other
+      * tiles that run in parallel can compute the boundaries redundantly which
+      * allows them to avoid waiting and thus can run in parallel.
+      *
+      * In Tiramisu, the user can indicate that a chunk of a computation
+      * should be computed redundantly. The original computation always has a redundancy
+      * ID equal to 0 (which means this is the original computation).
+      * The redundant chunk has an ID that is different from 0 and that is
+      * used to uniquely identify it.
+      *
+      * For example if we want to compute all of c0 three times (that is,
+      * compute the original computation and compute two redundant computations),
+      * we can use the following schedules:
+      *
+      * The schedule of the original computation:      {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The schedule of the redundant computation N°1: {c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * The schedule of the redundant computation N°2: {c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      *
+      * The schedule of c0 in this case would be three maps that map c0[i,j] to
+      * the three different redundant computations in the time-processor domain:
+      *
+      * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+      *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
+      *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      *
+      * The function set_schedule() overrides any other schedule set by the high level
+      * scheduling functions.  Currently the user has to choose between using the high
+      * level scheduling functions or using this low level set_schedule function. The user
+      * cannot mix the use of the two in the same program because they are not compatible.
+      */
+    // @{
+    void set_schedule(isl_map *map);
+    void set_schedule(std::string map_str);
+    // @}
+
 
 public:
 
@@ -1769,6 +1996,14 @@ public:
       * S1.after(S0, {0,1})
       *
       * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
       */
     // @{
     void after(computation &comp, int level);
@@ -1805,6 +2040,14 @@ public:
       * S0.before(S1, {2,3})
       *
       * means that S0 is before S1 in the loop level 2 and in the loop level 3.
+      *
+      * Note that
+      *
+      * S0.before(S1, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S0 is before S1 in L only.  S0 is not
+      * before S1 in the loop levels that are before L.
       */
     // @{
     void before(computation &consumer, int L);
@@ -1959,16 +2202,15 @@ public:
       */
     template<typename... Args> void fuse_after(int lev, Args... args)
     {
-        std::vector<tiramisu::computation> computations{std::forward<Args>(args)...};
+        std::vector<tiramisu::computation *> computations{std::forward<Args>(args)...};
 
-        if (computations.size() > 0)
+        assert(computations.size() > 0);
+
+        this->after(*computations[computations.size() - 1], lev);
+
+        for (int i = computations.size() - 1; i > 1; i++)
         {
-            this->after(computations[0], lev);
-
-            for (int i = 0; i < computations.size() - 1; i++)
-            {
-                computations[i].after(computations[i + 1], lev);
-            }
+                computations[i]->after(*computations[i - 1], lev);
         }
     }
 
@@ -2015,6 +2257,11 @@ public:
        * \p access_str is a string that represents the relation. It is encoded
        * in the ISL format, http://isl.gforge.inria.fr/user.html#Sets-and-Relations
        * of relations.
+       *
+       * Note that, in TIramisu, the access relations of computation that have the same name
+       * must be identical.
+       *
+       * Examples: tutorial_01, tutorial_02, tutorial_08 (actually most tutorials have set_access()).
        */
      // @{
      void set_access(std::string access_str);
@@ -2136,8 +2383,8 @@ public:
        * cannot mix the use of the two in the same program because they are not compatible.
        */
      // @{
-     void set_schedule(isl_map *map);
-     void set_schedule(std::string map_str);
+     void set_low_level_schedule(isl_map *map);
+     void set_low_level_schedule(std::string map_str);
      // @}
 
     /**

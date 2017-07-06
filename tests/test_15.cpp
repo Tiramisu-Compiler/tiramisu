@@ -79,8 +79,8 @@ int main(int argc, char **argv)
     blurxy_tiramisu.add_context_constraints("[Nc, Ny, Nx, Mc, My, Mx]->{: Nc=Mc and Ny>My and Nx=Mx and Nc>0 and Ny>0 and Nx>0 and Mc>0 and My>0 and Mx>0}");
 
 #if 0
-    bx.set_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
-    by.set_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, y+2, 1, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
+    bx.set_low_level_schedule("[Nc, Ny, Nx]->{bx[c,y,x]->bx[0, 0, c, 0, y, 0, x, 0]: (0 <= c <= (Nc -1)) and (0 <= y <= (Ny -1)) and (0 <= x <= (Nx -1))}");
+    by.set_low_level_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, y+2, 1, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 1
     by.shift(1, +2);
     by.after(bx, 1);

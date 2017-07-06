@@ -473,25 +473,40 @@ isl_constraint *generator::get_constraint_for_access(int access_dimension,
 std::vector<tiramisu::computation *> generator::filter_computations_by_domain(std::vector<tiramisu::computation *> comp_vec,
         isl_union_set *node_domain)
 {
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
     std::vector<tiramisu::computation *> res;
+
+    DEBUG(10, tiramisu::str_dump("Filtering computations by ISL AST domain."));
+    DEBUG(10, tiramisu::str_dump("ISL AST node domain:", isl_union_set_to_str(node_domain)));
 
     for (size_t i = 0; i < comp_vec.size(); i++)
     {
         isl_set *comp_domain = comp_vec[i]->get_iteration_domain();
+        DEBUG(10, tiramisu::str_dump("Checking computation " + comp_vec[i]->get_name()));
+        DEBUG(10, tiramisu::str_dump("Domain of the computation ", isl_set_to_str(comp_domain)));
         isl_map *sched = comp_vec[i]->get_trimmed_union_of_schedules();
         isl_set *scheduled_comp_domain = isl_set_apply(isl_set_copy(comp_domain), isl_map_copy(sched));
+        DEBUG(10, tiramisu::str_dump("Domain of the computation in time-space domain ", isl_set_to_str(scheduled_comp_domain)));
+
         isl_union_set *intersection =
             isl_union_set_intersect(isl_union_set_copy(node_domain),
                                     isl_union_set_from_set(scheduled_comp_domain));
 
+        DEBUG(10, tiramisu::str_dump("Intersection", isl_union_set_to_str(intersection)));
+
         if (isl_union_set_is_empty(intersection) == isl_bool_false)
         {
+            DEBUG(10, tiramisu::str_dump("This computation is accepted by the filter (intersection non-empty)."));
             res.push_back(comp_vec[i]);
         }
         isl_union_set_free(intersection);
     }
 
     assert((res.size() > 0) && "Computation not found.");
+
+    DEBUG_INDENT(-4);
 
     return res;
 }
@@ -528,7 +543,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         // Get the domain of the computation that corresponds to the access.
         // Even if there are many computations, we take the first because we are
         // only interested in getting the space of those computations and we assume
-        // in Tiramisu that all the computations that have the same, have the same
+        // in Tiramisu that all the computations that have the same name, have the same
         // space.
         std::vector<tiramisu::computation *> computations_vector = fct->get_computation_by_name(exp.get_name());
 
@@ -585,7 +600,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         {
             isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
-            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before transforming its domain into time-space) : ",
+            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before re-adapting its domain into the domain of the current access) : ",
                                         isl_map_to_str(access_to_buff)));
 
             access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), access_to_buff);
