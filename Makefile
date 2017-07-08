@@ -1,6 +1,6 @@
 # Set the following PATHs before compiling Tiramisu
-ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
-ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
+ISL_INCLUDE_DIRECTORY=
+ISL_LIB_DIRECTORY=
 HALIDE_SOURCE_DIRECTORY=Halide
 HALIDE_LIB_DIRECTORY=Halide/lib
 
@@ -34,7 +34,8 @@ TUTO_GEN = \
        build/tutorial_04_fct_generator \
        build/tutorial_05_fct_generator \
        build/tutorial_06_fct_generator \
-       build/tutorial_08_fct_generator
+       build/tutorial_08_fct_generator \
+       build/tutorial_09_fct_generator
 
 TUTO_BIN = \
        build/tutorial_01 \
@@ -43,7 +44,8 @@ TUTO_BIN = \
        build/tutorial_04 \
        build/tutorial_05 \
        build/tutorial_06 \
-       build/tutorial_08
+       build/tutorial_08 \
+       build/tutorial_09
 
 TEST_GEN = build/test_01_fct_generator \
        build/test_02_fct_generator \
@@ -90,7 +92,8 @@ TEST_GEN = build/test_01_fct_generator \
        build/test_44_fct_generator \
        build/test_45_fct_generator \
        build/test_46_fct_generator \
-       build/test_47_fct_generator
+       build/test_47_fct_generator \
+       build/test_48_fct_generator
 
 #build/test_07_fct_generator
 
@@ -140,7 +143,8 @@ TEST_BIN = build/test_global \
        build/test_44 \
        build/test_45 \
        build/test_46 \
-       build/test_47
+       build/test_47 \
+       build/test_48
 
 #build/test_07
 

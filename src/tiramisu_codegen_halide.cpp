@@ -1761,79 +1761,113 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
         // Change the type from Serial to parallel or vector if the
         // current level was marked as such.
-        for (size_t tt = 0; tt < tagged_stmts.size(); tt++)
+        size_t tt = 0;
+        while (tt < tagged_stmts.size())
         {
-            if (fct.should_parallelize(tagged_stmts[tt], level))
+            if (tagged_stmts[tt] != "")
             {
-                fortype = Halide::Internal::ForType::Parallel;
-            }
-            else if (fct.should_vectorize(tagged_stmts[tt], level))
-            {
-                DEBUG(3, tiramisu::str_dump("Trying to vectorize at level ");
-                      tiramisu::str_dump(std::to_string(level)));
+                if (fct.should_parallelize(tagged_stmts[tt], level))
+                {
+                    fortype = Halide::Internal::ForType::Parallel;
+                    // Since this statement is treated, remove it from the list of
+                    // tagged statements so that it does not get treated again later.
+                    tagged_stmts[tt] = "";
+                    // As soon as we find one tagged statement that actually useful we exit
+                    break;
+                }
+                else if (fct.should_vectorize(tagged_stmts[tt], level))
+                {
+                    DEBUG(3, tiramisu::str_dump("Trying to vectorize at level ");
+                          tiramisu::str_dump(std::to_string(level)));
 
-                const Halide::Internal::IntImm *extent =
-                    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                if (extent)
-                {
-                    fortype = Halide::Internal::ForType::Vectorized;
-                    DEBUG(3, tiramisu::str_dump("Loop vectorized"));
-                }
-                else
-                {
-                    DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
-                    // Currently we can only print Halide expressions using
-                    // "std::cout << ".
-                    DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
-                }
-            }
-            else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
-            {
-                fortype = Halide::Internal::ForType::Parallel;
-                dev_api = Halide::DeviceAPI::OpenCL;
-                std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
-                Halide::Expr new_iterator_var =
-                    Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
-                halide_body = Halide::Internal::LetStmt::make(
-                                  iterator_str,
-                                  new_iterator_var,
-                                  halide_body);
-                iterator_str = gpu_iter;
-                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
-            }
-            else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
-            {
-                fortype = Halide::Internal::ForType::Parallel;
-                dev_api = Halide::DeviceAPI::OpenCL;
-                std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
-                Halide::Expr new_iterator_var =
-                    Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
-                halide_body = Halide::Internal::LetStmt::make(
-                                  iterator_str,
-                                  new_iterator_var,
-                                  halide_body);
-                iterator_str = gpu_iter;
-                DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
-            }
-            else if (fct.should_unroll(tagged_stmts[tt], level))
-            {
-                DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
-                      tiramisu::str_dump(std::to_string(level)));
+                    const Halide::Internal::IntImm *extent =
+                        cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+                    if (extent)
+                    {
+                        fortype = Halide::Internal::ForType::Vectorized;
+                        DEBUG(3, tiramisu::str_dump("Loop vectorized"));
+                    }
+                    else
+                    {
+                        DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
+                        // Currently we can only print Halide expressions using
+                        // "std::cout << ".
+                        DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                    }
 
-                const Halide::Internal::IntImm *extent =
-                    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                if (extent)
-                {
-                    fortype = Halide::Internal::ForType::Unrolled;
-                    DEBUG(3, tiramisu::str_dump("Loop unrolled"));
+                    // Since this statement is treated, remove it from the list of
+                    // tagged statements so that it does not get treated again later.
+                    tagged_stmts[tt] = "";
+                    break;
                 }
-                else
+                else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
                 {
-                    DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
-                    DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                    fortype = Halide::Internal::ForType::Parallel;
+                    dev_api = Halide::DeviceAPI::OpenCL;
+                    std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
+                    Halide::Expr new_iterator_var =
+                        Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                    halide_body = Halide::Internal::LetStmt::make(
+                                      iterator_str,
+                                      new_iterator_var,
+                                      halide_body);
+                    iterator_str = gpu_iter;
+                    DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
+
+                    // Since this statement is treated, remove it from the list of
+                    // tagged statements so that it does not get treated again later.
+                    tagged_stmts[tt] = "";
+                    break;
+                }
+                else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
+                {
+                    fortype = Halide::Internal::ForType::Parallel;
+                    dev_api = Halide::DeviceAPI::OpenCL;
+                    std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
+                    Halide::Expr new_iterator_var =
+                        Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                    halide_body = Halide::Internal::LetStmt::make(
+                                      iterator_str,
+                                      new_iterator_var,
+                                      halide_body);
+                    iterator_str = gpu_iter;
+                    DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
+
+                    // Since this statement is treated, remove it from the list of
+                    // tagged statements so that it does not get treated again later.
+                    tagged_stmts[tt] = "";
+                    break;
+                }
+                else if (fct.should_unroll(tagged_stmts[tt], level))
+                {
+                    DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
+                          tiramisu::str_dump(std::to_string(level)));
+
+                    const Halide::Internal::IntImm *extent =
+                        cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+                    if (extent)
+                    {
+                        fortype = Halide::Internal::ForType::Unrolled;
+                        DEBUG(3, tiramisu::str_dump("Loop unrolled"));
+                    }
+                    else
+                    {
+                        DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
+                        DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                    }
+
+                    // Since this statement is treated, remove it from the list of
+                    // tagged statements so that it does not get treated again later.
+                    tagged_stmts[tt] = "";
+                    break;
                 }
             }
+            tt++;
         }
+
+        DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now:"));
+        for (const auto &ts: tagged_stmts)
+            DEBUG(10, tiramisu::str_dump(ts + " "));
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
         result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format - init_expr,
@@ -1880,15 +1914,21 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             // parallelized, vectorized or mapped to GPU.
             for (int l = 0; l < level; l++)
             {
-                if (fct.should_parallelize(computation_name, l) ||
-                        fct.should_vectorize(computation_name, l) ||
-                        fct.should_map_to_gpu_block(computation_name, l) ||
-                        fct.should_map_to_gpu_thread(computation_name, l) ||
-                        fct.should_unroll(computation_name, l))
-                {
+                if (fct.should_parallelize(computation_name, l))
                     tagged_stmts.push_back(computation_name);
-                }
+                if (fct.should_vectorize(computation_name, l))
+                    tagged_stmts.push_back(computation_name);
+                if (fct.should_map_to_gpu_block(computation_name, l))
+                    tagged_stmts.push_back(computation_name);
+                if (fct.should_map_to_gpu_thread(computation_name, l))
+                    tagged_stmts.push_back(computation_name);
+                if (fct.should_unroll(computation_name, l))
+                    tagged_stmts.push_back(computation_name);
             }
+
+            DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now"));
+            for (const auto &ts: tagged_stmts)
+                DEBUG(10, tiramisu::str_dump(ts + " "));
 
             // Retrieve the computation of the node.
             tiramisu::computation *comp = get_computation_annotated_in_a_node(node);

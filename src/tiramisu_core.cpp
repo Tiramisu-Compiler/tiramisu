@@ -558,17 +558,41 @@ const std::vector<std::string> &function::get_iterator_names() const
   */
 bool function::should_parallelize(const std::string &comp, int lev) const
 {
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
     assert(!comp.empty());
     assert(lev >= 0);
 
+    bool found = false;
+
+    DEBUG(10, tiramisu::str_dump("Checking if the computation " + comp +
+                                 " should be parallelized" +
+                                 " at the loop level " + std::to_string(lev)));
+
     for (const auto &pd : this->parallel_dimensions)
     {
+        DEBUG(10, tiramisu::str_dump("Checking if the computation " + comp +
+                                     " at the loop level " + std::to_string(lev) +
+                                     " is equal to the tagged computation " +
+                                     pd.first + " at the level " + std::to_string(pd.second)));
+
         if ((pd.first == comp) && (pd.second == lev))
         {
-            return true;
+            found = true;
+
+            DEBUG(10, tiramisu::str_dump("Yes equal."));
         }
     }
-    return false;
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be mapped to CPU thread.";
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return found;
 }
 
 /**
@@ -577,17 +601,30 @@ bool function::should_parallelize(const std::string &comp, int lev) const
 */
 bool function::should_vectorize(const std::string &comp, int lev) const
 {
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
     assert(!comp.empty());
     assert(lev >= 0);
+
+    bool found = false;
 
     for (const auto &pd : this->vector_dimensions)
     {
         if ((pd.first == comp) && (pd.second == lev))
         {
-            return true;
+            found = true;
         }
     }
-    return false;
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be vectorized.";
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return found;
 }
 
 void function::set_context_set(isl_set *context)

@@ -1,4 +1,5 @@
 -  access parsing				test_16
+- .after()						test_43, 44, 45, 46, 47
 - .compute_at():				test_14, 32, 33, 34, 35, 36, 37, 38
 -  floor operator:				test_08
 - .fuse_after():				test_13
@@ -6,6 +7,7 @@
 - .store_at():					test_29, 30, 31, 38
 - .shift():						test_15
 -  shift operator:				test_06
+- .tag_parallel_level():		test_48
 - .tag_gpu_level():				test_17, 18
 - .tag_unroll_level():			test_11
 - .tile():						test_01, 02, 03
