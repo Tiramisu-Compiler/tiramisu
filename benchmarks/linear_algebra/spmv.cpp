@@ -76,10 +76,10 @@ int main(int argc, char **argv)
     c_x.set_access("{c_x[j]->b_x[j]}");
     c_y.set_access("{c_y[i,j]->b_y[i]}");
 
-    b0.set_schedule(      "[M]->{b0[i]->[0,0,i,0,0,0,0,0]: 0<=i<M}");
-    b1.set_schedule("      [M]->{b1[i]->[0,0,i,1,0,0,0,0]: 0<=i<M}");
-    t.set_schedule("[M,b0,b1]->{  t[i,j]->[0,0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->[i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
-    c_y.set_schedule("[M,b0,b1]->{c_y[i,j]->[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->[i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    b0.set_low_level_schedule("[M]->{b0[i]->[0,0,i,0,0,0,0,0]: 0<=i<M}");
+    b1.set_low_level_schedule("[M]->{b1[i]->[0,0,i,1,0,0,0,0]: 0<=i<M}");
+    t.set_low_level_schedule("[M,b0,b1]->{  t[i,j]->[0,0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->[i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
+    c_y.set_low_level_schedule("[M,b0,b1]->{c_y[i,j]->[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->[i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
 
     c_y.tag_vector_level(2);
     t.tag_vector_level(2);

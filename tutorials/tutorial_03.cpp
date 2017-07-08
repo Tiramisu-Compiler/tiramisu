@@ -61,7 +61,8 @@ int main(int argc, char **argv)
     // Declare a computation c_C
     computation c_C("[N]->{c_C[i,j,0]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
 
-    computation *c_C2 = c_C.add_computations("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
+    computation *c_C2 = c_C.add_computations("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(),
+                        true, p_uint8, &matmul);
     expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
     c_C2->set_expression(e1);
 
