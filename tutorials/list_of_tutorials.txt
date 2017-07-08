@@ -6,3 +6,4 @@
 - tutorial 06 : reduction example,
 - tutorial 07 : histogram,
 - tutorial 08 : update,
+- tutorial 09 : complicate reduction/update example,
