@@ -28,81 +28,14 @@ OBJ = \
 	build/tiramisu_codegen_from_halide.o
 
 TUTO_GEN = \
-<<<<<<< HEAD
-       build/tutorial_01_fct_generator \
-       build/tutorial_02_fct_generator \
-       build/tutorial_03_fct_generator \
-       build/tutorial_04_fct_generator \
-       build/tutorial_05_fct_generator \
-       build/tutorial_06_fct_generator \
-       build/tutorial_08_fct_generator \
-       build/tutorial_09_fct_generator
-
-TUTO_BIN = \
-       build/tutorial_01 \
-       build/tutorial_02 \
-       build/tutorial_03 \
-       build/tutorial_04 \
-       build/tutorial_05 \
-       build/tutorial_06 \
-       build/tutorial_08 \
-       build/tutorial_09
-
-TEST_GEN = build/test_01_fct_generator \
-       build/test_02_fct_generator \
-       build/test_03_fct_generator \
-       build/test_04_fct_generator \
-       build/test_05_fct_generator \
-       build/test_06_fct_generator \
-       build/test_08_fct_generator \
-       build/test_09_fct_generator \
-       build/test_10_fct_generator \
-       build/test_11_fct_generator \
-       build/test_12_fct_generator \
-       build/test_13_fct_generator \
-       build/test_14_fct_generator \
-       build/test_15_fct_generator \
-       build/test_16_fct_generator \
-       build/test_17_fct_generator \
-       build/test_18_fct_generator \
-       build/test_19_fct_generator \
-       build/test_20_fct_generator \
-       build/test_21_fct_generator \
-       build/test_22_fct_generator \
-       build/test_23_fct_generator \
-       build/test_24_fct_generator \
-       build/test_25_fct_generator \
-       build/test_26_fct_generator \
-       build/test_27_fct_generator \
-       build/test_28_fct_generator \
-       build/test_29_fct_generator \
-       build/test_30_fct_generator \
-       build/test_31_fct_generator \
-       build/test_32_fct_generator \
-       build/test_33_fct_generator \
-       build/test_34_fct_generator \
-       build/test_35_fct_generator \
-       build/test_36_fct_generator \
-       build/test_37_fct_generator \
-       build/test_38_fct_generator \
-       build/test_39_fct_generator \
-       build/test_40_fct_generator \
-       build/test_41_fct_generator \
-       build/test_42_fct_generator \
-       build/test_43_fct_generator \
-       build/test_44_fct_generator \
-       build/test_45_fct_generator \
-       build/test_46_fct_generator \
-       build/test_47_fct_generator \
-       build/test_48_fct_generator
-=======
    build/tutorial_01_fct_generator \
    build/tutorial_02_fct_generator \
    build/tutorial_03_fct_generator \
    build/tutorial_04_fct_generator \
    build/tutorial_05_fct_generator \
    build/tutorial_06_fct_generator \
-   build/tutorial_08_fct_generator
+   build/tutorial_08_fct_generator \
+   build/tutorial_09_fct_generator
 
 TUTO_BIN = \
    build/tutorial_01 \
@@ -111,7 +44,8 @@ TUTO_BIN = \
    build/tutorial_04 \
    build/tutorial_05 \
    build/tutorial_06 \
-   build/tutorial_08
+   build/tutorial_08 \
+   build/tutorial_09
 
 TEST_GEN = build/test_01_fct_generator \
    build/test_02_fct_generator \
@@ -151,61 +85,19 @@ TEST_GEN = build/test_01_fct_generator \
    build/test_37_fct_generator \
    build/test_38_fct_generator \
    build/test_39_fct_generator \
-   build/test_40_fct_generator
->>>>>>> 314b8f99d1d7374db987a9249304ca769cc08c1f
+   build/test_40_fct_generator \
+   build/test_41_fct_generator \
+   build/test_42_fct_generator \
+   build/test_43_fct_generator \
+   build/test_44_fct_generator \
+   build/test_45_fct_generator \
+   build/test_46_fct_generator \
+   build/test_47_fct_generator \
+   build/test_48_fct_generator
 
 #build/test_07_fct_generator
 
 TEST_BIN = build/test_global \
-<<<<<<< HEAD
-       build/test_01 \
-       build/test_02 \
-       build/test_03 \
-       build/test_04 \
-       build/test_05 \
-       build/test_06 \
-       build/test_08 \
-       build/test_09 \
-       build/test_10 \
-       build/test_11 \
-       build/test_12 \
-       build/test_13 \
-       build/test_14 \
-       build/test_15 \
-       build/test_16 \
-       build/test_17 \
-       build/test_18 \
-       build/test_19 \
-       build/test_20 \
-       build/test_21 \
-       build/test_22 \
-       build/test_23 \
-       build/test_24 \
-       build/test_25 \
-       build/test_26 \
-       build/test_27 \
-       build/test_28 \
-       build/test_29 \
-       build/test_30 \
-       build/test_31 \
-       build/test_32 \
-       build/test_33 \
-       build/test_34 \
-       build/test_35 \
-       build/test_36 \
-       build/test_37 \
-       build/test_38 \
-       build/test_39 \
-       build/test_40 \
-       build/test_41 \
-       build/test_42 \
-       build/test_43 \
-       build/test_44 \
-       build/test_45 \
-       build/test_46 \
-       build/test_47 \
-       build/test_48
-=======
    build/test_01 \
    build/test_02 \
    build/test_03 \
@@ -244,8 +136,15 @@ TEST_BIN = build/test_global \
    build/test_37 \
    build/test_38 \
    build/test_39 \
-   build/test_40
->>>>>>> 314b8f99d1d7374db987a9249304ca769cc08c1f
+   build/test_40 \
+   build/test_41 \
+   build/test_42 \
+   build/test_43 \
+   build/test_44 \
+   build/test_45 \
+   build/test_46 \
+   build/test_47 \
+   build/test_48
 
 #build/test_07
 
