@@ -1,6 +1,6 @@
 # Set the following PATHs before compiling Tiramisu
-ISL_INCLUDE_DIRECTORY=/usr/local/include
-ISL_LIB_DIRECTORY=/usr/local/lib
+ISL_INCLUDE_DIRECTORY=isl/include/
+ISL_LIB_DIRECTORY=isl/build/
 HALIDE_SOURCE_DIRECTORY=Halide
 HALIDE_LIB_DIRECTORY=Halide/lib
 
