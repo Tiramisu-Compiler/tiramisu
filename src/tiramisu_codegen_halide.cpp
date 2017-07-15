@@ -15,6 +15,12 @@
 #include <tiramisu/expr.h>
 
 #include <string>
+#include "../include/tiramisu/expr.h"
+#include "../Halide/src/Expr.h"
+#include "../Halide/src/Parameter.h"
+#include "../include/tiramisu/debug.h"
+#include "../Halide/src/IR.h"
+#include "../include/tiramisu/core.h"
 
 namespace tiramisu
 {
@@ -2141,6 +2147,29 @@ Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast
     return index;
 }
 
+Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr)
+{
+    assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // ISL dimension is ordered from outermost to innermost.
+
+    Halide::Expr index = 0;
+    for (int i = dims; i >= 1; --i)
+    {
+        isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
+        Halide::Expr operand_h = halide_expr_from_isl_ast_expr(operand);
+        index += operand_h * strides[dims - i];
+        isl_ast_expr_free(operand);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return index;
+}
+
 /*
  * Create a Halide assign statement from a computation.
  * The statement will assign the computations to a memory buffer based on the
@@ -2211,6 +2240,7 @@ void computation::create_halide_assignment()
         // from innermost to outermost; thus, we need to reverse the order
         halide_dimension_t *shape = new halide_dimension_t[tiramisu_buffer->get_dim_sizes().size()];
         int stride = 1;
+        std::vector<Halide::Expr> strides_vector;
 
         if (tiramisu_buffer->has_constant_extents())
         {
@@ -2223,13 +2253,31 @@ void computation::create_halide_assignment()
                 stride *= (int) tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
             }
         }
+        else
+        {
+            std::vector<isl_ast_expr *> empty_index_expr;
+            Halide::Expr stride_expr = Halide::Expr(1);
+            for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+            {
+                int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                strides_vector.push_back(stride_expr);
+                stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
+            }
+        }
 
         // The number of dimensions in the Halide buffer should be equal to
         // the number of dimensions of the access function.
         assert(buf_dims == access_dims);
         assert(this->index_expr[0] != NULL);
         DEBUG(3, tiramisu::str_dump("Linearizing access of the LHS index expression."));
-        Halide::Expr index = tiramisu::linearize_access(buf_dims, shape, this->index_expr[0]);
+
+        Halide::Expr index;
+        if (tiramisu_buffer->has_constant_extents())
+            index = tiramisu::linearize_access(buf_dims, shape, this->index_expr[0]);
+        else
+            index = tiramisu::linearize_access(buf_dims, strides_vector, this->index_expr[0]);
+
+        DEBUG(3, tiramisu::str_dump("After linearization: "); std::cout << index << std::endl);
 
         DEBUG(3, tiramisu::str_dump("Index expressions of this statement are (the first is the LHS and the others are the RHS) :"));
         print_isl_ast_expr_vector(this->index_expr);
@@ -2260,7 +2308,16 @@ void computation::create_halide_assignment()
                                                     true,
                                                     tiramisu_buffer->get_dim_sizes().size(),
                                                     tiramisu_buffer->get_name());
-                param.set_buffer(Halide::Buffer<>());
+                std::vector<isl_ast_expr *> empty_index_expr;
+                Halide::Expr stride_expr = Halide::Expr(1);
+                for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+                {
+                    int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                    param.set_min_constraint(i, Halide::Expr(0));
+                    param.set_extent_constraint(i, generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]));
+                    param.set_stride_constraint(i, stride_expr);
+                    stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
+                }
             }
         }
 

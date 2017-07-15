@@ -93,7 +93,8 @@ TEST_GEN = build/test_01_fct_generator \
    build/test_45_fct_generator \
    build/test_46_fct_generator \
    build/test_47_fct_generator \
-   build/test_48_fct_generator
+   build/test_48_fct_generator \
+   build/test_49_fct_generator
 
 #build/test_07_fct_generator
 
@@ -144,7 +145,8 @@ TEST_BIN = build/test_global \
    build/test_45 \
    build/test_46 \
    build/test_47 \
-   build/test_48
+   build/test_48 \
+   build/test_49
 
 #build/test_07
 

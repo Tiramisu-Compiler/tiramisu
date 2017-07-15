@@ -1,0 +1,82 @@
+#include <isl/set.h>
+#include <isl/union_map.h>
+#include <isl/union_set.h>
+#include <isl/ast_build.h>
+#include <isl/schedule.h>
+#include <isl/schedule_node.h>
+
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
+
+#include <string.h>
+#include <Halide.h>
+
+#include "wrapper_test_49.h"
+#include "../include/tiramisu/core.h"
+#include "../include/tiramisu/expr.h"
+
+using namespace tiramisu;
+
+/**
+ * Test S1.allocate_buffer_automatically().
+ */
+
+void generate_function(std::string name, int size, int val0)
+{
+    tiramisu::global::set_default_tiramisu_options();
+
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+
+    tiramisu::function function0(name);
+    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    tiramisu::var i("i");
+    tiramisu::var j("j");
+    tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
+    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+1)), true, p_uint8, &function0);
+    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+2)), true, p_uint8, &function0);
+    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+3)), true, p_uint8, &function0);
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+
+    S1.after(S0,computation::root_dimension);
+    S2.after(S1,computation::root_dimension);
+    S3.after(S2,computation::root_dimension);
+
+    S0.tag_parallel_level(0);
+    S1.tag_parallel_level(1);
+    S2.tag_parallel_level(3);
+    S3.tag_parallel_level(0);
+    S3.tag_parallel_level(1);
+    S3.tag_parallel_level(2);
+    S3.tag_parallel_level(3);
+
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
+    S0.allocate_buffer_automatically();
+    S1.allocate_buffer_automatically();
+    S2.allocate_buffer_automatically();
+    S3.allocate_buffer_automatically(a_output);
+
+    // -------------------------------------------------------
+    // Code Generation
+    // -------------------------------------------------------
+
+    function0.set_arguments({S3.get_automatically_allocated_buffer()});
+    function0.gen_time_space_domain();
+    function0.gen_isl_ast();
+    function0.gen_halide_stmt();
+    function0.gen_halide_obj("build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
+}
+
+int main(int argc, char **argv)
+{
+    generate_function("tiramisu_generated_code", SIZE1, 2);
+
+    return 0;
+}

@@ -14,6 +14,8 @@
 
 #include <string>
 #include <algorithm>
+#include "../include/tiramisu/core.h"
+#include "../include/tiramisu/expr.h"
 
 namespace tiramisu
 {
@@ -1257,6 +1259,25 @@ void tiramisu::computation::vectorize(int L0, int v)
     this->vectorize(L0, v, loop_upper_bound);
 }
 
+tiramisu::buffer *tiramisu::computation::get_automatically_allocated_buffer()
+{
+    return this->automatically_allocated_buffer;
+}
+
+std::vector<tiramisu::expr> computation::compute_buffer_size()
+{
+    std::vector<tiramisu::expr> dim_sizes;
+
+    for (int i = 0; i < this->get_n_dimensions(); i++)
+    {
+        tiramisu::expr lower = utility::get_bound(this->get_iteration_domain(), i, false);
+        tiramisu::expr upper = utility::get_bound(this->get_iteration_domain(), i, true);
+        tiramisu::expr diff = upper - lower + 1;
+        dim_sizes.push_back(diff);
+    }
+    return dim_sizes;
+}
+
 /**
  * Algorithm:
  * - Compute the size of the buffer:
@@ -1275,22 +1296,17 @@ tiramisu::computation *computation::store_at(int L0)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    std::vector<tiramisu::expr> dim_sizes;
-    for (int i = 0; i < this->get_n_dimensions(); i++)
-    {
-        tiramisu::expr lower = utility::get_bound(this->get_iteration_domain(), i, false);
-        tiramisu::expr upper = utility::get_bound(this->get_iteration_domain(), i, true);
-        tiramisu::expr diff = upper - lower;
-        dim_sizes.push_back(diff);
-    }
+    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
 
-    tiramisu::buffer *buff = new tiramisu::buffer("buff_" + generate_new_variable_name(),
+    tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
             this->get_n_dimensions(),
             dim_sizes,
             this->get_data_type(),
             NULL,
             tiramisu::a_temporary,
             this->get_function());
+
+    this->automatically_allocated_buffer = buff;
 
     tiramisu::computation *allocation = buff->allocate_at(this, L0);
     this->bind_to(buff);
@@ -2138,6 +2154,34 @@ void computation::after_low_level(computation &comp, int level)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::buffer::set_argument_type(tiramisu::argument_t type)
+{
+        this->argtype = type;
+}
+
+void tiramisu::computation::allocate_buffer_automatically(tiramisu::argument_t type)
+{
+    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
+
+    tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
+                                                  this->get_n_dimensions(),
+                                                  dim_sizes,
+                                                  this->get_data_type(),
+                                                  NULL,
+                                                  type,
+                                                  this->get_function());
+
+    this->automatically_allocated_buffer = buff;
+
+    tiramisu::computation *allocation;
+    if (type == tiramisu::a_temporary)
+    {
+        allocation = buff->allocate_at(this, computation::root_dimension);
+        allocation->before(*this, computation::root_dimension);
+    }
+
+    this->bind_to(buff);
+}
 
 void tiramisu::computation::after(computation &comp, int level)
 {
@@ -4894,6 +4938,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     stmt = Halide::Internal::Stmt();
     time_processor_domain = NULL;
     duplicate_number = 0;
+    automatically_allocated_buffer = NULL;
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;

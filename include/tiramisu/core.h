@@ -858,6 +858,17 @@ private:
 
 protected:
     /**
+     * Set the type of the argument. Three possible types exist:
+     *  - a_input: for inputs of the function,
+     *  - a_output: for outputs of the function,
+     *  - a_temporary: for buffers used as temporary buffers within
+     *  the function (any temporary buffer is allocated automatically by
+     *  the Tiramisu runtime at the entry of the function and is
+     *  deallocated at the exit of the function).
+     */
+    void set_argument_type(tiramisu::argument_t type);
+
+    /**
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
@@ -1083,6 +1094,12 @@ private:
       * defined in other computations.
       */
     std::vector<std::pair<std::string, tiramisu::expr>> associated_let_stmts;
+
+    /**
+     * The buffer attached "automatically" to this computation.
+     * If the buffer is not created automatically, this variable will be empty.
+     */
+    tiramisu::buffer *automatically_allocated_buffer;
 
     /**
       * An ISL context associate with the function.
@@ -1641,6 +1658,12 @@ protected:
     computation();
 
     /**
+      * Compute the size of the buffer allocated automatically to hold the
+      * results of this computation.
+      */
+    std::vector<tiramisu::expr> compute_buffer_size();
+
+    /**
       * Return the iteration domain of the computation.
       * In this representation, the order of execution of computations
       * is not specified, the computations are also not mapped to memory.
@@ -2010,6 +2033,22 @@ public:
     void after(computation &comp, std::vector<int> levels);
     // @}
 
+    /*
+     * Allocate a buffer for the computation automatically.  The size of the buffer
+     * is deduced automatically and a name is assigned to it automatically.
+     * Assuming the name of the computation is C, the name of the generated buffer
+     * is _C_buffer.
+     *
+     * \p type is the type of the argument. Three possible types exist:
+     *  - a_input: for inputs of the function,
+     *  - a_output: for outputs of the function,
+     *  - a_temporary: for buffers used as temporary buffers within
+     *  the function (any temporary buffer is allocated automatically by
+     *  the Tiramisu runtime at the entry of the function and is
+     *  deallocated at the exit of the function).
+     */
+    void allocate_buffer_automatically(tiramisu::argument_t type = tiramisu::a_temporary);
+
     /**
       * Apply a transformation on the schedule. This transformation is from
       * the time-space domain to the time-space domain.  It is applied on
@@ -2239,6 +2278,13 @@ public:
     void gpu_tile(int L0, int L1, int sizeX, int sizeY);
     void gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
+
+    /**
+     * Return the buffer that was allocated automatically using
+     * high level data mapping functions.
+     * If no automatic buffer was allocated, this function returns NULL.
+     */
+    tiramisu::buffer *get_automatically_allocated_buffer();
 
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
