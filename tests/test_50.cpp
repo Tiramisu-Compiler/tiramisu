@@ -18,7 +18,7 @@
 using namespace tiramisu;
 
 /**
- * Test S1.allocate_buffer_automatically().
+ * Test allocate_and_map_buffers_automatically().
  */
 
 void generate_function(std::string name, int size, int val0)
