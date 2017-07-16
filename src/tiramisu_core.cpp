@@ -14,27 +14,26 @@
 
 #include <string>
 #include <algorithm>
-#include "../include/tiramisu/core.h"
-#include "../include/tiramisu/expr.h"
 
 namespace tiramisu
 {
-
-std::map<std::string, computation *> computations_list;
-bool global::auto_data_mapping;
+    std::map<std::string, computation *> computations_list;
+    bool global::auto_data_mapping;
 
 // Used for the generation of new variable names.
-int id_counter = 0;
+    int id_counter = 0;
 
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
  */
-isl_ast_node *for_code_generator_after_for(
-    isl_ast_node *node, isl_ast_build *build, void *user);
-std::string generate_new_variable_name();
-tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
-        const tiramisu::expr &exp);
+    isl_ast_node *for_code_generator_after_for(
+            isl_ast_node *node, isl_ast_build *build, void *user);
+
+    std::string generate_new_variable_name();
+
+    tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
+                                                                 const tiramisu::expr &exp);
 
 /**
  * Create an equality constraint and add it to the schedule \p sched.
@@ -43,8 +42,8 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
  * This function function add the constraint:
  *   in_dim_coefficient*y = out_dim_coefficient*y' + const_conefficient;
  */
-isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_coefficient,
-                                int const_conefficient, isl_map *sched);
+    isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_coefficient,
+                                    int const_conefficient, isl_map *sched);
 
 /**
  * Create an inequality constraint and add it to the schedule \p sched
@@ -54,113 +53,112 @@ isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_co
  * This function function add the constraint:
  *   in_dim_coefficient*y <= out_dim_coefficient*y' + const_conefficient;
  */
-isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
-                                  int out_dim_coefficient, int const_conefficient, isl_map *sched);
+    isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
+                                      int out_dim_coefficient, int const_conefficient, isl_map *sched);
 
 
 /**
   * Add a buffer to the function.
   */
-void function::add_buffer(std::pair<std::string, tiramisu::buffer *> buf)
-{
-    assert(!buf.first.empty() && ("Empty buffer name."));
-    assert((buf.second != NULL) && ("Empty buffer."));
+    void function::add_buffer(std::pair < std::string, tiramisu::buffer * > buf)
+    {
+        assert(!buf.first.empty() && ("Empty buffer name."));
+        assert((buf.second != NULL) && ("Empty buffer."));
 
-    this->buffers_list.insert(buf);
-}
+        this->buffers_list.insert(buf);
+    }
 
 /**
  * Construct a function with the name \p name.
  */
-function::function(std::string name)
-{
-    assert(!name.empty() && ("Empty function name"));
+    function::function(std::string name) {
+        assert(!name.empty() && ("Empty function name"));
 
-    this->name = name;
-    halide_stmt = Halide::Internal::Stmt();
-    ast = NULL;
-    context_set = NULL;
-    use_low_level_scheduling_commands = false;
+        this->name = name;
+        halide_stmt = Halide::Internal::Stmt();
+        ast = NULL;
+        context_set = NULL;
+        use_low_level_scheduling_commands = false;
 
-    // Allocate an ISL context.  This ISL context will be used by
-    // the ISL library calls within Tiramisu.
-    ctx = isl_ctx_alloc();
-};
+        // Allocate an ISL context.  This ISL context will be used by
+        // the ISL library calls within Tiramisu.
+        ctx = isl_ctx_alloc();
+    };
 
 /**
   * Get the arguments of the function.
   */
 // @{
-const std::vector<tiramisu::buffer *> &function::get_arguments() const
-{
-    return function_arguments;
-}
+    const std::vector<tiramisu::buffer *> &function::get_arguments() const {
+        return function_arguments;
+    }
 // @}
 
-isl_union_map *tiramisu::function::compute_dep_graph()
-{
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
+    isl_union_map *tiramisu::function::compute_dep_graph() {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
 
-    isl_union_map *result = NULL;
+        isl_union_map *result = NULL;
 
-    for (const auto &consumer : this->get_computations())
-    {
-        DEBUG(3, tiramisu::str_dump("Computing the dependences involving the computation " +
-                                    consumer->get_name() + "."));
-        DEBUG(3, tiramisu::str_dump("Computing the accesses of the computation."));
+        for (const auto &consumer : this->get_computations()) {
+            DEBUG(3, tiramisu::str_dump("Computing the dependences involving the computation " +
+                                        consumer->get_name() + "."));
+            DEBUG(3, tiramisu::str_dump("Computing the accesses of the computation."));
 
-        isl_union_map *accesses_union_map = NULL;
-        std::vector<isl_map *> accesses_vector;
-        generator::get_rhs_accesses(this, consumer, accesses_vector, false);
+            isl_union_map *accesses_union_map = NULL;
+            std::vector < isl_map * > accesses_vector;
+            generator::get_rhs_accesses(this, consumer, accesses_vector, false);
 
-        DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
+            DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
 
-        if (!accesses_vector.empty())
-        {
-            // Create a union map of the accesses to the producer.
-            if (accesses_union_map == NULL)
-            {
-                isl_space *space = isl_map_get_space(accesses_vector[0]);
-                assert(space != NULL);
-                accesses_union_map = isl_union_map_empty(space);
-            }
+            if (!accesses_vector.empty()) {
+                // Create a union map of the accesses to the producer.
+                if (accesses_union_map == NULL) {
+                    isl_space *space = isl_map_get_space(accesses_vector[0]);
+                    assert(space != NULL);
+                    accesses_union_map = isl_union_map_empty(space);
+                }
 
-            for (size_t i = 0; i < accesses_vector.size(); ++i)
-            {
-                isl_map *reverse_access = isl_map_reverse(accesses_vector[i]);
-                accesses_union_map = isl_union_map_union(isl_union_map_from_map(reverse_access),
-                                     accesses_union_map);
-            }
+                for (size_t i = 0; i < accesses_vector.size(); ++i) {
+                    isl_map *reverse_access = isl_map_reverse(accesses_vector[i]);
+                    accesses_union_map = isl_union_map_union(isl_union_map_from_map(reverse_access),
+                                                             accesses_union_map);
+                }
 
-            //accesses_union_map = isl_union_map_intersect_range(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
-            //accesses_union_map = isl_union_map_intersect_domain(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
+                //accesses_union_map = isl_union_map_intersect_range(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
+                //accesses_union_map = isl_union_map_intersect_domain(accesses_union_map, isl_union_set_from_set(isl_set_copy(consumer->get_iteration_domain())));
 
-            DEBUG(3, tiramisu::str_dump("Accesses after filtering."));
-            DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(accesses_union_map)));
+                DEBUG(3, tiramisu::str_dump("Accesses after filtering."));
+                DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(accesses_union_map)));
 
-            if (result == NULL)
-            {
-                result = isl_union_map_copy(accesses_union_map);
-                isl_union_map_free(accesses_union_map);
-            }
-            else
-            {
-                result = isl_union_map_union(result, accesses_union_map);
+                if (result == NULL) {
+                    result = isl_union_map_copy(accesses_union_map);
+                    isl_union_map_free(accesses_union_map);
+                } else {
+                    result = isl_union_map_union(result, accesses_union_map);
+                }
             }
         }
+
+        DEBUG(3, tiramisu::str_dump("Dep graph: "));
+        if (result != NULL)
+        {
+            DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(result)));
+        }
+        else
+        {
+            DEBUG(3, tiramisu::str_dump("Null."));
+        }
+
+        DEBUG_INDENT(-4);
+        DEBUG(3, tiramisu::str_dump("End of function"));
+
+        return result;
     }
 
-    DEBUG(3, tiramisu::str_dump("Dep graph:"));
-    DEBUG(3, tiramisu::str_dump(isl_union_map_to_str(result)));
-
-    DEBUG_INDENT(-4);
-    DEBUG(3, tiramisu::str_dump("End of function"));
-
-    return result;
-}
-
-std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
+// TODO: get_live_in_computations() does not consider the case of "maybe"
+// live-out (non-affine control flow, ...).
+std::vector<tiramisu::computation *> tiramisu::function::get_live_in_computations()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -168,7 +166,88 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
     assert((this->get_computations().size() > 0) &&
            "The function should have at least one computation.");
 
-    std::vector<tiramisu::computation *> last;
+    std::vector < tiramisu::computation * > first;
+    isl_union_map *deps = this->compute_dep_graph();
+
+    if (deps != NULL) {
+        if (isl_union_map_is_empty(deps) == isl_bool_false) {
+            // The domains and the ranges of the dependences
+            isl_union_set *domains = isl_union_map_domain(isl_union_map_copy(deps));
+            isl_union_set *ranges = isl_union_map_range(isl_union_map_copy(deps));
+
+            DEBUG(3, tiramisu::str_dump("Ranges of the dependence graph.", isl_union_set_to_str(ranges)));
+            DEBUG(3, tiramisu::str_dump("Domains of the dependence graph.", isl_union_set_to_str(domains)));
+
+            /** In a dependence graph, since dependences create a chain (i.e., the end of
+             *  a dependence is the beginning of the following), then each range of
+             *  a dependence has a set domains that correspond to it (i.e., that their
+             *  union is equal to it).  If a domain exists but does not have ranges that
+             *  are equal to it, then that domain is the first domain.
+             *
+             *  To compute those domains that do not have corresponding ranges, we
+             *  compute (domains - ranges).
+             *
+             *  These domains that do not have a corresponding range (i.e., are not
+             *  produced by previous computations) and that are not defined (i.e., do
+             *  not have any expression) are live-in.
+             */
+            isl_union_set *first_domains = isl_union_set_subtract(domains, ranges);
+            DEBUG(3, tiramisu::str_dump("Domains - Ranges :", isl_union_set_to_str(first_domains)));
+
+            if (isl_union_set_is_empty(first_domains) == isl_bool_false) {
+                for (const auto &c : this->body) {
+                    isl_space *sp = isl_set_get_space(c->get_iteration_domain());
+                    isl_set *s = isl_set_universe(sp);
+                    isl_union_set *intersect =
+                            isl_union_set_intersect(isl_union_set_from_set(s),
+                                                    isl_union_set_copy(first_domains));
+
+                    if ((isl_union_set_is_empty(intersect) == isl_bool_false) &&
+                        (c->get_expr().is_defined() == false))
+                    {
+                        first.push_back(c);
+                    }
+                    isl_union_set_free(intersect);
+                }
+
+                DEBUG(3, tiramisu::str_dump("First computations:"));
+                for (const auto &c : first) {
+                    DEBUG(3, tiramisu::str_dump(c->get_name() + " "));
+                }
+            } else {
+                // If the difference between domains and ranges is empty, then
+                // all the computations of the program are recursive (assuming
+                // that the set of dependences is not empty).
+                first = this->body;
+            }
+
+            isl_union_set_free(first_domains);
+        } else {
+            // If the program does not have any dependence, then
+            // all the computations should be considered as the first
+            // computations.
+            first = this->body;
+        }
+
+        isl_union_map_free(deps);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return first;
+}
+
+// TODO: get_live_out_computations() does not consider the case of "maybe"
+// live-out (non-affine control flow, ...).
+std::vector<tiramisu::computation *> tiramisu::function::get_live_out_computations()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert((this->get_computations().size() > 0) &&
+           "The function should have at least one computation.");
+
+    std::vector<tiramisu::computation *> first;
     isl_union_map *deps = this->compute_dep_graph();
 
     if (deps != NULL)
@@ -185,7 +264,7 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
             /** In a dependence graph, since dependences create a chain (i.e., the end of
              *  a dependence is the beginning of the following), then each range of
              *  a dependence has a set domains that correspond to it (i.e., that their
-             *  union is equal to it).  If range exists but does not have domains that
+             *  union is equal to it).  If a range exists but does not have domains that
              *  are equal to it, then that range is the last range.
              *
              *  To compute those ranges that do not have corresponding domains, we
@@ -196,7 +275,7 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
 
             if (isl_union_set_is_empty(last_ranges) == isl_bool_false)
             {
-                for (const auto &c : this->get_computations())
+                for (const auto &c : this->body)
                 {
                     isl_space *sp = isl_set_get_space(c->get_iteration_domain());
                     isl_set *s = isl_set_universe(sp);
@@ -206,13 +285,13 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
 
                     if (isl_union_set_is_empty(intersect) == isl_bool_false)
                     {
-                        last.push_back(c);
+                        first.push_back(c);
                     }
                     isl_union_set_free(intersect);
                 }
 
                 DEBUG(3, tiramisu::str_dump("Last computations:"));
-                for (const auto &c : last)
+                for (const auto &c : first)
                 {
                     DEBUG(3, tiramisu::str_dump(c->get_name() + " "));
                 }
@@ -221,8 +300,8 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
             {
                 // If the difference between ranges and domains is empty, then
                 // all the computations of the program are recursive (assuming
-                // that the set of dependences is empty).
-                last = this->get_computations();
+                // that the set of dependences is not empty).
+                first = this->body;
             }
 
             isl_union_set_free(last_ranges);
@@ -232,22 +311,25 @@ std::vector<tiramisu::computation *> tiramisu::function::get_last_consumers()
             // If the program does not have any dependence, then
             // all the computations should be considered as the last
             // computations.
-            last = this->get_computations();
+            first = this->body;
         }
 
         isl_union_map_free(deps);
     }
 
-    assert((last.size() > 0) && "The function should have at least one last computation.");
+    assert((first.size() > 0) && "The function should have at least one last computation.");
 
     DEBUG_INDENT(-4);
 
-    return last;
+    return first;
 }
 
 
 isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     std::string name = this->get_name();
     assert(name.size() > 0);
     isl_set *result = NULL;
@@ -270,8 +352,9 @@ isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
         }
     }
 
-    return result;
+    DEBUG_INDENT(-4);
 
+    return result;
 }
 
 bool tiramisu::computation::has_multiple_definitions() const
@@ -307,13 +390,13 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("Reverse of dependences:", isl_union_map_to_str(Reverse)));
     // Compute the vector of the last computations in the dependence graph
     // (i.e., the computations that do not have any consumer).
-    std::vector<tiramisu::computation *> last = this->get_last_consumers();
+    std::vector<tiramisu::computation *> first = this->get_live_out_computations();
 
-    assert(last.size() > 0);
+    assert(first.size() > 0);
 
     isl_union_set *Domains = NULL;
-    Domains = isl_union_set_empty(isl_set_get_space(last[0]->get_iteration_domain()));
-    for (auto c : last)
+    Domains = isl_union_set_empty(isl_set_get_space(first[0]->get_iteration_domain()));
+    for (auto c : first)
     {
         Domains = isl_union_set_union(Domains,
                                       isl_union_set_from_set(isl_set_copy(c->get_iteration_domain())));
@@ -1264,16 +1347,16 @@ tiramisu::buffer *tiramisu::computation::get_automatically_allocated_buffer()
     return this->automatically_allocated_buffer;
 }
 
-std::vector<tiramisu::expr> computation::compute_buffer_size()
+std::vector<tiramisu::expr>* computation::compute_buffer_size()
 {
-    std::vector<tiramisu::expr> dim_sizes;
+    std::vector<tiramisu::expr> *dim_sizes = new std::vector<tiramisu::expr>();
 
     for (int i = 0; i < this->get_n_dimensions(); i++)
     {
         tiramisu::expr lower = utility::get_bound(this->get_iteration_domain(), i, false);
         tiramisu::expr upper = utility::get_bound(this->get_iteration_domain(), i, true);
         tiramisu::expr diff = upper - lower + 1;
-        dim_sizes.push_back(diff);
+        dim_sizes->push_back(diff);
     }
     return dim_sizes;
 }
@@ -1296,11 +1379,11 @@ tiramisu::computation *computation::store_at(int L0)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
+    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
             this->get_n_dimensions(),
-            dim_sizes,
+            (*dim_sizes),
             this->get_data_type(),
             NULL,
             tiramisu::a_temporary,
@@ -1585,6 +1668,7 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
     assert(level < (int) isl_set_dim(C->get_iteration_domain(), isl_dim_set));
 
     DEBUG(3, tiramisu::str_dump("Computing the iteration domain for the allocate() operation"));
+    DEBUG(3, tiramisu::str_dump("Computation name " + C->get_name() + ", Level = " + std::to_string(level)));
 
     isl_set *iter = C->get_iteration_domains_of_all_definitions();
 
@@ -1602,7 +1686,7 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
     {
         iter = isl_set_read_from_str(C->get_ctx(), "{[0]}");
     }
-    std::string new_name = "_allocation_" + generate_new_variable_name();
+    std::string new_name = "_allocation_" + C->get_name();
     iter = isl_set_set_tuple_name(iter, new_name.c_str());
     std::string iteration_domain_str = isl_set_to_str(iter);
 
@@ -1612,9 +1696,11 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
 
     tiramisu::expr *new_expression = new tiramisu::expr(tiramisu::o_allocate, this->get_name());
 
+    DEBUG(3, tiramisu::str_dump("The expression of the allocation operation"); new_expression->dump(false));
+
     tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
             *new_expression,
-            true, p_none, C->get_function());
+            true, p_none, C->function);
 
     this->set_auto_allocate(false);
 
@@ -2159,17 +2245,70 @@ void tiramisu::buffer::set_argument_type(tiramisu::argument_t type)
         this->argtype = type;
 }
 
-void tiramisu::computation::allocate_buffer_automatically(tiramisu::argument_t type)
+void tiramisu::function::allocate_and_map_buffers_automatically()
 {
-    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(10, tiramisu::str_dump("Computing live-out computations."));
+    // Compute live-in and live-out buffers
+    std::vector<tiramisu::computation *> liveout = this->get_live_out_computations();
+    DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for live-out computations."));
+    for (auto &comp: liveout)
+        if (comp->get_automatically_allocated_buffer() == NULL)
+            comp->allocate_and_map_buffer_automatically(a_output);
+
+    DEBUG(10, tiramisu::str_dump("Computing live-in computations."));
+    // Compute live-in and live-out buffers
+    std::vector<tiramisu::computation *> livein =
+            this->get_live_in_computations();
+    DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for live-in computations."));
+    // Allocate each live-in computation that is not also live-out (we check that
+    // by checking that it was not allocated yet)
+    for (auto &comp: livein)
+        if (comp->get_automatically_allocated_buffer() == NULL)
+            comp->allocate_and_map_buffer_automatically(a_input);
+
+    DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for non live-in and non live-out computations."));
+    // Allocate the buffers automatically
+    // Allocate each computation that is not live-in or live-out (we check that
+    // by checking that it was not allocated)
+    for (int b = 0; b < this->body.size(); b++)
+    {
+        DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for " + this->body[b]->get_name()));
+        if ((this->body[b]->get_expr().get_expr_type() == tiramisu::e_op))
+        {
+            if (this->body[b]->get_expr().get_op_type() != tiramisu::o_allocate)
+            {
+                if (this->body[b]->get_automatically_allocated_buffer() == NULL)
+                    this->body[b]->allocate_and_map_buffer_automatically(a_temporary);
+            }
+        }
+        else
+        {
+            if (this->body[b]->get_automatically_allocated_buffer() == NULL) {
+                this->body[b]->allocate_and_map_buffer_automatically(a_temporary);
+            }
+        }
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argument_t type)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
                                                   this->get_n_dimensions(),
-                                                  dim_sizes,
+                                                  (*dim_sizes),
                                                   this->get_data_type(),
                                                   NULL,
                                                   type,
-                                                  this->get_function());
+                                                  this->function);
 
     this->automatically_allocated_buffer = buff;
 
@@ -2177,10 +2316,13 @@ void tiramisu::computation::allocate_buffer_automatically(tiramisu::argument_t t
     if (type == tiramisu::a_temporary)
     {
         allocation = buff->allocate_at(this, computation::root_dimension);
+        allocation->set_name("_allocation_" + this->name);
         allocation->before(*this, computation::root_dimension);
     }
 
     this->bind_to(buff);
+
+    DEBUG_INDENT(-4);
 }
 
 void tiramisu::computation::after(computation &comp, int level)
@@ -5378,6 +5520,7 @@ void tiramisu::computation::set_access(std::string access_str)
         }
 
     DEBUG_INDENT(-4);
+    DEBUG_FCT_NAME(3);
 }
 
 /**
@@ -5552,6 +5695,9 @@ void tiramisu::computation::set_name(const std::string &n)
   */
 void tiramisu::computation::bind_to(buffer *buff)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(buff != NULL);
 
     isl_space *sp = isl_set_get_space(this->get_iteration_domain());
@@ -5559,10 +5705,15 @@ void tiramisu::computation::bind_to(buffer *buff)
     map = isl_map_intersect_domain(map, isl_set_copy(this->get_iteration_domain()));
     map = isl_map_set_tuple_name(map, isl_dim_out, buff->get_name().c_str());
     map = isl_map_coalesce(map);
-    DEBUG(2, tiramisu::str_dump("\nBinding. The following access function is set: ",
+
+    DEBUG(3, tiramisu::str_dump("Binding. The following access function is set: ",
                                 isl_map_to_str(map)));
+
     this->set_access(isl_map_to_str(map));
+
     isl_map_free(map);
+
+    DEBUG_INDENT(-4);
 }
 
 void tiramisu::computation::mark_as_let_statement()

@@ -231,9 +231,12 @@ private:
     void align_schedules();
 
     /**
-     * Get the last consumers in a function.
+     * Get live in/out computations in the function.
      */
-    std::vector<tiramisu::computation *> get_last_consumers();
+    // @{
+    std::vector<tiramisu::computation *> get_live_in_computations();
+    std::vector<tiramisu::computation *> get_live_out_computations();
+    // @}
 
     /**
      * This functions iterates over the iteration domain of the computations
@@ -509,6 +512,15 @@ public:
       * Add an iterator to the function.
       */
     void add_iterator_name(const std::string &it_name);
+
+    /*
+     * For each computation in the function, allocate a buffer (the size and name
+     * of the buffer are derived automatically).  The computation is also mapped
+     * to the buffer automatically (one-to-one mapping).
+     * Assuming the name of the computation is C, the name of the generated buffer
+     * is _C_buffer.
+     */
+    void allocate_and_map_buffers_automatically();
 
     /**
       * Compute the graph of dependences between the computations of
@@ -1661,7 +1673,7 @@ protected:
       * Compute the size of the buffer allocated automatically to hold the
       * results of this computation.
       */
-    std::vector<tiramisu::expr> compute_buffer_size();
+    std::vector<tiramisu::expr>* compute_buffer_size();
 
     /**
       * Return the iteration domain of the computation.
@@ -2047,7 +2059,7 @@ public:
      *  the Tiramisu runtime at the entry of the function and is
      *  deallocated at the exit of the function).
      */
-    void allocate_buffer_automatically(tiramisu::argument_t type = tiramisu::a_temporary);
+    void allocate_and_map_buffer_automatically(tiramisu::argument_t type = tiramisu::a_temporary);
 
     /**
       * Apply a transformation on the schedule. This transformation is from

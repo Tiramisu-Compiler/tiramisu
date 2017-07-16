@@ -11,7 +11,7 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_49.h"
+#include "wrapper_test_50.h"
 #include "../include/tiramisu/core.h"
 #include "../include/tiramisu/expr.h"
 
@@ -34,9 +34,9 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var i("i");
     tiramisu::var j("j");
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
-    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+1)), true, p_uint8, &function0);
-    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+2)), true, p_uint8, &function0);
-    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) (val0+3)), true, p_uint8, &function0);
+    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i,j), true, p_uint8, &function0);
+    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i,j), true, p_uint8, &function0);
+    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", S2(i,j), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
@@ -58,10 +58,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer III
     // -------------------------------------------------------
 
-    S0.allocate_and_map_buffer_automatically();
-    S1.allocate_and_map_buffer_automatically();
-    S2.allocate_and_map_buffer_automatically();
-    S3.allocate_and_map_buffer_automatically(a_output);
+    function0.allocate_and_map_buffers_automatically();
 
     // -------------------------------------------------------
     // Code Generation
@@ -76,7 +73,7 @@ void generate_function(std::string name, int size, int val0)
 
 int main(int argc, char **argv)
 {
-    generate_function("tiramisu_generated_code", SIZE1, 2);
+    generate_function("tiramisu_generated_code", SIZE1, 5);
 
     return 0;
 }
