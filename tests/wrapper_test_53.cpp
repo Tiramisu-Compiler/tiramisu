@@ -21,13 +21,13 @@ int main(int, char **)
     Halide::Buffer<uint8_t> input_buf0(SIZE1, SIZE1, "input_buf0");
     init_buffer(input_buf0, (uint8_t)5);
 
-    Halide::Buffer<uint8_t> input_buf0(SIZE1, SIZE1, "input_buf1");
+    Halide::Buffer<uint8_t> input_buf1(SIZE1, SIZE1, "input_buf1");
     init_buffer(input_buf1, (uint8_t)5);
 
     Halide::Buffer<uint8_t> output_buf0(SIZE1, SIZE1, "output_buf0");
     init_buffer(output_buf0, (uint8_t)0);
 
-    Halide::Buffer<uint8_t> output_buf0(SIZE1, SIZE1, "output_buf1");
+    Halide::Buffer<uint8_t> output_buf1(SIZE1, SIZE1, "output_buf1");
     init_buffer(output_buf1, (uint8_t)0);
 
     tiramisu_generated_code(input_buf0.raw_buffer(),

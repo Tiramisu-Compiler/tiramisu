@@ -33,8 +33,8 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var j("j");
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr(), false, p_uint8, &function0);
     tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr(), false, p_uint8, &function0);
-    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i,j) + S0(i,j) - tiramisu::expr((uint8_t) 2), true, p_uint8, &function0);
-    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", S1(i,j) - S0(0,2) + tiramisu::expr((uint8_t) 2), true, p_uint8, &function0);
+    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i,j) + S0(i,j) - tiramisu::expr((uint8_t) 5), true, p_uint8, &function0);
+    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", S1(i,j) - S0(0,2) + tiramisu::expr((uint8_t) 5), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II

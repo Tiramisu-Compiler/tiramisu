@@ -37,7 +37,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", S2(i,j) - S0(0,2), true, p_uint8, &function0);
 
     // -------------------------------------------------------
-    // Layer II
+    // Layer II 
     // -------------------------------------------------------
 
     S2.after(S1,computation::root_dimension);
