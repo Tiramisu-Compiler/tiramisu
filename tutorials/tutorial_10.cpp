@@ -15,6 +15,11 @@
 using namespace tiramisu;
 
 /*
+
+ This tutorial shows an example of code and then shows
+ different schedules for that code.
+
+
 Input
 
 for (int i = 0; i < 10; i++)

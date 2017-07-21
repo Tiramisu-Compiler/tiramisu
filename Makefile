@@ -28,24 +28,26 @@ OBJ = \
 	build/tiramisu_codegen_from_halide.o
 
 TUTO_GEN = \
-   build/tutorial_01_fct_generator \
-   build/tutorial_02_fct_generator \
-   build/tutorial_03_fct_generator \
-   build/tutorial_04_fct_generator \
-   build/tutorial_05_fct_generator \
-   build/tutorial_06_fct_generator \
-   build/tutorial_08_fct_generator \
-   build/tutorial_09_fct_generator
+	build/tutorial_01_fct_generator \
+	build/tutorial_02_fct_generator \
+	build/tutorial_03_fct_generator \
+	build/tutorial_04_fct_generator \
+	build/tutorial_05_fct_generator \
+	build/tutorial_06_fct_generator \
+	build/tutorial_08_fct_generator \
+	build/tutorial_09_fct_generator \
+	build/tutorial_10_fct_generator
 
 TUTO_BIN = \
-   build/tutorial_01 \
-   build/tutorial_02 \
-   build/tutorial_03 \
-   build/tutorial_04 \
-   build/tutorial_05 \
-   build/tutorial_06 \
-   build/tutorial_08 \
-   build/tutorial_09
+	build/tutorial_01 \
+	build/tutorial_02 \
+	build/tutorial_03 \
+	build/tutorial_04 \
+	build/tutorial_05 \
+	build/tutorial_06 \
+	build/tutorial_08 \
+	build/tutorial_09 \
+	build/tutorial_10
 
 TEST_GEN = build/test_01_fct_generator \
     build/test_02_fct_generator \
