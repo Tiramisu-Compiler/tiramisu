@@ -1148,6 +1148,21 @@ private:
     std::vector<isl_ast_expr *> index_expr;
 
     /**
+     * A map between the original names of the iterators of a computation
+     * and their transformed form after schedule (also after renaming).
+     *
+     * If in the original computation, we had
+     *
+     * {C[i0, i1]: ...}
+     *
+     * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+     * the loops are tiled, then the map will be
+     *
+     * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+     */
+    std::map<std::string, isl_ast_expr *> iterators_map;
+
+    /**
       * Does this computation represent a let statement ?
       *
       * Let statements should be treated differently:
@@ -1174,6 +1189,13 @@ private:
       * Names starting with _ are reserved names.
       */
     std::string name;
+
+    /**
+     * A predicate around the computation. The computation is executed
+     * only if this predicate is true. This is useful to insert a non-affine
+     * condition around the computation.
+     */
+    tiramisu::expr predicate;
 
     /**
       * The schedules of the computation.
@@ -1441,11 +1463,6 @@ private:
     tiramisu::primitive_t get_data_type() const;
 
     /**
-      * Get the schedule of the computation.
-      */
-    isl_map *get_schedule() const;
-
-    /**
       * Return the number of the duplicates of this computation.
       *
       * The number of duplicates is incremented if the computation is duplicated using
@@ -1482,6 +1499,22 @@ private:
      * duplicates, ...).
      */
     isl_set *get_iteration_domains_of_all_definitions();
+
+
+    /**
+     * The iterators map is map between the original names of the iterators of a computation
+     * and their transformed form after schedule (also after renaming).
+     *
+     * If in the original computation, we had
+     *
+     * {C[i0, i1]: ...}
+     *
+     * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+     * the loops are tiled, then the map will be
+     *
+     * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+     */
+    std::map<std::string, isl_ast_expr *> get_iterators_map();
 
     /**
       * Get the number of dimensions of the iteration
@@ -1646,6 +1679,21 @@ private:
     void set_has_multiple_definitions(bool val);
 
     /**
+     * The iterators map is map between the original names of the iterators of a computation
+     * and their transformed form after schedule (also after renaming).
+     *
+     * If in the original computation, we had
+     *
+     * {C[i0, i1]: ...}
+     *
+     * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+     * the loops are tiled, then the map will be
+     *
+     * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+     */
+    void set_iterators_map(std::map<std::string, isl_ast_expr *> map);
+
+    /**
       * Simplify \p set using the context and by calling
       * set coalescing.
       */
@@ -1676,16 +1724,15 @@ protected:
     std::vector<tiramisu::expr>* compute_buffer_size();
 
     /**
-      * Return the iteration domain of the computation.
-      * In this representation, the order of execution of computations
-      * is not specified, the computations are also not mapped to memory.
-      */
-    isl_set *get_iteration_domain() const;
-
-    /**
       * Return the context of the computations.
       */
     isl_ctx *get_ctx() const;
+
+    /**
+     * Return the predicate around this computation if a predicate
+     * was added using add_predicate().
+     */
+    tiramisu::expr get_predicate();
 
     /**
       * Return the name of the computation.
@@ -1976,6 +2023,16 @@ public:
     computation *add_computations(std::string iteration_domain_str, tiramisu::expr e,
                             bool schedule_this_computation, tiramisu::primitive_t t,
                             tiramisu::function *fct);
+
+    /**
+     * Add a predicate (condition) on the computation. The computation will be executed
+     * only if this condition is true.
+     * If you need to put a condition around a block of statements (i.e., a sequence of computations),
+     * then you can perform that by adding a predicate to each one of those computations.
+     * The compiler will then transform automatically the multiple conditions (condition around each
+     * computation) into one condition around the whole block.
+     */
+    void add_predicate(tiramisu::expr predicate);
 
     /**
       * Schedule this computation to run after the computation \p comp.
@@ -2274,6 +2331,18 @@ public:
       * stored in memory is not specified at the level.
       */
     void gen_time_space_domain();
+
+    /**
+     * Return the iteration domain of the computation.
+     * In this representation, the order of execution of computations
+     * is not specified, the computations are also not mapped to memory.
+     */
+    isl_set *get_iteration_domain() const;
+
+    /**
+     * Get the schedule of the computation.
+     */
+    isl_map *get_schedule() const;
 
     /**
       * Tile the computation and then tag the outermost tile dimension
@@ -2825,6 +2894,24 @@ class generator
     friend tiramisu::buffer;
 
 protected:
+
+    /*
+     * Compute the iterators map.
+     * The iterators map is map between the original names of the iterators of a computation
+     * and their transformed form after schedule (also after renaming).
+     *
+     * If in the original computation, we had
+     *
+     * {C[i0, i1]: ...}
+     *
+     * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+     * the loops are tiled, then the map will be
+     *
+     * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+     *
+     **/
+    static std::map<std::string, isl_ast_expr *>
+        compute_iterators_map(tiramisu::computation *comp, isl_ast_build *build);
 
     /**
      * Traverse the vector of computations \p comp_vec and return the computations

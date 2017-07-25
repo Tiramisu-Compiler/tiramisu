@@ -151,21 +151,19 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
     DEBUG(3, tiramisu::str_dump("Schedule reversed:", isl_map_to_str(map)));
 
     isl_pw_multi_aff *iterator_map = isl_pw_multi_aff_from_map(map);
-    DEBUG_NO_NEWLINE(3,
-                     tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling):");
-                     isl_pw_multi_aff_dump(iterator_map));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("iterator_map (the iterator map of an AST leaf after scheduling): "));
+    DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
     DEBUG(3, tiramisu::str_dump("Access:", isl_map_to_str(access)));
     isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("index_aff = isl_pw_multi_aff_from_map(access):");
-                     isl_pw_multi_aff_dump(index_aff));
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff):");
-                     isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map):");
-                     isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("index_aff = isl_pw_multi_aff_from_map(access): "));
+    DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(index_aff));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff): "));
+    DEBUG_NO_NEWLINE(3, isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map): "));
+    DEBUG_NO_NEWLINE(3, isl_space_dump(isl_pw_multi_aff_get_space(iterator_map)));
     iterator_map = isl_pw_multi_aff_pullback_pw_multi_aff(index_aff, iterator_map);
-    DEBUG_NO_NEWLINE(3,
-                     tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):");
-                     isl_pw_multi_aff_dump(iterator_map));
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("isl_pw_multi_aff_pullback_pw_multi_aff(index_aff,iterator_map):"));
+    DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(iterator_map));
     isl_ast_expr *index_expr = isl_ast_build_access_from_pw_multi_aff(
                                    build,
                                    iterator_map);
@@ -874,6 +872,311 @@ void generator::get_rhs_accesses(const tiramisu::function *func, const tiramisu:
     DEBUG_FCT_NAME(3);
 }
 
+tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Input expression: ", isl_ast_expr_to_str(isl_expr)));
+    DEBUG_NEWLINE(10);
+
+    tiramisu::expr result;
+
+    if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_int)
+    {
+        isl_val *init_val = isl_ast_expr_get_val(isl_expr);
+        result = tiramisu::expr((int32_t) isl_val_get_num_si(init_val));
+        isl_val_free(init_val);
+    }
+    else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
+    {
+        isl_id *identifier = isl_ast_expr_get_id(isl_expr);
+        std::string name_str(isl_id_get_name(identifier));
+        isl_id_free(identifier);
+        result = tiramisu::var(tiramisu::p_int32, name_str);
+    }
+    else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
+    {
+        tiramisu::expr op0, op1, op2;
+        std::vector<tiramisu::expr> new_arguments;
+
+        isl_ast_expr *expr0 = isl_ast_expr_get_op_arg(isl_expr, 0);
+        op0 = tiramisu_expr_from_isl_ast_expr(expr0);
+        isl_ast_expr_free(expr0);
+
+        if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
+        {
+            isl_ast_expr *expr1 = isl_ast_expr_get_op_arg(isl_expr, 1);
+            op1 = tiramisu_expr_from_isl_ast_expr(expr1);
+            isl_ast_expr_free(expr1);
+        }
+
+        if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
+        {
+            isl_ast_expr *expr2 = isl_ast_expr_get_op_arg(isl_expr, 2);
+            op2 = tiramisu_expr_from_isl_ast_expr(expr2);
+            isl_ast_expr_free(expr2);
+        }
+
+        switch (isl_ast_expr_get_op_type(isl_expr))
+        {
+            case isl_ast_op_and:
+                result = tiramisu::expr(tiramisu::o_logical_and, op0, op1);
+                break;
+            case isl_ast_op_and_then:
+                result = tiramisu::expr(tiramisu::o_logical_and, op0, op1);
+                tiramisu::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
+                                0);
+                break;
+            case isl_ast_op_or:
+                result = tiramisu::expr(tiramisu::o_logical_or, op0, op1);
+                break;
+            case isl_ast_op_or_else:
+                result = tiramisu::expr(tiramisu::o_logical_or, op0, op1);
+                tiramisu::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
+                                0);
+                break;
+            case isl_ast_op_max:
+                result = tiramisu::expr(tiramisu::o_max, op0, op1);
+                break;
+            case isl_ast_op_min:
+                result = tiramisu::expr(tiramisu::o_min, op0, op1);
+                break;
+            case isl_ast_op_minus:
+                result = tiramisu::expr(tiramisu::o_minus, op0);
+                break;
+            case isl_ast_op_add:
+                result = tiramisu::expr(tiramisu::o_add, op0, op1);
+                break;
+            case isl_ast_op_sub:
+                result = tiramisu::expr(tiramisu::o_sub, op0, op1);
+                break;
+            case isl_ast_op_mul:
+                result = tiramisu::expr(tiramisu::o_mul, op0, op1);
+                break;
+            case isl_ast_op_div:
+                result = tiramisu::expr(tiramisu::o_div, op0, op1);
+                break;
+            case isl_ast_op_fdiv_q:
+            case isl_ast_op_pdiv_q:
+                result = tiramisu::expr(tiramisu::o_div, op0, op1);
+                result = tiramisu::expr(tiramisu::o_floor, result);
+                result = tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, result);
+                break;
+            case isl_ast_op_zdiv_r:
+            case isl_ast_op_pdiv_r:
+                result = tiramisu::expr(tiramisu::o_mod, op0, op1);
+                break;
+            case isl_ast_op_select:
+            case isl_ast_op_cond:
+                result = tiramisu::expr(tiramisu::o_select, op0, op1, op2);
+                break;
+            case isl_ast_op_le:
+                result = tiramisu::expr(tiramisu::o_le, op0, op1);
+                break;
+            case isl_ast_op_lt:
+                result = tiramisu::expr(tiramisu::o_lt, op0, op1);
+                break;
+            case isl_ast_op_ge:
+                result = tiramisu::expr(tiramisu::o_ge, op0, op1);
+                break;
+            case isl_ast_op_gt:
+                result = tiramisu::expr(tiramisu::o_gt, op0, op1);
+                break;
+            case isl_ast_op_eq:
+                result = tiramisu::expr(tiramisu::o_eq, op0, op1);
+                break;
+            default:
+                tiramisu::str_dump("Transforming the following expression",
+                                   (const char *)isl_ast_expr_to_C_str(isl_expr));
+                tiramisu::str_dump("\n");
+                tiramisu::error("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
+        }
+    }
+    else
+    {
+        tiramisu::str_dump("Transforming the following expression",
+                           (const char *)isl_ast_expr_to_C_str(isl_expr));
+        tiramisu::str_dump("\n");
+        tiramisu::error("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+/**
+ * Traverse the expression idx_expr and replace any occurrence of an iterator
+ * (of the original loop) by its transformed form. Returned the transformed
+ * expression.
+ *
+ * This would transform the occurences of the indices i, j by their equivalent
+ * c0*10+c2 and c1*10+c3 for example.
+ */
+tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,
+                                                                 std::map<std::string, isl_ast_expr *> iterators_map)
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Input expression: "); exp.dump(false));
+    DEBUG_NEWLINE(10);
+
+    tiramisu::expr output_expr;
+
+    if (exp.get_expr_type() == tiramisu::e_val)
+    {
+        output_expr = exp;
+    }
+    else if (exp.get_expr_type() == tiramisu::e_var)
+    {
+        output_expr = tiramisu_expr_from_isl_ast_expr(iterators_map[exp.get_name()]);
+    }
+    else if ((exp.get_expr_type() == tiramisu::e_op) && (exp.get_op_type() == tiramisu::o_access))
+    {
+        DEBUG(10, tiramisu::str_dump("Replacing the occurrences of original iterators in an o_access."));
+
+        for (const auto &access : exp.get_access())
+        {
+            replace_original_indices_with_transformed_indices(access, iterators_map);
+        }
+
+        output_expr = exp;
+    }
+    else if (exp.get_expr_type() == tiramisu::e_op)
+    {
+        DEBUG(10, tiramisu::str_dump("Replacing iterators in an e_op."));
+
+        tiramisu::expr exp2, exp3, exp4;
+        std::vector<tiramisu::expr> new_arguments;
+
+        switch (exp.get_op_type())
+        {
+            case tiramisu::o_minus:
+            case tiramisu::o_logical_not:
+            case tiramisu::o_floor:
+            case tiramisu::o_sin:
+            case tiramisu::o_cos:
+            case tiramisu::o_tan:
+            case tiramisu::o_asin:
+            case tiramisu::o_acos:
+            case tiramisu::o_atan:
+            case tiramisu::o_abs:
+            case tiramisu::o_sqrt:
+            case tiramisu::o_expo:
+            case tiramisu::o_log:
+            case tiramisu::o_ceil:
+            case tiramisu::o_round:
+            case tiramisu::o_trunc:
+            case tiramisu::o_address:
+                exp2 = replace_original_indices_with_transformed_indices(exp.get_operand(0), iterators_map);
+                output_expr = tiramisu::expr(exp.get_op_type(), exp2);
+                break;
+            case tiramisu::o_cast:
+                exp2 = replace_original_indices_with_transformed_indices(exp.get_operand(0), iterators_map);
+                output_expr = expr(exp.get_op_type(), exp.get_data_type(), exp2);
+                break;
+            case tiramisu::o_logical_and:
+            case tiramisu::o_logical_or:
+            case tiramisu::o_sub:
+            case tiramisu::o_add:
+            case tiramisu::o_max:
+            case tiramisu::o_min:
+            case tiramisu::o_mul:
+            case tiramisu::o_div:
+            case tiramisu::o_mod:
+            case tiramisu::o_le:
+            case tiramisu::o_lt:
+            case tiramisu::o_ge:
+            case tiramisu::o_gt:
+            case tiramisu::o_eq:
+            case tiramisu::o_ne:
+            case tiramisu::o_right_shift:
+            case tiramisu::o_left_shift:
+                exp2 = replace_original_indices_with_transformed_indices(exp.get_operand(0), iterators_map);
+                exp3 = replace_original_indices_with_transformed_indices(exp.get_operand(1), iterators_map);
+                output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3);
+                break;
+            case tiramisu::o_select:
+            case tiramisu::o_cond:
+                exp2 = replace_original_indices_with_transformed_indices(exp.get_operand(0), iterators_map);
+                exp3 = replace_original_indices_with_transformed_indices(exp.get_operand(1), iterators_map);
+                exp4 = replace_original_indices_with_transformed_indices(exp.get_operand(2), iterators_map);
+                output_expr = tiramisu::expr(exp.get_op_type(), exp2, exp3, exp4);
+                break;
+            case tiramisu::o_call:
+                for (const auto &e : exp.get_arguments())
+                {
+                    exp2 = replace_original_indices_with_transformed_indices(e, iterators_map);
+                    new_arguments.push_back(exp2);
+                }
+                output_expr = tiramisu::expr(o_call, exp.get_name(), new_arguments, exp.get_data_type());
+                break;
+            case tiramisu::o_allocate:
+            case tiramisu::o_free:
+                output_expr = exp;
+                break;
+            default:
+                tiramisu::error("Unsupported tiramisu expression passed to replace_original_indices_with_transformed_indices().", 1);
+        }
+    }
+
+    DEBUG_INDENT(-4);
+
+    return output_expr;
+
+}
+
+std::map<std::string, isl_ast_expr *> generator::compute_iterators_map(tiramisu::computation *comp, isl_ast_build *build)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::map<std::string, isl_ast_expr *> iterators_map;
+
+    /**
+     * Create a fake access (that contains all the iterators).
+     * Pass it to the function create_isl_ast_index_expression();
+     * that creates the transformed index expressions.
+     */
+    isl_set *dom = isl_set_copy(comp->get_iteration_domain());
+    isl_map *identity = isl_set_identity(isl_set_copy(dom));
+    isl_map *schedule = isl_map_copy(comp->get_trimmed_union_of_schedules()); //isl_map_copy(isl_map_from_union_map(isl_ast_build_get_schedule(build)));
+    isl_map_dump(identity);
+    isl_map_dump(schedule);
+    identity = isl_map_apply_domain(identity, schedule);
+
+    DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access :",
+                                isl_map_to_str(identity)));
+    isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, identity);
+    DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :",
+                                isl_ast_expr_to_str(idx_expr)));
+
+    isl_space *dom_space = isl_set_get_space(dom);
+
+    DEBUG(3, tiramisu::str_dump("The iterators map is :"));
+
+    // Add each index in idx_expr to iterators_map to create the correspondence
+    // between the names of indices and their transformed indices.
+    // The first op_arg in idx_expr is the name of the buffer so we do not need it.
+    for (int i = 1; i < isl_ast_expr_get_op_n_arg(idx_expr); i++)
+    {
+        if (isl_space_has_dim_name(dom_space, isl_dim_set, i-1))
+        {
+            std::string original_idx_name = isl_space_get_dim_name(dom_space, isl_dim_set, i - 1);
+            isl_ast_expr *transformed_index = isl_ast_expr_get_op_arg(idx_expr, i);
+            iterators_map.insert(std::pair<std::string, isl_ast_expr *>(original_idx_name, transformed_index));
+            DEBUG(3, tiramisu::str_dump("Original index name = " + original_idx_name + ", Transformed index: ",
+                                        isl_ast_expr_to_str(transformed_index)));
+        }
+    }
+
+    DEBUG_INDENT(-4);
+
+    return iterators_map;
+}
+
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
@@ -951,7 +1254,9 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                     {
                         DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
                                                     isl_map_to_str(accesses[i])));
-                        index_expressions.push_back(create_isl_ast_index_expression(build, accesses[i]));
+                        isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, accesses[i]);
+                        DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :", isl_ast_expr_to_str(idx_expr)));
+                        index_expressions.push_back(idx_expr);
                         isl_map_free(accesses[i]);
                     }
                     else
@@ -965,6 +1270,23 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                     }
                 }
             }
+
+            /*
+             * Compute the iterators map.
+             * The iterators map is map between the original names of the iterators of a computation
+             * and their transformed form after schedule (also after renaming).
+             *
+             * If in the original computation, we had
+             *
+             * {C[i0, i1]: ...}
+             *
+             * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+             * the loops are tiled, then the map will be
+             *
+             * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+             **/
+            std::map<std::string, isl_ast_expr *> iterators_map = generator::compute_iterators_map(comp, build);
+            comp->set_iterators_map(iterators_map);
 
             // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
             for (int i = index_expressions.size() - 1; i >= 0; i--)
@@ -1558,16 +1880,37 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
                 DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
                 DEBUG(3, tiramisu::str_dump("Expression of the let statement: "));
+
                 l_stmt.second.dump(false);
 
                 std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
-                result = Halide::Internal::LetStmt::make(
+                tiramisu::expr tiramisu_let = replace_original_indices_with_transformed_indices(l_stmt.second, comp->get_iterators_map());
+                Halide::Expr let_expr = halide_expr_from_tiramisu_expr(comp, ie, tiramisu_let);
+                        result = Halide::Internal::LetStmt::make(
                              l_stmt.first,
-                             generator::halide_expr_from_tiramisu_expr(comp, ie, l_stmt.second),
+                             let_expr,
                              result);
 
                 DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
                 DEBUG_NO_NEWLINE(10, std::cout << result);
+            }
+
+            if (comp->get_predicate().is_defined())
+            {
+                std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
+                tiramisu::expr tiramisu_predicate = replace_original_indices_with_transformed_indices(comp->get_predicate(),
+                                                                                                      comp->get_iterators_map());
+                Halide::Expr predicate = halide_expr_from_tiramisu_expr(comp, ie, tiramisu_predicate);
+                DEBUG(3, tiramisu::str_dump("Adding a predicate around the computation."); std::cout << predicate);
+                DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
+
+                Halide::Internal::Stmt if_s = result;
+                DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
+
+                Halide::Internal::Stmt else_s;
+
+                result = Halide::Internal::IfThenElse::make(predicate, if_s, else_s);
+                DEBUG(10, tiramisu::str_dump("The predicated statement is "); std::cout << result);
             }
         }
     }

@@ -5056,6 +5056,26 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
 
 //----------------
 
+std::map<std::string, isl_ast_expr *> tiramisu::computation::get_iterators_map()
+{
+    return this->iterators_map;
+}
+
+void tiramisu::computation::set_iterators_map(std::map<std::string, isl_ast_expr *> map)
+{
+    this->iterators_map = map;
+}
+
+tiramisu::expr tiramisu::computation::get_predicate()
+{
+    return this->predicate;
+}
+
+void tiramisu::computation::add_predicate(tiramisu::expr predicate)
+{
+    this->predicate = predicate;
+}
+
 /**
   * Initialize a computation
   *  This is a private function that should not be called explicitly
@@ -5081,6 +5101,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     time_processor_domain = NULL;
     duplicate_number = 0;
     automatically_allocated_buffer = NULL;
+    predicate = tiramisu::expr();
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;

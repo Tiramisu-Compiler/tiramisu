@@ -32,15 +32,91 @@
 	in constants (in test_24, we create T1 and T2 to hide the non-affine
 	bounds).
 
-- Reduction
-	- An example is provided in test_26.
-
-- Update
-	- Use add_computations(),
-	- No need to do any expansion because add_computations internally
-	renames computations, so it is doing something equivalent to
-	expansion).
-	- An example is provided in test_25.
+- Reductions and Updates
+	- We have 4 cases:
+	    Case I- True reduction (where the iterations of the loop update the
+	                            same element of "res").
+	            res = 0;
+	            for (int k=0; k<N; k++)
+	                res = res + 1;
+	        It should be translated as
+	            res[-1] = 0;
+        	    for (int k=0; k<N; k++)
+        	        res[k] = res[k-1] + 1;
+        Case II- False reduction (where the iterations of the loop DO NOT update the
+        	                     same element of "res" but update different elements).
+        	    for (ry=0; ry<7; ry++)
+                      for (rx=0; rx<7; rx++)
+                              S0[ry,rx] = 0;
+                for (ry=0; ry<7; ry++)
+                      for (rx=0; rx<7; rx++)
+                              S0[ry,rx] = S0[ry,rx] * 2;
+            It should be translated to
+                for (ry=0; ry<7; ry++)
+                    for (rx=0; rx<7; rx++)
+                        S0[ry][rx][0] = 0;
+                for (ry=0; ry<7; ry++)
+                    for (rx=0; rx<7; rx++)
+                        S0[ry][rx][1] = S0[ry][rx][0] * 2;
+        Case III- True update
+        	    res = 0;
+        	    res = res + 1;
+        	    res = res + 1;
+        	    res = res + 1;
+            It should be translated to
+         	    res[0] = 0;
+         	    res[1] = res[0] + 1;
+         	    res[2] = res[1] + 1;
+         	    res[3] = res[2] + 1;
+        Case IV- False update (a pattern that looks like an update but actually is not an update
+                        because each definition in this update defines a diffrent element of the
+                        function)
+         	    res[0] = 0;
+         	    res[1] = 0;
+            It should be translated to
+         	    res[0] = 0;
+                res[1] = 0;
+        Case IV- True update and true reduction
+                res[0] = 0;
+                res[0] = res + 2;
+                for (int k=0; k<N; k++)
+                    res[0] = res[0] + 1;
+            It should be translated to
+                res[0][0] = 0;
+                res[0][1] = res[0] + 1;
+                for (int k=0; k<N; k++)
+                    res[0][k] = res[0][k-1] + 1;
+    - Rules
+        - Reductions and true updates have the same algorithm in general (because both are updates)
+        - A true reduction is a special case of an update.  A false reduction is simply an update
+        expressed using RDoms in Halide.
+        - Algorithm
+            - Expand the updated computation by one dimension.
+            - Use add_computations() to declare/add the different updates of the computation.
+            - Compute the index that should be used in the newly added dimension (expanded dimension):
+                - The index of the first definition is 0.
+                - For each update
+                    - The index of the RHS (right hand side) of an update is the index of the previous update,
+                      because anything on the right hand side is a read, and it means usually "read the value
+                      written by the previous update, so we use the index of the previous update".
+                    - The index of the LHS (left hand side) of an update  is the index of the previous update + 1,
+                       because anything on the left hand side is a write, i.e., a definition, and it means usually
+                       "define a new update" and this its index should be a new index.
+                       In true reductions, computing the index is different from the general rule.
+                       In these reductions, the computation is updated by many iteration of the reduction
+                       loop.  In this case we need to adjust the above method.  We should compute
+                       the index as follows:
+                       for (k = 0; k<N; k++)
+                            res[k + previous_index] = res[k-1 + previous_index] + 1;
+                    - Computing the index of a false reduction is identical to computing the index of
+                    an update. Only true updates are different.
+            - In layer III (data mapping), you should eliminate the expanded dimension by mapping
+            that dimension to the same buffer element.
+                    res[i][expanded_dimension] -> buf[i]
+        - False updates do not require any expansion, they should be simply declared using .add_computation()
+	- Examples:
+	    - Reduction : test_26 and test_54.cpp.
+	    - False update: test_25.
 
 - store_at()
 	- store_at() in Tiramisu is different from the store_at in Halide.

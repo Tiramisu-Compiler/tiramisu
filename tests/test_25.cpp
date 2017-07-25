@@ -16,7 +16,7 @@
 using namespace tiramisu;
 
 /**
- * Test update computations.
+ * Test false update computations.
  *
  * The goal is to implement code equivalent to the following.
  *
