@@ -6,6 +6,7 @@
 -  floor operator:				test_08
 - .fuse_after():				test_13
 -  let statement:				test_04
+- lerp()                        test_55
 -  RDom predicate               test_54
 - .store_at():					test_29, 30, 31, 38
 - .shift():					    test_15

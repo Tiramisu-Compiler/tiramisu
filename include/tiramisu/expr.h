@@ -1278,6 +1278,12 @@ public:
                         str +=  ", " + this->get_operand(2).to_str();
                         str +=  ")";
                         break;
+                    case tiramisu::o_lerp:
+                        str +=  "lerp(" + this->get_operand(0).to_str();
+                        str +=  ", " + this->get_operand(1).to_str();
+                        str +=  ", " + this->get_operand(2).to_str();
+                        str +=  ")";
+                        break;
                     case tiramisu::o_le:
                         str +=  "(" + this->get_operand(0).to_str();
                         str +=  ") <= (" + this->get_operand(1).to_str();

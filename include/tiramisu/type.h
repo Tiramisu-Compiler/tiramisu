@@ -100,6 +100,7 @@ enum op_t
     // The arguments are tiramisu::expr.
     o_select,
     o_cond,
+    o_lerp,
 
     // Operators taking a name and a vector of expressions.
     o_call,

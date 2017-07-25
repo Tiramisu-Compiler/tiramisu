@@ -313,8 +313,14 @@ std::vector<tiramisu::computation *> tiramisu::function::get_live_out_computatio
             // computations.
             first = this->body;
         }
-
         isl_union_map_free(deps);
+    }
+    else
+    {
+        // If the program does not have any dependence, then
+        // all the computations should be considered as the last
+        // computations.
+        first = this->body;
     }
 
     assert((first.size() > 0) && "The function should have at least one last computation.");
@@ -4722,6 +4728,8 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
         return "mod";
     case tiramisu::o_select:
         return "select";
+    case tiramisu::o_lerp:
+        return "lerp";
     case tiramisu::o_cond:
         return "ternary_cond";
     case tiramisu::o_logical_not:

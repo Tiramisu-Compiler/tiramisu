@@ -245,6 +245,7 @@ bool access_has_id(const tiramisu::expr &exp)
             break;
         case tiramisu::o_select:
         case tiramisu::o_cond:
+        case tiramisu::o_lerp:
             has_id = access_has_id(exp.get_operand(0)) ||
                      access_has_id(exp.get_operand(1)) ||
                      access_has_id(exp.get_operand(2));
@@ -300,6 +301,7 @@ bool access_is_affine(const tiramisu::expr &exp)
         case tiramisu::o_sin:
         case tiramisu::o_cos:
         case tiramisu::o_select:
+        case tiramisu::o_lerp:
         case tiramisu::o_cond:
         case tiramisu::o_tan:
         case tiramisu::o_asin:
@@ -690,6 +692,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         }
         case tiramisu::o_select:
         case tiramisu::o_cond:
+        case tiramisu::o_lerp:
         {
             tiramisu::expr expr0 = exp.get_operand(0);
             tiramisu::expr expr1 = exp.get_operand(1);
@@ -824,6 +827,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             break;
         case tiramisu::o_select:
         case tiramisu::o_cond:
+        case tiramisu::o_lerp:
             exp2 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(0));
             exp3 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(1));
             exp4 = traverse_expr_and_replace_non_affine_accesses(comp, exp.get_operand(2));
@@ -1100,6 +1104,7 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
                 break;
             case tiramisu::o_select:
             case tiramisu::o_cond:
+            case tiramisu::o_lerp:
                 exp2 = replace_original_indices_with_transformed_indices(exp.get_operand(0), iterators_map);
                 exp3 = replace_original_indices_with_transformed_indices(exp.get_operand(1), iterators_map);
                 exp4 = replace_original_indices_with_transformed_indices(exp.get_operand(2), iterators_map);
@@ -2415,6 +2420,10 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
             case tiramisu::o_select:
                 result = Halide::Internal::Select::make(op0, op1, op2);
                 DEBUG(3, tiramisu::str_dump("op type: o_select"));
+                break;
+            case tiramisu::o_lerp:
+                result = Halide::lerp(op0, op1, op2);
+                DEBUG(3, tiramisu::str_dump("op type: lerp"));
                 break;
             case tiramisu::o_cond:
                 tiramisu::error("Code generation for o_cond is not supported yet.", true);
