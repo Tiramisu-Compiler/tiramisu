@@ -21,6 +21,8 @@ int main(int, char **)
 
     // Reference matrix multiplication
     Halide::Buffer<uint8_t> C2_buf(NN, NN);
+    init_buffer(C2_buf, (uint8_t)0);
+
     for (int i = 0; i < NN; i++)
         for (int j = 0; j < NN; j++)
             for (int k = 0; k < NN; k++)
