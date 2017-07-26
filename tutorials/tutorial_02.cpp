@@ -57,15 +57,17 @@ int main(int argc, char **argv)
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &blurxy);
 
-    expr e1 = (c_input(var("i") - 1, var("j")) +
-               c_input(var("i")    , var("j")) +
-               c_input(var("i") + 1, var("j"))) / ((uint8_t) 3);
+    var i("i"), j("j");
+
+    expr e1 = (c_input(i - 1, j) +
+               c_input(i    , j) +
+               c_input(i + 1, j)) / ((uint8_t) 3);
 
     computation c_blurx("[N,M]->{c_blurx[i,j]: 0<i<N and 0<j<M}", e1, true, p_uint8, &blurxy);
 
-    expr e2 = (c_blurx(var("i"), var("j") - 1) +
-               c_blurx(var("i"), var("j")) +
-               c_blurx(var("i"), var("j") + 1)) / ((uint8_t) 3);
+    expr e2 = (c_blurx(i, j - 1) +
+               c_blurx(i, j) +
+               c_blurx(i, j + 1)) / ((uint8_t) 3);
 
     computation c_blury("[N,M]->{c_blury[i,j]: 1<i<N-1 and 1<j<M-1}", e2, true, p_uint8, &blurxy);
 
