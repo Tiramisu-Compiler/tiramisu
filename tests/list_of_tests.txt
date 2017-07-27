@@ -1,4 +1,5 @@
 -  access parsing				test_16
+-  clamped access				test_56
 - .after()					    test_43, 44, 45, 46, 47
 - .allocate_and_map_buffer_automatically	test_49
 - .allocate_and_map_buffers_automatically	test_50
