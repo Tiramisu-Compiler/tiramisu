@@ -3055,8 +3055,12 @@ public:
 
 void halide_stmt_dump(Halide::Internal::Stmt s);
 
-Halide::Internal::Stmt lower_halide_pipeline(
-    const Halide::Target &t, Halide::Internal::Stmt s, Halide::Module &m);
+Halide::Module lower_halide_pipeline(
+    const std::string &pipeline_name,
+    const Halide::Target &t,
+    const std::vector<Halide::Argument> &args,
+    const Halide::Internal::LoweredFunc::LinkageType linkage_type,
+    Halide::Internal::Stmt s);
 
 int loop_level_into_dynamic_dimension(int level);
 int loop_level_into_static_dimension(int level);

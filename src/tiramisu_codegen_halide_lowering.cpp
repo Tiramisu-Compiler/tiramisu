@@ -9,6 +9,7 @@ using namespace Halide::Internal;
 
 using std::string;
 using std::map;
+using std::vector;
 
 namespace tiramisu
 {
@@ -25,9 +26,19 @@ string stmt_to_string(const string &str, const Stmt &s)
 
 } // anonymous namespace
 
-Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m)
+Module lower_halide_pipeline(const string &pipeline_name,
+                             const Target &t,
+                             const vector<Argument> &args,
+                             const Internal::LoweredFunc::LinkageType linkage_type,
+                             Stmt s)
 {
-    map<string, Function> env; // TODO(psuriana): compute the env (function DAG)
+    Module result_module(pipeline_name, t);
+
+    // TODO(tiramisu): Compute the env (function DAG). This is needed for
+    // the sliding window and storage folding passes.
+    map<string, Function> env;
+
+    std::cout << "Lower halide pipeline...\n" << s << "\n";
 
     DEBUG(3, tiramisu::str_dump("Performing sliding window optimization...\n"));
     s = sliding_window(s, env);
@@ -53,29 +64,21 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m)
     s = simplify(s, false);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after first simplification:\n", s)));
 
-    // TODO(psuriana): might be applicable to Tiramisu?
+    // TODO(tiramisu): might be applicable to Tiramisu?
     /*DEBUG(3, tiramisu::str_dump("Dynamically skipping stages...\n"));
     s = skip_stages(s, order);
     DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));*/
 
-    // TODO(psuriana): This pass is important to figure out all the buffer symbols.
+    // TODO(tiramisu): This pass is important to figure out all the buffer symbols.
     // Maybe we should put it somewhere else instead of here.
     DEBUG(3, tiramisu::str_dump("Unpacking buffer arguments...\n"));
     s = unpack_buffers(s);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after unpacking buffer arguments:\n", s)));
-
-    if (t.has_feature(Target::OpenGL))
-    {
-        DEBUG(3, tiramisu::str_dump("Injecting image intrinsics...\n"));
-        s = inject_image_intrinsics(s, env);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after image intrinsics:\n", s)));
-    }
+    DEBUG(0, tiramisu::str_dump(stmt_to_string("Lowering after unpacking buffer arguments:\n", s)));
 
     if (t.has_gpu_feature() ||
-            t.has_feature(Target::OpenGLCompute) ||
-            t.has_feature(Target::OpenGL) ||
-            (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128}))))
-    {
+        t.has_feature(Target::OpenGLCompute) ||
+        t.has_feature(Target::OpenGL) ||
+        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
         DEBUG(3, tiramisu::str_dump("Selecting a GPU API for GPU loops...\n"));
         s = select_gpu_api(s, t);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after selecting a GPU API:\n", s)));
@@ -108,7 +111,7 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m)
     s = remove_trivial_for_loops(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after second simplifcation:\n", s)));
 
-    // TODO(psuriana): Should we handle prefetch in tiramisu?
+    // TODO(tiramisu): Should we handle prefetch in tiramisu?
 
     DEBUG(3, tiramisu::str_dump("Unrolling...\n"));
     s = unroll_loops(s);
@@ -166,10 +169,47 @@ Stmt lower_halide_pipeline(const Target &t, Stmt s, Module &m)
     std::cout << "Lowering after final simplification:\n" << s << "\n";
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
-    s = inject_hexagon_rpc(s, t, m);
+    s = inject_hexagon_rpc(s, t, result_module);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
-    return s;
+
+    vector<Argument> public_args = args;
+
+    // We're about to drop the environment and outputs vector, which
+    // contain the only strong refs to Functions that may still be
+    // pointed to by the IR. So make those refs strong.
+    class StrengthenRefs : public IRMutator {
+        using IRMutator::visit;
+        void visit(const Call *c) {
+            IRMutator::visit(c);
+            c = expr.as<Call>();
+            //internal_assert(c);
+            if (c->func.defined()) {
+                FunctionPtr ptr = c->func;
+                ptr.strengthen();
+                expr = Call::make(c->type, c->name, c->args, c->call_type,
+                                  ptr, c->value_index,
+                                  c->image, c->param);
+            }
+        }
+    };
+    s = StrengthenRefs().mutate(s);
+
+    LoweredFunc main_func(pipeline_name, public_args, s, linkage_type);
+
+    result_module.append(main_func);
+
+    // Append a wrapper for this pipeline that accepts old buffer_ts
+    // and upgrades them. It will use the same name, so it will
+    // require C++ linkage. We don't need it when jitting.
+    if (!t.has_feature(Target::JIT)) {
+        add_legacy_wrapper(result_module, main_func);
+    }
+
+    // Also append any wrappers for extern stages that expect the old buffer_t
+    wrap_legacy_extern_stages(result_module);
+
+    return result_module;
 }
 
 }

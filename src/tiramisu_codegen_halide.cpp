@@ -1744,6 +1744,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
                 {
+                    // TODO(tiramisu): The for-type should have been "GPUThread"
                     fortype = Halide::Internal::ForType::Parallel;
                     dev_api = Halide::DeviceAPI::OpenCL;
                     std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
@@ -1763,6 +1764,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
                 {
+                    // TODO(tiramisu): The for-type should have been "GPUBlock"
                     fortype = Halide::Internal::ForType::Parallel;
                     dev_api = Halide::DeviceAPI::OpenCL;
                     std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
@@ -2711,12 +2713,13 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
 void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                               Halide::Target::Arch arch, int bits) const
 {
-    std::vector<Halide::Target::Feature> x86_features =
+    // TODO(tiramisu): For GPU schedule, we need to set the features, e.g.
+    // Halide::Target::OpenCL, etc.
+    std::vector<Halide::Target::Feature> features =
     {
         Halide::Target::AVX, Halide::Target::SSE41
     };
-    Halide::Target target(os, arch, bits, x86_features);
-    Halide::Module m(obj_file_name, target);
+    Halide::Target target(os, arch, bits, features);
 
     std::vector<Halide::Argument> fct_arguments;
 
@@ -2731,12 +2734,11 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
         fct_arguments.push_back(buffer_arg);
     }
 
-    Halide::Internal::Stmt lowered = lower_halide_pipeline(target, this->get_halide_stmt(), m);
-    m.append(Halide::Internal::LoweredFunc(this->get_name(), fct_arguments, lowered,
-                                           Halide::Internal::LoweredFunc::External));
+    Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
+                                             Halide::Internal::LoweredFunc::External,
+                                             this->get_halide_stmt());
 
-    Halide::Outputs output = Halide::Outputs().object(obj_file_name);
-    m.compile(output);
+    m.compile(Halide::Outputs().object(obj_file_name));
     m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
 }
 
