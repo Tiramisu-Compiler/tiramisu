@@ -8,3 +8,5 @@ tags
 .cproject
 .project
 .settings
+.idea/*
+src/*.pyc
