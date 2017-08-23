@@ -2306,6 +2306,8 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    // TODO check if already allocated
+
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
@@ -2323,7 +2325,9 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     {
         allocation = buff->allocate_at(this, computation::root_dimension);
         allocation->set_name("_allocation_" + this->name);
-        allocation->before(*this, computation::root_dimension);
+        // Schedule all allocations at the beginning
+        this->get_function()->automatically_allocated.push_back(allocation);
+        this->get_function()->starting_computations.erase(allocation);
     }
 
     this->bind_to(buff);
@@ -2336,103 +2340,115 @@ void tiramisu::computation::after(computation &comp, int level)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(10, tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " + comp.get_name() + " at level " + std::to_string(level)));
-    DEBUG(10, tiramisu::str_dump("Maximum dimension of iteration domains: " + std::to_string(this->get_function()->get_max_iteration_domains_dim())));
+    DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " +
+                                comp.get_name() + " at level " + std::to_string(level)));
 
-    assert(level < this->get_function()->get_max_iteration_domains_dim());
+    auto &graph = this->get_function()->sched_graph;
 
-    int max_size = this->get_function()->get_max_iteration_domains_dim();
-    comp.function->relative_order.resize(max_size+1);
+    auto &edges = graph[&comp];
 
-    DEBUG(10, tiramisu::str_dump("The size of the relative_order vector: " + std::to_string(comp.get_function()->relative_order.size())));
+    auto level_it = edges.find(this);
 
-    assert(level < (int) comp.get_function()->relative_order.size());
-    comp.get_function()->relative_order[level+1].push_back(std::pair<tiramisu::computation *, tiramisu::computation *>(&comp, this));
-
-    DEBUG_INDENT(-4);
-}
-
-/**
- * Find \p comp in \p vec and return a vector of the pairs where it appears.
- * If first == true, the consider only the first element of the pairs in the search,
- * otherwise consider only the second element in the search.
- */
-std::vector<tiramisu::computation *> find_computation_in_relative_order_vector(
-        function &fct,
-        tiramisu::computation *comp,
-        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec,
-        int first)
-{
-    DEBUG_FCT_NAME(10);
-    DEBUG_INDENT(4);
-
-    std::vector<tiramisu::computation *> result;
-
-    for (auto p: vec)
+    if (level_it != edges.end())
     {
-        if ((first) && (p.first == comp))
-            result.push_back(p.first);
-        else if  ((!first) && (p.second == comp))
-            result.push_back(p.second);
+        if (level_it->second > level)
+        {
+            level = level_it->second;
+        }
     }
 
-    DEBUG_INDENT(-4);
+    edges[this] = level;
 
-    return result;
+    this->get_function()->starting_computations.erase(this);
+
+    this->get_function()->number_of_predecessors[this]++;
+
+    assert(this->get_function()->number_of_predecessors[this] < 2);
+
+    DEBUG(10, tiramisu::str_dump("sched_graph[" + comp.get_name() + ", " +
+                                 this->get_name() + "] = " + std::to_string(level)));
+
+    DEBUG_INDENT(-4);
 }
 
-/**
- * Find the root of the graph described by \p vec.
- *
- * If the computation appears as a first computation in \p vec and if it does not
- * appear as a second computation in the same vector than we consider it as a root
- * of the graph.
- */
-std::vector<tiramisu::computation *> find_first_computation_in_relative_order_vector(
-        function &fct,
-        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec)
+void function::dump_sched_graph_dfs(computation * comp,
+                                    std::unordered_set<computation *> &visited)
 {
-    DEBUG_FCT_NAME(10);
-    DEBUG_INDENT(4);
+    // Do not visit anything that was already returned
+    if (visited.find(comp) != visited.end())
+        return;
 
-    std::vector<tiramisu::computation *> result;
+    visited.insert(comp);
 
-    for (auto p: vec)
+    for (auto &edge: this->sched_graph[comp])
     {
-        // Try to find the computation p.first as a 2nd computation in vec.
-        // If you don't find it, i.e., it does not have any predecessor, then it is a root
-        // of the graph of orders.
-        std::vector<tiramisu::computation *> second_computations =
-                find_computation_in_relative_order_vector(fct, p.first, vec, false);
+        const std::string level = ((edge.second == computation::root_dimension) ?
+                                   "root" :
+                                   std::to_string(edge.second));
 
-        if (second_computations.size() == 0)
-            result.push_back(p.first);
+        DEBUG(3, tiramisu::str_dump(comp->get_unique_name() +
+                                    "=[" + level + "]=>" +
+                                    edge.first->get_unique_name()));
+
+        dump_sched_graph_dfs(edge.first, visited);
+    }
+}
+
+void function::dump_sched_graph()
+{
+    DEBUG(3, tiramisu::str_dump("Number of schedule graph roots is " +
+                                std::to_string(this->starting_computations.size())));
+    DEBUG(3, tiramisu::str_dump("The roots are:"));
+
+    for (auto root: this->starting_computations)
+        DEBUG(3, tiramisu::str_dump(" * " + root->get_unique_name()));
+
+    // Contains all nodes that have been visited
+    std::unordered_set<computation *> visited;
+
+    DEBUG(3, tiramisu::str_dump("Displaying schedule graph"));
+
+    for (auto &comp: this->starting_computations)
+    {
+        dump_sched_graph_dfs(comp, visited);
     }
 
-    DEBUG_INDENT(-4);
-
-    return result;
+    DEBUG(3, tiramisu::str_dump("Finished displaying schedule graph"));
 }
 
-/**
- * Find the next computation in the graph.
- */
-std::vector<tiramisu::computation *> find_next_computation_in_relative_order_vector(
-        computation *comp,
-        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> vec)
+bool function::is_sched_graph_tree_dfs(computation * comp,
+                                       std::unordered_set<computation *> &visited)
 {
-    DEBUG_FCT_NAME(10);
-    DEBUG_INDENT(4);
+    // Do not visit anything that was already returned
+    if (visited.find(comp) != visited.end())
+        return false;
 
-    std::vector<tiramisu::computation *> result;
+    visited.insert(comp);
 
-    for (auto p: vec)
-        if (p.first == comp)
-            result.push_back(p.second);
+    for (auto &edge: this->sched_graph[comp])
+    {
+        if (!is_sched_graph_tree_dfs(edge.first, visited))
+            return false;
+    }
 
-    DEBUG_INDENT(-4);
+    return true;
+}
 
-    return result;
+bool function::is_sched_graph_tree()
+{
+    if (this->starting_computations.size() != 1)
+        return false;
+
+    // Contains all nodes that have been visited
+    std::unordered_set<computation *> visited;
+
+    for (auto &comp: this->starting_computations)
+    {
+        if (!is_sched_graph_tree_dfs(comp, visited))
+            return false;
+    }
+
+    return true;
 }
 
 
@@ -2448,67 +2464,49 @@ void function::gen_ordering_schedules()
         return;
     }
 
+    this->dump_sched_graph();
 
-    DEBUG(10, tiramisu::str_dump("Printing the graph of order between computations."));
-    int lev = -1;
-    for (auto level_order: this->relative_order)
+    assert(this->is_sched_graph_tree());
+
+    std::priority_queue<int> level_to_check;
+    std::unordered_map<int, std::deque<computation *>> level_queue;
+
+    auto current_comp = *(this->starting_computations.begin());
+
+    auto init_sched = automatically_allocated;
+    init_sched.push_back(current_comp);
+
+    for (auto it = init_sched.begin(); it != init_sched.end() && it + 1 != init_sched.end(); it++)
+        (*(it+1))->after_low_level(**it, computation::root_dimension);
+
+    bool comps_remain = true;
+    while(comps_remain)
     {
-        DEBUG(10, tiramisu::str_dump("Orders in level " + std::to_string(lev)));
-
-        if (level_order.size() == 0)
+        for (auto &edge: this->sched_graph[current_comp])
         {
-            DEBUG(10, tiramisu::str_dump("  Empty"));
+            if (level_queue[edge.second].size() == 0)
+                level_to_check.push(edge.second);
+
+            level_queue[edge.second].push_back(edge.first);
         }
-        else
+
+        comps_remain = level_to_check.size() > 0;
+        // If we haven't exhausted all computations
+        if (comps_remain)
         {
-            for (auto p: level_order)
-                DEBUG(10, tiramisu::str_dump("  <" + p.first->get_name() + "," + p.second->get_name() + ">"));
-        }
-        DEBUG_NEWLINE(10);
-        lev++;
-    }
+            int fuse_level = level_to_check.top();
+            auto next_comp = level_queue[fuse_level].front();
+            level_queue[fuse_level].pop_front();
 
-    for (int level = 0; level < this->relative_order.size(); level++)
-    {
-        DEBUG(10, tiramisu::str_dump("Generating ordering schedules for level " + std::to_string(level-1)));
+            // assert(this->get_max_iteration_domains_dim() > fuse_level);
 
-        std::vector<std::pair<tiramisu::computation *,tiramisu::computation *>> v = this->relative_order[level];
-        std::vector<tiramisu::computation *> front = find_first_computation_in_relative_order_vector(*this,v);
+            next_comp->after_low_level((*current_comp), fuse_level);
 
-        if (front.size() == 0)
-            DEBUG(10, tiramisu::str_dump("  \"front\" is empty at this level."));
-
-        while (front.size() > 0)
-        {
-            std::vector<tiramisu::computation *> next;
-            std::vector<tiramisu::computation *> local_next;
-
-            DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Front computations in the graph: "));
-            for (auto c: front)
-                DEBUG_NO_NEWLINE_NO_INDENT(10, tiramisu::str_dump(c->get_name() + " "));
-            DEBUG_NEWLINE(10);
-
-            for (const auto f: front)
-            {
-                 local_next = find_next_computation_in_relative_order_vector(f, v);
-
-                 DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Computations next to " +  f->get_name() + " in the graph: "));
-                 for (auto c: local_next)
-                     DEBUG_NO_NEWLINE_NO_INDENT(10, tiramisu::str_dump(c->get_name() + " "));
-                 DEBUG_NEWLINE(10);
-
-                for (const auto n: local_next)
-                    n->after_low_level((*f), level-1);
-
-                for (auto a: local_next)
-                    next.push_back(a);
-            }
-            front = next;
-            next.clear();
+            current_comp = next_comp;
+            if (level_queue[fuse_level].size() == 0)
+                level_to_check.pop();
         }
     }
-
-    DEBUG_INDENT(-4);
 }
 
 void computation::before(computation &comp, std::vector<int> dims)
@@ -2531,6 +2529,28 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(4);
 
     comp.after(*this, dim);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::between(computation &before_c, int before_dim, computation &after_c, int after_dim)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
+                                before_c.get_name() + " and " + after_c.get_name()));
+
+    auto f = this->get_function();
+
+    if (f->sched_graph[&before_c].find(&after_c) != f->sched_graph[&before_c].end()) {
+        DEBUG(3, tiramisu::str_dump("Removing pre-existing edge"));
+        f->sched_graph[&before_c].erase(&after_c);
+        f->number_of_predecessors[&after_c]--;
+    }
+
+    this->after(before_c, before_dim);
+    after_c.after(*this, after_dim);
 
     DEBUG_INDENT(-4);
 }
@@ -3675,9 +3695,11 @@ void computation::compute_at(computation &consumer, int L)
                 duplicated_computation->shift(i, shift_degrees[i]);
             }
     }
-
-    tiramisu::computation *original_computation = this;
-    consumer.after((*original_computation), L);
+    else
+    {
+        tiramisu::computation *original_computation = this;
+        consumer.after((*original_computation), L);
+    }
     DEBUG(3, tiramisu::str_dump("Dumping the schedule of the producer and consumer."));
     this->dump_schedule();
     consumer.dump_schedule();
@@ -4371,6 +4393,8 @@ void tiramisu::function::add_computation(computation *cpt)
     assert(cpt != NULL);
 
     this->body.push_back(cpt);
+    if (cpt->should_schedule_this_computation())
+        this->starting_computations.insert(cpt);
 }
 
 void tiramisu::function::dump(bool exhaustive) const
@@ -5394,6 +5418,19 @@ bool tiramisu::computation::is_let_stmt() const
 const std::string &tiramisu::computation::get_name() const
 {
     return name;
+}
+
+/**
+  * Return a unique name of computation; made of the following pattern:
+  * [computation name]@[computation address in memory]
+  */
+const std::string tiramisu::computation::get_unique_name() const
+{
+    std::stringstream namestream;
+    namestream << get_name();
+    namestream << "@";
+    namestream << (void *)this;
+    return namestream.str();
 }
 
 /**

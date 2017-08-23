@@ -45,7 +45,6 @@ void generate_function(std::string name, int size, int val0)
 
     // Scheduling
     allocation->before(temp, 0);
-    allocation->before(result, 0);
     temp.before(result, 1);
 
     // Code generation

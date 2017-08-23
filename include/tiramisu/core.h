@@ -14,6 +14,9 @@
 #include <map>
 #include <string.h>
 #include <stdint.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <sstream>
 
 #include <Halide.h>
 #include <tiramisu/debug.h>
@@ -239,6 +242,17 @@ private:
     // @}
 
     /**
+      * Recursive function to perform the DFS step of dump_sched_graph.
+      */
+    void dump_sched_graph_dfs(tiramisu::computation *,
+                              std::unordered_set<tiramisu::computation *> &);
+
+    /**
+      * Recursive function to perform the DFS step of is_sched_graph_tree.
+      */
+    bool is_sched_graph_tree_dfs(tiramisu::computation *,
+                                 std::unordered_set<tiramisu::computation *> &);
+    /**
      * This functions iterates over the iteration domain of the computations
      * of the function and computes the maximum dimension among the dimensions
      * of these iteration domains.
@@ -294,6 +308,7 @@ private:
      *
      */
     void rename_computations();
+
 
 protected:
 
@@ -424,36 +439,43 @@ protected:
       * the order specified using the high level scheduling commands.
       *
       * Commands like .after() and .before() do not directly modify the schedules
-      * but rather modify the relative_oredr vector which stores the relative_oredr[].
+      * but rather modify the sched_graph graph.
       */
      void gen_ordering_schedules();
 
      /**
-       * The relative order between computations.  This vector stores
-       * the edges of the graph the specifies the order between computations.
-       *
-       * The functions .before() and .after(), ... all modify this relative
-       * order and do not modify the schedule directly.
-       * Before code generation, this logical order is applied automatically
-       * by Tiramisu on the schedules of the computations.  We do this because
-       * making .before() and .after() modify directly the schedules would make
-       * them very complicated. In particular if the user schedules a computation
-       * to be executed before other computations that have already been scheduled,
-       * then all their previous schedules should be updated which is complicated.
-       * We use vectors (this relative order structure) to make such process easier.
-       * relative_oredr[0] specifies the order of computations in the loop level 0.
-       * relative_oredr[1] specifies the order of computations in the loop level 1.
-       * relative_oredr[2] specifies the order of computations in the loop level 2,
-       * ...
-       *
-       * relative_oredr[0] is a vector of pair.  The elements of this vector are
-       * pairs that specify the order between two computations. For example the pair
-       * <s1, s2> indicates that the computation s2 should execute the computation
-       * s1 in the loop level 0. that should execute first in level 0,
-       * the second element of the vector holds the computation that should execute
-       * second in level 0.
+       * The set of all computations that have no computation scheduled before them.
+       * Does not include allocation computations created using
+       * allocate_and_map_buffer_automatically().
        */
-     std::vector<std::vector<std::pair<tiramisu::computation *, tiramisu::computation *>>> relative_order;
+     std::unordered_set<tiramisu::computation *> starting_computations;
+
+     /**
+       * Stores all high level scheduling instructions between computations; i.e. if a user calls
+       * for example c2.after(c1, L), sched_graph[&c1] would contain the key &c2, and
+       * sched_graph[&c1][&c2] = L.
+       * At the end of scheduling, the graph should respect the following rules:
+       *     - There should be exactly one computation with no computation scheduled before it.
+       *     - Each other computation should have exactly one computation scheduled before it.
+       * In other words, the graph should be a valid tree.
+       * Does not include allocation computations created using
+       * allocate_and_map_buffer_automatically().
+       */
+     std::unordered_map<tiramisu::computation *,
+                        std::unordered_map<tiramisu::computation *, int>> sched_graph;
+
+     /**
+       * Counts the number of computations scheduled before a certain computation C.
+       * For example, after creating C, number_of_predecessors[C] = 0. After doing
+       * a C.after(C2, L) call, number_of_predecessors[C] = 1.
+       */
+     std::unordered_map<tiramisu::computation *, int> number_of_predecessors;
+
+     /**
+       * Keeps track of allocation computations created using
+       * allocate_and_map_buffer_automatically() to schedule them during gen_ordering_schedules.
+       */
+     std::vector<tiramisu::computation *> automatically_allocated;
 
      /**
       * A boolean set to true if low level scheduling was used in the program.
@@ -619,6 +641,14 @@ public:
     void dump_schedule() const;
 
     /**
+      * Dumps the graph of scheduling relations set by the higher level scheduling
+      * functions (e.g. after, before, compute_at...).
+      * This is mainly useful for debugging.
+      * This function can be called at any point during scheduling.
+      */
+    void dump_sched_graph();
+
+    /**
       * Dump (on stdout) the time processor domain of the function.
       * The time-processor domain should be generated before calling
       * this function (gen_time_processor_domain()).
@@ -732,6 +762,16 @@ public:
       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
       */
     std::string get_gpu_thread_iterator(const std::string &comp, int lev0) const;
+
+    /**
+      * Return true if the usage of high level scheduling comments is valid; i.e. if
+      * the scheduling relations formed using before, after, compute_at, etc.. form a tree.
+      *
+      * More specifically, it verifies that:
+      *     - There should be exactly one computation with no computation scheduled before it.
+      *     - Each other computation should have exactly one computation scheduled before it.
+      */
+    bool is_sched_graph_tree();
 
     /**
       * Set the arguments of the function.
@@ -1740,6 +1780,12 @@ protected:
     const std::string &get_name() const;
 
     /**
+      * Return a unique name of computation; made of the following pattern:
+      * [computation name]@[computation address in memory]
+      */
+    const std::string get_unique_name() const;
+
+    /**
      *
      * Return true if the computation has multiple definitions.
      * i.e., if the computation is defined multiple times.
@@ -2082,20 +2128,20 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       *
-      * To specify that this computation is after \p comp in multiple levels,
+      * Deprecated: To specify that this computation is after \p comp in multiple levels,
       * the user can provide those levels in the \p levels vector.
       *
       * S1.after(S0, {0,1})
       *
       * means that S1 is after S0 in the loop level 0 and in the loop level 1.
       *
-      * Note that
-      *
-      * S1.after(S0, L)
-      *
-      * would mean that S1 and S0 share the same loop nests for all the loop
-      * levels that are before L and that S1 is after S0 in L only.  S1 is not
-      * after S0 in the loop levels that are before L.
+      * Note that as with all other scheduling methods:
+      *     - Calling this method with the same computations overwrites the level if it is
+      *     higher.
+      *     - A computation being scheduled after another computation at level L means it is
+      *     scheduled after that computation at all levels lower than L.
+      *     - There should be exactly one computation with no computation scheduled before it.
+      *     - Each other computation should have exactly one computation scheduled before it.
       */
     // @{
     void after(computation &comp, int level);
@@ -2141,7 +2187,7 @@ public:
       * Use computation::root_dimension to indicate the root dimension
       * (i.e. the outermost time-space dimension).
       *
-      * To specify multiple levels simultaneously, the user can use
+      * Deprecated: To specify multiple levels simultaneously, the user can use
       * the vector \p levels (a vector of the levels in which this
       * computation is before \p consumer).  For example,
       *
@@ -2149,18 +2195,39 @@ public:
       *
       * means that S0 is before S1 in the loop level 2 and in the loop level 3.
       *
-      * Note that
-      *
-      * S0.before(S1, L)
-      *
-      * would mean that S1 and S0 share the same loop nests for all the loop
-      * levels that are before L and that S0 is before S1 in L only.  S0 is not
-      * before S1 in the loop levels that are before L.
+      * Note that as with all other scheduling methods:
+      *     - Calling this method with the same computations overwrites the level if it is
+      *     higher.
+      *     - A computation being scheduled after another computation at level L means it is
+      *     scheduled after that computation at all levels lower than L.
+      *     - There should be exactly one computation with no computation scheduled before it.
+      *     - Each other computation should have exactly one computation scheduled before it.
       */
     // @{
     void before(computation &consumer, int L);
     void before(computation &consumer, std::vector<int> levels);
     // @}
+
+    /**
+      * Schedule this computation to run after \p before_comp at the loop level \p before_l,
+      * and before \p after_comp at loop level \p after_l. The outermost loop level is 0.
+      *
+      * Use computation::root_dimension to indicate the root dimension
+      * (i.e. the outermost time-space dimension).
+      *
+      * If there was already a direct scheduling between \p before_comp and \p after_comp
+      * (e.g. using before, after, between...), that schedule is overwritten; i.e. it no longer
+      * exists/has an effect.
+      *
+      * Note that as with all other scheduling methods:
+      *     - Calling this method with the same computations overwrites the levels if they are
+      *     higher.
+      *     - A computation being scheduled after another computation at level L means it is
+      *     scheduled after that computation at all levels lower than L.
+      *     - There should be exactly one computation with no computation scheduled before it.
+      *     - Each other computation should have exactly one computation scheduled before it.
+      */
+    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
 
     /**
        * Bind this computation to a buffer.  i.e., create a one-to-one data
@@ -2314,11 +2381,11 @@ public:
 
         assert(computations.size() > 0);
 
-        this->after(*computations[computations.size() - 1], lev);
+        this->after(*(computations.back()), lev);
 
-        for (int i = computations.size() - 1; i > 1; i++)
+        for (auto it = computations.begin(); it + 1 != computations.end(); it++)
         {
-                computations[i]->after(*computations[i - 1], lev);
+            (*(it + 1))->after(**it, lev);
         }
     }
 

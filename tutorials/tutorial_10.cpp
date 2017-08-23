@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-#if 1
+#if 0
     S1.after(S0, computation::root_dimension);
 #elif 0
     S1.after(S0, 0);
@@ -97,6 +97,12 @@ int main(int argc, char **argv)
     S0.tag_vector_level(3);
     S0.apply_transformation_on_schedule("{S0[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9]->S0[i0, i1, i2, i3, i4, i5, i6, 0, i8, i9]}");
     S1.apply_transformation_on_schedule("{S1[i0, i1, i2, i3, i4, i5, i6, i7, i8, i9]->S1[i0, i1, i2, i3, i4, i5, i6, 1, i8, i9]}");
+#elif 1
+    S1.shift(1, -1);
+    S0.tag_parallel_level(0);
+    S1.tile(0,1, 2,2);
+    S0.tile(0,1, 2,2);
+    S1.after(S0, 3);
 #endif
 
     function0.dump_schedule();

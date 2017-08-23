@@ -18,4 +18,5 @@
 - .tile():					    test_01, 02, 03
 - .vectorize(): 				test_10, 28
 - .unroll():					test_12
+- .before()						test_58, 59
 

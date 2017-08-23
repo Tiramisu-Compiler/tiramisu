@@ -47,11 +47,8 @@ void generate_function(std::string name, int size, int val0)
 
     S0.compute_at(S1, computation::root_dimension);
 
-    S2.after(S0, computation::root_dimension);
     S2.after(S1, computation::root_dimension);
 
-    S3.after(S0, computation::root_dimension);
-    S3.after(S1, computation::root_dimension);
     S3.after(S2, computation::root_dimension);
 
     // -------------------------------------------------------
