@@ -1339,15 +1339,6 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
     return separation_param;
 }
 
-void tiramisu::computation::vectorize(int L0, int v)
-{
-    tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_iteration_domain(),
-                                     L0, true);
-
-    this->vectorize(L0, v, loop_upper_bound);
-}
-
 tiramisu::buffer *tiramisu::computation::get_automatically_allocated_buffer()
 {
     return this->automatically_allocated_buffer;
@@ -1412,11 +1403,14 @@ tiramisu::computation *computation::store_at(int L0)
 // this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
 // as input.
 // Idem for unroll.
-void tiramisu::computation::vectorize(int L0, int v,
-                                      tiramisu::expr loop_upper_bound)
+void tiramisu::computation::vectorize(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    tiramisu::expr loop_upper_bound =
+        tiramisu::utility::get_bound(this->get_iteration_domain(),
+                                     L0, true);
 
     /*
      * Create a new Tiramisu constant M = v*floor(N/v) and use it as

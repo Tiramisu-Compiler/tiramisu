@@ -27,7 +27,7 @@ void generate_function_1(std::string name, int size, int val0)
     tiramisu::expr e1 = tiramisu::expr((uint8_t) val0);
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, p_uint8, &function0);
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]: 0<=i<N and 0<=j<N}");
-    S0.vectorize(1, 2, tiramisu::var(p_int32, "N"));
+    S0.vectorize(1, 2);
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();

@@ -2757,9 +2757,7 @@ public:
     void unroll(int L, int fac, tiramisu::expr loop_upper_bound);
 
     /**
-      * Vectorize the loop level \p L.  Use the vector length \p v
-      * and assume that the upper bound of the loop level \p L is
-      * \p loop_upper_bound.
+      * Vectorize the loop level \p L.  Use the vector length \p v.
       *
       * The difference between this function and the function
       * tag_vector_level(int L) is that this function
@@ -2809,7 +2807,6 @@ public:
       *
       */
     // @{
-    void vectorize(int L, int v, tiramisu::expr loop_upper_bound);
     void vectorize(int L, int v);
     // @}
 
