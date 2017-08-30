@@ -3,7 +3,7 @@ Tiramisu Optimization Framework
 Tiramisu is a library that is designed to simplify code optimization and code generation.  The user can express his code in the Tiramisu intermediate representation (Tiramisu IR), he can use the Tiramisu API to perform different optimizations and finaly he can generate an LLVM code from the optimized Tiramisu IR.
 
 Current optimizations include:
-- Affine loop nest transformations (non-parametric tiling, loop fusion/distribution, spliting, interchange, shifting, ...),
+- Affine loop nest transformations: tiling, loop fusion/distribution, spliting, interchange, shifting, ...,
 - For shared memory systems:
   - Loop parallelization, and
   - Loop vectorization.
@@ -27,7 +27,8 @@ Compiling Tiramisu
 #### Short Version
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
-        ./get_and_install_tiramisu_dependencies.sh
+        ./get_and_install_isl.sh
+	./get_and_install_halide.sh
         make -j
 
 #### Long Version

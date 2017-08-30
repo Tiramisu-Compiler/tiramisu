@@ -1,17 +1,20 @@
 # Set the following PATHs before compiling Tiramisu
+LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm-3.7.0_prefix/bin/
+
+# Examples
+#LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm-3.7.0_prefix/bin/
+
+#############################################################@
+
 ISL_INCLUDE_DIRECTORY=isl/build/include/
 ISL_LIB_DIRECTORY=isl/build/lib/
 HALIDE_SOURCE_DIRECTORY=Halide
 HALIDE_LIB_DIRECTORY=Halide/lib
 
-# Examples
-#ISL_INCLUDE_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/include/
-#ISL_LIB_DIRECTORY=/Users/b/Documents/src/ISLs/isl_prefix/lib/
-
 CXX = g++
 CXXFLAGS = -g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES = -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
-LIBRARIES = -L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags` -ljpeg `llvm-config --system-libs`
+LIBRARIES = -L${ISL_LIB_DIRECTORY} -lisl -lgmp -L${HALIDE_LIB_DIRECTORY} -lHalide -ldl -lpthread -lz `libpng-config --cflags --ldflags` -ljpeg `${LLVM_CONFIG_BIN}llvm-config --system-libs`
 HEADER_FILES = \
 	include/tiramisu/core.h \
 	include/tiramisu/debug.h \
