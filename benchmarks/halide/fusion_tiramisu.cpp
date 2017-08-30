@@ -87,10 +87,8 @@ int main(int argc, char **argv)
     h_s0.tag_parallel_level(1);
     k_s0.tag_parallel_level(0);
     k_s0.tag_parallel_level(1);
-    f_s0.tag_vector_level(2);
-    g_s0.tag_vector_level(2);
-    f_s0.tag_vector_level(3);
-    g_s0.tag_vector_level(3);
+    f_s0.tag_vector_level(2, 8);
+    g_s0.tag_vector_level(2, 8);
 
 
     fusion_tiramisu.set_arguments({&buff_input, &buff_f, &buff_g, &buff_h, &buff_k});

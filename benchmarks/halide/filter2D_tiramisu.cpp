@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     // Add schedules.
     filter2D_s0.tag_parallel_level(0);
     filter2D_s0.tag_parallel_level(1);
-    filter2D_s0.tag_vector_level(3);
+    filter2D_s0.tag_vector_level(3, 8);
 
     filter2D_tiramisu.set_arguments({&buff_input, &buff_kernel, &buff_filter2D});
     filter2D_tiramisu.gen_time_space_domain();

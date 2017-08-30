@@ -695,6 +695,42 @@ bool function::should_parallelize(const std::string &comp, int lev) const
 }
 
 /**
+* Return the vector length of the computation \p comp at
+* at the loop level \p lev.
+*/
+int function::get_vector_length(const std::string &comp, int lev) const
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(!comp.empty());
+    assert(lev >= 0);
+
+    int vector_length = -1;
+    bool found = false;
+
+    for (const auto &pd : this->vector_dimensions)
+    {
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+        {
+	   vector_length = std::get<2>(pd);
+	   found = true;
+        }
+    }
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be vectorized with a vector length of " +
+		       std::to_string(vector_length);
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return vector_length;
+}
+
+
+/**
 * Return true if the computation \p comp should be vectorized
 * at the loop level \p lev.
 */
@@ -710,7 +746,7 @@ bool function::should_vectorize(const std::string &comp, int lev) const
 
     for (const auto &pd : this->vector_dimensions)
     {
-        if ((pd.first == comp) && (pd.second == lev))
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
         {
             found = true;
         }
@@ -1095,13 +1131,14 @@ void tiramisu::computation::tag_gpu_thread_level(int dim0, int dim1, int dim2)
     this->get_function()->add_gpu_thread_dimensions(this->get_name(), dim0, dim1, dim2);
 }
 
-void tiramisu::computation::tag_vector_level(int dim)
+void tiramisu::computation::tag_vector_level(int dim, int length)
 {
     assert(dim >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
+    assert(length > 0);
 
-    this->get_function()->add_vector_dimension(this->get_name(), dim);
+    this->get_function()->add_vector_dimension(this->get_name(), dim, length);
 }
 
 void tiramisu::computation::tag_unroll_level(int level)
@@ -1412,12 +1449,18 @@ void tiramisu::computation::vectorize(int L0, int v)
         tiramisu::utility::get_bound(this->get_iteration_domain(),
                                      L0, true);
 
+    tiramisu::expr loop_lower_bound =
+        tiramisu::utility::get_bound(this->get_iteration_domain(),
+                                     L0, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+
     /*
      * Create a new Tiramisu constant M = v*floor(N/v) and use it as
      * a separator.
      */
     tiramisu::constant *separation_param =
-        this->create_separator_and_add_constraints_to_context(loop_upper_bound, v);
+        this->create_separator_and_add_constraints_to_context(loop_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -1437,7 +1480,7 @@ void tiramisu::computation::vectorize(int L0, int v)
 
     // Tag the inner loop after splitting to be vectorized. That loop
     // is supposed to have a constant extent.
-    this->tag_vector_level(L0 + 1);
+    this->tag_vector_level(L0 + 1, v);
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
@@ -4481,7 +4524,7 @@ void tiramisu::function::dump_schedule() const
         std::cout << "Vector dimensions: ";
         for (const auto &vec_dim : vector_dimensions)
         {
-            std::cout << vec_dim.first << "(" << vec_dim.second << ") ";
+            std::cout << std::get<0>(vec_dim) << "(" << std::get<1>(vec_dim) << ") ";
         }
 
         std::cout << std::endl << std::endl << std::endl;
@@ -4515,12 +4558,12 @@ void tiramisu::function::set_arguments(const std::vector<tiramisu::buffer *> &bu
     this->function_arguments = buffer_vec;
 }
 
-void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim)
+void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim, int vector_length)
 {
     assert(vec_dim >= 0);
     assert(!stmt_name.empty());
 
-    this->vector_dimensions.push_back({stmt_name, vec_dim});
+    this->vector_dimensions.push_back({stmt_name, vec_dim, vector_length});
 }
 
 void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_dim)

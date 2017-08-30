@@ -124,13 +124,13 @@ private:
     /**
       * A vector representing the vectorized dimensions around
       * the computations of the function.
-      * A vector dimension is identified using the pair
-      * <computation_name, level>, for example the pair
-      * <S0, 0> indicates that the loop with level 0
+      * A vector dimension is identified using the tuple
+      * <computation_name, level, length>, for example the tuple
+      * <S0, 0, 4> indicates that the loop with level 0
       * (i.e. the outermost loop) around the computation S0
-      * should be vectorized.
+      * should be vectorized with a vector length 4.
       */
-    std::vector<std::pair<std::string, int>> vector_dimensions;
+    std::vector<std::tuple<std::string, int, int>> vector_dimensions;
 
     /**
       * A vector representing the GPU block dimensions around
@@ -209,11 +209,11 @@ private:
 
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
-      * be vectorized.
+      * be vectorized. \p len is the vector length.
       * The dimension 0 represents the outermost loop level (it
       * corresponds to the leftmost dimension in the iteration space).
       */
-    void add_vector_dimension(std::string computation_name, int vec_dim);
+    void add_vector_dimension(std::string computation_name, int vec_dim, int len);
 
     /**
       * Tag the loop level \p L of the computation
@@ -762,6 +762,12 @@ public:
       * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
       */
     std::string get_gpu_thread_iterator(const std::string &comp, int lev0) const;
+
+     /**
+      * If the computation \p comp is vectorized, return its vector length
+      * at the loop level \p lev.
+      */
+     int get_vector_length(const std::string &comp, int lev) const;
 
     /**
       * Return true if the usage of high level scheduling comments is valid; i.e. if
@@ -2672,14 +2678,19 @@ public:
 
     /**
       * Tag the loop level \p L to be vectorized.  The outermost loop level
-      * is 0.
+      * is 0. \p len is the vector length.
       *
       * The user can only tag loop levels that have constant extent.
       * If a loop level does not have a constant extent, the user
       * should call .vectorize() command instead or he can call
       * separate() and split() manually.
+      *
+      * The user has to make sure that the extent of the dimension
+      * is bigger than \p len. The vectorization of a loop that has
+      * less than \p len iterations is not correct.
+      *
       */
-    void tag_vector_level(int L);
+    void tag_vector_level(int L, int len);
 
     /**
       * Tag the loop level \p L to be unrolled.
@@ -2760,10 +2771,10 @@ public:
       * Vectorize the loop level \p L.  Use the vector length \p v.
       *
       * The difference between this function and the function
-      * tag_vector_level(int L) is that this function
+      * tag_vector_level(int L, int v) is that this function
       * prepares the iteration domain for vectorization first
-      * and then it calls tag_vector_level(int L).
-      * tag_vector_level(int L) only tags a dimension to
+      * and then it calls tag_vector_level(int L, int v).
+      * tag_vector_level(int L, int v) only tags a dimension to
       * be vectorized, it does not change the tagged dimension.
       *
       * This function will separate the iteration domain into two iteration
@@ -2805,6 +2816,9 @@ public:
       *
       * the i2 loop is then tagged to be vectorized.
       *
+      * The user has to make sure that the extent of the dimension
+      * is bigger than \p v. The vectorization of a loop that has
+      * less than \p v iterations is not correct.
       */
     // @{
     void vectorize(int L, int v);

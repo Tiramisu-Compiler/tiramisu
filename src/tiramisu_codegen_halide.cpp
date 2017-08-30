@@ -1722,20 +1722,34 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     DEBUG(3, tiramisu::str_dump("Trying to vectorize at level ");
                           tiramisu::str_dump(std::to_string(level)));
 
-                    const Halide::Internal::IntImm *extent =
-                        cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                    if (extent)
-                    {
-                        fortype = Halide::Internal::ForType::Vectorized;
-                        DEBUG(3, tiramisu::str_dump("Loop vectorized"));
-                    }
-                    else
-                    {
-                        DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
-                        // Currently we can only print Halide expressions using
-                        // "std::cout << ".
-                        DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
-                    }
+		    int vector_length = fct.get_vector_length(tagged_stmts[tt], level);
+
+		    for (auto vd: fct.vector_dimensions)
+			    std::cout << "stmt = " << std::get<0>(vd) << ", level = " << std::get<1>(vd) << ", length = " << std::get<2>(vd) << std::endl;
+
+		    DEBUG(3, tiramisu::str_dump("Vector length = ");
+                          tiramisu::str_dump(std::to_string(vector_length)));
+
+		    // Currently we assume that when vectorization is used,
+		    // then the original loop extent is > vector_length.
+                    cond_upper_bound_halide_format = Halide::Expr(vector_length);
+		    fortype = Halide::Internal::ForType::Vectorized;
+	            DEBUG(3, tiramisu::str_dump("Loop vectorized"));
+
+		    /*
+			  The following code checks if the upper bound is a constant.
+
+    		  	  const Halide::Internal::IntImm *extent =
+                       	  	cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+
+  	                  if (!extent)
+        	            {
+                	        DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
+                        	// Currently we can only print Halide expressions using
+	                        // "std::cout << ".
+        	                DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                	    }
+		    */
 
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
