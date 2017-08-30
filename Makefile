@@ -1,8 +1,4 @@
-# Set the following PATHs before compiling Tiramisu
-LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm-3.7.0_prefix/bin/
-
-# Examples
-#LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm-3.7.0_prefix/bin/
+include configure_paths.sh
 
 #############################################################@
 

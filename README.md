@@ -25,6 +25,11 @@ Compiling Tiramisu
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Short Version
+- Set the path to the folder containing llvm-config in configure_paths.sh.
+An example is provided in configure_paths.sh
+
+- Follow the following installation instructions
+
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
         ./get_and_install_isl.sh
