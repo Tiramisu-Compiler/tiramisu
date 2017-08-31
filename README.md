@@ -33,7 +33,7 @@ An example is provided in configure_paths.sh
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
         ./get_and_install_isl.sh
-	./get_and_install_halide.sh
+        ./get_and_install_halide.sh
         make -j
 
 #### Long Version
