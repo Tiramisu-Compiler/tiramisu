@@ -17,4 +17,4 @@ fi
 ./configure --prefix=$PWD/build/ --with-int=imath
 make -j
 make install
-cd ..
+cd -
