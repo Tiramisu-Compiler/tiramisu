@@ -8,9 +8,12 @@
 # for configure as shown below.
 
 cd 3rdParty/isl
+git submodule update --init --remote --recursive
+
 if [ ! -d "build" ]; then
 	mkdir build/
 fi
+./autogen.sh
 ./configure --prefix=$PWD/build/ --with-int=imath
 make -j
 make install

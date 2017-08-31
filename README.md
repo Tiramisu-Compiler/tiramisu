@@ -17,6 +17,11 @@ Compiling Tiramisu
 ----------------------
 #### Prerequisites
 
+- autoconf and libtool.  To install them on Ubuntu you can use the following commands:
+
+        sudo apt-get install autoconf
+        sudo apt-get install libtool
+
 - LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
@@ -78,6 +83,16 @@ Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README]
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
+
+To install ISL
+
+        cd 3rdParty/isl
+        git submodule update --init --remote --recursive
+        mkdir build/
+        ./autogen.sh
+        ./configure --prefix=$PWD/build/ --with-int=imath
+        make -j
+        make install
 
 After installing ISL, you need to update the following paths in the Makefile to point to the ISL prefix (include and lib directories)
 
