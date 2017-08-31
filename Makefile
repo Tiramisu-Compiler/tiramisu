@@ -2,8 +2,8 @@ include configure_paths.sh
 
 #############################################################@
 
-ISL_INCLUDE_DIRECTORY=isl/build/include/
-ISL_LIB_DIRECTORY=isl/build/lib/
+ISL_INCLUDE_DIRECTORY=3rdParty/isl/build/include/
+ISL_LIB_DIRECTORY=3rdParty/isl//build/lib/
 HALIDE_SOURCE_DIRECTORY=Halide
 HALIDE_LIB_DIRECTORY=Halide/lib
 
