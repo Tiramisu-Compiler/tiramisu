@@ -67,14 +67,14 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::expr predicate_0 = (((rx - tiramisu::expr(3)) * (rx - tiramisu::expr(3)) +
                                    (ry - tiramisu::expr(3)) * (ry - tiramisu::expr(3))) <= tiramisu::expr(10));
-    tiramisu::computation *S1 = S0.add_computations("[t]->{S0[ry,rx,1]: 0<=ry<7 and 0<=rx<7}", S0(ry,rx,0) * tiramisu::expr((uint8_t) 2), true, p_uint8, &function0);
-    S1->add_predicate(predicate_0);
+    S0.add_computations("[t]->{S0[ry,rx,1]: 0<=ry<7 and 0<=rx<7}", S0(ry,rx,0) * tiramisu::expr((uint8_t) 2), true, p_uint8, &function0);
+    S0.get_update(1).add_predicate(predicate_0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    S1->after(S0,computation::root_dimension);
+    S0.get_update(1).after(S0,computation::root_dimension);
 
     // -------------------------------------------------------
     // Layer III
