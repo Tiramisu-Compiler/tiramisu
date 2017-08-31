@@ -21,7 +21,10 @@ Compiling Tiramisu
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Building
-- In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM prefix folder that contains llvm-config
+- In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM build folder that contains
+
+        llvm-config
+
 An example is provided in the file.
 
 - Installation instructions
