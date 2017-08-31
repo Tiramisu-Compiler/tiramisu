@@ -17,20 +17,28 @@ Compiling Tiramisu
 ----------------------
 #### Prerequisites
 
+- autoconf and libtool.  To install them on Ubuntu you can use the following commands:
+
+        sudo apt-get install autoconf
+        sudo apt-get install libtool
+
 - LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Building
+- Get Tiramisu
+
+        git clone https://github.com/rbaghdadi/tiramisu.git
+        cd tiramisu
+
 - In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM build folder that contains
 
         llvm-config
 
 An example is provided in the file.
 
-- Installation instructions
+- Compile the dependencies then compile Tiramisu
 
-        git clone https://github.com/rbaghdadi/tiramisu.git
-        cd tiramisu
         ./get_and_install_isl.sh
         ./get_and_install_halide.sh
         make -j
@@ -43,7 +51,7 @@ To run all the tutorials
     
 To run only one tutorial (tutorial_01 for example)
 
-    make -B build/tutorial_01
+    make run_tutorial_01
     
 This will compile and run the code generator and then the wrapper.
     
@@ -55,7 +63,7 @@ To run all the tests
     
 To run only one test (test_01 for example)
 
-    make -B build/test_01
+    make run_test_01
     
 This will compile and run the code generator and then the wrapper.
 
@@ -78,6 +86,16 @@ Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README]
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
+
+To install ISL
+
+        cd 3rdParty/isl
+        git submodule update --init --remote --recursive
+        mkdir build/
+        ./autogen.sh
+        ./configure --prefix=$PWD/build/ --with-int=imath
+        make -j
+        make install
 
 After installing ISL, you need to update the following paths in the Makefile to point to the ISL prefix (include and lib directories)
 

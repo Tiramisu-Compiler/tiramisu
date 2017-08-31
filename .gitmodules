@@ -2,7 +2,6 @@
 	path = Halide
 	url = git@github.com:psuriana/Halide.git
 	branch = tiramisu
-[submodule "isl"]
+[submodule "3rdParty/isl"]
 	path = 3rdParty/isl
 	url = git://repo.or.cz/isl.git
-	branch = master

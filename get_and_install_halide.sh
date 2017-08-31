@@ -13,3 +13,4 @@ cd Halide
 git checkout tiramisu
 git pull
 make -j
+cd -
