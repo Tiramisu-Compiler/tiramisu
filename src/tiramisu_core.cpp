@@ -1484,6 +1484,11 @@ void tiramisu::computation::vectorize(int L0, int v)
 }
 
 // TODO docs
+std::vector<computation*>& tiramisu::computation::get_updates() {
+    return this->updates;
+}
+
+// TODO docs
 computation& tiramisu::computation::get_update(int i)
 {
     return *(this->updates[i]);

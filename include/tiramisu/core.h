@@ -1615,6 +1615,9 @@ private:
       */
     isl_map *gen_identity_schedule_for_time_space_domain();
 
+    // TODO docs
+    std::vector<computation*>& get_updates();
+
     /**
      * Return true if this computation is supposed to have an access to other
      * computations.
@@ -1747,6 +1750,9 @@ private:
     isl_set *simplify(isl_set *set);
     isl_map *simplify(isl_map *map);
     // @}
+
+    // TODO docs
+    std::vector<tiramisu::computation *> updates;
 
     /**
       * Compare two computations.
@@ -2072,9 +2078,9 @@ public:
      * An example of using this function is available in test_26 and test_26.
      *
      */
-    computation *add_computations(std::string iteration_domain_str, tiramisu::expr e,
-                            bool schedule_this_computation, tiramisu::primitive_t t,
-                            tiramisu::function *fct);
+     void add_computations(std::string iteration_domain_str, tiramisu::expr e,
+                           bool schedule_this_computation, tiramisu::primitive_t t,
+                           tiramisu::function *fct);
 
     /**
      * Add a predicate (condition) on the computation. The computation will be executed
@@ -2885,6 +2891,9 @@ public:
       * (before the loop level 1, c0 and c1 have the same order).
       */
     const static int root_dimension = -1;
+
+    // TODO add docs
+    tiramisu::computation& get_update(int index);
 
     /**
       * Access operator: C0(i,j) represents an access to
