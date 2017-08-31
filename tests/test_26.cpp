@@ -62,14 +62,14 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::computation result("[N]->{result[0]}", tiramisu::expr(input(0)), true, p_uint8,
                                  &function0);
-    tiramisu::computation *result1 = result.add_computations("[N]->{result[i]: 1<=i<N}",
-                                     (result(i - 1) + input(i)), true, p_uint8, &function0);
+    result.add_computations("[N]->{result[i]: 1<=i<N}",
+                            (result(i - 1) + input(i)), true, p_uint8, &function0);
 
     input.set_access("[N]->{input[i]->input_buffer[i]}");
     result.set_access("[N]->{result[i]->result_scalar[0]}");
-    result1->set_access("[N]->{result[i]->result_scalar[0]}");
+    result.get_update(1).set_access("[N]->{result[i]->result_scalar[0]}");
 
-    result1->after(result, computation::root_dimension);
+    result.get_update(1).after(result, computation::root_dimension);
 
     function0.set_arguments({&input_buffer, &result_scalar});
     function0.gen_time_space_domain();

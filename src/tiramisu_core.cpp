@@ -524,16 +524,13 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
-tiramisu::computation *tiramisu::computation::add_computations(std::string iteration_domain_str,
+void tiramisu::computation::add_computations(std::string iteration_domain_str,
         tiramisu::expr e,
         bool schedule_this_computation, tiramisu::primitive_t t,
         tiramisu::function *fct)
 {
-    tiramisu::computation *C =
-        new tiramisu::computation(iteration_domain_str, e,
-                                  schedule_this_computation, t, fct);
-
-    return C;
+    this->updates.push_back(new tiramisu::computation(iteration_domain_str, e,
+                                                      schedule_this_computation, t, fct));
 }
 
 void tiramisu::function::dump_dep_graph()
@@ -1491,6 +1488,17 @@ void tiramisu::computation::vectorize(int L0, int v)
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
+}
+
+// TODO docs
+std::vector<computation*>& tiramisu::computation::get_updates() {
+    return this->updates;
+}
+
+// TODO docs
+computation& tiramisu::computation::get_update(int i)
+{
+    return *(this->updates[i]);
 }
 
 void tiramisu::computation::unroll(int L0, int v,
@@ -5221,6 +5229,8 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
                                 " have bounds on their iteration domain", true);
         }
     }
+
+    this->updates.push_back(this);
 
     DEBUG_INDENT(-4);
 }
