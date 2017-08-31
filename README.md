@@ -26,16 +26,19 @@ Compiling Tiramisu
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 #### Building
+- Get Tiramisu
+
+        git clone https://github.com/rbaghdadi/tiramisu.git
+        cd tiramisu
+
 - In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM build folder that contains
 
         llvm-config
 
 An example is provided in the file.
 
-- Installation instructions
+- Compile the dependencies then compile Tiramisu
 
-        git clone https://github.com/rbaghdadi/tiramisu.git
-        cd tiramisu
         ./get_and_install_isl.sh
         ./get_and_install_halide.sh
         make -j
