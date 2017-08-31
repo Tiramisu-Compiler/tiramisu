@@ -1,15 +1,16 @@
 Tiramisu Optimization Framework
 ----------------------------------
-Tiramisu is a library that is designed to simplify code optimization and code generation.  The user can express his code in the Tiramisu intermediate representation (Tiramisu IR), he can use the Tiramisu API to perform different optimizations and finaly he can generate an LLVM code from the optimized Tiramisu IR.
+Tiramisu is a code optimization and code generation framework.  The user can integrate Tiramisu in his compiler to perform advanced loop nest optimization and target multiple architectures using Tiramisu.  The user can express his code in the Tiramisu intermediate representation (Tiramisu IR), he can use the Tiramisu API to perform different optimizations and finaly he can generate the IR of his compiler of generate directly highly optimized code (LLVM, Vivado HLS, ...) targeting multicore, GPUs or FPGAs.
 
 Current optimizations include:
-- Affine loop nest transformations: tiling, loop fusion/distribution, spliting, interchange, shifting, ...,
-- For shared memory systems:
-  - Loop parallelization, and
-  - Loop vectorization.
+- Loop nest transformations: loop tiling, loop fusion/distribution, loop spliting, loop interchange, loop shifting, loop unrolling, ...
+- Affine data mappings: storage reordering, modulo storage (storage folding), ...
+- For shared memory systems: loop parallelization, loop vectorization, ...
 
 Current code generators:
-- LLVM IR for shared memory systems.
+- Multicore CPUs.
+- GPU backend.
+- Vivado HLS.
 
 
 Compiling Tiramisu
@@ -19,11 +20,11 @@ Compiling Tiramisu
 - LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
-#### Short Version
-- Set the path to the folder containing llvm-config in configure_paths.sh.
-An example is provided in configure_paths.sh
+#### Building
+- In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM prefix folder that contains llvm-config
+An example is provided in the file.
 
-- Follow the following installation instructions
+- Installation instructions
 
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
@@ -31,52 +32,83 @@ An example is provided in configure_paths.sh
         ./get_and_install_halide.sh
         make -j
 
-#### Long Version
+#### Run Tutorials
 
-##### Compiling Tiramisu
-Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details. Be sure to have installed autoconf and libtool installed on your machine before building ISL by running the following commands:
+To run all the tutorials
+
+    make tutorials
+    
+To run only one tutorial (tutorial_01 for example)
+
+    make -B build/tutorial_01
+    
+This will compile and run the code generator and then the wrapper.
+    
+#### Run Tests
+
+To run all the tests
+
+    make tests
+    
+To run only one test (test_01 for example)
+
+    make -B build/test_01
+    
+This will compile and run the code generator and then the wrapper.
+
+#### Build Documentation
+
+To build documentation (doxygen required)
+
+    make doc
+
+
+
+Build Troubleshooting
+----------------------------
+
+Please follow the following instructions only if installation using the short version does not work.
+
+##### Compiling ISL
+
+Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.  To install them on Ubuntu use the following commands:
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
 
-
-You need to specify the following paths in the Makefile
+After installing ISL, you need to update the following paths in the Makefile to point to the ISL prefix (include and lib directories)
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
+
+##### Compiling Halide
+
+You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in the file configure_paths.sh. If you installed LLVM from source, this path is usually set as follows
+
+    LLVM_CONFIG_BIN=<path to llvm>/build/bin/
+    
+If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config
 
 To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
 
     git submodule update --init --remote
     cd Halide
     git checkout tiramisu
-    make
+    make -j
 
-Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve
-and compile Halide. Note that you need to set the path to an installed LLVM
-first. To do so, set the variable LLVM_PREFIX in the script.
+Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve and compile Halide.
 
 You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
 
+##### Building Tiramisu
+
 To build Tiramisu
 
-    make
+    make -j
 
 You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
 
     export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
-
-To build documentation (doxygen required)
-
-    make doc
-
-#### Run tutorials
-
-    make tutorials
-
-#### Run tests
-
-    make tests
 
 
 How To Use Tiramisu
