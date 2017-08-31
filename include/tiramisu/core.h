@@ -1802,7 +1802,9 @@ protected:
      * D is defined only once.
      *
      * C(0) = 0
+     *
      * C(i) = C(i-1) + 1
+     *
      * D(i) = C(i) + 1
      *
      */

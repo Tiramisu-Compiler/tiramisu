@@ -382,6 +382,9 @@ bool tiramisu::computation::has_multiple_definitions() const
         is_update = false;
     }
 
+    if (this->get_updates().size() > 0)
+	    is_update = true;
+
     return is_update;
 }
 
@@ -1202,21 +1205,25 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
 
     DEBUG(3, tiramisu::str_dump("Separated computation:\n"); new_c->dump());
 
+
     // Create the access relation of the separated computation (by replacing its name).
-    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
-    int pos1 = access_c_str.find(this->get_name());
-    int len1 = this->get_name().length();
-    access_c_str.replace(pos1, len1, "_" + this->get_name());
-    new_c->set_access(access_c_str);
+    if (this->get_access_relation() != NULL)
+    {
+	    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
+	    int pos1 = access_c_str.find(this->get_name());
+	    int len1 = this->get_name().length();
+	    access_c_str.replace(pos1, len1, "_" + this->get_name());
+	    new_c->set_access(access_c_str);
 
-    // TODO: for now we are not adding the new parameter to all the access functions,
-    // iteration domains, schedules, ... We should either add it every where or transform
-    // it into a variable (which is a way better method since it will allow us to
-    // vectorize code that has a variable as loop bound (i<j).
-    // We can use isl_space_align_params to align all the parameters.
+	    // TODO: for now we are not adding the new parameter to all the access functions,
+	    // iteration domains, schedules, ... We should either add it every where or transform
+	    // it into a variable (which is a way better method since it will allow us to
+	    // vectorize code that has a variable as loop bound (i<j).
+	    // We can use isl_space_align_params to align all the parameters.
 
-    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
-                                isl_map_to_str(new_c->get_access_relation())));
+	    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
+					isl_map_to_str(new_c->get_access_relation())));
+    }
 
     // Create the constraints i<M and i>=M. To do so, first we need to create
     // the space of the constraints, which is identical to the space of the
@@ -2347,13 +2354,24 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
 
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
-    tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
-                                                  this->get_n_dimensions(),
-                                                  (*dim_sizes),
-                                                  this->get_data_type(),
-                                                  NULL,
-                                                  type,
-                                                  this->function);
+    tiramisu::buffer *buff;
+    if (this->has_multiple_definitions())
+	    if (this->get_update(0)->get_automatically_allocated_buffer == NULL)
+	    {
+    		std::string buff_name;
+	    	buff_name = "_" + this->name + "_buffer";
+		buff = new tiramisu::buffer(buff_name,
+                                this->get_n_dimensions(),
+                                (*dim_sizes),
+      	                        this->get_data_type(),
+                              	NULL,
+                                type,
+                                this->function);
+	    }
+    else
+    {
+	    buff = this->get_update(0)->get_automatically_allocated_buffer();
+    }
 
     this->automatically_allocated_buffer = buff;
 
@@ -3978,15 +3996,15 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
  */
 void computation::split(int L0, int sizeX)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     int inDim0 = loop_level_into_dynamic_dimension(L0);
 
     assert(this->get_schedule() != NULL);
     assert(inDim0 >= 0);
     assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
     assert(sizeX >= 1);
-
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
 
     isl_map *schedule = this->get_schedule();
     int duplicate_ID = isl_map_get_static_dim(schedule, 0);
