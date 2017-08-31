@@ -102,9 +102,9 @@ TEST_GEN = build/test_01_fct_generator \
     build/test_53_fct_generator \
     build/test_54_fct_generator \
     build/test_55_fct_generator \
-	build/test_56_fct_generator \
-	build/test_58_fct_generator \
-	build/test_59_fct_generator
+    build/test_56_fct_generator \
+    build/test_58_fct_generator \
+    build/test_59_fct_generator
 
 #build/test_07_fct_generator
 
@@ -163,9 +163,9 @@ TEST_BIN = build/test_global \
     build/test_53 \
     build/test_54 \
     build/test_55 \
-	build/test_56 \
-	build/test_58 \
-	build/test_59
+    build/test_56 \
+    build/test_58 \
+    build/test_59
 
 #build/test_07
 
@@ -179,6 +179,7 @@ BENCH_REF_GEN = \
 	build/bench_halide_gaussian_generator \
 	build/bench_halide_fusion_generator
 # Not supported yet: build/bench_halide_rgbyuv420_generator
+
 BENCH_TIRAMISU_GEN = \
 	build/bench_tiramisu_recfilter_generator \
 	build/bench_tiramisu_divergence2d_generator \
@@ -189,6 +190,7 @@ BENCH_TIRAMISU_GEN = \
 	build/bench_tiramisu_gaussian_generator \
 	build/bench_tiramisu_fusion_generator
 # Not supported yet: build/bench_tiramisu_rgbyuv420_generator
+
 BENCH_BIN = \
 	build/bench_recfilter \
 	build/bench_divergence2d \
@@ -217,26 +219,24 @@ build/tiramisu_codegen_%.o: src/tiramisu_codegen_%.cpp $(HEADER_FILES)
 # library generators need to be build and execute (so that they generate
 # the libraries), then the wrapper should be built (wrapper are programs that call the
 # library functions).
-tutorials: $(OBJ) $(TUTO_GEN) $(TUTO_BIN) run_tutorials
+tutorials: $(OBJ) $(TUTO_GEN) $(TUTO_BIN)
 build/tutorial_%_fct_generator: tutorials/tutorial_%.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/generated_fct_tutorial_%.o tutorials/wrapper_tutorial_%.h
-	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
-run_tutorials:
-	@for tt in ${TUTO_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
+build/tutorial_%: tutorials/wrapper_tutorial_%.cpp build/tutorial_%_fct_generator build/generated_fct_tutorial_%.o tutorials/wrapper_tutorial_%.h
+	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@ 
 
 
-tests: $(OBJ) $(TEST_GEN) $(TEST_BIN) run_tests
+tests: $(OBJ) $(TEST_GEN) $(TEST_BIN) build/test_global
 build/test_%_fct_generator: tests/test_%.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/test_%: tests/wrapper_test_%.cpp build/generated_fct_test_%.o tests/wrapper_test_%.h
-	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 2,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+build/test_%: tests/wrapper_test_%.cpp build/test_%_fct_generator build/generated_fct_test_%.o tests/wrapper_test_%.h
+	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@ 
 build/test_global: tests/test_global.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} tests/test_global.cpp -o $@ ${INCLUDES} ${LIBRARIES}
-run_tests:
-	@for tt in ${TEST_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
 benchmarks: $(OBJ) $(BENCH_TIRAMISU_GEN) $(BENCH_REF_GEN) $(BENCH_BIN) run_benchmarks

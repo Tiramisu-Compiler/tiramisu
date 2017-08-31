@@ -4,7 +4,7 @@
 
 // Define these values for each new test
 #define TEST_NAME_STR       "lerp"
-#define TEST_NUMBER_STR     "55"
+#define TEST_NUMBER_STR     "57"
 // Data size
 #define SIZE1 10
 

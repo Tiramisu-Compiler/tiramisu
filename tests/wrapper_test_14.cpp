@@ -15,7 +15,7 @@ int main(int, char **)
     blurxy_tiramisu_test(input.raw_buffer(), output.raw_buffer());
 
     //TODO(psuriana): Fix this test
-    //compare_buffers("blurxy", output, ref, input.width()-8, input.height()-8);
+    // compare_buffers("blurxy", output, ref);
     Halide::Tools::save_image(output, "./build/blurxy_tiramisu_test.png");
 
     return 0;
