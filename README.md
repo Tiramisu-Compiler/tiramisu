@@ -43,7 +43,7 @@ To run all the tutorials
     
 To run only one tutorial (tutorial_01 for example)
 
-    make -B build/tutorial_01
+    make run_tutorial_01
     
 This will compile and run the code generator and then the wrapper.
     
@@ -55,7 +55,7 @@ To run all the tests
     
 To run only one test (test_01 for example)
 
-    make -B build/test_01
+    make run_test_01
     
 This will compile and run the code generator and then the wrapper.
 
