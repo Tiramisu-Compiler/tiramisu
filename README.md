@@ -16,11 +16,6 @@ Compiling Tiramisu
 ----------------------
 #### Prerequisites
 
-- autoconf and libtool. On Ubuntu you can simply install them using
-
-        sudo apt-get install autoconf
-        sudo apt-get install libtool
-
 - LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
