@@ -236,7 +236,7 @@ build/test_%_fct_generator: tests/test_%.cpp
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
 build/generated_fct_test_%.o: build/test_%_fct_generator
 
-build/test_%: tests/wrapper_test_%.cpp build/test_%_fct_generator build/generated_fct_test_%.o tests/wrapper_test_%.h
+build/test_%: tests/wrapper_test_%.cpp build/test_%_fct_generator build/generated_fct_test_%.o tests/wrapper_test_%.h ${OBJ} ${HEADER_FILES}
 	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 run_test_%: build/test_%
 	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $< 
