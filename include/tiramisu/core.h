@@ -1702,7 +1702,9 @@ private:
       *
       * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
       *
-      * The call to separate returns a vector of pointers to computations.
+      * The call to separate modifies the original computation and adds
+      * the definition of the second computation. It can be accessed with
+      * get_update().
       * The fitst computation is the one constrained with the constraint
       * (i<=C), this computation is also known as the full computation
       * while the second computation is constrained with (i>C). The second
@@ -1711,7 +1713,7 @@ private:
       * Note that computation names that start with "_" are reserved to Tiramisu.
       *
       */
-    std::vector<tiramisu::computation *> separate(int dim, tiramisu::constant &C);
+    void separate(int dim, tiramisu::constant &C);
 
     /**
       * Set the iteration domain of the computation
@@ -1814,7 +1816,7 @@ protected:
      * D(i) = C(i) + 1
      *
      */
-    bool has_multiple_definitions() const;
+    bool has_multiple_definitions();
 
     /**
       * Initialize a computation.
