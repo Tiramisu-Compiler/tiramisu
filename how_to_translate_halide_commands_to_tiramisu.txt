@@ -92,7 +92,7 @@
         expressed using RDoms in Halide.
         - Algorithm
             - Expand the updated computation by one dimension.
-            - Use add_computations() to declare/add the different updates of the computation.
+            - Use add_definitions() to declare/add the different updates of the computation.
             - Compute the index that should be used in the newly added dimension (expanded dimension):
                 - The index of the first definition is 0.
                 - For each update

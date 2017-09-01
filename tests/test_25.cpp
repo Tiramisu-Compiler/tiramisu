@@ -40,8 +40,8 @@ void generate_function(std::string name, int size, int val0)
 
     assert(&C == &(C.get_update(0)));
 
-    C.add_computations("[N]->{C[1]}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
-    C.add_computations("[N]->{C[i]: 2<=i<N}",
+    C.add_definitions("[N]->{C[1]}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
+    C.add_definitions("[N]->{C[i]: 2<=i<N}",
                        (C(i - 1) + C(i - 2)) / ((uint8_t)2), true, p_uint8, &function0);
 
     assert(&C == &(C.get_update(0)));

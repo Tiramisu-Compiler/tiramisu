@@ -1183,6 +1183,12 @@ private:
     tiramisu::expr expression;
 
     /**
+      * If has_multiple_definitions() is true, then this variable contains the
+      * computation that was defined first among all the multiple definitions.
+      */
+    tiramisu::computation *first_definition;
+
+    /**
       * The function where this computation is declared.
       */
     tiramisu::function *function;
@@ -1221,6 +1227,28 @@ private:
       * for the creation of the let statement.
       */
     bool is_let;
+
+    /**
+      * This is variable is set to true if this computation is the first definition.
+      * It is set to false if has_multiple_definitions() is true but this computation
+      * is not the first one defined.
+      * This is useful because in tiramisu, we assume that all the computations that
+      * have the same name must have the same memory access. Thus any new definition
+      * of a computation must copy the same memory access as the first definition, thus
+      * we need to know which computation is the first definition.
+      */
+    bool is_first;
+
+    /**
+      * Return true if this computation is the first definition.
+      * It returns false if has_multiple_definitions() is true but this computation
+      * is not the first one defined.
+      * This is useful because in tiramisu, we assume that all the computations that
+      * have the same name must have the same memory access. Thus any new definition
+      * of a computation must copy the same memory access as the first definition, thus
+      * we need to know which computation is the first definition.
+      */
+    bool is_first_definition();
 
     /**
       * Iteration domain of the computation.
@@ -1515,6 +1543,12 @@ private:
       * the duplicate() function.
       */
     int get_duplicates_number() const;
+
+    /**
+      * If has_multiple_definitions() is true, then this function returns the
+      * computation that was defined first among all the multiple definitions.
+      */
+    tiramisu::computation *get_first_definition();
 
     /**
       * Return the Tiramisu expression associated with the computation.
@@ -2064,7 +2098,7 @@ public:
      *
      * These are two sets declaring 10 computations of C each.
      * The user can declare the first set of computations as usual (using the computation()
-     * constructor) and should add the second set of computations using add_computations()
+     * constructor) and should add the second set of computations using add_definitions()
      *
      * The newly added computations must have the same name and the same access function
      * as the initial set of computations but can have a different expression.
@@ -2076,13 +2110,13 @@ public:
      * computation C(...);
      * computation C(...);
      *
-     * In order to declare the second set of computations, we chose to use the add_computations
+     * In order to declare the second set of computations, we chose to use the add_definitions
      * function to avoid this problem.
      *
      * An example of using this function is available in test_26 and test_26.
      *
      */
-     void add_computations(std::string iteration_domain_str, tiramisu::expr e,
+     void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
                            bool schedule_this_computation, tiramisu::primitive_t t,
                            tiramisu::function *fct);
 

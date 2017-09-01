@@ -58,7 +58,7 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::computation f("{f[y,x]: 0<=y<19 and 0<=x<9}", tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
     tiramisu::computation g("{g[y,-1]: 0<=y<19}",           tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
-    tiramisu::computation *g2 = g.add_computations("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
+    tiramisu::computation *g2 = g.add_definitions("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
 
 
     // -------------------------------------------------------

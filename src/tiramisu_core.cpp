@@ -363,7 +363,7 @@ isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
     return result;
 }
 
-bool tiramisu::computation::has_multiple_definitions() const
+bool tiramisu::computation::has_multiple_definitions()
 {
     bool is_update = false;
 
@@ -524,13 +524,16 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
-void tiramisu::computation::add_computations(std::string iteration_domain_str,
+void tiramisu::computation::add_definitions(std::string iteration_domain_str,
         tiramisu::expr e,
         bool schedule_this_computation, tiramisu::primitive_t t,
         tiramisu::function *fct)
 {
-    this->updates.push_back(new tiramisu::computation(iteration_domain_str, e,
-                                                      schedule_this_computation, t, fct));
+    tiramisu::computation *new_c = new tiramisu::computation(iteration_domain_str, e,
+                                                      schedule_this_computation, t, fct);
+    new_c->is_first = false;
+    new_c->first_definition = this;
+    this->updates.push_back(new_c);
 }
 
 void tiramisu::function::dump_dep_graph()
@@ -1177,7 +1180,7 @@ tiramisu::computation *tiramisu::computation::copy()
     return new_c;
 }
 
-std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, tiramisu::constant &C)
+void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1194,13 +1197,14 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
 
     // TODO: create copy functions for all the classes so that we can copy the objects
     // we need to have this->get_expr().copy()
-    tiramisu::computation *new_c = new tiramisu::computation(domain_str,
+    int last_update_computation = this->get_updates().size();
+    this->add_definitions(domain_str,
             this->get_expr(),
             this->should_schedule_this_computation(),
             this->get_data_type(),
             this->get_function());
 
-    DEBUG(3, tiramisu::str_dump("Separated computation:\n"); new_c->dump());
+    DEBUG(3, tiramisu::str_dump("Separated computation:\n"); this->get_update(last_update_computation).dump());
 
 
     // Create the access relation of the separated computation (by replacing its name).
@@ -1210,7 +1214,7 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
 	    int pos1 = access_c_str.find(this->get_name());
 	    int len1 = this->get_name().length();
 	    access_c_str.replace(pos1, len1, "_" + this->get_name());
-	    new_c->set_access(access_c_str);
+	    this->get_update(last_update_computation).set_access(access_c_str);
 
 	    // TODO: for now we are not adding the new parameter to all the access functions,
 	    // iteration domains, schedules, ... We should either add it every where or transform
@@ -1219,7 +1223,7 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
 	    // We can use isl_space_align_params to align all the parameters.
 
 	    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
-					isl_map_to_str(new_c->get_access_relation())));
+					isl_map_to_str(this->get_update(last_update_computation).get_access_relation())));
     }
 
     // Create the constraints i<M and i>=M. To do so, first we need to create
@@ -1250,7 +1254,7 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
     // Third, we create the constraint i>=M and add it to the newly created computation.
     // i >= M
     // i - M >= 0
-    isl_space *sp2 = isl_space_copy(isl_set_get_space(new_c->get_iteration_domain()));
+    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_iteration_domain()));
     sp2 = isl_space_add_dims(sp2, isl_dim_param, 1);
     int pos2 = isl_space_dim(sp2, isl_dim_param) - 1;
     sp2 = isl_space_set_dim_name(sp2, isl_dim_param, pos2, C.get_name().c_str());
@@ -1259,15 +1263,16 @@ std::vector<tiramisu::computation *> tiramisu::computation::separate(int dim, ti
     cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, dim, 1);
     cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_param, pos, -1);
 
-    new_c->set_iteration_domain(isl_set_add_constraint(new_c->get_iteration_domain(), cst_lower));
+    this->get_update(last_update_computation).set_iteration_domain(isl_set_add_constraint(this->get_update(last_update_computation).get_iteration_domain(), cst_lower));
 
     // Mark the separated computation to be executed after the original (full)
     // computation.
-    new_c->after(*this, dim);
+    this->get_update(last_update_computation).after(*this, dim);
+
+    this->dump();
+    this->get_update(last_update_computation).dump();
 
     DEBUG_INDENT(-4);
-
-    return {this, new_c};
 }
 
 void tiramisu::computation::set_iteration_domain(isl_set *domain)
@@ -2353,6 +2358,16 @@ void tiramisu::function::allocate_and_map_buffers_automatically()
     DEBUG_INDENT(-4);
 }
 
+tiramisu::computation *tiramisu::computation::get_first_definition()
+{
+	return first_definition;
+}
+
+bool tiramisu::computation::is_first_definition()
+{
+	return is_first;
+}
+
 void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argument_t type)
 {
     DEBUG_FCT_NAME(3);
@@ -2362,24 +2377,56 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
 
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
-    tiramisu::buffer *buff;
-    if (this->has_multiple_definitions())
-	    if (this->get_update(0)->get_automatically_allocated_buffer == NULL)
-	    {
-    		std::string buff_name;
-	    	buff_name = "_" + this->name + "_buffer";
-		buff = new tiramisu::buffer(buff_name,
+    tiramisu::buffer *buff = NULL;
+
+    if (this->is_first_definition() == true)
+    {
+        if  (this->get_automatically_allocated_buffer() == NULL)
+        {
+	    DEBUG(3, tiramisu::str_dump("The automatically allocated buffer of this "
+				        "computation is NULL."));
+	    DEBUG(3, tiramisu::str_dump("Allocating an automatically allocated buffer for "
+				        "this computation."));
+
+    	    std::string buff_name;
+	    buff_name = "_" + this->name + "_buffer";
+	    buff = new tiramisu::buffer(buff_name,
                                 this->get_n_dimensions(),
                                 (*dim_sizes),
       	                        this->get_data_type(),
                               	NULL,
                                 type,
                                 this->function);
-	    }
+	    this->automatically_allocated_buffer = buff;
+        }
+	else // automatic buffer already allocated.
+		return;
+    }
     else
     {
-	    buff = this->get_update(0)->get_automatically_allocated_buffer();
+        if  (this->get_first_definition()->get_automatically_allocated_buffer() == NULL)
+        {
+	    DEBUG(3, tiramisu::str_dump("The automatically allocated buffer of the first "
+				        "definition of this computation is NULL."));
+	    DEBUG(3, tiramisu::str_dump("Allocating an automatically allocated buffer of the first "
+				        "definition of this computation."));
+
+    	    std::string buff_name;
+	    buff_name = "_" + this->get_first_definition()->name + "_buffer";
+	    buff = new tiramisu::buffer(buff_name,
+                                this->get_n_dimensions(),
+                                (*dim_sizes),
+      	                        this->get_data_type(),
+                              	NULL,
+                                type,
+                                this->function);
+	    this->automatically_allocated_buffer = buff;
+        }
+	else // first definition has an allocated array.
+    	    buff = this->get_first_definition()->get_automatically_allocated_buffer();
     }
+
+    assert(buff != NULL);
 
     this->automatically_allocated_buffer = buff;
 
@@ -5197,6 +5244,13 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     duplicate_number = 0;
     automatically_allocated_buffer = NULL;
     predicate = tiramisu::expr();
+    // In the constructor of computations, we assume that every created
+    // computation is the first computation, then, if this computation
+    // was created by add_definitions(), we change is_first_definition
+    // to false, otherwise we keep it.
+    // We do the same for first_definition.
+    is_first = true;
+    first_definition = NULL;
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
@@ -5589,8 +5643,6 @@ void tiramisu::computation::set_access(std::string access_str)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
-    assert(!access_str.empty());
 
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 

@@ -56,7 +56,7 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::computation C("[N]->{C[0,i]: 0<=i<N}", tiramisu::expr((uint8_t) 10), true, p_uint8,
                             &function0);
-    tiramisu::computation *C2 = C.add_computations("[N]->{C[1,i]: 0<=i<N}", C(0,
+    tiramisu::computation *C2 = C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0,
                                 i) + tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
     tiramisu::computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + tiramisu::expr((uint8_t) 1), true,
                               p_uint8, &function0);
