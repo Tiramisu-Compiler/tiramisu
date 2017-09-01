@@ -261,7 +261,7 @@ run_benchmarks:
 	@for tt in ${BENCH_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
-doc:
+doc: ${HEADER_FILES}
 	doxygen Doxyfile
 
 clean:
