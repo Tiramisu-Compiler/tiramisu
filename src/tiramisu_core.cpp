@@ -382,7 +382,7 @@ bool tiramisu::computation::has_multiple_definitions()
         is_update = false;
     }
 
-    if (this->get_updates().size() > 0)
+    if (this->get_updates().size() > 1)
 	    is_update = true;
 
     return is_update;
