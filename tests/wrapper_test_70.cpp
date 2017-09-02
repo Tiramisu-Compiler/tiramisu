@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "wrapper_test_60.h"
+#include "wrapper_test_70.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -120,16 +120,15 @@ TEST_GEN = build/test_01_fct_generator \
     build/test_56_fct_generator \
     build/test_58_fct_generator \
     build/test_59_fct_generator \
-    build/test_60_fct_generator
-
-#    build/test_61_fct_generator \
-#    build/test_62_fct_generator \
-#    build/test_63_fct_generator \
-#    build/test_64_fct_generator \
-#    build/test_65_fct_generator \
-#    build/test_66_fct_generator \
-#    build/test_67_fct_generator \
-#    build/test_70_fct_generator
+    build/test_60_fct_generator \
+    build/test_61_fct_generator \
+    build/test_62_fct_generator \
+    build/test_63_fct_generator \
+    build/test_64_fct_generator \
+    build/test_65_fct_generator \
+    build/test_66_fct_generator \
+    build/test_67_fct_generator \
+    build/test_70_fct_generator
 
 
 #build/test_07_fct_generator
@@ -192,16 +191,15 @@ TEST_BIN = build/test_global \
     build/test_56 \
     build/test_58 \
     build/test_59 \
-    build/test_60
-
-#    build/test_61 \
-#    build/test_62 \
-#    build/test_63 \
-#    build/test_64 \
-#    build/test_65 \
-#    build/test_66 \
-#    build/test_67 \
-#    build/test_70
+    build/test_60 \
+    build/test_61 \
+    build/test_62 \
+    build/test_63 \
+    build/test_64 \
+    build/test_65 \
+    build/test_66 \
+    build/test_67 \
+    build/test_70
 
 
 #build/test_07
@@ -264,9 +262,8 @@ TEST_RUN = \
     run_test_56 \
     run_test_58 \
     run_test_59 \
-    run_test_60
-
-#    run_test_61 \
+    run_test_60 \
+    run_test_61 \
     run_test_62 \
     run_test_63 \
     run_test_64 \

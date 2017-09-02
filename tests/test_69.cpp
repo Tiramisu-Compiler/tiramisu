@@ -11,7 +11,7 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_60.h"
+#include "wrapper_test_69.h"
 
 using namespace tiramisu;
 
@@ -37,7 +37,8 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.vectorize(1, 8);
+    S0.tile(0, 1, 2, 2);
+    S0.vectorize(3, 2);
 
     // -------------------------------------------------------
     // Layer III

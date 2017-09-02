@@ -1396,9 +1396,15 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
 
     for (int i = 0; i < this->get_n_dimensions(); i++)
     {
-        tiramisu::expr lower = utility::get_bound(this->get_iteration_domain(), i, false);
-        tiramisu::expr upper = utility::get_bound(this->get_iteration_domain(), i, true);
-        tiramisu::expr diff = upper - lower + 1;
+	tiramisu::expr diff = tiramisu::expr((int32_t) 0);
+
+	for (int j = 0; j < this->get_updates().size(); j++)
+	{
+	    tiramisu::expr lower = utility::get_bound(this->get_update(j).get_iteration_domain(), i, false);
+            tiramisu::expr upper = utility::get_bound(this->get_update(j).get_iteration_domain(), i, true);
+            diff = diff + (upper - lower + 1);
+	}
+
         dim_sizes->push_back(diff);
     }
     return dim_sizes;
