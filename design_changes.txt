@@ -1,0 +1,2 @@
+- Unify handling of "updates" and transformations that create new computations ("separation" and "duplication").
+- Each computation must have an ID.
