@@ -377,12 +377,12 @@ bool tiramisu::computation::has_multiple_definitions()
     {
         is_update = true;
     }
-    else
-    {
-        is_update = false;
-    }
 
     if (this->get_updates().size() > 1)
+	    is_update = true;
+
+    if (this->get_first_definition() != NULL)
+        if (this->get_first_definition()->get_updates().size() > 1)
 	    is_update = true;
 
     return is_update;
@@ -2374,20 +2374,97 @@ bool tiramisu::computation::is_first_definition()
 	return is_first;
 }
 
+bool tiramisu::computation::buffer_already_allocated()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    bool allocated = false;
+
+    if (this->get_automatically_allocated_buffer() != NULL)
+    {
+	    DEBUG(3, tiramisu::str_dump("A buffer was already allocated automatically for this computation."));
+	    allocated = true;;
+    }
+    else
+    {
+	    DEBUG(3, tiramisu::str_dump("No buffer was allocated automatically for this computation."));
+    }
+
+    // If this computation is not the first computation, and a buffer has
+    // already been allocated for the first definition, then exit.
+    if (this->has_multiple_definitions() == true)
+    {
+        DEBUG(3, tiramisu::str_dump("This computation has multiple definitions."));
+        if (this->is_first_definition() == false)
+	{
+            DEBUG(3, tiramisu::str_dump("This is NOT the first definition of the computation."));
+	    if (this->get_first_definition()->get_automatically_allocated_buffer() != NULL)
+	    {
+                DEBUG(3, tiramisu::str_dump("A buffer has already been allocated for the first computation."));
+	        allocated = true;
+	    }
+	    else
+	    {
+		DEBUG(3, tiramisu::str_dump("No buffer has already been allocated for the first computation."));
+		DEBUG(3, tiramisu::str_dump("Checking whether the other definitions have an automatically allocated buffer."));
+	        for (auto c: this->get_first_definition()->get_updates())
+		    if (c->get_automatically_allocated_buffer() != NULL)
+		    {
+		            DEBUG(3, tiramisu::str_dump("One of the other definitions has an automatically allocated buffer."));
+			    allocated = true;
+		    }
+	        DEBUG(3, tiramisu::str_dump("No other definition has an automatically allocated buffer."));
+	    }
+	}
+	else // If any of the other definitions has a buffer, exit.
+	{
+            DEBUG(3, tiramisu::str_dump("This is the first definition of the computation."));
+            DEBUG(3, tiramisu::str_dump("Checking whether the other definitions have an automatically allocated buffer."));
+	    for (auto c: this->get_updates())
+		    if (c->get_automatically_allocated_buffer() != NULL)
+		    {
+		            DEBUG(3, tiramisu::str_dump("One of the other definitions has an automatically allocated buffer."));
+			    allocated = true;
+		    }
+	    DEBUG(3, tiramisu::str_dump("No other definition has an automatically allocated buffer."));
+	}
+    }
+    else
+    {
+        DEBUG(3, tiramisu::str_dump("This computation has only one definition."));
+    }
+
+    DEBUG_INDENT(-4);
+
+    return allocated;
+}
+
 void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argument_t type)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    // TODO check if already allocated
+    DEBUG(3, tiramisu::str_dump("Allocating and mapping a buffer automatically."));
+    DEBUG(3, tiramisu::str_dump("Computation name: " + this->get_name()));
 
+    // If a buffer is already allocated, exit.
+    if (this->buffer_already_allocated() == true)
+    {
+            DEBUG(3, tiramisu::str_dump("Buffer already allocated."));
+	    DEBUG_INDENT(-4);
+	    return;
+    }
+
+    // If we reach this point, that means that no buffer has been allocated
+    // for this computation or for the other definitions of this computation.
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = NULL;
 
     if (this->is_first_definition() == true)
     {
-        if  (this->get_automatically_allocated_buffer() == NULL)
+        if (this->get_automatically_allocated_buffer() == NULL)
         {
 	    DEBUG(3, tiramisu::str_dump("The automatically allocated buffer of this "
 				        "computation is NULL."));
@@ -5891,7 +5968,6 @@ void tiramisu::computation::bind_to(buffer *buff)
 
     isl_space *sp = isl_set_get_space(this->get_iteration_domain());
     isl_map *map = isl_map_identity(isl_space_map_from_set(sp));
-    map = isl_map_intersect_domain(map, isl_set_copy(this->get_iteration_domain()));
     map = isl_map_set_tuple_name(map, isl_dim_out, buff->get_name().c_str());
     map = isl_map_coalesce(map);
 

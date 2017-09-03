@@ -157,6 +157,10 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
     isl_pw_multi_aff *index_aff = isl_pw_multi_aff_from_map(isl_map_copy(access));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("index_aff = isl_pw_multi_aff_from_map(access): "));
     DEBUG_NO_NEWLINE(3, isl_pw_multi_aff_dump(index_aff));
+    isl_space *model2 = isl_pw_multi_aff_get_space(isl_pw_multi_aff_copy(iterator_map));
+    index_aff = isl_pw_multi_aff_align_params(index_aff, model2);
+    isl_space *model = isl_pw_multi_aff_get_space(isl_pw_multi_aff_copy(index_aff));
+    iterator_map = isl_pw_multi_aff_align_params(iterator_map, model);
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(index_aff): "));
     DEBUG_NO_NEWLINE(3, isl_space_dump(isl_pw_multi_aff_get_space(index_aff)));
     DEBUG_NO_NEWLINE(3, tiramisu::str_dump("space(iterator_map): "));
@@ -495,6 +499,12 @@ std::vector<tiramisu::computation *> generator::filter_computations_by_domain(st
         isl_map *sched = comp_vec[i]->get_trimmed_union_of_schedules();
         isl_set *scheduled_comp_domain = isl_set_apply(isl_set_copy(comp_domain), isl_map_copy(sched));
         DEBUG(10, tiramisu::str_dump("Domain of the computation in time-space domain ", isl_set_to_str(scheduled_comp_domain)));
+        DEBUG(10, tiramisu::str_dump("Intersecting the set:", isl_set_to_str(scheduled_comp_domain)));
+        DEBUG(10, tiramisu::str_dump("With the set:", isl_union_set_to_str(node_domain)));
+
+        isl_space *space_model = isl_space_align_params(isl_space_copy(isl_set_get_space(scheduled_comp_domain)),
+				isl_space_copy(isl_union_set_get_space(node_domain)));
+        scheduled_comp_domain = isl_set_align_params(scheduled_comp_domain, space_model);
 
         isl_union_set *intersection =
             isl_union_set_intersect(isl_union_set_copy(node_domain),

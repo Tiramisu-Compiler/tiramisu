@@ -1399,6 +1399,13 @@ private:
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
 
     /**
+      * Return true if a buffer was allocated to this computation or to one
+      * of its updates (we assume that we allocate the same buffer for the
+      * computation and its updates).
+      */
+    bool buffer_already_allocated();
+
+    /**
      * Compute two subsets of computations:
      *  - the first is the subset of needed computations,
      *  - the second is the subset of produced computations,
