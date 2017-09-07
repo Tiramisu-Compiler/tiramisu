@@ -2310,6 +2310,10 @@ void computation::create_halide_assignment()
         DEBUG(3, tiramisu::str_dump("Calling the Halide::Internal::Store::make function which creates the store statement."));
         DEBUG(3, tiramisu::str_dump("The RHS index expressions are first transformed to Halide expressions then passed to the make function."));
 
+	// Replace the RHS expression to the transformed expressions.
+	// We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
+	// that an access can only appear when accessing a computation. And that case should be handled in the following transformation
+	// so no need to transform this->index_expr separately.
 	tiramisu::expr tiramisu_rhs = replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map());
 
         this->stmt = Halide::Internal::Store::make (
