@@ -891,7 +891,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Input expression: ", isl_ast_expr_to_str(isl_expr)));
+    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Input expression: ", isl_ast_expr_to_C_str(isl_expr)));
     DEBUG_NEWLINE(10);
 
     tiramisu::expr result;
@@ -1259,8 +1259,6 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
 
             if (comp->has_accesses())
             {
-                comp->dump();
-
                 // For each access in accesses (i.e. for each access in the computation),
                 // compute the corresponding isl_ast expression.
                 for (size_t i = 0; i < accesses.size(); ++i)
