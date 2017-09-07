@@ -197,12 +197,10 @@ public:
       */
     expr(tiramisu::op_t o, tiramisu::expr expr0)
     {
-        if (o == tiramisu::o_floor)
-        {
-            assert(((expr0.get_data_type() == tiramisu::p_float32) ||
-                    (expr0.get_data_type() == tiramisu::p_float64)) &&
-                   "Can only do floor on float32 or float64.");
-        }
+        if ((o == tiramisu::o_floor) &&
+            (expr0.get_data_type() != tiramisu::p_float32) &&
+            (expr0.get_data_type() != tiramisu::p_float64))
+                expr0 = tiramisu::expr(tiramisu::o_cast, p_float32, expr0);
 
         this->_operator = o;
         this->etype = tiramisu::e_op;

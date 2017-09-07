@@ -3148,6 +3148,14 @@ class utility
 public:
 
     /**
+     * Traverse recursively the ISL AST tree.
+     * \p dim is the dimension of the loop from which the bounds have to be
+     * extracted. \p upper is a boolean that should be set to true to extract
+     * the upper bound and false to extract the lower bound.
+     */
+     static isl_ast_expr *extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
+
+    /**
      * Return a tiramisu::expr representing the bound of
      * the dimension \p dim in \p set.  If \p upper is true
      * then this function returns the upper bound otherwise
@@ -3161,11 +3169,11 @@ public:
      *
      * get_upper_bound(S, 1)
      *
-     * would return N, while
+     * would return N-1, while
      *
      * get_upper_bound(S, 0)
      *
-     * would return min(N,M)
+     * would return min(N-1,M-1)
      */
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
 
