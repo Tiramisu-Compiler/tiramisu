@@ -1045,7 +1045,12 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
     }
     else if (exp.get_expr_type() == tiramisu::e_var)
     {
-        output_expr = tiramisu_expr_from_isl_ast_expr(iterators_map[exp.get_name()]);
+        std::map<std::string, isl_ast_expr *>::iterator it;
+        it = iterators_map.find(exp.get_name());
+        if (it != iterators_map.end())
+            output_expr = tiramisu_expr_from_isl_ast_expr(iterators_map[exp.get_name()]);
+	else
+            output_expr = exp;
     }
     else if ((exp.get_expr_type() == tiramisu::e_op) && (exp.get_op_type() == tiramisu::o_access))
     {
@@ -2305,11 +2310,11 @@ void computation::create_halide_assignment()
         DEBUG(3, tiramisu::str_dump("Calling the Halide::Internal::Store::make function which creates the store statement."));
         DEBUG(3, tiramisu::str_dump("The RHS index expressions are first transformed to Halide expressions then passed to the make function."));
 
-//	tiramisu::expr tiramisu_rhs = replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map());
+	tiramisu::expr tiramisu_rhs = replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map());
 
         this->stmt = Halide::Internal::Store::make (
                          buffer_name,
-                         generator::halide_expr_from_tiramisu_expr(this, this->index_expr, this->expression),
+                         generator::halide_expr_from_tiramisu_expr(this, this->index_expr, tiramisu_rhs),
                          index, param, Halide::Internal::const_true(type.lanes()));
 
         DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
