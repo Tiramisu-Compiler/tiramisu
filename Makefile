@@ -2,11 +2,6 @@ include configure_paths.sh
 
 #############################################################@
 
-ISL_INCLUDE_DIRECTORY=3rdParty/isl/build/include/
-ISL_LIB_DIRECTORY=3rdParty/isl/build/lib/
-HALIDE_SOURCE_DIRECTORY=Halide
-HALIDE_LIB_DIRECTORY=Halide/lib
-
 CXX = g++
 CXXFLAGS = -g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -fvisibility=hidden
 INCLUDES = -Iinclude/ -I${ISL_INCLUDE_DIRECTORY} -I${HALIDE_SOURCE_DIRECTORY}/include -I${HALIDE_SOURCE_DIRECTORY}/tools -Ibuild/
@@ -130,7 +125,8 @@ TEST_GEN = build/test_01_fct_generator \
     build/test_67_fct_generator \
     build/test_68_fct_generator \
     build/test_70_fct_generator \
-    build/test_71_fct_generator
+    build/test_71_fct_generator \
+    build/test_72_fct_generator
 
 
 
@@ -204,7 +200,8 @@ TEST_BIN = build/test_global \
     build/test_67 \
     build/test_68 \
     build/test_70 \
-    build/test_71
+    build/test_71 \
+    build/test_72
 
 
 
@@ -278,7 +275,8 @@ TEST_RUN = \
     run_test_67 \
     run_test_68 \
     run_test_70 \
-    run_test_71
+    run_test_71 \
+    run_test_72
 
 
 
