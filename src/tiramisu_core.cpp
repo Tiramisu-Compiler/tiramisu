@@ -1407,11 +1407,6 @@ tiramisu::computation *computation::store_at(int L0)
 }
 
 
-// TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
-// as bound. Currently only loops that have a symbolic constant bound can be vectorized
-// this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
-// as input.
-// Idem for unroll.
 void tiramisu::computation::vectorize(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
