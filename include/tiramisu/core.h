@@ -1458,9 +1458,20 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
-
-    tiramisu::constant *create_separator_and_add_constraints_to_context(
-        const tiramisu::expr &loop_upper_bound, int v);
+     
+    /*
+     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
+     * a separator.
+     *
+     * The separator is used to separate a computation. That
+     * is, it is used to create two identical computations where we have
+     * a constraint like i<M in the first and i>=M in the second.
+     * The first is called the full computation while the second is called
+     * the separated computation.
+     *
+     * This function is used in vectorize and unroll mainly.
+     */
+    tiramisu::constant *create_separator(const tiramisu::expr &loop_upper_bound, int v);
 
     /**
        * Duplicate a part of this computation (or all of it) and return

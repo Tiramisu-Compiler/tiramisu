@@ -1310,25 +1310,7 @@ std::string utility::get_parameters_list(isl_set *set)
     return list;
 }
 
-/*
- * Create a new Tiramisu constant M = v*floor(N/v) and use it as
- * a separator.
- *
- * Add the following constraints about the separator to the context:
- *  -  separator%v = 0
- *  -  separator <= loop_upper_bound
- *
- * The separator is used to separate a computation. That
- * is, it is used to create two identical computations where we have
- * a constraint like i<M in the first and i>=M in the second.
- * The first is called the full computation while the second is called
- * the separated computation.
- *
- * This function is used in vectorize and unroll mainly.
- */
-tiramisu::constant *
-tiramisu::computation::create_separator_and_add_constraints_to_context (
-    const tiramisu::expr &loop_upper_bound, int v)
+tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr &loop_upper_bound, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1452,7 +1434,7 @@ void tiramisu::computation::vectorize(int L0, int v)
      * a separator.
      */
     tiramisu::constant *separation_param =
-        this->create_separator_and_add_constraints_to_context(loop_bound, v);
+        this->create_separator(loop_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -1500,7 +1482,7 @@ void tiramisu::computation::unroll(int L0, int v,
      * a separator.
      */
     tiramisu::constant *separation_param =
-        this->create_separator_and_add_constraints_to_context(loop_upper_bound, v);
+        this->create_separator(loop_upper_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
