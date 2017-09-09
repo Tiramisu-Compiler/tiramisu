@@ -148,17 +148,17 @@ class tiramisu_timer
     public:
     std::chrono::time_point<std::chrono::system_clock> start_timing, end_timing;
 
-    void timing_start()
+    void start()
     {
 	start_timing = std::chrono::system_clock::now();
     }
 
-    void timing_stop()
+    void stop()
     {
 	end_timing = std::chrono::system_clock::now();
     }
 
-    void timing_print(std::string bench_name)
+    void print(std::string bench_name)
     {
         std::chrono::duration<double> elapsed_seconds = end_timing - start_timing;
         auto elapsed_micro_seconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed_seconds);
