@@ -146,21 +146,21 @@ inline void init_2D_buffer_interleaving(Halide::Buffer<T> &buf, T val1, T val2)
 class tiramisu_timer
 {
     public:
-    static std::chrono::time_point<std::chrono::system_clock> start_timing, end_timing;
+    std::chrono::time_point<std::chrono::system_clock> start_timing, end_timing;
 
-    static void timing_start()
+    void timing_start()
     {
-	tiramisu_timer::start_timing = std::chrono::system_clock::now();
+	start_timing = std::chrono::system_clock::now();
     }
 
-    static void timing_stop()
+    void timing_stop()
     {
-	tiramisu_timer::end_timing = std::chrono::system_clock::now();
+	end_timing = std::chrono::system_clock::now();
     }
 
-    static void timing_print(std::string bench_name)
+    void timing_print(std::string bench_name)
     {
-        std::chrono::duration<double> elapsed_seconds = tiramisu_timer::end_timing - tiramisu_timer::start_timing;
+        std::chrono::duration<double> elapsed_seconds = end_timing - start_timing;
         auto elapsed_micro_seconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed_seconds);
         std::cout << bench_name << ": " << elapsed_micro_seconds.count() << " micro-seconds\n";
     }
