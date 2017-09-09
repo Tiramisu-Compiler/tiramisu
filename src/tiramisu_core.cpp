@@ -1183,6 +1183,8 @@ tiramisu::computation *tiramisu::computation::copy()
     return new_c;
 }
 
+isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
+
 void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 {
     DEBUG_FCT_NAME(3);
@@ -1240,7 +1242,7 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     DEBUG(3, tiramisu::str_dump("Creating a space for the separation constraints."));
 
     // First we create the space.
-    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_iteration_domain()));
+    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_time_processor_domain()));
     sp = isl_space_add_dims(sp, isl_dim_param, 1);
     int pos = isl_space_dim(sp, isl_dim_param) - 1;
     sp = isl_space_set_dim_name(sp, isl_dim_param, pos, C.get_name().c_str());
@@ -1255,34 +1257,37 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     // i <= M-1
     // M-1-i >= 0
     isl_constraint *cst_upper = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
-    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, dim, -1);
+    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, loop_level_into_dynamic_dimension(dim), -1);
     cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_param, pos, 1);
     cst_upper = isl_constraint_set_constant_si(cst_upper, -1);
 
-    this->set_iteration_domain(isl_set_add_constraint(this->get_iteration_domain(), cst_upper));
+    this->add_schedule_constraint("", isl_set_to_str(isl_set_add_constraint(this->get_time_processor_domain(), cst_upper)));
 
     DEBUG(3, tiramisu::str_dump("Creating the separation constraint: i>=M."));
 
     // Third, we create the constraint i>=M and add it to the newly created computation.
     // i >= M
     // i - M >= 0
-    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_iteration_domain()));
+    this->get_update(last_update_computation).gen_time_space_domain();
+    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_time_processor_domain()));
     sp2 = isl_space_add_dims(sp2, isl_dim_param, 1);
     int pos2 = isl_space_dim(sp2, isl_dim_param) - 1;
     sp2 = isl_space_set_dim_name(sp2, isl_dim_param, pos2, C.get_name().c_str());
     isl_local_space *ls2 = isl_local_space_from_space(isl_space_copy(sp2));
     isl_constraint *cst_lower = isl_constraint_alloc_inequality(isl_local_space_copy(ls2));
-    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, dim, 1);
+    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, loop_level_into_dynamic_dimension(dim), 1);
     cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_param, pos, -1);
+    isl_set *cst_lower_set = isl_set_universe(sp2);
+    cst_lower_set = isl_set_add_constraint(cst_lower_set, cst_lower);
 
-    this->get_update(last_update_computation).set_iteration_domain(isl_set_add_constraint(this->get_update(last_update_computation).get_iteration_domain(), cst_lower));
+    this->get_update(last_update_computation).add_schedule_constraint("", isl_set_to_str(cst_lower_set));
 
     // Mark the separated computation to be executed after the original (full)
     // computation.
     this->get_update(last_update_computation).after(*this, dim);
 
-    this->dump();
-    this->get_update(last_update_computation).dump();
+    DEBUG(3, tiramisu::str_dump("The original computation (i<=M):"); this->dump());
+    DEBUG(3, tiramisu::str_dump("The separate computation (i>=M):"); this->get_update(last_update_computation).dump());
 
     DEBUG_INDENT(-4);
 }
@@ -1346,17 +1351,28 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
 
     std::vector<tiramisu::expr> *dim_sizes = new std::vector<tiramisu::expr>();
 
+    // If the computation has an update, we first compute the union of all the
+    // updates, then we compute the bounds of the union.
     for (int i = 0; i < this->get_n_dimensions(); i++)
     {
-	tiramisu::expr diff = tiramisu::expr((int32_t) 0);
+	// We rename the iteration domains to become "" in the following
+	// because the updates may be separated computations (which have
+	// names prefixed with "_". We assume that all the computations in
+	// the list of updates must be updates of the same computation.
+	isl_set *union_iter_domain = isl_set_copy(this->get_update(0).get_iteration_domain());
+	union_iter_domain = isl_set_set_tuple_name(union_iter_domain, "");
 
-	for (int j = 0; j < this->get_updates().size(); j++)
+	for (int j = 1; j < this->get_updates().size(); j++)
 	{
-            DEBUG(3, tiramisu::str_dump("Extracting bounds of the following set:", isl_set_to_str(this->get_update(j).get_iteration_domain())));
-            tiramisu::expr lower = utility::get_bound(this->get_update(j).get_iteration_domain(), i, false);
-            tiramisu::expr upper = utility::get_bound(this->get_update(j).get_iteration_domain(), i, true);
-            diff = diff + (upper - lower + 1);
+            isl_set *iter_domain = isl_set_copy(this->get_update(j).get_iteration_domain());
+            iter_domain = isl_set_set_tuple_name(iter_domain, "");
+	    union_iter_domain = isl_set_union(union_iter_domain, iter_domain);
 	}
+
+        DEBUG(3, tiramisu::str_dump("Extracting bounds of the following set:", isl_set_to_str(union_iter_domain)));
+        tiramisu::expr lower = utility::get_bound(union_iter_domain, i, false);
+        tiramisu::expr upper = utility::get_bound(union_iter_domain, i, true);
+        tiramisu::expr diff = (upper - lower + 1);
 
         DEBUG(3, tiramisu::str_dump("Buffer dimension size (dim = " + std::to_string(i) + ") : "); diff.dump(false));
         dim_sizes->push_back(diff);
@@ -1822,6 +1838,8 @@ void computation::add_schedule_constraint(std::string domain_constraints,
 
         DEBUG(3, tiramisu::str_dump("Adding the following constraints to the domain of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(domain_cst)));
+        DEBUG(3, tiramisu::str_dump("The schedule is : "));
+        DEBUG(3, tiramisu::str_dump(isl_map_to_str(sched)));
 
         sched = isl_map_intersect_domain(isl_map_copy(sched), isl_set_copy(domain_cst));
 
@@ -1833,6 +1851,7 @@ void computation::add_schedule_constraint(std::string domain_constraints,
 
         DEBUG(3, tiramisu::str_dump("Adding the following constraints to the range of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(range_cst)));
+        DEBUG(3, tiramisu::str_dump("The schedule : ", isl_map_to_str(sched)));
 
         sched = isl_map_intersect_range(isl_map_copy(sched), isl_set_copy(range_cst));
     }
@@ -4622,6 +4641,7 @@ void tiramisu::function::dump(bool exhaustive) const
         for (const auto &buf : this->buffers_list)
         {
             std::cout << "Buffer name: " << buf.second->get_name() << std::endl;
+	    buf.second->dump(false);
         }
 
         std::cout << std::endl << std::endl;

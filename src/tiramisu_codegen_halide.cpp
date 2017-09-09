@@ -2337,14 +2337,14 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
 {
     Halide::Expr result;
 
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump("Input Tiramisu expression: "); tiramisu_expr.dump(false));
+    DEBUG(10, tiramisu::str_dump("Input Tiramisu expression: "); tiramisu_expr.dump(false));
 
     if (tiramisu_expr.get_expr_type() == tiramisu::e_val)
     {
-        DEBUG(3, tiramisu::str_dump("tiramisu expression of type tiramisu::e_val"));
+        DEBUG(10, tiramisu::str_dump("tiramisu expression of type tiramisu::e_val"));
         if (tiramisu_expr.get_data_type() == tiramisu::p_uint8)
         {
             result = Halide::Expr(tiramisu_expr.get_uint8_value());
@@ -2390,7 +2390,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
     {
         Halide::Expr op0, op1, op2;
 
-        DEBUG(3, tiramisu::str_dump("tiramisu expression of type tiramisu::e_op"));
+        DEBUG(10, tiramisu::str_dump("tiramisu expression of type tiramisu::e_op"));
 
         if (tiramisu_expr.get_n_arg() > 0)
         {
@@ -2414,87 +2414,87 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
         {
             case tiramisu::o_logical_and:
                 result = Halide::Internal::And::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_logical_and"));
+                DEBUG(10, tiramisu::str_dump("op type: o_logical_and"));
                 break;
             case tiramisu::o_logical_or:
                 result = Halide::Internal::Or::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_logical_or"));
+                DEBUG(10, tiramisu::str_dump("op type: o_logical_or"));
                 break;
             case tiramisu::o_max:
                 result = Halide::Internal::Max::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_max"));
+                DEBUG(10, tiramisu::str_dump("op type: o_max"));
                 break;
             case tiramisu::o_min:
                 result = Halide::Internal::Min::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_min"));
+                DEBUG(10, tiramisu::str_dump("op type: o_min"));
                 break;
             case tiramisu::o_minus:
                 result = Halide::Internal::Sub::make(Halide::Expr(0), op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_minus"));
+                DEBUG(10, tiramisu::str_dump("op type: o_minus"));
                 break;
             case tiramisu::o_add:
                 result = Halide::Internal::Add::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_add"));
+                DEBUG(10, tiramisu::str_dump("op type: o_add"));
                 break;
             case tiramisu::o_sub:
                 result = Halide::Internal::Sub::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_sub"));
+                DEBUG(10, tiramisu::str_dump("op type: o_sub"));
                 break;
             case tiramisu::o_mul:
                 result = Halide::Internal::Mul::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_mul"));
+                DEBUG(10, tiramisu::str_dump("op type: o_mul"));
                 break;
             case tiramisu::o_div:
                 result = Halide::Internal::Div::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_div"));
+                DEBUG(10, tiramisu::str_dump("op type: o_div"));
                 break;
             case tiramisu::o_mod:
                 result = Halide::Internal::Mod::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_mod"));
+                DEBUG(10, tiramisu::str_dump("op type: o_mod"));
                 break;
             case tiramisu::o_select:
                 result = Halide::Internal::Select::make(op0, op1, op2);
-                DEBUG(3, tiramisu::str_dump("op type: o_select"));
+                DEBUG(10, tiramisu::str_dump("op type: o_select"));
                 break;
             case tiramisu::o_lerp:
                 result = Halide::lerp(op0, op1, op2);
-                DEBUG(3, tiramisu::str_dump("op type: lerp"));
+                DEBUG(10, tiramisu::str_dump("op type: lerp"));
                 break;
             case tiramisu::o_cond:
                 tiramisu::error("Code generation for o_cond is not supported yet.", true);
                 break;
             case tiramisu::o_le:
                 result = Halide::Internal::LE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_le"));
+                DEBUG(10, tiramisu::str_dump("op type: o_le"));
                 break;
             case tiramisu::o_lt:
                 result = Halide::Internal::LT::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_lt"));
+                DEBUG(10, tiramisu::str_dump("op type: o_lt"));
                 break;
             case tiramisu::o_ge:
                 result = Halide::Internal::GE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_ge"));
+                DEBUG(10, tiramisu::str_dump("op type: o_ge"));
                 break;
             case tiramisu::o_gt:
                 result = Halide::Internal::GT::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_gt"));
+                DEBUG(10, tiramisu::str_dump("op type: o_gt"));
                 break;
             case tiramisu::o_logical_not:
                 result = Halide::Internal::Not::make(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_not"));
+                DEBUG(10, tiramisu::str_dump("op type: o_not"));
                 break;
             case tiramisu::o_eq:
                 result = Halide::Internal::EQ::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_eq"));
+                DEBUG(10, tiramisu::str_dump("op type: o_eq"));
                 break;
             case tiramisu::o_ne:
                 result = Halide::Internal::NE::make(op0, op1);
-                DEBUG(3, tiramisu::str_dump("op type: o_ne"));
+                DEBUG(10, tiramisu::str_dump("op type: o_ne"));
                 break;
             case tiramisu::o_access:
             case tiramisu::o_address:
             {
-                DEBUG(3, tiramisu::str_dump("op type: o_access or o_address"));
+                DEBUG(10, tiramisu::str_dump("op type: o_access or o_address"));
 
                 const char *access_comp_name = NULL;
 
@@ -2513,7 +2513,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
 
                 assert(access_comp_name != NULL);
 
-                DEBUG(3, tiramisu::str_dump("Computation being accessed: "); tiramisu::str_dump(access_comp_name));
+                DEBUG(10, tiramisu::str_dump("Computation being accessed: "); tiramisu::str_dump(access_comp_name));
 
                 // Since we modify the names of update computations but do not modify the
                 // expressions.  When accessing the expressions we find the old names, so
@@ -2540,7 +2540,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                         isl_map_get_space(access_comp->get_access_relation_adapted_to_time_processor_domain()),
                         isl_dim_out);
                 assert(buffer_name != NULL);
-                DEBUG(3, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
+                DEBUG(10, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
 
                 const auto &buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
                 assert(buffer_entry != comp->get_function()->get_buffers().end());
@@ -2629,71 +2629,71 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                 break;
             case tiramisu::o_right_shift:
                 result = op0 >> op1;
-                DEBUG(3, tiramisu::str_dump("op type: o_right_shift"));
+                DEBUG(10, tiramisu::str_dump("op type: o_right_shift"));
                 break;
             case tiramisu::o_left_shift:
                 result = op0 << op1;
-                DEBUG(3, tiramisu::str_dump("op type: o_left_shift"));
+                DEBUG(10, tiramisu::str_dump("op type: o_left_shift"));
                 break;
             case tiramisu::o_floor:
                 result = Halide::floor(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_floor"));
+                DEBUG(10, tiramisu::str_dump("op type: o_floor"));
                 break;
             case tiramisu::o_cast:
                 result = Halide::cast(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()), op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_cast"));
+                DEBUG(10, tiramisu::str_dump("op type: o_cast"));
                 break;
             case tiramisu::o_sin:
                 result = Halide::sin(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_sin"));
+                DEBUG(10, tiramisu::str_dump("op type: o_sin"));
                 break;
             case tiramisu::o_cos:
                 result = Halide::cos(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_cos"));
+                DEBUG(10, tiramisu::str_dump("op type: o_cos"));
                 break;
             case tiramisu::o_tan:
                 result = Halide::tan(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_tan"));
+                DEBUG(10, tiramisu::str_dump("op type: o_tan"));
                 break;
             case tiramisu::o_asin:
                 result = Halide::asin(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_asin"));
+                DEBUG(10, tiramisu::str_dump("op type: o_asin"));
                 break;
             case tiramisu::o_acos:
                 result = Halide::acos(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_acos"));
+                DEBUG(10, tiramisu::str_dump("op type: o_acos"));
                 break;
             case tiramisu::o_atan:
                 result = Halide::atan(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_atan"));
+                DEBUG(10, tiramisu::str_dump("op type: o_atan"));
                 break;
             case tiramisu::o_abs:
                 result = Halide::abs(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_abs"));
+                DEBUG(10, tiramisu::str_dump("op type: o_abs"));
                 break;
             case tiramisu::o_sqrt:
                 result = Halide::sqrt(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_sqrt"));
+                DEBUG(10, tiramisu::str_dump("op type: o_sqrt"));
                 break;
             case tiramisu::o_expo:
                 result = Halide::exp(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_expo"));
+                DEBUG(10, tiramisu::str_dump("op type: o_expo"));
                 break;
             case tiramisu::o_log:
                 result = Halide::log(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_log"));
+                DEBUG(10, tiramisu::str_dump("op type: o_log"));
                 break;
             case tiramisu::o_ceil:
                 result = Halide::ceil(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_ceil"));
+                DEBUG(10, tiramisu::str_dump("op type: o_ceil"));
                 break;
             case tiramisu::o_round:
                 result = Halide::round(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_round"));
+                DEBUG(10, tiramisu::str_dump("op type: o_round"));
                 break;
             case tiramisu::o_trunc:
                 result = Halide::trunc(op0);
-                DEBUG(3, tiramisu::str_dump("op type: o_trunc"));
+                DEBUG(10, tiramisu::str_dump("op type: o_trunc"));
                 break;
             case tiramisu::o_call:
             {
@@ -2707,7 +2707,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                                                       tiramisu_expr.get_name(),
                                                       vec,
                                                       Halide::Internal::Call::CallType::Extern);
-                DEBUG(3, tiramisu::str_dump("op type: o_call"));
+                DEBUG(10, tiramisu::str_dump("op type: o_call"));
                 break;
             }
             case tiramisu::o_allocate:
@@ -2738,7 +2738,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
     }
 
     DEBUG_INDENT(-4);
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
 
     return result;
 }
