@@ -143,4 +143,22 @@ inline void init_2D_buffer_interleaving(Halide::Buffer<T> &buf, T val1, T val2)
     }
 }
 
+std::chrono::time_point<std::chrono::system_clock> colib_start_timing, colib_end_timing;
+
+void timing_start()
+{
+    colib_start_timing = std::chrono::system_clock::now();
+}
+
+void timing_stop()
+{
+    colib_end_timing = std::chrono::system_clock::now();
+}
+
+void timing_print(std::string bench_name)
+{
+    std::chrono::duration<double> elapsed_seconds = colib_end_timing - colib_start_timing;
+    auto elapsed_micro_seconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed_seconds);
+    std::cout << bench_name << ": " << elapsed_micro_seconds.count() << " micro-seconds\n";
+}
 #endif
