@@ -35,6 +35,9 @@ namespace tiramisu
     tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
                                                                  const tiramisu::expr &exp);
 
+    tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr);
+
+
 /**
  * Create an equality constraint and add it to the schedule \p sched.
  * Edit the schedule as follows: assuming that y and y' are the input
@@ -1180,10 +1183,15 @@ tiramisu::computation *tiramisu::computation::copy()
     return new_c;
 }
 
+isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
+
 void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
+    this->gen_time_space_domain();
 
     assert(this->get_function()->get_computation_by_name("_" + this->get_name()).empty());
 
@@ -1206,10 +1214,10 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 
     DEBUG(3, tiramisu::str_dump("Separated computation:\n"); this->get_update(last_update_computation).dump());
 
-
     // Create the access relation of the separated computation (by replacing its name).
     if (this->get_access_relation() != NULL)
     {
+            DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
 	    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
 	    int pos1 = access_c_str.find(this->get_name());
 	    int len1 = this->get_name().length();
@@ -1231,12 +1239,16 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     // iteration domain plus a new dimension that represents the separator
     // parameter.
 
+    DEBUG(3, tiramisu::str_dump("Creating a space for the separation constraints."));
+
     // First we create the space.
-    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_iteration_domain()));
+    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_time_processor_domain()));
     sp = isl_space_add_dims(sp, isl_dim_param, 1);
     int pos = isl_space_dim(sp, isl_dim_param) - 1;
     sp = isl_space_set_dim_name(sp, isl_dim_param, pos, C.get_name().c_str());
     isl_local_space *ls = isl_local_space_from_space(isl_space_copy(sp));
+
+    DEBUG(3, tiramisu::str_dump("Creating the separation constraint: i<M."));
 
     // Second, we create the constraint i<M and add it to the original computation.
     // Since constraints in ISL are of the form X>=y, we transform the previous
@@ -1245,32 +1257,37 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     // i <= M-1
     // M-1-i >= 0
     isl_constraint *cst_upper = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
-    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, dim, -1);
+    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, loop_level_into_dynamic_dimension(dim), -1);
     cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_param, pos, 1);
     cst_upper = isl_constraint_set_constant_si(cst_upper, -1);
 
-    this->set_iteration_domain(isl_set_add_constraint(this->get_iteration_domain(), cst_upper));
+    this->add_schedule_constraint("", isl_set_to_str(isl_set_add_constraint(this->get_time_processor_domain(), cst_upper)));
+
+    DEBUG(3, tiramisu::str_dump("Creating the separation constraint: i>=M."));
 
     // Third, we create the constraint i>=M and add it to the newly created computation.
     // i >= M
     // i - M >= 0
-    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_iteration_domain()));
+    this->get_update(last_update_computation).gen_time_space_domain();
+    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_time_processor_domain()));
     sp2 = isl_space_add_dims(sp2, isl_dim_param, 1);
     int pos2 = isl_space_dim(sp2, isl_dim_param) - 1;
     sp2 = isl_space_set_dim_name(sp2, isl_dim_param, pos2, C.get_name().c_str());
     isl_local_space *ls2 = isl_local_space_from_space(isl_space_copy(sp2));
     isl_constraint *cst_lower = isl_constraint_alloc_inequality(isl_local_space_copy(ls2));
-    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, dim, 1);
+    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, loop_level_into_dynamic_dimension(dim), 1);
     cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_param, pos, -1);
+    isl_set *cst_lower_set = isl_set_universe(sp2);
+    cst_lower_set = isl_set_add_constraint(cst_lower_set, cst_lower);
 
-    this->get_update(last_update_computation).set_iteration_domain(isl_set_add_constraint(this->get_update(last_update_computation).get_iteration_domain(), cst_lower));
+    this->get_update(last_update_computation).add_schedule_constraint("", isl_set_to_str(cst_lower_set));
 
     // Mark the separated computation to be executed after the original (full)
     // computation.
     this->get_update(last_update_computation).after(*this, dim);
 
-    this->dump();
-    this->get_update(last_update_computation).dump();
+    DEBUG(3, tiramisu::str_dump("The original computation (i<=M):"); this->dump());
+    DEBUG(3, tiramisu::str_dump("The separate computation (i>=M):"); this->get_update(last_update_computation).dump());
 
     DEBUG_INDENT(-4);
 }
@@ -1298,25 +1315,7 @@ std::string utility::get_parameters_list(isl_set *set)
     return list;
 }
 
-/*
- * Create a new Tiramisu constant M = v*floor(N/v) and use it as
- * a separator.
- *
- * Add the following constraints about the separator to the context:
- *  -  separator%v = 0
- *  -  separator <= loop_upper_bound
- *
- * The separator is used to separate a computation. That
- * is, it is used to create two identical computations where we have
- * a constraint like i<M in the first and i>=M in the second.
- * The first is called the full computation while the second is called
- * the separated computation.
- *
- * This function is used in vectorize and unroll mainly.
- */
-tiramisu::constant *
-tiramisu::computation::create_separator_and_add_constraints_to_context (
-    const tiramisu::expr &loop_upper_bound, int v)
+tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr &loop_upper_bound, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1335,51 +1334,6 @@ tiramisu::computation::create_separator_and_add_constraints_to_context (
     tiramisu::constant *separation_param = new tiramisu::constant(
         separator_name, separator_expr, p_uint32, true, NULL, 0, this->get_function());
 
-    /**
-     * Add the following constraints about the separator to the context:
-     *  -  separator%v = 0
-     *  -  separator <= loop_upper_bound
-     */
-    // Create a new context set.
-    std::string constraint_parameters = "[" + separation_param->get_name() +
-                                        ((utility::get_parameters_list(this->get_iteration_domain()).size() > 0) ? "," : " ") +
-                                        utility::get_parameters_list(this->get_iteration_domain()) + "]->";
-    std::string constraint = constraint_parameters + "{ : ("
-                             + separation_param->get_name() + ") % " + std::to_string(v)
-                             + " = 0 and " + "(" + separation_param->get_name() + ") <= ("
-                             + loop_upper_bound.to_str() + ") and ("
-                             + separation_param->get_name() + ") > 0 and ("
-                             + loop_upper_bound.to_str() + ") > 0 " + " }";
-    DEBUG(3, tiramisu::str_dump("Constructed constraint string : " + constraint));
-    isl_set *new_context_set = isl_set_read_from_str(this->get_ctx(), constraint.c_str());
-
-    /*
-     * Align the parameters of this set with the parameters of the iteration domain
-     * (that is, we have to add the new parameter to the context and then take
-     * its space as a model for alignment).
-     */
-    isl_set *original_context = this->get_function()->get_program_context();
-    if (original_context != NULL)
-    {
-        // Create a space from the context and add a parameter.
-        isl_space *sp = isl_set_get_space(original_context);
-        sp = isl_space_add_dims(sp, isl_dim_param, 1);
-        int pos = isl_space_dim(sp, isl_dim_param) - 1;
-        sp = isl_space_set_dim_name(sp, isl_dim_param, pos, separator_name.c_str());
-        this->set_iteration_domain(
-            isl_set_align_params(isl_set_copy(this->get_iteration_domain()),
-                                 isl_space_copy(sp)));
-        this->get_function()->set_context_set(
-            isl_set_align_params(
-                isl_set_copy(this->get_function()->get_program_context()), sp));
-        this->get_function()->set_context_set(
-            isl_set_intersect(isl_set_copy(original_context), new_context_set));
-    }
-    else
-    {
-        this->get_function()->set_context_set(new_context_set);
-    }
-
     DEBUG_INDENT(-4);
 
     return separation_param;
@@ -1392,21 +1346,40 @@ tiramisu::buffer *tiramisu::computation::get_automatically_allocated_buffer()
 
 std::vector<tiramisu::expr>* computation::compute_buffer_size()
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     std::vector<tiramisu::expr> *dim_sizes = new std::vector<tiramisu::expr>();
 
+    // If the computation has an update, we first compute the union of all the
+    // updates, then we compute the bounds of the union.
     for (int i = 0; i < this->get_n_dimensions(); i++)
     {
-	tiramisu::expr diff = tiramisu::expr((int32_t) 0);
+	// We rename the iteration domains to become "" in the following
+	// because the updates may be separated computations (which have
+	// names prefixed with "_". We assume that all the computations in
+	// the list of updates must be updates of the same computation.
+	isl_set *union_iter_domain = isl_set_copy(this->get_update(0).get_iteration_domain());
+	union_iter_domain = isl_set_set_tuple_name(union_iter_domain, "");
 
-	for (int j = 0; j < this->get_updates().size(); j++)
+	for (int j = 1; j < this->get_updates().size(); j++)
 	{
-	    tiramisu::expr lower = utility::get_bound(this->get_update(j).get_iteration_domain(), i, false);
-            tiramisu::expr upper = utility::get_bound(this->get_update(j).get_iteration_domain(), i, true);
-            diff = diff + (upper - lower + 1);
+            isl_set *iter_domain = isl_set_copy(this->get_update(j).get_iteration_domain());
+            iter_domain = isl_set_set_tuple_name(iter_domain, "");
+	    union_iter_domain = isl_set_union(union_iter_domain, iter_domain);
 	}
 
+        DEBUG(3, tiramisu::str_dump("Extracting bounds of the following set:", isl_set_to_str(union_iter_domain)));
+        tiramisu::expr lower = utility::get_bound(union_iter_domain, i, false);
+        tiramisu::expr upper = utility::get_bound(union_iter_domain, i, true);
+        tiramisu::expr diff = (upper - lower + 1);
+
+        DEBUG(3, tiramisu::str_dump("Buffer dimension size (dim = " + std::to_string(i) + ") : "); diff.dump(false));
         dim_sizes->push_back(diff);
     }
+
+    DEBUG_INDENT(-4);
+
     return dim_sizes;
 }
 
@@ -1450,22 +1423,19 @@ tiramisu::computation *computation::store_at(int L0)
 }
 
 
-// TODO: support the vectorization of loops that has a constant (tiramisu::expr(10))
-// as bound. Currently only loops that have a symbolic constant bound can be vectorized
-// this is mainly because the vectorize function expects a "tiramisu::expr loop_upper_bound"
-// as input.
-// Idem for unroll.
 void tiramisu::computation::vectorize(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    this->gen_time_space_domain();
+
     tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_iteration_domain(),
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
                                      L0, true);
 
     tiramisu::expr loop_lower_bound =
-        tiramisu::utility::get_bound(this->get_iteration_domain(),
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
                                      L0, false);
 
     tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
@@ -1475,7 +1445,7 @@ void tiramisu::computation::vectorize(int L0, int v)
      * a separator.
      */
     tiramisu::constant *separation_param =
-        this->create_separator_and_add_constraints_to_context(loop_bound, v);
+        this->create_separator(loop_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -1523,7 +1493,7 @@ void tiramisu::computation::unroll(int L0, int v,
      * a separator.
      */
     tiramisu::constant *separation_param =
-        this->create_separator_and_add_constraints_to_context(loop_upper_bound, v);
+        this->create_separator(loop_upper_bound, v);
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -1868,6 +1838,8 @@ void computation::add_schedule_constraint(std::string domain_constraints,
 
         DEBUG(3, tiramisu::str_dump("Adding the following constraints to the domain of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(domain_cst)));
+        DEBUG(3, tiramisu::str_dump("The schedule is : "));
+        DEBUG(3, tiramisu::str_dump(isl_map_to_str(sched)));
 
         sched = isl_map_intersect_domain(isl_map_copy(sched), isl_set_copy(domain_cst));
 
@@ -1879,6 +1851,7 @@ void computation::add_schedule_constraint(std::string domain_constraints,
 
         DEBUG(3, tiramisu::str_dump("Adding the following constraints to the range of the schedule : "));
         DEBUG(3, tiramisu::str_dump(isl_set_to_str(range_cst)));
+        DEBUG(3, tiramisu::str_dump("The schedule : ", isl_map_to_str(sched)));
 
         sched = isl_map_intersect_range(isl_map_copy(sched), isl_set_copy(range_cst));
     }
@@ -4022,24 +3995,96 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
     return e;
 }
 
+/**
+  * Traverse recursively the ISL AST tree. \p node represents the root of the
+  * tree to be traversed.
+  * \p dim is the dimension of the loop from which the bounds have to be
+  * extracted. \p upper is a boolean that should be set to true to extract
+  * the upper bound and false to extract the lower bound.
+  */
+isl_ast_expr *utility::extract_bound_expression(isl_ast_node *node, int dim, bool upper)
+{
+    assert(node != NULL);
+    assert(dim >= 0);
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_ast_expr *result = NULL;
+
+    if (isl_ast_node_get_type(node) == isl_ast_node_block)
+	tiramisu::error("Currently Tiramisu does not support extracting bounds from blocks.", true);
+    else if (isl_ast_node_get_type(node) == isl_ast_node_for)
+    {
+        DEBUG(3, tiramisu::str_dump("Extracting bounds from a for loop."));
+
+	if (dim == 0)
+	{
+            if (upper)
+	    {
+                isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
+
+		/**
+		  * If we have an expression
+		  *  i < N
+		  * or an expression
+		  *  i <= N - 1
+		  *
+		  * In both cases, the returned bound should be (N-1).
+		  */
+                if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
+                {
+                    // Create an expression of "1".
+                    isl_val *one = isl_val_one(isl_ast_node_get_ctx(node));
+                    // Add 1 to the ISL ast upper bound to transform it into a strinct bound.
+                    result = isl_ast_expr_sub(
+                                 isl_ast_expr_get_op_arg(cond, 1),
+                                 isl_ast_expr_from_val(one));
+                }
+                else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)
+                {
+                    result = isl_ast_expr_get_op_arg(cond, 1);
+                }
+	   }
+	   else
+	   {
+                isl_ast_expr *init = isl_ast_node_for_get_init(node);
+		result = init;
+	   }
+	}
+	else
+	{
+            isl_ast_node *body = isl_ast_node_for_get_body(node);
+	    result = utility::extract_bound_expression(body, dim-1, upper);
+            isl_ast_node_free(body);
+	}
+
+        assert(result != NULL);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_user)
+	tiramisu::error("Cannot extract bounds from a isl_ast_user node.", true);
+    else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+	tiramisu::error("Currently Tiramisu does not support extracting bounds from a isl_ast_node_if.", true);
+
+    DEBUG(3, tiramisu::str_dump("Extracted bound:", isl_ast_expr_to_C_str(result)));
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+/**
+ * - Generate code:
+ *	- Generate time-processor domain.
+ *	- Generate an ISL AST.
+ * - Traverse the tree until the level \p dim.
+ * - Extract the bounds of that level.
+ * - During the traversal, assert that the loop is fully nested.
+ *
+ */
 tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
-
-    /**
-     * General algorithm
-     *
-     * - Go through all the constraints of \p set
-     * - If the constraint is a constraint on the dimension \p dim
-     *      - If the constraint is an upper or a lower bound
-     *           - Translate the constraint to a tiramisu expression
-     *           and add it to the vector of bounds
-     *  - If the vector of upper bounds has only one element, return
-     *  the tiramisu expression that corresponds to that isl expression
-     *  - Else, if the vector has more than one element return the min
-     *  of those elements.
-     */
 
     assert(set != NULL);
     assert(dim >= 0);
@@ -4050,78 +4095,35 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
                                  " bound on the dimension " +
                                  std::to_string(dim) + " of the set ",
                                  isl_set_to_str(set)));
+    DEBUG(3, tiramisu::str_dump("Generating time-space domain."));
 
-    isl_basic_set_list *bset_list = isl_set_get_basic_set_list(set);
-    int n_bsets = isl_basic_set_list_n_basic_set(bset_list);
-    std::vector<tiramisu::expr> vector_of_bounds;
     tiramisu::expr e = tiramisu::expr();
+    isl_ast_build *ast_build;
+    isl_ctx *ctx = isl_set_get_ctx(set);
+    ast_build = isl_ast_build_alloc(ctx);
 
-    for (int i = 0; i < n_bsets; i++)
-    {
-        isl_basic_set *bset = isl_basic_set_list_get_basic_set(bset_list, i);
-        isl_constraint_list *list = isl_basic_set_get_constraint_list(bset);
-        int n_constraints = isl_constraint_list_n_constraint(list);
+    // Create identity map for set.
+    isl_space *sp = isl_set_get_space(set);
+    isl_map *sched = isl_map_identity(isl_space_copy(isl_space_map_from_set(sp)));
+    sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
 
-        for (int j = 0; j < n_constraints; j++)
-        {
-            isl_constraint *cst = isl_constraint_list_get_constraint(list, j);
+    // Generate the AST.
+    isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
+    isl_options_get_ast_build_exploit_nested_bounds(ctx);
 
-            if (isl_constraint_involves_dims(cst, isl_dim_set, dim, 1) == isl_bool_true)
-                if (((upper == true) && (isl_constraint_is_upper_bound(cst, isl_dim_set, dim) == isl_bool_true)) ||
-                        ((upper == false) && (isl_constraint_is_lower_bound(cst, isl_dim_set, dim) == isl_bool_true)))
-                {
-                    // Check that the constraint is valid.
-                    if (isl_constraint_is_simple(cst, dim))
-                    {
-                        // Add the extracted tiramisu expression to the vector of upper bounds
-                        vector_of_bounds.push_back(extract_tiramisu_expr_from_cst(cst, dim, upper));
-                        DEBUG(10, tiramisu::str_dump("The constraint is simple: "); isl_constraint_dump(cst));
-                    }
-                    else
-                    {
-                        DEBUG(10, tiramisu::str_dump("Non simple constraint: "); isl_constraint_dump(cst));
-                    }
-                }
-        }
-    }
+    // Intersect the iteration domain with the domain of the schedule.
+    isl_map *map =
+        isl_map_intersect_domain(
+            isl_map_copy(sched),
+            isl_set_copy(set));
 
-    // Three possible cases:
-    //  - The vector of upper bound expressions is empty, this means that the constraint
-    //    is not simple (i.e., is not supported by the tiramisu::converter),
-    //  - The vector of upper bound expressions has one element, that element is the
-    //    upper bound,
-    //  - The vector of upper bound expressions has many elements, in this case
-    //    the upper bound is the minimum of these expressions.
-    if (vector_of_bounds.size() == 0)
-    {
-        tiramisu::str_dump("Dumping the set of constraints from which we are extracting the bounding tiramisu expression: ",
-                           isl_set_to_str(set));
-        tiramisu::str_dump("\n");
-        tiramisu::error("Tiramisu expr could not be extracted from ISL constraint", true);
-    }
-    else if (vector_of_bounds.size() == 1)
-    {
-        e = vector_of_bounds[0];
-    }
-    else
-    {
-        e = vector_of_bounds[0];
-        for (int j = 1; j < vector_of_bounds.size(); j++)
-            if (upper == true)
-            {
-                e = tiramisu::expr(o_min, e, vector_of_bounds[j]);
-            }
-            else
-            {
-                e = tiramisu::expr(o_max, e, vector_of_bounds[j]);
-            }
-    }
+    isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
+    isl_ast_expr *bound = utility::extract_bound_expression(node, dim, upper);
+    e = tiramisu_expr_from_isl_ast_expr(bound);
+    isl_ast_build_free(ast_build);
 
     assert(e.is_defined() && "The computed bound expression is undefined.");
-
-    DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : ");
-          e.dump(false));
-
+    DEBUG(10, tiramisu::str_dump(std::string("The ") + (upper ? "upper" : "lower") + " bound is : "); e.dump(false));
     DEBUG_INDENT(-4);
 
     return e;
@@ -4639,6 +4641,7 @@ void tiramisu::function::dump(bool exhaustive) const
         for (const auto &buf : this->buffers_list)
         {
             std::cout << "Buffer name: " << buf.second->get_name() << std::endl;
+	    buf.second->dump(false);
         }
 
         std::cout << std::endl << std::endl;

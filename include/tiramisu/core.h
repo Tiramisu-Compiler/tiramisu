@@ -1458,9 +1458,20 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
-
-    tiramisu::constant *create_separator_and_add_constraints_to_context(
-        const tiramisu::expr &loop_upper_bound, int v);
+     
+    /*
+     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
+     * a separator.
+     *
+     * The separator is used to separate a computation. That
+     * is, it is used to create two identical computations where we have
+     * a constraint like i<M in the first and i>=M in the second.
+     * The first is called the full computation while the second is called
+     * the separated computation.
+     *
+     * This function is used in vectorize and unroll mainly.
+     */
+    tiramisu::constant *create_separator(const tiramisu::expr &loop_upper_bound, int v);
 
     /**
        * Duplicate a part of this computation (or all of it) and return
@@ -3148,6 +3159,14 @@ class utility
 public:
 
     /**
+     * Traverse recursively the ISL AST tree.
+     * \p dim is the dimension of the loop from which the bounds have to be
+     * extracted. \p upper is a boolean that should be set to true to extract
+     * the upper bound and false to extract the lower bound.
+     */
+     static isl_ast_expr *extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
+
+    /**
      * Return a tiramisu::expr representing the bound of
      * the dimension \p dim in \p set.  If \p upper is true
      * then this function returns the upper bound otherwise
@@ -3161,11 +3180,11 @@ public:
      *
      * get_upper_bound(S, 1)
      *
-     * would return N, while
+     * would return N-1, while
      *
      * get_upper_bound(S, 0)
      *
-     * would return min(N,M)
+     * would return min(N-1,M-1)
      */
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
 

@@ -143,4 +143,27 @@ inline void init_2D_buffer_interleaving(Halide::Buffer<T> &buf, T val1, T val2)
     }
 }
 
+class tiramisu_timer
+{
+    public:
+    std::chrono::time_point<std::chrono::system_clock> start_timing, end_timing;
+
+    void start()
+    {
+	start_timing = std::chrono::system_clock::now();
+    }
+
+    void stop()
+    {
+	end_timing = std::chrono::system_clock::now();
+    }
+
+    void print(std::string bench_name)
+    {
+        std::chrono::duration<double> elapsed_seconds = end_timing - start_timing;
+        auto elapsed_micro_seconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed_seconds);
+        std::cout << bench_name << ": " << elapsed_micro_seconds.count() << " micro-seconds\n";
+    }
+};
+
 #endif
