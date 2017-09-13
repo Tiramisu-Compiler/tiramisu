@@ -937,11 +937,13 @@ void function::gen_isl_ast()
     DEBUG_INDENT(4);
 
     // Check that time_processor representation has already been computed,
-    // TODO: check that the access was provided.
     assert(this->get_trimmed_time_processor_domain() != NULL);
     assert(this->get_aligned_identity_schedules() != NULL);
+    for (auto const &comp: this->get_computations())
+		assert(comp->get_access_relation() != NULL);
 
     isl_ctx *ctx = this->get_isl_ctx();
+    assert(ctx != NULL);
     isl_ast_build *ast_build;
 
     // Rename updates so that they have different names because
