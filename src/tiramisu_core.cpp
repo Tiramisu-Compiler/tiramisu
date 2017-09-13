@@ -851,9 +851,19 @@ void tiramisu::computation::rename_computation(std::string new_name)
 
     // Rename the iteration domain.
     isl_set *dom = this->get_iteration_domain();
+    assert(dom != NULL);
     dom = isl_set_set_tuple_name(dom, new_name.c_str());
     DEBUG(10, tiramisu::str_dump("Setting the iteration domain to ", isl_set_to_str(dom)));
     this->set_iteration_domain(dom);
+
+    // Rename the time-space domain (if it is not NULL)
+    dom = this->get_time_processor_domain();
+    if (dom != NULL)
+    {
+        dom = isl_set_set_tuple_name(dom, new_name.c_str());
+        DEBUG(10, tiramisu::str_dump("Setting the time-space domain to ", isl_set_to_str(dom)));
+        this->time_processor_domain = dom;
+    }
 
     // Rename the access relation of the computation.
     isl_map *access = this->get_access_relation();
@@ -933,6 +943,12 @@ void function::gen_isl_ast()
 
     isl_ctx *ctx = this->get_isl_ctx();
     isl_ast_build *ast_build;
+
+    // Rename updates so that they have different names because
+    // the code generator expects each unique name to have
+    // an expression, different computations that have the same
+    // name cannot have different expressions.
+    this->rename_computations();
 
     if (this->get_program_context() == NULL)
     {
@@ -1187,6 +1203,33 @@ tiramisu::computation *tiramisu::computation::copy()
 
 isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
 
+/*
+ * Separate creates a new computation that has exactly the same name
+ * and the same iteration domain but the two computations would have
+ * different schedules.
+ * The schedule of the original computation would restrict it to the
+ * domain where the computation is full. The schedule of the separated
+ * (new) computation would restrict it to the partial domain (i.e.,
+ * the remaining part).
+ *
+ * Example, if we have a computation
+ * {S0[i]: 0<=i<N}
+ *
+ * The schedule of the original (full) computation would be
+ * {S0[i]->S0[0, 0, i, 0]: 0<=i<4*floor(N/4)}
+ *
+ * The schedule of the separated (partial) computation would be
+ * {S0[i]->S0[0, 10, i, 0]: 4*floor(N/4)<=i<N}
+ *
+ * Design choices:
+ * - We cannot actually change the iteration domain because this will not compose
+ * with the other trasnformations that are expressed are schedules. So we have
+ * to actually express the separation transformation using the schedule.
+ * - At the same time, we want to be able to manipulate the separated computation
+ * and schedule it, so we want to access it with get_update(ID), to make that simple
+ * we create a new computation. That is better than just keeping the same original
+ * computation and addin a new schedule to it for the separated computation.
+ */
 void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 {
     DEBUG_FCT_NAME(3);
@@ -1195,20 +1238,14 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
-    assert(this->get_function()->get_computation_by_name("_" + this->get_name()).empty());
-
     // Create the separated computation.
     // First, create the domain of the separated computation (which is identical to
-    // the domain of the original computation).
-    std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
-    int pos0 = domain_str.find(this->get_name());
-    int len0 = this->get_name().length();
-    std::string new_name = "_" + this->get_name();
-    domain_str.replace(pos0, len0, new_name);
+    // the domain of the original computation). Both also have the same name.
 
     // TODO: create copy functions for all the classes so that we can copy the objects
     // we need to have this->get_expr().copy()
     int last_update_computation = this->get_updates().size();
+    std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
     this->add_definitions(domain_str,
             this->get_expr(),
             this->should_schedule_this_computation(),
@@ -1216,11 +1253,8 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
             this->get_function());
 
     // Set the schedule of the newly created computation (separated
-    // computation): it is the same as the schedule of the original
-    // computation, but the names of spaces is different.
+    // computation) to be equal to the schedule of the original computation.
     isl_map *new_schedule = isl_map_copy(this->get_schedule());
-    new_schedule = isl_map_set_tuple_name(new_schedule, isl_dim_in, new_name.c_str());
-    new_schedule = isl_map_set_tuple_name(new_schedule, isl_dim_out, new_name.c_str());
     this->get_update(last_update_computation).set_schedule(new_schedule);
 
     DEBUG(3, tiramisu::str_dump("Separated computation:\n"); this->get_update(last_update_computation).dump());
@@ -1230,17 +1264,7 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     if (this->get_access_relation() != NULL)
     {
             DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
-	    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
-	    int pos1 = access_c_str.find(this->get_name());
-	    int len1 = this->get_name().length();
-	    access_c_str.replace(pos1, len1, new_name);
-	    this->get_update(last_update_computation).set_access(access_c_str);
-
-	    // TODO: for now we are not adding the new parameter to all the access functions,
-	    // iteration domains, schedules, ... We should either add it every where or transform
-	    // it into a variable (which is a way better method since it will allow us to
-	    // vectorize code that has a variable as loop bound (i<j).
-	    // We can use isl_space_align_params to align all the parameters.
+	    this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
 
 	    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
 					isl_map_to_str(this->get_update(last_update_computation).get_access_relation())));
@@ -1367,17 +1391,11 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
     // updates, then we compute the bounds of the union.
     for (int i = 0; i < this->get_n_dimensions(); i++)
     {
-	// We rename the iteration domains to become "" in the following
-	// because the updates may be separated computations (which have
-	// names prefixed with "_". We assume that all the computations in
-	// the list of updates must be updates of the same computation.
 	isl_set *union_iter_domain = isl_set_copy(this->get_update(0).get_iteration_domain());
-	union_iter_domain = isl_set_set_tuple_name(union_iter_domain, "");
 
 	for (int j = 1; j < this->get_updates().size(); j++)
 	{
             isl_set *iter_domain = isl_set_copy(this->get_update(j).get_iteration_domain());
-            iter_domain = isl_set_set_tuple_name(iter_domain, "");
 	    union_iter_domain = isl_set_union(union_iter_domain, iter_domain);
 	}
 
@@ -1461,12 +1479,13 @@ void tiramisu::computation::vectorize(int L0, int v)
 
     /*
      * Separate this computation using the parameter separation_param. That
-     * is create two identical computations where we have a constraint like
+     * is, create two identical computations where we have a constraint like
      * i<M in the first and i>=M in the second.
      * The first is called the full computation while the second is called
      * the separated computation.
-     * The names of the two computations is different. The name of the separated
-     * computation is equal to the name of the full computation prefixed with "_".
+     * The two computations are identical in every thing except that they have
+     * two different schedules.  Their schedule restricts them to a smaller domain
+     * (the full or the separated domains) and schedule one after the other.
      */
     this->separate(L0, *separation_param);
 
@@ -1513,8 +1532,9 @@ void tiramisu::computation::unroll(int L0, int v,
      * i<M in the first and i>=M in the second.
      * The first is called the full computation while the second is called
      * the separated computation.
-     * The names of the two computations is different. The name of the separated
-     * computation is equal to the name of the full computation prefixed with "_".
+     * The two computations are identical in every thing except that they have
+     * two different schedules.  Their schedule restricts them to a smaller domain
+     * (the full or the separated domains) and schedule one after the other.
      */
     this->separate(L0, *separation_param);
 
@@ -1593,12 +1613,6 @@ void function::gen_time_space_domain()
 
     // Generate the ordering based on calls to .after() and .before().
     this->gen_ordering_schedules();
-
-    // Rename updates so that they have different names because
-    // the code generator expects each unique name to have
-    // an expression, different computations that have the same
-    // name cannot have different expressions.
-    this->rename_computations();
 
     this->align_schedules();
 
@@ -5759,35 +5773,6 @@ void tiramisu::computation::set_access(std::string access_str)
         }
 
     /**
-     * Search for any other computation that starts with
-     * "_" and that has the same name.  That computation
-     * was split from this computation.
-     *
-     * For now we assume that only one such computation exists
-     * (we check in the separate function that each computation
-     * is separated only once, separated computations cannot be
-     * separated themselves).
-     */
-    std::vector<tiramisu::computation *> separated_computation_vec =
-        this->get_function()->get_computation_by_name("_" + this->get_name());
-
-    for (auto separated_computation : separated_computation_vec)
-    {
-        if (separated_computation != NULL)
-        {
-            int pos = access_str.find(this->get_name());
-            int len = this->get_name().length();
-
-            access_str.replace(pos, len, "_" + this->get_name());
-            separated_computation->access =
-                isl_map_read_from_str(separated_computation->ctx,
-                                      access_str.c_str());
-
-            assert(separated_computation->get_access_relation() != NULL);
-        }
-    }
-
-    /**
      * Check that if there are other computations that have the same name
      * as this computation, then the access of all of these computations
      * should be the same.
@@ -5802,7 +5787,6 @@ void tiramisu::computation::set_access(std::string access_str)
         }
 
     DEBUG_INDENT(-4);
-    DEBUG_FCT_NAME(3);
 }
 
 /**
