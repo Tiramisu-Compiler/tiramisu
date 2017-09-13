@@ -974,7 +974,6 @@ void function::gen_isl_ast()
     isl_id_list *iterators = isl_id_list_alloc(ctx, this->get_iterator_names().size());
     if (this->get_iterator_names().size() > 0)
     {
-
         std::string name = generate_new_variable_name();
         isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
         iterators = isl_id_list_add(iterators, id);
@@ -1015,25 +1014,6 @@ void function::gen_isl_ast()
     isl_ast_build_free(ast_build);
 
     DEBUG_INDENT(-4);
-}
-
-/**
-  * A helper function to split a string.
-  */
-// TODO: Test this function
-void split_string(std::string str, std::string delimiter,
-                  std::vector<std::string> &vector)
-{
-    size_t pos = 0;
-    std::string token;
-    while ((pos = str.find(delimiter)) != std::string::npos)
-    {
-        token = str.substr(0, pos);
-        vector.push_back(token);
-        str.erase(0, pos + delimiter.length());
-    }
-    token = str.substr(0, pos);
-    vector.push_back(token);
 }
 
 std::string generate_new_variable_name()
