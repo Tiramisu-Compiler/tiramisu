@@ -945,6 +945,8 @@ void function::gen_isl_ast()
 
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
+    isl_options_set_ast_build_group_coscheduled(ctx, 1);
+
     ast_build = isl_ast_build_set_after_each_for(ast_build, &tiramisu::for_code_generator_after_for,
                 NULL);
     ast_build = isl_ast_build_set_at_each_domain(ast_build, &tiramisu::generator::stmt_code_generator,
@@ -1201,7 +1203,8 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
     int pos0 = domain_str.find(this->get_name());
     int len0 = this->get_name().length();
-    domain_str.replace(pos0, len0, "_" + this->get_name());
+    std::string new_name = "_" + this->get_name();
+    domain_str.replace(pos0, len0, new_name);
 
     // TODO: create copy functions for all the classes so that we can copy the objects
     // we need to have this->get_expr().copy()
@@ -1212,7 +1215,16 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
             this->get_data_type(),
             this->get_function());
 
+    // Set the schedule of the newly created computation (separated
+    // computation): it is the same as the schedule of the original
+    // computation, but the names of spaces is different.
+    isl_map *new_schedule = isl_map_copy(this->get_schedule());
+    new_schedule = isl_map_set_tuple_name(new_schedule, isl_dim_in, new_name.c_str());
+    new_schedule = isl_map_set_tuple_name(new_schedule, isl_dim_out, new_name.c_str());
+    this->get_update(last_update_computation).set_schedule(new_schedule);
+
     DEBUG(3, tiramisu::str_dump("Separated computation:\n"); this->get_update(last_update_computation).dump());
+
 
     // Create the access relation of the separated computation (by replacing its name).
     if (this->get_access_relation() != NULL)
@@ -1221,7 +1233,7 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 	    std::string access_c_str = std::string(isl_map_to_str(this->get_access_relation()));
 	    int pos1 = access_c_str.find(this->get_name());
 	    int len1 = this->get_name().length();
-	    access_c_str.replace(pos1, len1, "_" + this->get_name());
+	    access_c_str.replace(pos1, len1, new_name);
 	    this->get_update(last_update_computation).set_access(access_c_str);
 
 	    // TODO: for now we are not adding the new parameter to all the access functions,
@@ -1248,7 +1260,7 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     sp = isl_space_set_dim_name(sp, isl_dim_param, pos, C.get_name().c_str());
     isl_local_space *ls = isl_local_space_from_space(isl_space_copy(sp));
 
-    DEBUG(3, tiramisu::str_dump("Creating the separation constraint: i<M."));
+    DEBUG(3, tiramisu::str_dump("Creating the separation constraint (main computation)."));
 
     // Second, we create the constraint i<M and add it to the original computation.
     // Since constraints in ISL are of the form X>=y, we transform the previous
@@ -1261,9 +1273,9 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_param, pos, 1);
     cst_upper = isl_constraint_set_constant_si(cst_upper, -1);
 
-    this->add_schedule_constraint("", isl_set_to_str(isl_set_add_constraint(this->get_time_processor_domain(), cst_upper)));
+    this->add_schedule_constraint("", isl_set_to_str(isl_set_add_constraint(isl_set_copy(this->get_time_processor_domain()), cst_upper)));
 
-    DEBUG(3, tiramisu::str_dump("Creating the separation constraint: i>=M."));
+    DEBUG(3, tiramisu::str_dump("Creating the separation constraint (separated computation): "));
 
     // Third, we create the constraint i>=M and add it to the newly created computation.
     // i >= M
@@ -1286,8 +1298,8 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
     // computation.
     this->get_update(last_update_computation).after(*this, dim);
 
-    DEBUG(3, tiramisu::str_dump("The original computation (i<=M):"); this->dump());
-    DEBUG(3, tiramisu::str_dump("The separate computation (i>=M):"); this->get_update(last_update_computation).dump());
+    DEBUG(3, tiramisu::str_dump("The original computation:"); this->dump());
+    DEBUG(3, tiramisu::str_dump("The separate computation:"); this->get_update(last_update_computation).dump());
 
     DEBUG_INDENT(-4);
 }
@@ -2271,7 +2283,7 @@ void computation::after_low_level(computation &comp, int level)
             // Get the constant in comp, add +1 to it and set it to sched1
             int order = isl_map_get_static_dim(comp.get_schedule(), i);
             new_sched = isl_map_copy(this->get_schedule());
-            new_sched = add_eq_to_schedule_map(i, 0, -1, order + 1, new_sched);
+            new_sched = add_eq_to_schedule_map(i, 0, -1, order + 10, new_sched);
         }
         this->set_schedule(new_sched);
     }
@@ -4110,6 +4122,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     // Generate the AST.
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
+    isl_options_set_ast_build_group_coscheduled(ctx, 1);
 
     // Intersect the iteration domain with the domain of the schedule.
     isl_map *map =
@@ -4769,7 +4782,7 @@ void tiramisu::function::add_gpu_thread_dimensions(std::string stmt_name, int di
 
 isl_union_set *tiramisu::function::get_trimmed_time_processor_domain() const
 {
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
     isl_union_set *result = NULL;
@@ -6008,7 +6021,7 @@ tiramisu::constant::constant(
 
     assert(!param_name.empty() && "Parameter name empty");
     assert((func != NULL) && "Function undefined");
-    assert(((function_wide && !with_computation) || (!function_wide && with_computation)) &&
+    assert((((function_wide == true) && (with_computation == NULL)) || ((function_wide == false) && (with_computation != NULL))) &&
            "with_computation, should be set only if function_wide is false");
 
     DEBUG(3, tiramisu::str_dump("Constructing a constant."));
@@ -6029,6 +6042,8 @@ tiramisu::constant::constant(
                "A valid computation should be provided.");
         assert((at_loop_level >= computation::root_dimension) &&
                "Invalid root dimension.");
+
+	DEBUG(3, tiramisu::str_dump("Consturcting constant at level: " + std::to_string(at_loop_level)));
 
         isl_set *iter = with_computation->get_iteration_domain();
         int projection_dimension = at_loop_level + 1;
