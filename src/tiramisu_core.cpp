@@ -939,8 +939,6 @@ void function::gen_isl_ast()
     // Check that time_processor representation has already been computed,
     assert(this->get_trimmed_time_processor_domain() != NULL);
     assert(this->get_aligned_identity_schedules() != NULL);
-    for (auto const &comp: this->get_computations())
-		assert(comp->get_access_relation() != NULL);
 
     isl_ctx *ctx = this->get_isl_ctx();
     assert(ctx != NULL);
@@ -1185,6 +1183,14 @@ tiramisu::computation *tiramisu::computation::copy()
 
 isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
 
+std::string computation::get_dimension_name_for_loop_level(int loop_level)
+{
+	int dim = loop_level_into_dynamic_dimension(loop_level);
+	std::string name = isl_map_get_dim_name(this->get_schedule(), isl_dim_out, dim);
+	assert(name.size() > 0);
+	return name;
+}
+
 /*
  * Separate creates a new computation that has exactly the same name
  * and the same iteration domain but the two computations would have
@@ -1198,10 +1204,10 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
  * {S0[i]: 0<=i<N}
  *
  * The schedule of the original (full) computation would be
- * {S0[i]->S0[0, 0, i, 0]: 0<=i<4*floor(N/4)}
+ * {S0[i]->S0[0, 0, i, 0]: 0<=i<v*floor(N/v)}
  *
  * The schedule of the separated (partial) computation would be
- * {S0[i]->S0[0, 10, i, 0]: 4*floor(N/4)<=i<N}
+ * {S0[i]->S0[0, 10, i, 0]: v*floor(N/v)<=i<N}
  *
  * Design choices:
  * - We cannot actually change the iteration domain because this will not compose
@@ -1212,7 +1218,7 @@ isl_map *isl_map_set_const_dim(isl_map *map, int dim_pos, int val);
  * we create a new computation. That is better than just keeping the same original
  * computation and addin a new schedule to it for the separated computation.
  */
-void tiramisu::computation::separate(int dim, tiramisu::constant &C)
+void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1252,53 +1258,43 @@ void tiramisu::computation::separate(int dim, tiramisu::constant &C)
 					isl_map_to_str(this->get_update(last_update_computation).get_access_relation())));
     }
 
-    // Create the constraints i<M and i>=M. To do so, first we need to create
-    // the space of the constraints, which is identical to the space of the
-    // iteration domain plus a new dimension that represents the separator
-    // parameter.
+    // We create the constraint (i < v*floor(N/v))
+    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i<v*floor(N/v))"));
+    std::string constraint;
+    constraint = "";
+    for (int i=0; i<isl_map_dim(this->get_schedule(), isl_dim_param); i++)
+    {
+        if (i==0)
+            constraint += "[";
+	constraint += isl_map_get_dim_name(this->get_schedule(), isl_dim_param, i);
+        if (i!=isl_map_dim(this->get_schedule(), isl_dim_param)-1)
+            constraint += ",";
+        else
+            constraint += "]->";
+    }
+    constraint += "{" + this->get_name() + "[0,";
+    for (int i=1; i<isl_map_dim(this->get_schedule(), isl_dim_out); i++)
+    {
+        if ((i%2==0) && (isl_map_has_dim_name(this->get_schedule(), isl_dim_out, i)==true))
+	    constraint += isl_map_get_dim_name(this->get_schedule(), isl_dim_out, i);
+        else
+	    constraint += "o" + std::to_string(i);
+        if (i != isl_map_dim(this->get_schedule(), isl_dim_out)-1)
+            constraint += ",";
+    }
+    constraint += "]: ";
 
-    DEBUG(3, tiramisu::str_dump("Creating a space for the separation constraints."));
+    std::string constraint1 = constraint +
+				this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*floor((" + N.to_str() + ")/" + std::to_string(v) + "))}";
+    DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint1));
+    this->add_schedule_constraint("", constraint1.c_str());
 
-    // First we create the space.
-    isl_space *sp = isl_space_copy(isl_set_get_space(this->get_time_processor_domain()));
-    sp = isl_space_add_dims(sp, isl_dim_param, 1);
-    int pos = isl_space_dim(sp, isl_dim_param) - 1;
-    sp = isl_space_set_dim_name(sp, isl_dim_param, pos, C.get_name().c_str());
-    isl_local_space *ls = isl_local_space_from_space(isl_space_copy(sp));
-
-    DEBUG(3, tiramisu::str_dump("Creating the separation constraint (main computation)."));
-
-    // Second, we create the constraint i<M and add it to the original computation.
-    // Since constraints in ISL are of the form X>=y, we transform the previous
-    // constraint as follows
-    // i <  M
-    // i <= M-1
-    // M-1-i >= 0
-    isl_constraint *cst_upper = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
-    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_set, loop_level_into_dynamic_dimension(dim), -1);
-    cst_upper = isl_constraint_set_coefficient_si(cst_upper, isl_dim_param, pos, 1);
-    cst_upper = isl_constraint_set_constant_si(cst_upper, -1);
-
-    this->add_schedule_constraint("", isl_set_to_str(isl_set_add_constraint(isl_set_copy(this->get_time_processor_domain()), cst_upper)));
-
-    DEBUG(3, tiramisu::str_dump("Creating the separation constraint (separated computation): "));
-
-    // Third, we create the constraint i>=M and add it to the newly created computation.
-    // i >= M
-    // i - M >= 0
-    this->get_update(last_update_computation).gen_time_space_domain();
-    isl_space *sp2 = isl_space_copy(isl_set_get_space(this->get_update(last_update_computation).get_time_processor_domain()));
-    sp2 = isl_space_add_dims(sp2, isl_dim_param, 1);
-    int pos2 = isl_space_dim(sp2, isl_dim_param) - 1;
-    sp2 = isl_space_set_dim_name(sp2, isl_dim_param, pos2, C.get_name().c_str());
-    isl_local_space *ls2 = isl_local_space_from_space(isl_space_copy(sp2));
-    isl_constraint *cst_lower = isl_constraint_alloc_inequality(isl_local_space_copy(ls2));
-    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_set, loop_level_into_dynamic_dimension(dim), 1);
-    cst_lower = isl_constraint_set_coefficient_si(cst_lower, isl_dim_param, pos, -1);
-    isl_set *cst_lower_set = isl_set_universe(sp2);
-    cst_lower_set = isl_set_add_constraint(cst_lower_set, cst_lower);
-
-    this->get_update(last_update_computation).add_schedule_constraint("", isl_set_to_str(cst_lower_set));
+    // We create the constraint (i >= v*floor(N/v))
+    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=v*floor(N/v))"));
+    std::string constraint2 = constraint +
+				this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*floor((" + N.to_str() + ")/" + std::to_string(v) + "))}";
+    DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint2));
+    this->get_update(last_update_computation).add_schedule_constraint("", constraint2.c_str());
 
     // Mark the separated computation to be executed after the original (full)
     // computation.
@@ -1453,13 +1449,6 @@ void tiramisu::computation::vectorize(int L0, int v)
     tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
 
     /*
-     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
-     * a separator.
-     */
-    tiramisu::constant *separation_param =
-        this->create_separator(loop_bound, v);
-
-    /*
      * Separate this computation using the parameter separation_param. That
      * is, create two identical computations where we have a constraint like
      * i<M in the first and i>=M in the second.
@@ -1469,7 +1458,7 @@ void tiramisu::computation::vectorize(int L0, int v)
      * two different schedules.  Their schedule restricts them to a smaller domain
      * (the full or the separated domains) and schedule one after the other.
      */
-    this->separate(L0, *separation_param);
+    this->separate(L0, loop_bound, v);
 
     /**
      * Split the full computation since the full computation will be vectorized.
@@ -1502,13 +1491,6 @@ void tiramisu::computation::unroll(int L0, int v,
     DEBUG_INDENT(4);
 
     /*
-     * Create a new Tiramisu constant M = v*floor(N/v) and use it as
-     * a separator.
-     */
-    tiramisu::constant *separation_param =
-        this->create_separator(loop_upper_bound, v);
-
-    /*
      * Separate this computation using the parameter separation_param. That
      * is create two identical computations where we have a constraint like
      * i<M in the first and i>=M in the second.
@@ -1518,7 +1500,7 @@ void tiramisu::computation::unroll(int L0, int v,
      * two different schedules.  Their schedule restricts them to a smaller domain
      * (the full or the separated domains) and schedule one after the other.
      */
-    this->separate(L0, *separation_param);
+    this->separate(L0, loop_upper_bound, v);
 
     /**
      * Split the full computation since the full computation will be unrolled.
@@ -4103,7 +4085,6 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
                                  " bound on the dimension " +
                                  std::to_string(dim) + " of the set ",
                                  isl_set_to_str(set)));
-    DEBUG(3, tiramisu::str_dump("Generating time-space domain."));
 
     tiramisu::expr e = tiramisu::expr();
     isl_ast_build *ast_build;
@@ -4116,15 +4097,35 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     sched = isl_map_set_tuple_name(sched, isl_dim_out, "");
 
     // Generate the AST.
+    DEBUG(3, tiramisu::str_dump("Setting ISL AST generator options."));
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
     isl_options_get_ast_build_exploit_nested_bounds(ctx);
     isl_options_set_ast_build_group_coscheduled(ctx, 1);
 
     // Intersect the iteration domain with the domain of the schedule.
+    DEBUG(3, tiramisu::str_dump("Generating time-space domain."));
     isl_map *map =
         isl_map_intersect_domain(
             isl_map_copy(sched),
             isl_set_copy(set));
+
+    // Set iterator names
+    DEBUG(3, tiramisu::str_dump("Setting the iterator names."));
+    int length = isl_map_dim(map, isl_dim_out);
+    isl_id_list *iterators = isl_id_list_alloc(ctx, length);
+
+    for (int i = 0; i < length; i++)
+    {
+        std::string name; 
+        if (isl_set_has_dim_name(set, isl_dim_set, i) == true)
+            name = isl_set_get_dim_name(set, isl_dim_set, i);
+        else
+            name = generate_new_variable_name();
+	isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
+        iterators = isl_id_list_add(iterators, id);
+    }
+
+    ast_build = isl_ast_build_set_iterators(ast_build, iterators);
 
     isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
     isl_ast_expr *bound = utility::extract_bound_expression(node, dim, upper);

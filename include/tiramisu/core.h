@@ -1555,6 +1555,12 @@ private:
     tiramisu::primitive_t get_data_type() const;
 
     /**
+     * Get the name of dynamic dimension that corresponds to the
+     * \p loop_level in the time-space domain.
+     */
+    std::string get_dimension_name_for_loop_level(int loop_level);
+
+    /**
       * Return the number of the duplicates of this computation.
       *
       * The number of duplicates is incremented if the computation is duplicated using
@@ -1736,36 +1742,34 @@ private:
       * the constant \p C.
       * Let us assume that the dimension \p dim of the iteration domain
       * is called i.  The iteration domain is separated into two domains
-      * using the hyperplane (i = C). That means, two copies of the
-      * iteration domain are created, the constraint (i<=C) is added to
-      * the first while the constrain (i>C) is added to the second.
+      * using the hyperplane (i = v*floor(N/v)). That means, two copies of the
+      * iteration domain are created, the constraint (i<=v*floor(N/v)) is added to
+      * the schedule of the first while the constrain (i>v*floor(N/v)) is added to
+      * the schedule of the second.
       *
       * Let us assume that we have the following iteration domain
       *
-      *   {S0[i,j]: 0<=i<N and 0<=j<N}
+      *   {S0[i,j]: 0<=i<N and 0<=j<M}
       *
-      * To separate this iteration domain by the hyperplane j=M, one should
+      * To separate this iteration domain by the hyperplane j=4*floor(M/4), one should
       * call
       *
-      *   S0.separate(1, tiramisu::expr("M"))
+      *   S0.separate(1, tiramisu::expr("M"), 4)
       *
-      * This will result in the creation of two computations that have the following
-      * iteration domains
+      * This will result in the creation of two computations that have the same
+      * iteration domains but have different schedules. The schedules are as
+      * follows:
       *
-      * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
+      * The schedule of the original (full) computation would be
+      * {S0[i,j]->S0[0, 0, i, 0, j, 0]: j<4*floor(M/4)}
       *
-      * The call to separate modifies the original computation and adds
-      * the definition of the second computation. It can be accessed with
+      * The schedule of the separated (partial) computation would be
+      * {S0[i]->S0[0, 0, i, 10, j, 0]: 4*floor(M/4)<=j}
+      *
+      * The second computation created using separate can be accessed with
       * get_update().
-      * The fitst computation is the one constrained with the constraint
-      * (i<=C), this computation is also known as the full computation
-      * while the second computation is constrained with (i>C). The second
-      * computation is also known as the partial or the separated computation.
-      *
-      * Note that computation names that start with "_" are reserved to Tiramisu.
-      *
       */
-    void separate(int dim, tiramisu::constant &C);
+    void separate(int dim, tiramisu::expr N, int v);
 
     /**
       * Set the iteration domain of the computation
