@@ -1250,6 +1250,8 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(3, tiramisu::str_dump("Separating the computation at level " + std::to_string(dim)));
+
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
@@ -1271,9 +1273,6 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     // computation) to be equal to the schedule of the original computation.
     isl_map *new_schedule = isl_map_copy(this->get_schedule());
     this->get_update(last_update_computation).set_schedule(new_schedule);
-
-    DEBUG(3, tiramisu::str_dump("Separated computation:\n"); this->get_update(last_update_computation).dump());
-
 
     // Create the access relation of the separated computation (by replacing its name).
     if (this->get_access_relation() != NULL)
@@ -1463,6 +1462,8 @@ void tiramisu::computation::vectorize(int L0, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(3, tiramisu::str_dump("Vectorizing loop level " + std::to_string(L0) + " with a vector size of " + std::to_string(v)));
+
     this->gen_time_space_domain();
 
     tiramisu::expr loop_upper_bound =
@@ -1474,6 +1475,9 @@ void tiramisu::computation::vectorize(int L0, int v)
                                      L0, false);
 
     tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+    loop_bound = loop_bound.simplify();
+
+    DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be vectorized: "); loop_bound.dump(false));
 
     /*
      * Separate this computation using the parameter separation_param. That
@@ -1487,14 +1491,27 @@ void tiramisu::computation::vectorize(int L0, int v)
      */
     this->separate(L0, loop_bound, v);
 
-    /**
-     * Split the full computation since the full computation will be vectorized.
-     */
-    this->split(L0, v);
+    this->gen_time_space_domain();
 
-    // Tag the inner loop after splitting to be vectorized. That loop
-    // is supposed to have a constant extent.
-    this->tag_vector_level(L0 + 1, v);
+    tiramisu::expr new_upper_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true);
+
+    DEBUG(3, tiramisu::str_dump("New upper loop bound (after separation): "); new_upper_bound.dump(false));
+
+    if ((new_upper_bound.get_expr_type() == tiramisu::e_val) && ((new_upper_bound.get_int_val()+1)%v == 0))
+        this->tag_vector_level(L0, v);
+    else
+    {
+	    /**
+	     * Split the full computation since the full computation will be vectorized.
+	     */
+	    this->split(L0, v);
+
+	    // Tag the inner loop after splitting to be vectorized. That loop
+	    // is supposed to have a constant extent.
+	    this->tag_vector_level(L0 + 1, v);
+    }
+
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
@@ -4029,11 +4046,17 @@ isl_ast_expr *utility::extract_bound_expression(isl_ast_node *node, int dim, boo
 
     isl_ast_expr *result = NULL;
 
+    DEBUG(3, tiramisu::str_dump("Extracting bounds from a loop at depth = " + std::to_string(dim)));
+
     if (isl_ast_node_get_type(node) == isl_ast_node_block)
 	tiramisu::error("Currently Tiramisu does not support extracting bounds from blocks.", true);
     else if (isl_ast_node_get_type(node) == isl_ast_node_for)
     {
         DEBUG(3, tiramisu::str_dump("Extracting bounds from a for loop."));
+        isl_ast_expr *init_bound = isl_ast_node_for_get_init(node);
+        isl_ast_expr *upper_bound = isl_ast_node_for_get_cond(node);
+        DEBUG(3, tiramisu::str_dump("Lower bound at this level is: " + std::string(isl_ast_expr_to_C_str(init_bound))));
+        DEBUG(3, tiramisu::str_dump("Upper bound at this level is: " + std::string(isl_ast_expr_to_C_str(upper_bound))));
 
 	if (dim == 0)
 	{
