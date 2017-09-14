@@ -750,12 +750,17 @@ bool function::should_vectorize(const std::string &comp, int lev) const
 
     bool found = false;
 
+    DEBUG(10, tiramisu::str_dump("Checking if the computation " + comp +
+                                 " should be vectorized" +
+                                 " at the loop level " + std::to_string(lev)));
+
     for (const auto &pd : this->vector_dimensions)
     {
+        DEBUG(10, tiramisu::str_dump("Comparing " + comp + " to " + std::get<0>(pd)));
+        DEBUG(10, tiramisu::str_dump(std::get<0>(pd) + " is marked for vectorization at level " + std::to_string(std::get<1>(pd))));
+
         if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
-        {
             found = true;
-        }
     }
 
     std::string str = "Dimension " + std::to_string(lev) +
@@ -878,6 +883,23 @@ void tiramisu::computation::rename_computation(std::string new_name)
     sched = isl_map_set_tuple_name(sched, isl_dim_out, new_name.c_str());
     DEBUG(10, tiramisu::str_dump("Setting the schedule relation to ", isl_map_to_str(sched)));
     this->set_schedule(sched);
+
+    // Rename parallel, unroll, vectorize and gpu vectors
+    for (auto &pd : this->get_function()->unroll_dimensions)
+        if (pd.first == old_name)
+            pd.first = new_name;
+    for (auto &pd : this->get_function()->parallel_dimensions)
+        if (pd.first == old_name)
+            pd.first = new_name;
+    for (auto &pd : this->get_function()->gpu_block_dimensions)
+        if (pd.first == old_name)
+            pd.first = new_name;
+    for (auto &pd : this->get_function()->gpu_thread_dimensions)
+        if (pd.first == old_name)
+            pd.first = new_name;
+    for (auto &pd : this->get_function()->vector_dimensions)
+        if (std::get<0>(pd) == old_name)
+            std::get<0>(pd) = new_name;
 
     DEBUG_INDENT(-4);
 }
@@ -1137,12 +1159,17 @@ void tiramisu::computation::tag_gpu_thread_level(int dim0, int dim1, int dim2)
 
 void tiramisu::computation::tag_vector_level(int dim, int length)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(dim >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
     assert(length > 0);
 
     this->get_function()->add_vector_dimension(this->get_name(), dim, length);
+
+    DEBUG_INDENT(-4);
 }
 
 void tiramisu::computation::tag_unroll_level(int level)
@@ -4373,7 +4400,7 @@ bool tiramisu::function::should_unroll(const std::string &comp, int lev0) const
     assert(!comp.empty());
     assert(lev0 >= 0);
 
-    DEBUG_FCT_NAME(3);
+    DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
     bool found = false;
@@ -4388,7 +4415,7 @@ bool tiramisu::function::should_unroll(const std::string &comp, int lev0) const
     std::string str = "Dimension " + std::to_string(lev0) +
                       (found ? " should" : " should not") +
                       " be unrolled.";
-    DEBUG(3, tiramisu::str_dump(str));
+    DEBUG(10, tiramisu::str_dump(str));
 
     DEBUG_INDENT(-4);
     return found;
