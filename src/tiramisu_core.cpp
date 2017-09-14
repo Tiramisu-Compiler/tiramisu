@@ -1254,35 +1254,8 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
 
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
-
-    // Create the separated computation.
-    // First, create the domain of the separated computation (which is identical to
-    // the domain of the original computation). Both also have the same name.
-
-    // TODO: create copy functions for all the classes so that we can copy the objects
-    // we need to have this->get_expr().copy()
-    int last_update_computation = this->get_updates().size();
-    std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
-    this->add_definitions(domain_str,
-            this->get_expr(),
-            this->should_schedule_this_computation(),
-            this->get_data_type(),
-            this->get_function());
-
-    // Set the schedule of the newly created computation (separated
-    // computation) to be equal to the schedule of the original computation.
-    isl_map *new_schedule = isl_map_copy(this->get_schedule());
-    this->get_update(last_update_computation).set_schedule(new_schedule);
-
-    // Create the access relation of the separated computation (by replacing its name).
-    if (this->get_access_relation() != NULL)
-    {
-            DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
-	    this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
-
-	    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
-					isl_map_to_str(this->get_update(last_update_computation).get_access_relation())));
-    }
+ 
+    //////////////////////////////////////////////////////////////////////////////
 
     // We create the constraint (i < v*floor(N/v))
     DEBUG(3, tiramisu::str_dump("Constructing the constraint (i<v*floor(N/v))"));
@@ -1311,23 +1284,67 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     constraint += "]: ";
 
     std::string constraint1 = constraint +
-				this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*floor((" + N.to_str() + ")/" + std::to_string(v) + "))}";
+				this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*(floor((" + N.to_str() + ")/" + std::to_string(v) + ")))}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint1));
-    this->add_schedule_constraint("", constraint1.c_str());
 
     // We create the constraint (i >= v*floor(N/v))
-    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=v*floor(N/v))"));
+    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=v*(floor(N/v)))"));
     std::string constraint2 = constraint +
-				this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*floor((" + N.to_str() + ")/" + std::to_string(v) + "))}";
+				this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*(floor((" + N.to_str() + ")/" + std::to_string(v) + ")))}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint2));
-    this->get_update(last_update_computation).add_schedule_constraint("", constraint2.c_str());
 
-    // Mark the separated computation to be executed after the original (full)
-    // computation.
-    this->get_update(last_update_computation).after(*this, dim);
+    //////////////////////////////////////////////////////////////////////////////
+
+    isl_set *constraint2_isl = isl_set_read_from_str(this->get_ctx(), constraint2.c_str());
+    if (isl_set_is_empty(isl_map_range(isl_map_intersect_range(isl_map_copy(this->get_schedule()), constraint2_isl))) == false)
+    {
+	    DEBUG(3, tiramisu::str_dump("The separate computation is not empty."));
+
+	    // Create the separated computation.
+	    // First, create the domain of the separated computation (which is identical to
+	    // the domain of the original computation). Both also have the same name.
+	    // TODO: create copy functions for all the classes so that we can copy the objects
+	    // we need to have this->get_expr().copy()
+	    int last_update_computation = this->get_updates().size();
+
+	    std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
+	    this->add_definitions(domain_str,
+		    this->get_expr(),
+		    this->should_schedule_this_computation(),
+		    this->get_data_type(),
+		    this->get_function());
+
+	    // Set the schedule of the newly created computation (separated
+	    // computation) to be equal to the schedule of the original computation.
+	    isl_map *new_schedule = isl_map_copy(this->get_schedule());
+	    this->get_update(last_update_computation).set_schedule(new_schedule);
+
+	    // Create the access relation of the separated computation (by replacing its name).
+	    if (this->get_access_relation() != NULL)
+	    {
+		    DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
+		    this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
+
+		    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
+						isl_map_to_str(this->get_update(last_update_computation).get_access_relation())));
+	    }
+
+	    this->get_update(last_update_computation).add_schedule_constraint("", constraint2.c_str());
+
+	    // Mark the separated computation to be executed after the original (full)
+	    // computation.
+	    this->get_update(last_update_computation).after(*this, dim);
+
+	    DEBUG(3, tiramisu::str_dump("The separate computation:"); this->get_update(last_update_computation).dump());
+    }
+    else
+    {
+	    DEBUG(3, tiramisu::str_dump("The separate computation is empty. Thus not added."));
+    }
+
+    this->add_schedule_constraint("", constraint1.c_str());
 
     DEBUG(3, tiramisu::str_dump("The original computation:"); this->dump());
-    DEBUG(3, tiramisu::str_dump("The separate computation:"); this->get_update(last_update_computation).dump());
 
     DEBUG_INDENT(-4);
 }
@@ -1456,7 +1473,6 @@ tiramisu::computation *computation::store_at(int L0)
     return allocation;
 }
 
-
 void tiramisu::computation::vectorize(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
@@ -1480,9 +1496,13 @@ void tiramisu::computation::vectorize(int L0, int v)
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be vectorized: "); loop_bound.dump(false));
 
     /*
-     * Separate this computation using the parameter separation_param. That
-     * is, create two identical computations where we have a constraint like
-     * i<M in the first and i>=M in the second.
+     * Separate this computation. That is, create two identical computations 
+     * where we have the constraint
+     *     i < v * floor(loop_bound/v)
+     * in the first and
+     *     i >= v * floor(loop_bound/v)
+     * in the second.
+     *
      * The first is called the full computation while the second is called
      * the separated computation.
      * The two computations are identical in every thing except that they have
@@ -1517,6 +1537,11 @@ void tiramisu::computation::vectorize(int L0, int v)
     DEBUG_INDENT(-4);
 }
 
+tiramisu::computation& computation::get_last_update()
+{
+	return this->get_update(this->get_updates().size()-1);
+}
+
 // TODO docs
 std::vector<computation*>& tiramisu::computation::get_updates() {
     return this->updates;
@@ -1528,32 +1553,65 @@ computation& tiramisu::computation::get_update(int i)
     return *(this->updates[i]);
 }
 
-void tiramisu::computation::unroll(int L0, int v,
-                                   tiramisu::expr loop_upper_bound)
+void tiramisu::computation::unroll(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(3, tiramisu::str_dump("Unrolling loop level " + std::to_string(L0) + " with a factor = " + std::to_string(v)));
+
+    this->gen_time_space_domain();
+
+    tiramisu::expr loop_upper_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                     L0, true);
+
+    tiramisu::expr loop_lower_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                     L0, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+    loop_bound = loop_bound.simplify();
+
+    DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be unrolled: "); loop_bound.dump(false));
+
     /*
-     * Separate this computation using the parameter separation_param. That
-     * is create two identical computations where we have a constraint like
-     * i<M in the first and i>=M in the second.
+     * Separate this computation. That is, create two identical computations 
+     * where we have the constraint
+     *     i < v * floor(loop_bound/v)
+     * in the first and
+     *     i >= v * floor(loop_bound/v)
+     * in the second.
+     *
      * The first is called the full computation while the second is called
      * the separated computation.
      * The two computations are identical in every thing except that they have
      * two different schedules.  Their schedule restricts them to a smaller domain
      * (the full or the separated domains) and schedule one after the other.
      */
-    this->separate(L0, loop_upper_bound, v);
+    this->separate(L0, loop_bound, v);
 
-    /**
-     * Split the full computation since the full computation will be unrolled.
-     */
-    this->split(L0, v);
+    this->gen_time_space_domain();
 
-    // Tag the inner loop after splitting to be unrolled. That loop
-    // is supposed to have a constant extent.
-    this->tag_unroll_level(L0 + 1);
+    tiramisu::expr new_upper_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true);
+
+    DEBUG(3, tiramisu::str_dump("New upper loop bound (after separation): "); new_upper_bound.dump(false));
+
+    if ((new_upper_bound.get_expr_type() == tiramisu::e_val) && ((new_upper_bound.get_int_val()+1)%v == 0))
+        this->tag_unroll_level(L0);
+    else
+    {
+	    /**
+	     * Split the full computation since the full computation will be unrolled.
+	     */
+	    this->split(L0, v);
+
+	    // Tag the inner loop after splitting to be unrolled. That loop
+	    // is supposed to have a constant extent.
+	    this->tag_unroll_level(L0 + 1);
+    }
+
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);

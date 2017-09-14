@@ -2479,6 +2479,11 @@ public:
     isl_set *get_iteration_domain() const;
 
     /**
+      * Get the last update of a computation.
+      */
+    tiramisu::computation& get_last_update();
+
+    /**
      * Get the schedule of the computation.
      */
     isl_map *get_schedule() const;
@@ -2779,9 +2784,7 @@ public:
     // @}
 
     /**
-      * Unroll the loop level \p L with an unrolling factor \p fac
-      * and assume that the upper bound of the loop level \p L is
-      * \p loop_upper_bound.
+      * Unroll the loop level \p L with an unrolling factor \p fac.
       *
       * The difference between this function and the function
       * tag_unroll_level(int L) is that this function separates
@@ -2808,7 +2811,7 @@ public:
       *
       * To unroll the j loop with an unrolling factor of 4, one should call
       *
-      *      S0.unroll(1, 4, 23);
+      *      S0.unroll(1, 4);
       *
       * The loop (iteration domain) is first separated into the following
       * two loops
@@ -2831,7 +2834,7 @@ public:
       * the i2 loop is then tagged to be unrolled.
       *
       */
-    void unroll(int L, int fac, tiramisu::expr loop_upper_bound);
+    void unroll(int L, int fac);
 
     /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
