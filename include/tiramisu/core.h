@@ -2483,6 +2483,9 @@ public:
       */
     tiramisu::computation& get_last_update();
 
+    // TODO add docs
+    tiramisu::computation& get_update(int index);
+
     /**
      * Get the schedule of the computation.
      */
@@ -2954,9 +2957,6 @@ public:
       * (before the loop level 1, c0 and c1 have the same order).
       */
     const static int root_dimension = -1;
-
-    // TODO add docs
-    tiramisu::computation& get_update(int index);
 
     /**
       * Access operator: C0(i,j) represents an access to
