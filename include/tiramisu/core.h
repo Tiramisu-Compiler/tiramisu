@@ -1250,6 +1250,9 @@ private:
       */
     bool is_first_definition();
 
+    /* Is true if the the computation is inline. */
+    bool is_inline;
+
     /**
       * Iteration domain of the computation.
       * In this representation, the order of execution of computations
@@ -1263,6 +1266,9 @@ private:
       * Names starting with _ are reserved names.
       */
     std::string name;
+
+    /* The number of dimensions in the original definition of the computation. */
+    int number_of_dims;
 
     /**
      * A predicate around the computation. The computation is executed
@@ -1807,6 +1813,15 @@ private:
 
     // TODO docs
     std::vector<tiramisu::computation *> updates;
+
+    /**
+      * A vector describing the access variables in the original definition of  a computation.
+      * For every named dimension, a pair representing the index of the named dimension
+      * and the name of the dimension is added to access_variables.
+      * E.g. if a computation is defined as S[i, 0, j], access_variables will contain
+      * {(0, "i"), (2, "j")}.
+      */
+    std::vector<std::pair<int, std::string>> access_variables;
 
     /**
       * Compare two computations.
@@ -2536,6 +2551,21 @@ public:
      void set_expression(const tiramisu::expr &e);
 
      /**
+       * Sets whether the computation is inline or not, based on the value of \p is_inline.
+       * If a computation is inline, accesses to the computation return the expression of that
+       * computation.
+       * E.g. if an inline computation S(i,j) is defined with the expression i + j,
+       * then S(i + 1, j * i) returns the expression i + 1 + j * i.
+       * If \p is_inline is not provided, the computation is set to be inline.
+       */
+     void set_inline(bool is_inline = true);
+
+     /**
+       * Returns true if and only if the computation is inline.
+       */
+    const bool is_inline_computation() const;
+
+     /**
        * Set the schedule indicated by \p map.
        *
        * \p map is a string that represents a mapping from the iteration domain
@@ -2959,11 +2989,24 @@ public:
       */
     template<typename... Args> tiramisu::expr operator()(Args... args)
     {
+        // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        return tiramisu::expr(tiramisu::o_access,
-                              this->get_name(),
-                              access_expressions,
-                              this->get_data_type());
+        assert(access_expressions.size() == number_of_dims);
+        if (this->is_inline_computation()) {
+            std::vector<std::pair<var, expr>> substitutions;
+            for (auto const &variable: this->access_variables) {
+                // variable is an (index, variable_name) pair
+                substitutions.push_back(std::make_pair(var(variable.second, false),
+                                                       access_expressions[variable.first]));
+            }
+            // TODO add iteration space for expression
+            return this->expression.substitute(substitutions);
+        } else {
+            return tiramisu::expr(tiramisu::o_access,
+                                  this->get_name(),
+                                  access_expressions,
+                                  this->get_data_type());
+        }
     }
 };
 

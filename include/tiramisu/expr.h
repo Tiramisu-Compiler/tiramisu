@@ -11,6 +11,7 @@
 #include <isl/space.h>
 
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <string.h>
 #include <stdint.h>
@@ -1480,6 +1481,14 @@ public:
 
           return str;
         }
+
+    /**
+      * Returns a new expression where for every (var, sub) pair in \p substitutions,
+      * var in the original expression is replaced by sub.
+      * For example: if \p substitutions is {(i, 5), (j, i)}, and the original expression is
+      * i + j * 2, then this method returns 5 + i * 2.
+      */
+    expr substitute(std::vector<std::pair<var, expr>> substitutions);
 };
 
 /**
@@ -1487,25 +1496,48 @@ public:
   */
 class var: public tiramisu::expr
 {
+    friend computation;
+private:
+    // TODO if more than one scope, variables are to be declared per scope
+    /**
+      * If a variable gets declared and saved, (either through calling a public constructor,
+      * or through calling a private constructor with save set to true), then a mapping from
+      * the name of the variable to the variable object is added.
+      * The point of this is to make sure that all variables with the same name have the same
+      * type, and thus are equal.
+      */
+    static std::unordered_map<std::string, var> declared_vars;
+
+    /**
+      * This has the same as the var(name), except that if \p save is false, then whatever
+      * variable is created, it is not stored in declared_vars, and therefore calling this
+      * constructor has no effect on the creation of future var objects.
+      */
+    var(std::string name, bool save);
+
+    /**
+      * This has the same as the var(type, name), except that if \p save is false, then whatever
+      * variable is created, it is not stored in declared_vars, and therefore calling this
+      * constructor has no effect on the creation of future var objects.
+      */
+    var(tiramisu::primitive_t type, std::string name, bool save);
+
 public:
     /**
       * Construct an expression that represents a variable.
       * \p type is the type of the variable and \p name is its name.
+      * If a variable with the same name has previously been declared,
+      * but with a different type, this constructor will fail.
+      * That way two variables with the same name are necessarily equal.
       */
-    var(tiramisu::primitive_t type, std::string name)
-    {
-        assert(!name.empty());
-
-        this->name = name;
-        this->etype = tiramisu::e_var;
-        this->dtype = type;
-        this->defined = true;
-    }
+    var(tiramisu::primitive_t type, std::string name) : var(type, name, true) {}
 
     /**
      * Construct an expression that represents an untyped variable.
      * For example to declare the variable "t", use
      * tiramisu::var("t");
+     * If a variable with the same name has previously been declared, this
+     * object will have the same type (i.e. it will be equal to the other variable object).
      *
      * To declare an expression that represents the reference of a buffer
      * one can declare a variable as follows
@@ -1513,15 +1545,7 @@ public:
      * tiramisu::expr(o_address, "buf0");
      *
      */
-    var(std::string name)
-    {
-        assert(!name.empty());
-
-        this->name = name;
-        this->etype = tiramisu::e_var;
-        this->dtype = global::get_loop_iterator_default_data_type();
-        this->defined = true;
-    }
+    var(std::string name) : var(name, true) {}
 };
 
 /**

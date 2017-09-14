@@ -13,6 +13,7 @@ HEADER_FILES = \
 	include/tiramisu/expr.h \
 	include/tiramisu/type.h
 OBJ = \
+	build/tiramisu_expr.o \
 	build/tiramisu_core.o \
 	build/tiramisu_codegen_halide.o \
 	build/tiramisu_codegen_c.o \
@@ -126,8 +127,11 @@ TEST_GEN = build/test_01_fct_generator \
     build/test_68_fct_generator \
     build/test_70_fct_generator \
     build/test_71_fct_generator \
-    build/test_72_fct_generator
-
+    build/test_72_fct_generator \
+    build/test_73_fct_generator \
+    build/test_74_fct_generator \
+    build/test_75_fct_generator \
+    build/test_76_fct_generator
 
 
 #build/test_07_fct_generator
@@ -201,8 +205,11 @@ TEST_BIN = build/test_global \
     build/test_68 \
     build/test_70 \
     build/test_71 \
-    build/test_72
-
+    build/test_72 \
+    build/test_73 \
+    build/test_74 \
+    build/test_75 \
+    build/test_76
 
 
 #build/test_07
@@ -276,8 +283,11 @@ TEST_RUN = \
     run_test_68 \
     run_test_70 \
     run_test_71 \
-    run_test_72
-
+    run_test_72 \
+    run_test_73 \
+    run_test_74 \
+    run_test_75 \
+    run_test_76
 
 
 #################################################

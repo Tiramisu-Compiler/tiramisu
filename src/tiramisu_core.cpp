@@ -235,9 +235,16 @@ std::vector<tiramisu::computation *> tiramisu::function::get_live_in_computation
         isl_union_map_free(deps);
     }
 
+    DEBUG(3, tiramisu::str_dump("Removing inline computations."));
+    std::vector<computation* > result;
+    for (computation * c: first)
+        if (! c->is_inline_computation())
+            result.push_back(c);
+
     DEBUG_INDENT(-4);
 
-    return first;
+
+    return result;
 }
 
 // TODO: get_live_out_computations() does not consider the case of "maybe"
@@ -326,11 +333,18 @@ std::vector<tiramisu::computation *> tiramisu::function::get_live_out_computatio
         first = this->body;
     }
 
-    assert((first.size() > 0) && "The function should have at least one last computation.");
+    DEBUG(3, tiramisu::str_dump("Removing inline computations."));
+    std::vector<computation* > result;
+    for (computation * c: first)
+        if (! c->is_inline_computation())
+            result.push_back(c);
+
+    assert((result.size() > 0) && "The function should have at least one last computation.");
 
     DEBUG_INDENT(-4);
 
-    return first;
+
+    return result;
 }
 
 
@@ -2312,11 +2326,16 @@ void tiramisu::function::allocate_and_map_buffers_automatically()
             comp->allocate_and_map_buffer_automatically(a_input);
 
     DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for non live-in and non live-out computations."));
-    // Allocate the buffers automatically
+    // Allocate the buffers automatically for non inline computations
     // Allocate each computation that is not live-in or live-out (we check that
     // by checking that it was not allocated)
     for (int b = 0; b < this->body.size(); b++)
     {
+        DEBUG(3, tiramisu::str_dump("Inline " + this->body[b]->get_name() + " " + std::to_string(this->body[b]->is_inline_computation())));
+        if (this->body[b]->is_inline_computation()) {
+            DEBUG(3, tiramisu::str_dump("Skipping inline computation " + this->body[b]->get_name()));
+            continue;
+        }
         DEBUG(10, tiramisu::str_dump("Allocating/Mapping buffers for " + this->body[b]->get_name()));
         if ((this->body[b]->get_expr().get_expr_type() == tiramisu::e_op))
         {
@@ -5346,10 +5365,20 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
     name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain),
                        isl_dim_type::isl_dim_set));
+
+    number_of_dims = isl_set_dim(iteration_domain, isl_dim_type::isl_dim_set);
+    for (unsigned i = 0; i < number_of_dims; i++) {
+        if (isl_set_has_dim_name(iteration_domain, isl_dim_type::isl_dim_set, i)) {
+            std::string dim_name(isl_set_get_dim_name(iteration_domain, isl_dim_type::isl_dim_set, i));
+            this->access_variables.push_back(make_pair(i, dim_name));
+        }
+    }
+
     function = fct;
     function->add_computation(this);
     this->set_identity_schedule_based_on_iteration_domain();
     this->set_expression(e);
+    this->set_inline(false);
 
     // If there are computations that have already been defined and that
     // have the same name, check that they have constraints over their iteration
@@ -5947,6 +5976,14 @@ void tiramisu::computation::set_expression(const tiramisu::expr &e)
     this->expression = modified_e.copy();
 
     DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::set_inline(bool is_inline) {
+    this->is_inline = is_inline;
+}
+
+const bool tiramisu::computation::is_inline_computation() const {
+    return this->is_inline;
 }
 
 /**
