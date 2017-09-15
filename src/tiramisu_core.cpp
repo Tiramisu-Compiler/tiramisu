@@ -1485,12 +1485,19 @@ void tiramisu::computation::vectorize(int L0, int v)
     DEBUG_INDENT(-4);
 }
 
-// TODO docs
+/**
+  * Returns all updates the have been defined for this computation using
+  * add_definitions. The 0th update is a pointer to this computation.
+  */
 std::vector<computation*>& tiramisu::computation::get_updates() {
     return this->updates;
 }
 
-// TODO docs
+/**
+  * Returns the \p index update that has been added to this computation such that:
+  * - If \p index == 0, then this computation is returned.
+  * - If \p > 0, then it returns the pth computation added through add_definitions.
+  */
 computation& tiramisu::computation::get_update(int i)
 {
     return *(this->updates[i]);

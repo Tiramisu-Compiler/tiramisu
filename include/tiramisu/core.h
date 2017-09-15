@@ -1673,7 +1673,10 @@ private:
       */
     isl_map *gen_identity_schedule_for_time_space_domain();
 
-    // TODO docs
+    /**
+      * Returns all updates the have been defined for this computation using
+      * add_definitions. The 0th update is a pointer to this computation.
+      */
     std::vector<computation*>& get_updates();
 
     /**
@@ -1811,7 +1814,10 @@ private:
     isl_map *simplify(isl_map *map);
     // @}
 
-    // TODO docs
+    /**
+      * Contains a list of all definitions added to this computation. The 0th definition is
+      * always this very computation.
+      */
     std::vector<tiramisu::computation *> updates;
 
     /**
@@ -2978,7 +2984,11 @@ public:
       */
     const static int root_dimension = -1;
 
-    // TODO add docs
+    /**
+      * Returns the \p index update that has been added to this computation such that:
+      * - If \p index == 0, then this computation is returned.
+      * - If \p > 0, then it returns the pth computation added through add_definitions.
+      */
     tiramisu::computation& get_update(int index);
 
     /**
