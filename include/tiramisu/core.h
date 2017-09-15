@@ -1561,6 +1561,12 @@ private:
     tiramisu::primitive_t get_data_type() const;
 
     /**
+     * Get the name of dynamic dimension that corresponds to the
+     * \p loop_level in the time-space domain.
+     */
+    std::string get_dimension_name_for_loop_level(int loop_level);
+
+    /**
       * Return the number of the duplicates of this computation.
       *
       * The number of duplicates is incremented if the computation is duplicated using
@@ -1745,36 +1751,34 @@ private:
       * the constant \p C.
       * Let us assume that the dimension \p dim of the iteration domain
       * is called i.  The iteration domain is separated into two domains
-      * using the hyperplane (i = C). That means, two copies of the
-      * iteration domain are created, the constraint (i<=C) is added to
-      * the first while the constrain (i>C) is added to the second.
+      * using the hyperplane (i = v*floor(N/v)). That means, two copies of the
+      * iteration domain are created, the constraint (i<=v*floor(N/v)) is added to
+      * the schedule of the first while the constrain (i>v*floor(N/v)) is added to
+      * the schedule of the second.
       *
       * Let us assume that we have the following iteration domain
       *
-      *   {S0[i,j]: 0<=i<N and 0<=j<N}
+      *   {S0[i,j]: 0<=i<N and 0<=j<M}
       *
-      * To separate this iteration domain by the hyperplane j=M, one should
+      * To separate this iteration domain by the hyperplane j=4*floor(M/4), one should
       * call
       *
-      *   S0.separate(1, tiramisu::expr("M"))
+      *   S0.separate(1, tiramisu::expr("M"), 4)
       *
-      * This will result in the creation of two computations that have the following
-      * iteration domains
+      * This will result in the creation of two computations that have the same
+      * iteration domains but have different schedules. The schedules are as
+      * follows:
       *
-      * {S0[i,j]: 0<=i<N and 0<=j<M} and {_S0[i,j]: 0<=i<N and M<=j<N}
+      * The schedule of the original (full) computation would be
+      * {S0[i,j]->S0[0, 0, i, 0, j, 0]: j<4*floor(M/4)}
       *
-      * The call to separate modifies the original computation and adds
-      * the definition of the second computation. It can be accessed with
+      * The schedule of the separated (partial) computation would be
+      * {S0[i]->S0[0, 0, i, 10, j, 0]: 4*floor(M/4)<=j}
+      *
+      * The second computation created using separate can be accessed with
       * get_update().
-      * The fitst computation is the one constrained with the constraint
-      * (i<=C), this computation is also known as the full computation
-      * while the second computation is constrained with (i>C). The second
-      * computation is also known as the partial or the separated computation.
-      *
-      * Note that computation names that start with "_" are reserved to Tiramisu.
-      *
       */
-    void separate(int dim, tiramisu::constant &C);
+    void separate(int dim, tiramisu::expr N, int v);
 
     /**
       * Set the iteration domain of the computation
@@ -2496,6 +2500,18 @@ public:
     isl_set *get_iteration_domain() const;
 
     /**
+      * Get the last update of a computation.
+      */
+    tiramisu::computation& get_last_update();
+
+    /**
+      * Returns the \p index update that has been added to this computation such that:
+      * - If \p index == 0, then this computation is returned.
+      * - If \p > 0, then it returns the pth computation added through add_definitions.
+      */
+    tiramisu::computation& get_update(int index);
+
+    /**
      * Get the schedule of the computation.
      */
     isl_map *get_schedule() const;
@@ -2532,6 +2548,17 @@ public:
      * Mark this statement as a let statement.
      */
    void mark_as_let_statement();
+
+   /**
+      * Tag the loop level \p L to be parallelized.
+      *
+      * The outermost loop level is 0.
+      *
+      * This function is equivalent to the function tag_parallel_level()
+      * There is no difference between the two.
+      *
+      */
+    void parallelize(int L);
 
     /**
        * Set the access relation of the computation.
@@ -2811,9 +2838,7 @@ public:
     // @}
 
     /**
-      * Unroll the loop level \p L with an unrolling factor \p fac
-      * and assume that the upper bound of the loop level \p L is
-      * \p loop_upper_bound.
+      * Unroll the loop level \p L with an unrolling factor \p fac.
       *
       * The difference between this function and the function
       * tag_unroll_level(int L) is that this function separates
@@ -2840,7 +2865,7 @@ public:
       *
       * To unroll the j loop with an unrolling factor of 4, one should call
       *
-      *      S0.unroll(1, 4, 23);
+      *      S0.unroll(1, 4);
       *
       * The loop (iteration domain) is first separated into the following
       * two loops
@@ -2863,7 +2888,7 @@ public:
       * the i2 loop is then tagged to be unrolled.
       *
       */
-    void unroll(int L, int fac, tiramisu::expr loop_upper_bound);
+    void unroll(int L, int fac);
 
     /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
@@ -2983,13 +3008,6 @@ public:
       * (before the loop level 1, c0 and c1 have the same order).
       */
     const static int root_dimension = -1;
-
-    /**
-      * Returns the \p index update that has been added to this computation such that:
-      * - If \p index == 0, then this computation is returned.
-      * - If \p > 0, then it returns the pth computation added through add_definitions.
-      */
-    tiramisu::computation& get_update(int index);
 
     /**
       * Access operator: C0(i,j) represents an access to

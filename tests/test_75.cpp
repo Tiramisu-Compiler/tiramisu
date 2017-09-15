@@ -11,12 +11,12 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_68.h"
+#include "wrapper_test_75.h"
 
 using namespace tiramisu;
 
 /**
- * Test vectorization. 
+ * Test composition of vectorization, tiling and unrolling and parallelism
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -32,15 +32,15 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var i("i");
     tiramisu::var j("j");
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
-    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i,j), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    S0.vectorize(1, 4);
-    S1.vectorize(1, 4);
-    S1.get_update(0).after(S0.get_last_update(), computation::root_dimension);
+    S0.tile(0, 1, 2, 2);
+    S0.vectorize(3, 2);
+    S0.unroll(2, 2);
+    S0.parallelize(0);
 
     // -------------------------------------------------------
     // Layer III
@@ -52,7 +52,7 @@ void generate_function(std::string name, int size, int val0)
     // Code Generation
     // -------------------------------------------------------
 
-    function0.set_arguments({S1.get_automatically_allocated_buffer()});
+    function0.set_arguments({S0.get_automatically_allocated_buffer()});
     function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();

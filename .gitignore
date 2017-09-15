@@ -11,3 +11,4 @@ tags
 .idea/*
 src/*.pyc
 3rdParty/isl/build/ 3rdParty/isl/codegen_test.sh 3rdParty/isl/flow_test.sh 3rdParty/imath_wrap/.dirstamp 3rdParty/isl/isl_codegen 3rdParty/isl/isl_flow 3rdParty/isl/isl_flow_cmp 3rdParty/isl/isl_schedule 3rdParty/isl/isl_schedule_cmp 3rdParty/isl/isl_test_imath 3rdParty/isl/isl_test_int 3rdParty/isl/schedule_test.sh
+Makefile.bak
