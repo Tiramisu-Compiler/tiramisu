@@ -1044,6 +1044,21 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
+void tiramisu::computation::parallelize(int par_dim)
+{
+    assert(par_dim >= 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    this->tag_parallel_level(par_dim); 
+
+    DEBUG_INDENT(-4);
+}
+
+
 void tiramisu::computation::tag_parallel_level(int par_dim)
 {
     assert(par_dim >= 0);

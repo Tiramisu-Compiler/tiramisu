@@ -2524,6 +2524,17 @@ public:
      */
    void mark_as_let_statement();
 
+   /**
+      * Tag the loop level \p L to be parallelized.
+      *
+      * The outermost loop level is 0.
+      *
+      * This function is equivalent to the function tag_parallel_level()
+      * There is no difference between the two.
+      *
+      */
+    void parallelize(int L);
+
     /**
        * Set the access relation of the computation.
        *
