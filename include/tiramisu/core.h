@@ -1412,6 +1412,20 @@ private:
     bool buffer_already_allocated();
 
     /**
+      * Check that the \p dimensions are valid:
+      * - The names used for dimensions are not reserved names,
+      * - The dimensions actually exist (i.e., dimensions with the same name
+      *   exist,
+      * - The dimension numbers are within the bounds of accepted dimensions
+      * (i.e., between computation::root_dimension and the maximal dimension
+      * number in the time-space domain.
+      */
+    // @{
+    void check_dimensions_validity(std::vector<std::string> dimensions);
+    void check_dimensions_validity(std::vector<int> dimensions);
+    // @}
+
+    /**
      * Compute two subsets of computations:
      *  - the first is the subset of needed computations,
      *  - the second is the subset of produced computations,
