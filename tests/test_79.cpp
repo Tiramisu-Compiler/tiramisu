@@ -11,7 +11,7 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_75.h"
+#include "wrapper_test_79.h"
 
 using namespace tiramisu;
 

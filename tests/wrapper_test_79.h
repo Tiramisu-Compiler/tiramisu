@@ -4,7 +4,7 @@
 
 // Define these values for each new test
 #define TEST_NAME_STR       "inlining"
-#define TEST_NUMBER_STR     "75"
+#define TEST_NUMBER_STR     "79"
 #define TEST_ID_STR "test_" TEST_NUMBER_STR "_" TEST_NAME_STR
 // Data size
 #define SIZE0 100
