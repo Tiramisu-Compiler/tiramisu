@@ -1067,7 +1067,7 @@ void tiramisu::computation::parallelize(int par_dim)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    this->tag_parallel_level(par_dim); 
+    this->tag_parallel_level(par_dim);
 
     DEBUG_INDENT(-4);
 }
@@ -1283,7 +1283,7 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
 
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
- 
+
     //////////////////////////////////////////////////////////////////////////////
 
     // We create the constraint (i < v*floor(N/v))
@@ -1525,7 +1525,7 @@ void tiramisu::computation::vectorize(int L0, int v)
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be vectorized: "); loop_bound.dump(false));
 
     /*
-     * Separate this computation. That is, create two identical computations 
+     * Separate this computation. That is, create two identical computations
      * where we have the constraint
      *     i < v * floor(loop_bound/v)
      * in the first and
@@ -1612,7 +1612,7 @@ void tiramisu::computation::unroll(int L0, int v)
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be unrolled: "); loop_bound.dump(false));
 
     /*
-     * Separate this computation. That is, create two identical computations 
+     * Separate this computation. That is, create two identical computations
      * where we have the constraint
      *     i < v * floor(loop_bound/v)
      * in the first and
@@ -4265,7 +4265,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 
     for (int i = 0; i < length; i++)
     {
-        std::string name; 
+        std::string name;
         if (isl_set_has_dim_name(set, isl_dim_set, i) == true)
             name = isl_set_get_dim_name(set, isl_dim_set, i);
         else
@@ -4881,7 +4881,7 @@ void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim
     assert(vec_dim >= 0);
     assert(!stmt_name.empty());
 
-    this->vector_dimensions.push_back({stmt_name, vec_dim, vector_length});
+    this->vector_dimensions.push_back(std::make_tuple(stmt_name, vec_dim, vector_length));
 }
 
 void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
