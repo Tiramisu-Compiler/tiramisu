@@ -20,6 +20,7 @@
 - .tag_gpu_level(): test_17, 18
 - .tag_unroll_level(): test_11
 - .tile(): test_01, 02, 03, 74
+- .tile() (with var names): test_80, 81
 - .vectorize(): test_10, 28, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 74
 - .unroll(): test_12, 74
 - .before(): test_58, 59
