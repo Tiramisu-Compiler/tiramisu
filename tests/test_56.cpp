@@ -38,7 +38,7 @@ void generate_function_1(std::string name, int size)
     S0.set_access("[N]->{S0[i,j]->buf0[min(max(i, 0), N - 1), min(max(j, 0), N - 1)]}");
     S1.set_access("{S1[i,j]->buf1[i,j]}");
 
-    S1.tile(0, 1, 2, 2);
+    S1.tile(i, j, 2, 2);
     S1.tag_parallel_level(0);
 
     function0.set_arguments({&buf0, &buf1});

@@ -51,8 +51,8 @@ void generate_function(std::string name, int size, int val0)
     S1.set_access("[N,M]->{S1[i,j]->buf0[i,j]: 0<=i<M and 0<=j<M}");
     S2.set_access("[N,M]->{S2[i,j]->buf0[i,j]: 0<=i<M and 0<=j<M}");
 
-    S1.after(S0, computation::root_dimension);
-    S2.after(S1, computation::root_dimension);
+    S1.after(S0, computation::root);
+    S2.after(S1, computation::root);
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();

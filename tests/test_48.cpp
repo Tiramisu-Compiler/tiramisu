@@ -40,9 +40,9 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S1.after(S0,computation::root_dimension);
-    S2.after(S1,computation::root_dimension);
-    S3.after(S2,computation::root_dimension);
+    S1.after(S0,computation::root);
+    S2.after(S1,computation::root);
+    S3.after(S2,computation::root);
 
     S0.tag_parallel_level(0);
     S1.tag_parallel_level(1);

@@ -69,7 +69,7 @@ void generate_function(std::string name, int size, int val0)
     result.set_access("[N]->{result[i]->result_scalar[0]}");
     result.get_update(1).set_access("[N]->{result[i]->result_scalar[0]}");
 
-    result.get_update(1).after(result, computation::root_dimension);
+    result.get_update(1).after(result, computation::root);
 
     function0.set_arguments({&input_buffer, &result_scalar});
     function0.gen_time_space_domain();

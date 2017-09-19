@@ -52,10 +52,10 @@ void generate_function(std::string name, int size, int val0)
     S3.set_access("[N,M]->{S3[i,j]->buf3[i,j]}");
     S4.set_access("[N,M]->{S4[i,j]->buf4[i,j]}");
 
-    S1.after(S0, computation::root_dimension);
-    S2.after(S1, computation::root_dimension);
-    S3.after(S2, computation::root_dimension);
-    S4.after(S3, computation::root_dimension);
+    S1.after(S0, computation::root);
+    S2.after(S1, computation::root);
+    S3.after(S2, computation::root);
+    S4.after(S3, computation::root);
 
     // Compute the dep graph and dump it.
     function0.dump_dep_graph();

@@ -23,6 +23,8 @@ namespace tiramisu
 // Used for the generation of new variable names.
     int id_counter = 0;
 
+    const var computation::root = var("root");
+
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
@@ -2645,6 +2647,25 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::after(computation &comp, tiramisu::var level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(level.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({level.get_name()});
+    
+    assert(dimensions.size() == 1);
+
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		level.get_name() + " is " + std::to_string(dimensions[0])));
+
+    this->after(comp, dimensions[0]);
+
+    DEBUG_INDENT(-4);
+}
 void tiramisu::computation::after(computation &comp, int level)
 {
     DEBUG_FCT_NAME(3);
@@ -3069,6 +3090,49 @@ std::vector<std::string> computation::get_iteration_domain_dimension_names()
     DEBUG_INDENT(-4);
 
     return result;
+}
+
+void computation::tile(tiramisu::var L0, tiramisu::var L1,
+	tiramisu::var L2, int sizeX, int sizeY, int sizeZ)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0.get_name().length() > 0);
+    assert(L1.get_name().length() > 0);
+    assert(L2.get_name().length() > 0);
+
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L1_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L2_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L1_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L2_inner = tiramisu::var(generate_new_variable_name());
+
+    this->tile(L0, L1, L2, sizeX, sizeY, sizeZ,
+		L0_outer, L1_outer, L0_outer, L0_inner, L1_inner, L2_inner);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tile(tiramisu::var L0, tiramisu::var L1,
+	int sizeX, int sizeY)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0.get_name().length() > 0);
+    assert(L1.get_name().length() > 0);
+
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L1_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L1_inner = tiramisu::var(generate_new_variable_name());
+
+    this->tile(L0, L1, sizeX, sizeY,
+		L0_outer, L1_outer, L0_inner, L1_inner);
+
+    DEBUG_INDENT(-4);
 }
 
 void computation::tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,

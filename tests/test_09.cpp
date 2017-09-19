@@ -99,8 +99,8 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     f_s1.set_access("{f_s1[f_s1_y, f_s1_x, f_s1_r4__x]->buff_f[f_s1_y, f_s1_x]}");
 
     // Define compute level for "f".
-    f_s0.after(input_s0, computation::root_dimension);
-    f_s1.after(f_s0, computation::root_dimension);
+    f_s0.after(input_s0, computation::root);
+    f_s1.after(f_s0, computation::root);
 
     test_reduction_operator.set_arguments({&buff_f});
     test_reduction_operator.gen_time_space_domain();

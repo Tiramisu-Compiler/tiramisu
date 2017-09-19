@@ -33,7 +33,7 @@ void generate_function_1(std::string name, int size)
     computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i, j) / expr((int32_t) 5), true, p_int32,
                    &function0);
 
-    S2.after(S0, 0);
+    S2.after(S0, i);
 
     S1.between(S0, 1, S2, computation::root_dimension);
 

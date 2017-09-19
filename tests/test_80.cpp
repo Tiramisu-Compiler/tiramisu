@@ -44,9 +44,9 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
     S0.tile(i, j, 4, 4, i1, j1, i2, j2);
-    S1.tile(0, 1, 4, 4);
+    S1.tile(i, j, 4, 4, i1, j1, i2, j2);
 
-    S1.after(S0, computation::root_dimension);
+    S1.after(S0, computation::root);
 
     // -------------------------------------------------------
     // Layer III

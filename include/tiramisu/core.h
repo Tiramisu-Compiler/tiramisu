@@ -1866,10 +1866,53 @@ private:
     // @}
 
     /**
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
+      * tiling. \p sizeX and \p sizeY represent the tile size.
+      * \p L0 and \p L1 should be two consecutive loop levels
+      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+      * \p L0 > \p L1.
+      */
+    // @{
+    void tile(int L0, int L1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
+    // @}
+
+    /**
       * Contains a list of all definitions added to this computation. The 0th definition is
       * always this very computation.
       */
     std::vector<tiramisu::computation *> updates;
+
+    /**
+      * This function is equivalent to
+      *     void after(computation &comp, tiramisu::var iterator);
+      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
+      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
+      * of variable names, and this is the actual function used internally.
+      *
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      */
+    void after(computation &comp, int level);
 
     /**
       * A vector describing the access variables in the original definition of  a computation.
@@ -2223,7 +2266,7 @@ public:
     /**
       * Schedule this computation to run after the computation \p comp.
       * The computations are placed after each other in the loop level \p level.
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      * The root level is computation::root.
       *
       * For example assuming we have the two computations
       *
@@ -2231,9 +2274,9 @@ public:
       *
       * In order to make S1 run after S0 in the i loop, one should use
       *
-      *     S1.after(S0,0)
+      *     S1.after(S0, i)
       *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
+      * which means: S1 is after S0 at the loop level i (which is loop level 0).
       *
       * The corresponding code is
       *
@@ -2245,9 +2288,9 @@ public:
       *             S1;
       *     }
       *
-      * S1.after(S0,1)
+      * S1.after(S0, j)
       *
-      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
+      * means: S1 is after S0 at the loop level j (which is 1) and would yield
       * the following code
       *
       * for (i=0; i<N; i++)
@@ -2257,7 +2300,7 @@ public:
       *     S1;
       *   }
       *
-      * S1.after(S0, computation::root_dimension)
+      * S1.after(S0, computation::root)
       * means S1 is after S0 at the main program level and would yield
       * the following code
       *
@@ -2275,10 +2318,9 @@ public:
       *     scheduled after that computation at all levels lower than L.
       *     - There should be exactly one computation with no computation scheduled before it.
       *     - Each other computation should have exactly one computation scheduled before it.
+      *
       */
-    // @{
-    void after(computation &comp, int level);
-    // @}
+    void after(computation &comp, tiramisu::var iterator);
 
     /*
      * Allocate a buffer for the computation automatically.  The size of the buffer
@@ -2867,27 +2909,19 @@ public:
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
-      * \p L0 and \p L1 should be two consecutive loop levels
-      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
-      * \p L0 > \p L1.
-      */
-    // @{
-    void tile(int L0, int L1, int sizeX, int sizeY);
-    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
-    // @}
-
-    /**
-      * Tile the two loop levels \p L0 and \p L1 with rectangular
-      * tiling. \p sizeX and \p sizeY represent the tile size.
       * \p L0 and \p L1 should be two consecutive loop levels.
       * \p L0_outer, \p L1_outer, \p L0_inner, \p L1_inner
       * are the names of the new dimensions created after tiling.
       */
     // @{
     void tile(tiramisu::var L0, tiramisu::var L1,
+	      int sizeX, int sizeY);
+    void tile(tiramisu::var L0, tiramisu::var L1,
 	      int sizeX, int sizeY,
 	      tiramisu::var L0_outer, tiramisu::var L1_outer,
 	      tiramisu::var L0_inner, tiramisu::var L1_inner);
+    void tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
+	      int sizeX, int sizeY, int sizeZ);
     void tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
 	      int sizeX, int sizeY, int sizeZ,
 	      tiramisu::var L0_outer, tiramisu::var L1_outer,
@@ -3064,6 +3098,13 @@ public:
       *
       * This means that c0 is after c1 starting from loop level 1,
       * (before the loop level 1, c0 and c1 have the same order).
+      */
+    const static var root;
+
+    /**
+      * Equivalent of computation::root but to be used with scheduling
+      * functions that take loop level (integers) as input instead of
+      * tiramisu::var.
       */
     const static int root_dimension = -1;
 

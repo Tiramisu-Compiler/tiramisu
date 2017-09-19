@@ -38,7 +38,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S1.after(S0, computation::root_dimension);
+    S1.after(S0, computation::root);
 
     // -------------------------------------------------------
     // Layer III

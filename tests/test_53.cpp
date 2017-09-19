@@ -40,7 +40,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S3.after(S2,computation::root_dimension);
+    S3.after(S2,computation::root);
 
     S2.tag_parallel_level(3);
     S3.tag_parallel_level(0);

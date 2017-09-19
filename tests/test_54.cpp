@@ -74,7 +74,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.get_update(1).after(S0,computation::root_dimension);
+    S0.get_update(1).after(S0,computation::root);
 
     // -------------------------------------------------------
     // Layer III

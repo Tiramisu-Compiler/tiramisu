@@ -37,7 +37,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.tile(0, 1, 2, 2);
+    S0.tile(i, j, 2, 2);
     S0.tag_vector_level(3, 2);
 
     // -------------------------------------------------------

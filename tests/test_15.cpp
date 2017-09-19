@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     by.set_low_level_schedule("[Mc, My, Mx]->{by[c,y,x]->by[0, 0, c, 0, y+2, 1, x, 0]: (0 <= c <= (Mc -1)) and (0 <= y <= (My -1)) and (0 <= x <= (Mx -1))}");
 #elif 1
     by.shift(1, +2);
-    by.after(bx, 1);
+    by.after(bx, tiramisu::var("y"));
 #endif
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_by});

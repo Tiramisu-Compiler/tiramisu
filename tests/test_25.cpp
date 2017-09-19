@@ -50,8 +50,8 @@ void generate_function(std::string name, int size, int val0)
     C.get_update(1).set_access("[N]->{C[i]->buf0[i]}");
     C.get_update(2).set_access("[N]->{C[i]->buf0[i]}");
 
-    C.get_update(1).after(C, computation::root_dimension);
-    C.get_update(2).after(C.get_update(1), computation::root_dimension);
+    C.get_update(1).after(C, computation::root);
+    C.get_update(2).after(C.get_update(1), computation::root);
 
     function0.dump_dep_graph();
     function0.compute_bounds();
