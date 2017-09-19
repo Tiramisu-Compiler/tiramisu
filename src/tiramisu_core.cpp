@@ -2317,15 +2317,6 @@ int dynamic_dimension_into_loop_level(int dim)
     return level;
 }
 
-void computation::after(computation &comp, std::vector<int> levels)
-{
-    for (auto level : levels)
-    {
-        this->after(comp, level);
-    }
-}
-
-
 /**
   * Implementation internals.
   *

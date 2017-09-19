@@ -2268,13 +2268,6 @@ public:
       *   for (j=0; j<N; j++)
       *     S1;
       *
-      * Deprecated: To specify that this computation is after \p comp in multiple levels,
-      * the user can provide those levels in the \p levels vector.
-      *
-      * S1.after(S0, {0,1})
-      *
-      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
-      *
       * Note that as with all other scheduling methods:
       *     - Calling this method with the same computations overwrites the level if it is
       *     higher.
@@ -2285,7 +2278,6 @@ public:
       */
     // @{
     void after(computation &comp, int level);
-    void after(computation &comp, std::vector<int> levels);
     // @}
 
     /*
