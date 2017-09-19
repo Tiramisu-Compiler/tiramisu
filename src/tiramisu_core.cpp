@@ -2266,7 +2266,7 @@ isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int consta
  * dimension.
  *
  * In the example below, the dynamic dimension that corresponds
- * to the loop level 0 is 1, and to 1 it is 3, ...
+ * to the loop level 0 is 2, and to 1 it is 4, ...
  *
  * The first dimension is the duplication dimension, the following
  * dimensions are static, dynamic, static, dynamic, ...
@@ -2295,6 +2295,26 @@ int loop_level_into_dynamic_dimension(int level)
 int loop_level_into_static_dimension(int level)
 {
     return loop_level_into_dynamic_dimension(level) + 1;
+}
+
+/**
+ * Transform a dynamic schedule dimension into the corresponding loop level.
+ *
+ * In the example below, the loop level that corresponds
+ * to the dynamic dimension 2 is 0, and to the dynamic dimension 4 is 1, ...
+ *
+ * The first dimension is the duplication dimension, the following
+ * dimensions are static, dynamic, static, dynamic, ...
+ *
+ * Loop level               :    -1         0      1      2
+ * Schedule dimension number:        0, 1   2  3   4  5   6  7
+ * Schedule:                        [0, 0, i1, 0, i2, 0, i3, 0]
+ */
+int dynamic_dimension_into_loop_level(int dim)
+{
+    assert(dim % 2 == 0);
+    int level = (dim - 2)/2;
+    return level;
 }
 
 void computation::after(computation &comp, std::vector<int> levels)
@@ -2883,22 +2903,81 @@ void computation::gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int siz
     this->tag_gpu_thread_level(L0 + 3, L1 + 3, L2 + 3);
 }
 
-void computation::tile(int L0, int L1, int sizeX, int sizeY)
+void computation::assert_names_not_assigned(
+	std::vector<std::string> dimensions)
 {
-    // Check that the two dimensions are consecutive.
-    // Tiling only applies on a consecutive band of loop dimensions.
-    assert(L0 >= 0);
-    assert(L1 >= 0);
-    assert((L1 == L0 + 1));
-    assert(sizeX > 0);
-    assert(sizeY > 0);
-    assert(this->get_iteration_domain() != NULL);
+    for (auto const dim: dimensions)
+    {
+	int d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_out,
+			dim.c_str());
+	if (d >= 0)
+	    tiramisu::error("Dimension " + dim + " is already in use.", true);
 
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(
-                this->get_schedule()), isl_dim_out));
+	d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_in,
+			dim.c_str());
+	if (d >= 0)
+	    tiramisu::error("Dimension " + dim + " is already in use.", true);
+    }
+}
 
+void computation::check_dimensions_validity(std::vector<int> dimensions)
+{
+    assert(dimensions.size() > 0);
+
+    for (auto const dim: dimensions)
+    {
+	DEBUG(10, tiramisu::str_dump("Checking the validity of loop level " +
+				     std::to_string(dim)));
+
+	assert(dim >= computation::root_dimension);
+
+	if (loop_level_into_dynamic_dimension(dim) >=
+		isl_space_dim(isl_map_get_space(this->get_schedule()),
+			      isl_dim_out))
+	{
+	    tiramisu::error("The dynamic dimension " +
+		std::to_string(loop_level_into_dynamic_dimension(dim)) +
+		" is not less than the number of dimensions of the "
+		"time-space domain " +
+		std::to_string(isl_space_dim(isl_map_get_space(
+				this->get_schedule()), isl_dim_out)) , true);
+	}
+    }
+}
+
+void computation::set_loop_level_names(std::vector<int> loop_levels,
+	std::vector<std::string> names)
+{
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    this->check_dimensions_validity(loop_levels);
+    assert(names.size() > 0);
+    this->assert_names_not_assigned(names);
+    assert(names.size() == loop_levels.size());
+
+    for (int i = 0; i < loop_levels.size(); i++)
+    {
+	this->schedule = isl_map_set_dim_name(this->get_schedule(),
+		isl_dim_out,
+		loop_level_into_dynamic_dimension(loop_levels[i]),
+                names[i].c_str());
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tile(int L0, int L1, int sizeX, int sizeY)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // Check that the two dimensions are consecutive.
+    // Tiling only applies on a consecutive band of loop dimensions.
+    assert(L1 == L0 + 1);
+    assert((sizeX > 0) && (sizeY > 0));
+    assert(this->get_iteration_domain() != NULL);
+    this->check_dimensions_validity({L0, L1});
 
     this->split(L0, sizeX);
     this->split(L1 + 1, sizeY);
@@ -2907,29 +2986,207 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     DEBUG_INDENT(-4);
 }
 
-void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
+std::vector<int> computation::get_loop_level_numbers_from_dimension_names(
+	std::vector<std::string> dim_names)
 {
-    // Check that the two dimensions are consecutive.
-    // Tiling only applies on a consecutive band of loop dimensions.
-    assert(L0 >= 0);
-    assert(L1 >= 0);
-    assert(L2 >= 0);
-    assert((L1 == L0 + 1));
-    assert((L2 == L1 + 1));
-    assert(sizeX > 0);
-    assert(sizeY > 0);
-    assert(sizeZ > 0);
-    assert(this->get_iteration_domain() != NULL);
-
-    assert(loop_level_into_dynamic_dimension(L0) < isl_space_dim(isl_map_get_space(
-                this->get_schedule()), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L1) < isl_space_dim(isl_map_get_space(
-                this->get_schedule()), isl_dim_out));
-    assert(loop_level_into_dynamic_dimension(L2) < isl_space_dim(isl_map_get_space(
-                this->get_schedule()), isl_dim_out));
-
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert(dim_names.size() > 0);
+
+    std::vector<int> dim_numbers;
+
+    for (auto const dim: dim_names)
+    {
+	assert(dim.size()>0);
+
+	DEBUG(10, tiramisu::str_dump("Searching for the dimension " + dim));
+
+	if (dim == "root")
+	{
+	    int d = computation::root_dimension;
+	    dim_numbers.push_back(d);
+	}
+	else
+	{
+	    int d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_out,
+			dim.c_str());
+	    DEBUG(10, tiramisu::str_dump("Searching in the range of ",
+					isl_map_to_str(this->get_schedule())));
+
+	    if (d < 0)
+		tiramisu::error("Dimension " + dim + " not found.", true);
+
+	    DEBUG(10, tiramisu::str_dump("Corresponding loop level is " +
+			std::to_string(dynamic_dimension_into_loop_level(d))));
+
+	    dim_numbers.push_back(dynamic_dimension_into_loop_level(d));
+	}
+    }
+
+    this->check_dimensions_validity(dim_numbers);
+
+    DEBUG_INDENT(-4);
+
+    return dim_numbers;
+}
+
+void computation::name_unnamed_dimensions()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_set *iter = this->get_iteration_domain();
+
+    assert(iter != NULL);
+
+    for (int i = 0; i < this->get_n_dimensions(); i++)
+    {
+	if (isl_set_has_dim_name(iter, isl_dim_set, i) == isl_bool_false)
+	    iter = isl_set_set_dim_name(iter, isl_dim_set, i,
+			generate_new_variable_name().c_str());
+    }
+
+    this->set_iteration_domain(iter);
+
+    DEBUG_INDENT(-4);
+}
+
+std::vector<std::string> computation::get_iteration_domain_dimension_names()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_set *iter = this->get_iteration_domain();
+
+    assert(iter != NULL);
+
+    std::vector<std::string> result;
+
+    for (int i = 0; i < this->get_n_dimensions(); i++)
+    {
+	if (isl_set_has_dim_name(iter, isl_dim_set, i))
+	    result.push_back(std::string(isl_set_get_dim_name(iter,
+					    isl_dim_set, i)));
+	else
+	    tiramisu::error("All iteration domain dimensions must have "
+		"a name.", true);
+    }
+
+    assert(result.size() == this->get_n_dimensions());
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
+void computation::tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
+	int sizeX, int sizeY, int sizeZ,
+	tiramisu::var L0_outer, tiramisu::var L1_outer,
+	tiramisu::var L2_outer, tiramisu::var L0_inner,
+	tiramisu::var L1_inner, tiramisu::var L2_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0.get_name().length() > 0);
+    assert(L1.get_name().length() > 0);
+    assert(L2.get_name().length() > 0);
+    assert(L0_outer.get_name().length() > 0);
+    assert(L1_outer.get_name().length() > 0);
+    assert(L2_outer.get_name().length() > 0);
+    assert(L0_inner.get_name().length() > 0);
+    assert(L1_inner.get_name().length() > 0);
+    assert(L2_inner.get_name().length() > 0);
+
+    this->assert_names_not_assigned({L0_outer.get_name(), L1_outer.get_name(),
+				    L2_outer.get_name(), L0_inner.get_name(),
+				    L1_inner.get_name(), L2_inner.get_name()});
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0.get_name(),
+							   L1.get_name(),
+							   L2.get_name()});
+    assert(dimensions.size() == 3);
+
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		L0.get_name() + " is " + std::to_string(dimensions[0])));
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		L1.get_name() + " is " + std::to_string(dimensions[1])));
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		L2.get_name() + " is " + std::to_string(dimensions[2])));
+
+    this->tile(dimensions[0], dimensions[1], dimensions[2],
+		sizeX, sizeY, sizeZ);
+
+    this->set_loop_level_names(
+	    {dimensions[0],
+	     dimensions[0]+1,
+	     dimensions[0]+2,
+	     dimensions[0]+3,
+	     dimensions[0]+4,
+	     dimensions[0]+5},
+	    {L0_outer.get_name(), L1_outer.get_name(),
+	     L2_outer.get_name(), L0_inner.get_name(),
+	     L1_inner.get_name(), L2_inner.get_name()});
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tile(tiramisu::var L0, tiramisu::var L1,
+      int sizeX, int sizeY,
+      tiramisu::var L0_outer, tiramisu::var L1_outer,
+      tiramisu::var L0_inner, tiramisu::var L1_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0.get_name().length() > 0);
+    assert(L1.get_name().length() > 0);
+    assert(L0_outer.get_name().length() > 0);
+    assert(L1_outer.get_name().length() > 0);
+    assert(L0_inner.get_name().length() > 0);
+    assert(L1_inner.get_name().length() > 0);
+
+    this->assert_names_not_assigned({L0_outer.get_name(), L1_outer.get_name(),
+				    L0_inner.get_name(), L1_inner.get_name()});
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0.get_name(),
+							   L1.get_name()});
+    assert(dimensions.size() == 2);
+
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		L0.get_name() + " is " + std::to_string(dimensions[0])));
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+		L1.get_name() + " is " + std::to_string(dimensions[1])));
+
+    this->tile(dimensions[0], dimensions[1], sizeX, sizeY);
+
+    this->set_loop_level_names(
+	    {dimensions[0],
+	     dimensions[0]+1,
+	     dimensions[0]+2,
+	     dimensions[0]+3},
+	    {L0_outer.get_name(), L1_outer.get_name(),
+	     L0_inner.get_name(), L1_inner.get_name()});
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // Check that the two dimensions are consecutive.
+    // Tiling only applies on a consecutive band of loop dimensions.
+    assert(L1 == L0 + 1);
+    assert(L2 == L1 + 1);
+    assert((sizeX > 0) && (sizeY > 0) && (sizeZ > 0));
+    assert(this->get_iteration_domain() != NULL);
+
+    this->check_dimensions_validity({L0, L1, L2});
 
     //  Original loops
     //  L0
@@ -5503,6 +5760,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->ctx = fct->get_isl_ctx();
 
     iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
+    this->name_unnamed_dimensions();
     name = std::string(isl_space_get_tuple_name(isl_set_get_space(iteration_domain),
                        isl_dim_type::isl_dim_set));
 

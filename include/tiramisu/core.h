@@ -31,6 +31,7 @@ class computation;
 class buffer;
 class constant;
 class generator;
+class computation_tester;
 
 /**
   * Add a dimension to the range of a map in the specified position.
@@ -1132,6 +1133,7 @@ class computation
     friend tiramisu::generator;
     friend tiramisu::buffer;
     friend tiramisu::constant;
+    friend computation_tester;
 
 private:
 
@@ -1413,17 +1415,17 @@ private:
 
     /**
       * Check that the \p dimensions are valid:
-      * - The names used for dimensions are not reserved names,
-      * - The dimensions actually exist (i.e., dimensions with the same name
-      *   exist,
       * - The dimension numbers are within the bounds of accepted dimensions
       * (i.e., between computation::root_dimension and the maximal dimension
       * number in the time-space domain.
       */
-    // @{
-    void check_dimensions_validity(std::vector<std::string> dimensions);
     void check_dimensions_validity(std::vector<int> dimensions);
-    // @}
+
+    /**
+      * Check that the names used in \p dimensions are not already
+      * in use.
+      */
+    void assert_names_not_assigned(std::vector<std::string> dimensions);
 
     /**
      * Compute two subsets of computations:
@@ -1641,6 +1643,11 @@ private:
     std::map<std::string, isl_ast_expr *> get_iterators_map();
 
     /**
+      * Return the names of iteration domain dimensions.
+      */
+    std::vector<std::string> get_iteration_domain_dimension_names();
+
+    /**
       * Get the number of dimensions of the iteration
       * domain of the computation.
       */
@@ -1700,6 +1707,17 @@ private:
     std::vector<computation*>& get_updates();
 
     /**
+      * Search the time-space domain (the range of the schedule) and
+      * return the loop level numbers that correspond to the dimensions
+      * named \p dim.
+      * In other words, translate the vector of dimension names (\p dim_names)
+      * into loop level numbers. We need to do this because the internal Tiramisu
+      * scheduling functions use dimension numbers instead of dimension
+      * names (which are used in the user level scheduling functions).
+      */
+    std::vector<int> get_loop_level_numbers_from_dimension_names(std::vector<std::string> dim_names);
+
+    /**
      * Return true if this computation is supposed to have an access to other
      * computations.
      * Knowing this is important so that tiramisu does not try to compute
@@ -1721,6 +1739,11 @@ private:
       *      needed for the creation of the let statement.
       */
     bool is_let_stmt() const;
+
+    /**
+      * Assign a name to iteration domain dimensions that do not have a name.
+      */
+    void name_unnamed_dimensions();
 
     /**
       * Set an identity schedule for the computation.
@@ -1793,6 +1816,16 @@ private:
       * get_update().
       */
     void separate(int dim, tiramisu::expr N, int v);
+
+    /**
+      * Set the names of loop levels dimensions.
+      * The loop levels are specified using \p loop_levels
+      * and their names are specified using \p names.
+      * Users can only set the names of loop levels (dynamic dimensions),
+      * the static dimension names are set to default names.
+      */
+    void set_loop_level_names(std::vector<int> loop_levels,
+        std::vector<std::string> names);
 
     /**
       * Set the iteration domain of the computation
@@ -2849,6 +2882,25 @@ public:
     // @{
     void tile(int L0, int L1, int sizeX, int sizeY);
     void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
+    // @}
+
+    /**
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
+      * tiling. \p sizeX and \p sizeY represent the tile size.
+      * \p L0 and \p L1 should be two consecutive loop levels.
+      * \p L0_outer, \p L1_outer, \p L0_inner, \p L1_inner
+      * are the names of the new dimensions created after tiling.
+      */
+    // @{
+    void tile(tiramisu::var L0, tiramisu::var L1,
+	      int sizeX, int sizeY,
+	      tiramisu::var L0_outer, tiramisu::var L1_outer,
+	      tiramisu::var L0_inner, tiramisu::var L1_inner);
+    void tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
+	      int sizeX, int sizeY, int sizeZ,
+	      tiramisu::var L0_outer, tiramisu::var L1_outer,
+	      tiramisu::var L2_outer, tiramisu::var L0_inner,
+	      tiramisu::var L1_inner, tiramisu::var L2_inner);
     // @}
 
     /**
