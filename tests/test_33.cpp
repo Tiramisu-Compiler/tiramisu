@@ -39,7 +39,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.compute_at(S1, computation::root_dimension);
+    S0.compute_at(S1, computation::root);
 
     // -------------------------------------------------------
     // Layer III

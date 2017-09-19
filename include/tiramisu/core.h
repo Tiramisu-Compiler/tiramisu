@@ -2468,7 +2468,7 @@ public:
       * freely.  The duplicate is scheduled automatically to be executed
       * before the consumer.
       */
-    void compute_at(computation &consumer, int L);
+    void compute_at(computation &consumer, tiramisu::var L);
 
     /**
       * Dump the iteration domain of the computation.  This is useful for

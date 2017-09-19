@@ -4127,11 +4127,17 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
  * - Order the consumer after the redundant at level L.
  */
 // TODO: Test the case when \p consumer does not consume this computation.
-void computation::compute_at(computation &consumer, int L)
+void computation::compute_at(computation &consumer, tiramisu::var L_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    assert(L_var.get_name().size() > 0);
+
+    std::vector<int> dimensions = this->get_loop_level_numbers_from_dimension_names({L_var.get_name()});
+    assert(dimensions.size() == 1);
+
+    int L = dimensions[0];
     int dim = loop_level_into_static_dimension(L);
 
     assert(this->get_schedule() != NULL);

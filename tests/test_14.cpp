@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     int by_ext_1 = SIZE1 - 8;
     int by_ext_0 = SIZE0 - 8;
 
-    tiramisu::var y("y"), x("x");
+    tiramisu::var y("y"), x("x"), y1("y1"), x1("x1"), y2("y2"), x2("x2");
 
     std::cout << "Nc = " << by_ext_2 << ", Ny = " << by_ext_1 + 2 << ", Nx = " << by_ext_0 << std::endl;
     std::cout << "Mc = " << by_ext_2 << ", My = " << by_ext_1 << ", Mx = " << by_ext_0 << std::endl;
@@ -130,9 +130,9 @@ int main(int argc, char **argv)
     bx.select(1)->after(bx, 2, 0);
     by.after(bx, 2, 1);
 #elif 1
-    bx.tile(y, x, 32, 32);
-    by.tile(y, x, 32, 32);
-    bx.compute_at(by, 2);
+    bx.tile(y, x, 32, 32, y1, x1, y2, x2);
+    by.tile(y, x, 32, 32, y1, x1, y2, x2);
+    bx.compute_at(by, y2);
 #endif
 
     bx.tag_parallel_level(1);

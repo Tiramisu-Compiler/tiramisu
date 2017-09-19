@@ -45,7 +45,7 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    S0.compute_at(S1, 1);
+    S0.compute_at(S1, j);
 
     S2.after(S1, j);
 
