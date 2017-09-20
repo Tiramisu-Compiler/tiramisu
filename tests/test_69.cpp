@@ -29,16 +29,15 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::var i("i");
-    tiramisu::var j("j");
+    tiramisu::var i("i"), j("j"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) val0), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    S0.tile(i, j, 2, 2);
-    S0.vectorize(3, 2);
+    S0.tile(i, j, 2, 2, i0, j0, i1, j1);
+    S0.vectorize(j1, 2);
 
     // -------------------------------------------------------
     // Layer III

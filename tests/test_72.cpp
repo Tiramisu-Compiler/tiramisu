@@ -41,7 +41,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    result.vectorize(0, 16);
+    result.vectorize(i, 16);
     result.get_update(0).tag_parallel_level(0);
 
     // -------------------------------------------------------

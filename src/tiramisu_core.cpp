@@ -1060,15 +1060,20 @@ std::string generate_new_variable_name()
 /**
   * Methods for the computation class.
   */
-void tiramisu::computation::parallelize(int par_dim)
+void tiramisu::computation::parallelize(tiramisu::var par_dim_var)
 {
-    assert(par_dim >= 0);
-    assert(!this->get_name().empty());
-    assert(this->get_function() != NULL);
-
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    assert(par_dim_var.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({par_dim_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+
+    int par_dim = dimensions[0];
     this->tag_parallel_level(par_dim);
 
     DEBUG_INDENT(-4);
@@ -1504,10 +1509,16 @@ tiramisu::computation *computation::store_at(int L0)
     return allocation;
 }
 
-void tiramisu::computation::vectorize(int L0, int v)
+void tiramisu::computation::vectorize(tiramisu::var L0_var, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
 
     DEBUG(3, tiramisu::str_dump("Vectorizing loop level " + std::to_string(L0) + " with a vector size of " + std::to_string(v)));
 
@@ -1591,13 +1602,18 @@ computation& tiramisu::computation::get_update(int i)
     return *(this->updates[i]);
 }
 
-void tiramisu::computation::unroll(int L0, int v)
+void tiramisu::computation::unroll(tiramisu::var L0_var, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump("Unrolling loop level " + std::to_string(L0) + " with a factor = " + std::to_string(v)));
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
 
+    DEBUG(3, tiramisu::str_dump("Unrolling loop level " + std::to_string(L0) + " with a factor = " + std::to_string(v)));
     this->gen_time_space_domain();
 
     tiramisu::expr loop_upper_bound =

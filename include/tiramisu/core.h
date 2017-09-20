@@ -2629,13 +2629,11 @@ public:
    /**
       * Tag the loop level \p L to be parallelized.
       *
-      * The outermost loop level is 0.
-      *
-      * This function is equivalent to the function tag_parallel_level()
+      * This function is equivalent to the function tag_parallel_level().
       * There is no difference between the two.
       *
       */
-    void parallelize(int L);
+    void parallelize(tiramisu::var L);
 
     /**
        * Set the access relation of the computation.
@@ -2929,11 +2927,11 @@ public:
       * Unroll the loop level \p L with an unrolling factor \p fac.
       *
       * The difference between this function and the function
-      * tag_unroll_level(int L) is that this function separates
+      * tag_unroll_level() is that this function separates
       * the iteration domain into full and partial iteration
       * domains for unrolling first and then it calls
-      * tag_unroll_level(int L).
-      * tag_unroll_level(int L) only tags a dimension to
+      * tag_unroll_level().
+      * tag_unroll_level() only tags a dimension to
       * be unrolled, it does not modify the tagged dimension.
       *
       * This function separates the iteration domain into two iteration
@@ -2953,7 +2951,7 @@ public:
       *
       * To unroll the j loop with an unrolling factor of 4, one should call
       *
-      *      S0.unroll(1, 4);
+      *      S0.unroll(j, 4);
       *
       * The loop (iteration domain) is first separated into the following
       * two loops
@@ -2976,16 +2974,16 @@ public:
       * the i2 loop is then tagged to be unrolled.
       *
       */
-    void unroll(int L, int fac);
+    void unroll(tiramisu::var L, int fac);
 
     /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
       *
       * The difference between this function and the function
-      * tag_vector_level(int L, int v) is that this function
+      * tag_vector_level() is that this function
       * prepares the iteration domain for vectorization first
-      * and then it calls tag_vector_level(int L, int v).
-      * tag_vector_level(int L, int v) only tags a dimension to
+      * and then it calls tag_vector_level().
+      * tag_vector_level() only tags a dimension to
       * be vectorized, it does not change the tagged dimension.
       *
       * This function will separate the iteration domain into two iteration
@@ -3005,7 +3003,7 @@ public:
       *
       * To vectorize the j loop with a vector length 4, one should call
       *
-      *      S0.vectorize(1, 4, 23);
+      *      S0.vectorize(j, 4);
       *
       * The loop (iteration domain) is first separated into the following
       * two loops
@@ -3032,7 +3030,7 @@ public:
       * less than \p v iterations is not correct.
       */
     // @{
-    void vectorize(int L, int v);
+    void vectorize(tiramisu::var L, int v);
     // @}
 
     /**

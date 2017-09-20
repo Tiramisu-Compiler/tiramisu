@@ -37,7 +37,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.vectorize(1, 32);
+    S0.vectorize(j, 32);
 
     // -------------------------------------------------------
     // Layer III

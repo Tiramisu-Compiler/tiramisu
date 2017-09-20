@@ -38,8 +38,8 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    S0.vectorize(1, 4);
-    S1.vectorize(1, 4);
+    S0.vectorize(j, 4);
+    S1.vectorize(j, 4);
     S1.get_update(0).after(S0.get_last_update(), computation::root);
 
     // -------------------------------------------------------
