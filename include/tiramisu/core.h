@@ -1924,6 +1924,46 @@ private:
 
     /**
       * Identical to
+      *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1);
+      *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
+      *			      tiramisu::var L2, tiramisu::var L3);
+      *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
+      * 		      tiramisu::var L2, tiramisu::var L3,
+      *			      tiramisu::var L4, tiramisu::var L5);
+      * The outermost loop level is 0.
+      */
+    // @{
+    void tag_gpu_level(int L0, int L1);
+    void tag_gpu_level(int L0, int L1, int L2, int L3);
+    void tag_gpu_level(int L0, int L1, int L2, int L3, int L4, int L5);
+    // @}
+
+    /**
+      * Tag the loop level \p L0 and \p L1 to be mapped to GPU block
+      * dimensions.
+      *
+      * The outermost loop level is 0.
+      */
+    // @{
+    void tag_gpu_block_level(int L0);
+    void tag_gpu_block_level(int L0, int L1);
+    void tag_gpu_block_level(int L0, int L1, int L2);
+    // @}
+
+    /**
+      * Tag the loop level \p L0 and \p L1 to be mapped to GPU thread
+      * dimensions.
+      *
+      * The outermost loop level is 0.
+      */
+    // @{
+    void tag_gpu_thread_level(int L0);
+    void tag_gpu_thread_level(int L0, int L1);
+    void tag_gpu_thread_level(int L0, int L1, int L2);
+    // @}
+
+    /**
+      * Identical to
       *    void tag_parallel_level(int L);
       */
     void tag_parallel_level(int L);
@@ -2871,37 +2911,11 @@ public:
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
-      *
-      * The outermost loop level is 0.
       */
     // @{
-    void tag_gpu_level(int L0, int L1);
-    void tag_gpu_level(int L0, int L1, int L2, int L3);
-    void tag_gpu_level(int L0, int L1, int L2, int L3, int L4, int L5);
-    // @}
-
-    /**
-      * Tag the loop level \p L0 and \p L1 to be mapped to GPU block
-      * dimensions.
-      *
-      * The outermost loop level is 0.
-      */
-    // @{
-    void tag_gpu_block_level(int L0);
-    void tag_gpu_block_level(int L0, int L1);
-    void tag_gpu_block_level(int L0, int L1, int L2);
-    // @}
-
-    /**
-      * Tag the loop level \p L0 and \p L1 to be mapped to GPU thread
-      * dimensions.
-      *
-      * The outermost loop level is 0.
-      */
-    // @{
-    void tag_gpu_thread_level(int L0);
-    void tag_gpu_thread_level(int L0, int L1);
-    void tag_gpu_thread_level(int L0, int L1, int L2);
+    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1);
+    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, tiramisu::var L3);
+    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, tiramisu::var L3, tiramisu::var L4, tiramisu::var L5);
     // @}
 
     /**

@@ -1057,6 +1057,80 @@ std::string generate_new_variable_name()
     return "t" + std::to_string(id_counter++);
 }
 
+void computation::tag_gpu_level(tiramisu::var L0_var, tiramisu::var L1_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+
+    this->tag_gpu_level(L0, L1);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tag_gpu_level(tiramisu::var L0_var, tiramisu::var L1_var,
+	tiramisu::var L2_var, tiramisu::var L3_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(L2_var.get_name().length() > 0);
+    assert(L3_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name(),
+							   L2_var.get_name(), L3_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+    int L2 = dimensions[2];
+    int L3 = dimensions[3];
+
+    this->tag_gpu_level(L0, L1, L2, L3);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::tag_gpu_level(tiramisu::var L0_var, tiramisu::var L1_var,
+	tiramisu::var L2_var, tiramisu::var L3_var,
+	tiramisu::var L4_var, tiramisu::var L5_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(L2_var.get_name().length() > 0);
+    assert(L3_var.get_name().length() > 0);
+    assert(L4_var.get_name().length() > 0);
+    assert(L5_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name(),
+							   L2_var.get_name(), L3_var.get_name(),
+							   L4_var.get_name(), L5_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+    int L2 = dimensions[2];
+    int L3 = dimensions[3];
+    int L4 = dimensions[4];
+    int L5 = dimensions[5];
+
+    this->tag_gpu_level(L0, L1, L2, L3, L4, L5);
+
+    DEBUG_INDENT(-4);
+}
+
 /**
   * Methods for the computation class.
   */

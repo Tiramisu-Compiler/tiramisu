@@ -24,7 +24,7 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-
+    tiramisu::var i0("i0"), i1("i1"), i2("i2"), i3("i3"), i4("i4"), i5("i5");
     tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
@@ -35,7 +35,7 @@ void generate_function(std::string name, int size, int val0)
     S0.set_access("[N]->{S0[i0,i1,i2,i3,i4,i5]->buf0[i0,i5]}");
 
     // Test if this works correctly.
-    S0.tag_gpu_level(0, 1, 2, 3, 4, 5);
+    S0.tag_gpu_level(i0, i1, i2, i3, i4, i5);
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();

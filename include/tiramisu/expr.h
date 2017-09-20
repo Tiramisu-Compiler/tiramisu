@@ -26,6 +26,7 @@ namespace tiramisu
 
 class computation;
 
+std::string generate_new_variable_name();
 std::string str_from_tiramisu_type_expr(tiramisu::expr_t type);
 std::string str_tiramisu_type_op(tiramisu::op_t type);
 std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
@@ -1670,6 +1671,13 @@ public:
      *
      */
     var(std::string name) : var(name, true) {}
+
+    /* Construct an expression that represents an untyped variable.
+     * The name of the variable is generated automatically.
+     * For example to declare a variable, use
+     * tiramisu::var t;
+     */
+    var(): var(generate_new_variable_name(), true) {}
 };
 
 /**
