@@ -18,6 +18,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::global::set_default_tiramisu_options();
 
     tiramisu::function function0(name);
+    tiramisu::var i("i");
     tiramisu::expr e_N = tiramisu::expr((int32_t) size);
     tiramisu::constant N("N", e_N, p_int32, true, NULL, 0, &function0);
 
@@ -30,7 +31,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL,
                           a_output, &function0);
     S0.set_access("{S0[i,j]->buf0[i,j]}");
-    S0.tag_parallel_level(0);
+    S0.tag_parallel_level(i);
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();

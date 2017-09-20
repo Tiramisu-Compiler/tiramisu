@@ -30,8 +30,7 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::var i("i");
-    tiramisu::var j("j");
+    tiramisu::var i("i"), j("j"), i1("i1"), j1("j1");
     tiramisu::computation x("[N]->{x[i]: 0<=i<N}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation y("[N]->{y[i]: 0<=i<N}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation a("{a[0]}", tiramisu::expr(), false, p_float32, &function0);
@@ -41,8 +40,8 @@ void generate_function(std::string name, int size, int val0)
     // Layer II
     // -------------------------------------------------------
 
-    result.vectorize(i, 16);
-    result.get_update(0).tag_parallel_level(0);
+    result.vectorize(i, 16, i1, j1);
+    result.get_update(0).tag_parallel_level(i1);
 
     // -------------------------------------------------------
     // Layer III

@@ -1208,14 +1208,62 @@ void tiramisu::computation::tag_vector_level(int dim, int length)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->tag_vector_level(L0, v);
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::tag_parallel_level(tiramisu::var L0_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->tag_parallel_level(L0);
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::tag_unroll_level(tiramisu::var L0_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->tag_unroll_level(L0);
+
+    DEBUG_INDENT(-4);
+}
+
 void tiramisu::computation::tag_unroll_level(int level)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(level >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
-
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
 
     this->get_function()->add_unroll_dimension(this->get_name(), level);
 
@@ -1520,11 +1568,25 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    this->vectorize(L0_var, v, L0_outer, L0_inner);
+
+    DEBUG_INDENT(-4);
+}
+
+
+void tiramisu::computation::vectorize(tiramisu::var L0_var, int v, tiramisu::var L0_outer, tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(L0_var.get_name().length() > 0);
     std::vector<int> dimensions =
 	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
+    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
     DEBUG(3, tiramisu::str_dump("Vectorizing loop level " + std::to_string(L0) + " with a vector size of " + std::to_string(v)));
 
@@ -1567,7 +1629,10 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v)
     DEBUG(3, tiramisu::str_dump("New upper loop bound (after separation): "); new_upper_bound.dump(false));
 
     if ((new_upper_bound.get_expr_type() == tiramisu::e_val) && ((new_upper_bound.get_int_val()+1)%v == 0))
+    {
         this->tag_vector_level(L0, v);
+	this->set_loop_level_names({L0}, {L0_outer.get_name()});
+    }
     else
     {
 	    /**
@@ -1578,6 +1643,7 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v)
 	    // Tag the inner loop after splitting to be vectorized. That loop
 	    // is supposed to have a constant extent.
 	    this->tag_vector_level(L0 + 1, v);
+	    this->set_loop_level_names({L0, L0+1}, {L0_outer.get_name(), L0_inner.get_name()});
     }
 
     this->get_function()->align_schedules();
@@ -1613,11 +1679,24 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    this->unroll(L0_var, v, L0_outer, L0_inner);
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0_outer, tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(L0_var.get_name().length() > 0);
     std::vector<int> dimensions =
 	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
+    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
     DEBUG(3, tiramisu::str_dump("Unrolling loop level " + std::to_string(L0) + " with a factor = " + std::to_string(v)));
     this->gen_time_space_domain();
@@ -1659,7 +1738,10 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v)
     DEBUG(3, tiramisu::str_dump("New upper loop bound (after separation): "); new_upper_bound.dump(false));
 
     if ((new_upper_bound.get_expr_type() == tiramisu::e_val) && ((new_upper_bound.get_int_val()+1)%v == 0))
+    {
         this->tag_unroll_level(L0);
+	this->set_loop_level_names({L0}, {L0_outer.get_name()});
+    }
     else
     {
 	    /**
@@ -1670,6 +1752,7 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v)
 	    // Tag the inner loop after splitting to be unrolled. That loop
 	    // is supposed to have a constant extent.
 	    this->tag_unroll_level(L0 + 1);
+	    this->set_loop_level_names({L0, L0+1}, {L0_outer.get_name(), L0_inner.get_name()});
     }
 
     this->get_function()->align_schedules();
@@ -3377,12 +3460,34 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     DEBUG_INDENT(-4);
 }
 
+
+void computation::interchange(tiramisu::var L0_var, tiramisu::var L1_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+
+    this->interchange(L0, L1);
+
+    DEBUG_INDENT(-4);
+}
+
 /**
  * This function modifies the schedule of the computation so that the two loop
  * levels L0 and L1 are interchanged (swapped).
  */
 void computation::interchange(int L0, int L1)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     int inDim0 = loop_level_into_dynamic_dimension(L0);
     int inDim1 = loop_level_into_dynamic_dimension(L1);
 
@@ -3392,9 +3497,6 @@ void computation::interchange(int L0, int L1)
     assert(inDim1 >= 0);
     assert(inDim1 < isl_space_dim(isl_map_get_space(this->get_schedule()),
                                   isl_dim_out));
-
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
 
     isl_map *schedule = this->get_schedule();
 
@@ -3796,6 +3898,22 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
     DEBUG_INDENT(-4);
 
     return sched;
+}
+
+void computation::shift(tiramisu::var L0_var, int n)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->shift(L0, n);
+
+    DEBUG_INDENT(-4);
 }
 
 void computation::shift(int L0, int n)
@@ -4659,6 +4777,37 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     DEBUG_INDENT(-4);
 
     return e;
+}
+
+void computation::split(tiramisu::var L0_var, int sizeX)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    this->split(L0_var, sizeX, L0_outer, L0_inner);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::split(tiramisu::var L0_var, int sizeX,
+	tiramisu::var L0_outer, tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
+
+    this->split(L0, sizeX);
+    this->set_loop_level_names({L0, L0+1}, {L0_outer.get_name(), L0_inner.get_name()});
+
+    DEBUG_INDENT(-4);
 }
 
 /**

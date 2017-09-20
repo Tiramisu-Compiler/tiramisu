@@ -23,7 +23,7 @@ void generate_function_1(std::string name, int size)
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr(), false, p_uint8,
             &function0);
 
-    tiramisu::var i("i"), j("j");
+    tiramisu::var i("i"), j("j"), i1("i1"), j1("j1"), i0("i0"), j0("j0");
     tiramisu::expr e_blur = (S0(i - 1, j - 1) + S0(i, j - 1) + S0(i + 1, j - 1) +
                              S0(i - 1, j    ) + S0(i, j    ) + S0(i + 1, j    ) +
                              S0(i - 1, j + 1) + S0(i, j + 1) + S0(i + 1, j + 1)) / ((uint8_t) 9);
@@ -38,8 +38,8 @@ void generate_function_1(std::string name, int size)
     S0.set_access("[N]->{S0[i,j]->buf0[min(max(i, 0), N - 1), min(max(j, 0), N - 1)]}");
     S1.set_access("{S1[i,j]->buf1[i,j]}");
 
-    S1.tile(i, j, 2, 2);
-    S1.tag_parallel_level(0);
+    S1.tile(i, j, 2, 2, i1, j1, i0, j0);
+    S1.tag_parallel_level(i1);
 
     function0.set_arguments({&buf0, &buf1});
     function0.gen_time_space_domain();

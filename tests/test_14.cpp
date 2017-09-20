@@ -135,10 +135,10 @@ int main(int argc, char **argv)
     bx.compute_at(by, y2);
 #endif
 
-    bx.tag_parallel_level(1);
-    bx.tag_parallel_level(2);
-    by.tag_parallel_level(1);
-    by.tag_parallel_level(2);
+    bx.tag_parallel_level(y1);
+    bx.tag_parallel_level(x1);
+    by.tag_parallel_level(y1);
+    by.tag_parallel_level(x1);
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_by});
     blurxy_tiramisu.gen_time_space_domain();

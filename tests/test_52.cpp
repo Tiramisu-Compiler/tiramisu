@@ -43,12 +43,10 @@ void generate_function(std::string name, int size, int val0)
     S2.after(S1,computation::root);
     S3.after(S2,computation::root);
 
-    S1.tag_parallel_level(1);
-    S2.tag_parallel_level(3);
-    S3.tag_parallel_level(0);
-    S3.tag_parallel_level(1);
-    S3.tag_parallel_level(2);
-    S3.tag_parallel_level(3);
+    S1.tag_parallel_level(j);
+    S2.tag_parallel_level(j);
+    S3.tag_parallel_level(i);
+    S3.tag_parallel_level(i);
 
     // -------------------------------------------------------
     // Layer III

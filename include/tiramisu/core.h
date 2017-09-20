@@ -1407,6 +1407,43 @@ private:
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
 
     /**
+      * This function is equivalent to
+      *     void after(computation &comp, tiramisu::var iterator);
+      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
+      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
+      * of variable names, and this is the actual function used internally.
+      *
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      */
+    void after(computation &comp, int level);
+
+    /**
+      * Check that the names used in \p dimensions are not already
+      * in use.
+      */
+    void assert_names_not_assigned(std::vector<std::string> dimensions);
+
+    /**
       * Return true if a buffer was allocated to this computation or to one
       * of its updates (we assume that we allocate the same buffer for the
       * computation and its updates).
@@ -1428,12 +1465,6 @@ private:
       * number in the time-space domain.
       */
     void check_dimensions_validity(std::vector<int> dimensions);
-
-    /**
-      * Check that the names used in \p dimensions are not already
-      * in use.
-      */
-    void assert_names_not_assigned(std::vector<std::string> dimensions);
 
     /**
      * Compute two subsets of computations:
@@ -1734,6 +1765,12 @@ private:
     bool has_accesses() const;
 
     /**
+      * Identical to
+      *     void interchange(tiramisu::var L0, tiramisu::var L1);
+      */
+    void interchange(int L0, int L1);
+
+    /**
       * Return if this computation represents a let statement.
       *
       * Let statements should be treated differently because:
@@ -1865,6 +1902,12 @@ private:
     void set_iterators_map(std::map<std::string, isl_ast_expr *> map);
 
     /**
+      * Identical to
+      *      void shift(tiramisu::var L0, int n);
+      */
+    void shift(int L0, int n);
+
+    /**
       * Simplify \p set using the context and by calling
       * set coalescing.
       */
@@ -1872,6 +1915,30 @@ private:
     isl_set *simplify(isl_set *set);
     isl_map *simplify(isl_map *map);
     // @}
+
+    /**
+      * Identical to
+      *		void split(tiramisu::var L0, int sizeX);
+      */
+    void split(int L0, int sizeX);
+
+    /**
+      * Identical to
+      *    void tag_parallel_level(int L);
+      */
+    void tag_parallel_level(int L);
+
+    /**
+      * Identical to
+      *     void tag_vector_level(tiramisu::var L, int len);
+      */
+    void tag_vector_level(int L, int len);
+
+   /**
+     * Identical to
+     *     void tag_unroll_level(tiramisu::var L);
+     */
+    void tag_unroll_level(int L);
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
@@ -1890,37 +1957,6 @@ private:
       * always this very computation.
       */
     std::vector<tiramisu::computation *> updates;
-
-    /**
-      * This function is equivalent to
-      *     void after(computation &comp, tiramisu::var iterator);
-      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
-      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
-      * of variable names, and this is the actual function used internally.
-      *
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
-      *
-      * For example assuming we have the two computations
-      *
-      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * In order to make S1 run after S0 in the i loop, one should use
-      *
-      *     S1.after(S0,0)
-      *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
-      *
-      * The corresponding code is
-      *
-      *     for (i=0; i<N; i++)
-      *     {
-      *         for (j=0; j<N; j++)
-      *             S0;
-      *         for (j=0; j<N; j++)
-      *             S1;
-      *     }
-      */
-    void after(computation &comp, int level);
 
     /**
       * A vector describing the access variables in the original definition of  a computation.
@@ -2618,7 +2654,7 @@ public:
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
-    void interchange(int L0, int L1);
+    void interchange(tiramisu::var L0, tiramisu::var L1);
 
     /**
      * Mark this statement as a let statement.
@@ -2790,24 +2826,25 @@ public:
       * Shift the loop level \p L0 of the iteration space by
       * \p n iterations.
       *
-      * The outermost loop level is 0.
-      *
       * \p n can be a positive or a negative number. A positive
       * number means a shift forward of the loop iterations while
       * a negative value would mean a shift backward.
       */
-    void shift(int L0, int n);
+    void shift(tiramisu::var L0, int n);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
       * new loop levels.
       *
-      * The outermost loop level is 0.
-      *
       * \p sizeX is the extent (size) of the inner loop created after
       * splitting.
       */
-    void split(int L0, int sizeX);
+    //@{
+    void split(tiramisu::var L0, int sizeX);
+    void split(tiramisu::var L0, int sizeX,
+	       tiramisu::var L0_outer, tiramisu::var L0_inner);
+    //@}
+
 
     /**
      * Fold the storage of the computation.
@@ -2869,15 +2906,12 @@ public:
 
     /**
       * Tag the loop level \p L to be parallelized.
-      *
-      * The outermost loop level is 0.
-      *
       */
-    void tag_parallel_level(int L);
+    void tag_parallel_level(tiramisu::var L);
 
     /**
-      * Tag the loop level \p L to be vectorized.  The outermost loop level
-      * is 0. \p len is the vector length.
+      * Tag the loop level \p L to be vectorized.
+      * \p len is the vector length.
       *
       * The user can only tag loop levels that have constant extent.
       * If a loop level does not have a constant extent, the user
@@ -2889,15 +2923,14 @@ public:
       * less than \p len iterations is not correct.
       *
       */
-    void tag_vector_level(int L, int len);
+    void tag_vector_level(tiramisu::var L, int len);
 
     /**
       * Tag the loop level \p L to be unrolled.
-      * The outermost loop level is 0.
       *
       * The user can only tag loop levels that have constant extent.
       */
-    void tag_unroll_level(int L);
+    void tag_unroll_level(tiramisu::var L);
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
@@ -2972,8 +3005,15 @@ public:
       *
       * the i2 loop is then tagged to be unrolled.
       *
+      * \p L_outer and \p L_inner are the names of the new loops created
+      * after splitting. If not provided, default names will be assigned.
+      * \p L_outer is the outer loop.
+      *
       */
+    //@{
     void unroll(tiramisu::var L, int fac);
+    void unroll(tiramisu::var L, int fac, tiramisu::var L_outer, tiramisu::var L_inner);
+    //@}
 
     /**
       * Vectorize the loop level \p L.  Use the vector length \p v.
@@ -3027,9 +3067,14 @@ public:
       * The user has to make sure that the extent of the dimension
       * is bigger than \p v. The vectorization of a loop that has
       * less than \p v iterations is not correct.
+      *
+      * The names of the new loop iterators created after vectorization
+      * are \p L_outer and \p L_inner.  If not provided, default names
+      * assigned.
       */
     // @{
     void vectorize(tiramisu::var L, int v);
+    void vectorize(tiramisu::var L, int v, tiramisu::var L_outer, tiramisu::var L_inner);
     // @}
 
     /**
