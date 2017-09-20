@@ -2886,8 +2886,22 @@ void computation::between(computation &before_c, int before_dim, computation &af
     DEBUG_INDENT(-4);
 }
 
-void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
+void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, int sizeX, int sizeY)
 {
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(),
+							   L1_var.get_name()});
+
+    assert(dimensions.size() == 2);
+
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+
+    this->check_dimensions_validity({L0, L1});
+
     assert(L0 >= 0);
     assert(L1 >= 0);
     assert((L1 == L0 + 1));
@@ -2899,11 +2913,25 @@ void computation::gpu_tile(int L0, int L1, int sizeX, int sizeY)
     this->tag_gpu_thread_level(L0 + 2, L1 + 2);
 }
 
-void computation::gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
+void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var, int sizeX, int sizeY, int sizeZ)
 {
-    assert(L0 >= 0);
-    assert(L1 >= 0);
-    assert(L2 >= 0);
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(L2_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(),
+							   L1_var.get_name(),
+							   L2_var.get_name()});
+
+    assert(dimensions.size() == 3);
+
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+    int L2 = dimensions[2];
+
+    this->check_dimensions_validity({L0, L1, L2});
+
     assert((L1 == L0 + 1));
     assert((L2 == L1 + 1));
     assert(sizeX > 0);

@@ -2494,8 +2494,9 @@ public:
     void dump() const;
 
     /**
-      * Fuse this computation with the computations passed as argument
-      * in the same loop.  Fuse them at the loop level \p lev.
+      * Fuse this computation with the computation passed as argument
+      * in the same loop.  Run this computation after that computation.
+      * Fuse them at the loop level \p lev.
       *
       * For example, assuming we have the following computations
       *
@@ -2519,9 +2520,10 @@ public:
       *
       * To fuse them, one should call
       *
-      * S2.fuse_after(1, S0, S1);
+      * S2.fuse_after(j, S1);
+      * S1.fuse_after(j, S0);
       *
-      * This would result in fusing S2 with S0 and S1 at loop level 1,
+      * This would result in fusing S2 with S0 and S1 at loop level j.
       * S2 will be scheduled for execution after S0 and S1.  The resulting code would look like
       *
       * for (i=0; i<N; i++)
@@ -2534,7 +2536,8 @@ public:
       *
       * Calling
       *
-      * S2.fuse_after(0, S0, S1);
+      * S2.fuse_after(i, S1);
+      * S1.fuse_after(i, S0);
       *
       * would result in the following code
       *
@@ -2549,18 +2552,11 @@ public:
       * }
       *
       */
-    template<typename... Args> void fuse_after(int lev, Args... args)
+    template<typename... Args> void fuse_after(tiramisu::var lev, computation &comp)
     {
-        std::vector<tiramisu::computation *> computations{std::forward<Args>(args)...};
+	assert(lev.get_name().size() > 0);
 
-        assert(computations.size() > 0);
-
-        this->after(*(computations.back()), lev);
-
-        for (auto it = computations.begin(); it + 1 != computations.end(); it++)
-        {
-            (*(it + 1))->after(**it, lev);
-        }
+        this->after(comp, lev);
     }
 
     /**
@@ -2609,8 +2605,8 @@ public:
       * \p L0 > \p L1.
       */
     // @{
-    void gpu_tile(int L0, int L1, int sizeX, int sizeY);
-    void gpu_tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
+    void gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY);
+    void gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**

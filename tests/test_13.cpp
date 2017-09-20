@@ -19,6 +19,7 @@ void generate_function_1(std::string name, int size, int val0)
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    tiramisu::var i("i"), j("j");
 
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<N and 0<=j<N}",
                              tiramisu::expr((uint8_t) (val0 - 2)), true, p_uint8, &function0);
@@ -32,7 +33,8 @@ void generate_function_1(std::string name, int size, int val0)
     S1.set_access("[N,M]->{S1[i,j]->buf0[i,j]: 0<=i<N and 0<=j<N}");
     S2.set_access("[N,M]->{S2[i,j]->buf0[i,j]: 0<=i<N and 0<=j<N}");
 
-    S2.fuse_after(1, &S0, &S1);
+    S2.fuse_after(j, S1);
+    S1.fuse_after(j, S0);
 
     // TODO: fix the buffers.
     function0.set_arguments({&buf0});
