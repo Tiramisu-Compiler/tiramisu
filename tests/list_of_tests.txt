@@ -3,6 +3,7 @@
 - .after(): test_43, 44, 45, 46, 47
 - .allocate_and_map_buffer_automatically: test_49
 - .allocate_and_map_buffers_automatically: test_50
+- .between: test_58, 59
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
@@ -22,4 +23,4 @@
 - .tile(): test_01, 02, 03, 74, 80, 81
 - .vectorize(): test_10, 28, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 74
 - .unroll(): test_12, 74
-- .before(): test_58, 59
+- .before(): test_27

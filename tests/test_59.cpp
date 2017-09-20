@@ -35,7 +35,7 @@ void generate_function_1(std::string name, int size)
 
     S2.after(S0, i);
 
-    S1.between(S0, 1, S2, computation::root_dimension);
+    S1.between(S0, j, S2, computation::root);
 
     S0.allocate_and_map_buffer_automatically();
     S1.allocate_and_map_buffer_automatically();

@@ -32,7 +32,7 @@ void generate_function_1(std::string name, int size)
     computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i, j) / expr((int32_t) 5), true, p_int32,
                    &function0);
 
-    S1.between(S0, 0, S2, 1);
+    S1.between(S0, i, S2, j);
 
     S0.allocate_and_map_buffer_automatically();
     S1.allocate_and_map_buffer_automatically();

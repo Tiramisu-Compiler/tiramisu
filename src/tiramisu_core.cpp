@@ -1483,10 +1483,16 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
  * at loop level L0,
  * - return the allocation computation.
  */
-tiramisu::computation *computation::store_at(int L0)
+tiramisu::computation *computation::store_at(tiramisu::var L0_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
 
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
@@ -2856,19 +2862,15 @@ void function::gen_ordering_schedules()
     }
 }
 
-void computation::before(computation &comp, std::vector<int> dims)
+void computation::before(computation &comp, tiramisu::var dim)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    for (auto dim : dims)
-    {
-        comp.after(*this, dim);
-    }
+    comp.after(*this, dim);
 
     DEBUG_INDENT(-4);
 }
-
 
 void computation::before(computation &comp, int dim)
 {
@@ -2880,10 +2882,19 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
-void computation::between(computation &before_c, int before_dim, computation &after_c, int after_dim)
+void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert(before_dim_var.get_name().length() > 0);
+    assert(after_dim_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int before_dim = dimensions[0];
+    int after_dim = dimensions[1];
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
                                 before_c.get_name() + " and " + after_c.get_name()));
@@ -6595,10 +6606,16 @@ void tiramisu::buffer::set_dim_size(int dim, int size)
     this->dim_sizes[dim] = size;
 }
 
-void tiramisu::computation::storage_fold(int inDim0, int factor)
+void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> loop_dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(loop_dimensions);
+    int inDim0 = loop_dimensions[0];
 
     assert(this->get_access_relation() != NULL);
     assert(inDim0 >= 0);

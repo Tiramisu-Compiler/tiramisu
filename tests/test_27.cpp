@@ -44,8 +44,8 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation *allocation = temp_buffer.allocate_at(&temp, 0);
 
     // Scheduling
-    allocation->before(temp, 0);
-    temp.before(result, 1);
+    allocation->before(temp, i);
+    temp.before(result, j);
 
     // Code generation
     function0.set_arguments({&result_buffer});

@@ -1414,6 +1414,14 @@ private:
     bool buffer_already_allocated();
 
     /**
+      * Identical to
+      *  	void before(computation &consumer, tiramisu::var L);
+      * Except that the loop level in this case is identified using its number. This is
+      * used mainly internally by Tiramisu while the other is designed to be user friendly.
+      */
+    void before(computation &consumer, int L);
+
+    /**
       * Check that the \p dimensions are valid:
       * - The dimension numbers are within the bounds of accepted dimensions
       * (i.e., between computation::root_dimension and the maximal dimension
@@ -2356,18 +2364,10 @@ public:
 
     /**
       * Schedule this computation to run before the computation \p consumer
-      * at the loop level \p L.  The outermost loop level is 0.
+      * at the loop level \p L.
       *
-      * Use computation::root_dimension to indicate the root dimension
+      * Use computation::root to indicate the root dimension
       * (i.e. the outermost time-space dimension).
-      *
-      * Deprecated: To specify multiple levels simultaneously, the user can use
-      * the vector \p levels (a vector of the levels in which this
-      * computation is before \p consumer).  For example,
-      *
-      * S0.before(S1, {2,3})
-      *
-      * means that S0 is before S1 in the loop level 2 and in the loop level 3.
       *
       * Note that as with all other scheduling methods:
       *     - Calling this method with the same computations overwrites the level if it is
@@ -2378,8 +2378,7 @@ public:
       *     - Each other computation should have exactly one computation scheduled before it.
       */
     // @{
-    void before(computation &consumer, int L);
-    void before(computation &consumer, std::vector<int> levels);
+    void before(computation &consumer, tiramisu::var L);
     // @}
 
     /**
@@ -2401,7 +2400,7 @@ public:
       *     - There should be exactly one computation with no computation scheduled before it.
       *     - Each other computation should have exactly one computation scheduled before it.
       */
-    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
+    void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
 
     /**
        * Bind this computation to a buffer.  i.e., create a one-to-one data
@@ -2812,9 +2811,9 @@ public:
 
     /**
      * Fold the storage of the computation.
-     * Fold the dimensions \p dim by a factor \p f.
+     * Fold the loop level \p dim by a factor \p f.
      */
-    void storage_fold(int dim, int f);
+    void storage_fold(tiramisu::var dim, int f);
 
     /**
      * Allocate the storage of this computation in the loop level \p L0.
@@ -2831,7 +2830,7 @@ public:
      * The function returns the computation (operation) that allocates
      * the buffer.  The allocated buffer is not returned.
      */
-    tiramisu::computation *store_at(int L0);
+    tiramisu::computation *store_at(tiramisu::var L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
