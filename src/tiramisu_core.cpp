@@ -17,28 +17,35 @@
 
 namespace tiramisu
 {
-    std::map<std::string, computation *> computations_list;
-    bool global::auto_data_mapping;
+std::map<std::string, computation *> computations_list;
+bool global::auto_data_mapping;
 
 // Used for the generation of new variable names.
-    int id_counter = 0;
+int id_counter = 0;
 
-    const var computation::root = var("root");
+const var computation::root = var("root");
 
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
  */
-    isl_ast_node *for_code_generator_after_for(
-            isl_ast_node *node, isl_ast_build *build, void *user);
+isl_ast_node *for_code_generator_after_for(
+        isl_ast_node *node, isl_ast_build *build, void *user);
 
-    std::string generate_new_variable_name();
+std::string generate_new_variable_name();
 
-    tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
-                                                                 const tiramisu::expr &exp);
+tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
+                                                             const tiramisu::expr &exp);
 
-    tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr);
+tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr);
 
+/**
+  * Add a dimension to the range of a map in the specified position.
+  * Assume that the name of the new dimension is equal to the name of the corresponding
+  * dimension in the domain of the map.
+  * Add a constraint that indicates that the added dim is equal to a constant.
+  */
+isl_map *isl_map_add_dim_and_eq_constraint(isl_map *map, int dim_pos, int constant);
 
 /**
  * Create an equality constraint and add it to the schedule \p sched.
@@ -47,8 +54,8 @@ namespace tiramisu
  * This function function add the constraint:
  *   in_dim_coefficient*y = out_dim_coefficient*y' + const_conefficient;
  */
-    isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_coefficient,
-                                    int const_conefficient, isl_map *sched);
+isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_coefficient,
+                                int const_conefficient, isl_map *sched);
 
 /**
  * Create an inequality constraint and add it to the schedule \p sched
@@ -58,25 +65,25 @@ namespace tiramisu
  * This function function add the constraint:
  *   in_dim_coefficient*y <= out_dim_coefficient*y' + const_conefficient;
  */
-    isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
-                                      int out_dim_coefficient, int const_conefficient, isl_map *sched);
+isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
+                                  int out_dim_coefficient, int const_conefficient, isl_map *sched);
 
 
 /**
   * Add a buffer to the function.
   */
-    void function::add_buffer(std::pair < std::string, tiramisu::buffer * > buf)
-    {
+void function::add_buffer(std::pair < std::string, tiramisu::buffer * > buf)
+{
         assert(!buf.first.empty() && ("Empty buffer name."));
         assert((buf.second != NULL) && ("Empty buffer."));
 
         this->buffers_list.insert(buf);
-    }
+}
 
 /**
  * Construct a function with the name \p name.
  */
-    function::function(std::string name) {
+function::function(std::string name) {
         assert(!name.empty() && ("Empty function name"));
 
         this->name = name;
@@ -88,18 +95,18 @@ namespace tiramisu
         // Allocate an ISL context.  This ISL context will be used by
         // the ISL library calls within Tiramisu.
         ctx = isl_ctx_alloc();
-    };
+};
 
 /**
   * Get the arguments of the function.
   */
 // @{
-    const std::vector<tiramisu::buffer *> &function::get_arguments() const {
-        return function_arguments;
-    }
+const std::vector<tiramisu::buffer *> &function::get_arguments() const {
+    return function_arguments;
+}
 // @}
 
-    isl_union_map *tiramisu::function::compute_dep_graph() {
+isl_union_map *tiramisu::function::compute_dep_graph() {
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
 
@@ -244,7 +251,6 @@ std::vector<tiramisu::computation *> tiramisu::function::get_live_in_computation
             result.push_back(c);
 
     DEBUG_INDENT(-4);
-
 
     return result;
 }
