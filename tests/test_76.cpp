@@ -47,7 +47,7 @@ void generate_function(std::string name)
     // Layer III
     // -------------------------------------------------------
 
-    buffer B("B", 1, {DSIZE}, p_uint16, NULL, a_output, &function0);
+    buffer B("B", {DSIZE}, p_uint16, a_output, &function0);
     S.set_access("{S[j] -> B[j]}");
 
     // -------------------------------------------------------
