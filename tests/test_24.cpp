@@ -29,11 +29,11 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant T1("T1", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::constant T2("T2", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf1("buf1", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf2("buf2", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf3("buf3", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
-    tiramisu::buffer buf4("buf4", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
+    tiramisu::buffer buf1("buf1", {size, size}, tiramisu::p_uint8, a_output, &function0);
+    tiramisu::buffer buf2("buf2", {size, size}, tiramisu::p_uint8, a_output, &function0);
+    tiramisu::buffer buf3("buf3", {size, size}, tiramisu::p_uint8, a_output, &function0);
+    tiramisu::buffer buf4("buf4", {size, size}, tiramisu::p_uint8, a_output, &function0);
 
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");

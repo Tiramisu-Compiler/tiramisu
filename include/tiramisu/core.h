@@ -880,11 +880,6 @@ private:
     bool auto_allocate;
 
     /**
-      * Buffer data.
-      */
-    uint8_t *data;
-
-    /**
       * The sizes of the dimensions of the buffer.  Assuming the following
       * buffer: buf[N0][N1][N2].  The first vector element represents the
       * size of rightmost dimension of the buffer (i.e. N2), the second
@@ -904,11 +899,6 @@ private:
       * Names starting with _ are reserved names.
       */
     std::string name;
-
-    /**
-      * The number of dimensions of the buffer.
-      */
-    int nb_dims;
 
     /**
       * The type of the elements of the buffer.
@@ -950,9 +940,6 @@ public:
       * - used to represent input arguments to functions.
       *
       * \p name is the name of the buffer.
-      * \p nb_dims is the number of dimensions of the buffer.
-      * A scalar is a one dimensional buffer that has a size of one
-      * element.
       * \p dim_sizes is a vector of integers that represent the size
       * of each dimension in the buffer.  The first vector element
       * represents the rightmost array dimension, while the last vector
@@ -966,8 +953,6 @@ public:
       * \p type is the type of the elements of the buffer.
       * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
       * Possible types are declared in tiramisu::primitive_t (type.h).
-      * \p data is the data stored in the buffer.  This is useful
-      * if an already allocated buffer is passed to Tiramisu.
       * \p fct is a pointer to a Tiramisu function where the buffer is
       * declared or used.
       * \p is_argument indicates whether the buffer is passed to the
@@ -983,8 +968,8 @@ public:
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
-    buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
-           tiramisu::primitive_t type, uint8_t *data,
+    buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
+           tiramisu::primitive_t type,
            tiramisu::argument_t argt, tiramisu::function *fct);
 
     /**
@@ -1059,11 +1044,6 @@ public:
       *  deallocated at the exit of the function).
       */
     tiramisu::argument_t get_argument_type() const;
-
-    /**
-     * Return a pointer to the data stored within the buffer.
-     */
-    uint8_t *get_data();
 
     /**
       * Return the name of the buffer.

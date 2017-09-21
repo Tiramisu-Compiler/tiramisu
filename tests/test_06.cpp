@@ -24,7 +24,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::expr e1 = tiramisu::expr((uint8_t) val0) >> tiramisu::expr((uint8_t) val1);
     tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e1, true, p_uint8, &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL,
+    tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8,
                           a_output, &function0);
     S0.set_access("{S0[i,j]->buf0[i,j]}");
     S0.tile(i, j, 2, 2, i0, j0, i1, j1);

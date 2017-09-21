@@ -1619,10 +1619,8 @@ tiramisu::computation *computation::store_at(tiramisu::var L0_var)
     std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
-            this->get_n_dimensions(),
             (*dim_sizes),
             this->get_data_type(),
-            NULL,
             tiramisu::a_temporary,
             this->get_function());
 
@@ -2772,10 +2770,8 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     	    std::string buff_name;
 	    buff_name = "_" + this->name + "_buffer";
 	    buff = new tiramisu::buffer(buff_name,
-                                this->get_n_dimensions(),
                                 (*dim_sizes),
       	                        this->get_data_type(),
-                              	NULL,
                                 type,
                                 this->function);
 	    this->automatically_allocated_buffer = buff;
@@ -2795,10 +2791,8 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     	    std::string buff_name;
 	    buff_name = "_" + this->get_first_definition()->name + "_buffer";
 	    buff = new tiramisu::buffer(buff_name,
-                                this->get_n_dimensions(),
                                 (*dim_sizes),
       	                        this->get_data_type(),
-                              	NULL,
                                 type,
                                 this->function);
 	    this->automatically_allocated_buffer = buff;
@@ -5848,52 +5842,13 @@ std::string str_from_is_null(void *ptr)
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
 
-/**
-  * Create a tiramisu buffer.
-  * Buffers have two use cases:
-  * - used to store the results of computations, and
-  * - used to represent input arguments to functions.
-  *
-  * \p name is the name of the buffer.
-  * \p nb_dims is the number of dimensions of the buffer.
-  * A scalar is a one dimensional buffer that has a size of one
-  * element.
-  * \p dim_sizes is a vector of integers that represent the size
-  * of each dimension in the buffer.  The first vector element
-  * represents the rightmost array dimension, while the last vector
-  * element represents the leftmost array dimension.
-  * For example, in the buffer buf[N0][N1][N2], the first element
-  * in the vector \p dim_sizes represents the size of rightmost
-  * dimension of the buffer (i.e. N2), the second vector element
-  * is N1, and the last vector element is N0.
-  * Buffer dimensions in Tiramisu have the same semantics as in
-  * C/C++.
-  * \p type is the type of the elements of the buffer.
-  * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
-  * Possible types are declared in tiramisu::primitive_t (type.h).
-  * \p data is the data stored in the buffer.  This is useful
-  * if an already allocated buffer is passed to Tiramisu.
-  * \p fct is a pointer to a Tiramisu function where the buffer is
-  * declared or used.
-  * \p is_argument indicates whether the buffer is passed to the
-  * function as an argument.  All the buffers passed as arguments
-  * to the function should be allocated by the user outside the
-  * function.  Buffers that are not passed to the function as
-  * arguments are allocated automatically at the beginning of
-  * the function and deallocated at the end of the function.
-  * They are called temporary buffers (of type a_temporary).
-  * Temporary buffers cannot be used outside the function
-  * in which they were allocated.
-  */
-tiramisu::buffer::buffer(std::string name, int nb_dims, std::vector<tiramisu::expr> dim_sizes,
-                         tiramisu::primitive_t type, uint8_t *data,
+tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
+                         tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct):
-    allocated(false), argtype(argt), auto_allocate(true), data(data), dim_sizes(dim_sizes), fct(fct),
-    name(name), nb_dims(nb_dims), type(type)
+    allocated(false), argtype(argt), auto_allocate(true), dim_sizes(dim_sizes), fct(fct),
+    name(name), type(type)
 {
     assert(!name.empty() && "Empty buffer name");
-    assert(nb_dims > 0 && "Buffer dimensions <= 0");
-    assert(nb_dims == dim_sizes.size() && "Mismatch in the number of dimensions");
     assert(fct != NULL && "Input function is NULL");
 
     // Check that the buffer does not already exist.
@@ -5918,14 +5873,6 @@ tiramisu::argument_t buffer::get_argument_type() const
 }
 
 /**
-  * Return a pointer to the data stored within the buffer.
-  */
-uint8_t *buffer::get_data()
-{
-    return data;
-}
-
-/**
   * Return the name of the buffer.
   */
 const std::string &buffer::get_name() const
@@ -5938,7 +5885,7 @@ const std::string &buffer::get_name() const
   */
 int buffer::get_n_dims() const
 {
-    return nb_dims;
+    return this->get_dim_sizes().size();
 }
 
 /**
@@ -5966,7 +5913,7 @@ void tiramisu::buffer::dump(bool exhaustive) const
     if (ENABLE_DEBUG)
     {
         std::cout << "Buffer \"" << this->name
-                  << "\", Number of dimensions: " << this->nb_dims
+                  << "\", Number of dimensions: " << this->get_n_dims()
                   << std::endl;
 
         std::cout << "Dimension sizes: ";

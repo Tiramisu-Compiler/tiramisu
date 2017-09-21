@@ -613,8 +613,8 @@ void HalideToTiramisu::visit(const Realize *op)
 
     string buffer_name = "buff_" + op->name;
     tiramisu::buffer *produce_buffer = new tiramisu::buffer(
-        buffer_name, extents.size(), extents,
-        halide_type_to_tiramisu_type(op->types[0]), NULL, a_temporary, func);
+        buffer_name, extents,
+        halide_type_to_tiramisu_type(op->types[0]), a_temporary, func);
     temporary_buffers.emplace(buffer_name, produce_buffer);
 
     mutate(op->body);
@@ -670,7 +670,7 @@ tiramisu::HalideCodegenOutput halide_pipeline_to_tiramisu_function(
         string buffer_name = "buff_" + f.name();
         // TODO(psuriana): should make the buffer data type variable instead of uint8_t always
         tiramisu::buffer *output_buffer = new tiramisu::buffer(
-            buffer_name, f.args().size(), sizes, p_uint8, NULL, a_output, func);
+            buffer_name, sizes, p_uint8, a_output, func);
         output_buffers.emplace(buffer_name, output_buffer);
     }
 

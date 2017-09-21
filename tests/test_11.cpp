@@ -18,7 +18,7 @@ void generate_function_1(std::string name, int size, int val0)
     tiramisu::global::set_default_tiramisu_options();
 
     tiramisu::function function0(name);
-    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
     tiramisu::computation S0("[N,M]->{S0[i,j]: 0<=i<10 and 0<=j<10}", tiramisu::expr((uint8_t) val0),
                              true, p_uint8, &function0);
     S0.set_access("[N,M]->{S0[i,j]->buf0[i,j]: 0<=i<10 and 0<=j<10}");

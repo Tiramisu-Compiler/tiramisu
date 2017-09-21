@@ -80,7 +80,7 @@ void generate_function(std::string name, int size, int val0)
     // Layer III
     // -------------------------------------------------------
 
-    tiramisu::buffer buf0("buf0", 2, {7,7}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", {7,7}, tiramisu::p_uint8, a_output, &function0);
     S0.set_access("{S0[ry,rx,k]->buf0[ry,rx]}");
 
     // -------------------------------------------------------

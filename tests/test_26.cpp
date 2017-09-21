@@ -52,9 +52,9 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::buffer input_buffer("input_buffer", 1, {size}, tiramisu::p_uint8, NULL, a_input,
+    tiramisu::buffer input_buffer("input_buffer", {size}, tiramisu::p_uint8, a_input,
                                   &function0);
-    tiramisu::buffer result_scalar("result_scalar", 1, {1}, tiramisu::p_uint8, NULL, a_output,
+    tiramisu::buffer result_scalar("result_scalar", {1}, tiramisu::p_uint8, a_output,
                                    &function0);
 
     tiramisu::var i = tiramisu::var("i");

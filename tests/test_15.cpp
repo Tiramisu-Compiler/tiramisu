@@ -34,12 +34,12 @@ int main(int argc, char **argv)
     int by_ext_2 = SIZE2;
     int by_ext_1 = SIZE1 - 8;
     int by_ext_0 = SIZE0 - 8;
-    tiramisu::buffer buff_p0("buff_p0", 3, {tiramisu::expr(SIZE2), tiramisu::expr(SIZE1), tiramisu::expr(SIZE0)},
-                             tiramisu::p_uint8, NULL, tiramisu::a_input, &blurxy_tiramisu);
-    tiramisu::buffer buff_bx("buff_bx", 3, {tiramisu::expr(by_ext_2), tiramisu::expr(by_ext_1 + 2), tiramisu::expr(by_ext_0)},
-                             tiramisu::p_uint8, NULL, tiramisu::a_temporary, &blurxy_tiramisu);
-    tiramisu::buffer buff_by("buff_by", 3, {tiramisu::expr(by_ext_2), tiramisu::expr(by_ext_1), tiramisu::expr(by_ext_0)},
-                             tiramisu::p_uint8, NULL, tiramisu::a_output, &blurxy_tiramisu);
+    tiramisu::buffer buff_p0("buff_p0", {tiramisu::expr(SIZE2), tiramisu::expr(SIZE1), tiramisu::expr(SIZE0)},
+                             tiramisu::p_uint8, tiramisu::a_input, &blurxy_tiramisu);
+    tiramisu::buffer buff_bx("buff_bx", {tiramisu::expr(by_ext_2), tiramisu::expr(by_ext_1 + 2), tiramisu::expr(by_ext_0)},
+                             tiramisu::p_uint8, tiramisu::a_temporary, &blurxy_tiramisu);
+    tiramisu::buffer buff_by("buff_by", {tiramisu::expr(by_ext_2), tiramisu::expr(by_ext_1), tiramisu::expr(by_ext_0)},
+                             tiramisu::p_uint8, tiramisu::a_output, &blurxy_tiramisu);
 
 
     tiramisu::computation

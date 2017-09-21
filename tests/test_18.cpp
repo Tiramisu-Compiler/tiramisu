@@ -29,7 +29,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::var i0("i0"), i1("i1");
 
-    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
 
     tiramisu::expr e0 = tiramisu::expr((uint8_t) val0);
     tiramisu::computation S0("[N]->{S0[i0,i1,i2]: 0<=i0<N and 0<=i1<N and 0<=i2<N}", e0, true, p_uint8,

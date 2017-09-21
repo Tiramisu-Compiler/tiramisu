@@ -32,8 +32,8 @@ void generate_function_1(std::string name, int size)
     tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", e_blur, true, p_uint8,
             &function0);
 
-    tiramisu::buffer buf0("buf0", 2, {size, size}, tiramisu::p_uint8, NULL, a_input, &function0);
-    tiramisu::buffer buf1("buf1", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_input, &function0);
+    tiramisu::buffer buf1("buf1", {size, size}, tiramisu::p_uint8, a_output, &function0);
 
     S0.set_access("[N]->{S0[i,j]->buf0[min(max(i, 0), N - 1), min(max(j, 0), N - 1)]}");
     S1.set_access("{S1[i,j]->buf1[i,j]}");

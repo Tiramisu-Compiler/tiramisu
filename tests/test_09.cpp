@@ -23,14 +23,14 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
     // Output buffers.
     int f_extent_1 = size1;
     int f_extent_0 = size0;
-    tiramisu::buffer buff_f("buff_f", 2, {tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
-                            tiramisu::p_uint8, NULL, tiramisu::a_output, &test_reduction_operator);
+    tiramisu::buffer buff_f("buff_f", {tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
+                            tiramisu::p_uint8, tiramisu::a_output, &test_reduction_operator);
 
     // Input buffers.
 
     // Define temporary buffers for "input".
-    tiramisu::buffer buff_input("buff_input", 3, {tiramisu::expr((int32_t)10), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
-                                tiramisu::p_uint8, NULL, tiramisu::a_temporary, &test_reduction_operator);
+    tiramisu::buffer buff_input("buff_input", {tiramisu::expr((int32_t)10), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)},
+                                tiramisu::p_uint8, tiramisu::a_temporary, &test_reduction_operator);
 
     // Define loop bounds for dimension "input_s0_z".
     tiramisu::constant input_s0_z_loop_min("input_s0_z_loop_min", tiramisu::expr((int32_t)0),

@@ -2280,7 +2280,7 @@ void computation::create_halide_assignment()
                 Halide::Buffer<> buffer =
                     Halide::Buffer<>(
                         halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
-                        tiramisu_buffer->get_data(),
+			NULL,
                         tiramisu_buffer->get_dim_sizes().size(),
                         shape,
                         tiramisu_buffer->get_name());

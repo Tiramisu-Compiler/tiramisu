@@ -47,7 +47,7 @@ void generate_function(std::string name, int size, int val0)
 
     S0.store_at(j);
 
-    tiramisu::buffer buf1("buf1", 2, {size, size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer buf1("buf1", {size, size}, tiramisu::p_uint8, a_output, &function0);
     S1.set_access("[N,M]->{S1[i,j]->buf1[i,j]: 0<=i<N and 0<=j<N}");
 
     // -------------------------------------------------------

@@ -35,9 +35,9 @@ void generate_function(std::string name, int size, int val0)
     function0.compute_bounds();
 
     // Data mapping
-    tiramisu::buffer temp_buffer("temp_buffer", 1, {size}, tiramisu::p_uint8, NULL, a_temporary,
+    tiramisu::buffer temp_buffer("temp_buffer", {size}, tiramisu::p_uint8, a_temporary,
                                  &function0);
-    tiramisu::buffer result_buffer("result_buffer", 2, {size, size}, tiramisu::p_uint8, NULL, a_output,
+    tiramisu::buffer result_buffer("result_buffer", {size, size}, tiramisu::p_uint8, a_output,
                                    &function0);
     temp.set_access("[N]->{temp[i,j]->temp_buffer[j]}");
     result.set_access("[N]->{result[i,j]->result_buffer[i,j]}");
