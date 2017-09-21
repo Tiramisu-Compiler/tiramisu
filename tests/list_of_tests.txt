@@ -14,7 +14,7 @@
 - RDom predicate: test_54
 - .parallelize(): test_75
 - saxpy: test_71
-- .store_at(): test_29, 30, 31, 38
+- .store_at(): test_29, 30, 31, 38, 39
 - .shift(): test_15
 -  shift operator: test_06
 - .tag_parallel_level(): test_48

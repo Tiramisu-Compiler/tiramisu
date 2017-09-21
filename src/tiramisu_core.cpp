@@ -1601,11 +1601,12 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
  * - declare a buffer with a random name, and with the computed size,
  * - allocate the buffer and get the computation that allocates the buffer,
  * - map the computation to the allocated buffer (one to one mapping),
- * - schedule the computation that allocates the buffer before this computation
+ * - schedule the computation that allocates the buffer before \p comp
  * at loop level L0,
  * - return the allocation computation.
  */
-tiramisu::computation *computation::store_at(tiramisu::var L0_var)
+tiramisu::computation *computation::store_at(tiramisu::computation &comp,
+					    tiramisu::var L0_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -1626,9 +1627,9 @@ tiramisu::computation *computation::store_at(tiramisu::var L0_var)
 
     this->automatically_allocated_buffer = buff;
 
-    tiramisu::computation *allocation = buff->allocate_at(this, L0);
+    tiramisu::computation *allocation = buff->allocate_at(&comp, L0);
     this->bind_to(buff);
-    allocation->before(*this, L0);
+    allocation->before(comp, L0);
 
     DEBUG_INDENT(-4);
 

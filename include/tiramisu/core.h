@@ -2882,12 +2882,13 @@ public:
      *  such a thing is possible, this is left for future work).
      *  - allocates a temporary buffer with the appropriate size,
      *  - schedules the allocation operation to be executed in the loop
-     *  nest where this computation executes at the loop level \p L0.
+     *  nest where \p comp is computated at the loop level \p L0.
      *
      * The function returns the computation (operation) that allocates
      * the buffer.  The allocated buffer is not returned.
      */
-    tiramisu::computation *store_at(tiramisu::var L0);
+    tiramisu::computation *store_at(tiramisu::computation &comp,
+		    		    tiramisu::var L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
