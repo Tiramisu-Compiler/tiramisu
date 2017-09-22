@@ -554,6 +554,12 @@ protected:
 	std::unordered_map<tiramisu::computation *, int>> sched_graph;
 
      /**
+       * Same as sched_graph, except in reverse order (from after to before).
+       */
+     std::unordered_map<tiramisu::computation *,
+	std::unordered_map<tiramisu::computation *, int>> sched_graph_reversed;
+
+     /**
       * Set the iterator names of the function.
       * This function overrides any previously set iterator names.
       */
@@ -596,13 +602,6 @@ protected:
        */
      std::unordered_set<tiramisu::computation *> starting_computations;
  
-     /**
-       * Counts the number of computations scheduled before a certain computation C.
-       * For example, after creating C, number_of_predecessors[C] = 0. After doing
-       * a C.after(C2, L) call, number_of_predecessors[C] = 1.
-       */
-     std::unordered_map<tiramisu::computation *, int> number_of_predecessors;
-
      /**
       * A boolean set to true if low level scheduling was used in the program.
       * If it is used, then high level scheduling commands such as .before(),
@@ -2620,6 +2619,12 @@ public:
       * Get the last update of a computation.
       */
     tiramisu::computation& get_last_update();
+
+    /**
+      * Returns a pointer to the computation scheduled immediately before this computation,
+      * or a null pointer if none exist.
+      */
+    computation * get_predecessor();
 
     /**
       * Returns the \p index update that has been added to this computation such that:

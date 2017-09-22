@@ -2872,9 +2872,10 @@ void tiramisu::computation::after(computation &comp, int level)
 
     this->get_function()->starting_computations.erase(this);
 
-    this->get_function()->number_of_predecessors[this]++;
+    this->get_function()->sched_graph_reversed[this][&comp] = level;
 
-    assert(this->get_function()->number_of_predecessors[this] < 2);
+    assert(this->get_function()->sched_graph_reversed[this].size() < 2 &&
+            "Node has more than one predecessor.");
 
     DEBUG(10, tiramisu::str_dump("sched_graph[" + comp.get_name() + ", " +
                                  this->get_name() + "] = " + std::to_string(level)));
@@ -3062,7 +3063,7 @@ void computation::between(computation &before_c, tiramisu::var before_dim_var, c
     if (f->sched_graph[&before_c].find(&after_c) != f->sched_graph[&before_c].end()) {
         DEBUG(3, tiramisu::str_dump("Removing pre-existing edge"));
         f->sched_graph[&before_c].erase(&after_c);
-        f->number_of_predecessors[&after_c]--;
+        f->sched_graph_reversed[&after_c].erase(&before_c);
     }
 
     this->after(before_c, before_dim);
@@ -6301,6 +6302,15 @@ isl_set *tiramisu::computation::get_iteration_domain() const
     assert(iteration_domain != NULL);
 
     return iteration_domain;
+}
+
+computation * computation::get_predecessor() {
+    auto &reverse_graph = this->get_function()->sched_graph_reversed[this];
+
+    if (reverse_graph.empty())
+        return nullptr;
+
+    return reverse_graph.begin()->first;
 }
 
 /**
