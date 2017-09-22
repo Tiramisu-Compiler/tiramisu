@@ -52,17 +52,9 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
 
-void halide_pipeline_to_c(
-    Halide::Internal::Stmt s,
-    const std::vector<Halide::Internal::Function> &outputs,
-    const std::map<std::string, Halide::Internal::Function> &env,
-    const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
-    const std::string &func);
-
-
 /**
-  * A class to represent functions. A function is composed of
-  * computations (of type tiramisu::computation).
+  * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
+  * a set of computations (\see tiramisu::computation).
   */
 class function
 {
