@@ -620,23 +620,29 @@ public:
     function(std::string name);
 
     /**
-      * Intersect the set provided as input with the context of the function.
-      * A context is an ISL set that represents constraints over the parameters
-      * of the functions (a parameter is an invariant variable for the function).
+      * Intersect the set \p new_context provided as input with the context
+      * of the function.
+      *
+      * The context of a function is an ISL set that represents constraints over
+      * the parameters of the functions.  A parameter of a function is a constant
+      * used in that function.
+      *
       * An example of a context set is the following:
       *          "[N,M]->{: M>0 and N>0}"
       * This context set indicates that the two parameters N and M
       * are strictly positive.
-      * The input set should have the same space as the context set.
+      *
+      * \p new_context should have the same space as the context set.
       */
-    void add_context_constraints(const std::string &new_context_str);
+    void add_context_constraints(const std::string &new_context);
 
-    /*
-     * For each computation in the function, allocate a buffer (the size and name
-     * of the buffer are derived automatically).  The computation is also mapped
-     * to the buffer automatically (one-to-one mapping).
-     * Assuming the name of the computation is C, the name of the generated buffer
-     * is _C_buffer.
+    /**
+     * For each computation in the function:
+     *	- Allocate a buffer where the size of the buffer is derived automatically.
+     *    Assuming the name of the computation is C, the name of the generated buffer
+     *    is _C_buffer.
+     *  - Map the computation to the allocated buffer (one-to-one mapping).
+     *    For more details about one-to-one mapping, see computation::bind_to.
      */
     void allocate_and_map_buffers_automatically();
 
