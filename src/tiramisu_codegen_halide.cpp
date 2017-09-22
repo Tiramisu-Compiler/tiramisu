@@ -57,10 +57,7 @@ std::vector<computation *> function::get_computation_by_name(std::string name) c
     return res_comp;
 }
 
-/**
-  * Get the computation associated with a node.
-  */
-std::vector<tiramisu::computation *> get_computation_by_node(tiramisu::function *fct,
+std::vector<tiramisu::computation *> generator::get_computation_by_node(tiramisu::function *fct,
         isl_ast_node *node)
 {
     isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
@@ -1212,7 +1209,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
     tiramisu::function *func = (tiramisu::function *)user;
 
     // Find the name of the computation associated to this AST leaf node.
-    std::vector<tiramisu::computation *> comp_vec = get_computation_by_node(func, node);
+    std::vector<tiramisu::computation *> comp_vec = generator::get_computation_by_node(func, node);
     assert(!comp_vec.empty() && "get_computation_by_node() returned an empty vector!");
     isl_union_map *sched = isl_ast_build_get_schedule(build);
     isl_union_set *sched_range = isl_union_map_domain(sched);

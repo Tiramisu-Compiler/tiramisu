@@ -54,13 +54,14 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
 
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
-  * a set of computations (\see tiramisu::computation).
+  * a set of computations (tiramisu::computation).
   */
 class function
 {
-    // The "computation" and the "buffer" classes can access the
-    // private members of the "function" class.
+    // Friend classes.  They can access the private members of the "function" class.
+    friend tiramisu::buffer;
     friend tiramisu::computation;
+    friend tiramisu::constant;
     friend tiramisu::generator;
 
 private:
@@ -298,6 +299,26 @@ private:
 protected:
 
     /**
+      * Add a buffer to the function.
+      * The buffers of the function are either:
+      * - buffers passed to the function as arguments, or
+      * - buffers that are declared and allocated within the function
+      * itself.
+      * The first element of the pair is the name of the buffer (it is
+      * used as a key), the second element of the pair is a pointer
+      * to the buffer.
+      */
+    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
+
+    /**
+      * Add a computation to the function.  The order in which
+      * computations are added to the function is not important.
+      * The order of execution is specified using the schedule.
+      * This doesn't allow computations with duplicate names.
+      */
+    void add_computation(computation *cpt);
+
+    /**
       * Tag the dimensions \p dim0, \p dim1 and \p dim2 of the computation
       * \p computation_name to be mapped to GPU blocks.
       * The dimension 0 represents the outermost loop level (it
@@ -332,6 +353,80 @@ protected:
     void add_gpu_thread_dimensions(std::string stmt_name, int dim0, int dim1 = -1, int dim2 = -1);
 
     /**
+     * Add an invariant to the function.
+     */
+    void add_invariant(tiramisu::constant param);
+
+    /**
+      * Add an iterator to the function.
+      */
+    void add_iterator_name(const std::string &it_name);
+
+    /**
+      * Keeps track of allocation computations created using
+      * allocate_and_map_buffer_automatically() to schedule them during gen_ordering_schedules.
+      */
+     std::vector<tiramisu::computation *> automatically_allocated;
+
+    /**
+      * Compute the graph of dependences between the computations of
+      * the function.
+      *
+      * Example
+      *
+      * C[0] = 0
+      * D[1] = C[0]
+      * D[2] = C[0]
+      * {C[0] -> D[1]; C[0]->D[2]}
+      */
+    isl_union_map *compute_dep_graph();
+
+    /**
+      * Get the arguments of the function.
+      */
+    const std::vector<tiramisu::buffer *> &get_arguments() const;
+
+    /**
+      * Return a map that represents the buffers of the function.
+      * The buffers of the function are buffers that are either passed
+      * to the function as arguments or are buffers that are declared
+      * and allocated within the function itself.
+      * The names of the buffers are used as a key for the map.
+      */
+    const std::map<std::string, tiramisu::buffer *> &get_buffers() const;
+
+    /**
+      * Return a vector of the computations of the function.
+      * The order of the computations in the vector does not have any
+      * effect on the actual order of execution of the computations.
+      * The order of execution of computations is specified through the
+      * schedule.
+      */
+    const std::vector<computation *> &get_computations() const;
+
+    /**
+      * Return the computation of the function that has
+      * the name \p str.
+      */
+    std::vector<computation *> get_computation_by_name(std::string str) const;
+
+    /**
+      * Return a string representing the name of the GPU block iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
+      */
+    std::string get_gpu_block_iterator(const std::string &comp, int lev0) const;
+
+    /**
+      * Return a string representing the name of the GPU thread iterator at
+      * dimension \p lev0.
+      * This function only returns a non-empty string if the
+      * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
+      */
+    std::string get_gpu_thread_iterator(const std::string &comp, int lev0) const;
+
+    /**
        * Return the isl_ctx associated with this function.
        * This is an ISL specific object required when calling certain
        * ISL functions.  It does not represent the set of parameters
@@ -348,11 +443,6 @@ protected:
        * generator.
        */
      Halide::Internal::Stmt get_halide_stmt() const;
-
-     /**
-       * Get the name of the function.
-       */
-     const std::string &get_name() const;
 
      /**
        * Return a vector representing the invariants of the function
@@ -381,6 +471,11 @@ protected:
        * Get the iterator names of the function.
        */
      const std::vector<std::string> &get_iterator_names() const;
+
+     /**
+       * Get the name of the function.
+       */
+     const std::string &get_name() const;
 
      /**
        * Return a set that represents the parameters of the function
@@ -420,6 +515,22 @@ protected:
      isl_union_set *get_time_processor_domain() const;
 
      /**
+      * If the computation \p comp is vectorized, return its vector length
+      * at the loop level \p lev.
+      */
+     int get_vector_length(const std::string &comp, int lev) const;
+
+    /**
+      * Return true if the usage of high level scheduling comments is valid; i.e. if
+      * the scheduling relations formed using before, after, compute_at, etc.. form a tree.
+      *
+      * More specifically, it verifies that:
+      *     - There should be exactly one computation with no computation scheduled before it.
+      *     - Each other computation should have exactly one computation scheduled before it.
+      */
+    bool is_sched_graph_tree();
+
+     /**
       * Modify the schedules of the computations of this function to reflect
       * the order specified using the high level scheduling commands.
       *
@@ -427,13 +538,6 @@ protected:
       * but rather modify the sched_graph graph.
       */
      void gen_ordering_schedules();
-
-     /**
-       * The set of all computations that have no computation scheduled before them.
-       * Does not include allocation computations created using
-       * allocate_and_map_buffer_automatically().
-       */
-     std::unordered_set<tiramisu::computation *> starting_computations;
 
      /**
        * Stores all high level scheduling instructions between computations; i.e. if a user calls
@@ -447,20 +551,57 @@ protected:
        * allocate_and_map_buffer_automatically().
        */
      std::unordered_map<tiramisu::computation *,
-                        std::unordered_map<tiramisu::computation *, int>> sched_graph;
+	std::unordered_map<tiramisu::computation *, int>> sched_graph;
 
+     /**
+      * Set the iterator names of the function.
+      * This function overrides any previously set iterator names.
+      */
+    void set_iterator_names(const std::vector<std::string> &it_names);
+
+    /**
+      * Return true if the computation \p comp should be mapped to GPU block
+      * at the loop levels \p lev0.
+      */
+    bool should_map_to_gpu_block(const std::string &comp, int lev0) const;
+
+    /**
+      * Return true if the computation \p comp should be mapped to GPU thread
+      * at the loop levels \p lev0.
+      */
+    bool should_map_to_gpu_thread(const std::string &comp, int lev0) const;
+
+    /**
+      * Return true if the computation \p comp should be parallelized
+      * at the loop level \p lev.
+      */
+    bool should_parallelize(const std::string &comp, int lev) const;
+
+    /**
+      * Return true if the computation \p comp should be unrolled
+      * at the loop level \p lev.
+      */
+    bool should_unroll(const std::string &comp, int lev) const;
+
+    /**
+      * Return true if the computation \p comp should be vectorized
+      * at the loop level \p lev.
+      */
+    bool should_vectorize(const std::string &comp, int lev) const;
+
+     /**
+       * The set of all computations that have no computation scheduled before them.
+       * Does not include allocation computations created using
+       * allocate_and_map_buffer_automatically().
+       */
+     std::unordered_set<tiramisu::computation *> starting_computations;
+ 
      /**
        * Counts the number of computations scheduled before a certain computation C.
        * For example, after creating C, number_of_predecessors[C] = 0. After doing
        * a C.after(C2, L) call, number_of_predecessors[C] = 1.
        */
      std::unordered_map<tiramisu::computation *, int> number_of_predecessors;
-
-     /**
-       * Keeps track of allocation computations created using
-       * allocate_and_map_buffer_automatically() to schedule them during gen_ordering_schedules.
-       */
-     std::vector<tiramisu::computation *> automatically_allocated;
 
      /**
       * A boolean set to true if low level scheduling was used in the program.
@@ -479,26 +620,6 @@ public:
     function(std::string name);
 
     /**
-      * Add a buffer to the function.
-      * The buffers of the function are either:
-      * - buffers passed to the function as arguments, or
-      * - buffers that are declared and allocated within the function
-      * itself.
-      * The first element of the pair is the name of the buffer (it is
-      * used as a key), the second element of the pair is a pointer
-      * to the buffer.
-      */
-    void add_buffer(std::pair<std::string, tiramisu::buffer *> buf);
-
-    /**
-      * Add a computation to the function.  The order in which
-      * computations are added to the function is not important.
-      * The order of execution is specified using the schedule.
-      * This doesn't allow computations with duplicate names.
-      */
-    void add_computation(computation *cpt);
-
-    /**
       * Intersect the set provided as input with the context of the function.
       * A context is an ISL set that represents constraints over the parameters
       * of the functions (a parameter is an invariant variable for the function).
@@ -510,16 +631,6 @@ public:
       */
     void add_context_constraints(const std::string &new_context_str);
 
-    /**
-     * Add an invariant to the function.
-     */
-    void add_invariant(tiramisu::constant param);
-
-    /**
-      * Add an iterator to the function.
-      */
-    void add_iterator_name(const std::string &it_name);
-
     /*
      * For each computation in the function, allocate a buffer (the size and name
      * of the buffer are derived automatically).  The computation is also mapped
@@ -528,19 +639,6 @@ public:
      * is _C_buffer.
      */
     void allocate_and_map_buffers_automatically();
-
-    /**
-      * Compute the graph of dependences between the computations of
-      * the function.
-      *
-      * Example
-      *
-      * C[0] = 0
-      * D[1] = C[0]
-      * D[2] = C[0]
-      * {C[0] -> D[1]; C[0]->D[2]}
-      */
-    isl_union_map *compute_dep_graph();
 
     /**
       * Compute the bounds of each computation. i.e., compute the constraints
@@ -704,67 +802,6 @@ public:
     void gen_time_space_domain();
 
     /**
-      * Get the arguments of the function.
-      */
-    const std::vector<tiramisu::buffer *> &get_arguments() const;
-
-    /**
-      * Return a map that represents the buffers of the function.
-      * The buffers of the function are buffers that are either passed
-      * to the function as arguments or are buffers that are declared
-      * and allocated within the function itself.
-      * The names of the buffers are used as a key for the map.
-      */
-    const std::map<std::string, tiramisu::buffer *> &get_buffers() const;
-
-    /**
-      * Return a vector of the computations of the function.
-      * The order of the computations in the vector does not have any
-      * effect on the actual order of execution of the computations.
-      * The order of execution of computations is specified through the
-      * schedule.
-      */
-    const std::vector<computation *> &get_computations() const;
-
-    /**
-      * Return the computation of the function that has
-      * the name \p str.
-      */
-    std::vector<computation *> get_computation_by_name(std::string str) const;
-
-    /**
-      * Return a string representing the name of the GPU block iterator at
-      * dimension \p lev0.
-      * This function only returns a non-empty string if the
-      * computation \p comp is mapped to a GPU block at the dimension \p lev0.
-      */
-    std::string get_gpu_block_iterator(const std::string &comp, int lev0) const;
-
-    /**
-      * Return a string representing the name of the GPU thread iterator at
-      * dimension \p lev0.
-      * This function only returns a non-empty string if the
-      * computation \p comp is mapped to a GPU thread at the dimension \p lev0.
-      */
-    std::string get_gpu_thread_iterator(const std::string &comp, int lev0) const;
-
-     /**
-      * If the computation \p comp is vectorized, return its vector length
-      * at the loop level \p lev.
-      */
-     int get_vector_length(const std::string &comp, int lev) const;
-
-    /**
-      * Return true if the usage of high level scheduling comments is valid; i.e. if
-      * the scheduling relations formed using before, after, compute_at, etc.. form a tree.
-      *
-      * More specifically, it verifies that:
-      *     - There should be exactly one computation with no computation scheduled before it.
-      *     - Each other computation should have exactly one computation scheduled before it.
-      */
-    bool is_sched_graph_tree();
-
-    /**
       * Set the arguments of the function.
       * The arguments of the function are provided as a vector of
       * pointers to buffers. Each buffer represents an argument
@@ -788,42 +825,6 @@ public:
     void set_context_set(const std::string &context_str);
     void set_context_set(isl_set *context);
     // @}
-
-    /**
-      * Set the iterator names of the function.
-      * This function overrides any previously set iterator names.
-      */
-    void set_iterator_names(const std::vector<std::string> &it_names);
-
-    /**
-      * Return true if the computation \p comp should be mapped to GPU block
-      * at the loop levels \p lev0.
-      */
-    bool should_map_to_gpu_block(const std::string &comp, int lev0) const;
-
-    /**
-      * Return true if the computation \p comp should be mapped to GPU thread
-      * at the loop levels \p lev0.
-      */
-    bool should_map_to_gpu_thread(const std::string &comp, int lev0) const;
-
-    /**
-      * Return true if the computation \p comp should be parallelized
-      * at the loop level \p lev.
-      */
-    bool should_parallelize(const std::string &comp, int lev) const;
-
-    /**
-      * Return true if the computation \p comp should be unrolled
-      * at the loop level \p lev.
-      */
-    bool should_unroll(const std::string &comp, int lev) const;
-
-    /**
-      * Return true if the computation \p comp should be vectorized
-      * at the loop level \p lev.
-      */
-    bool should_vectorize(const std::string &comp, int lev) const;
 };
 
 
@@ -3242,6 +3243,12 @@ protected:
      **/
     static std::map<std::string, isl_ast_expr *>
         compute_iterators_map(tiramisu::computation *comp, isl_ast_build *build);
+
+   /**
+     * Get the computation associated with a node.
+     */
+    static std::vector<tiramisu::computation *>
+	get_computation_by_node(tiramisu::function *fct, isl_ast_node *node);
 
     /**
      * Traverse the vector of computations \p comp_vec and return the computations
