@@ -388,7 +388,7 @@ tests: $(OBJ) $(TEST_GEN) $(TEST_BIN) $(TEST_RUN) build/test_global
 build/test_%_fct_generator: tests/test_%.cpp
 	$(CXX) ${CXXFLAGS} ${OBJ} $< -o $@ ${INCLUDES} ${LIBRARIES}
 	@LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $@
-build/generated_fct_test_%.o: build/test_%_fct_generator
+build/generated_fct_test_%.o: build/test_%_fct_generator || (rm build/test_%_fct_generator; exit 1)
 build/test_%: tests/wrapper_test_%.cpp build/test_%_fct_generator build/generated_fct_test_%.o tests/wrapper_test_%.h ${OBJ} ${HEADER_FILES}
 	$(CXX) ${CXXFLAGS} ${OBJ} $< $(word 3,$^) -o $@ ${INCLUDES} ${LIBRARIES}
 run_test_%: build/test_%
