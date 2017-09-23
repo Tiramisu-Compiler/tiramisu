@@ -612,15 +612,18 @@ protected:
 public:
 
     /**
-     * Construct a function with the name \p name.
-     * Function names should not start with _ (an underscore).
+     * \brief Construct a function called \p name.
+     * \details Function names should not start with _ (an underscore).
      * Names starting with _ are reserved names.
      */
     function(std::string name);
 
     /**
-      * Intersect the set \p new_context provided as input with the context
-      * of the function.
+      * \brief Add a set of constraints to the context of the program.
+      *
+      * \details This command is useful for providing constraints over the constants
+      * used within a tiramisu function.  This call intersects the set \p new_context
+      * (input) with the context of the function.
       *
       * The context of a function is an ISL set that represents constraints over
       * the parameters of the functions.  A parameter of a function is a constant
@@ -636,7 +639,10 @@ public:
     void add_context_constraints(const std::string &new_context);
 
     /**
-     * For each computation in the function:
+     * \brief For each computation, allocate a buffer and map the computation
+     * to that buffer.
+     *
+     * \details For each computation in the function:
      *	- Allocate a buffer where the size of the buffer is derived automatically.
      *    Assuming the name of the computation is C, the name of the generated buffer
      *    is _C_buffer.
@@ -646,8 +652,11 @@ public:
     void allocate_and_map_buffers_automatically();
 
     /**
-      * Compute the bounds of each computation. i.e., compute the constraints
-      * over the iteration domains of each computation in the function.
+      * \brief Compute the bounds of each computation.
+      * 
+      * \details Computing the bounds of each computation means computing
+      * the constraints over the iteration domains of each computation in
+      * the function.
       *
       * In order to deduce bounds, Tiramisu first identifies the final consumers
       * in the function (i.e., computations that do not have any consumer).
@@ -695,63 +704,63 @@ public:
     void compute_bounds();
 
     /**
-      * Dump the function on standard output (dump most of the fields of
-      * tiramisu::function).  This is mainly useful for debugging.
+      * \brief Dump the function on standard output (dump most of the fields of
+      * tiramisu::function).
+      * \details This is mainly useful for debugging.
       * If \p exhaustive is set to true, all the fields of the function
-      * class are printed.  This is useful for finding potential
-      * initialization problems.
+      * class are printed.
       */
     void dump(bool exhaustive) const;
 
-
     /**
-     * Dump the graph of dependences between computations.
+     * \brief Dump the graph of dependences between computations.
+     * \details The graph of dependences is a union of maps (relations) from producers
+     * to consumers.
      */
     void dump_dep_graph();
 
     /**
-      * Dump a Halide stmt that represents the function.
-      * tiramisu::function::gen_halide_stmt should be called before calling
+      * \brief Dump a Halide stmt that represents the function.
+      * \details tiramisu::function::gen_halide_stmt should be called before calling
       * this function.
       */
     void dump_halide_stmt() const;
 
     /**
-      * Dump the iteration domain of the function.
-      * This is mainly useful for debugging.
+      * \brief Dump the iteration domain of the function.
+      * \details This is mainly useful for debugging.
       */
     void dump_iteration_domain() const;
 
     /**
-      * Dump the schedules of the computations of the function.
-      * This is mainly useful for debugging.
-      * The schedule is a relation between the iteration space and a
-      * time space.  The relation provides a logical date of execution for
-      * each point in the iteration space.
-      * The schedule needs first to be set before calling this function.
+      * \brief Dump the schedules of the computations of the function.
+      * \details This function is mainly useful for debugging.
+      * See tiramisu::computations::set_low_level_schedule for details about the
+      * schedule.
       */
     void dump_schedule() const;
 
     /**
-      * Dumps the graph of scheduling relations set by the higher level scheduling
+      * \brief Dumps the graph of scheduling relations set by the higher level scheduling
       * functions (e.g. after, before, compute_at...).
-      * This is mainly useful for debugging.
+      * \details This is mainly useful for debugging.
       * This function can be called at any point during scheduling.
       */
     void dump_sched_graph();
 
     /**
-      * Dump (on stdout) the time processor domain of the function.
-      * The time-processor domain should be generated before calling
-      * this function (gen_time_processor_domain()).
+      * \brief Dump (on stdout) the time processor domain of the function.
+      * \details The time-processor domain should be generated using
+      * tiramisu::function::gen_time_processor_domain before calling this
+      * function.
       * This is mainly useful for debugging.
       */
     void dump_time_processor_domain() const;
 
     /**
-      * Dump (on stdout) the trimmed time processor domain of the function.
-      * The time-processor domain should be generated before calling
-      * this function (gen_time_processor_domain()).
+      * \brief Dump (on stdout) the trimmed time processor domain of the function.
+      * \details The time-processor domain should be generated using
+      * tiramisu::function::gen_time_processor_domain before calling this function.
       * This is mainly useful for debugging.
       * The difference between the time-processor domain and the trimmed
       * time-processor domain is that the trimmed one does not have the
@@ -762,20 +771,23 @@ public:
     void dump_trimmed_time_processor_domain() const;
 
     /**
-      * Generate C code on stdout.
-      * Currently C code code generation is very basic and does not
+      * \brief Generate C code and print it on stdout.
+      * \details Currently C code code generation is very basic and does not
       * support many features compared to the Halide code generator.
       * Use this for debugging only.
       */
     void gen_c_code() const;
 
     /**
-      * Generate an object file that contains the compiled function.
-      * This function relies on Halide to generate the object file and
-      * thus requires Halide objects as inputs.
+      * \brief Generate an object file that contains the compiled function.
+      * \details This function relies on Halide to generate the object file.
+      *
       * \p obj_file_name indicates the name of the generated file.
+      *
       * \p os indicates the target operating system (Halide::Target::OS).
+      *
       * \p arch indicates the architecture of the target (the instruction set).
+      *
       * \p bits indicate the bit-width of the target machine.
       *    must be 0 for unknown, or 32 or 64.
       * For a full list of supported values for \p os and \p arch please
@@ -783,13 +795,15 @@ public:
       * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
       * If the machine parameters are not supplied, Halide detects
       * the parameters of the host machine automatically.
+
       */
-    // @{
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                         Halide::Target::Arch arch, int bits) const;
 
+    /**
+      * \overload
+      */
     void gen_halide_obj(const std::string &obj_file_name) const;
-    // @}
 
     /**
       * Generate a Halide stmt that represents the function.
@@ -822,18 +836,25 @@ public:
     void set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec);
 
     /**
-     * Set the context of the function. A context is an ISL set that
-     * represents constraints over the parameters of the functions
-     * (a parameter is an invariant variable for the function).
+     * \brief Set the context of the function.
+     * \details A context is an ISL set that represents constraints over the
+     * parameters of the functions (a parameter is an invariant variable for
+     * the function).
      * An example of a context set is the following:
      *          "[N,M]->{: M>0 and N>0}"
      * This context set indicates that the two parameters N and M
      * are strictly positive.
+     *
+     * This function takes a string that represents and ISL set.
      */
-    // @{
-    void set_context_set(const std::string &context_str);
+    void set_context_set(const std::string &context);
+
+    /**
+      * \overload
+      *
+      * This function takes an ISL set as input.
+      */
     void set_context_set(isl_set *context);
-    // @}
 };
 
 
