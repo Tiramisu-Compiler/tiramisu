@@ -52,10 +52,10 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-
-    c1.after(c0, 0);
-    c2.after(c1, 0);
-    c3.after(c2, 0);
+    var i("i");
+    c1.after(c0, i);
+    c2.after(c1, i);
+    c3.after(c2, i);
 
 
     sequence.dump_schedule();
@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
 
-    buffer b0("b0", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b1("b1", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
-    buffer b2("b2", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output,
+    buffer b0("b0", {tiramisu::expr(SIZE0)}, p_uint8, a_output, &sequence);
+    buffer b1("b1", {tiramisu::expr(SIZE0)}, p_uint8, a_output, &sequence);
+    buffer b2("b2", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_output,
               &sequence);
-    buffer b3("b3", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output, &sequence);
+    buffer b3("b3", {tiramisu::expr(SIZE0)}, p_uint8, a_output, &sequence);
 
     c0.set_access("{c0[i]->b0[i]}");
     c1.set_access("{c1[i]->b1[i]}");

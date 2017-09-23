@@ -80,10 +80,10 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_blurx.tile(0, 1, 2, 2);
-    c_blurx.tag_gpu_level(0, 1);
-    c_blury.set_low_level_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
-    c_blury.after(c_blurx, computation::root_dimension);
+    c_blurx.tile(var("i"), var("j"), 2, 2, var("i0"), var("j0"), var("i1"), var("j1"));
+    c_blurx.tag_gpu_level(var("i0"), var("j0"));
+    //c_blury.set_low_level_schedule("{c_blury[i,j]->c_blury[0,0,i,0,j,0]}");
+    c_blury.after(c_blurx, computation::root);
 
 
 
@@ -91,12 +91,9 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_input("b_input", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL, a_input,
-                   &blurxy);
-    buffer b_blury("b_blury", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
-                   a_output, &blurxy);
-    buffer b_blurx("b_blurx", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, NULL,
-                   a_temporary, &blurxy);
+    buffer b_input("b_input", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_input, &blurxy);
+    buffer b_blury("b_blury", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_output, &blurxy);
+    buffer b_blurx("b_blurx", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_temporary, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");

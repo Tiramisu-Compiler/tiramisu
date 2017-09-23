@@ -9,8 +9,8 @@
 
 int main(int, char **)
 {
-    Halide::Buffer<uint8_t> output(NN, MM);
-    init_buffer(output, (uint8_t)9);
+    Halide::Buffer<int32_t> output(NN, MM);
+    init_buffer(output, (int32_t)9);
 
     std::cout << "Array (after initialization)" << std::endl;
     print_buffer(output);
@@ -20,8 +20,8 @@ int main(int, char **)
     std::cout << "Array after the Halide pipeline" << std::endl;
     print_buffer(output);
 
-    Halide::Buffer<uint8_t> expected(NN, MM);
-    init_buffer(expected, (uint8_t)7);
+    Halide::Buffer<int32_t> expected(NN, MM);
+    init_buffer(expected, (int32_t)7);
 
     compare_buffers("tutorial_01", output, expected);
 

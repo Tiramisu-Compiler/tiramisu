@@ -58,7 +58,7 @@ void generate_function(std::string name, int size, int val0)
 
     tiramisu::computation f("{f[y,x]: 0<=y<19 and 0<=x<9}", tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
     tiramisu::computation g("{g[y,-1]: 0<=y<19}",           tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
-    tiramisu::computation *g2 = g.add_definitions("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
+    g.add_definitions("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
 
 
     // -------------------------------------------------------
@@ -66,8 +66,8 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    g.after(f, computation::root_dimension);
-    g2->after(g, computation::root_dimension);
+    g.after(f, computation::root);
+    g.get_update(1).after(g, computation::root);
 
 
     // -------------------------------------------------------
@@ -75,14 +75,14 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    tiramisu::buffer f_buff("f_buff", 2, {19,size}, tiramisu::p_uint8, NULL, a_temporary, &function0);
-    tiramisu::buffer g_buff("g_buff", 1, {size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer f_buff("f_buff", {19,size}, tiramisu::p_uint8, a_temporary, &function0);
+    tiramisu::buffer g_buff("g_buff", {size}, tiramisu::p_uint8, a_output, &function0);
     // Important: note that the access relations of the two computation C and C2 are identical.
     // The Tiramisu code generator assumes that the access relations of computations that have the same
     // name are identical.  In this case, the two relations are equal to "{C[j,i]->C_buff[i]}".
     f.set_access("{f[y,x]->f_buff[y,x]}");
     g.set_access("{g[y,rx]->g_buff[y]}");
-    g2->set_access("{g[y,rx]->g_buff[y]}");
+    g.get_update(1).set_access("{g[y,rx]->g_buff[y]}");
 
 
 

@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     b1.set_low_level_schedule("[M]->{b1[i]->b1[0,0,i,1,0,0]: 0<=i<M}");
     t.set_low_level_schedule("[M,b0,b1]->{t[i,j]->t[0,0,i,2,j1,1,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;   t[i,j]->t[0,0,i,2,j1,0,j2,0]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
     c_y.set_low_level_schedule("[M,b0,b1]->{c_y[i,j]->c_y[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->c_y[0,0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
-    c_y.tag_parallel_level(0);
+    c_y.tag_parallel_level(var("i"));
 
 
     // -------------------------------------------------------
@@ -89,11 +89,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
 
-    buffer b_row_start("b_row_start", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_col_idx("b_col_idx", 1, {tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_values("b_values", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_x("b_x", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_input, &spmv);
-    buffer b_y("b_y", 1, {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, NULL, a_output, &spmv);
+    buffer b_row_start("b_row_start", {tiramisu::expr(SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_col_idx("b_col_idx", {tiramisu::expr(SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_values("b_values", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_x("b_x", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_y("b_y", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_output, &spmv);
 
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");

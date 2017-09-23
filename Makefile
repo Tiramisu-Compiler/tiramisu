@@ -26,7 +26,6 @@ TUTO_GEN = \
 	build/tutorial_01_fct_generator \
 	build/tutorial_02_fct_generator \
 	build/tutorial_03_fct_generator \
-	build/tutorial_04_fct_generator \
 	build/tutorial_05_fct_generator \
 	build/tutorial_06_fct_generator \
 	build/tutorial_08_fct_generator \
@@ -37,7 +36,6 @@ TUTO_BIN = \
 	build/tutorial_01 \
 	build/tutorial_02 \
 	build/tutorial_03 \
-	build/tutorial_04 \
 	build/tutorial_05 \
 	build/tutorial_06 \
 	build/tutorial_08 \
@@ -48,7 +46,6 @@ TUTO_RUN = \
 	run_tutorial_01 \
 	run_tutorial_02 \
 	run_tutorial_03 \
-	run_tutorial_04 \
 	run_tutorial_05 \
 	run_tutorial_06 \
 	run_tutorial_08 \

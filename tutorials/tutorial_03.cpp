@@ -61,10 +61,10 @@ int main(int argc, char **argv)
     // Declare a computation c_C
     computation c_C("[N]->{c_C[i,j,0]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
 
-    computation *c_C2 = c_C.add_definitions("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(),
+    c_C.add_definitions("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(),
                         true, p_uint8, &matmul);
     expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
-    c_C2->set_expression(e1);
+    c_C.get_update(1).set_expression(e1);
 
 
 
@@ -75,10 +75,10 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_C2->after(c_C, 1);
-    c_C.tile(0, 1, 32, 32);
-    c_C2->tile(0, 1, 32, 32);
-    c_C2->tag_parallel_level(0);
+    c_C.get_update(1).after(c_C, var("j"));
+    c_C.tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
+    c_C.get_update(1).tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
+    c_C.get_update(1).tag_parallel_level(var("i0"));
 
 
 
@@ -86,18 +86,15 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_A("b_A", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input,
-               &matmul);
-    buffer b_B("b_B", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_input,
-               &matmul);
-    buffer b_C("b_C", 2, {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, NULL, a_output,
-               &matmul);
+    buffer b_A("b_A", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_B("b_B", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_C("b_C", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_output, &matmul);
 
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");
     c_B.set_access("{c_B[i,j]->b_B[i,j]}");
     c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
-    c_C2->set_access("{c_C[i,j,k]->b_C[i,j]}");
+    c_C.get_update(1).set_access("{c_C[i,j,k]->b_C[i,j]}");
 
 
 

@@ -13,11 +13,13 @@
 
 using namespace tiramisu;
 
-/*
-int N = 10;
-for (int i = 0; i < N; i++)
-  for (int j = 0; j < N; j++)
-    buf0[i, j] = 3 + 4;
+/**
+  The goal of this tutorial is to implement in Tiramisu a code that is
+  equivalent to the following
+
+  for (int i = 0; i < 10; i++)
+    for (int j = 0; j < 10; j++)
+      buf0[i, j] = 3 + 4;
 */
 
 int main(int argc, char **argv)
@@ -25,40 +27,34 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
-    // Declare a function.
+    // Declare a function called "function0".
     // A function in tiramisu is the equivalent of a function in C.
-    // It can have input and output arguments.  These arguments are usually
+    // It can have input and output arguments.  These arguments are
     // represented as buffers and are declared later in the tutorial.
     function function0("function0");
-
 
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
-    // Declare the invariants of the function.  An invariant can be a symbolic
-    // constant or a variable that does not change during the execution of the
-    // function.
-    tiramisu::expr e_N = expr((int32_t) 10);
-    constant N("N", e_N, p_int32, true, NULL, 0, &function0);
-
-    // Declare expressions that will be associated with the
-    // computations.
-    expr e3 = expr((uint8_t) 3) + expr((uint8_t) 4);
+    // Declare an expression that will be associated to the
+    // computations.  This expression sums 3 and 4.
+    expr e3 = expr(3) + expr(4);
 
     // Declare a computation within function0.
     // To declare a computation, you need to provide:
-    // (1) an ISL set representing the iteration space of the computation,
-    // tiramisu uses the ISL syntax for sets and maps.  This syntax is described
-    // in http://barvinok.gforge.inria.fr/barvinok.pdf (Sections
+    // (1) an ISL set representing the iteration space of the computation.
+    // Tiramisu uses the ISL syntax to represent sets and maps.  The ISL syntax
+    // is described in http://barvinok.gforge.inria.fr/barvinok.pdf (Section
     // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
     // relations),
-    // (2) a tiramisu expression that represents the computation,
+    // (2) a tiramisu expression: this is the expression that will be computed
+    // by the computation.
     // (3) the function in which the computation will be declared.
-    computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", e3, true, p_uint8, &function0);
+    computation S0("[N]->{S0[i,j]: 0<=i<10 and 0<=j<10}", e3, true, p_uint8, &function0);
 
-    // Dump the iteration domain (input) for the function.
+    // Dump the iteration domain of the function.
     function0.dump_iteration_domain();
 
 
@@ -70,8 +66,8 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    S0.tile(0, 1, 2, 2);
-    S0.tag_parallel_level(0);
+    S0.tile(var("i"), var("j"), 2, 2, var("i0"), var("j0"), var("i1"), var("j1"));
+    S0.tag_parallel_level(var("i0"));
 
     // Dump the schedule.
     function0.dump_schedule();
@@ -88,7 +84,7 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", 2, {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, NULL, a_output,
+    buffer buf0("buf0", {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, a_output,
                 &function0);
 
     // Map the computations to a buffer (i.e. where each computation

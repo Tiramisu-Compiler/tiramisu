@@ -54,12 +54,9 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var i = tiramisu::var("i");
     tiramisu::var j = tiramisu::var("j");
 
-    tiramisu::computation C("[N]->{C[0,i]: 0<=i<N}", tiramisu::expr((uint8_t) 10), true, p_uint8,
-                            &function0);
-    tiramisu::computation *C2 = C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0,
-                                i) + tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
-    tiramisu::computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + tiramisu::expr((uint8_t) 1), true,
-                              p_uint8, &function0);
+    tiramisu::computation C("[N]->{C[0,i]: 0<=i<N}", tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
+    C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0, i) + tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
+    tiramisu::computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
 
 
     // -------------------------------------------------------
@@ -67,8 +64,8 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    C2->after(C, computation::root_dimension);
-    out.after((*C2), computation::root_dimension);
+    C.get_update(1).after(C, computation::root);
+    out.after(C.get_update(1), computation::root);
 
 
     // -------------------------------------------------------
@@ -76,13 +73,13 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    tiramisu::buffer C_buff("C_buff", 1, {size}, tiramisu::p_uint8, NULL, a_temporary, &function0);
-    tiramisu::buffer out_buff("out_buff", 1, {size}, tiramisu::p_uint8, NULL, a_output, &function0);
+    tiramisu::buffer C_buff("C_buff", {size}, tiramisu::p_uint8, a_temporary, &function0);
+    tiramisu::buffer out_buff("out_buff", {size}, tiramisu::p_uint8, a_output, &function0);
     // Important: note that the access relations of the two computation C and C2 are identical.
     // The Tiramisu code generator assumes that the access relations of computations that have the same
     // name are identical.  In this case, the two relations are equal to "{C[j,i]->C_buff[i]}".
     C.set_access("{C[j,i]->C_buff[i]}");
-    C2->set_access("{C[j,i]->C_buff[i]}");
+    C.get_update(1).set_access("{C[j,i]->C_buff[i]}");
     out.set_access("{out[i]->out_buff[i]}");
 
 
