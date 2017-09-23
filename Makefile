@@ -418,8 +418,9 @@ run_benchmarks:
 	@for tt in ${BENCH_BIN}; do LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${PWD}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${PWD}/build/ $${tt}; done
 
 
-doc: ${HEADER_FILES}
-	doxygen Doxyfile
+doc: ${HEADER_FILES} doc/Doxyfile doc/Doxyfile_user doc/Doxyfile_dev
+	doxygen doc/Doxyfile_user
+	doxygen doc/Doxyfile_dev
 
 clean:
-	rm -rf *~ src/*~ include/*~ build/* doc/
+	rm -rf *~ src/*~ include/*~ build/* doc/user_doc/* doc/developers_doc/*

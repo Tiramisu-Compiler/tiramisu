@@ -59,10 +59,10 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
 class function
 {
     // Friend classes.  They can access the private members of the "function" class.
-    friend tiramisu::buffer;
-    friend tiramisu::computation;
-    friend tiramisu::constant;
-    friend tiramisu::generator;
+    friend buffer;
+    friend computation;
+    friend constant;
+    friend generator;
 
 private:
     /**
@@ -528,7 +528,7 @@ protected:
       *     - There should be exactly one computation with no computation scheduled before it.
       *     - Each other computation should have exactly one computation scheduled before it.
       */
-    bool is_sched_graph_tree();
+     bool is_sched_graph_tree();
 
      /**
       * Modify the schedules of the computations of this function to reflect
@@ -650,7 +650,7 @@ public:
       * over the iteration domains of each computation in the function.
       *
       * In order to deduce bounds, Tiramisu first identifies the final consumers
-      * in the function (i.e., computations that does not have any consumer).
+      * in the function (i.e., computations that do not have any consumer).
       * Then, it propagates the bounds over the final consumers to their producers.
       * The bounds of each consumer are used to deduce the bounds over its producer.
       *
@@ -660,16 +660,17 @@ public:
       * iteration domain, while the right side is the expression attached to
       * each computation)
       *
-      *
+      * \code
       * {A[i]        } : 0
       * {B[i]        } : 0
       * {C[i]        } : A[i] + B[i]
       * {D[i]: 0<=i<N} : 2*C[i]
+      * \endcode
       *
       *
       * The user needs only to provide constraints over the domains of the
       * last computations (last consumers), and Tiramisu will propagate
-      * these constraints to all the chain of computations that precede
+      * these constraints to all the chain of computations that produce for
       * those consumers.
       * In the previous example, constraints over the iteration domain were
       * only provided for the last consumer "D[i]" and no constraints were
@@ -681,19 +682,21 @@ public:
       * of the same computations, in such a case the user should provide
       * constraints of the iteration domain of the computation.  Example:
       *
+      * \code
       * {A[i]        } : 0
       * {C[i]: i=0   } : 0
       * {C[i]: 1<=i<N} : C[i-1] + A[i]
       * {D[i]: 0<=i<N} : 2*C[i]
+      * \endcode
       *
-      * In this case, constraints over the computations defining C[i] are provided.
+      * In this case, constraints over the computations defining C[i] should be
+      * provided.
       */
     void compute_bounds();
 
     /**
       * Dump the function on standard output (dump most of the fields of
-      * the function class).
-      * This is mainly useful for debugging.
+      * tiramisu::function).  This is mainly useful for debugging.
       * If \p exhaustive is set to true, all the fields of the function
       * class are printed.  This is useful for finding potential
       * initialization problems.
@@ -708,7 +711,8 @@ public:
 
     /**
       * Dump a Halide stmt that represents the function.
-      * gen_halide_stmt should be called before calling this function.
+      * tiramisu::function::gen_halide_stmt should be called before calling
+      * this function.
       */
     void dump_halide_stmt() const;
 
@@ -841,9 +845,9 @@ public:
   */
 class buffer
 {
-    friend tiramisu::computation;
-    friend tiramisu::function;
-    friend tiramisu::generator;
+    friend computation;
+    friend function;
+    friend generator;
 
 private:
     /**
@@ -1099,10 +1103,10 @@ public:
 
 class computation
 {
-    friend tiramisu::function;
-    friend tiramisu::generator;
-    friend tiramisu::buffer;
-    friend tiramisu::constant;
+    friend function;
+    friend generator;
+    friend buffer;
+    friend constant;
     friend computation_tester;
 
 private:
@@ -3231,9 +3235,9 @@ public:
 */
 class generator
 {
-    friend tiramisu::function;
-    friend tiramisu::computation;
-    friend tiramisu::buffer;
+    friend function;
+    friend computation;
+    friend buffer;
 
 protected:
 
