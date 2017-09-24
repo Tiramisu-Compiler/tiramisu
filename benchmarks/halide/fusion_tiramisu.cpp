@@ -31,16 +31,16 @@ int main(int argc, char **argv)
     int f_extent_2 = SIZE2;
     int f_extent_1 = SIZE1;
     int f_extent_0 = SIZE0;
-    tiramisu::buffer buff_f("buff_f", 3, {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &fusion_tiramisu);
-    tiramisu::buffer buff_g("buff_g", 3, {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &fusion_tiramisu);
-    tiramisu::buffer buff_h("buff_h", 3, {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &fusion_tiramisu);
-    tiramisu::buffer buff_k("buff_k", 3, {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &fusion_tiramisu);
+    tiramisu::buffer buff_f("buff_f", {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &fusion_tiramisu);
+    tiramisu::buffer buff_g("buff_g", {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &fusion_tiramisu);
+    tiramisu::buffer buff_h("buff_h", {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &fusion_tiramisu);
+    tiramisu::buffer buff_k("buff_k", {tiramisu::expr(f_extent_2), tiramisu::expr(f_extent_1), tiramisu::expr(f_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &fusion_tiramisu);
 
     // Input buffers.
     int input_extent_2 = SIZE2;
     int input_extent_1 = SIZE1;
     int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", 3, {tiramisu::expr(input_extent_2), tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_input, &fusion_tiramisu);
+    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_2), tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &fusion_tiramisu);
     tiramisu::computation input("[input_extent_2, input_extent_1, input_extent_0]->{input[i2, i1, i0]: (0 <= i2 <= (input_extent_2 + -1)) and (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &fusion_tiramisu);
     input.set_access("{input[i2, i1, i0]->buff_input[i2, i1, i0]}");
 
@@ -75,20 +75,19 @@ int main(int argc, char **argv)
     k_s0.set_access("{k_s0[k_s0_c, k_s0_y, k_s0_x]->buff_k[k_s0_c, k_s0_y, k_s0_x]}");
 
 
-    f_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{f_s0[f_s0_c, f_s0_y, f_s0_x] -> f_s0[0, 0, f_s0_c, 0, f_s0_y, 0, f_s0_x, 0]}");
-    g_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{g_s0[g_s0_c, g_s0_y, g_s0_x] -> g_s0[0, 0, g_s0_c, 0, g_s0_y, 0, g_s0_x, 1]}");
-    h_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{h_s0[h_s0_c, h_s0_y, h_s0_x] -> h_s0[0, 0, h_s0_c, 0, h_s0_y, 0, h_s0_x, 2]}");
-    k_s0.set_low_level_schedule("[f_s0_c_loop_min, f_s0_c_loop_extent, f_s0_y_loop_min, f_s0_y_loop_extent, f_s0_x_loop_min, f_s0_x_loop_extent]->{k_s0[k_s0_c, k_s0_y, k_s0_x] -> k_s0[0, 0, k_s0_c, 0, k_s0_y, 0, k_s0_x, 3]}");
-    f_s0.tag_parallel_level(0);
-    f_s0.tag_parallel_level(1);
-    g_s0.tag_parallel_level(0);
-    g_s0.tag_parallel_level(1);
-    h_s0.tag_parallel_level(0);
-    h_s0.tag_parallel_level(1);
-    k_s0.tag_parallel_level(0);
-    k_s0.tag_parallel_level(1);
-    f_s0.tag_vector_level(2, 8);
-    g_s0.tag_vector_level(2, 8);
+    g_s0.after(f_s0, tiramisu::var("g_s0_x"));
+    h_s0.after(g_s0, tiramisu::var("h_s0_x"));
+    k_s0.after(h_s0, tiramisu::var("k_s0_x"));
+    f_s0.tag_parallel_level(tiramisu::var("f_s0_c"));
+    f_s0.tag_parallel_level(tiramisu::var("f_s0_y"));
+    g_s0.tag_parallel_level(tiramisu::var("g_s0_c"));
+    g_s0.tag_parallel_level(tiramisu::var("g_s0_y"));
+    h_s0.tag_parallel_level(tiramisu::var("h_s0_c"));
+    h_s0.tag_parallel_level(tiramisu::var("h_s0_y"));
+    k_s0.tag_parallel_level(tiramisu::var("k_s0_c"));
+    k_s0.tag_parallel_level(tiramisu::var("k_s0_y"));
+    f_s0.tag_vector_level(tiramisu::var("f_s0_x"), 8);
+    g_s0.tag_vector_level(tiramisu::var("g_s0_x"), 8);
 
 
     fusion_tiramisu.set_arguments({&buff_input, &buff_f, &buff_g, &buff_h, &buff_k});

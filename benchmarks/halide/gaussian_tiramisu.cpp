@@ -31,29 +31,29 @@ int main(int argc, char **argv)
     int gaussian_extent_2 = SIZE2;
     int gaussian_extent_1 = SIZE1 - 8;
     int gaussian_extent_0 = SIZE0 - 8;
-    tiramisu::buffer buff_gaussian("buff_gaussian", 3, {tiramisu::expr(gaussian_extent_2), tiramisu::expr(gaussian_extent_1), tiramisu::expr(gaussian_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &gaussian_tiramisu);
+    tiramisu::buffer buff_gaussian("buff_gaussian", {tiramisu::expr(gaussian_extent_2), tiramisu::expr(gaussian_extent_1), tiramisu::expr(gaussian_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &gaussian_tiramisu);
 
     // Input buffers.
     int input_extent_2 = SIZE2;
     int input_extent_1 = SIZE1;
     int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", 3, {tiramisu::expr(input_extent_2), tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_input, &gaussian_tiramisu);
+    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_2), tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &gaussian_tiramisu);
     tiramisu::computation input("[input_extent_2, input_extent_1, input_extent_0]->{input[i2, i1, i0]: (0 <= i2 <= (input_extent_2 + -1)) and (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &gaussian_tiramisu);
     input.set_access("{input[i2, i1, i0]->buff_input[i2, i1, i0]}");
 
     int kernelx_extent_0 = 5;
-    tiramisu::buffer buff_kernelx("buff_kernelx", 1, {tiramisu::expr(kernelx_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_input, &gaussian_tiramisu);
+    tiramisu::buffer buff_kernelx("buff_kernelx", {tiramisu::expr(kernelx_extent_0)}, tiramisu::p_float32, tiramisu::a_input, &gaussian_tiramisu);
     tiramisu::computation kernelx("[kernelx_extent_0]->{kernelx[i0]: (0 <= i0 <= (kernelx_extent_0 + -1))}", expr(), false, tiramisu::p_float32, &gaussian_tiramisu);
     kernelx.set_access("{kernelx[i0]->buff_kernelx[i0]}");
 
     int kernely_extent_0 = 5;
-    tiramisu::buffer buff_kernely("buff_kernely", 1, {tiramisu::expr(kernely_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_input, &gaussian_tiramisu);
+    tiramisu::buffer buff_kernely("buff_kernely", {tiramisu::expr(kernely_extent_0)}, tiramisu::p_float32, tiramisu::a_input, &gaussian_tiramisu);
     tiramisu::computation kernely("[kernely_extent_0]->{kernely[i0]: (0 <= i0 <= (kernely_extent_0 + -1))}", expr(), false, tiramisu::p_float32, &gaussian_tiramisu);
     kernely.set_access("{kernely[i0]->buff_kernely[i0]}");
 
 
     // Define temporary buffers for "gaussian_x".
-    tiramisu::buffer buff_gaussian_x("buff_gaussian_x", 3, {tiramisu::expr(gaussian_extent_2), tiramisu::expr(gaussian_extent_1 + 4), tiramisu::expr(gaussian_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_temporary, &gaussian_tiramisu);
+    tiramisu::buffer buff_gaussian_x("buff_gaussian_x", {tiramisu::expr(gaussian_extent_2), tiramisu::expr(gaussian_extent_1 + 4), tiramisu::expr(gaussian_extent_0)}, tiramisu::p_float32, tiramisu::a_temporary, &gaussian_tiramisu);
 
     // Define loop bounds for dimension "gaussian_x_s0_c".
     tiramisu::constant gaussian_x_s0_c_loop_min("gaussian_x_s0_c_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &gaussian_tiramisu);
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 
 
     // Define compute level for "gaussian".
-    gaussian_s0.after(gaussian_x_s0, computation::root_dimension);
+    gaussian_s0.after(gaussian_x_s0, computation::root);
 
     // Add schedules.
 

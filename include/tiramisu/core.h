@@ -860,6 +860,7 @@ public:
 
 /**
   * A class that represents buffers.
+  *
   * Buffers have two use cases:
   * - used to store the results of computations, and
   * - used to represent input arguments to functions.
@@ -950,13 +951,15 @@ protected:
 public:
     /**
       * Create a tiramisu buffer.
+      *
       * Buffers have two use cases:
       * - used to store the results of computations, and
       * - used to represent input arguments to functions.
       *
       * \p name is the name of the buffer.
-      * \p dim_sizes is a vector of integers that represent the size
-      * of each dimension in the buffer.  The first vector element
+      *
+      * \p dim_sizes is a vector of tiramisu expressions that represent the
+      * size of each dimension in the buffer.  The first vector element
       * represents the rightmost array dimension, while the last vector
       * element represents the leftmost array dimension.
       * For example, in the buffer buf[N0][N1][N2], the first element
@@ -965,11 +968,14 @@ public:
       * is N1, and the last vector element is N0.
       * Buffer dimensions in Tiramisu have the same semantics as in
       * C/C++.
+      *
       * \p type is the type of the elements of the buffer.
       * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
       * Possible types are declared in tiramisu::primitive_t (type.h).
+      *
       * \p fct is a pointer to a Tiramisu function where the buffer is
       * declared or used.
+      *
       * \p is_argument indicates whether the buffer is passed to the
       * function as an argument.  All the buffers passed as arguments
       * to the function should be allocated by the user outside the
@@ -2343,8 +2349,10 @@ public:
     void add_predicate(tiramisu::expr predicate);
 
     /**
-      * Schedule this computation to run after the computation \p comp.
-      * The computations are placed after each other in the loop level \p level.
+      * \brief Schedule this computation to run after the computation \p comp.
+      * \details This computation is placed after \p comp in the loop level \p level.
+      * \p level is a loop level in this computation.
+      * 
       * The root level is computation::root.
       *
       * For example assuming we have the two computations

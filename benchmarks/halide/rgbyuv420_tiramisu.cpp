@@ -30,19 +30,19 @@ int main(int argc, char **argv)
     // Output buffers.
     int y_part_extent_1 = SIZE1;
     int y_part_extent_0 = SIZE0;
-    tiramisu::buffer buff_y_part("buff_y_part", 2, {tiramisu::expr(y_part_extent_1), tiramisu::expr(y_part_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &rgbyuv420);
+    tiramisu::buffer buff_y_part("buff_y_part", {tiramisu::expr(y_part_extent_1), tiramisu::expr(y_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
     int u_part_extent_1 = SIZE1;
     int u_part_extent_0 = SIZE0;
-    tiramisu::buffer buff_u_part("buff_u_part", 2, {tiramisu::expr(u_part_extent_1), tiramisu::expr(u_part_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &rgbyuv420);
+    tiramisu::buffer buff_u_part("buff_u_part", {tiramisu::expr(u_part_extent_1), tiramisu::expr(u_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
     int v_part_extent_1 = SIZE1;
     int v_part_extent_0 = SIZE0;
-    tiramisu::buffer buff_v_part("buff_v_part", 2, {tiramisu::expr(v_part_extent_1), tiramisu::expr(v_part_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &rgbyuv420);
+    tiramisu::buffer buff_v_part("buff_v_part", {tiramisu::expr(v_part_extent_1), tiramisu::expr(v_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
 
     // Input buffers.
     int p0_extent_2 = SIZE2;
     int p0_extent_1 = SIZE1;
     int p0_extent_0 = SIZE0;
-    tiramisu::buffer buff_p0("buff_p0", 3, {tiramisu::expr(p0_extent_2), tiramisu::expr(p0_extent_1), tiramisu::expr(p0_extent_0)}, tiramisu::p_int16, NULL, tiramisu::a_input, &rgbyuv420);
+    tiramisu::buffer buff_p0("buff_p0", {tiramisu::expr(p0_extent_2), tiramisu::expr(p0_extent_1), tiramisu::expr(p0_extent_0)}, tiramisu::p_int16, tiramisu::a_input, &rgbyuv420);
     tiramisu::computation p0("[p0_extent_2, p0_extent_1, p0_extent_0]->{p0[i2, i1, i0]: (0 <= i2 <= (p0_extent_2 + -1)) and (0 <= i1 <= (p0_extent_1 + -1)) and (0 <= i0 <= (p0_extent_0 + -1))}", expr(), false, tiramisu::p_int16, &rgbyuv420);
     p0.set_access("{p0[i2, i1, i0]->buff_p0[i2, i1, i0]}");
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     u_part_s0.set_access("{u_part_s0[u_part_s0_y, u_part_s0_x]->buff_u_part[u_part_s0_y, u_part_s0_x]}");
 
     // Define compute level for "u_part".
-    u_part_s0.after(y_part_s0, computation::root_dimension);
+    u_part_s0.after(y_part_s0, computation::root);
 
     // Define loop bounds for dimension "v_part_s0_y".
     tiramisu::constant v_part_s0_y_loop_min("v_part_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &rgbyuv420);
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     v_part_s0.set_access("{v_part_s0[v_part_s0_y, v_part_s0_x]->buff_v_part[v_part_s0_y, v_part_s0_x]}");
 
     // Define compute level for "v_part".
-    v_part_s0.after(u_part_s0, computation::root_dimension);
+    v_part_s0.after(u_part_s0, computation::root);
 
     // Add schedules.
 

@@ -3179,7 +3179,6 @@ void computation::set_loop_level_names(std::vector<int> loop_levels,
 
     this->check_dimensions_validity(loop_levels);
     assert(names.size() > 0);
-    this->assert_names_not_assigned(names);
     assert(names.size() == loop_levels.size());
 
     for (int i = 0; i < loop_levels.size(); i++)
@@ -6071,6 +6070,11 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->set_identity_schedule_based_on_iteration_domain();
     this->set_expression(e);
     this->set_inline(false);
+
+    // Set the names of output dimensions to be equal to the names of iteration domain schedules.
+    std::vector<std::string> nms = this->get_iteration_domain_dimension_names();
+    for (int i = 0; i< nms.size(); i++)
+    	this->set_loop_level_names({i}, {nms[i]});
 
     // If there are computations that have already been defined and that
     // have the same name, check that they have constraints over their iteration

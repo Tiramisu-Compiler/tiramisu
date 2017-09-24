@@ -32,12 +32,12 @@ int main(int argc, char **argv)
     // Output buffers.
     int heat2d_extent_1 = SIZE1;
     int heat2d_extent_0 = SIZE0;
-    tiramisu::buffer buff_heat2d("buff_heat2d", 2, {tiramisu::expr(heat2d_extent_1), tiramisu::expr(heat2d_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_output, &heat2d_tiramisu);
+    tiramisu::buffer buff_heat2d("buff_heat2d", {tiramisu::expr(heat2d_extent_1), tiramisu::expr(heat2d_extent_0)}, tiramisu::p_float32, tiramisu::a_output, &heat2d_tiramisu);
 
     // Input buffers.
     int input_extent_1 = SIZE1;
     int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", 2, {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_input, &heat2d_tiramisu);
+    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_float32, tiramisu::a_input, &heat2d_tiramisu);
     tiramisu::computation input("[input_extent_1, input_extent_0]->{input[i1, i0]: (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_float32, &heat2d_tiramisu);
     input.set_access("{input[i1, i0]->buff_input[i1, i0]}");
 
@@ -68,11 +68,11 @@ int main(int argc, char **argv)
     heat2d_s1.set_access("{heat2d_s1[heat2d_s1_r4__y, heat2d_s1_r4__x]->buff_heat2d[heat2d_s1_r4__y, heat2d_s1_r4__x]}");
 
     // Define compute level for "heat2d".
-    heat2d_s1.after(heat2d_s0, computation::root_dimension);
+    heat2d_s1.after(heat2d_s0, computation::root);
 
     // Add schedules.
-    heat2d_s0.tag_parallel_level(0);
-    heat2d_s1.tag_parallel_level(0);
+    heat2d_s0.tag_parallel_level(tiramisu::var("heat2d_s0_y"));
+    heat2d_s1.tag_parallel_level(tiramisu::var("heat2d_s1_r4__y"));
 
     heat2d_tiramisu.set_arguments({&buff_input, &buff_heat2d});
     heat2d_tiramisu.gen_time_space_domain();

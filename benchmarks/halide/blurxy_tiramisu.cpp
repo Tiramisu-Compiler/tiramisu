@@ -31,19 +31,19 @@ int main(int argc, char **argv)
     int blur_y_extent_2 = SIZE2;
     int blur_y_extent_1 = SIZE1 - 8;
     int blur_y_extent_0 = SIZE0 - 8;
-    tiramisu::buffer buff_blur_y("buff_blur_y", 3, {tiramisu::expr(blur_y_extent_2), tiramisu::expr(blur_y_extent_1), tiramisu::expr(blur_y_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &blurxy_tiramisu);
+    tiramisu::buffer buff_blur_y("buff_blur_y", {tiramisu::expr(blur_y_extent_2), tiramisu::expr(blur_y_extent_1), tiramisu::expr(blur_y_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &blurxy_tiramisu);
 
     // Input buffers.
     int p0_extent_2 = SIZE2;
     int p0_extent_1 = SIZE1;
     int p0_extent_0 = SIZE0;
-    tiramisu::buffer buff_p0("buff_p0", 3, {tiramisu::expr(p0_extent_2), tiramisu::expr(p0_extent_1), tiramisu::expr(p0_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_input, &blurxy_tiramisu);
+    tiramisu::buffer buff_p0("buff_p0", {tiramisu::expr(p0_extent_2), tiramisu::expr(p0_extent_1), tiramisu::expr(p0_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &blurxy_tiramisu);
     tiramisu::computation p0("[p0_extent_2, p0_extent_1, p0_extent_0]->{p0[i2, i1, i0]: (0 <= i2 <= (p0_extent_2 + -1)) and (0 <= i1 <= (p0_extent_1 + -1)) and (0 <= i0 <= (p0_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &blurxy_tiramisu);
     p0.set_access("{p0[i2, i1, i0]->buff_p0[i2, i1, i0]}");
 
 
     // Define temporary buffers for "blur_x".
-    tiramisu::buffer buff_blur_x("buff_blur_x", 3, {tiramisu::expr(blur_y_extent_2), tiramisu::expr(blur_y_extent_1 + 2), tiramisu::expr(blur_y_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_temporary, &blurxy_tiramisu);
+    tiramisu::buffer buff_blur_x("buff_blur_x", {tiramisu::expr(blur_y_extent_2), tiramisu::expr(blur_y_extent_1 + 2), tiramisu::expr(blur_y_extent_0)}, tiramisu::p_uint8, tiramisu::a_temporary, &blurxy_tiramisu);
 
     // Define loop bounds for dimension "blur_x_s0_c".
     tiramisu::constant blur_x_s0_c_loop_min("blur_x_s0_c_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &blurxy_tiramisu);
@@ -78,13 +78,13 @@ int main(int argc, char **argv)
     blur_y_s0.set_access("{blur_y_s0[blur_y_s0_c, blur_y_s0_y, blur_y_s0_x]->buff_blur_y[blur_y_s0_c, blur_y_s0_y, blur_y_s0_x]}");
 
     // Define compute level for "blur_y".
-    blur_y_s0.after(blur_x_s0, computation::root_dimension);
+    blur_y_s0.after(blur_x_s0, computation::root);
 
     // Add schedules.
-    blur_x_s0.tag_parallel_level(1);
-    blur_x_s0.tag_parallel_level(0);
-    blur_y_s0.tag_parallel_level(1);
-    blur_y_s0.tag_parallel_level(0);
+    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_y"));
+    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_c"));
+    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_y"));
+    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_c"));
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_blur_y});
     blurxy_tiramisu.gen_time_space_domain();

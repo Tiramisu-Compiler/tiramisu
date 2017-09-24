@@ -36,13 +36,13 @@ int main(int argc, char **argv)
     int rec_filter_extent_2 = SIZE2;
     int rec_filter_extent_1 = SIZE1;
     int rec_filter_extent_0 = SIZE0;
-    tiramisu::buffer buff_rec_filter("buff_rec_filter", 3, {tiramisu::expr(rec_filter_extent_2), tiramisu::expr(rec_filter_extent_1), tiramisu::expr(rec_filter_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_output, &recfilter_tiramisu);
+    tiramisu::buffer buff_rec_filter("buff_rec_filter", {tiramisu::expr(rec_filter_extent_2), tiramisu::expr(rec_filter_extent_1), tiramisu::expr(rec_filter_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &recfilter_tiramisu);
 
     // Input buffers.
     int b0_extent_2 = SIZE2;
     int b0_extent_1 = SIZE1;
     int b0_extent_0 = SIZE0;
-    tiramisu::buffer buff_b0("buff_b0", 3, {tiramisu::expr(b0_extent_2), tiramisu::expr(b0_extent_1), tiramisu::expr(b0_extent_0)}, tiramisu::p_uint8, NULL, tiramisu::a_input, &recfilter_tiramisu);
+    tiramisu::buffer buff_b0("buff_b0", {tiramisu::expr(b0_extent_2), tiramisu::expr(b0_extent_1), tiramisu::expr(b0_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &recfilter_tiramisu);
     tiramisu::computation b0("[b0_extent_2, b0_extent_1, b0_extent_0]->{b0[i2, i1, i0]: (0 <= i2 <= (b0_extent_2 + -1)) and (0 <= i1 <= (b0_extent_1 + -1)) and (0 <= i0 <= (b0_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &recfilter_tiramisu);
     b0.set_access("{b0[i2, i1, i0]->buff_b0[i2, i1, i0]}");
 
@@ -81,13 +81,13 @@ int main(int argc, char **argv)
     rec_filter_s1.set_access("{rec_filter_s1[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]->buff_rec_filter[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]}");
 
     // Define compute level for "rec_filter".
-    rec_filter_s1.after(rec_filter_s0, computation::root_dimension);
+    rec_filter_s1.after(rec_filter_s0, computation::root);
 
     // Add schedules.
-    rec_filter_s0.tag_parallel_level(1);
-    rec_filter_s0.tag_parallel_level(0);
-    rec_filter_s1.tag_parallel_level(1);
-    rec_filter_s1.tag_parallel_level(0);
+    rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_y"));
+    rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_c"));
+    rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_c"));
+    rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_r4__y"));
 
     recfilter_tiramisu.set_arguments({&buff_b0, &buff_rec_filter});
     recfilter_tiramisu.gen_time_space_domain();

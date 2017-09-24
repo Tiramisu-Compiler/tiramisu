@@ -32,12 +32,12 @@ int main(int argc, char **argv)
     // Output buffers.
     int divergence2d_extent_1 = SIZE1;
     int divergence2d_extent_0 = SIZE0;
-    tiramisu::buffer buff_divergence2d("buff_divergence2d", 2, {tiramisu::expr(divergence2d_extent_1), tiramisu::expr(divergence2d_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_output, &divergence2d_tiramisu);
+    tiramisu::buffer buff_divergence2d("buff_divergence2d", {tiramisu::expr(divergence2d_extent_1), tiramisu::expr(divergence2d_extent_0)}, tiramisu::p_float32, tiramisu::a_output, &divergence2d_tiramisu);
 
     // Input buffers.
     int input_extent_1 = SIZE1;
     int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", 2, {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_float32, NULL, tiramisu::a_input, &divergence2d_tiramisu);
+    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_float32, tiramisu::a_input, &divergence2d_tiramisu);
     tiramisu::computation input("[input_extent_1, input_extent_0]->{input[i1, i0]: (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_float32, &divergence2d_tiramisu);
     input.set_access("{input[i1, i0]->buff_input[i1, i0]}");
 
@@ -67,11 +67,11 @@ int main(int argc, char **argv)
     divergence2d_s1.set_expression(((tiramisu::expr(p0)*(input(tiramisu::var("divergence2d_s1_r4__y"), (tiramisu::var("divergence2d_s1_r4__x") + tiramisu::expr((int32_t)1))) + input(tiramisu::var("divergence2d_s1_r4__y"), (tiramisu::var("divergence2d_s1_r4__x") - tiramisu::expr((int32_t)1))))) + (tiramisu::expr(p1)*(input((tiramisu::var("divergence2d_s1_r4__y") + tiramisu::expr((int32_t)1)), tiramisu::var("divergence2d_s1_r4__x")) + input((tiramisu::var("divergence2d_s1_r4__y") - tiramisu::expr((int32_t)1)), tiramisu::var("divergence2d_s1_r4__x"))))));
     divergence2d_s1.set_access("{divergence2d_s1[divergence2d_s1_r4__y, divergence2d_s1_r4__x]->buff_divergence2d[divergence2d_s1_r4__y, divergence2d_s1_r4__x]}");
 
-    divergence2d_s1.after(divergence2d_s0, computation::root_dimension);
+    divergence2d_s1.after(divergence2d_s0, computation::root);
 
     // Add schedules.
-    divergence2d_s0.tag_parallel_level(0);
-    divergence2d_s1.tag_parallel_level(0);
+    divergence2d_s0.tag_parallel_level(tiramisu::var("divergence2d_s0_y"));
+    divergence2d_s1.tag_parallel_level(tiramisu::var("divergence2d_s1_r4__y"));
 
     divergence2d_tiramisu.set_arguments({&buff_input, &buff_divergence2d});
     divergence2d_tiramisu.gen_time_space_domain();
