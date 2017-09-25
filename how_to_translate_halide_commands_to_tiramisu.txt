@@ -1,6 +1,6 @@
 - f0.compute_root() in Halide should be translated to
 	- Let's assume that f1 is the consumer of f0.
-	- f0.before(f1, computation::root_dimension);
+	- f0.before(f1, computation::root);
 
 - Tuples: translate an assignment of a Tuple to a function
 	as the diffinition of multiple computations.
@@ -17,18 +17,9 @@
 	the tuple f(i)), should be translated into f0(i) or
 	something similar.
 
-- parallel(y, val): implemented as two calls to Tiramsiu
-	- split(y, y1, y2, val)
-	- tag_parallel_level(y1) or tag_parallel_level(y2) (not sure what are the semantics of parallel in Halide).
-
-- reorder_storage():
-	- Should be implemented by creating a map that reorders dimensions
-	  exactly like we do for the interchange() command in Tiramisu (which
-	  interchanges loop nest levels).
-
 - Bound inference
 	- An example of how to do bound inference in case of non-affine bounds
-	is provided in test_24. Basically, the non-affine bounds are "hidden"
+	is provided in test_24. Basically, the non-affine bounds should be "hidden"
 	in constants (in test_24, we create T1 and T2 to hide the non-affine
 	bounds).
 
@@ -117,16 +108,3 @@
 	- Examples:
 	    - Reduction : test_26 and test_54.cpp.
 	    - False update: test_25.
-
-- store_at()
-	- store_at() in Tiramisu is different from the store_at in Halide.
-	A Halide call such as producer.store_at(consumer, level) should
-	be translated in Tiramisu to producer.store_at(level). Telling
-       Tiramisu about the "consumer" is not useful, since the function store_at
-       is not going to schedule the producer anyway. It is only going to
-       allocate a buffer and schedule the allocation operation to be executed
-       before the producer.  In Tiramisu, we assume that the producer has
-       already been scheduled (Layer II) before deciding about where it is
-       going to be stored (layer III).
-       In my understanding, the "consumer" argument in the case of Halide is
-       spurious and is not needed in our case.
