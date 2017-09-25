@@ -2052,7 +2052,7 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
 
     tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
             *new_expression,
-            true, p_none, C.function);
+            true, p_none, C.get_function());
 
     this->set_auto_allocate(false);
 
@@ -2206,7 +2206,7 @@ void computation::set_low_level_schedule(std::string map_str)
 
 void tiramisu::computation::set_low_level_schedule(isl_map *map)
 {
-    this->function->use_low_level_scheduling_commands = true;
+    this->fct->use_low_level_scheduling_commands = true;
     this->set_schedule(map);
 }
 
@@ -2779,7 +2779,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
                                 (*dim_sizes),
       	                        this->get_data_type(),
                                 type,
-                                this->function);
+                                this->get_function());
 	    this->automatically_allocated_buffer = buff;
         }
 	else // automatic buffer already allocated.
@@ -2800,7 +2800,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
                                 (*dim_sizes),
       	                        this->get_data_type(),
                                 type,
-                                this->function);
+                                this->get_function());
 	    this->automatically_allocated_buffer = buff;
         }
 	else // first definition has an allocated array.
@@ -6018,7 +6018,7 @@ void tiramisu::computation::add_predicate(tiramisu::expr predicate)
   * by users.
   */
 void tiramisu::computation::init_computation(std::string iteration_space_str,
-        tiramisu::function *fct,
+        tiramisu::function *fction,
         const tiramisu::expr &e,
         bool schedule_this_computation,
         tiramisu::primitive_t t)
@@ -6028,7 +6028,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 
     DEBUG(3, tiramisu::str_dump("Constructing the computation: " + iteration_space_str));
 
-    assert(fct != NULL);
+    assert(fction != NULL);
     assert(iteration_space_str.length() > 0 && ("Empty iteration space"));
 
     // Initialize all the fields to NULL (useful for later asserts)
@@ -6049,7 +6049,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
 
-    this->ctx = fct->get_isl_ctx();
+    this->ctx = fction->get_isl_ctx();
 
     iteration_domain = isl_set_read_from_str(ctx, iteration_space_str.c_str());
     this->name_unnamed_dimensions();
@@ -6064,8 +6064,8 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
         }
     }
 
-    function = fct;
-    function->add_computation(this);
+    fct = fction;
+    fct->add_computation(this);
     this->set_identity_schedule_based_on_iteration_domain();
     this->set_expression(e);
     this->set_inline(false);
@@ -6118,7 +6118,7 @@ tiramisu::computation::computation()
 
     this->iteration_domain = NULL;
     this->name = "";
-    this->function = NULL;
+    this->fct = NULL;
     this->is_let = false;
 }
 
@@ -6282,7 +6282,7 @@ const tiramisu::expr &tiramisu::computation::get_expr() const
   */
 tiramisu::function *tiramisu::computation::get_function() const
 {
-    return function;
+    return fct;
 }
 
 /**

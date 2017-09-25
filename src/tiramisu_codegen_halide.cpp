@@ -2208,8 +2208,8 @@ void computation::create_halide_assignment()
         int access_dims = isl_space_dim(space, isl_dim_out);
 
         // Fetch the actual buffer.
-        const auto &buffer_entry = this->function->get_buffers().find(buffer_name);
-        assert(buffer_entry != this->function->get_buffers().end());
+        const auto &buffer_entry = this->fct->get_buffers().find(buffer_name);
+        assert(buffer_entry != this->get_function()->get_buffers().end());
 
         const auto &tiramisu_buffer = buffer_entry->second;
         DEBUG(3, tiramisu::str_dump("A Tiramisu buffer that corresponds to the buffer indicated in the access relation was found."));

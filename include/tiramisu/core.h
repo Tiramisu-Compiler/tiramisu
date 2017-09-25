@@ -1203,7 +1203,7 @@ private:
     /**
       * The function where this computation is declared.
       */
-    tiramisu::function *function;
+    tiramisu::function *fct;
 
     /**
       * An isl_ast_expr representing the index of the array where the computation
