@@ -1633,7 +1633,7 @@ tiramisu::computation *computation::store_at(tiramisu::computation &comp,
 
     this->automatically_allocated_buffer = buff;
 
-    tiramisu::computation *allocation = buff->allocate_at(&comp, L0);
+    tiramisu::computation *allocation = buff->allocate_at(comp, L0);
     this->bind_to(buff);
     allocation->before(comp, L0);
 
@@ -2011,19 +2011,18 @@ bool buffer::has_constant_extents()
     return constant_extent;
 }
 
-tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
+tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(C != NULL);
     assert(level >= tiramisu::computation::root_dimension);
-    assert(level < (int) isl_set_dim(C->get_iteration_domain(), isl_dim_set));
+    assert(level < (int) isl_set_dim(C.get_iteration_domain(), isl_dim_set));
 
     DEBUG(3, tiramisu::str_dump("Computing the iteration domain for the allocate() operation"));
-    DEBUG(3, tiramisu::str_dump("Computation name " + C->get_name() + ", Level = " + std::to_string(level)));
+    DEBUG(3, tiramisu::str_dump("Computation name " + C.get_name() + ", Level = " + std::to_string(level)));
 
-    isl_set *iter = C->get_iteration_domains_of_all_definitions();
+    isl_set *iter = C.get_iteration_domains_of_all_definitions();
 
     DEBUG(3, tiramisu::str_dump(
               "The union of iteration domains of the computations with which we allocate (all their definitions): ",
@@ -2037,9 +2036,9 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
                                    isl_set_dim(iter, isl_dim_set) - projection_dimension);
     else
     {
-        iter = isl_set_read_from_str(C->get_ctx(), "{[0]}");
+        iter = isl_set_read_from_str(C.get_ctx(), "{[0]}");
     }
-    std::string new_name = "_allocation_" + C->get_name();
+    std::string new_name = "_allocation_" + C.get_name();
     iter = isl_set_set_tuple_name(iter, new_name.c_str());
     std::string iteration_domain_str = isl_set_to_str(iter);
 
@@ -2053,7 +2052,7 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation *C, int level)
 
     tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
             *new_expression,
-            true, p_none, C->function);
+            true, p_none, C.function);
 
     this->set_auto_allocate(false);
 
@@ -2815,7 +2814,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
     tiramisu::computation *allocation;
     if (type == tiramisu::a_temporary)
     {
-        allocation = buff->allocate_at(this, computation::root_dimension);
+        allocation = buff->allocate_at(*this, computation::root_dimension);
         allocation->set_name("_allocation_" + this->name);
         // Schedule all allocations at the beginning
         this->get_function()->automatically_allocated.push_back(allocation);

@@ -41,7 +41,7 @@ void generate_function(std::string name, int size, int val0)
                                    &function0);
     temp.set_access("[N]->{temp[i,j]->temp_buffer[j]}");
     result.set_access("[N]->{result[i,j]->result_buffer[i,j]}");
-    tiramisu::computation *allocation = temp_buffer.allocate_at(&temp, 0);
+    tiramisu::computation *allocation = temp_buffer.allocate_at(temp, 0);
 
     // Scheduling
     allocation->before(temp, i);

@@ -994,15 +994,16 @@ public:
            tiramisu::argument_t argt, tiramisu::function *fct);
 
     /**
-     * Indicate when to allocate the buffer (i.e., the schedule).
+     * \brief Indicate when to allocate the buffer (i.e., the schedule).
      *
-     * The buffer is allocated in the same loop of the computation \p C
+     * \details The buffer is allocated in the same loop of the computation \p C
      * at the loop level \p level (but the order between the two is not
      * specified).
      *
      * For example, let's assume that buf0 is a buffer, and let's assume
      * that we have three computations C1, C2 and C3 scheduled as follow
      *
+     * \code
      * for (i=0; i<N; i++)
      *      for (j=0; j<N; j++)
      *           for (k=0; k<N; k++)
@@ -1015,17 +1016,21 @@ public:
      *              C2;
      *              C3;
      *           }
+     * \endcode
      *
      * The following Tiramisu code
      *
-     * tiramisu::computation *C4 = buf0.allocate_before(C2, 1);
-     * C4->before(C2, 1);
+     * \code
+     * tiramisu::computation *C4 = buf0.allocate_at(C2, j);
+     * C4->before(C2, j);
+     * \endcode
      *
      * would allocate buf0 in the loop surrounding C2 at the loop
      * level 0. The allocation computation is called C4, where
      * C4 is scheduled to execute before C2 at the loop level 1.
      * The generated code would look like the following code:
      *
+     * \code
      * for (i=0; i<N; i++)
      *      for (j=0; j<N; j++)
      *           for (k=0; k<N; k++)
@@ -1041,25 +1046,28 @@ public:
      *              C3;
      *           }
      *      }
+     * \endcode
+     *
      */
-    tiramisu::computation *allocate_at(tiramisu::computation *C, int level);
+    tiramisu::computation *allocate_at(tiramisu::computation &C, int level);
 
     /**
-      * Dump the function on standard output (dump most of the fields of
-      * the buffer class).
-      * This is mainly useful for debugging.
+      * \brief Dump the function on standard output.
+      * \details This functions dumps most of the fields of the buffer class
+      * but not all of them.  It is mainly useful for debugging.
       * If \p exhaustive is set to true, all the fields of the buffer
-      * class are printed.  This is useful to find potential initialization
-      * problems.
+      * class are printed.
       */
     void dump(bool exhaustive) const;
 
     /**
-      * Return the type of the argument (if the buffer is an argument).
-      * Three possible types:
-      *  - a_input: for inputs of the function,
-      *  - a_output: for outputs of the function,
-      *  - a_temporary: for buffers used as temporary buffers within
+      * \brief If this buffer is an argument to a tiramisu::function,
+      * return the type of the argument
+      *
+      * \details Three possible types exist:
+      *  - tiramisu::a_input: for inputs of the function,
+      *  - tiramisu::a_output: for outputs of the function,
+      *  - tiramisu::a_temporary: for buffers used as temporary buffers within
       *  the function (any temporary buffer is allocated automatically by
       *  the Tiramisu runtime at the entry of the function and is
       *  deallocated at the exit of the function).
@@ -1091,7 +1099,8 @@ public:
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
 
     /**
-     * Return true if the buffer has constant extent (literal integer extents).
+     * Return true if all extents of the buffer are literal integer
+     * contants (e.g., 4, 10, 100, ...).
      */
     bool has_constant_extents();
 
@@ -1102,32 +1111,32 @@ public:
     const bool is_allocated() const;
 
     /**
-     * Mark an array as allocated.
+     * Mark an array as already allocated.
      */
     void mark_as_allocated();
 };
 
 /**
-  * A class that represents computations.
-  * A computation is an expression associated with an iteration domain.
+  * \brief A class that represents computations.
+  *
+  * \details A computation is an expression associated with an iteration domain.
   * A computation indicates what needs to be computed (the expression
   * that should be computed).
   * A computation has three representations:
-  * - Level 1: this level specifies "what" should be computed but does
+  * - Level I: this level specifies "what" should be computed but does
   *   not specify "when" (order) and "where" (on which processor) each
   *   expression should be computed.
   *   This level also does not specify where computations should be stored
   *   in memory and in which data layout.
-  * - Level 2: this level specifies "what" should be computed, "when", i.e.
+  * - Level II: this level specifies "what" should be computed, "when", i.e.
   *   the order in which the computation should be executed with regard to
   *   the other computations. And "where" each computation should be
   *   computed (i.e., on which processor).
   *   This level still does not specify where computations should be stored
   *   in memory and their data layout.
-  * - Level 3: this level is similar to Level 2 but it specifies where
+  * - Level III: this level is similar to Level 2 but it specifies where
   *   computations should be stored in memory and the data layout.
   */
-
 class computation
 {
     friend function;
@@ -2204,9 +2213,9 @@ protected:
 public:
 
     /**
-      * Constructor for computations.
+      * \brief Constructor for computations.
       *
-      * \p iteration_domain_str is a string that represents the iteration
+      * \details \p iteration_domain is a string that represents the iteration
       * domain of the computation.  The iteration domain should be written
       * in the ISL format (http://barvinok.gforge.inria.fr/barvinok.pdf Section 1.2.1).
       *
@@ -2215,34 +2224,39 @@ public:
       * loop has an execution instance for each loop iteration in which
       * it executes). Each execution instance of a statement in a loop
       * nest is uniquely represented by an identifier and a tuple of
-      * integers  (typically,  the  values  of  the  outer  loop  iterators).
+      * integers  (typically, the values of the outer loop iterators).
       *
       * For example, the iteration space of the statement S0 in the following
       * loop nest
+      *
+      * \code
       * for (i=0; i<2; i++)
       *   for (j=0; j<3; j++)
       *      S0;
+      * \endcode
       *
-      * is {S0(0,0), S0(0,1), S0(0,2), S0(1,0), S0(1,1), S0(1,2)}
+      * is {S0[0,0], S0[0,1], S0[0,2], S0[1,0], S0[1,1], S0[1,2]}
       *
-      * S0(0,0) is the execution instance of S0 in the iteration (0,0).
+      * S0[0,0] is the execution instance of S0 in the iteration [0,0].
       *
       * The previous set of integer tuples can be compactly described
       * by affine constraints as follows
       *
-      * {S0(i,j): 0<=i<2 and 0<=j<3}
+      * {S0[i,j]: 0<=i<2 and 0<=j<3}
       *
       * In general, the loop nest
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<M; j++)
       *      S0;
+      * \endcode
       *
       * has the following iteration domain
       *
-      * {S0(i,j): 0<=i<N and 0<=j<M}
+      * {S0[i,j]: 0<=i<N and 0<=j<M}
       *
-      * This should be read as: the set of points (i,j) such that
+      * This should be read as: the set of points [i,j] such that
       * 0<=i<N and 0<=j<M.
       *
       * The name of the computation in the iteration domain should not
@@ -2284,42 +2298,44 @@ public:
       *
       * Examples about bound inference are provided in test_22 to test_25.
       */
-    computation(std::string iteration_domain_str, tiramisu::expr e,
+    computation(std::string iteration_domain, tiramisu::expr e,
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
 
     /**
-       * Add a let statement that is associated to this computation.
-       * The let statement will be added just before the computation. The
-       * variable defined by the let statement will be accessible by this
-       * computation alone. i.e., it will not be defined in any other
-       * computation.
+       * \brief Add a let statement that is associated to this computation.
+       * \details The let statement will be executed before the computation
+       * (more precisely, between this computation and any computation that
+       * preceeds it). The variable defined by the let statement can be
+       * accessible by this computation alone. i.e., it cannot be used
+       * in any other computation.
        */
      void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
-     * Add new computations to this computation.  The arguments of this function
-     * are identical to the arguments of the computation constructor.  In general,
-     * this function is used to express reductions and to express computation
-     * updates.
+     * \brief Add definitions of computations that have the same name as this
+     * computation.
      *
-     * The class "computation" is usually used to represent a set of computations,
-     * for example each one of C(0), C(1) and C(2) is considered to be a computation,
-     * and all of them together are instances C.
+     * \details The arguments of this function are identical to the arguments of
+     * the computation constructor.  In general, this function is used to express
+     * reductions and to express computation updates.
      *
-     * If the user has already declare a set of computations C and wants to add more
-     * computations to this set he can use this function. For example, let's assume
-     * we have declared the following set of computations
+     * In other words, this function should be used if the user has already declared
+     * a set of computations C and wants to declare more computations that have the
+     * same name.
      *
+     * Example: Let's assume we want to declare the following two computations.
+     *
+     * \code
+     * // First computation
      * {C[i]: 0<=i<10}: 0
+     *
+     * // Second computation
      * {C[i]: 10<=i<20}: 1
+     * \endcode
      *
-     * These are two sets declaring 10 computations of C each.
-     * The user can declare the first set of computations as usual (using the computation()
-     * constructor) and should add the second set of computations using add_definitions()
-     *
-     * The newly added computations must have the same name and the same access function
-     * as the initial set of computations but can have a different expression.
+     * To do this this, we can declare the first computation using the computation
+     * constructor and declare the second computation using add_definitions().
      *
      * The use of add_computation is purely due to restrictions imposed by the C++ language
      * and not by the Tiramisu framework itself.  This is mainly because in C++, it is not
@@ -2331,7 +2347,10 @@ public:
      * In order to declare the second set of computations, we chose to use the add_definitions
      * function to avoid this problem.
      *
-     * An example of using this function is available in test_26 and test_26.
+     * The newly added computations must have the same name and the same access function
+     * as the initial set of computations but can have a different expression.
+     *
+     * An example of using this function is available in test_26.
      *
      */
      void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
@@ -2339,8 +2358,10 @@ public:
                            tiramisu::function *fct);
 
     /**
-     * Add a predicate (condition) on the computation. The computation will be executed
+     * \brief Add a predicate (condition) on the computation. The computation will be executed
      * only if this condition is true.
+     *
+     * \details The predicate can be an affine or a non-affine expression.
      * If you need to put a condition around a block of statements (i.e., a sequence of computations),
      * then you can perform that by adding a predicate to each one of those computations.
      * The compiler will then transform automatically the multiple conditions (condition around each
@@ -2350,6 +2371,7 @@ public:
 
     /**
       * \brief Schedule this computation to run after the computation \p comp.
+      *
       * \details This computation is placed after \p comp in the loop level \p level.
       * \p level is a loop level in this computation.
       * 
@@ -2367,6 +2389,7 @@ public:
       *
       * The corresponding code is
       *
+      * \code
       *     for (i=0; i<N; i++)
       *     {
       *         for (j=0; j<N; j++)
@@ -2374,29 +2397,34 @@ public:
       *         for (j=0; j<N; j++)
       *             S1;
       *     }
+      * \endcode
       *
       * S1.after(S0, j)
       *
       * means: S1 is after S0 at the loop level j (which is 1) and would yield
       * the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *   {
       *     S0;
       *     S1;
       *   }
+      * \endcode
       *
       * S1.after(S0, computation::root)
       * means S1 is after S0 at the main program level and would yield
       * the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S0;
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S1;
+      * \endcode
       *
       * Note that as with all other scheduling methods:
       *     - Calling this method with the same computations overwrites the level if it is
@@ -2410,9 +2438,10 @@ public:
     void after(computation &comp, tiramisu::var iterator);
 
     /*
-     * Allocate a buffer for the computation automatically.  The size of the buffer
+     * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.
-     * Assuming the name of the computation is C, the name of the generated buffer
+     * 
+     * \details Assuming the name of the computation is C, the name of the generated buffer
      * is _C_buffer.
      *
      * \p type is the type of the argument. Three possible types exist:
@@ -2426,7 +2455,9 @@ public:
     void allocate_and_map_buffer_automatically(tiramisu::argument_t type = tiramisu::a_temporary);
 
     /**
-      * Apply a transformation on the schedule. This transformation is from
+      * \brief Apply a transformation on the schedule.
+      *
+      * \details This transformation is from
       * the time-space domain to the time-space domain.  It is applied on
       * the range of the schedule (i.e., on the output of the schedule relation).
       *
@@ -2442,13 +2473,13 @@ public:
     void apply_transformation_on_schedule(std::string map_str);
 
     /**
-      * Schedule this computation to run before the computation \p consumer
+      * \brief Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.
       *
-      * Use computation::root to indicate the root dimension
-      * (i.e. the outermost time-space dimension).
-      *
-      * Note that as with all other scheduling methods:
+      * \details Notes
+      *	    - The loop level \p L is a loop level of this computation.
+      *	    - Use computation::root to indicate the root dimension
+      *	      (i.e. the outermost time-space dimension).
       *     - Calling this method with the same computations overwrites the level if it is
       *     higher.
       *     - A computation being scheduled after another computation at level L means it is
