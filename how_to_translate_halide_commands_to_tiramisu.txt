@@ -69,14 +69,15 @@
                 res[1] = 0;
         Case IV- True update and true reduction
                 res[0] = 0;
-                res[0] = res + 2;
+                res[0] = res[0] + 2;
                 for (int k=0; k<N; k++)
                     res[0] = res[0] + 1;
             It should be translated to
                 res[0][0] = 0;
-                res[0][1] = res[0] + 1;
+                res[0][1] = res[0][0] + 1;
                 for (int k=0; k<N; k++)
-                    res[0][k] = res[0][k-1] + 1;
+                    res[0][(k+1)+1] = res[0][(k)+1] + 1;
+
     - Rules
         - Reductions and true updates have the same algorithm in general (because both are updates)
         - A true reduction is a special case of an update.  A false reduction is simply an update
@@ -97,8 +98,8 @@
                        In these reductions, the computation is updated by many iteration of the reduction
                        loop.  In this case we need to adjust the above method.  We should compute
                        the index as follows:
-                       for (k = 0; k<N; k++)
-                            res[k + previous_index] = res[k-1 + previous_index] + 1;
+                       for (k = init; k<N; k++)
+                            res[(k-init+1) + previous_index] = res[(k-init) + previous_index] + 1;
                     - Computing the index of a false reduction is identical to computing the index of
                     an update. Only true updates are different.
             - In layer III (data mapping), you should eliminate the expanded dimension by mapping
@@ -108,3 +109,15 @@
 	- Examples:
 	    - Reduction : test_26 and test_54.cpp.
 	    - False update: test_25.
+	- Example:
+	        res[0] = 0;
+	        res[0] = res[0] + 3;
+                res[0] = res[0] + 2;
+                for (int k=1; k<N; k++)
+                    res[0] = res[0] + 1;
+            It should be translated to
+                res[0][0] = 0;
+                res[0][1] = res[0][0] + 1;
+                res[0][2] = res[0][1] + 1;
+                for (int k=1; k<N; k++)
+                    res[0][(k-1+1)+2] = res[0][(k-1)+2] + 1;
