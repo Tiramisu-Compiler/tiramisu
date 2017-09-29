@@ -2244,7 +2244,9 @@ void computation::create_halide_assignment()
             {
                 int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
                 strides_vector.push_back(stride_expr);
-                stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
+                stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr,
+								    replace_original_indices_with_transformed_indices(tiramisu_buffer->get_dim_sizes()[dim_idx],
+														      this->get_iterators_map()));
             }
         }
 
