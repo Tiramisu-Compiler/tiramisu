@@ -1,3 +1,6 @@
+- Dynamic buffer size: to specify a buffer size that is not a literal constant.
+    - An example is provided is test_87
+
 - f0.compute_root() in Halide should be translated to
 	- Let's assume that f1 is the consumer of f0.
 	- f0.before(f1, computation::root);
