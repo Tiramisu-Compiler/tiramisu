@@ -26,7 +26,6 @@ namespace tiramisu
 {
 
 Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
-Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr);
 std::string generate_new_variable_name();
 
 std::vector<computation *> function::get_computation_by_name(std::string name) const
@@ -1916,7 +1915,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                 std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
                 tiramisu::expr tiramisu_let = replace_original_indices_with_transformed_indices(l_stmt.second, comp->get_iterators_map());
-                Halide::Expr let_expr = halide_expr_from_tiramisu_expr(comp, ie, tiramisu_let);
+                Halide::Expr let_expr = halide_expr_from_tiramisu_expr(comp->get_function(), ie, tiramisu_let);
                         result = Halide::Internal::LetStmt::make(
                              l_stmt.first,
                              let_expr,
@@ -1931,7 +1930,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 std::vector<isl_ast_expr *> ie = {}; // Dummy variable.
                 tiramisu::expr tiramisu_predicate = replace_original_indices_with_transformed_indices(comp->get_predicate(),
                                                                                                       comp->get_iterators_map());
-                Halide::Expr predicate = halide_expr_from_tiramisu_expr(comp, ie, tiramisu_predicate);
+                Halide::Expr predicate = halide_expr_from_tiramisu_expr(comp->get_function(), ie, tiramisu_predicate);
                 DEBUG(3, tiramisu::str_dump("Adding a predicate around the computation."); std::cout << predicate);
                 DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
@@ -2034,6 +2033,8 @@ void function::gen_halide_stmt()
     // Generate the statement that represents the whole function
     stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
 
+    DEBUG(3, tiramisu::str_dump("The following Halide statement was generated:\n"); std::cout << stmt << std::endl);
+
     // Allocate buffers that are not passed as an argument to the function
     for (const auto &b : this->get_buffers())
     {
@@ -2047,14 +2048,9 @@ void function::gen_halide_stmt()
             // innermost to outermost; thus, we need to reverse the order.
             for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
             {
-                // TODO: if the size of an array is a computation access
-                // this is not supported yet. Mainly because in the code below
-                // we pass NULL pointers for parameters that are necessary
-                // in case we are computing the halide expression from a tiramisu expression
-                // that represents a computation access.
                 const auto sz = buf->get_dim_sizes()[i];
                 std::vector<isl_ast_expr *> ie = {};
-                halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
+                halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(this, ie, sz));
             }
             stmt = Halide::Internal::Allocate::make(
                        buf->get_name(),
@@ -2083,7 +2079,7 @@ void function::gen_halide_stmt()
         std::vector<isl_ast_expr *> ie = {};
         stmt = Halide::Internal::LetStmt::make(
                    param.get_name(),
-                   generator::halide_expr_from_tiramisu_expr(NULL, ie, param.get_expr()),
+                   generator::halide_expr_from_tiramisu_expr(this, ie, param.get_expr()),
                    stmt);
     }
 
@@ -2107,7 +2103,7 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
-Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr)
+Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
 
@@ -2130,7 +2126,51 @@ Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast
     return index;
 }
 
-Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr)
+Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *shape, std::vector<tiramisu::expr> index_expr)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(index_expr.size() > 0);
+
+    // ISL dimension is ordered from outermost to innermost.
+
+    Halide::Expr index = 0;
+    for (int i = dims; i >= 1; --i)
+    {
+	std::vector<isl_ast_expr *> ie = {};
+        Halide::Expr operand_h = generator::halide_expr_from_tiramisu_expr(NULL, ie, index_expr[i-1]);
+        index += operand_h * shape[dims - i].stride;
+    }
+
+    DEBUG_INDENT(-4);
+
+    return index;
+}
+
+Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &strides, std::vector<tiramisu::expr> index_expr)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(index_expr.size() > 0);
+
+    // ISL dimension is ordered from outermost to innermost.
+
+    Halide::Expr index = 0;
+    for (int i = dims; i >= 1; --i)
+    {
+	std::vector<isl_ast_expr *> ie = {};
+        Halide::Expr operand_h = generator::halide_expr_from_tiramisu_expr(NULL, ie, index_expr[i-1]);
+        index += operand_h * strides[dims - i];
+    }
+
+    DEBUG_INDENT(-4);
+
+    return index;
+}
+
+Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
 
@@ -2172,7 +2212,8 @@ void computation::create_halide_assignment()
                          this->expression.dump(false));
         DEBUG_NEWLINE(10);
 
-        Halide::Expr result = generator::halide_expr_from_tiramisu_expr(this,
+        Halide::Expr result =
+	    generator::halide_expr_from_tiramisu_expr(this->get_function(),
                               this->get_index_expr(),
                               this->expression);
 
@@ -2244,7 +2285,7 @@ void computation::create_halide_assignment()
             {
                 int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
                 strides_vector.push_back(stride_expr);
-                stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr,
+                stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this->get_function(), empty_index_expr,
 								    replace_original_indices_with_transformed_indices(tiramisu_buffer->get_dim_sizes()[dim_idx],
 														      this->get_iterators_map()));
             }
@@ -2258,9 +2299,9 @@ void computation::create_halide_assignment()
 
         Halide::Expr index;
         if (tiramisu_buffer->has_constant_extents())
-            index = tiramisu::linearize_access(buf_dims, shape, this->index_expr[0]);
+            index = tiramisu::generator::linearize_access(buf_dims, shape, this->index_expr[0]);
         else
-            index = tiramisu::linearize_access(buf_dims, strides_vector, this->index_expr[0]);
+            index = tiramisu::generator::linearize_access(buf_dims, strides_vector, this->index_expr[0]);
 
         DEBUG(3, tiramisu::str_dump("After linearization: "); std::cout << index << std::endl);
 
@@ -2299,9 +2340,9 @@ void computation::create_halide_assignment()
                 {
                     int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
                     param.set_min_constraint(i, Halide::Expr(0));
-                    param.set_extent_constraint(i, generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]));
+                    param.set_extent_constraint(i, generator::halide_expr_from_tiramisu_expr(this->get_function(), empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]));
                     param.set_stride_constraint(i, stride_expr);
-                    stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
+                    stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(this->get_function(), empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
                 }
             }
         }
@@ -2317,7 +2358,7 @@ void computation::create_halide_assignment()
 
         this->stmt = Halide::Internal::Store::make (
                          buffer_name,
-                         generator::halide_expr_from_tiramisu_expr(this, this->index_expr, tiramisu_rhs),
+                         generator::halide_expr_from_tiramisu_expr(this->get_function(), this->index_expr, tiramisu_rhs),
                          index, param, Halide::Internal::const_true(type.lanes()));
 
         DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
@@ -2330,7 +2371,7 @@ void computation::create_halide_assignment()
     DEBUG_INDENT(-4);
 }
 
-Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
+Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
                                                        std::vector<isl_ast_expr *> &index_expr,
                                                        const tiramisu::expr &tiramisu_expr)
 {
@@ -2340,6 +2381,22 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
     DEBUG_INDENT(4);
 
     DEBUG(10, tiramisu::str_dump("Input Tiramisu expression: "); tiramisu_expr.dump(false));
+    if (fct != NULL)
+    {
+	DEBUG(10, tiramisu::str_dump("The input function is " + fct->get_name()));
+    }
+    else
+    {
+	DEBUG(10, tiramisu::str_dump("The input function is NULL."));
+    }
+    if (index_expr.size() > 0)
+    {
+	DEBUG(10, tiramisu::str_dump("The input index_expr is not empty."));
+    }
+    else
+    {
+	DEBUG(10, tiramisu::str_dump("The input index_expr is empty."));
+    }
 
     if (tiramisu_expr.get_expr_type() == tiramisu::e_val)
     {
@@ -2394,19 +2451,19 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
         if (tiramisu_expr.get_n_arg() > 0)
         {
             tiramisu::expr expr0 = tiramisu_expr.get_operand(0);
-            op0 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr0);
+            op0 = generator::halide_expr_from_tiramisu_expr(fct, index_expr, expr0);
         }
 
         if (tiramisu_expr.get_n_arg() > 1)
         {
             tiramisu::expr expr1 = tiramisu_expr.get_operand(1);
-            op1 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr1);
+            op1 = generator::halide_expr_from_tiramisu_expr(fct, index_expr, expr1);
         }
 
         if (tiramisu_expr.get_n_arg() > 2)
         {
             tiramisu::expr expr2 = tiramisu_expr.get_operand(2);
-            op2 = generator::halide_expr_from_tiramisu_expr(comp, index_expr, expr2);
+            op2 = generator::halide_expr_from_tiramisu_expr(fct, index_expr, expr2);
         }
 
         switch (tiramisu_expr.get_op_type())
@@ -2522,12 +2579,12 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                 // since we do not have any way to distinguish between which update is the
                 // consumer is consuming exactly.
                 std::vector<tiramisu::computation *> computations_vector
-                        = comp->get_function()->get_computation_by_name(access_comp_name);
+                        = fct->get_computation_by_name(access_comp_name);
                 if (computations_vector.size() == 0)
                 {
                     // Search for update computations.
                     computations_vector
-                            = comp->get_function()->get_computation_by_name("_" + std::string(access_comp_name) + "_update_0");
+                            = fct->get_computation_by_name("_" + std::string(access_comp_name) + "_update_0");
                     assert((computations_vector.size() > 0) && "Computation not found.");
                 }
 
@@ -2541,8 +2598,8 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                 assert(buffer_name != NULL);
                 DEBUG(10, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
 
-                const auto &buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
-                assert(buffer_entry != comp->get_function()->get_buffers().end());
+                const auto &buffer_entry = fct->get_buffers().find(buffer_name);
+                assert(buffer_entry != fct->get_buffers().end());
 
                 const auto &tiramisu_buffer = buffer_entry->second;
 
@@ -2556,6 +2613,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
 
                 if (tiramisu_buffer->has_constant_extents())
                 {
+		    DEBUG(10, tiramisu::str_dump("Buffer has constant extents."));
                     for (size_t i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
                     {
                         shape[i].min = 0;
@@ -2567,28 +2625,62 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                 }
                 else
                 {
+		    DEBUG(10, tiramisu::str_dump("Buffer has non-constant extents."));
                     std::vector<isl_ast_expr *> empty_index_expr;
                     Halide::Expr stride_expr = Halide::Expr(1);
                     for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
                     {
                         int dim_idx = tiramisu_buffer->get_dim_sizes().size() - i - 1;
                         strides_vector.push_back(stride_expr);
-                        stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(comp, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
+                        stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(fct, empty_index_expr, tiramisu_buffer->get_dim_sizes()[dim_idx]);
                     }
                 }
+	        DEBUG(10, tiramisu::str_dump("Buffer strides have been computed."));
 
                 if (tiramisu_expr.get_op_type() == tiramisu::o_access)
                 {
-                    print_isl_ast_expr_vector(index_expr);
-
                     Halide::Expr index;
 
-                    if (tiramisu_buffer->has_constant_extents())
-                        index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
-                    else
-                        index = tiramisu::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, index_expr[0]);
+		    // If index_expr is empty, and since tiramisu_expr is
+		    // an access expression, this means that index_expr was not
+		    // computed using the statement generator because this
+		    // expression is not an expression that is associated with
+		    // a computation. It is rather an expression used by
+		    // a computation (for example, as the size of a buffer
+		    // dimension). So in this case, we retrieve the indices directly
+		    // from tiramisu_expr.
+		    // The possible problem in this case, is that the indices
+		    // in tiramisu_expr cannot be adapted to the schedule if
+		    // these indices are i, j, .... This means that these
+		    // indices have to be constant value only. So we check for this.
+		    if (index_expr.size() == 0)
+		    {
+			DEBUG(10, tiramisu::str_dump("index_expr is empty. Retrieving access indices directly from the tiramisu access expression without scheduling."));
 
-                    index_expr.erase(index_expr.begin());
+			for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+			{
+			   // Actually any access that does not require
+			   // scheduling is supported but currently we only
+			   // accept literal constants as anything else was not
+			   // needed til now.
+			   assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
+			}
+
+			if (tiramisu_buffer->has_constant_extents())
+			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, tiramisu_expr.get_access());
+			else
+			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, tiramisu_expr.get_access());
+		    }
+		    else
+		    {
+			DEBUG(10, tiramisu::str_dump("index_expr is NOT empty. Retrieving access indices from index_expr (i.e., retrieving indices adapted to the schedule)."));
+			if (tiramisu_buffer->has_constant_extents())
+			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
+			else
+			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, index_expr[0]);
+
+			index_expr.erase(index_expr.begin());
+		    }
 
                     if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
                     {
@@ -2699,7 +2791,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::computati
                 std::vector<Halide::Expr> vec;
                 for (const auto &e : tiramisu_expr.get_arguments())
                 {
-                    Halide::Expr he = generator::halide_expr_from_tiramisu_expr(comp, index_expr, e);
+                    Halide::Expr he = generator::halide_expr_from_tiramisu_expr(fct, index_expr, e);
                     vec.push_back(he);
                 }
                 result = Halide::Internal::Call::make(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),

@@ -970,8 +970,6 @@ void tiramisu::function::rename_computations()
     DEBUG_INDENT(-4);
 }
 
-
-
 /**
   * Generate an isl AST for the function.
   */
@@ -5924,12 +5922,7 @@ void tiramisu::buffer::dump(bool exhaustive) const
 
         std::cout << "Dimension sizes: ";
         for (const auto &size : dim_sizes)
-        {
-            // TODO: create_halide_expr_from_tiramisu_expr does not support
-            // the case where the buffer size is a computation access.
-            std::vector<isl_ast_expr *> ie = {};
-            std::cout << generator::halide_expr_from_tiramisu_expr(NULL, ie, size) << ", ";
-        }
+		size.dump(false);
         std::cout << std::endl;
 
         std::cout << "Elements type: "

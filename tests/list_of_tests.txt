@@ -6,6 +6,7 @@
 - .between: test_58, 59
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27
+- Dynamic buffer size (buffer size unknown at compile time): test_87
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
 - .get_last_update(): test_68

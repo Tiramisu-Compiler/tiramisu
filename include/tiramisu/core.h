@@ -3394,9 +3394,23 @@ protected:
     /**
      * Create a Halide expression from a  Tiramisu expression.
      */
-    static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::computation *comp,
+    static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
             std::vector<isl_ast_expr *> &index_expr,
             const tiramisu::expr &tiramisu_expr);
+
+    /**
+     * Linearize a multidimensional access to a Halide buffer.
+     * Supposing that we have buf[N1][N2][N3], transform buf[i][j][k]
+     * into buf[k + j*N3 + i*N3*N2].
+     * Note that the first arg in index_expr is the buffer name.  The other args
+     * are the indices for each dimension of the buffer.
+     */
+    //@{
+    static Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr);
+    static Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, std::vector<tiramisu::expr> index_expr);
+    static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, std::vector<tiramisu::expr> index_expr);
+    static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr);
+    //@}
 
     /**
      * Retrieve the access function of the ISL AST leaf node (which represents a

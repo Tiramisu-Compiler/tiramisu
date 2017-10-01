@@ -1205,6 +1205,17 @@ public:
     }
 
     /**
+      * Return true if this expression is a literal constant (i.e., 0, 1, 2, ...).
+      **/
+    bool is_constant() const
+    {
+	if (this->get_expr_type() == tiramisu::e_val)
+		return true;
+	else
+		return false;
+    }
+
+    /**
       * Simplify the expression.
       */
     tiramisu::expr simplify() const
