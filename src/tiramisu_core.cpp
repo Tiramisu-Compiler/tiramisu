@@ -6779,6 +6779,11 @@ void tiramisu::constant::dump(bool exhaustive) const
     }
 }
 
+tiramisu::constant::operator expr()
+{
+    return this->get_expr();
+}
+
 void tiramisu::buffer::set_dim_size(int dim, int size)
 {
     assert(dim >= 0);
