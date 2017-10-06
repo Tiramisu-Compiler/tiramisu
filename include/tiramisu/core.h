@@ -3350,6 +3350,8 @@ public:
       * problems.
       */
     void dump(bool exhaustive) const;
+
+    operator expr();
 };
 
 
