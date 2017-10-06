@@ -1215,6 +1215,14 @@ public:
 		return false;
     }
 
+    bool is_unbounded() const
+    {
+        if (this->get_name() == "_unbounded")
+	    return true;
+	else
+	    return false;
+    }
+
     /**
       * Simplify the expression.
       */
@@ -1261,6 +1269,8 @@ public:
                     case tiramisu::o_mod:
                         return *this;
                     case tiramisu::o_select:
+			return *this;
+                    case tiramisu::o_cond:
 			return *this;
                     case tiramisu::o_lerp:
 			return *this;
@@ -1411,6 +1421,11 @@ public:
                         str +=  "select(" + this->get_operand(0).to_str();
                         str +=  ", " + this->get_operand(1).to_str();
                         str +=  ", " + this->get_operand(2).to_str();
+                        str +=  ")";
+                        break;
+		    case tiramisu::o_cond:
+			str +=  "if(" + this->get_operand(0).to_str();
+                        str +=  "):(" + this->get_operand(1).to_str();
                         str +=  ")";
                         break;
                     case tiramisu::o_lerp:
@@ -1625,6 +1640,24 @@ public:
       * i + j * 2, then this method returns 5 + i * 2.
       */
     expr substitute(std::vector<std::pair<var, expr>> substitutions);
+
+    /** Create a variable that can be used that a dimension is unbounded.
+      * i < tiramisu::expr::unbounded()
+      * means that i does not have an upper bound.
+      * i > tiramisu::expr::unbounded()
+      * means that i does not have a lower bound.
+      */
+    static expr unbounded()
+    {
+	    tiramisu::expr e;
+	    e.name = "_unbounded";
+	    e.etype = tiramisu::e_val;
+            e._operator = tiramisu::o_none;
+            e.defined = true;
+
+            e.dtype = tiramisu::p_none;
+	    return e;
+    }
 };
 
 /**

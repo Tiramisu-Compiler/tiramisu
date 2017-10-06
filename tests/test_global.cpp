@@ -348,6 +348,65 @@ public:
 	success = (dynamic_dimension_into_loop_level(6) == 2);
 	test_results.push_back(std::pair<std::string, bool>("test_global: test 2 for get_dynamic_dimension_into_loop_level", success));
     }
+
+    static void test_names_functions()
+    {
+	tiramisu::global::set_default_tiramisu_options();
+	tiramisu::function function0(FCT_NAME);
+	tiramisu::constant N("N", tiramisu::expr((int32_t) SIZE), p_int32, true, NULL, 0, &function0);
+	tiramisu::var i("i");
+	tiramisu::var j("j");
+
+	tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
+	tiramisu::computation S1("[N]->{S1[i0,i1,i2,i3]: 0<=i0<N and 0<=i1<N and 0<=i2<N and 0<=i3<N}", tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
+	tiramisu::computation S2("[N]->{S2[j]: 0<=j<N}", tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
+	tiramisu::computation S3("[N]->{S3[0]}", tiramisu::expr((uint8_t) 0), true, p_uint8, &function0);
+
+	tiramisu::str_dump("-------- get_loop_levels_number -----------\n");
+	bool success = (S0.get_loop_levels_number() == 2 &&
+		        S1.get_loop_levels_number() == 4 &&
+			S2.get_loop_levels_number() == 1 &&
+			S3.get_loop_levels_number() == 1);
+        test_results.push_back(std::pair<std::string, bool>("test_global: get_loop_levels_number", success));
+
+	tiramisu::str_dump("-------- get_iteration_domain_dimensions_number -----------\n");
+	success = (S0.get_loop_levels_number() == 2 &&
+		        S1.get_loop_levels_number() == 4 &&
+			S2.get_loop_levels_number() == 1 &&
+			S3.get_loop_levels_number() == 1);
+        test_results.push_back(std::pair<std::string, bool>("test_global: get_iteration_domain_dimensions_number", success));
+
+	tiramisu::str_dump("-------- get_loop_level_names -----------\n");
+	success = (S0.get_loop_level_names()[0] == "i" && S0.get_loop_level_names()[1] == "j" &&
+			S1.get_loop_level_names()[0] == "i0" && S1.get_loop_level_names()[1] == "i1" &&
+			S1.get_loop_level_names()[2] == "i2" && S1.get_loop_level_names()[3] == "i3" &&
+			S2.get_loop_level_names()[0] == "j");
+        test_results.push_back(std::pair<std::string, bool>("test_global: get_loop_level_names", success));
+
+	tiramisu::str_dump("-------- set_loop_level_names -----------\n");
+	S0.set_loop_level_names({"x0", "x1"});
+        success = (S0.get_loop_level_names()[0] == "x0" && S0.get_loop_level_names()[1] == "x1");
+        test_results.push_back(std::pair<std::string, bool>("test_global: set_loop_level_names", success));
+
+        tiramisu::str_dump("-------- S0.tile(x0,x1, 8,8, i0,j0,i1,j1) -----------\n");
+	S0.tile(tiramisu::var("x0"), tiramisu::var("x1"), 8, 8, tiramisu::var("i0"), tiramisu::var("j0"), tiramisu::var("i1"), tiramisu::var("j1"));
+	success = (S0.get_loop_level_names()[0] == "i0" && S0.get_loop_level_names()[1] == "j0" &&
+		   S0.get_loop_level_names()[2] == "i1" && S0.get_loop_level_names()[3] == "j1");
+        test_results.push_back(std::pair<std::string, bool>("test_global: S0.tile(x0,x1, 8,8, i0,j0,i1,j1)", success));
+
+        tiramisu::str_dump("-------- S0.vectorize(j1, 8, j10, j11) -----------\n");
+	S0.vectorize(tiramisu::var("j1"), 8, tiramisu::var("j10"), tiramisu::var("j11"));
+	success = (S0.get_loop_levels_number() == 5 &&
+		S0.get_loop_level_names()[0] == "i0" && S0.get_loop_level_names()[1] == "j0" &&
+		S0.get_loop_level_names()[2] == "i1" && S0.get_loop_level_names()[3] == "j10" &&
+		S0.get_loop_level_names()[4] == "j11");
+        test_results.push_back(std::pair<std::string, bool>("test_global: S0.vectorize(j1, 8, j10, j11)", success));
+
+        tiramisu::str_dump("-------- S2.vectorize(j, 8, j0, j1) -----------\n");
+	S2.vectorize(tiramisu::var("j"), 8, tiramisu::var("j0"), tiramisu::var("j1"));
+	success = (S2.get_loop_level_names()[0] == "j0" && S2.get_loop_level_names()[1] == "j1");
+        test_results.push_back(std::pair<std::string, bool>("test_global: S2.vectorize(j, 8, j0, j1)", success));
+    }
 };
 
 }
@@ -362,6 +421,7 @@ int main(int, char **)
     computation_tester::test_get_iteration_domain_dimension_names();
     computation_tester::test_get_dimension_numbers_from_dimension_names();
     computation_tester::test_dynamic_dimension_into_loop_level();
+    computation_tester::test_names_functions();
 
     for (auto const res: test_results)
     {

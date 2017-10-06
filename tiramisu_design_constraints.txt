@@ -1,0 +1,19 @@
+- To Consider:
+    - Use the visitor pattern.
+
+- We can't use ISL only to represent Tiramisu expressions, because the public
+interface of ISL does allow the creation of isl_ast_expr nodes such as select,
+if_then_else, ...
+- We need an "operation" class, "computation" inherits from "operation",
+- Test code has to be written in a tester class that can access private methods
+of tested classes,
+- Currently if a computation is scheduled to be executed using two separate
+loops as in the following example
+    for (i=0; i<10; i++)
+	S0;
+    for (i=10; i<N; i++)
+	S0;
+We do not have any way to say that we wantt o vectorize the first loop nest
+without the second.
+- Currently after transformation, the code may completely change (new loops
+appear), we do not any way to expect or reference those loops.

@@ -1700,7 +1700,24 @@ private:
       * Get the number of dimensions of the iteration
       * domain of the computation.
       */
-    int get_n_dimensions();
+    int get_iteration_domain_dimensions_number();
+
+    /**
+      * Return the names of loop levels.
+      * (i.e., the names of dynamic dimensions in time-space).
+      */
+    std::vector<std::string> get_loop_level_names();
+
+    /**
+      * Get the number of loop levels.
+      */
+    int get_loop_levels_number();
+
+    /**
+      * Get the number of dimensions of the time-space
+      * domain of the computation.
+      */
+    int get_time_space_dimensions_number();
 
     /**
       * Trim the union of schedules of the computation and
@@ -1798,7 +1815,12 @@ private:
     /**
       * Assign a name to iteration domain dimensions that do not have a name.
       */
-    void name_unnamed_dimensions();
+    void name_unnamed_iteration_domain_dimensions();
+
+    /**
+      * Assign a name to iteration domain dimensions that do not have a name.
+      */
+    void name_unnamed_time_space_dimensions();
 
     /**
       * Set an identity schedule for the computation.
@@ -1879,8 +1901,15 @@ private:
       * Users can only set the names of loop levels (dynamic dimensions),
       * the static dimension names are set to default names.
       */
-    void set_loop_level_names(std::vector<int> loop_levels,
-        std::vector<std::string> names);
+    void set_loop_level_names(std::vector<int> loop_levels, std::vector<std::string> names);
+
+    /**
+      * Set the names of loop level dimensions.
+      * The loop level names are specified using \p names.
+      * Users can only set the names of loop levels (dynamic dimensions),
+      * the static dimension names are set to default names.
+      */
+    void set_loop_level_names(std::vector<std::string> names);
 
     /**
       * Set the iteration domain of the computation
@@ -2009,6 +2038,33 @@ private:
     std::vector<tiramisu::computation *> updates;
 
     /**
+      * Update loop level names. This function should be called after each scheduling operation
+      * because scheduling usually changes the original loop level names.
+      * This function erases \p nb_loop_levels_to_erase loop level names starting from the
+      * loop level \p start_erasing. It then inserts the loop level names \p new_names in
+      * \p start_erasing. In other words, it replaces the names of loop levels from
+      * \p start_erasing to \p start_erasing + \p nb_loop_levels_to_erase with the loop levels
+      * indicated by \p new_names.  This function sets the non erased loop levels to be equal to the
+      * original loop level names.
+      *
+      * \p original_loop_level_names : a vector containing the original loop level names (loop level
+      * names before scheduling).
+      *
+      * \p new_names : the new loop level names.
+      *
+      * \p start_erasing : start erasing loop levels from this loop level.
+      *
+      * \p nb_loop_levels_to_erase : number of loop levels to erase.
+      *
+      * Example. Assuming the original loop levels are {i0, i1, i2, i3}
+      *
+      * Calling this->update_names({i0, i1, i2, i3}, {x0, x1}, 1, 2) updates the loop levels to become
+      * {i0, x0, x1, i3}.
+      */
+    void update_names(std::vector<std::string> original_loop_level_names, std::vector<std::string> new_names,
+		      int start_erasing, int nb_loop_levels_to_erase);
+
+    /**
       * A vector describing the access variables in the original definition of  a computation.
       * For every named dimension, a pair representing the index of the named dimension
       * and the name of the dimension is added to access_variables.
@@ -2037,6 +2093,14 @@ protected:
       * results of this computation.
       */
     std::vector<tiramisu::expr>* compute_buffer_size();
+
+    /**
+      * Generates the time-space domain and construct an AST that scans that
+      * time-space domain, then compute the depth of this AST.
+      * This is useful for example to know if all the dimensions of the time-space
+      * domain will correspond to a loop level in the final generated AST.
+      */
+    int compute_maximal_AST_depth();
 
     /**
       * Return the context of the computations.
@@ -2208,7 +2272,6 @@ protected:
     void set_schedule(isl_map *map);
     void set_schedule(std::string map_str);
     // @}
-
 
 public:
 
@@ -3440,14 +3503,18 @@ protected:
 class utility
 {
 public:
-
     /**
-     * Traverse recursively the ISL AST tree.
+     * Traverse recursively the ISL AST tree
+     *
+     * \p node represents the root of the tree to be traversed.
+     *
      * \p dim is the dimension of the loop from which the bounds have to be
-     * extracted. \p upper is a boolean that should be set to true to extract
+     * extracted.
+     *
+     * \p upper is a boolean that should be set to true to extract
      * the upper bound and false to extract the lower bound.
      */
-     static isl_ast_expr *extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
+     static expr extract_bound_expression(isl_ast_node *ast, int dim, bool upper);
 
     /**
      * Return a tiramisu::expr representing the bound of
