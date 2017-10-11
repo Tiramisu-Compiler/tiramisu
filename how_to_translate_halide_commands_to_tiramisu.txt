@@ -112,6 +112,8 @@
 	- Examples:
 	    - Reduction : test_26 and test_54.cpp.
 	    - False update: test_25.
+	    - Tutorials: tutorial_06.cpp, tutorial_08.cpp
+	    - Example of matrix multiplication: test_85.cpp
 	- Example:
 	        res[0] = 0;
 	        res[0] = res[0] + 3;
