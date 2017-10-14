@@ -12,9 +12,9 @@
 #define D1 7
 #define M1 3
 
-#define N2 1023
+#define N2 513
 #define D2 234
-#define M2 4523
+#define M2 725
 
 // ---------------------------------------------------------------------------------
 // TODO: Only need to update the declaration of tiramisu_generated_code ------------
