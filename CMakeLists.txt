@@ -94,12 +94,16 @@ function(new_test id)
     set(test_name test_${id})
     build_g(${generator_target} tests/test_${id}.cpp ${generated_obj})
     build_w(${test_name} "${generated_obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
+    add_test(NAME ${id}_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_name})
     add_test(NAME ${id} COMMAND ${test_name})
+    set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
 
 
 build_g(test_global tests/test_global.cpp "")
+add_test(NAME global_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target test_global)
 add_test(NAME global COMMAND test_global)
+set_tests_properties(global PROPERTIES DEPENDS global_build)
 
 foreach(t ${TIRAMISU_TESTS})
  new_test(${t})
