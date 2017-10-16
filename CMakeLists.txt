@@ -22,6 +22,7 @@ set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering 
 
 FILE(STRINGS test_list TIRAMISU_TESTS)
 FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS)
+FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
 
 include(configure_path.cmake)
 
@@ -131,3 +132,19 @@ endforeach()
 add_custom_target(doc DEPENDS doc/Doxyfile doc/Doxyfile_user doc/Doxyfile_dev)
 add_custom_command(TARGET doc COMMAND doxygen doc/Doxyfile_user)
 add_custom_command(TARGET doc COMMAND doxygen doc/Doxyfile_dev)
+
+add_custom_target(tutorials)
+
+function(new_tutorial id)
+    set(generator_target tutorial_${id}_fct_generator)
+    set(generated_obj build/generated_fct_tutorial_${id}.o)
+    set(tutorial_name tutorial_${id})
+    build_g(${generator_target} tutorials/tutorial_${id}.cpp ${generated_obj})
+    build_w(${tutorial_name} "${generated_obj}" tutorials/wrapper_tutorial_${id}.cpp tutorials/wrapper_tutorial_${id}.h)
+    add_custom_target(run_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+endfunction()
+
+foreach(t ${TIRAMISU_TUTORIALS})
+    new_tutorial(${t})
+endforeach()
