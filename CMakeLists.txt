@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
 enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
+
+execute_process(COMMAND bash generate_config_path.sh)
 
 # Add CMake header files
 set(HEADER_FILES
