@@ -63,6 +63,7 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
+target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 
 function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
