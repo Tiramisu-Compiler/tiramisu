@@ -2,7 +2,7 @@
 LLVM_CONFIG_BIN=
 
 # Example
-#LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm-3.7.0_prefix/bin/
+#LLVM_CONFIG_BIN=/Users/b/Documents/src-not-saved/llvm/llvm_39_prefix/bin/
 
 ############################################################
 # No need to change the following variable paths unless you

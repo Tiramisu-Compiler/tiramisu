@@ -29,6 +29,7 @@ FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
 include(configure_path.cmake)
 
 set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")

@@ -22,10 +22,10 @@ Compiling Tiramisu
         sudo apt-get install autoconf
         sudo apt-get install libtool
 
-- LLVM-3.7 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+- LLVM-3.9 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
-- CMake 3.7 or greater. Instructions on installing CMake can be found on
+- CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
 
 #### Building
@@ -38,10 +38,8 @@ Compiling Tiramisu
 
         llvm-config
 
-An example is provided in the file.
+  An example is provided in the file.
 
-- In configure_paths.cmake, fill in the LLVM_CONFIG_BIN variable
-  and make sure the other variables have correct values.
 
 - Compile the dependencies then compile Tiramisu
 
