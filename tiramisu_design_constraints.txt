@@ -17,3 +17,6 @@ We do not have any way to say that we wantt o vectorize the first loop nest
 without the second.
 - Currently after transformation, the code may completely change (new loops
 appear), we do not any way to expect or reference those loops.
+
+- Use templates for expressions. Current expr are quite hard to work with.
+
