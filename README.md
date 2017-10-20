@@ -38,10 +38,8 @@ Compiling Tiramisu
 
         llvm-config
 
-An example is provided in the file.
+  An example is provided in the file.
 
-- In configure_paths.cmake, fill in the LLVM_CONFIG_BIN variable
-  and make sure the other variables have correct values.
 
 - Compile the dependencies then compile Tiramisu
 
