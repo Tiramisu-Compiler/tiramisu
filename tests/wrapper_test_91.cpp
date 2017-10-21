@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "wrapper_test_90.h"
+#include "wrapper_test_91.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,12 +19,14 @@ int main(int, char **)
     N(0) = SIZE;
 
     Halide::Buffer<uint8_t> reference_buf0(SIZE, SIZE, "reference_buf0");
-    init_buffer(reference_buf0, (uint8_t)5);
+    init_buffer(reference_buf0, (uint8_t)(SIZE*SIZE));
 
     Halide::Buffer<uint8_t> output_buf0(SIZE, SIZE, "output_buf0");
     init_buffer(output_buf0, (uint8_t)0);
 
     tiramisu_generated_code(N.raw_buffer(), output_buf0.raw_buffer());
+
+    print_buffer(output_buf0);
 
     compare_buffers("test_" + std::string(TEST_NUMBER_STR) + "_"  + std::string(TEST_NAME_STR), output_buf0, reference_buf0);
 
