@@ -1238,6 +1238,23 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
             generator::get_rhs_accesses(func, comp, accesses, true);
         }
 
+       /*
+        * Compute the iterators map.
+        * The iterators map is map between the original names of the iterators of a computation
+        * and their transformed form after schedule (also after renaming).
+        *
+        * If in the original computation, we had
+        *
+        * {C[i0, i1]: ...}
+        *
+        * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
+        * the loops are tiled, then the map will be
+        *
+        * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
+        **/
+        std::map<std::string, isl_ast_expr *> iterators_map = generator::compute_iterators_map(comp, build);
+        comp->set_iterators_map(iterators_map);
+
         if (!accesses.empty())
         {
             DEBUG(3, tiramisu::str_dump("Generated RHS access maps:"));
@@ -1284,24 +1301,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                     }
                 }
             }
-
-            /*
-             * Compute the iterators map.
-             * The iterators map is map between the original names of the iterators of a computation
-             * and their transformed form after schedule (also after renaming).
-             *
-             * If in the original computation, we had
-             *
-             * {C[i0, i1]: ...}
-             *
-             * And if in the generated code, the iterators are called c0, c1, c2 and c3 and
-             * the loops are tiled, then the map will be
-             *
-             * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
-             **/
-            std::map<std::string, isl_ast_expr *> iterators_map = generator::compute_iterators_map(comp, build);
-            comp->set_iterators_map(iterators_map);
-
+ 
             // We want to insert the elements of index_expressions vector one by one in the beginning of comp->get_index_expr()
             for (int i = index_expressions.size() - 1; i >= 0; i--)
             {
@@ -1612,7 +1612,8 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     // that represents a computation access.
                     const auto sz = buf->get_dim_sizes()[i];
                     std::vector<isl_ast_expr *> ie = {};
-                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, sz));
+		    tiramisu::expr dim_sz = replace_original_indices_with_transformed_indices(sz, comp->get_iterators_map());
+                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, dim_sz));
                 }
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)

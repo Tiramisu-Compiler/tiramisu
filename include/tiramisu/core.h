@@ -1049,7 +1049,10 @@ public:
      * \endcode
      *
      */
+    //@{
+    tiramisu::computation *allocate_at(tiramisu::computation &C, tiramisu::var level);
     tiramisu::computation *allocate_at(tiramisu::computation &C, int level);
+    //@}
 
     /**
       * \brief Dump the function on standard output.

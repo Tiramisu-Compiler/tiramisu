@@ -2067,6 +2067,29 @@ bool buffer::has_constant_extents()
     return constant_extent;
 }
 
+tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, tiramisu::var level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(level.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+	C.get_loop_level_numbers_from_dimension_names({level.get_name()});
+
+    assert(dimensions.size() == 1);
+
+    int L0 = dimensions[0];
+
+    C.check_dimensions_validity({L0});
+
+    tiramisu::computation *alloc = this->allocate_at(C, L0);
+
+    DEBUG_INDENT(-4);
+
+    return alloc;
+}
+
 tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
 {
     DEBUG_FCT_NAME(3);
