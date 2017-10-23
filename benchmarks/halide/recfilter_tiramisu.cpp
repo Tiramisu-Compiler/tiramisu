@@ -86,6 +86,7 @@ int main(int argc, char **argv)
     // Add schedules.
     rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_y"));
     rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_c"));
+    rec_filter_s0.vectorize(tiramisu::var("rec_filter_s0_c"), 8);
     rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_c"));
     rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_r4__y"));
 
