@@ -27,102 +27,99 @@
 	bounds).
 
 - Reductions and Updates
-	- We have 4 cases:
-	    Case I- True reduction (where the iterations of the loop update the
-	                            same element of "res").
-	            res = 0;
-	            for (int k=0; k<N; k++)
-	                res = res + 1;
-	        It should be translated as
-	            res[-1] = 0;
-        	    for (int k=0; k<N; k++)
-        	        res[k] = res[k-1] + 1;
-        Case II- False reduction (where the iterations of the loop DO NOT update the
-        	                     same element of "res" but update different elements).
-        	    for (ry=0; ry<7; ry++)
-                      for (rx=0; rx<7; rx++)
-                              S0[ry,rx] = 0;
-                for (ry=0; ry<7; ry++)
-                      for (rx=0; rx<7; rx++)
-                              S0[ry,rx] = S0[ry,rx] * 2;
-            It should be translated to
-                for (ry=0; ry<7; ry++)
-                    for (rx=0; rx<7; rx++)
-                        S0[ry][rx][0] = 0;
-                for (ry=0; ry<7; ry++)
-                    for (rx=0; rx<7; rx++)
-                        S0[ry][rx][1] = S0[ry][rx][0] * 2;
-        Case III- True update
-        	    res = 0;
-        	    res = res + 1;
-        	    res = res + 1;
-        	    res = res + 1;
-            It should be translated to
-         	    res[0] = 0;
-         	    res[1] = res[0] + 1;
-         	    res[2] = res[1] + 1;
-         	    res[3] = res[2] + 1;
-        Case IV- False update (a pattern that looks like an update but actually is not an update
-                        because each definition in this update defines a diffrent element of the
-                        function)
-         	    res[0] = 0;
-         	    res[1] = 0;
-            It should be translated to
-         	    res[0] = 0;
-                res[1] = 0;
-        Case IV- True update and true reduction
-                res[0] = 0;
-                res[0] = res[0] + 2;
-                for (int k=0; k<N; k++)
-                    res[0] = res[0] + 1;
-            It should be translated to
-                res[0][0] = 0;
-                res[0][1] = res[0][0] + 1;
-                for (int k=0; k<N; k++)
-                    res[0][(k+1)+1] = res[0][(k)+1] + 1;
-
     - Rules
-        - Reductions and true updates have the same algorithm in general (because both are updates)
-        - A true reduction is a special case of an update.  A false reduction is simply an update
-        expressed using RDoms in Halide.
-        - Algorithm
-            - Expand the updated computation by one dimension.
-            - Use add_definitions() to declare/add the different updates of the computation.
-            - Compute the index that should be used in the newly added dimension (expanded dimension):
-                - The index of the first definition is 0.
-                - For each update
-                    - The index of the RHS (right hand side) of an update is the index of the previous update,
-                      because anything on the right hand side is a read, and it means usually "read the value
-                      written by the previous update, so we use the index of the previous update".
-                    - The index of the LHS (left hand side) of an update  is the index of the previous update + 1,
-                       because anything on the left hand side is a write, i.e., a definition, and it means usually
-                       "define a new update" and this its index should be a new index.
-                       In true reductions, computing the index is different from the general rule.
-                       In these reductions, the computation is updated by many iteration of the reduction
-                       loop.  In this case we need to adjust the above method.  We should compute
-                       the index as follows:
-                       for (k = init; k<N; k++)
-                            res[(k-init+1) + previous_index] = res[(k-init) + previous_index] + 1;
-                    - Computing the index of a false reduction is identical to computing the index of
-                    an update. Only true updates are different.
-            - In layer III (data mapping), you should eliminate the expanded dimension by mapping
-            that dimension to the same buffer element.
-                    res[i][expanded_dimension] -> buf[i]
-        - False updates do not require any expansion, they should be simply declared using .add_computation()
+        - Reductions and updates have exactly the same set of rules.
+	- Declaring an update:
+	    - Each update has a new name. 
+	    - The number of dimensions of the iteration domain of the update = the number of loops around the update.
+	    - Declaring the buffer associated to the update: the number of dimensions of the buffer = the number of dimensions of the Halide function.
 	- Examples:
 	    - Reduction : test_26 and test_54.cpp.
 	    - False update: test_25.
 	    - Tutorials: tutorial_06.cpp, tutorial_08.cpp
 	    - Example of matrix multiplication: test_85.cpp
-	- Example:
+    - Examples:
+	-- Example 1:
 	        res[0] = 0;
 	        res[0] = res[0] + 3;
                 res[0] = res[0] + 2;
                 for (int k=1; k<N; k++)
                     res[0] = res[0] + 1;
             It should be translated to
-                res[0][0] = 0;
-                res[0][1] = res[0][0] + 1;
-                res[0][2] = res[0][1] + 1;
+		// Layer I:
+		res[0] = 0;
+                res_1[0] = res_1[0] + 1;
+                res_2[0] = res_2[0] + 1;
                 for (int k=1; k<N; k++)
-                    res[0][(k-1+1)+2] = res[0][(k-1)+2] + 1;
+                    res_3[0] = res_3[0] + 1;
+
+		// Layer III:
+		{  res[i]->buff_res[i]}
+		{res_1[i]->buff_res_1[i]};
+		{res_2[i]->buff_res_2[i]};
+                {res_3[i]->buff_res_3[i]};
+
+	-- Example2:
+		 for (ry=0; ry<7; ry++)
+		      for (rx=0; rx<7; rx++)
+			      S0[ry,rx] = 5;
+		
+		 // Reduction with predicate
+		 for (ry=0; ry<7; ry++)
+		      for (rx=0; rx<7; rx++)
+			      if ((r.x - 3)*(r.x - 3) + (r.y - 3)*(r.y - 3) <= 10)
+				  S0[ry,rx] = S0[ry,rx] * 2;
+
+	    It should be translated to
+		 // Layer I
+	         {S0  [ry, rx]: 0<=ry<7 and 0<=rx<7}: 5
+	 	 {S0_1[ry, rx]: 0<=ry<7 and 0<=rx<7 and ((r.x - 3)*(r.x - 3) + (r.y - 3)*(r.y - 3) <= 10)}: S0_1[ry, rx] * 2
+
+		 // Layer III
+		 {S0  [ry, rx]->buff_S0  [ry, rx]}
+		 {S0_1[ry, rx]->buff_S0_1[ry, rx]}
+
+	-- Example 3
+		 result = 0
+		 for (int i = 0; i < N; i++)
+		      result = result + input[i];
+
+      	     It should be translated to
+		 // Layer I
+		 {result  [0]}	      : 0
+		 {result_1[i]: 0<=i<N}: result_1[i] + input[i];
+
+		 // Layer III
+		 {result  [i]->buff_result  [i]}
+		 {result_1[i]->buff_result_1[i]}
+
+	 -- Example 4
+		for i = 0, N
+		    for j = 0, N
+			for k = 0, N
+			    f(i, j) = 0
+			g(i, j) = 0
+		for i = 0, N
+		    for j = 0, N
+			for k0 = 0, 5
+			    for k1 = 0, 5
+				f(i, k1) += 1;
+			    g(k0, j) += f(0, i);
+		f(0, 0) += f(1, 1);
+
+	    It should be translated into
+		// Layer I
+		{f[i, j, k]: 0<=i<N and 0<=j<N and 0<=k<N}: 0
+		{g[i, j]: 0<=i<N and 0<=j<N}: 0
+		{f_1[i, j, k0, k1]: 0<=i<N and 0<=j<N and 0<=k0<5 and 0<=k1<5}: f_1(i, 0, 0, k1) + 1
+		{g_1[i, j, k0]: 0<=i<N and 0<=j<N and 0<=k0<N}: g_1(k0, j) + f(i, j, k0, k1)
+		{f_2[0]}: f_1(0, 0, 1, 1) + 1
+
+		// Layer III
+		{f[i, j, k]->buff_f_0[i, j]}
+		{g[i, j]->buff_g_0[i, j]}
+		{f_1[i, j, k0, k1]->buff_f_1[i, k1]}
+		{g_1[i, j, k0]->buff_g_1[k0, j]}
+		{f_2[0]->buff_f_2[0, 0]}
+
+
