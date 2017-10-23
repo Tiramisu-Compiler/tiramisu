@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
                                 + in(x, y, 0) * R2Y),
                                 yuv_shift));
 
-    RGB2Gray.parallel(y); //.vectorize(x, 8);
+    RGB2Gray.parallel(y).vectorize(x, 8);
 
     RGB2Gray.compile_to_object("build/generated_fct_cvtcolor_ref.o", {in}, "cvtcolor_ref");
 

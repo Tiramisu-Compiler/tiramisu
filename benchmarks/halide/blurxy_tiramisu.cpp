@@ -80,11 +80,19 @@ int main(int argc, char **argv)
     // Define compute level for "blur_y".
     blur_y_s0.after(blur_x_s0, computation::root);
 
+    // Declare vars.
+    tiramisu::var blur_y_s0_c("blur_y_s0_c");
+    tiramisu::var blur_y_s0_x("blur_y_s0_x");
+    tiramisu::var blur_y_s0_x_x_inner("blur_y_s0_x_x_inner");
+    tiramisu::var blur_y_s0_x_x_outer("blur_y_s0_x_x_outer");
+    tiramisu::var blur_y_s0_y("blur_y_s0_y");
+    tiramisu::var blur_y_s0_y_y_inner("blur_y_s0_y_y_inner");
+    tiramisu::var blur_y_s0_y_y_outer("blur_y_s0_y_y_outer");
+
     // Add schedules.
-    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_y"));
-    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_c"));
-    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_y"));
-    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_c"));
+    blur_y_s0.tile(blur_y_s0_y, blur_y_s0_x, 4, 4, blur_y_s0_y_y_outer, blur_y_s0_x_x_outer, blur_y_s0_y_y_inner, blur_y_s0_x_x_inner);
+    blur_y_s0.tag_parallel_level(blur_y_s0_y_y_outer);
+    blur_y_s0.tag_parallel_level(blur_y_s0_c);
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_blur_y});
     blurxy_tiramisu.gen_time_space_domain();

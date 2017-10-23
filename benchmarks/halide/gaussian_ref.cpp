@@ -27,7 +27,9 @@ int main(int argc, char* argv[]) {
 
     Var x_inner, y_inner, x_outer, y_outer, tile_index;
     gaussian.tile(x, y, x_outer, y_outer, x_inner, y_inner, 4, 4)
-            .fuse(x_outer, y_outer, tile_index).compute_root().parallel(tile_index);
+            .fuse(x_outer, y_outer, tile_index)
+            .compute_root()
+            .parallel(tile_index);
     gaussian_x.compute_at(gaussian, y_inner);
 
     gaussian.compile_to_object("build/generated_fct_gaussian_ref.o", {in, kernelX, kernelY}, "gaussian_ref");

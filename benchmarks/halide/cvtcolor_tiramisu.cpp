@@ -40,20 +40,30 @@ int main(int argc, char **argv)
     input.set_access("{input[i2, i1, i0]->buff_input[i2, i1, i0]}");
 
 
-    // Define loop bounds for dimension "RGB2Gray_s0_v4".
-    tiramisu::constant RGB2Gray_s0_v4_loop_min("RGB2Gray_s0_v4_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
-    tiramisu::constant RGB2Gray_s0_v4_loop_extent("RGB2Gray_s0_v4_loop_extent", tiramisu::expr(RGB2Gray_extent_1), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
+    // Define loop bounds for dimension "RGB2Gray_s0_y".
+    tiramisu::constant RGB2Gray_s0_y_loop_min("RGB2Gray_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
+    tiramisu::constant RGB2Gray_s0_y_loop_extent("RGB2Gray_s0_y_loop_extent", tiramisu::expr(RGB2Gray_extent_1), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
 
-    // Define loop bounds for dimension "RGB2Gray_s0_v3".
-    tiramisu::constant RGB2Gray_s0_v3_loop_min("RGB2Gray_s0_v3_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
-    tiramisu::constant RGB2Gray_s0_v3_loop_extent("RGB2Gray_s0_v3_loop_extent", tiramisu::expr(RGB2Gray_extent_0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
-    tiramisu::computation RGB2Gray_s0("[RGB2Gray_s0_v4_loop_min, RGB2Gray_s0_v4_loop_extent, RGB2Gray_s0_v3_loop_min, RGB2Gray_s0_v3_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_v4, RGB2Gray_s0_v3]: "
-                        "(RGB2Gray_s0_v4_loop_min <= RGB2Gray_s0_v4 <= ((RGB2Gray_s0_v4_loop_min + RGB2Gray_s0_v4_loop_extent) + -1)) and (RGB2Gray_s0_v3_loop_min <= RGB2Gray_s0_v3 <= ((RGB2Gray_s0_v3_loop_min + RGB2Gray_s0_v3_loop_extent) + -1))}",
-                        tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)2), tiramisu::var("RGB2Gray_s0_v4"), tiramisu::var("RGB2Gray_s0_v3")))*tiramisu::expr((uint32_t)1868)) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)1), tiramisu::var("RGB2Gray_s0_v4"), tiramisu::var("RGB2Gray_s0_v3")))*tiramisu::expr((uint32_t)9617))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)0), tiramisu::var("RGB2Gray_s0_v4"), tiramisu::var("RGB2Gray_s0_v3")))*tiramisu::expr((uint32_t)4899))) + (tiramisu::expr((uint32_t)1) << (tiramisu::expr((uint32_t)14) - tiramisu::expr((uint32_t)1)))) >> tiramisu::expr((uint32_t)14))), true, tiramisu::p_uint8, &cvtcolor_tiramisu);
-    RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_v4, RGB2Gray_s0_v3]->buff_RGB2Gray[RGB2Gray_s0_v4, RGB2Gray_s0_v3]}");
+    // Define loop bounds for dimension "RGB2Gray_s0_x".
+    tiramisu::constant RGB2Gray_s0_x_loop_min("RGB2Gray_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
+    tiramisu::constant RGB2Gray_s0_x_loop_extent("RGB2Gray_s0_x_loop_extent", tiramisu::expr(RGB2Gray_extent_0), tiramisu::p_int32, true, NULL, 0, &cvtcolor_tiramisu);
+    tiramisu::computation RGB2Gray_s0(
+        "[RGB2Gray_s0_y_loop_min, RGB2Gray_s0_y_loop_extent, RGB2Gray_s0_x_loop_min, RGB2Gray_s0_x_loop_extent]->{RGB2Gray_s0[RGB2Gray_s0_y, RGB2Gray_s0_x]: "
+        "(RGB2Gray_s0_y_loop_min <= RGB2Gray_s0_y <= ((RGB2Gray_s0_y_loop_min + RGB2Gray_s0_y_loop_extent) + -1)) and (RGB2Gray_s0_x_loop_min <= RGB2Gray_s0_x <= ((RGB2Gray_s0_x_loop_min + RGB2Gray_s0_x_loop_extent) + -1))}",
+        tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)2), tiramisu::var("RGB2Gray_s0_y"), tiramisu::var("RGB2Gray_s0_x"))) * tiramisu::expr((uint32_t)1868)) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)1), tiramisu::var("RGB2Gray_s0_y"), tiramisu::var("RGB2Gray_s0_x"))) * tiramisu::expr((uint32_t)9617))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32, input(tiramisu::expr((int32_t)0), tiramisu::var("RGB2Gray_s0_y"), tiramisu::var("RGB2Gray_s0_x"))) * tiramisu::expr((uint32_t)4899))) + tiramisu::expr((uint32_t)8192)) / tiramisu::expr((uint32_t)16384))), true, tiramisu::p_uint8, &cvtcolor_tiramisu);
+    RGB2Gray_s0.set_access("{RGB2Gray_s0[RGB2Gray_s0_y, RGB2Gray_s0_x]->buff_RGB2Gray[RGB2Gray_s0_y, RGB2Gray_s0_x]}");
+
+    // Define compute level for "RGB2Gray".
+
+    // Declare vars.
+    tiramisu::var RGB2Gray_s0_x("RGB2Gray_s0_x");
+    tiramisu::var RGB2Gray_s0_x_v9("RGB2Gray_s0_x_v9");
+    tiramisu::var RGB2Gray_s0_x_x("RGB2Gray_s0_x_x");
+    tiramisu::var RGB2Gray_s0_y("RGB2Gray_s0_y");
 
     // Add schedules.
-    RGB2Gray_s0.tag_parallel_level(tiramisu::var("RGB2Gray_s0_v4"));
+    RGB2Gray_s0.vectorize(RGB2Gray_s0_x, 8);
+    RGB2Gray_s0.tag_parallel_level(RGB2Gray_s0_y);
 
     cvtcolor_tiramisu.set_arguments({&buff_input, &buff_RGB2Gray});
     cvtcolor_tiramisu.gen_time_space_domain();
