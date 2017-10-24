@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     // Add schedules.
     affine_s0.tag_parallel_level(affine_s0_y);
-    //affine_s0.vectorize(affine_s0_x, 8);
+    affine_s0.vectorize(affine_s0_x, 8);
 
     affine_tiramisu.set_arguments({&buff_input, &buff_affine});
     affine_tiramisu.gen_time_space_domain();

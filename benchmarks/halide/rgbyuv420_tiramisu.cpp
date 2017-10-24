@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     tiramisu::constant t9("t9", (tiramisu::var("v_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
     tiramisu::constant t10("t10", (tiramisu::var("v_part_s0_y")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
     tiramisu::constant t11("t11", (tiramisu::var("v_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
-    v_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)0), t6(0), t7(0))) - (tiramisu::expr((int16_t)94)*p0(tiramisu::expr((int32_t)1), t8(0), t9(0)))) - (tiramisu::expr((int16_t)18)*p0(tiramisu::expr((int32_t)2), t10(0), t11(0)))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
+    v_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)0), t6(0, 0), t7(0, 0))) - (tiramisu::expr((int16_t)94)*p0(tiramisu::expr((int32_t)1), t8(0, 0), t9(0, 0)))) - (tiramisu::expr((int16_t)18)*p0(tiramisu::expr((int32_t)2), t10(0, 0), t11(0, 0)))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
     v_part_s0.set_access("{v_part_s0[v_part_s0_y, v_part_s0_x]->buff_v_part[v_part_s0_y, v_part_s0_x]}");
 
     // Define compute level for "v_part".
