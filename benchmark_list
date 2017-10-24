@@ -4,3 +4,5 @@ filter2D
 blurxy
 gaussian
 fusion
+warp_affine
+heat2d

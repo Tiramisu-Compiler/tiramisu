@@ -17,6 +17,10 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output1(input.width(), input.height());
     Halide::Buffer<uint8_t> output2(input.width(), input.height());
 
+    // Warm up code.
+    cvtcolor_tiramisu(input.raw_buffer(), output1.raw_buffer());
+    cvtcolor_ref(input.raw_buffer(), output2.raw_buffer());
+
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -41,7 +45,8 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-//  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
+    if (CHECK_CORRECTNESS)
+	compare_buffers("benchmark_cvtcolor", output1, output2);
 
     Halide::Tools::save_image(output1, "./build/cvtcolor_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/cvtcolor_ref.png");
