@@ -1,6 +1,6 @@
 #include "Halide.h"
 
-#define NOCLAMP
+#define NOCLAMP 0
 
 using namespace Halide;
 
