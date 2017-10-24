@@ -1898,6 +1898,31 @@ private:
     void separate(int dim, tiramisu::expr N, int v);
 
     /**
+      * Separate then split the loop \p L0
+      * (see tiramisu::computation::separate and tiramisu::computation::split)
+      *
+      * This function returns true if the split actually happened (in some
+      * cases, if the loop cannot be split because it is too small for example,
+      * then no split happens even after calling the split function, in such
+      * cases the function returns false).
+      */
+    //@{
+    bool separateAndSplit(tiramisu::var L0, int sizeX);
+    bool separateAndSplit(tiramisu::var L0, int sizeX,
+	    tiramisu::var L0_outer, tiramisu::var L0_inner);
+    //@}
+
+    /**
+      * Split the loop level \p L0 of the iteration space into two
+      * new loop levels.
+      *
+      * \p sizeX is the extent (size) of the inner loop created after
+      * splitting.
+      */
+    //@{
+    //@}
+
+    /**
       * Set the names of loop levels dimensions.
       * The loop levels are specified using \p loop_levels
       * and their names are specified using \p names.

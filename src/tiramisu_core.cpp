@@ -1701,6 +1701,12 @@ void computation::update_names(std::vector<std::string> original_loop_level_name
     this->set_loop_level_names(original_loop_level_names);
     this->name_unnamed_time_space_dimensions();
 
+    DEBUG(3, tiramisu::str_dump("Names updated. New names are: "));
+    for (auto n: this->get_loop_level_names())
+    {
+	DEBUG_NO_NEWLINE_NO_INDENT(3, tiramisu::str_dump(n + " "));
+    }
+
     DEBUG_INDENT(-4);
 }
 
@@ -1716,63 +1722,19 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v, tiramisu::var
 	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
-    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
-    DEBUG(3, tiramisu::str_dump("Vectorizing loop level " + std::to_string(L0) + " with a vector size of " + std::to_string(v)));
+    bool split_happened = this->separateAndSplit(L0_var, v, L0_outer, L0_inner);
 
-    this->gen_time_space_domain();
-
-    // Compute the depth before any scheduling.
-    int original_depth = this->compute_maximal_AST_depth();
-
-    tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, true);
-
-    tiramisu::expr loop_lower_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, false);
-
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
-    loop_bound = loop_bound.simplify();
-
-    DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be vectorized: "); loop_bound.dump(false));
-
-    /*
-     * Separate this computation. That is, create two identical computations
-     * where we have the constraint
-     *     i < v * floor(loop_bound/v)
-     * in the first and
-     *     i >= v * floor(loop_bound/v)
-     * in the second.
-     *
-     * The first is called the full computation while the second is called
-     * the separated computation.
-     * The two computations are identical in every thing except that they have
-     * two different schedules.  Their schedule restricts them to a smaller domain
-     * (the full or the separated domains) and schedule one after the other.
-     */
-    this->separate(L0, loop_bound, v);
-
-    /**
-     * Split the full computation since the full computation will be vectorized.
-     */
-    this->get_update(0).split(L0, v);
-
-
-    // Compute the depth after scheduling.
-    int depth = this->compute_maximal_AST_depth();
-
-    if (depth == original_depth)
+    if (split_happened)
     {
-        this->get_update(0).tag_vector_level(L0, v);
-	this->set_loop_level_names({L0}, {L0_outer.get_name()});
+        // Tag the inner loop after splitting to be vectorized. That loop
+        // is supposed to have a constant extent.
+        this->get_update(0).tag_vector_level(L0 + 1, v);
     }
     else
     {
-         // Tag the inner loop after splitting to be vectorized. That loop
-         // is supposed to have a constant extent.
-         this->get_update(0).tag_vector_level(L0 + 1, v);
+        this->get_update(0).tag_vector_level(L0, v);
+	this->set_loop_level_names({L0}, {L0_outer.get_name()});
     }
 
     // Replace the original dimension name with two new dimension names
@@ -1825,66 +1787,24 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
 
     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
 
-    // Compute the depth before any scheduling.
-    int original_depth = this->compute_maximal_AST_depth();
-
     assert(L0_var.get_name().length() > 0);
     std::vector<int> dimensions =
 	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
-    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
-    DEBUG(3, tiramisu::str_dump("Unrolling loop level " + std::to_string(L0) + " with a factor = " + std::to_string(v)));
-    this->gen_time_space_domain();
+    bool split_happened = this->separateAndSplit(L0_var, v, L0_outer, L0_inner);
 
-    tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, true);
-
-    tiramisu::expr loop_lower_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, false);
-
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
-    loop_bound = loop_bound.simplify();
-
-    DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be unrolled: "); loop_bound.dump(false));
-
-    /*
-     * Separate this computation. That is, create two identical computations
-     * where we have the constraint
-     *     i < v * floor(loop_bound/v)
-     * in the first and
-     *     i >= v * floor(loop_bound/v)
-     * in the second.
-     *
-     * The first is called the full computation while the second is called
-     * the separated computation.
-     * The two computations are identical in every thing except that they have
-     * two different schedules.  Their schedule restricts them to a smaller domain
-     * (the full or the separated domains) and schedule one after the other.
-     */
-    this->separate(L0, loop_bound, v);
-
-    /**
-     * Split the full computation since the full computation will be unrolled.
-     */
-    this->get_update(0).split(L0, v);
-
-    // Compute the depth after scheduling
-    int depth = this->compute_maximal_AST_depth();
-
-    if (depth == original_depth)
-    {
-        this->get_update(0).tag_unroll_level(L0);
-	this->set_loop_level_names({L0}, {L0_outer.get_name()});
-    }
-    else
+    if (split_happened)
     {
 	// Tag the inner loop after splitting to be unrolled. That loop
 	// is supposed to have a constant extent.
 	this->get_update(0).tag_unroll_level(L0 + 1);
+    }
+    else
+    {
+        this->get_update(0).tag_unroll_level(L0);
+	this->set_loop_level_names({L0}, {L0_outer.get_name()});
     }
 
     // Replace the original dimension name with two new dimension names
@@ -5139,6 +5059,105 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     DEBUG_INDENT(-4);
 
     return e;
+}
+
+bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+
+    bool split_happened = this->separateAndSplit(L0, sizeX, L0_outer, L0_inner);
+
+    DEBUG_INDENT(-4);
+
+    return split_happened;
+}
+
+bool computation::separateAndSplit(tiramisu::var L0_var, int v,
+	    tiramisu::var L0_outer, tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
+
+    DEBUG(3, tiramisu::str_dump("Applying separateAndSplit on loop level " + std::to_string(L0) + " with a split factor of " + std::to_string(v)));
+
+    this->gen_time_space_domain();
+
+    // Compute the depth before any scheduling.
+    int original_depth = this->compute_maximal_AST_depth();
+
+    tiramisu::expr loop_upper_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                     L0, true);
+
+    tiramisu::expr loop_lower_bound =
+        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                     L0, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+    loop_bound = loop_bound.simplify();
+
+    DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be separated and split: "); loop_bound.dump(false));
+
+    /*
+     * Separate this computation. That is, create two identical computations
+     * where we have the constraint
+     *     i < v * floor(loop_bound/v)
+     * in the first and
+     *     i >= v * floor(loop_bound/v)
+     * in the second.
+     *
+     * The first is called the full computation while the second is called
+     * the separated computation.
+     * The two computations are identical in every thing except that they have
+     * two different schedules.  Their schedule restricts them to a smaller domain
+     * (the full or the separated domains) and schedule one after the other.
+     */
+    this->separate(L0, loop_bound, v);
+
+    /**
+     * Split the full computation since the full computation will be vectorized.
+     */
+    this->get_update(0).split(L0, v);
+
+    // Compute the depth after scheduling.
+    int depth = this->compute_maximal_AST_depth();
+
+    bool split_happened = false;
+    if (depth == original_depth)
+    {
+        DEBUG(3, tiramisu::str_dump("Split happened."));
+
+	split_happened = false;
+ 	// Replace the original dimension name with the name of the outermost loop
+    	this->update_names(original_loop_level_names, {L0_outer.get_name()}, L0, 1);
+    }
+    else
+    {
+	 split_happened = true;
+         DEBUG(3, tiramisu::str_dump("Split did not happen."));
+
+    	 // Replace the original dimension name with two new dimension names
+    	 this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
+    }
+
+    this->get_function()->align_schedules();
+
+    DEBUG_INDENT(-4);
+
+    return split_happened;
 }
 
 void computation::split(tiramisu::var L0_var, int sizeX)
