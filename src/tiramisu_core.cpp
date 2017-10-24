@@ -3271,6 +3271,29 @@ void computation::set_loop_level_names(std::vector<std::string> names)
     DEBUG_INDENT(-4);
 }
 
+void computation::set_schedule_domain_dim_names(std::vector<int> loop_levels,
+	std::vector<std::string> names)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    this->check_dimensions_validity(loop_levels);
+    assert(names.size() > 0);
+    assert(names.size() == loop_levels.size());
+
+    for (int i = 0; i < loop_levels.size(); i++)
+    {
+	assert(loop_levels[i] <= isl_map_dim(this->get_schedule(), isl_dim_in));
+	this->schedule = isl_map_set_dim_name(this->get_schedule(),
+			    isl_dim_in, loop_levels[i], names[i].c_str());
+  	DEBUG(3, tiramisu::str_dump("Setting the name of the domain of the schedule dimension " + std::to_string(loop_levels[i]) + " into " + names[i].c_str()));
+    }
+
+    DEBUG(3, tiramisu::str_dump("The schedule after renaming: ", isl_map_to_str(this->get_schedule())));
+
+    DEBUG_INDENT(-4);
+}
+
 void computation::set_loop_level_names(std::vector<int> loop_levels,
 	std::vector<std::string> names)
 {
@@ -5137,6 +5160,10 @@ void computation::split(tiramisu::var L0_var, int sizeX,
     DEBUG_INDENT(4);
 
     assert(L0_var.get_name().length() > 0);
+
+    std::vector<std::string> original_loop_level_names =
+	this->get_loop_level_names();
+
     std::vector<int> dimensions =
 	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
     this->check_dimensions_validity(dimensions);
@@ -5144,7 +5171,8 @@ void computation::split(tiramisu::var L0_var, int sizeX,
     this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
     this->split(L0, sizeX);
-    this->set_loop_level_names({L0, L0+1}, {L0_outer.get_name(), L0_inner.get_name()});
+
+    this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
 
     DEBUG_INDENT(-4);
 }
@@ -6333,6 +6361,11 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 
     // Set the names of output dimensions to be equal to the names of iteration domain schedules.
     std::vector<std::string> nms = this->get_iteration_domain_dimension_names();
+    // Rename the dimensions of the schedule domain so that when we set the names of
+    // the schedule range dimension to be equal to the names of the domain, we do not
+    // get a conflict.
+    for (int i = 0; i< this->get_iteration_domain_dimensions_number(); i++)
+	this->set_schedule_domain_dim_names({i}, {generate_new_variable_name()});
     for (int i = 0; i< nms.size(); i++)
     	this->set_loop_level_names({i}, {nms[i]});
 

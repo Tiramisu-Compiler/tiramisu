@@ -1915,6 +1915,13 @@ private:
     void set_loop_level_names(std::vector<std::string> names);
 
     /**
+      * Set the names of the dimensions of the schedule domain.
+      * The dimension names are specified using \p names, their positions
+      * are indicated using \p loop_levels.
+      */
+    void set_schedule_domain_dim_names(std::vector<int> loop_levels, std::vector<std::string> names);
+
+    /**
       * Set the iteration domain of the computation
       */
     void set_iteration_domain(isl_set *domain);
