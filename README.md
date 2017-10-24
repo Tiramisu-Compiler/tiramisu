@@ -45,12 +45,14 @@ Compiling Tiramisu
 
         ./get_and_install_isl.sh
         ./get_and_install_halide.sh
-        cmake CMakeLists.txt
+	mkdir build/
+	cd build/
+        cmake ../
         make -j tiramisu
 
 #### Run Tutorials
 
-To run all the tutorials
+To run all the tutorials, assuming you are in the build/ directory
 
     make tutorials
     
@@ -59,10 +61,10 @@ To run only one tutorial (tutorial_01 for example)
     make run_tutorial_01
     
 This will compile and run the code generator and then the wrapper.
-    
+
 #### Run Tests
 
-To run all the tests
+To run all the tests, assuming you are in the build/ directory
 
     make test
 
@@ -73,11 +75,36 @@ or
 To run only one test (test_01 for example)
 
     ctest -R 01
-    
+
 This will compile and run the code generator and then the wrapper.
 
 To view the output of a test pass the `--verbose` option to `ctest`.
 
+To add a new test, add two files in tests/. test_XX.cpp should contain
+the actual Tiramisu generator code while wrapper_test_XX.cpp should contain
+wrapper code that initializes the input data, calls the generated function,
+and compares its output with a reference output.  You should then add the
+number of the test XX in the file test_list.
+
+#### Run Benchmarks
+
+To run all the benchmarks, assuming you are in the build/ directory
+
+    make benchmarks
+
+To run only one benchmark (cvtcolor for example)
+
+    make run_benchmark_cvtcolor
+
+If you want to force the rebuild of a given benchmark, add -B option.
+
+    make -B run_benchmark_cvtcolor
+
+This will rebuild tiramisu, rebuild all the stage of code generation and run
+the benchmark.
+
+To add a given benchmark to the build system, add its name in the file
+benchmark_list.
 
 #### Build Documentation
 
