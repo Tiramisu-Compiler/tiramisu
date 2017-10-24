@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
     ImageParam in{UInt(8), 3, "input"};
 
     Func RGB2Gray{"RGB2Gray"};
-    Var x,y,c;
+    Var x, y, c;
 
     const Expr yuv_shift = cast<uint32_t>(14);
     const Expr R2Y = cast<uint32_t>(4899);
