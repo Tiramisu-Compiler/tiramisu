@@ -10,6 +10,6 @@
 
 
 #define NB_TESTS 20
-
+#define CHECK_CORRECTNESS 0
 
 #endif /* BENCHMARKS_BENCHMARKS_H_ */

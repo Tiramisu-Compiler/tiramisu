@@ -23,6 +23,10 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output1(input.width(), input.height());
     Halide::Buffer<uint8_t> output2(input.width(), input.height());
 
+    // Warm up
+    warp_affine_tiramisu(input.raw_buffer(), output1.raw_buffer());
+    warp_affine_ref(input.raw_buffer(), output2.raw_buffer());
+
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -46,6 +50,9 @@ int main(int, char**)
     print_time("performance_CPU.csv", "warp_affine",
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
+
+    if (CHECK_CORRECTNESS)
+	compare_buffers("benchmark_cvtcolor", output1, output2);
 
     Halide::Tools::save_image(output1, "./build/warp_affine_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/warp_affine_ref.png");
