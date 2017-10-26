@@ -549,6 +549,33 @@ void tiramisu::function::compute_bounds()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
+tiramisu::computation *computation::get_root_of_definition_tree()
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    DEBUG(10, tiramisu::str_dump("Getting the root of the definition tree of this computation: " + this->get_name()));
+    DEBUG(10, tiramisu::str_dump("This computation has an ID = " + std::to_string(this->definition_ID)));
+
+    tiramisu::computation *root = this;
+
+    // We know that any child definition has an ID > 0 (since only the root has
+    // an ID == 0). So we keep traversing the tree up from the leaf to the root
+    // until we find the root. The root is identified by ID == 0.
+    while (root->definition_ID > 0)
+    {
+	root = root->get_first_definition();
+        DEBUG(10, tiramisu::str_dump("This computation is: " + root->get_name()));
+        DEBUG(10, tiramisu::str_dump("This computation has an ID = " + std::to_string(root->definition_ID)));
+    }
+
+    DEBUG(10, tiramisu::str_dump("The root of the tree of updates is: " + root->get_name()));
+
+    DEBUG_INDENT(-4);
+
+    return root;
+}
+
 void tiramisu::computation::add_definitions(std::string iteration_domain_str,
         tiramisu::expr e,
         bool schedule_this_computation, tiramisu::primitive_t t,
@@ -558,6 +585,16 @@ void tiramisu::computation::add_definitions(std::string iteration_domain_str,
                                                       schedule_this_computation, t, fct);
     new_c->is_first = false;
     new_c->first_definition = this;
+    new_c->is_let = this->is_let;
+    new_c->definition_ID = this->definitions_number;
+    this->definitions_number++;
+
+    if (new_c->get_expr().is_equal(this->get_expr()))
+    {
+    	// Copy the associated let statements to the new definition.
+    	new_c->associated_let_stmts = this->associated_let_stmts;
+    }
+
     this->updates.push_back(new_c);
 }
 
@@ -892,12 +929,14 @@ void tiramisu::computation::rename_computation(std::string new_name)
         this->time_processor_domain = dom;
     }
 
-    // Rename the access relation of the computation.
-    isl_map *access = this->get_access_relation();
-    assert(access != NULL);
-    access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
-    DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
-    this->set_access(access);
+    if (this->get_access_relation() != NULL)
+    {
+	// Rename the access relation of the computation.
+	isl_map *access = this->get_access_relation();
+	access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
+	DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
+	this->set_access(access);
+    }
 
     // Rename the schedule
     isl_map *sched = this->get_schedule();
@@ -6353,6 +6392,8 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     // We do the same for first_definition.
     is_first = true;
     first_definition = NULL;
+    this->definitions_number = 1;
+    this->definition_ID = 0;
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
@@ -6660,6 +6701,17 @@ isl_map *tiramisu::computation::get_trimmed_union_of_schedules() const
  */
 bool tiramisu::computation::is_let_stmt() const
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::string s1 = "This computation is ";
+    std::string s2 = (is_let?" a ":" not a ");
+    std::string s3 = "let statement.";
+
+    DEBUG(10, tiramisu::str_dump(s1 + s2 + s3));
+
+    DEBUG_INDENT(-4);
+
     return is_let;
 }
 
@@ -6975,7 +7027,8 @@ const std::vector<std::pair<std::string, tiramisu::expr>>
 bool tiramisu::computation::has_accesses() const
 {
     if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
-            (this->get_expr().get_op_type() == tiramisu::o_free))
+            (this->get_expr().get_op_type() == tiramisu::o_free) ||
+	    (this->is_let_stmt()))
     {
         return false;
     }
@@ -7086,6 +7139,7 @@ tiramisu::constant::constant(
         this->set_expression(param_expr);
         func->add_invariant(*this);
         this->mark_as_let_statement();
+	this->compute_with_computation = NULL;
 
         DEBUG(3, tiramisu::str_dump("The constant is function wide, its name is : "));
         DEBUG(3, tiramisu::str_dump(this->get_name()));
@@ -7099,6 +7153,7 @@ tiramisu::constant::constant(
 
 	DEBUG(3, tiramisu::str_dump("Consturcting constant at level: " + std::to_string(at_loop_level)));
 
+	this->compute_with_computation = with_computation;
         isl_set *iter = with_computation->get_iteration_domain();
         int projection_dimension = at_loop_level + 1;
         iter = isl_set_project_out(isl_set_copy(iter),

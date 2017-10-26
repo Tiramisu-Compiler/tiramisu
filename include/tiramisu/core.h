@@ -1185,6 +1185,20 @@ private:
     tiramisu::primitive_t data_type;
 
     /**
+      * Number of definitions added to this computation. Each time the function
+      * add_definitions is called, definitions_number is incremented.
+      */
+    int definitions_number;
+
+    /**
+      * The ID of this definition. Each new computation when created has a
+      * definition_ID equal to 0.  When a new definition is added, its ID
+      * is 1, when a new definition is added, its definition ID is set to 2,
+      * ...
+      */
+    int definition_ID;
+
+    /**
      * An integer indicating the number of duplicates of this computation.
      * We use this to set the duplicate ID of any newly created computation.
      * Whenever a new duplicate is create, this number is incremented.
@@ -1418,37 +1432,6 @@ private:
       * the ISL string format.
       */
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
-
-    /**
-      * This function is equivalent to
-      *     void after(computation &comp, tiramisu::var iterator);
-      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
-      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
-      * of variable names, and this is the actual function used internally.
-      *
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
-      *
-      * For example assuming we have the two computations
-      *
-      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * In order to make S1 run after S0 in the i loop, one should use
-      *
-      *     S1.after(S0,0)
-      *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
-      *
-      * The corresponding code is
-      *
-      *     for (i=0; i<N; i++)
-      *     {
-      *         for (j=0; j<N; j++)
-      *             S0;
-      *         for (j=0; j<N; j++)
-      *             S1;
-      *     }
-      */
-    void after(computation &comp, int level);
 
     /**
       * Check that the names used in \p dimensions are not already
@@ -1715,6 +1698,17 @@ private:
       * Get the number of loop levels.
       */
     int get_loop_levels_number();
+
+    /**
+      * Return the root of the tree of definitions of this computation.
+      * The tree of definitions is the tree that emerges after adding multiple
+      * definitions to the same computation. Let's take the following example.
+      * Assuming we have the computation c0.  We can add a definition c1 to c0.
+      * The tree in this case would have two nodes, c0 and c1. c0 is the root.
+      * We can add another defintion c2 to c0. Then we can add another defintion c3
+      * to c1. In this case the tree would have four nodes where c0 is the root.
+      */
+    tiramisu::computation *get_root_of_definition_tree();
 
     /**
       * Get the number of dimensions of the time-space
@@ -2535,6 +2529,37 @@ public:
       */
     void after(computation &comp, tiramisu::var iterator);
 
+    /**
+      * This function is equivalent to
+      *     void after(computation &comp, tiramisu::var iterator);
+      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
+      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
+      * of variable names, and this is the actual function used internally.
+      *
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      */
+    void after(computation &comp, int level);
+
     /*
      * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.
@@ -2787,6 +2812,18 @@ public:
       * Get the last update of a computation.
       */
     tiramisu::computation& get_last_update();
+
+    /**
+      * Search the time-space domain (the range of the schedule) and
+      * return the loop level number that correspond to the dimension
+      * named \p dim.
+      * In other words, translate the vector of dimension name (\p dim_name)
+      * into a loop level number.
+      */
+    int get_loop_level_number_from_dimension_name(std::string dim_name)
+    {
+	    return this->get_loop_level_numbers_from_dimension_names({dim_name})[0];
+    }
 
     /**
       * Returns a pointer to the computation scheduled immediately before this computation,
@@ -3337,6 +3374,21 @@ public:
   */
 class constant: public computation
 {
+private:
+    /**
+      * If this constant is not function wide, i.e., if it is computed
+      * with a computation, then \p compute_with_computation is a pointer on the
+      * computation with whom this constant should be computed.
+      * We need to know this because we need to translate the accesses
+      * used within the RHS of this contant expression to the new scheduled
+      * accesses. Since a computation does not have a buffer access (it is
+      * translated into a let statement), it also does not have an iterator
+      * map, thus it cannot translate its accesses to scheduled accesses.
+      * Thus we use the iterator map of the computation with whome we
+      * compute this constant and take its iterator map.
+      */
+    tiramisu::computation *compute_with_computation;
+
 public:
 
     /**
@@ -3375,6 +3427,14 @@ public:
              tiramisu::computation *with_computation,
              int at_loop_level,
              tiramisu::function *func);
+
+    /**
+      * Get the computation with whom this constant is computed.
+      */
+    tiramisu::computation *get_computation_with_whom_this_is_computed()
+    {
+	    return compute_with_computation;
+    }
 
     /**
       * Dump the invariant on standard output (dump most of the fields of

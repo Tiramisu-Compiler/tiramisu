@@ -2213,10 +2213,35 @@ void computation::create_halide_assignment()
                          this->expression.dump(false));
         DEBUG_NEWLINE(10);
 
-        Halide::Expr result =
-	    generator::halide_expr_from_tiramisu_expr(this->get_function(),
-                              this->get_index_expr(),
-                              this->expression);
+	// Assuming this computation is not the original computation, but a
+	// definition that was added to the original computation. We need to
+	// retrieve the original computation.
+	tiramisu::constant *root = (tiramisu::constant *)
+	    this->get_root_of_definition_tree();
+
+	Halide::Expr result;
+	if (root->get_computation_with_whom_this_is_computed() != NULL)
+	{
+ 	  DEBUG(10, tiramisu::str_dump("1."));
+
+	  result = generator::halide_expr_from_tiramisu_expr(this->get_function(),
+			this->get_index_expr(),
+			replace_original_indices_with_transformed_indices(this->expression,
+		    						          root->get_computation_with_whom_this_is_computed()->get_iterators_map()));
+ 	  DEBUG(10, tiramisu::str_dump("2."));
+	}
+	else
+	{
+ 	  DEBUG(10, tiramisu::str_dump("3."));
+
+	  result = generator::halide_expr_from_tiramisu_expr(this->get_function(),
+			this->get_index_expr(),
+			this->expression);
+
+	  DEBUG(10, tiramisu::str_dump("4."));
+	}
+
+	DEBUG(10, tiramisu::str_dump("The expression translated to a Halide expression: "); std::cout << result << std::endl);
 
         Halide::Type l_type = halide_type_from_tiramisu_type(this->get_data_type());
 
