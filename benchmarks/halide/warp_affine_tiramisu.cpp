@@ -87,6 +87,7 @@ int main(int argc, char **argv)
     t63.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
     t64.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
     affine_s0.tag_parallel_level(affine_s0_y);
+
     affine_s0.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
 
 
