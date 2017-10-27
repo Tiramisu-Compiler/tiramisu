@@ -23,6 +23,13 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output_tiramisu_h(input.width(), input.height(), input.channels());
     Halide::Buffer<uint8_t> output_tiramisu_k(input.width(), input.height(), input.channels());
 
+    // Warm up
+    fusion_tiramisu(input.raw_buffer(), output_tiramisu_f.raw_buffer(),
+		    output_tiramisu_g.raw_buffer(), output_tiramisu_h.raw_buffer(),
+		    output_tiramisu_k.raw_buffer());
+    fusion_ref(input.raw_buffer(), output_ref_f.raw_buffer(), output_ref_g.raw_buffer(),
+	       output_ref_h.raw_buffer(), output_ref_k.raw_buffer());
+
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -50,7 +57,8 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-//  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
+    if (CHECK_CORRECTNESS)
+	compare_buffers("Fusion",  output_ref_k, output_tiramisu_k);
 
     Halide::Tools::save_image(output_tiramisu_f, "./build/fusion_f_tiramisu.png");
     Halide::Tools::save_image(output_tiramisu_g, "./build/fusion_g_tiramisu.png");

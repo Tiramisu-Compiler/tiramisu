@@ -1,9 +1,9 @@
-recfilter
 cvtcolor
 filter2D
 blurxy
 gaussian
-fusion
 warp_affine
+fusion
 heat2d
 rgbyuv420
+recfilter
