@@ -75,11 +75,8 @@ int main(int argc, char **argv)
     tiramisu::constant t3("t3", (tiramisu::var("u_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &u_part_s0, 1, &rgbyuv420);
     tiramisu::constant t4("t4", (tiramisu::var("u_part_s0_y")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &u_part_s0, 1, &rgbyuv420);
     tiramisu::constant t5("t5", (tiramisu::var("u_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &u_part_s0, 1, &rgbyuv420);
-    u_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)-38)*p0(tiramisu::expr((int32_t)0), t0(0), t1(0))) - (tiramisu::expr((int16_t)74)*p0(tiramisu::expr((int32_t)1), t2(0), t3(0)))) + (tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)2), t4(0), t5(0)))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
+    u_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)-38)*p0(tiramisu::expr((int32_t)0), t0, t1)) - (tiramisu::expr((int16_t)74)*p0(tiramisu::expr((int32_t)1), t2, t3))) + (tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)2), t4, t5))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
     u_part_s0.set_access("{u_part_s0[u_part_s0_y, u_part_s0_x]->buff_u_part[u_part_s0_y, u_part_s0_x]}");
-
-    // Define compute level for "u_part".
-    u_part_s0.after(y_part_s0, computation::root);
 
     // Define loop bounds for dimension "v_part_s0_y".
     tiramisu::constant v_part_s0_y_loop_min("v_part_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &rgbyuv420);
@@ -97,14 +94,26 @@ int main(int argc, char **argv)
     tiramisu::constant t9("t9", (tiramisu::var("v_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
     tiramisu::constant t10("t10", (tiramisu::var("v_part_s0_y")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
     tiramisu::constant t11("t11", (tiramisu::var("v_part_s0_x")*tiramisu::expr((int32_t)2)), tiramisu::p_int32, false, &v_part_s0, 1, &rgbyuv420);
-    v_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)0), t6(0, 0), t7(0, 0))) - (tiramisu::expr((int16_t)94)*p0(tiramisu::expr((int32_t)1), t8(0, 0), t9(0, 0)))) - (tiramisu::expr((int16_t)18)*p0(tiramisu::expr((int32_t)2), t10(0, 0), t11(0, 0)))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
+    v_part_s0.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, ((((((tiramisu::expr((int16_t)112)*p0(tiramisu::expr((int32_t)0), t6, t7)) - (tiramisu::expr((int16_t)94)*p0(tiramisu::expr((int32_t)1), t8, t9))) - (tiramisu::expr((int16_t)18)*p0(tiramisu::expr((int32_t)2), t10, t11))) + tiramisu::expr((int16_t)128)) >> tiramisu::expr((int16_t)8)) + tiramisu::expr((int16_t)128))));
     v_part_s0.set_access("{v_part_s0[v_part_s0_y, v_part_s0_x]->buff_v_part[v_part_s0_y, v_part_s0_x]}");
 
     // Define compute level for "v_part".
-    v_part_s0.after(u_part_s0, computation::root);
+    t0.after(y_part_s0, computation::root);
+    t1.after(t0, computation::root);
+    t2.after(t1, computation::root);
+    t3.after(t2, computation::root);
+    t4.after(t3, computation::root);
+    t5.after(t4, computation::root);
+    u_part_s0.after(t5, computation::root);
+    t6.after(u_part_s0, computation::root);
+    t7.after(t6, computation::root);
+    t8.after(t7, computation::root);
+    t9.after(t8, computation::root);
+    t10.after(t9, computation::root);
+    t11.after(t10, computation::root);
+    v_part_s0.after(t11, computation::root);
 
     // Add schedules.
-
     rgbyuv420.set_arguments({&buff_p0, &buff_u_part, &buff_v_part, &buff_y_part});
     rgbyuv420.gen_time_space_domain();
     rgbyuv420.gen_isl_ast();

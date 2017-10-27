@@ -3,7 +3,7 @@
 using namespace Halide;
 
 int main(int argc, char **argv) {
-    ImageParam rgb(Int(16), 3);
+    ImageParam rgb(Int(32), 3);
 
     Var x("x"), y("y");
     Func y_part("y_part"), u_part("u_part"), v_part("v_part");
@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
     u_part.parallel(y).vectorize(x, 8);
     v_part.parallel(y).vectorize(x, 8);
 
-    Pipeline({y_part, u_part, v_part}).compile_to_object("build/generated_fct_rgbyuv420_ref.o", {rgb}, "rgbyuv420_ref", target);
+    Pipeline({y_part, u_part, v_part}).compile_to_object("build/generated_fct_rgbyuv420_ref.o", {rgb}, "rgbyuv420_ref");
 
-    Pipeline({y_part, u_part, v_part}).compile_to_lowered_stmt("build/generated_fct_rgbyuv420_ref.txt", {rgb}, Halide::Text, target);
+    Pipeline({y_part, u_part, v_part}).compile_to_lowered_stmt("build/generated_fct_rgbyuv420_ref.txt", {rgb}, Halide::Text);
 
     return 0;
 }
