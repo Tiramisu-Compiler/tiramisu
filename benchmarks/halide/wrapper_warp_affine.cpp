@@ -20,8 +20,8 @@ int main(int, char**)
 
     Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
-    Halide::Buffer<uint8_t> output1(input.width(), input.height());
-    Halide::Buffer<uint8_t> output2(input.width(), input.height());
+    Halide::Buffer<float> output1(input.width(), input.height());
+    Halide::Buffer<float> output2(input.width(), input.height());
 
     // Warm up
     warp_affine_tiramisu(input.raw_buffer(), output1.raw_buffer());
@@ -54,8 +54,8 @@ int main(int, char**)
     if (CHECK_CORRECTNESS)
 	compare_buffers("benchmark_cvtcolor", output1, output2);
 
-    Halide::Tools::save_image(output1, "./build/warp_affine_tiramisu.png");
-    Halide::Tools::save_image(output2, "./build/warp_affine_ref.png");
+    //Halide::Tools::save_image(output1, "./build/warp_affine_tiramisu.png");
+    //Halide::Tools::save_image(output2, "./build/warp_affine_ref.png");
 
     return 0;
 }
