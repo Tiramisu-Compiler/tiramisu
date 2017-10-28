@@ -16,8 +16,8 @@ int main(int, char**)
     // Init randomly
     for (int y = 0; y < input.height(); ++y) {
         for (int x = 0; x < input.width(); ++x) {
-            input(x, y) = random();
-            input(x, y) = random();
+            input(x, y) = 1;
+            input(x, y) = 1;
         }
     }
 
@@ -53,7 +53,7 @@ int main(int, char**)
                {median(duration_vector_1), median(duration_vector_2)});
 
     if (CHECK_CORRECTNESS)
-	compare_buffers("benchmark_heat2d", output1, output2);
+	compare_buffers_approximately("benchmark_heat2d", output1, output2);
 
     return 0;
 }

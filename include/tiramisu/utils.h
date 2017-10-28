@@ -87,6 +87,33 @@ inline void copy_buffer(const Halide::Buffer<T> &from, Halide::Buffer<T> &to)
 }
 
 template<typename T>
+inline void compare_buffers_approximately(const std::string &test, const Halide::Buffer<T> &result,
+							const Halide::Buffer<T> &expected)
+{
+    if ((result.dimensions() != expected.dimensions()) ||
+    	(result.channels() != expected.channels()) ||
+        (result.height() != expected.height()) ||
+        (result.width() != expected.width()))
+    {
+        tiramisu::error("result has different dimension size from expected\n", true);
+    }
+
+    for (int z = 0; z < result.channels(); z++) {
+        for (int y = 0; y < result.height(); y++) {
+            for (int x = 0; x < result.width(); x++) {
+                if (result(x, y, z) - expected(x, y, z) > 0.1) {
+                    tiramisu::error("\033[1;31mTest " + test + " failed. Expected: " +
+                    				std::to_string(expected(x, y, z)) + ", got: " +
+                    				std::to_string(result(x, y, z)) + ".\033[0m\n", false);
+                    return;
+                }
+            }
+        }
+    }
+    tiramisu::str_dump("\033[1;32mTest " + test + " succeeded.\033[0m\n");
+}
+
+template<typename T>
 inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &result,
 							const Halide::Buffer<T> &expected)
 {

@@ -52,10 +52,7 @@ int main(int, char**)
                {median(duration_vector_1), median(duration_vector_2)});
 
     if (CHECK_CORRECTNESS)
-	compare_buffers("benchmark_warp_affine", output1, output2);
-
-    //Halide::Tools::save_image(output1, "./build/warp_affine_tiramisu.png");
-    //Halide::Tools::save_image(output2, "./build/warp_affine_ref.png");
+	compare_buffers_approximately("benchmark_warp_affine", output1, output2);
 
     return 0;
 }
