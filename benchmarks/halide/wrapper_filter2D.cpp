@@ -52,11 +52,11 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    if (CHECK_CORRECTNESS)
-        compare_buffers("filter2D",  output1, output2);
-
     Halide::Tools::save_image(output1, "./build/filter2D_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/filter2D_ref.png");
+
+    if (CHECK_CORRECTNESS)
+        compare_buffers("filter2D",  output1, output2);
 
     return 0;
 }

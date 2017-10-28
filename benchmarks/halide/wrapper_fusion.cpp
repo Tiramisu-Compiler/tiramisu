@@ -57,13 +57,13 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
+    Halide::Tools::save_image(output_tiramisu_h, "./build/fusion_h_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_k, "./build/fusion_k_tiramisu.png");
+    Halide::Tools::save_image(output_ref_h, "./build/fusion_h_ref.png");
+    Halide::Tools::save_image(output_ref_k, "./build/fusion_k_ref.png");
+
     if (CHECK_CORRECTNESS)
 	compare_buffers("Fusion",  output_ref_k, output_tiramisu_k);
-
-    Halide::Tools::save_image(output_tiramisu_f, "./build/fusion_f_tiramisu.png");
-    Halide::Tools::save_image(output_tiramisu_g, "./build/fusion_g_tiramisu.png");
-    Halide::Tools::save_image(output_ref_f, "./build/fusion_f_ref.png");
-    Halide::Tools::save_image(output_ref_g, "./build/fusion_g_ref.png");
 
     return 0;
 }
