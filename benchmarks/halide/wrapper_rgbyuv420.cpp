@@ -23,8 +23,9 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
 
     // Warm up
-    rgbyuv420_tiramisu(input.raw_buffer(), output_tiramisu_y.raw_buffer(), output_tiramisu_u.raw_buffer(), output_tiramisu_v.raw_buffer());
     rgbyuv420_ref(input.raw_buffer(), output_ref_y.raw_buffer(), output_ref_u.raw_buffer(), output_ref_v.raw_buffer());
+    rgbyuv420_tiramisu(input.raw_buffer(), output_tiramisu_y.raw_buffer(), output_tiramisu_u.raw_buffer(), output_tiramisu_v.raw_buffer());
+
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
