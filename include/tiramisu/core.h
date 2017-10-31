@@ -2670,7 +2670,7 @@ public:
       *
       * This computation is scheduled so that the values consumed by the
       * \p consumer are computed at the level \p L and in the same loop
-      * nest of the consumer.
+      * nest of the consumer. \p L is a loop level in the consumer.
       *
       * If the consumer needs this computation to be computed redundantly,
       * the function creates the necessary redundant computations and schedules
