@@ -14,18 +14,21 @@ int main(int, char**)
 
     Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
 
+    Halide::Buffer<int32_t> SIZES_b(2);
+    SIZES_b(0) = input.extent(0);
+    SIZES_b(1) = input.extent(1);
     Halide::Buffer<uint8_t> output1(input.width(), input.height());
     Halide::Buffer<uint8_t> output2(input.width(), input.height());
 
     // Warm up code.
-    cvtcolor_tiramisu(input.raw_buffer(), output1.raw_buffer());
+    cvtcolor_tiramisu(SIZES_b.raw_buffer(), input.raw_buffer(), output1.raw_buffer());
     cvtcolor_ref(input.raw_buffer(), output2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        cvtcolor_tiramisu(input.raw_buffer(), output1.raw_buffer());
+        cvtcolor_tiramisu(SIZES_b.raw_buffer(), input.raw_buffer(), output1.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
