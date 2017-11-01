@@ -19,13 +19,12 @@ int main(int, char**)
 
     Halide::Buffer<uint8_t> output_tiramisu_y(input.width(), input.height());
     Halide::Buffer<uint8_t> output_tiramisu_u(input.width()/2, input.height()/2);
-    Halide::Buffer<uint8_t> output_tiramisu_v(input.width(), input.height());
-    //Halide::Buffer<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
+    Halide::Buffer<uint8_t> output_tiramisu_v(input.width()/2, input.height()/2);
 
     std::cout << "STARTING TEST\n";
-    std::cout << "y size: " << output_tiramisu_y.width() << ", " << output_tiramisu_y.height() << "\n";
-    std::cout << "u size: " << output_tiramisu_u.width() << ", " << output_tiramisu_u.height() << "\n";
-    std::cout << "v size: " << output_tiramisu_v.width() << ", " << output_tiramisu_v.height() << "\n";
+    std::cout << "y size (width, height): " << output_tiramisu_y.width() << ", " << output_tiramisu_y.height() << "\n";
+    std::cout << "u size (width, height): " << output_tiramisu_u.width() << ", " << output_tiramisu_u.height() << "\n";
+    std::cout << "v size (width, height): " << output_tiramisu_v.width() << ", " << output_tiramisu_v.height() << "\n";
     // Warm up
     rgbyuv420_ref(input.raw_buffer(), output_ref_y.raw_buffer(), output_ref_u.raw_buffer(), output_ref_v.raw_buffer());
     rgbyuv420_tiramisu(input.raw_buffer(), output_tiramisu_y.raw_buffer(), output_tiramisu_u.raw_buffer(), output_tiramisu_v.raw_buffer());
@@ -54,6 +53,13 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
+    Halide::Tools::save_image(output_tiramisu_y, "./build/rgbyuv420_y_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_u, "./build/rgbyuv420_u_tiramisu.png");
+    Halide::Tools::save_image(output_tiramisu_v, "./build/rgbyuv420_v_tiramisu.png");
+    Halide::Tools::save_image(output_ref_y, "./build/rgbyuv420_y_ref.png");
+    Halide::Tools::save_image(output_ref_u, "./build/rgbyuv420_u_ref.png");
+    Halide::Tools::save_image(output_ref_v, "./build/rgbyuv420_v_ref.png");
+
     if (CHECK_CORRECTNESS)
     {
         std::cout << "Compare y buffer\n";
@@ -63,13 +69,6 @@ int main(int, char**)
         std::cout << "Compare v buffer\n";
     	compare_buffers("benchmark_rgbyuv420", output_tiramisu_y, output_ref_y);
     }
-
-    Halide::Tools::save_image(output_tiramisu_y, "./build/rgbyuv420_y_tiramisu.png");
-    Halide::Tools::save_image(output_tiramisu_u, "./build/rgbyuv420_u_tiramisu.png");
-    Halide::Tools::save_image(output_tiramisu_v, "./build/rgbyuv420_v_tiramisu.png");
-    Halide::Tools::save_image(output_ref_y, "./build/rgbyuv420_y_ref.png");
-    Halide::Tools::save_image(output_ref_u, "./build/rgbyuv420_u_ref.png");
-    Halide::Tools::save_image(output_ref_v, "./build/rgbyuv420_v_ref.png");
 
     return 0;
 }
