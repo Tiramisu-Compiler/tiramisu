@@ -121,6 +121,9 @@ int main(int argc, char **argv)
     v_part_s0.after(t11, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
 
     y_part_s0.parallelize(tiramisu::var("y_part_s0_y"));
+    y_part_s0.vectorize(tiramisu::var("y_part_s0_x"), 8, tiramisu::var("y_part_s0_x_outer"), tiramisu::var("y_part_s0_x_inner"));
+    u_part_s0.vectorize(tiramisu::var("u_part_s0_x"), 8, tiramisu::var("u_part_s0_x_outer"), tiramisu::var("u_part_s0_x_inner"));
+    v_part_s0.vectorize(tiramisu::var("v_part_s0_x"), 8, tiramisu::var("v_part_s0_x_outer"), tiramisu::var("v_part_s0_x_inner"));
 
     // Add schedules.
     rgbyuv420.set_arguments({&buff_rgb, &buff_y_part, &buff_u_part, &buff_v_part});
