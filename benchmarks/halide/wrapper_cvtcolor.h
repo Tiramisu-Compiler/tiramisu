@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int cvtcolor_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int cvtcolor_tiramisu(halide_buffer_t *SIZES, halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int cvtcolor_tiramisu_argv(void **args);
 int cvtcolor_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int cvtcolor_ref_argv(void **args);

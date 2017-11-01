@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     affine(x, y) = mixf( mixf(A00, A10, r), mixf(A01, A11, r), c);
 
-    affine.parallel(y).vectorize(x, 8);
+    affine.parallel(y).vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
 
     affine.compile_to_object("build/generated_fct_warp_affine_ref.o", {in}, "warp_affine_ref");
 
