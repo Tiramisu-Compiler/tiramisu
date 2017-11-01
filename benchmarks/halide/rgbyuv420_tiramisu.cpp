@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 
     tiramisu::function rgbyuv420("rgbyuv420_tiramisu");
 
-    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb_big.png");
     int SIZE0 = in_image.extent(0);
     int SIZE1 = in_image.extent(1);
     int SIZE2 = in_image.extent(2);
