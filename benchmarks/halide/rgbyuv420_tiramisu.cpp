@@ -31,11 +31,11 @@ int main(int argc, char **argv)
     int y_part_extent_1 = SIZE1;
     int y_part_extent_0 = SIZE0;
     tiramisu::buffer buff_y_part("buff_y_part", {tiramisu::expr(y_part_extent_1), tiramisu::expr(y_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
-    int u_part_extent_1 = SIZE1;
-    int u_part_extent_0 = SIZE0;
+    int u_part_extent_1 = SIZE1/2;
+    int u_part_extent_0 = SIZE0/2;
     tiramisu::buffer buff_u_part("buff_u_part", {tiramisu::expr(u_part_extent_1), tiramisu::expr(u_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
-    int v_part_extent_1 = SIZE1;
-    int v_part_extent_0 = SIZE0;
+    int v_part_extent_1 = SIZE1/2;
+    int v_part_extent_0 = SIZE0/2;
     tiramisu::buffer buff_v_part("buff_v_part", {tiramisu::expr(v_part_extent_1), tiramisu::expr(v_part_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &rgbyuv420);
 
     // Input buffers.
@@ -100,7 +100,8 @@ int main(int argc, char **argv)
     tiramisu::var y_part_s0_x("y_part_s0_x");
     tiramisu::var u_part_s0_x("u_part_s0_x");
 
-    rgbyuv420.add_context_constraints("[v_part_s0_y_loop_min, u_part_s0_y_loop_min, y_part_s0_y_loop_min, v_part_s0_y_loop_extent, u_part_s0_y_loop_extent, y_part_s0_y_loop_extent, v_part_s0_x_loop_min, u_part_s0_x_loop_min, y_part_s0_x_loop_min, v_part_s0_x_loop_extent, u_part_s0_x_loop_extent, y_part_s0_x_loop_extent]->{: v_part_s0_x_loop_min = 0 and u_part_s0_x_loop_min = 0 and y_part_s0_x_loop_min = 0 and v_part_s0_x_loop_extent > 1 and u_part_s0_x_loop_extent > 1 and y_part_s0_x_loop_extent > 1 and v_part_s0_x_loop_extent = y_part_s0_x_loop_extent and v_part_s0_x_loop_extent = u_part_s0_x_loop_extent and v_part_s0_y_loop_min = 0 and u_part_s0_y_loop_min = 0 and y_part_s0_y_loop_min = 0 and v_part_s0_y_loop_extent > 1 and u_part_s0_y_loop_extent > 1 and y_part_s0_y_loop_extent > 1 and v_part_s0_y_loop_extent = y_part_s0_y_loop_extent and v_part_s0_y_loop_extent = u_part_s0_y_loop_extent }");
+    rgbyuv420.add_context_constraints("[v_part_s0_y_loop_min, u_part_s0_y_loop_min, y_part_s0_y_loop_min, v_part_s0_y_loop_extent, u_part_s0_y_loop_extent, y_part_s0_y_loop_extent, v_part_s0_x_loop_min, u_part_s0_x_loop_min, y_part_s0_x_loop_min, v_part_s0_x_loop_extent, u_part_s0_x_loop_extent, y_part_s0_x_loop_extent]->{: v_part_s0_x_loop_min = 0 and u_part_s0_x_loop_min = 0 and y_part_s0_x_loop_min = 0 and v_part_s0_x_loop_extent > 1 and u_part_s0_x_loop_extent > 1 and y_part_s0_x_loop_extent > 1 and v_part_s0_y_loop_min = 0 and u_part_s0_y_loop_min = 0 and y_part_s0_y_loop_min = 0 and v_part_s0_y_loop_extent > 1 and u_part_s0_y_loop_extent > 1 and y_part_s0_y_loop_extent > 1 and v_part_s0_y_loop_extent = u_part_s0_y_loop_extent and v_part_s0_y_loop_extent = y_part_s0_y_loop_extent/2 and v_part_s0_x_loop_extent = u_part_s0_x_loop_extent and v_part_s0_x_loop_extent = y_part_s0_x_loop_extent/2}");
+
 
     // Define compute level for "v_part".
     t0.after(y_part_s0, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x"));
