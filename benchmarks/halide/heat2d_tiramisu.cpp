@@ -79,9 +79,9 @@ int main(int argc, char **argv)
 
     // Add schedules.
     heat2d_s0.tag_parallel_level(heat2d_s0_y);
-    //heat2d_s0.vectorize(heat2d_s0_x, 8);
+    heat2d_s0.vectorize(heat2d_s0_x, 8);
     heat2d_s1.tag_parallel_level(heat2d_s1_r__y);
-    //heat2d_s1.vectorize(heat2d_s1_r__x, 8);
+    heat2d_s1.vectorize(heat2d_s1_r__x, 8);
 
     heat2d_tiramisu.set_arguments({&buff_input, &buff_heat2d});
     heat2d_tiramisu.gen_time_space_domain();
