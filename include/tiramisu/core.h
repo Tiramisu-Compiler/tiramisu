@@ -897,9 +897,7 @@ private:
 
     /**
       * The sizes of the dimensions of the buffer.  Assuming the following
-      * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * size of rightmost dimension of the buffer (i.e. N2), the second
-      * vector element is N1, and the last vector element is N0.
+      * buffer buf[N0][N1][N2], dim_sizes should be {N0, N1, N2}.
       */
     std::vector<tiramisu::expr> dim_sizes;
 
@@ -959,13 +957,9 @@ public:
       * \p name is the name of the buffer.
       *
       * \p dim_sizes is a vector of tiramisu expressions that represent the
-      * size of each dimension in the buffer.  The first vector element
-      * represents the rightmost array dimension, while the last vector
-      * element represents the leftmost array dimension.
-      * For example, in the buffer buf[N0][N1][N2], the first element
-      * in the vector \p dim_sizes represents the size of rightmost
-      * dimension of the buffer (i.e. N2), the second vector element
-      * is N1, and the last vector element is N0.
+      * size of each dimension in the buffer.
+      * Assuming we want to declare the buffer buf[N0][N1][N2],
+      * then the vector of sizes should be {N0, N1, N2}.
       * Buffer dimensions in Tiramisu have the same semantics as in
       * C/C++.
       *
@@ -1094,10 +1088,6 @@ public:
 
     /**
       * Return the sizes of the dimensions of the buffer.
-      * Assuming the following buffer: buf[N0][N1][N2].  The first
-      * vector element represents the size of rightmost dimension
-      * of the buffer (i.e. N2), the second vector element is N1,
-      * and the last vector element is N0.
       */
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
 
