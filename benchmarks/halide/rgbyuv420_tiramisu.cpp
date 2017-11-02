@@ -101,10 +101,12 @@ int main(int argc, char **argv)
     tiramisu::var y_part_s0_x("y_part_s0_x");
     tiramisu::var u_part_s0_x("u_part_s0_x");
 
-    rgbyuv420.add_context_constraints("[v_part_s0_y_loop_min, u_part_s0_y_loop_min, y_part_s0_y_loop_min, v_part_s0_y_loop_extent, u_part_s0_y_loop_extent, y_part_s0_y_loop_extent, v_part_s0_x_loop_min, u_part_s0_x_loop_min, y_part_s0_x_loop_min, v_part_s0_x_loop_extent, u_part_s0_x_loop_extent, y_part_s0_x_loop_extent]->{: v_part_s0_x_loop_min = 0 and u_part_s0_x_loop_min = 0 and y_part_s0_x_loop_min = 0 and v_part_s0_x_loop_extent > 1 and u_part_s0_x_loop_extent > 1 and y_part_s0_x_loop_extent > 1 and v_part_s0_y_loop_min = 0 and u_part_s0_y_loop_min = 0 and y_part_s0_y_loop_min = 0 and v_part_s0_y_loop_extent > 1 and u_part_s0_y_loop_extent > 1 and y_part_s0_y_loop_extent > 1 and v_part_s0_y_loop_extent = u_part_s0_y_loop_extent and v_part_s0_y_loop_extent = y_part_s0_y_loop_extent/2 and v_part_s0_x_loop_extent = u_part_s0_x_loop_extent and v_part_s0_x_loop_extent = y_part_s0_x_loop_extent/2}");
+    rgbyuv420.add_context_constraints("[v_part_s0_y_loop_min, u_part_s0_y_loop_min, y_part_s0_y_loop_min, v_part_s0_y_loop_extent, u_part_s0_y_loop_extent, y_part_s0_y_loop_extent, v_part_s0_x_loop_min, u_part_s0_x_loop_min, y_part_s0_x_loop_min, v_part_s0_x_loop_extent, u_part_s0_x_loop_extent, y_part_s0_x_loop_extent]->{: v_part_s0_x_loop_min = 0 and u_part_s0_x_loop_min = 0 and y_part_s0_x_loop_min = 0 and v_part_s0_x_loop_extent > 1 and u_part_s0_x_loop_extent > 1 and y_part_s0_x_loop_extent > 1 and v_part_s0_y_loop_min = 0 and u_part_s0_y_loop_min = 0 and y_part_s0_y_loop_min = 0 and v_part_s0_y_loop_extent > 1 and u_part_s0_y_loop_extent > 1 and y_part_s0_y_loop_extent > 1 and v_part_s0_y_loop_extent = u_part_s0_y_loop_extent and v_part_s0_y_loop_extent = y_part_s0_y_loop_extent/2 and v_part_s0_x_loop_extent = u_part_s0_x_loop_extent and v_part_s0_x_loop_extent = y_part_s0_x_loop_extent/2 and y_part_s0_x_loop_extent%2=0 and y_part_s0_x_loop_extent%8=0}");
 
 
-    // Define compute level for "v_part".
+#define SCHEDULE_2 1
+ 
+#if SCHEDULE_1
     t0.after(y_part_s0, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x"));
     t1.after(t0, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x"));
     t2.after(t1, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x"));
@@ -124,6 +126,32 @@ int main(int argc, char **argv)
     y_part_s0.vectorize(tiramisu::var("y_part_s0_x"), 8, tiramisu::var("y_part_s0_x_outer"), tiramisu::var("y_part_s0_x_inner"));
     u_part_s0.vectorize(tiramisu::var("u_part_s0_x"), 8, tiramisu::var("u_part_s0_x_outer"), tiramisu::var("u_part_s0_x_inner"));
     v_part_s0.vectorize(tiramisu::var("v_part_s0_x"), 8, tiramisu::var("v_part_s0_x_outer"), tiramisu::var("v_part_s0_x_inner"));
+#elif SCHEDULE_2
+    tiramisu::var y_part_s0_x_1("y_part_s0_x_1");
+    tiramisu::var y_part_s0_x_0("y_part_s0_x_0");
+    y_part_s0.parallelize(tiramisu::var("y_part_s0_y"));
+    y_part_s0.split(y_part_s0_x, 2, y_part_s0_x_0, y_part_s0_x_1);
+    t0.after(y_part_s0, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    t1.after(t0, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    t2.after(t1, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    t3.after(t2, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    t4.after(t3, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    t5.after(t4, y_part_s0.get_loop_level_number_from_dimension_name("y_part_s0_x_0"));
+    u_part_s0.after(t5, u_part_s0_x);
+    t6.after(u_part_s0, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    t7.after(t6, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    t8.after(t7, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    t9.after(t8, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    t10.after(t9, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    t11.after(t10, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+    v_part_s0.after(t11, u_part_s0.get_loop_level_number_from_dimension_name("u_part_s0_x"));
+
+    y_part_s0.split(tiramisu::var("y_part_s0_x_0"), 8, tiramisu::var("y_part_s0_x_0_outer"), tiramisu::var("y_part_s0_x_0_inner"));
+    y_part_s0.tag_vector_level(tiramisu::var("y_part_s0_x_0_inner"), 8);
+    y_part_s0.tag_unroll_level(tiramisu::var("y_part_s0_x_1"));
+    u_part_s0.vectorize(tiramisu::var("u_part_s0_x"), 8, tiramisu::var("u_part_s0_x_0_outer"), tiramisu::var("u_part_s0_x_0_inner"));
+    v_part_s0.vectorize(tiramisu::var("v_part_s0_x"), 8, tiramisu::var("v_part_s0_x_0_outer"), tiramisu::var("v_part_s0_x_0_inner"));
+#endif
 
     // Add schedules.
     rgbyuv420.set_arguments({&buff_rgb, &buff_y_part, &buff_u_part, &buff_v_part});
