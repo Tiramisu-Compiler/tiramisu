@@ -149,8 +149,8 @@ int main(int argc, char **argv)
     y_part_s0.split(tiramisu::var("y_part_s0_x_0"), 8, tiramisu::var("y_part_s0_x_0_outer"), tiramisu::var("y_part_s0_x_0_inner"));
     y_part_s0.tag_vector_level(tiramisu::var("y_part_s0_x_0_inner"), 8);
     y_part_s0.tag_unroll_level(tiramisu::var("y_part_s0_x_1"));
-    u_part_s0.vectorize(tiramisu::var("u_part_s0_x"), 8, tiramisu::var("u_part_s0_x_0_outer"), tiramisu::var("u_part_s0_x_0_inner"));
-    v_part_s0.vectorize(tiramisu::var("v_part_s0_x"), 8, tiramisu::var("v_part_s0_x_0_outer"), tiramisu::var("v_part_s0_x_0_inner"));
+//    u_part_s0.vectorize(tiramisu::var("u_part_s0_x"), 8, tiramisu::var("u_part_s0_x_0_outer"), tiramisu::var("u_part_s0_x_0_inner"));
+//    v_part_s0.vectorize(tiramisu::var("v_part_s0_x"), 8, tiramisu::var("v_part_s0_x_0_outer"), tiramisu::var("v_part_s0_x_0_inner"));
 #endif
 
     // Add schedules.
