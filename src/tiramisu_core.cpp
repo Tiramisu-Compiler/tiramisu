@@ -7026,7 +7026,9 @@ const std::vector<std::pair<std::string, tiramisu::expr>>
 
 bool tiramisu::computation::has_accesses() const
 {
-    if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
+    if ((this->get_expr().get_op_type() == tiramisu::o_access))
+	return true;
+    else if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
             (this->get_expr().get_op_type() == tiramisu::o_free) ||
 	    (this->is_let_stmt()))
     {
@@ -7114,6 +7116,34 @@ void tiramisu::computation::mark_as_let_statement()
  ***************************** Constant class *******************************
  ****************************************************************************
  ****************************************************************************/
+
+tiramisu::constant::constant(
+    std::string param_name, const tiramisu::expr &param_expr,
+    tiramisu::primitive_t t,
+    tiramisu::function *func): tiramisu::computation()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!param_name.empty() && "Parameter name empty");
+    assert((func != NULL) && "Function undefined");
+
+    DEBUG(3, tiramisu::str_dump("Constructing a scheduled, function-wide constant (this is supposed to replace non-scheduled function wide computations."));
+
+    this->set_name(param_name);
+    this->set_expression(param_expr);
+    this->mark_as_let_statement();
+    this->compute_with_computation = NULL;
+    DEBUG(3, tiramisu::str_dump("The constant is function wide, but it is scheduled.  Its name is : "));
+    DEBUG(3, tiramisu::str_dump(this->get_name()));
+    std::string iter_str = "{" + this->get_name() + "[0]}";
+    DEBUG(3, tiramisu::str_dump("Computed iteration space for the constant assignment" + iter_str));
+    init_computation(iter_str, func, param_expr, true, t);
+    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The computation representing the assignment:"); this->dump(true));
+
+    DEBUG_INDENT(-4);
+}
+
 
 tiramisu::constant::constant(
     std::string param_name, const tiramisu::expr &param_expr,

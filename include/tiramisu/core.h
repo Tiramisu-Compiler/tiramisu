@@ -3418,6 +3418,10 @@ public:
              int at_loop_level,
              tiramisu::function *func);
 
+    constant(std::string param_name, const tiramisu::expr &param_expr,
+             tiramisu::primitive_t t,
+             tiramisu::function *func);
+
     /**
       * Get the computation with whom this constant is computed.
       */
