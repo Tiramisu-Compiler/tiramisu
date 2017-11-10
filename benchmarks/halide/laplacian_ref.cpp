@@ -172,9 +172,9 @@ int main(int argc, char **argv) {
         }
     }
 
-    output.compile_to_object("build/generated_fct_laplacian_ref.o", {input}, "laplacian_ref");
+    output.compile_to_object("build/generated_fct_laplacian_ref.o", {input, levels, alpha, beta}, "laplacian_ref");
 
-    output.compile_to_lowered_stmt("build/generated_fct_laplacian_ref.txt", {input}, Text);
+    output.compile_to_lowered_stmt("build/generated_fct_laplacian_ref.txt", {input, levels, alpha, beta}, Text);
 
     return 0;
 }
