@@ -1738,7 +1738,7 @@ void computation::update_names(std::vector<std::string> original_loop_level_name
     DEBUG_NEWLINE(3);
 
     this->set_loop_level_names(original_loop_level_names);
-    this->name_unnamed_time_space_dimensions();
+//    this->name_unnamed_time_space_dimensions();
 
     DEBUG(3, tiramisu::str_dump("Names updated. New names are: "));
     for (auto n: this->get_loop_level_names())
@@ -3218,11 +3218,14 @@ void computation::set_loop_level_names(std::vector<std::string> names)
 
     for (int i = 0; i < this->get_loop_levels_number(); i++)
     {
+	if (isl_map_has_dim_name(this->get_schedule(), isl_dim_out, loop_level_into_dynamic_dimension(i)) == isl_bool_true)
+	{
 	    this->schedule = isl_map_set_dim_name(this->get_schedule(),
 	        isl_dim_out,
 		loop_level_into_dynamic_dimension(i),
                 names[i].c_str());
   	    DEBUG(3, tiramisu::str_dump("Setting the name of loop level " + std::to_string(i) + " into " + names[i].c_str()));
+	}
     }
 
     DEBUG(3, tiramisu::str_dump("The schedule after renaming: ", isl_map_to_str(this->get_schedule())));
