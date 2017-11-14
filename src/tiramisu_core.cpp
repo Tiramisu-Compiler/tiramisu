@@ -5394,7 +5394,7 @@ std::string tiramisu::function::get_gpu_thread_iterator(const std::string &comp,
         {
             if (lev0 == std::get<0>(pd.second))
             {
-                res = ".__thread_id_x";
+                res = ".__thread_id_z";
             }
             else if (lev0 == std::get<1>(pd.second))
             {
@@ -5402,7 +5402,7 @@ std::string tiramisu::function::get_gpu_thread_iterator(const std::string &comp,
             }
             else if (lev0 == std::get<2>(pd.second))
             {
-                res = ".__thread_id_z";
+                res = ".__thread_id_x";
             }
             else
             {
@@ -5439,7 +5439,7 @@ std::string tiramisu::function::get_gpu_block_iterator(const std::string &comp, 
         {
             if (lev0 == std::get<0>(pd.second))
             {
-                res = ".__block_id_x";
+                res = ".__block_id_z";
             }
             else if (lev0 == std::get<1>(pd.second))
             {
@@ -5447,7 +5447,7 @@ std::string tiramisu::function::get_gpu_block_iterator(const std::string &comp, 
             }
             else if (lev0 == std::get<2>(pd.second))
             {
-                res = ".__block_id_z";
+                res = ".__block_id_x";
             }
             else
             {

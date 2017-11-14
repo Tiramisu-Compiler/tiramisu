@@ -1787,8 +1787,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
                 {
-                    // TODO(tiramisu): The for-type should have been "GPUThread"
-                    fortype = Halide::Internal::ForType::Parallel;
+                    fortype = Halide::Internal::ForType::GPUThread;
                     dev_api = Halide::DeviceAPI::OpenCL;
                     std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
                     Halide::Expr new_iterator_var =
@@ -1807,8 +1806,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
                 {
-                    // TODO(tiramisu): The for-type should have been "GPUBlock"
-                    fortype = Halide::Internal::ForType::Parallel;
+                    fortype = Halide::Internal::ForType::GPUBlock;
                     dev_api = Halide::DeviceAPI::OpenCL;
                     std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
                     Halide::Expr new_iterator_var =
@@ -2102,6 +2100,9 @@ void function::gen_halide_stmt()
                    generator::halide_expr_from_tiramisu_expr(this, ie, param.get_expr()),
                    stmt);
     }
+
+    // Add producer tag
+    stmt = Halide::Internal::ProducerConsumer::make_produce("", stmt);
 
     this->halide_stmt = stmt;
 
@@ -2886,8 +2887,9 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     // Halide::Target::OpenCL, etc.
     std::vector<Halide::Target::Feature> features =
     {
-        Halide::Target::AVX, Halide::Target::SSE41
+        Halide::Target::AVX, Halide::Target::SSE41, Halide::Target::OpenCL
     };
+
     Halide::Target target(os, arch, bits, features);
 
     std::vector<Halide::Argument> fct_arguments;
