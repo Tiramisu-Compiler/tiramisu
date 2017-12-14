@@ -1,4 +1,4 @@
-#include <isl/set.h>
+# include <isl/set.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/ast_build.h>
@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
+    global::set_loop_iterator_default_data_type(p_int32);
 
     // Declare a function called "function0".
     // A function in tiramisu is the equivalent of a function in C.

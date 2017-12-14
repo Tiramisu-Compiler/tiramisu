@@ -16,6 +16,7 @@ using namespace tiramisu;
 void generate_function_1(std::string name, int size, int val0)
 {
     tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(p_int32);
 
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);

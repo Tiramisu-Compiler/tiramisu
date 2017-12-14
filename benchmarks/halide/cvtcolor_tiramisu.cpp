@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
+    global::set_loop_iterator_default_data_type(p_int32);
 
     Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
     int SIZE0 = in_image.extent(0);

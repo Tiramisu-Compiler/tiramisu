@@ -24,6 +24,7 @@ using namespace tiramisu;
 int main(int argc, char **argv)
 {
     global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(p_int32);
 
     tiramisu::function blurxy_tiramisu("blurxy_tiramisu_test");
 

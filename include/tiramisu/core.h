@@ -3291,6 +3291,8 @@ public:
                                   this->get_data_type());
         }
     }
+
+    operator expr();
 };
 
 
@@ -3339,6 +3341,10 @@ public:
              bool function_wide,
              tiramisu::computation *with_computation,
              int at_loop_level,
+             tiramisu::function *func);
+
+    constant(std::string param_name, const tiramisu::expr &param_expr,
+             tiramisu::primitive_t t,
              tiramisu::function *func);
 
     /**
@@ -3455,6 +3461,10 @@ protected:
         const tiramisu::function &fct, isl_ast_node *node,
         int level, std::vector<std::string> &tagged_stmts,
         bool is_a_child_block = false);
+
+    // TODO doc
+    static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
+            const Halide::Internal::Stmt &second);
 
     /**
      * Create a Halide expression from a  Tiramisu expression.

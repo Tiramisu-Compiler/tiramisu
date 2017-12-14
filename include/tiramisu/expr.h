@@ -15,15 +15,16 @@
 #include <vector>
 #include <string.h>
 #include <stdint.h>
+#include <type_traits>
 
 #include <Halide.h>
 #include <tiramisu/debug.h>
 #include <tiramisu/type.h>
 
 
+
 namespace tiramisu
 {
-
 class computation;
 
 std::string generate_new_variable_name();
@@ -32,6 +33,7 @@ std::string str_tiramisu_type_op(tiramisu::op_t type);
 std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
 
 class buffer;
+class expr;
 class var;
 class global;
 
@@ -46,6 +48,7 @@ private:
       * Perform automatic data mapping ?
       */
     static bool auto_data_mapping;
+    static primitive_t iterator_type;
 
 public:
     /**
@@ -73,14 +76,27 @@ public:
         return global::auto_data_mapping;
     }
 
-    static void set_default_tiramisu_options()
+    static void set_loop_iterator_default_data_type(primitive_t type)
     {
-        set_auto_data_mapping(true);
+        global::iterator_type = type;
     }
 
     static primitive_t get_loop_iterator_default_data_type()
     {
-        return tiramisu::p_int32;
+        return global::iterator_type;
+    }
+
+    static void set_default_tiramisu_options()
+    {
+        set_auto_data_mapping(true);
+
+        if (sizeof(void *) == 8) {
+            // system is 64 bits
+            set_loop_iterator_default_data_type(p_int64);
+        } else {
+            // system is 32 bits
+            set_loop_iterator_default_data_type(p_int32);
+        }
     }
 
     global()
@@ -89,6 +105,25 @@ public:
     }
 };
 
+
+
+template <typename T>
+struct caster
+{
+    static expr const & cast(T const & val, primitive_t dtype);
+};
+
+template <>
+struct caster<expr>
+{
+    static expr const & cast(expr const & val, primitive_t dtype);
+};
+
+template <>
+struct caster<var>
+{
+    static var const & cast(var const & val, primitive_t dtype);
+};
 
 /**
   * A class to represent tiramisu expressions.
@@ -413,68 +448,9 @@ public:
     }
 
     /**
-     * Copy an expression.
-     */
-    tiramisu::expr copy()
-    {
-        tiramisu::expr *e = new tiramisu::expr();
-
-        e->_operator = this->_operator;
-        e->op = this->op;
-        e->access_vector = this->access_vector;
-        e->argument_vector = this->argument_vector;
-        e->defined = this->defined;
-        e->name = this->name;
-        e->dtype = this->dtype;
-        e->etype = this->etype;
-
-        // Copy the integer value
-        if (this->get_expr_type() == tiramisu::e_val)
-        {
-            if (this->get_data_type() == tiramisu::p_uint8)
-            {
-                e->uint8_value = this->get_uint8_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_int8)
-            {
-                e->int8_value = this->get_int8_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_uint16)
-            {
-                e->uint16_value = this->get_uint16_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_int16)
-            {
-                e->int16_value = this->get_int16_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_uint32)
-            {
-                e->uint32_value = this->get_uint32_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_int32)
-            {
-                e->int32_value = this->get_int32_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_uint64)
-            {
-                e->uint64_value = this->get_uint64_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_int64)
-            {
-                e->int64_value = this->get_int64_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_float32)
-            {
-                e->float32_value = this->get_float32_value();
-            }
-            else if (this->get_data_type() == tiramisu::p_float64)
-            {
-                e->float64_value = this->get_float64_value();
-            }
-        }
-
-        return (*e);
-    }
+      * Copy an expression.
+      */
+    tiramisu::expr copy() const;
 
     /**
       * Construct a 64-bit float expression.
@@ -832,7 +808,7 @@ public:
                 (std::is_same<T, int32_t>::value) ||
                 (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_add, e1, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_add, e1, tiramisu::caster<T>::cast(val, e1.get_data_type()));
         }
         else
         {
@@ -852,7 +828,7 @@ public:
                 (std::is_same<T, int32_t>::value) ||
                 (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_sub, e1, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_sub, e1, expr(val));
         }
         else
         {
@@ -872,7 +848,7 @@ public:
                 (std::is_same<T, int32_t>::value) ||
                 (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_div, e1, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_div, e1, expr(val));
         }
         else
         {
@@ -892,7 +868,7 @@ public:
                 (std::is_same<T, int32_t>::value) ||
                 (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_mul, e1, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_mul, e1, expr(val));
         }
         else
         {
@@ -912,7 +888,7 @@ public:
                 (std::is_same<T, int32_t>::value) ||
                 (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_mod, e1, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_mod, e1, expr(val));
         }
         else
         {
@@ -936,7 +912,7 @@ public:
                  (std::is_same<T, int32_t>::value) ||
                  (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_right_shift, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_right_shift, *this, expr(val));
         }
         else
         {
@@ -960,7 +936,7 @@ public:
                  (std::is_same<T, int32_t>::value) ||
                  (std::is_same<T, uint32_t>::value))
         {
-            return tiramisu::expr(tiramisu::o_left_shift, *this, tiramisu::expr((T) val));
+            return tiramisu::expr(tiramisu::o_left_shift, *this, expr(val));
         }
         else
         {
@@ -999,6 +975,8 @@ public:
     {
         return tiramisu::expr(tiramisu::o_logical_not, *this);
     }
+
+    tiramisu::expr& operator=(tiramisu::expr const &);
 
     /**
       * Comparison operator.
@@ -1732,6 +1710,36 @@ Halide::Expr halide_expr_from_tiramisu_expr(
     std::vector<isl_ast_expr *> &index_expr,
     const tiramisu::expr &tiramisu_expr);
 
+
+template <typename T>
+expr const & caster<T>::cast(T const & val, primitive_t dtype)
+{
+    static_assert(std::is_fundamental<T>::value, "Type must be fundamental");
+    switch (dtype) {
+        case p_int8:
+            return *(new expr{static_cast<int8_t>(val)});
+        case p_uint8:
+            return *(new expr{static_cast<uint8_t>(val)});
+        case p_int16:
+            return *(new expr{static_cast<int16_t>(val)});
+        case p_uint16:
+            return *(new expr{static_cast<uint16_t>(val)});
+        case p_int32:
+            return *(new expr{static_cast<int32_t>(val)});
+        case p_uint32:
+            return *(new expr{static_cast<uint32_t>(val)});
+        case p_int64:
+            return *(new expr{static_cast<int64_t>(val)});
+        case p_uint64:
+            return *(new expr{static_cast<uint64_t>(val)});
+        case p_float32:
+            return *(new expr{static_cast<float>(val)});
+        case p_float64:
+            return *(new expr{static_cast<double>(val)});
+        default:
+            assert(false && "type not supported");
+    }
 }
 
+}
 #endif

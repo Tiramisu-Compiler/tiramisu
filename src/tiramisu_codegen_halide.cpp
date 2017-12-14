@@ -28,6 +28,7 @@ namespace tiramisu
 Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
 std::string generate_new_variable_name();
 
+
 std::vector<computation *> function::get_computation_by_name(std::string name) const
 {
     assert(!name.empty());
@@ -895,7 +896,8 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_int)
     {
         isl_val *init_val = isl_ast_expr_get_val(isl_expr);
-        result = tiramisu::expr((int32_t) isl_val_get_num_si(init_val));
+        std::cout << std::boolalpha << std::is_fundamental<long>::value << std::endl;
+        result = tiramisu::caster<long>::cast(isl_val_get_num_si(init_val), tiramisu::global::get_loop_iterator_default_data_type());
         isl_val_free(init_val);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
@@ -903,7 +905,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
         isl_id *identifier = isl_ast_expr_get_id(isl_expr);
         std::string name_str(isl_id_get_name(identifier));
         isl_id_free(identifier);
-        result = tiramisu::var(tiramisu::p_int32, name_str);
+        result = tiramisu::var(tiramisu::global::get_loop_iterator_default_data_type(), name_str);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
     {
@@ -971,7 +973,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
             case isl_ast_op_pdiv_q:
                 result = tiramisu::expr(tiramisu::o_div, op0, op1);
                 result = tiramisu::expr(tiramisu::o_floor, result);
-                result = tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, result);
+                result = tiramisu::expr(tiramisu::o_cast, tiramisu::global::get_loop_iterator_default_data_type(), result);
                 break;
             case isl_ast_op_zdiv_r:
             case isl_ast_op_pdiv_r:
@@ -1337,14 +1339,15 @@ void print_isl_ast_expr_vector(
     }
 }
 
-Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
+template <typename T, int N>
+Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
 {
     Halide::Expr result;
 
     if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_int)
     {
         isl_val *init_val = isl_ast_expr_get_val(isl_expr);
-        result = Halide::Expr((int32_t)isl_val_get_num_si(init_val));
+        result = Halide::Expr(static_cast<T>(isl_val_get_num_si(init_val)));
         isl_val_free(init_val);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
@@ -1352,27 +1355,27 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
         isl_id *identifier = isl_ast_expr_get_id(isl_expr);
         std::string name_str(isl_id_get_name(identifier));
         isl_id_free(identifier);
-        result = Halide::Internal::Variable::make(Halide::Int(32), name_str);
+        result = Halide::Internal::Variable::make(Halide::Int(N), name_str);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_op)
     {
         Halide::Expr op0, op1, op2;
 
         isl_ast_expr *expr0 = isl_ast_expr_get_op_arg(isl_expr, 0);
-        op0 = halide_expr_from_isl_ast_expr(expr0);
+        op0 = halide_expr_from_isl_ast_expr_temp<T, N>(expr0);
         isl_ast_expr_free(expr0);
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 1)
         {
             isl_ast_expr *expr1 = isl_ast_expr_get_op_arg(isl_expr, 1);
-            op1 = halide_expr_from_isl_ast_expr(expr1);
+            op1 = halide_expr_from_isl_ast_expr_temp<T, N>(expr1);
             isl_ast_expr_free(expr1);
         }
 
         if (isl_ast_expr_get_op_n_arg(isl_expr) > 2)
         {
             isl_ast_expr *expr2 = isl_ast_expr_get_op_arg(isl_expr, 2);
-            op2 = halide_expr_from_isl_ast_expr(expr2);
+            op2 = halide_expr_from_isl_ast_expr_temp<T, N>(expr2);
             isl_ast_expr_free(expr2);
         }
 
@@ -1418,7 +1421,7 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
         case isl_ast_op_fdiv_q:
         case isl_ast_op_pdiv_q:
             result = Halide::Internal::Div::make(op0, op1);
-            result = Halide::Internal::Cast::make(Halide::Int(32), Halide::floor(result));
+            result = Halide::Internal::Cast::make(Halide::Int(N), Halide::floor(result));
             break;
         case isl_ast_op_zdiv_r:
         case isl_ast_op_pdiv_r:
@@ -1461,6 +1464,14 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     return result;
 }
 
+Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
+{
+    if (global::get_loop_iterator_default_data_type() == p_int32)
+        return halide_expr_from_isl_ast_expr_temp<int32_t, 32>(isl_expr);
+    else
+        return halide_expr_from_isl_ast_expr_temp<int64_t, 64>(isl_expr);
+}
+
 std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
 std::vector<tiramisu::computation *> allocate_stmts_vector;
 
@@ -1473,6 +1484,22 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
     tiramisu::computation *comp = (tiramisu::computation *)isl_id_get_user(comp_id);
     isl_id_free(comp_id);
     return comp;
+}
+
+Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Internal::Stmt &first,
+        const Halide::Internal::Stmt &second)
+{
+    if (first->node_type == Halide::Internal::IRNodeType::LetStmt)
+    {
+        DEBUG(3, tiramisu::str_dump("The Halide block is a let statement"));
+        auto * let_stmt = first.as<Halide::Internal::LetStmt>();
+        return Halide::Internal::LetStmt::make(let_stmt->name, let_stmt->value,
+                generator::make_halide_block(let_stmt->body, second));
+    }
+    else
+    {
+        return Halide::Internal::Block::make(first, second);
+    }
 }
 
 Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
@@ -1525,6 +1552,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
             if (block.defined() == false) // Probably block is a let stmt.
             {
+                DEBUG(3, tiramisu::str_dump("Block undefined."));
                 if (!let_stmts_vector.empty()) // i.e. non-consumed let statements
                 {
                     // if some stmts have already been created in this loop we can generate LetStmt
@@ -1556,9 +1584,11 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             }
             else // ((block.defined())
             {
+                DEBUG(3, tiramisu::str_dump("Block defined."));
                 if (result.defined())
                 {
-                    result = Halide::Internal::Block::make(block, result);
+                    // result = Halide::Internal::Block::make(block, result);
+                    result = generator::make_halide_block(block, result);
                 }
                 else // (!result.defined())
                 {
@@ -1623,6 +1653,23 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                            halide_dim_sizes, Halide::Internal::const_true(), result);
 
                     buf->mark_as_allocated();
+
+                    for (const auto &l_stmt : comp->get_associated_let_stmts())
+                    {
+                        DEBUG(3, tiramisu::str_dump("Generating the following let statement."));
+                        DEBUG(3, tiramisu::str_dump("Name : " + l_stmt.first));
+                        DEBUG(3, tiramisu::str_dump("Expression of the let statement: "));
+
+                        l_stmt.second.dump(false);
+
+                        std::vector<isl_ast_expr *> ie = {};
+                        tiramisu::expr tiramisu_let = replace_original_indices_with_transformed_indices(l_stmt.second,  comp->get_iterators_map());
+                        Halide::Expr let_expr = halide_expr_from_tiramisu_expr(comp->get_function(), ie, tiramisu_let);
+                        result = Halide::Internal::LetStmt::make(l_stmt.first, let_expr, result);
+
+                        DEBUG(10, tiramisu::str_dump("Generated let stmt:"));
+                        DEBUG_NO_NEWLINE(10, std::cout << result);
+                    }
                 }
             }
             allocate_stmts_vector.clear();
@@ -2081,6 +2128,7 @@ void function::gen_halide_stmt()
                    param.get_name(),
                    generator::halide_expr_from_tiramisu_expr(this, ie, param.get_expr()),
                    stmt);
+        std::cout << "Debug Malek " << stmt << std::endl;
     }
 
     this->halide_stmt = stmt;
@@ -2103,6 +2151,16 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * Note that the first arg in index_expr is the buffer name.  The other args
   * are the indices for each dimension of the buffer.
   */
+
+
+static inline Halide::Expr empty_index()
+{
+    if (global::get_loop_iterator_default_data_type() == p_int32)
+        return Halide::Expr(static_cast<int32_t >(0));
+    else
+        return Halide::Expr(static_cast<int64_t >(0));
+}
+
 Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *shape, isl_ast_expr *index_expr)
 {
     assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
@@ -2112,7 +2170,7 @@ Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *sha
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index {empty_index()};
     for (int i = dims; i >= 1; --i)
     {
         isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
@@ -2135,7 +2193,7 @@ Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *sha
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index {empty_index()};
     for (int i = dims; i >= 1; --i)
     {
 	std::vector<isl_ast_expr *> ie = {};
@@ -2157,7 +2215,7 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index {empty_index()};
     for (int i = dims; i >= 1; --i)
     {
 	std::vector<isl_ast_expr *> ie = {};
@@ -2179,7 +2237,7 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index {empty_index()};
     for (int i = dims; i >= 1; --i)
     {
         isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
@@ -2811,7 +2869,9 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
         }
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_var)
-    {
+    { 
+        DEBUG(3, tiramisu::str_dump("Generating a variable access expression."));
+        DEBUG(3, tiramisu::str_dump("Expression is a variable of type: " + tiramisu::str_from_tiramisu_type_primitive(tiramisu_expr.get_data_type()))); 
         result = Halide::Internal::Variable::make(
                 halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
                 tiramisu_expr.get_name());
