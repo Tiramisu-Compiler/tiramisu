@@ -118,16 +118,17 @@ template<typename T>
 inline void compare_4D_buffers(const std::string &test, const Halide::Buffer<T> &result,
 							const Halide::Buffer<T> &expected, int box)
 {
-
     for (int n = 0; n < result.extent(3); n++) {
         for (int z = 0; z < result.extent(2); z++) {
             for (int y = 0; y < result.extent(1)-box; y++) {
                 for (int x = 0; x < result.extent(0)-box; x++) {
-		   /* std::cout << "Comparing " << result(x, y, z, n) << " and "
+#if 0
+ 		    std::cout << "Comparing " << result(x, y, z, n) << " and "
 			      << expected(x, y, z, n) << " at position " <<
-			         "(" + std::to_string(x) + ", " + std::to_string(y) +
-			         ", " + std::to_string(z) + ", " + std::to_string(n) + ")"
-			      << std::endl;*/
+			         "(" + std::to_string(x) + "/" + std::to_string(result.extent(0)-box) + ", " + std::to_string(y) + "/" + std::to_string(result.extent(1)-box) +
+			         ", " + std::to_string(z) + "/" + std::to_string(result.extent(2)) + ", " + std::to_string(n) + "/" + std::to_string(result.extent(3)) + ")"
+			      << std::endl;
+#endif
 		    if (result(x, y, z, n) != expected(x, y, z, n)) {
 			tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
                                     ", " + std::to_string(y) + ", " + std::to_string(z) + ", " + std::to_string(n)+ "), expected: " +

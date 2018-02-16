@@ -1296,6 +1296,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                         // If this is not a let stmt and it is supposed to have accesses to other computations,
                         // it should have an access function.
                         {
+			    tiramisu::str_dump("This is computation " + comp->get_name() +"\n");
                             tiramisu::error("An access function should be provided before generating code.", true);
                         }
                     }
@@ -2887,7 +2888,8 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     // Halide::Target::OpenCL, etc.
     std::vector<Halide::Target::Feature> features =
     {
-        Halide::Target::AVX, Halide::Target::SSE41, Halide::Target::OpenCL
+        Halide::Target::AVX2, Halide::Target::SSE41, Halide::Target::OpenCL,
+	Halide::Target::FMA, Halide::Target::LargeBuffers
     };
 
     Halide::Target target(os, arch, bits, features);

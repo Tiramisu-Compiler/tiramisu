@@ -4342,23 +4342,42 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
     generator::get_rhs_accesses(consumer.get_function(), &consumer, accesses_vector, false);
     assert(accesses_vector.size() > 0);
 
+    DEBUG(3, tiramisu::str_dump("Computed RHS accesses:"));
+    for (auto acc : accesses_vector)
+    {
+        DEBUG(3, tiramisu::str_dump(isl_map_to_str(acc)));
+    }
+
     DEBUG(3, tiramisu::str_dump("Vector of accesses computed."));
 
     // Create a union map of the accesses to the producer.
     isl_map *consumer_accesses = NULL;
-    isl_space *space = NULL;
-    space = isl_map_get_space(isl_map_copy(accesses_vector[0]));
-    assert(space != NULL);
-    consumer_accesses = isl_map_empty(isl_space_copy(space));
+
+    DEBUG(10, tiramisu::str_dump("Computing a union map of accesses to the producer."));
+
     for (const auto a : accesses_vector)
     {
-        std::string range_name = isl_map_get_tuple_name(isl_map_copy(consumer_accesses), isl_dim_out);
+        std::string range_name = isl_map_get_tuple_name(isl_map_copy(a), isl_dim_out);
 
         if (range_name == this->get_name())
         {
-            consumer_accesses = isl_map_union(isl_map_copy(a), consumer_accesses);
+	    if (consumer_accesses == NULL)
+		consumer_accesses = isl_map_copy(a);
+	    else
+	    {
+		DEBUG(10, tiramisu::str_dump("consumer_accesses: ", isl_map_to_str(consumer_accesses)));
+		DEBUG(10, tiramisu::str_dump("access: ", isl_map_to_str(a)));
+
+		consumer_accesses = isl_map_union(isl_map_copy(a), consumer_accesses);
+	    }
         }
     }
+
+    DEBUG(10, tiramisu::str_dump("Union computed."));
+
+    DEBUG(10, tiramisu::str_dump("Intersecting the range and the domain of the following consumer_accesses: ", isl_map_to_str(consumer_accesses)));
+    DEBUG(10, tiramisu::str_dump("with the following iteration domain: ", isl_set_to_str(this->get_iteration_domain())));
+
     consumer_accesses = isl_map_intersect_range(consumer_accesses,
                         isl_set_copy(this->get_iteration_domain()));
     consumer_accesses = isl_map_intersect_domain(consumer_accesses,
@@ -4376,19 +4395,40 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
 
     // Transform, into time-processor, the consumer domain and schedule and the producer domain and schedule and the access relation
     consumer_domain = isl_set_apply(consumer_domain, isl_map_copy(consumer_sched));
+    assert(consumer_domain != NULL);
     producer_domain = isl_set_apply(producer_domain, isl_map_copy(producer_sched));
-    consumer_accesses = isl_map_apply_domain(isl_map_copy(consumer_accesses),
-                        isl_map_copy(consumer_sched));
-    consumer_accesses = isl_map_apply_range(isl_map_copy(consumer_accesses),
-                                            isl_map_copy(producer_sched));
+    assert(producer_domain != NULL);
 
-    DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
-    DEBUG(3, tiramisu::str_dump("Consumer domain (in time-processor): ",
-                                isl_set_to_str(consumer_domain)));
-    DEBUG(3, tiramisu::str_dump("Consumer accesses (in time-processor): ",
-                                isl_map_to_str(consumer_accesses)));
-    DEBUG(3, tiramisu::str_dump("Producer domain (in time-processor): ",
-                                isl_set_to_str(producer_domain)));
+    // Transform the consumer accesses to the time-space domain.
+    // For each access of the consumer:
+    //	    - Apply the schedule of the consumer on the domain of the access,
+    //	    - Get the producer (range) involved in that access,
+    //	    - Get the schedule of that producer,
+    //	    - Apply that schedule on the range of the access,
+    //	    - Add the resulting schedule to the union representing the result.
+    {
+	DEBUG(3, tiramisu::str_dump("Applying consumer_sched on the domain of consumer_accesses."));
+	DEBUG(3, tiramisu::str_dump("consumer_sched: ", isl_map_to_str(consumer_sched)));
+	DEBUG(3, tiramisu::str_dump("consumer_accesses: ", isl_map_to_str(consumer_accesses)));
+
+	consumer_accesses = isl_map_apply_domain(isl_map_copy(consumer_accesses),
+			    isl_map_copy(consumer_sched));
+	assert(consumer_accesses != NULL);
+
+	DEBUG(3, tiramisu::str_dump("Applying it on the range."));
+
+	consumer_accesses = isl_map_apply_range(isl_map_copy(consumer_accesses),
+	                                        isl_map_copy(producer_sched));
+	assert(consumer_accesses != NULL);
+
+	DEBUG(3, tiramisu::str_dump("")); DEBUG(3, tiramisu::str_dump(""));
+	DEBUG(3, tiramisu::str_dump("Consumer domain (in time-processor): ",
+				    isl_set_to_str(consumer_domain)));
+	DEBUG(3, tiramisu::str_dump("Consumer accesses (in time-processor): ",
+				    isl_map_to_str(consumer_accesses)));
+	DEBUG(3, tiramisu::str_dump("Producer domain (in time-processor): ",
+				    isl_set_to_str(producer_domain)));
+    }
 
     // Add parameter dimensions and equate the dimensions on the left of dim to these parameters
     if (L + 1 > 0)
@@ -4477,17 +4517,13 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
  * - Order the consumer after the redundant at level L.
  */
 // TODO: Test the case when \p consumer does not consume this computation.
-void computation::compute_at(computation &consumer, tiramisu::var L_var)
+void computation::compute_at(computation &consumer, int L)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(L_var.get_name().size() > 0);
+    assert(L > 0);
 
-    std::vector<int> dimensions = consumer.get_loop_level_numbers_from_dimension_names({L_var.get_name()});
-    assert(dimensions.size() == 1);
-
-    int L = dimensions[0];
     int dim = loop_level_into_static_dimension(L);
 
     assert(this->get_schedule() != NULL);
@@ -4644,6 +4680,7 @@ void computation::compute_at(computation &consumer, tiramisu::var L_var)
         // Duplicate the producer using the missing set which is in the time-processor domain.
         tiramisu::computation *original_computation = this;
         tiramisu::computation *duplicated_computation = this->duplicate("", isl_set_to_str(missing));
+	this->updates.push_back(duplicated_computation);
         DEBUG(3, tiramisu::str_dump("Producer duplicated. Dumping the schedule of the original computation."));
         original_computation->dump_schedule();
         DEBUG(3, tiramisu::str_dump("Dumping the schedule of the duplicate computation."));
@@ -4651,7 +4688,7 @@ void computation::compute_at(computation &consumer, tiramisu::var L_var)
 
         DEBUG(3, tiramisu::str_dump("Now setting the duplicate with regard to the other computations."));
         original_computation->after((*duplicated_computation), L);
-        consumer.after((*duplicated_computation), L);
+        consumer.after((*original_computation), L);
 
         // Computing the shift degrees.
         for (int i = 0; i <= L; i++)
@@ -4670,6 +4707,26 @@ void computation::compute_at(computation &consumer, tiramisu::var L_var)
     DEBUG(3, tiramisu::str_dump("Dumping the schedule of the producer and consumer."));
     this->dump_schedule();
     consumer.dump_schedule();
+
+    DEBUG_INDENT(-4);
+}
+
+/**
+  * Wrapper around compute_at(computation &consumer, int L).
+  */
+void computation::compute_at(computation &consumer, tiramisu::var L_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L_var.get_name().size() > 0);
+
+    std::vector<int> dimensions = consumer.get_loop_level_numbers_from_dimension_names({L_var.get_name()});
+    assert(dimensions.size() == 1);
+
+    int L = dimensions[0];
+
+    this->compute_at(consumer, L);
 
     DEBUG_INDENT(-4);
 }
