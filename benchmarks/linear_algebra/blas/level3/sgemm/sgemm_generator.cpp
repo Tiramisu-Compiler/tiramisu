@@ -17,7 +17,7 @@ using namespace tiramisu;
 
 /**
  * Benchmark sgemm
- *     result = aAB + bC
+ *     C = aAB + bC
  */
 
 void generate_function(std::string name)
@@ -43,17 +43,48 @@ void generate_function(std::string name)
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
 
-    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<N and 0<=j<M}", 0, true, p_float32, &function0);
+    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<N and 0<=j<M}", (float) 0, true, p_float32, &function0);
     tiramisu::computation reduced_AB_1("[N, M, K]->{reduced_AB_1[i,j,k]: 0<=i<N and 0<=j<M and 0<=k<K}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
-    tiramisu::computation result("[N, M]->{result[i,j]: 0<=i<N and 0<=j<M}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j), true, p_float32, &function0);
+    tiramisu::computation result("[N, M, K]->{result[i,j]: 0<=i<N and 0<=j<M}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
 
+
+     function0.add_context_constraints("[N, M, K]->{:N>1 and K>1 and M>1 and N=1024 and M=1024 and K=1024}");
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    reduced_AB_1.after(reduced_AB_0, 1);
-    result.after(reduced_AB_1, 1);
+#define B0 32
+#define B1 32
+#define B2 16
+
+#define L3_B0 8
+#define L3_B1 8
+#define L3_B2 8
+
+
+    // L2 3D Tiling
+    reduced_AB_0.tile(0,1, B0,B1);
+    reduced_AB_1.tile(0,1,2, B0,B1,B2);
+    result.tile(0,1, B0,B1);
+
+    // L3 3D Tiling
+    reduced_AB_0.tile(0,1, L3_B0,L3_B1);
+    reduced_AB_1.tile(0,1,2, L3_B0,L3_B1,L3_B2);
+    result.tile(0,1, L3_B0,L3_B1);
+
+    // Vectorization
+    // reduced_AB_0.tag_vector_level(5, B1);
+    reduced_AB_1.tag_vector_level(7, B1);
+    // result.tag_vector_level(5, B1);
+
+    // reduced_AB_1.tag_unroll_level(6);
+
+    reduced_AB_0.tag_parallel_level(0);
+
+    reduced_AB_1.after(reduced_AB_0, 5);
+    result.after(reduced_AB_1, 5);
+
 
     // -------------------------------------------------------
     // Layer III
@@ -62,9 +93,9 @@ void generate_function(std::string name)
     tiramisu::buffer buf_SIZES("buf_SIZES", {3}, tiramisu::p_int32, a_input, &function0);
     tiramisu::buffer buf_alpha("buf_alpha", {1}, tiramisu::p_float32, a_input, &function0);
     tiramisu::buffer buf_beta("buf_beta", {1}, tiramisu::p_float32, a_input, &function0);
-    tiramisu::buffer buf_AB("buf_AB", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_temporary, &function0);
-    tiramisu::buffer buf_A("buf_A", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_input, &function0);
-    tiramisu::buffer buf_B("buf_B", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_A("buf_A", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "K")}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_B("buf_B", {tiramisu::var(p_int32, "K"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_temps("buf_temp", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_temporary, &function0);
     tiramisu::buffer buf_C("buf_C", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_output, &function0);
 
 
@@ -74,8 +105,8 @@ void generate_function(std::string name)
     A.set_access("{A[i,j]->buf_A[i,j]}");
     B.set_access("{B[i,j]->buf_B[i,j]}");
     C.set_access("{C[i,j]->buf_C[i,j]}");
-    reduced_AB_0.set_access("{reduced_AB_0[i,j,k]->buf_AB[i,j]}");
-    reduced_AB_1.set_access("{reduced_AB_1[i,j,k]->buf_AB[i,j]}");
+    reduced_AB_0.set_access("{reduced_AB_0[i,j,k]->buf_temp[i,j]}");
+    reduced_AB_1.set_access("{reduced_AB_1[i,j,k]->buf_temp[i,j]}");
     result.set_access("{result[i,j]->buf_C[i,j]}");
 
     // -------------------------------------------------------
@@ -91,7 +122,7 @@ void generate_function(std::string name)
 
 int main(int argc, char **argv)
 {
-    generate_function("tiramisu_generated_code");
+    generate_function("sgemm_tiramisu");
 
     return 0;
 }

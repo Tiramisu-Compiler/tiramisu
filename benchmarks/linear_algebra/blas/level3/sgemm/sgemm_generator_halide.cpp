@@ -1,4 +1,5 @@
 #include "Halide.h"
+#include "benchmarks.h"
 
 using namespace Halide;
 //using Generator<GEMMGenerator<float>>::target;
@@ -8,9 +9,9 @@ using namespace Halide;
 int main(int argc, char **argv)
 {
         Param<float>   a_ = {"a", 1.0};
+        Param<float>   b_ = {"b", 1.0};
         ImageParam A_ = {type_of<float>(), 2, "A"};
         ImageParam B_ = {type_of<float>(), 2, "B"};
-        Param<float>   b_ = {"b", 1.0};
         ImageParam C_ = {type_of<float>(), 2, "C"};
 
         // Matrices are interpreted as column-major by default. The
@@ -44,8 +45,7 @@ int main(int argc, char **argv)
         result.rename(tj[0], t);
         result.bound(i, 0, num_rows).bound(j, 0, num_cols);
 
-//        As.compute_root().split(j, jo, ji, s).reorder(i, ji, io, jo).unroll(i).vectorize(ji).parallel(jo, 4);
-        As.compute_at(result, ti[0]).split(j, jo, ji, s).reorder(i, ji, io, jo).unroll(i).vectorize(ji);//.parallel(jo, 4);
+        As.compute_root().split(j, jo, ji, s).reorder(i, ji, io, jo).unroll(i).vectorize(ji).parallel(jo, 4);
 
         Atmp.compute_at(As, io).vectorize(i).unroll(j);
 
@@ -58,5 +58,10 @@ int main(int argc, char **argv)
         C_.dim(1).set_bounds(0, num_cols);
         result.output_buffer().dim(0).set_bounds(0, num_rows).dim(1).set_bounds(0, num_cols);
 
-	Halide::Buffer<float> output = result.realize(1000);
+	Halide::Target target = Halide::get_host_target();
+
+	result.compile_to_object("generated_sgemm_halide.o",
+                                 {a_, b_, A_, B_, C_},
+                                 "sgemm_halide",
+                                  target);
 }

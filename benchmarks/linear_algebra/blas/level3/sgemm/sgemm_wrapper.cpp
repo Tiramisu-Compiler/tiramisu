@@ -20,13 +20,14 @@ int main(int, char **)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
-    float a = 1, b = 1;
+
+    float a = 3, b = 3;
 
     Halide::Buffer<int> SIZES(3, "SIZES");
     Halide::Buffer<float> alpha(1, "alpha");
     Halide::Buffer<float> beta(1, "beta");
-    Halide::Buffer<float> A(N, M, "A");
-    Halide::Buffer<float> B(N, M, "B");
+    Halide::Buffer<float> A(N, K, "A");
+    Halide::Buffer<float> B(K, M, "B");
     Halide::Buffer<float> C(N, M, "C");
     Halide::Buffer<float> C_mkl(N, M, "C_mkl");
 
@@ -86,16 +87,18 @@ int main(int, char **)
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
+	    init_buffer(C_mkl, (float)1);
 	}
     }
 
     for (int i = 0; i < NB_TESTS; i++)
     {
 	    auto start2 = std::chrono::high_resolution_clock::now();
-	    tiramisu_generated_code(SIZES.raw_buffer(), alpha.raw_buffer(), beta.raw_buffer(), A.raw_buffer(), B.raw_buffer(), C.raw_buffer());
+	    sgemm_tiramisu(SIZES.raw_buffer(), alpha.raw_buffer(), beta.raw_buffer(), A.raw_buffer(), B.raw_buffer(), C.raw_buffer());
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
+	    init_buffer(C, (float)1);
     }
 
     print_time("performance_CPU.csv", "sgemm",
@@ -103,7 +106,9 @@ int main(int, char **)
                {median(duration_vector_1), median(duration_vector_2)});
 
     if (CHECK_CORRECTNESS)
+    {
 	compare_buffers("sgemm", C, C_mkl);
+    }
 
     return 0;
 }

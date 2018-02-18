@@ -813,6 +813,8 @@ bool function::should_vectorize(const std::string &comp, int lev) const
                                  " should be vectorized" +
                                  " at the loop level " + std::to_string(lev)));
 
+    DEBUG_INDENT(4);
+
     for (const auto &pd : this->vector_dimensions)
     {
         DEBUG(10, tiramisu::str_dump("Comparing " + comp + " to " + std::get<0>(pd)));
@@ -827,6 +829,7 @@ bool function::should_vectorize(const std::string &comp, int lev) const
                        + " be vectorized.";
     DEBUG(10, tiramisu::str_dump(str));
 
+    DEBUG_INDENT(-4);
     DEBUG_INDENT(-4);
 
     return found;

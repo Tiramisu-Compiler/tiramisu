@@ -1749,13 +1749,25 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 }
                 else if (fct.should_vectorize(tagged_stmts[tt], level))
                 {
-                    DEBUG(3, tiramisu::str_dump("Trying to vectorize at level ");
-                          tiramisu::str_dump(std::to_string(level)));
+                    DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
+				+ std::to_string(level) + ", tagged stmt is " + tagged_stmts[tt]));
 
 		    int vector_length = fct.get_vector_length(tagged_stmts[tt], level);
 
 		    for (auto vd: fct.vector_dimensions)
-			    std::cout << "stmt = " << std::get<0>(vd) << ", level = " << std::get<1>(vd) << ", length = " << std::get<2>(vd) << std::endl;
+		    {
+			    DEBUG(3, "stmt = " + std::get<0>(vd) + ", level = " +
+				    std::to_string(std::get<1>(vd)) + ", length = " +
+				    std::to_string(std::get<2>(vd)));
+		    }
+
+		    DEBUG(3, tiramisu::str_dump("Tagged statements (before removing this tagged stmt):"));
+		    size_t tttt = 0;
+		    while (tttt < tagged_stmts.size())
+		    {
+			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt]));
+			tttt++;
+		    }
 
 		    DEBUG(3, tiramisu::str_dump("Vector length = ");
                           tiramisu::str_dump(std::to_string(vector_length)));
@@ -1784,6 +1796,14 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
                     tagged_stmts[tt] = "";
+
+		    DEBUG(3, tiramisu::str_dump("Tagged statements:"));
+		    tttt = 0;
+		    while (tttt < tagged_stmts.size())
+		    {
+			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt]));
+			tttt++;
+		    }
                     break;
                 }
                 else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
@@ -1854,6 +1874,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
         DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now:"));
         for (const auto &ts: tagged_stmts)
             DEBUG(10, tiramisu::str_dump(ts + " "));
+	DEBUG(10, tiramisu::str_dump(""));
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
         result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format - init_expr,
@@ -1910,11 +1931,11 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                     tagged_stmts.push_back(computation_name);
                 if (fct.should_unroll(computation_name, l))
                     tagged_stmts.push_back(computation_name);
-            }
 
-            DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now"));
-            for (const auto &ts: tagged_stmts)
-                DEBUG(10, tiramisu::str_dump(ts + " "));
+		DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now"));
+		for (const auto &ts: tagged_stmts)
+		    DEBUG(10, tiramisu::str_dump(ts + " "));
+            }
 
             // Retrieve the computation of the node.
             tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
