@@ -43,25 +43,30 @@ void generate_function(std::string name)
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
 
-    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<N and 0<=j<M}", (float) 0, true, p_float32, &function0);
-    tiramisu::computation reduced_AB_1("[N, M, K]->{reduced_AB_1[i,j,k]: 0<=i<N and 0<=j<M and 0<=k<K}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
-    tiramisu::computation result("[N, M, K]->{result[i,j]: 0<=i<N and 0<=j<M}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
+    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256))}", (float) 0, true, p_float32, &function0);
+    tiramisu::computation reduced_AB_1("[N, M, K]->{reduced_AB_1[i,j,k]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256)) and 0<=k<(128*floor(K/128))}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
+    tiramisu::computation result("[N, M, K]->{result[i,j]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256))}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
+    tiramisu::computation reduced_AB_0_p("[N, M, K]->{reduced_AB_0_p[i,j,-1]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256))}", (float) 0, true, p_float32, &function0);
+    tiramisu::computation reduced_AB_1_p("[N, M, K]->{reduced_AB_1_p[i,j,k]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256)) and 0<=k<K-(128*floor(K/128))}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
+    tiramisu::computation result_p("[N, M, K]->{result_p[i,j]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256))}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
 
 
-     function0.add_context_constraints("[N, M, K]->{:N>1 and K>1 and M>1 and N=1024 and M=1024 and K=1024}");
+     function0.add_context_constraints("[N, M, K]->{:N>1 and K>1 and M>1 and N%32=0 and N%2=0 and M%64=0 and M%4=0 and K%4=0 and K%32=0 and N>32 and K>32 and M>64}");
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
+#define L3_B0 2
+#define L3_B1 4
+#define L3_B2 4
 #define B0 32
-#define B1 32
-#define B2 16
+#define B1 64
+#define B2 32
 
-#define L3_B0 8
-#define L3_B1 8
-#define L3_B2 8
+//#include "TUNED_SIZES.h"
 
+    reduced_AB_0.tag_parallel_level(0);
 
     // L2 3D Tiling
     reduced_AB_0.tile(0,1, B0,B1);
@@ -74,16 +79,21 @@ void generate_function(std::string name)
     result.tile(0,1, L3_B0,L3_B1);
 
     // Vectorization
-    // reduced_AB_0.tag_vector_level(5, B1);
+    reduced_AB_0.tag_vector_level(5, B1);
     reduced_AB_1.tag_vector_level(7, B1);
-    // result.tag_vector_level(5, B1);
+    result.tag_vector_level(5, B1);
 
-    // reduced_AB_1.tag_unroll_level(6);
+    // Unrolling
+    reduced_AB_0.tag_unroll_level(4);
+    reduced_AB_1.tag_unroll_level(8);
+    result.tag_unroll_level(4);
 
-    reduced_AB_0.tag_parallel_level(0);
-
-    reduced_AB_1.after(reduced_AB_0, 5);
-    result.after(reduced_AB_1, 5);
+    reduced_AB_1.after(reduced_AB_0, 1);
+    result.after(reduced_AB_1, 1);
+    reduced_AB_0_p.after(result, -1);
+    reduced_AB_1_p.after(reduced_AB_0_p, 1);
+    result_p.after(reduced_AB_1_p, 1);
+    result_p.tag_parallel_level(0);
 
 
     // -------------------------------------------------------
@@ -108,6 +118,10 @@ void generate_function(std::string name)
     reduced_AB_0.set_access("{reduced_AB_0[i,j,k]->buf_temp[i,j]}");
     reduced_AB_1.set_access("{reduced_AB_1[i,j,k]->buf_temp[i,j]}");
     result.set_access("{result[i,j]->buf_C[i,j]}");
+    reduced_AB_0_p.set_access("{reduced_AB_0_p[i,j,k]->buf_temp[i,j]}");
+    reduced_AB_1_p.set_access("{reduced_AB_1_p[i,j,k]->buf_temp[i,j]}");
+    result_p.set_access("{result_p[i,j]->buf_C[i,j]}");
+
 
     // -------------------------------------------------------
     // Code Generation

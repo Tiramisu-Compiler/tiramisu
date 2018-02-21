@@ -1478,7 +1478,7 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
 
 Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
     const tiramisu::function &fct, isl_ast_node *node,
-    int level, std::vector<std::string> &tagged_stmts,
+    int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
     bool is_a_child_block)
 {
     assert(node != NULL);
@@ -1736,23 +1736,23 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
         size_t tt = 0;
         while (tt < tagged_stmts.size())
         {
-            if (tagged_stmts[tt] != "")
+            if (tagged_stmts[tt].first != "")
             {
-                if (fct.should_parallelize(tagged_stmts[tt], level))
+                if (tagged_stmts[tt].second == "parallelize" && fct.should_parallelize(tagged_stmts[tt].first, level))
                 {
                     fortype = Halide::Internal::ForType::Parallel;
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt] = "";
+                    tagged_stmts[tt].first = "";
                     // As soon as we find one tagged statement that actually useful we exit
                     break;
                 }
-                else if (fct.should_vectorize(tagged_stmts[tt], level))
+                else if (tagged_stmts[tt].second == "vectorize" && fct.should_vectorize(tagged_stmts[tt].first, level))
                 {
                     DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
-				+ std::to_string(level) + ", tagged stmt is " + tagged_stmts[tt]));
+				+ std::to_string(level) + ", tagged stmt is " + tagged_stmts[tt].first));
 
-		    int vector_length = fct.get_vector_length(tagged_stmts[tt], level);
+		    int vector_length = fct.get_vector_length(tagged_stmts[tt].first, level);
 
 		    for (auto vd: fct.vector_dimensions)
 		    {
@@ -1765,7 +1765,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 		    size_t tttt = 0;
 		    while (tttt < tagged_stmts.size())
 		    {
-			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt]));
+			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first + " with tag " + tagged_stmts[tttt].second));
 			tttt++;
 		    }
 
@@ -1795,22 +1795,22 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt] = "";
+                    tagged_stmts[tt].first = "";
 
 		    DEBUG(3, tiramisu::str_dump("Tagged statements:"));
 		    tttt = 0;
 		    while (tttt < tagged_stmts.size())
 		    {
-			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt]));
+			DEBUG(3, tiramisu::str_dump("Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first + " with tag " + tagged_stmts[tttt].second));
 			tttt++;
 		    }
                     break;
                 }
-                else if (fct.should_map_to_gpu_thread(tagged_stmts[tt], level))
+                else if (tagged_stmts[tt].second == "map_to_gpu_thread" && fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level))
                 {
                     fortype = Halide::Internal::ForType::GPUThread;
                     dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt], level);
+                    std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt].first, level);
                     Halide::Expr new_iterator_var =
                         Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
                     halide_body = Halide::Internal::LetStmt::make(
@@ -1822,14 +1822,14 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt] = "";
+                    tagged_stmts[tt].first = "";
                     break;
                 }
-                else if (fct.should_map_to_gpu_block(tagged_stmts[tt], level))
+                else if (tagged_stmts[tt].second == "map_to_gpu_block" && fct.should_map_to_gpu_block(tagged_stmts[tt].first, level))
                 {
                     fortype = Halide::Internal::ForType::GPUBlock;
                     dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt], level);
+                    std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt].first, level);
                     Halide::Expr new_iterator_var =
                         Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
                     halide_body = Halide::Internal::LetStmt::make(
@@ -1841,10 +1841,10 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt] = "";
+                    tagged_stmts[tt].first = "";
                     break;
                 }
-                else if (fct.should_unroll(tagged_stmts[tt], level))
+                else if (tagged_stmts[tt].second == "unroll" && fct.should_unroll(tagged_stmts[tt].first, level))
                 {
                     DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
                           tiramisu::str_dump(std::to_string(level)));
@@ -1864,7 +1864,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                     // Since this statement is treated, remove it from the list of
                     // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt] = "";
+                    tagged_stmts[tt].first = "";
                     break;
                 }
             }
@@ -1873,7 +1873,7 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
         DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now:"));
         for (const auto &ts: tagged_stmts)
-            DEBUG(10, tiramisu::str_dump(ts + " "));
+            DEBUG(10, tiramisu::str_dump(ts.first + " with tag " + ts.second));
 	DEBUG(10, tiramisu::str_dump(""));
 
         DEBUG(3, tiramisu::str_dump("Creating the for loop."));
@@ -1922,19 +1922,19 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             for (int l = 0; l < level; l++)
             {
                 if (fct.should_parallelize(computation_name, l))
-                    tagged_stmts.push_back(computation_name);
+                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "parallelize"));
                 if (fct.should_vectorize(computation_name, l))
-                    tagged_stmts.push_back(computation_name);
+                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "vectorize"));
                 if (fct.should_map_to_gpu_block(computation_name, l))
-                    tagged_stmts.push_back(computation_name);
+                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "map_to_gpu_block"));
                 if (fct.should_map_to_gpu_thread(computation_name, l))
-                    tagged_stmts.push_back(computation_name);
+                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "map_to_gpu_thread"));
                 if (fct.should_unroll(computation_name, l))
-                    tagged_stmts.push_back(computation_name);
+                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "unroll"));
 
 		DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now"));
 		for (const auto &ts: tagged_stmts)
-		    DEBUG(10, tiramisu::str_dump(ts + " "));
+		    DEBUG(10, tiramisu::str_dump(ts.first + " with tag " + ts.second));
             }
 
             // Retrieve the computation of the node.
@@ -2067,7 +2067,7 @@ void function::gen_halide_stmt()
     // This vector is used in generate_Halide_stmt_from_isl_node to figure
     // out what are the statements that have already been visited in the
     // AST tree.
-    std::vector<std::string> generated_stmts;
+    std::vector<std::pair<std::string, std::string>> generated_stmts;
     Halide::Internal::Stmt stmt;
 
     // Generate the statement that represents the whole function

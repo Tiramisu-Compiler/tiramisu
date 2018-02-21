@@ -82,23 +82,23 @@ int main(int, char **)
 
         for (int i = 0; i < NB_TESTS; i++)
 	{
+	    init_buffer(C_mkl, (float)1);
 	    auto start1 = std::chrono::high_resolution_clock::now();
 	    cblas_sgemm(layout, transA, transB, M, N, K, a, (float *) A.raw_buffer()->host, lda, (float *) B.raw_buffer()->host, ldb, b, (float *) C_mkl.raw_buffer()->host, ldc);
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
-	    init_buffer(C_mkl, (float)1);
 	}
     }
 
     for (int i = 0; i < NB_TESTS; i++)
     {
+	    init_buffer(C, (float)1);
 	    auto start2 = std::chrono::high_resolution_clock::now();
 	    sgemm_tiramisu(SIZES.raw_buffer(), alpha.raw_buffer(), beta.raw_buffer(), A.raw_buffer(), B.raw_buffer(), C.raw_buffer());
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
-	    init_buffer(C, (float)1);
     }
 
     print_time("performance_CPU.csv", "sgemm",
@@ -108,6 +108,14 @@ int main(int, char **)
     if (CHECK_CORRECTNESS)
     {
 	compare_buffers("sgemm", C, C_mkl);
+    }
+
+    if (PRINT_OUTPUT)
+    {
+	std::cout << "Tiramisu sgemm " << std::endl;
+	print_buffer(C);
+	std::cout << "MKL sgemm " << std::endl;
+	print_buffer(C_mkl);
     }
 
     return 0;

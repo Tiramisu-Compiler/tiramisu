@@ -1888,6 +1888,7 @@ private:
     bool separateAndSplit(tiramisu::var L0, int sizeX);
     bool separateAndSplit(tiramisu::var L0, int sizeX,
 	    tiramisu::var L0_outer, tiramisu::var L0_inner);
+    bool separateAndSplit(int L0, int sizeX);
     //@}
 
     /**
@@ -3542,7 +3543,7 @@ protected:
       */
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::string> &tagged_stmts,
+        int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
         bool is_a_child_block = false);
 
     /**

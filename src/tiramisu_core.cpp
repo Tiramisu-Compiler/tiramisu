@@ -1459,10 +1459,22 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
+
     //////////////////////////////////////////////////////////////////////////////
 
     // We create the constraint (i < v*floor(N/v))
     DEBUG(3, tiramisu::str_dump("Constructing the constraint (i<v*floor(N/v))"));
+    DEBUG(3, tiramisu::str_dump("Removing any cast operator in N."));
+    std::string N_without_cast = N.to_str();
+    while (N_without_cast.find("cast") != std::string::npos) // while there is a "cast" in the expression
+    {
+	    // Remove "cast" from the string, we do not need it.
+	    // An alternative to this would be to actually mutate the expression N and remove the cast
+	    // operator, but that is more time consuming to implement than replacing the string directly.
+	    int pos = N_without_cast.find("cast");
+	    N_without_cast = N_without_cast.erase(pos, 4);
+    }
+ 
     std::string constraint;
     constraint = "";
     for (int i=0; i<isl_map_dim(this->get_schedule(), isl_dim_param); i++)
@@ -1488,13 +1500,13 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     constraint += "]: ";
 
     std::string constraint1 = constraint +
-				this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*(floor((" + N.to_str() + ")/" + std::to_string(v) + ")))}";
+				this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*(floor((" + N_without_cast + ")/" + std::to_string(v) + ")))}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint1));
 
     // We create the constraint (i >= v*floor(N/v))
     DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=v*(floor(N/v)))"));
     std::string constraint2 = constraint +
-				this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*(floor((" + N.to_str() + ")/" + std::to_string(v) + ")))}";
+				this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*(floor((" + N_without_cast + ")/" + std::to_string(v) + ")))}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint2));
 
     //////////////////////////////////////////////////////////////////////////////
@@ -3298,8 +3310,8 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(this->get_iteration_domain() != NULL);
     this->check_dimensions_validity({L0, L1});
 
-    this->split(L0, sizeX);
-    this->split(L1 + 1, sizeY);
+    this->separateAndSplit(L0, sizeX);
+    this->separateAndSplit(L1 + 1, sizeY);
     this->interchange(L0 + 1, L1 + 1);
 
     DEBUG_INDENT(-4);
@@ -5178,20 +5190,11 @@ bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
     return split_happened;
 }
 
-bool computation::separateAndSplit(tiramisu::var L0_var, int v,
-	    tiramisu::var L0_outer, tiramisu::var L0_inner)
+
+bool computation::separateAndSplit(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
-    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
-
-    assert(L0_var.get_name().length() > 0);
-    std::vector<int> dimensions =
-	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
-    this->check_dimensions_validity(dimensions);
-    int L0 = dimensions[0];
-    this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
     DEBUG(3, tiramisu::str_dump("Applying separateAndSplit on loop level " + std::to_string(L0) + " with a split factor of " + std::to_string(v)));
 
@@ -5243,21 +5246,47 @@ bool computation::separateAndSplit(tiramisu::var L0_var, int v,
         DEBUG(3, tiramisu::str_dump("Split happened."));
 
 	split_happened = false;
- 	// Replace the original dimension name with the name of the outermost loop
-    	this->update_names(original_loop_level_names, {L0_outer.get_name()}, L0, 1);
     }
     else
     {
 	 split_happened = true;
          DEBUG(3, tiramisu::str_dump("Split did not happen."));
-
-    	 // Replace the original dimension name with two new dimension names
-    	 this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
     }
 
     this->get_function()->align_schedules();
 
     DEBUG_INDENT(-4);
+
+    return split_happened;
+}
+
+
+bool computation::separateAndSplit(tiramisu::var L0_var, int v,
+	    tiramisu::var L0_outer, tiramisu::var L0_inner)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    assert(L0_var.get_name().length() > 0);
+    std::vector<int> dimensions =
+	this->get_loop_level_numbers_from_dimension_names({L0_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    bool split_happened = this->separateAndSplit(L0, v);
+
+    if (split_happened == false)
+    {
+ 	// Replace the original dimension name with the name of the outermost loop
+    	this->update_names(original_loop_level_names, {L0_outer.get_name()}, L0, 1);
+    }
+    else
+    {
+	 // Replace the original dimension name with two new dimension names
+    	 this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
+    }
 
     return split_happened;
 }
