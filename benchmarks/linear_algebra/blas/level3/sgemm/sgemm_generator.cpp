@@ -43,15 +43,15 @@ void generate_function(std::string name)
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
 
-    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256))}", (float) 0, true, p_float32, &function0);
-    tiramisu::computation reduced_AB_1("[N, M, K]->{reduced_AB_1[i,j,k]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256)) and 0<=k<(128*floor(K/128))}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
-    tiramisu::computation result("[N, M, K]->{result[i,j]: 0<=i<(64*floor(N/64)) and 0<=j<(256*floor(M/256))}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
-    tiramisu::computation reduced_AB_0_p("[N, M, K]->{reduced_AB_0_p[i,j,-1]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256))}", (float) 0, true, p_float32, &function0);
-    tiramisu::computation reduced_AB_1_p("[N, M, K]->{reduced_AB_1_p[i,j,k]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256)) and 0<=k<K-(128*floor(K/128))}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
-    tiramisu::computation result_p("[N, M, K]->{result_p[i,j]: 0<=i<N-(64*floor(N/64)) and 0<=j<M-(256*floor(M/256))}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
+    tiramisu::computation reduced_AB_0("[N, M, K]->{reduced_AB_0[i,j,-1]: 0<=i<(32*floor(N/32)) and 0<=j<(64*floor(M/64))}", (float) 0, true, p_float32, &function0);
+    tiramisu::computation reduced_AB_1("[N, M, K]->{reduced_AB_1[i,j,k]: 0<=i<N and 0<=j<(64*floor(M/64)) and 0<=k<(32*floor(K/32))}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
+    tiramisu::computation result("[N, M, K]->{result[i,j]: 0<=i<(32*floor(N/32)) and 0<=j<(64*floor(M/64))}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
+    tiramisu::computation reduced_AB_0_p("[N, M, K]->{reduced_AB_0_p[i,j,-1]: ((32*floor(N/32))<=i<N and 0<=j<M) or (0<=i<(32*floor(N/32)) and (64*floor(M/64))<=j<M)}", (float) 0, true, p_float32, &function0);
+    tiramisu::computation reduced_AB_1_p("[N, M, K]->{reduced_AB_1_p[i,j,k]: (0<=i<N and (64*floor(M/64))<=j<M and 0<=k<K) or (0<=i<N and 0<=j<(64*floor(M/64)) and (32*floor(K/32))<=k<K)}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
+    tiramisu::computation result_p("[N, M, K]->{result_p[i,j]: ((32*floor(N/32))<=i<N and 0<=j<M) or (0<=i<(32*floor(N/32)) and (64*floor(M/64))<=j<M)}", tiramisu::var(p_float32, "a") * reduced_AB_1(i,j,0) + tiramisu::var(p_float32, "b") * C(i,j) , true, p_float32, &function0);
 
 
-     function0.add_context_constraints("[N, M, K]->{:N>1 and K>1 and M>1 and N%32=0 and N%2=0 and M%64=0 and M%4=0 and K%4=0 and K%32=0 and N>32 and K>32 and M>64}");
+     function0.add_context_constraints("[N, M, K]->{:N>1 and K>1 and M>1 and N>32 and M>64 and K>32}");
 
     // -------------------------------------------------------
     // Layer II
