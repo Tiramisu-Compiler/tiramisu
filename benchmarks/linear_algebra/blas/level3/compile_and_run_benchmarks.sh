@@ -33,7 +33,7 @@ echo "Compiling ${KERNEL}"
 
 cd ${KERNEL}
 
-rm -rf ${KERNEL}_generator ${KERNEL}_wrapper
+rm -rf ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}_halide.o
 
 #echo "Compiling ${KERNEL} generator (Halide)" >> log
 #g++ $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_generator_halide.cpp ${LIBRARIES_DIR} ${LIBRARIES}                       -o ${KERNEL}_generator_halide & >> log
@@ -47,8 +47,10 @@ LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:
 #&> log
 
 echo "Compiling ${KERNEL} wrapper" >>log
-g++ $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o generated_${KERNEL}_halide.o -o ${KERNEL}_wrapper
+g++ $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o -o ${KERNEL}_wrapper
 echo "Running ${KERNEL} wrapper" >> log
+for ((i=0; i<10; i++)); do
 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ ./${KERNEL}_wrapper
+done
 
 cd -

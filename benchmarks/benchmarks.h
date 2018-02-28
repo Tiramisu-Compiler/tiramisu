@@ -11,6 +11,8 @@
 
 #define NB_TESTS 60
 #define CHECK_CORRECTNESS 1
+#define PRINT_OUTPUT 0
+#define SIZE_IS_MULTIPLE_OF_TILE 0
 
 // Data size
 #if TIRAMISU_XLARGE
@@ -22,10 +24,16 @@
 
 #elif TIRAMISU_LARGE
 
+#if SIZE_IS_MULTIPLE_OF_TILE
 #define N 1024
 #define M 1024
 #define K 1024
 #define SIZE (1024*1024)
+#else
+#define N 1060
+#define M 1060
+#define K 1060
+#endif
 
 #elif TIRAMISU_MEDIUM
 
