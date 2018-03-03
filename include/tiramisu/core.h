@@ -210,16 +210,6 @@ private:
     void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
-      */
-    void align_schedules();
-
-    /**
      * Get live in/out computations in the function.
      */
     // @{
@@ -637,6 +627,16 @@ public:
       * \p new_context should have the same space as the context set.
       */
     void add_context_constraints(const std::string &new_context);
+
+    /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
 
     /**
      * \brief For each computation, allocate a buffer and map the computation
@@ -1779,12 +1779,6 @@ private:
     bool has_accesses() const;
 
     /**
-      * Identical to
-      *     void interchange(tiramisu::var L0, tiramisu::var L1);
-      */
-    void interchange(int L0, int L1);
-
-    /**
       * Return if this computation represents a let statement.
       *
       * Let statements should be treated differently because:
@@ -1894,6 +1888,7 @@ private:
     bool separateAndSplit(tiramisu::var L0, int sizeX);
     bool separateAndSplit(tiramisu::var L0, int sizeX,
 	    tiramisu::var L0_outer, tiramisu::var L0_inner);
+    bool separateAndSplit(int L0, int sizeX);
     //@}
 
     /**
@@ -1976,12 +1971,6 @@ private:
 
     /**
       * Identical to
-      *		void split(tiramisu::var L0, int sizeX);
-      */
-    void split(int L0, int sizeX);
-
-    /**
-      * Identical to
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1);
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
       *			      tiramisu::var L2, tiramisu::var L3);
@@ -2018,36 +2007,6 @@ private:
     void tag_gpu_thread_level(int L0);
     void tag_gpu_thread_level(int L0, int L1);
     void tag_gpu_thread_level(int L0, int L1, int L2);
-    // @}
-
-    /**
-      * Identical to
-      *    void tag_parallel_level(int L);
-      */
-    void tag_parallel_level(int L);
-
-    /**
-      * Identical to
-      *     void tag_vector_level(tiramisu::var L, int len);
-      */
-    void tag_vector_level(int L, int len);
-
-   /**
-     * Identical to
-     *     void tag_unroll_level(tiramisu::var L);
-     */
-    void tag_unroll_level(int L);
-
-    /**
-      * Tile the two loop levels \p L0 and \p L1 with rectangular
-      * tiling. \p sizeX and \p sizeY represent the tile size.
-      * \p L0 and \p L1 should be two consecutive loop levels
-      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
-      * \p L0 > \p L1.
-      */
-    // @{
-    void tile(int L0, int L1, int sizeX, int sizeY);
-    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -2691,6 +2650,7 @@ public:
       * before the consumer.
       */
     void compute_at(computation &consumer, tiramisu::var L);
+    void compute_at(computation &consumer, int L);
 
     /**
       * Dump the iteration domain of the computation.  This is useful for
@@ -2860,6 +2820,12 @@ public:
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
     void interchange(tiramisu::var L0, tiramisu::var L1);
+
+    /**
+      * Identical to
+      *     void interchange(tiramisu::var L0, tiramisu::var L1);
+      */
+    void interchange(int L0, int L1);
 
     /**
      * Mark this statement as a let statement.
@@ -3050,6 +3016,11 @@ public:
 	       tiramisu::var L0_outer, tiramisu::var L0_inner);
     //@}
 
+    /**
+      * Identical to
+      *		void split(tiramisu::var L0, int sizeX);
+      */
+    void split(int L0, int sizeX);
 
     /**
      * Fold the storage of the computation.
@@ -3090,6 +3061,12 @@ public:
     void tag_parallel_level(tiramisu::var L);
 
     /**
+      * Identical to
+      *    void tag_parallel_level(int L);
+      */
+    void tag_parallel_level(int L);
+
+    /**
       * Tag the loop level \p L to be vectorized.
       * \p len is the vector length.
       *
@@ -3106,11 +3083,23 @@ public:
     void tag_vector_level(tiramisu::var L, int len);
 
     /**
+      * Identical to
+      *     void tag_vector_level(tiramisu::var L, int len);
+      */
+    void tag_vector_level(int L, int len);
+
+    /**
       * Tag the loop level \p L to be unrolled.
       *
       * The user can only tag loop levels that have constant extent.
       */
     void tag_unroll_level(tiramisu::var L);
+
+    /**
+     * Identical to
+     *     void tag_unroll_level(tiramisu::var L);
+     */
+    void tag_unroll_level(int L);
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
@@ -3133,6 +3122,18 @@ public:
 	      tiramisu::var L0_outer, tiramisu::var L1_outer,
 	      tiramisu::var L2_outer, tiramisu::var L0_inner,
 	      tiramisu::var L1_inner, tiramisu::var L2_inner);
+    // @}
+
+    /**
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
+      * tiling. \p sizeX and \p sizeY represent the tile size.
+      * \p L0 and \p L1 should be two consecutive loop levels
+      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+      * \p L0 > \p L1.
+      */
+    // @{
+    void tile(int L0, int L1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -3542,7 +3543,7 @@ protected:
       */
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::string> &tagged_stmts,
+        int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
         bool is_a_child_block = false);
 
     /**

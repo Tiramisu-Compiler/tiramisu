@@ -45,8 +45,8 @@ Compiling Tiramisu
 
         ./get_and_install_isl.sh
         ./get_and_install_halide.sh
-	mkdir build/
-	cd build/
+        mkdir build/
+        cd build/
         cmake ../
         make -j tiramisu
 
