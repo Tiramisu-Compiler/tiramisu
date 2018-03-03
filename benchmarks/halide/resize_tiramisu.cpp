@@ -69,6 +69,8 @@ int main(int argc, char **argv)
     tiramisu::var resampled_s0_x_x("resampled_s0_x_x");
     tiramisu::var resampled_s0_y("resampled_s0_y");
 
+//    resize_tiramisu.add_context_constraints("[]->{}");
+
     // Add schedules.
     resampled_s0.vectorize(resampled_s0_x, 8);
     resampled_s0.tag_parallel_level(resampled_s0_y);

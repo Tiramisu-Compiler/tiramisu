@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int gaussian_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *kernelX, halide_buffer_t *kernelY, halide_buffer_t *_b_output_buffer);
+int gaussian_tiramisu(halide_buffer_t *, halide_buffer_t *_b_input_buffer, halide_buffer_t *kernelX, halide_buffer_t *kernelY, halide_buffer_t *_b_output_buffer);
 int gaussian_tiramisu_argv(void **args);
 int gaussian_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *kernelX, halide_buffer_t *kernelY, halide_buffer_t *_b_output_buffer);
 int gaussian_ref_argv(void **args);
