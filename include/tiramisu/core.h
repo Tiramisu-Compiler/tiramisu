@@ -210,16 +210,6 @@ private:
     void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
-      */
-    void align_schedules();
-
-    /**
      * Get live in/out computations in the function.
      */
     // @{
@@ -637,6 +627,16 @@ public:
       * \p new_context should have the same space as the context set.
       */
     void add_context_constraints(const std::string &new_context);
+
+    /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
 
     /**
      * \brief For each computation, allocate a buffer and map the computation
