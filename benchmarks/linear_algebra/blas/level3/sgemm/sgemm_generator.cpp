@@ -44,22 +44,24 @@ void generate_function(std::string name)
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
 #define PACK_ARRAY 0
-#define AUTO_SCHEDULE 0
+#define AUTO_SCHEDULE 1
+#define INNER_SPLIT 0
 
 #if AUTO_SCHEDULE
 	#include "SCHEDULE.h"
+	#define THREE_D_L3_TILING 1
 #else
-	#define L3_B0 4
-	#define L3_B1 8
-	#define L3_B2 8
+	#define L3_B0 2
+	#define L3_B1 4
+	#define L3_B2 4
 	#define U1 32
-	#define B0 64
+	#define B0 32
 	#if SIZE_IS_MULTIPLE_OF_TILE
 	    #define B1 64
 	#else
 	    #define B1 32
 	#endif
-	#define B2 64
+	#define B2 32
 
 	#if SIZE_IS_MULTIPLE_OF_TILE
 	    #define THREE_D_L3_TILING 1
@@ -213,14 +215,17 @@ void generate_function(std::string name)
     // ----------------------------------------------------------------------------------------------------------------
     // Split to prepare for unrolling
     // ----------------------------------------------------------------------------------------------------------------
-#if PACK_ARRAY
+    int split_level = 0;
+#if INNER_SPLIT
+    split_level = 1;
+    #if PACK_ARRAY
     packed_B_p1.split(lev0+lev1+4, U1);
-#endif
+    #endif
     reduced_AB_0.split(lev0+lev1+2, U1);
     reduced_AB_1.split(lev0+lev1+lev2+5, U1);
-    reduced_AB_1.interchange(lev0+lev1+lev2+4, lev0+lev1+lev2+5);
     reduced_AB_1_p1.split(lev0+lev1+lev2+4, U1);
     result.split(lev0+lev1+2, U1);
+#endif
 
 
 
@@ -228,26 +233,26 @@ void generate_function(std::string name)
     // Unrolling
     // ----------------------------------------------------------------------------------------------------------------
 #if PACK_ARRAY
-    packed_B_p1.tag_unroll_level(lev0+lev1+5);
+    packed_B_p1.tag_unroll_level(lev0+lev1+split_level+4);
 #endif
-    reduced_AB_0.tag_unroll_level(lev0+lev1+3);
-    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+6);
-    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+5);
-    result.tag_unroll_level(lev0+lev1+3);
+    reduced_AB_0.tag_unroll_level(lev0+lev1+split_level+2);
+    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+split_level+5);
+    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+split_level+4);
+    result.tag_unroll_level(lev0+lev1+split_level+2);
 
 
 
     // ----------------------------------------------------------------------------------------------------------------
     // Vectorization
     // ----------------------------------------------------------------------------------------------------------------
-    reduced_AB_0.tag_vector_level(lev0+lev1+4, B1);
+    reduced_AB_0.tag_vector_level(lev0+lev1+split_level+3, B1);
     if (SIZE_IS_MULTIPLE_OF_TILE)
-	reduced_AB_0_p0.tag_vector_level(lev0+lev1+2, B1);
-    reduced_AB_0_p1.tag_vector_level(lev0+lev1+4, B1);
-    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+5, B1);
-    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+4, B1);
-    result.tag_vector_level(lev0+lev1+4, B1);
-    result_p1.tag_vector_level(lev0+lev1+4, B1);
+	reduced_AB_0_p0.tag_vector_level(lev0+lev1+split_level+1, B1);
+    reduced_AB_0_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
+    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+split_level+4, B1);
+    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+split_level+3, B1);
+    result.tag_vector_level(lev0+lev1+split_level+3, B1);
+    result_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
 
 
     // -------------------------------------------------------
