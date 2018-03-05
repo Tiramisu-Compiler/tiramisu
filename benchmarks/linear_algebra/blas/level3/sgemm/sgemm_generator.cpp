@@ -49,16 +49,17 @@ void generate_function(std::string name)
 #if AUTO_SCHEDULE
 	#include "SCHEDULE.h"
 #else
-	#define L3_B0 2
-	#define L3_B1 4
-	#define L3_B2 4
-	#define B0 32
+	#define L3_B0 4
+	#define L3_B1 8
+	#define L3_B2 8
+	#define U1 32
+	#define B0 64
 	#if SIZE_IS_MULTIPLE_OF_TILE
 	    #define B1 64
 	#else
 	    #define B1 32
 	#endif
-	#define B2 32
+	#define B2 64
 
 	#if SIZE_IS_MULTIPLE_OF_TILE
 	    #define THREE_D_L3_TILING 1
@@ -126,43 +127,27 @@ void generate_function(std::string name)
     // ----------------------------------------------------------------------------------------------------------------
     // L2 tiling
     // ----------------------------------------------------------------------------------------------------------------
-    reduced_AB_0.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_0   [0, 0, i, 0, j, 0, 0, 0]->reduced_AB_0   [0, 0, i0, 0, j0, 0, i1, 0, j1, 0, 0,  0,  0, 0]:"
-        "i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    reduced_AB_0_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p0[0, 0, i, 0, j, 0, 0, 0]->reduced_AB_0_p0[0, 0, i0, 0, j0, 0, i1, 0, j1, 0, 0,  0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    reduced_AB_0_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p1[0, 0, i, 0, j, 0, 0, 0]->reduced_AB_0_p1[0, 0, i0, 0, j0, 0, i1, 0, j1, 0, 0,  0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    reduced_AB_0_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p2[0, 0, i, 0, j, 0, 0, 0]->reduced_AB_0_p2[0, 0, i0, 0, j0, 0, i1, 0, j1, 0, 0,  0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
+    reduced_AB_0.tile(0,1, B0,B1);
+    reduced_AB_0_p0.tile(0,1, B0,B1);
+    reduced_AB_0_p1.tile(0,1, B0,B1);
+    reduced_AB_0_p2.tile(0,1, B0,B1);
 
 #if PACK_ARRAY
-    packed_B.apply_transformation_on_schedule   ("[N,M,K]->{packed_B   [0, 0, j, 0, k, 0, 0, 0]->packed_B   [0, 0, 0, 0, j0, 0, k0, 0, 0, 0, j1, 0, k1, 0]:"
-	"j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    packed_B_p0.apply_transformation_on_schedule   ("[N,M,K]->{packed_B_p0[0, 0, j, 0, k, 0, 0, 0]->packed_B_p0[0, 0, 0, 0, j0, 0, k0, 0, 0, 0, j1, 0, k1, 0]:"
-	"j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    packed_B_p1.apply_transformation_on_schedule   ("[N,M,K]->{packed_B_p1[0, 0, j, 0, k, 0, 0, 0]->packed_B_p1[0, 0, 0, 0, j0, 0, k0, 0, 0, 0, j1, 0, k1, 0]:"
-	"j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    packed_B_p2.apply_transformation_on_schedule   ("[N,M,K]->{packed_B_p2[0, 0, j, 0, k, 0, 0, 0]->packed_B_p2[0, 0, 0, 0, j0, 0, k0, 0, 0, 0, j1, 0, k1, 0]:"
-	"j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
+    packed_B.tile(0,1, B1,B2);
+    packed_B_p0.tile(0,1, B1,B2);
+    packed_B_p1.tile(0,1, B1,B2);
+    packed_B_p2.tile(0,1, B1,B2);
 #endif
 
-    reduced_AB_1.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_1   [0, 0, i, 0, j, 0, k, 0]->reduced_AB_1   [0, 0, i0, 0, j0, 0, k0, 0, i1, 0, j1, 0, k1, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    reduced_AB_1_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p0[0, 0, i, 0, j, 0, k, 0]->reduced_AB_1_p0[0, 0, i0, 0, j0, 0, k0, 0, i1, 0, j1, 0, k1, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    reduced_AB_1_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p1[0, 0, i, 0, j, 0, k, 0]->reduced_AB_1_p1[0, 0, i0, 0, j0, 0, k0, 0, i1, 0, j1, 0, k1, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
-    reduced_AB_1_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p2[0, 0, i, 0, j, 0, k, 0]->reduced_AB_1_p2[0, 0, i0, 0, j0, 0, k0, 0, i1, 0, j1, 0, k1, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+" and k0=floor(k/"+B2s+") and k1=k%"+B2s+"}");
+    reduced_AB_1.tile(0,1,2, B0,B1,B2);
+    reduced_AB_1_p0.tile(0,1,2, B0,B1,B2);
+    reduced_AB_1_p1.tile(0,1,2, B0,B1,B2);
+    reduced_AB_1_p2.tile(0,1,2, B0,B1,B2);
 
-    result.apply_transformation_on_schedule      ("[N,M,K]->{result      [0, 0, i, 0, j, 0, 0, 0]->result      [0, 0, i0, 0, j0, 0, i1, 0, j1, 0,  0, 0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    result_p0.apply_transformation_on_schedule   ("[N,M,K]->{result_p0   [0, 0, i, 0, j, 0, 0, 0]->result_p0   [0, 0, i0, 0, j0, 0, i1, 0, j1, 0,  0, 0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    result_p1.apply_transformation_on_schedule   ("[N,M,K]->{result_p1   [0, 0, i, 0, j, 0, 0, 0]->result_p1   [0, 0, i0, 0, j0, 0, i1, 0, j1, 0,  0, 0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
-    result_p2.apply_transformation_on_schedule   ("[N,M,K]->{result_p2   [0, 0, i, 0, j, 0, 0, 0]->result_p2   [0, 0, i0, 0, j0, 0, i1, 0, j1, 0,  0, 0,  0, 0]:"
-	"i0=floor(i/"+B0s+") and i1=i%"+B0s+" and j0=floor(j/"+B1s+") and j1=j%"+B1s+"}");
+    result.tile(0,1, B0,B1);
+    result_p0.tile(0,1, B0,B1);
+    result_p1.tile(0,1, B0,B1);
+    result_p2.tile(0,1, B0,B1);
 
 
 
@@ -175,104 +160,27 @@ void generate_function(std::string name)
     lev1 = 1;
     lev2 = 1;
     
-    reduced_AB_0.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_0   [0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0   [0, 0, i00, 0, j00, 0, i01, 0, j01, 0,  i1, 0,  j1, 0, 0,  0,  0, 0,  0, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    reduced_AB_0_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p0[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p0[0, 0, i00, 0, j00, 0, i01, 0, j01, 0,  i1, 0,  j1, 0, 0,  0,  0, 0,  0, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    reduced_AB_0_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p1[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p1[0, 0, i00, 0, j00, 0, i01, 0, j01, 0,  i1, 0,  j1, 0, 0,  0,  0, 0,  0, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    reduced_AB_0_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p2[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p2[0, 0, i00, 0, j00, 0, i01, 0, j01, 0,  i1, 0,  j1, 0, 0,  0,  0, 0,  0, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
+    reduced_AB_0.tile(0,1, L3_B0, L3_B1);
+    reduced_AB_0_p0.tile(0,1, L3_B0, L3_B1);
+    reduced_AB_0_p1.tile(0,1, L3_B0, L3_B1);
+    reduced_AB_0_p2.tile(0,1, L3_B0, L3_B1);
 
-#if PACK_ARRAY
-    packed_B.apply_transformation_on_schedule   ("[N,M,K]->{packed_B[0, 0, 0,  0,  j0,  0,   k0,  0,  0, 0,    j1, 0,    k1, 0]->"
-							   "packed_B[0, 0, 0,  0, j00,  0,  k00,  0,  0, 0,   j01, 0,   k01, 0, 0, 0, j1, 0, k1, 0]:"
-							   "j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    packed_B_p0.apply_transformation_on_schedule("[N,M,K]->{packed_B_p0[0, 0, 0,  0,  j0,  0,   k0,  0,  0, 0,    j1, 0,    k1, 0]->"
-						           "packed_B_p0[0, 0, 0,  0, j00,  0,  k00,  0,  0, 0,   j01, 0,   k01, 0, 0, 0, j1, 0, k1, 0]:"
-							   "j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    packed_B_p1.apply_transformation_on_schedule("[N,M,K]->{packed_B_p1[0, 0, 0,  0,  j0,  0,   k0,  0,  0, 0,    j1, 0,    k1, 0]->"
-							   "packed_B_p1[0, 0, 0,  0, j00,  0,  k00,  0,  0, 0,   j01, 0,   k01, 0, 0, 0, j1, 0, k1, 0]:"
-							   "j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    packed_B_p2.apply_transformation_on_schedule("[N,M,K]->{packed_B_p2[0, 0, 0,  0,  j0,  0,   k0,  0,  0, 0,    j1, 0,    k1, 0]->"
-							   "packed_B_p2[0, 0, 0,  0, j00,  0,  k00,  0,  0, 0,   j01, 0,   k01, 0, 0, 0, j1, 0, k1, 0]:"
-							   "j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-#endif
+    #if PACK_ARRAY
+    packed_B.tile(0,1, L3_B1,L3_B2);
+    packed_B_p0.tile(0,1, L3_B1,L3_B2);
+    packed_B_p1.tile(0,1, L3_B1,L3_B2);
+    packed_B_p2.tile(0,1, L3_B1,L3_B2);
+    #endif
 
-    reduced_AB_1.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_1   [0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1[0, 0, i00, 0, j00, 0, k00, 0, i01, 0, j01, 0, k01, 0, i1, 0, j1, 0, k1, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    reduced_AB_1_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p0[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p0[0, 0, i00, 0, j00, 0, k00, 0, i01, 0, j01, 0, k01, 0, i1, 0, j1, 0, k1, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    reduced_AB_1_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p1[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p1[0, 0, i00, 0, j00, 0, k00, 0, i01, 0, j01, 0, k01, 0, i1, 0, j1, 0, k1, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
-    reduced_AB_1_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p2[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p2[0, 0, i00, 0, j00, 0, k00, 0, i01, 0, j01, 0, k01, 0, i1, 0, j1, 0, k1, 0]:"
-							       "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4 and k00=floor(k0/4) and k01=k0%4}");
+    reduced_AB_1.tile(0,1,2, L3_B0, L3_B1, L3_B2);
+    reduced_AB_1_p0.tile(0,1,2, L3_B0, L3_B1, L3_B2);
+    reduced_AB_1_p1.tile(0,1,2, L3_B0, L3_B1, L3_B2);
+    reduced_AB_1_p2.tile(0,1,2, L3_B0, L3_B1, L3_B2);
 
-    result.apply_transformation_on_schedule      ("[N,M,K]->{      result[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "      result[0, 0, i00, 0, j00, 0, i01, 0, j01, 0, i1,  0,  j1, 0,  0, 0,  0, 0,  0, 0]:"
-							    "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    result_p0.apply_transformation_on_schedule   ("[N,M,K]->{   result_p0[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "   result_p0[0, 0, i00, 0, j00, 0, i01, 0, j01, 0, i1,  0,  j1, 0,  0, 0,  0, 0,  0, 0]:"
-							    "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    result_p1.apply_transformation_on_schedule   ("[N,M,K]->{   result_p1[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "   result_p1[0, 0, i00, 0, j00, 0, i01, 0, j01, 0, i1,  0,  j1, 0,  0, 0,  0, 0,  0, 0]:"
-							    "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-    result_p2.apply_transformation_on_schedule   ("[N,M,K]->{   result_p2[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "   result_p2[0, 0, i00, 0, j00, 0, i01, 0, j01, 0, i1,  0,  j1, 0,  0, 0,  0, 0,  0, 0]:"
-							    "i00=floor(i0/2) and i01=i0%2 and j00=floor(j0/4) and j01=j0%4}");
-
-    // ----------------------------------------------------------------------------------------------------------------
-    // No L3 tiling (if SIZE_IS_MULTIPLE_OF_TILE == false)
-    // ----------------------------------------------------------------------------------------------------------------
-#else  // No L3 Tiling
-    lev0 = 0;
-    lev1 = 0;
-    lev2 = 0;
-
-    reduced_AB_0.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_0   [0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0   [0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p0[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p0[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p1[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p1[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p2[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0]->"
-							       "reduced_AB_0_p2[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,   0, 0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-#if PACK_ARRAY
-    packed_B.apply_transformation_on_schedule   ("[N,M,K]->{packed_B   [0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0]->"
-							   "packed_B   [0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    packed_B_p0.apply_transformation_on_schedule("[N,M,K]->{packed_B_p0[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0]->"
-							   "packed_B_p0[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    packed_B_p1.apply_transformation_on_schedule("[N,M,K]->{packed_B_p1[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0]->"
-							   "packed_B_p1[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    packed_B_p2.apply_transformation_on_schedule("[N,M,K]->{packed_B_p2[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0]->"
-							   "packed_B_p2[0, 0,  0,  0,  j0, 0,  k0, 0,  0,  0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-#endif
-
-    reduced_AB_1.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_1   [0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1   [0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_1_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p0[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p0[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_1_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p1[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p1[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_1_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p2[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0]->"
-							       "reduced_AB_1_p2[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, 0, 0, 0, 0, 0, 0]}");
-
-    result.apply_transformation_on_schedule      ("[N,M,K]->{            result[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "            result[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p0.apply_transformation_on_schedule   ("[N,M,K]->{         result_p0[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "         result_p0[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p1.apply_transformation_on_schedule   ("[N,M,K]->{         result_p1[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "         result_p1[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p2.apply_transformation_on_schedule   ("[N,M,K]->{         result_p2[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0]->"
-							    "         result_p2[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  0,  0,   0, 0, 0, 0, 0, 0, 0, 0]}");
+    result.tile(0,1, L3_B0, L3_B1);
+    result_p0.tile(0,1, L3_B0, L3_B1);
+    result_p1.tile(0,1, L3_B0, L3_B1);
+    result_p2.tile(0,1, L3_B0, L3_B1);
 #endif
 
 
@@ -281,61 +189,38 @@ void generate_function(std::string name)
     // ----------------------------------------------------------------------------------------------------------------
     // Ordering
     // ----------------------------------------------------------------------------------------------------------------
-    reduced_AB_0.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_0   [0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							       "reduced_AB_0   [0, 1, i0,  0, j0,  0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p0[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							       "reduced_AB_0_p0[0, 1, i0,  0, j0,  1,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p1[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							       "reduced_AB_0_p1[0, 1, i0,  0, j0,  2,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    reduced_AB_0_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_0_p2[0, 0, i0,  0, j0,  0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							       "reduced_AB_0_p2[0, 1, i0,  0, j0,  3,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
 #if PACK_ARRAY
-    packed_B.apply_transformation_on_schedule   ("[N,M,K]->{packed_B           [0, 0,  0,  0, j00, 0, k00, 0,  0,  0, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]->"
-							   "packed_B           [0, 0,  0,  2, j00, 4, k00, 0,  0,  2, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]}");
+    packed_B_p1.after(packed_B, 1);
+    packed_B_p2.after(packed_B_p1, 1);
+    reduced_AB_0.after(packed_B_p2, -1);
 #endif
-    reduced_AB_1.apply_transformation_on_schedule   ("[N,M,K]->{reduced_AB_1   [0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, x0, 0, y0, 0, z0 , 0]->"
-							       "reduced_AB_1   [0, 1, i0,  2,  j0, 4,  k0, 0,  i1, 3,  j1, 0,  k1, 0, x0, 1, y0, 0, z0, 0]}");
-#if PACK_ARRAY
-    packed_B_p0.apply_transformation_on_schedule("[N,M,K]->{packed_B_p0        [0, 0,  0,  0, j00, 0, k00, 0,  0,  0, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]->"
-							   "packed_B_p0        [0, 0,  0,  2, j00, 4, k00, 0,  0,  4, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]}");
-#endif
-    reduced_AB_1_p0.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p0[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, x0, 0, y0, 0, z0, 0]->"
-							       "reduced_AB_1_p0[0, 1, i0,  2,  j0, 4,  k0, 0,  i1, 5,  j1, 0,  k1, 0, x0, 1, y0, 0, z0, 0]}");
-#if PACK_ARRAY
-    packed_B_p1.apply_transformation_on_schedule("[N,M,K]->{packed_B_p1        [0, 0,  0,  0, j00, 0, k00, 0,  0,  0, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]->"
-							   "packed_B_p1        [0, 0,  0,  2, j00, 4, k00, 0,  0,  6, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]}");
-#endif
-    reduced_AB_1_p1.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p1[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, x0, 0, y0, 0, z0, 0]->"
-							       "reduced_AB_1_p1[0, 1, i0,  2,  j0, 6,  k0, 0,  i1, 7,  j1, 0,  k1, 0, x0, 1, y0, 0, z0, 0]}");
-#if PACK_ARRAY
-    packed_B_p2.apply_transformation_on_schedule("[N,M,K]->{packed_B_p2        [0, 0,  0,  0, j00, 0, k00, 0,  0,  0, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]->"
-							   "packed_B_p2        [0, 0,  0,  2, j00, 6, k00, 0,  0,  8, j01, 0, k01, 0, 0,  0, j1, 0, k1, 0]}");
-#endif
-    reduced_AB_1_p2.apply_transformation_on_schedule("[N,M,K]->{reduced_AB_1_p2[0, 0, i0,  0,  j0, 0,  k0, 0,  i1, 0,  j1, 0,  k1, 0, x0, 0, y0, 0, z0, 0]->"
-							       "reduced_AB_1_p2[0, 1, i0,  2,  j0, 7,  k0, 0,  i1, 9,  j1, 0,  k1, 0, x0, 1, y0, 0, z0, 0]}");
 
-    result.apply_transformation_on_schedule      ("[N,M,K]->{            result[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							    "            result[0, 1, i0,  3,  j0, 0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p0.apply_transformation_on_schedule   ("[N,M,K]->{         result_p0[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							    "         result_p0[0, 1, i0,  3,  j0, 1,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p1.apply_transformation_on_schedule   ("[N,M,K]->{         result_p1[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							    "         result_p1[0, 1, i0,  3,  j0, 2,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
-    result_p2.apply_transformation_on_schedule   ("[N,M,K]->{         result_p2[0, 0, i0,  0,  j0, 0,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]->"
-							    "         result_p2[0, 1, i0,  3,  j0, 3,  i1, 0,  j1, 0,  x0, 0,  y0, 0, 0, 0, 0, 0, 0, 0]}");
+    reduced_AB_0_p0.after(reduced_AB_0, 1);
+    reduced_AB_0_p1.after(reduced_AB_0_p0, 1);
+    reduced_AB_0_p2.after(reduced_AB_0_p1, 1);
 
+    reduced_AB_1.after(reduced_AB_0_p2, 0);
+    reduced_AB_1_p0.after(reduced_AB_1, 3);
+    reduced_AB_1_p1.after(reduced_AB_1_p0, 1);
+    reduced_AB_1_p2.after(reduced_AB_1_p1, 1);
 
+    result.after(reduced_AB_1_p2, 0);
+    result_p0.after(result, 1);
+    result_p1.after(result_p0, 1);
+    result_p2.after(result_p1, 1);
 
+ 
     // ----------------------------------------------------------------------------------------------------------------
-    // Vectorization
+    // Split to prepare for unrolling
     // ----------------------------------------------------------------------------------------------------------------
-    reduced_AB_0.tag_vector_level(lev0+lev1+3, B1);
-    if (SIZE_IS_MULTIPLE_OF_TILE)
-	reduced_AB_0_p0.tag_vector_level(lev0+lev1+1, B1);
-    reduced_AB_0_p1.tag_vector_level(lev0+lev1+3, B1);
-    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+4, B1);
-    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+3, B1);
-    result.tag_vector_level(lev0+lev1+3, B1);
-    result_p1.tag_vector_level(lev0+lev1+3, B1);
+#if PACK_ARRAY
+    packed_B_p1.split(lev0+lev1+4, U1);
+#endif
+    reduced_AB_0.split(lev0+lev1+2, U1);
+    reduced_AB_1.split(lev0+lev1+lev2+5, U1);
+    reduced_AB_1.interchange(lev0+lev1+lev2+4, lev0+lev1+lev2+5);
+    reduced_AB_1_p1.split(lev0+lev1+lev2+4, U1);
+    result.split(lev0+lev1+2, U1);
 
 
 
@@ -343,13 +228,26 @@ void generate_function(std::string name)
     // Unrolling
     // ----------------------------------------------------------------------------------------------------------------
 #if PACK_ARRAY
-    packed_B_p1.tag_unroll_level(lev0+lev1+4);
+    packed_B_p1.tag_unroll_level(lev0+lev1+5);
 #endif
-    reduced_AB_0.tag_unroll_level(lev0+lev1+2);
-    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+5);
-    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+4);
-    result.tag_unroll_level(lev0+lev1+2);
+    reduced_AB_0.tag_unroll_level(lev0+lev1+3);
+    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+6);
+    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+5);
+    result.tag_unroll_level(lev0+lev1+3);
 
+
+
+    // ----------------------------------------------------------------------------------------------------------------
+    // Vectorization
+    // ----------------------------------------------------------------------------------------------------------------
+    reduced_AB_0.tag_vector_level(lev0+lev1+4, B1);
+    if (SIZE_IS_MULTIPLE_OF_TILE)
+	reduced_AB_0_p0.tag_vector_level(lev0+lev1+2, B1);
+    reduced_AB_0_p1.tag_vector_level(lev0+lev1+4, B1);
+    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+5, B1);
+    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+4, B1);
+    result.tag_vector_level(lev0+lev1+4, B1);
+    result_p1.tag_vector_level(lev0+lev1+4, B1);
 
 
     // -------------------------------------------------------
