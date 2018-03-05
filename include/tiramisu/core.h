@@ -2073,14 +2073,6 @@ protected:
     std::vector<tiramisu::expr>* compute_buffer_size();
 
     /**
-      * Generates the time-space domain and construct an AST that scans that
-      * time-space domain, then compute the depth of this AST.
-      * This is useful for example to know if all the dimensions of the time-space
-      * domain will correspond to a loop level in the final generated AST.
-      */
-    int compute_maximal_AST_depth();
-
-    /**
       * Return the context of the computations.
       */
     isl_ctx *get_ctx() const;
@@ -2651,6 +2643,14 @@ public:
       */
     void compute_at(computation &consumer, tiramisu::var L);
     void compute_at(computation &consumer, int L);
+
+    /**
+      * Generates the time-space domain and construct an AST that scans that
+      * time-space domain, then compute the depth of this AST.
+      * This is useful for example to know if all the dimensions of the time-space
+      * domain will correspond to a loop level in the final generated AST.
+      */
+    int compute_maximal_AST_depth();
 
     /**
       * Dump the iteration domain of the computation.  This is useful for

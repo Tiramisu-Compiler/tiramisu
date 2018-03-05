@@ -45,7 +45,7 @@ void generate_function(std::string name)
 
 #define PACK_ARRAY 0
 #define AUTO_SCHEDULE 0
-#define INNER_SPLIT 0
+#define INNER_SPLIT 1
 
 #if AUTO_SCHEDULE
 	#include "SCHEDULE.h"
@@ -215,18 +215,35 @@ void generate_function(std::string name)
     // ----------------------------------------------------------------------------------------------------------------
     // Split to prepare for unrolling
     // ----------------------------------------------------------------------------------------------------------------
-    int split_level = 0;
+    int split_AB_0 = 0;
+    int split_AB_1 = 0;
+    int split_result = 0;
 #if INNER_SPLIT
 if (U1 < B1)
 {
-    split_level = 1;
     #if PACK_ARRAY
     packed_B_p1.split(lev0+lev1+4, U1);
     #endif
+
+    int original_depth_AB_0 = reduced_AB_0.compute_maximal_AST_depth();
     reduced_AB_0.split(lev0+lev1+2, U1);
+    int new_depth_AB_0 = reduced_AB_0.compute_maximal_AST_depth();
+    if (new_depth_AB_0 > original_depth_AB_0)
+	split_AB_0 = 1;
+
+    int original_depth_AB_1 = reduced_AB_1.compute_maximal_AST_depth();
     reduced_AB_1.split(lev0+lev1+lev2+5, U1);
+    int new_depth_AB_1 = reduced_AB_1.compute_maximal_AST_depth();
+    if (new_depth_AB_1 > original_depth_AB_1)
+	split_AB_1 = 1;
+
     reduced_AB_1_p1.split(lev0+lev1+lev2+4, U1);
+
+    int original_depth_result = result.compute_maximal_AST_depth();
     result.split(lev0+lev1+2, U1);
+    int new_depth_result = result.compute_maximal_AST_depth();
+    if (new_depth_result > original_depth_result)
+	split_result = 1;
 }
 #endif
 
@@ -238,24 +255,24 @@ if (U1 < B1)
 #if PACK_ARRAY
     packed_B_p1.tag_unroll_level(lev0+lev1+split_level+4);
 #endif
-    reduced_AB_0.tag_unroll_level(lev0+lev1+split_level+2);
-    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+split_level+5);
-    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+split_level+4);
-    result.tag_unroll_level(lev0+lev1+split_level+2);
+    reduced_AB_0.tag_unroll_level(lev0+lev1+split_AB_0+2);
+    reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+split_AB_1+5);
+    reduced_AB_1_p1.tag_unroll_level(lev0+lev1+lev2+split_AB_1+4);
+    result.tag_unroll_level(lev0+lev1+split_result+2);
 
 
 
     // ----------------------------------------------------------------------------------------------------------------
     // Vectorization
     // ----------------------------------------------------------------------------------------------------------------
-    reduced_AB_0.tag_vector_level(lev0+lev1+split_level+3, B1);
+    reduced_AB_0.tag_vector_level(lev0+lev1+split_AB_0+3, B1);
     if (SIZE_IS_MULTIPLE_OF_TILE)
-	reduced_AB_0_p0.tag_vector_level(lev0+lev1+split_level+1, B1);
-    reduced_AB_0_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
+	reduced_AB_0_p0.tag_vector_level(lev0+lev1+split_AB_0+1, B1);
+    reduced_AB_0_p1.tag_vector_level(lev0+lev1+split_AB_0+3, B1);
     reduced_AB_1.tag_vector_level(lev0+lev1+lev2+4, B1);
-    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+split_level+3, B1);
-    result.tag_vector_level(lev0+lev1+split_level+3, B1);
-    result_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
+    reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+split_AB_1+3, B1);
+    result.tag_vector_level(lev0+lev1+split_result+3, B1);
+    result_p1.tag_vector_level(lev0+lev1+split_result+3, B1);
 
 
     // -------------------------------------------------------
