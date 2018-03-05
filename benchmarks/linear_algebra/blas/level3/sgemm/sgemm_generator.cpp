@@ -44,7 +44,7 @@ void generate_function(std::string name)
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
 #define PACK_ARRAY 0
-#define AUTO_SCHEDULE 1
+#define AUTO_SCHEDULE 0
 #define INNER_SPLIT 0
 
 #if AUTO_SCHEDULE
@@ -217,6 +217,8 @@ void generate_function(std::string name)
     // ----------------------------------------------------------------------------------------------------------------
     int split_level = 0;
 #if INNER_SPLIT
+if (U1 < B1)
+{
     split_level = 1;
     #if PACK_ARRAY
     packed_B_p1.split(lev0+lev1+4, U1);
@@ -225,6 +227,7 @@ void generate_function(std::string name)
     reduced_AB_1.split(lev0+lev1+lev2+5, U1);
     reduced_AB_1_p1.split(lev0+lev1+lev2+4, U1);
     result.split(lev0+lev1+2, U1);
+}
 #endif
 
 
@@ -249,7 +252,7 @@ void generate_function(std::string name)
     if (SIZE_IS_MULTIPLE_OF_TILE)
 	reduced_AB_0_p0.tag_vector_level(lev0+lev1+split_level+1, B1);
     reduced_AB_0_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
-    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+split_level+4, B1);
+    reduced_AB_1.tag_vector_level(lev0+lev1+lev2+4, B1);
     reduced_AB_1_p0.tag_vector_level(lev0+lev1+lev2+split_level+3, B1);
     result.tag_vector_level(lev0+lev1+split_level+3, B1);
     result_p1.tag_vector_level(lev0+lev1+split_level+3, B1);
