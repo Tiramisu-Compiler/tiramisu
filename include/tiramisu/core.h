@@ -1333,75 +1333,6 @@ private:
     // Private class methods.
 
     /**
-      * Schedule this computation to run after the computation \p comp.
-      * The computations are placed after each other in the loop level \p level.
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
-      *
-      * For example assuming we have the two computations
-      *
-      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * In order to make S1 run after S0 in the i loop, one should use
-      *
-      *     S1.after_low_level(S0,0)
-      *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
-      *
-      * The corresponding code is
-      *
-      *     for (i=0; i<N; i++)
-      *     {
-      *         for (j=0; j<N; j++)
-      *             S0;
-      *         for (j=0; j<N; j++)
-      *             S1;
-      *     }
-      *
-      * S1.after_low_level(S0,1)
-      *
-      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
-      * the following code
-      *
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *   {
-      *     S0;
-      *     S1;
-      *   }
-      *
-      * S1.after_low_level(S0, computation::root_dimension)
-      * means S1 is after S0 at the main program level and would yield
-      * the following code
-      *
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *     S0;
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *     S1;
-      *
-      * To specify that this computation is after \p comp in multiple levels,
-      * the user can provide those levels in the \p levels vector.
-      *
-      * S1.after_low_level(S0, {0,1})
-      *
-      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
-      *
-      * Note that
-      *
-      * S1.after_low_level(S0, L)
-      *
-      * would mean that S1 and S0 share the same loop nests for all the loop
-      * levels that are before L and that S1 is after S0 in L only.  S1 is not
-      * after S0 in the loop levels that are before L.
-      *
-      */
-    // @{
-    void after_low_level(computation &comp, int level);
-    void after_low_level(computation &comp, std::vector<int> levels);
-    // @}
-
-    /**
       * Apply a transformation on the domain of the schedule.
       * This is a transformation from iteration domain to the time-processor
       * domain.
@@ -2501,6 +2432,74 @@ public:
       */
     void after(computation &comp, int level);
 
+    /**
+      * Schedule this computation to run after the computation \p comp.
+      * The computations are placed after each other in the loop level \p level.
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after_low_level(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      *
+      * S1.after_low_level(S0,1)
+      *
+      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *   {
+      *     S0;
+      *     S1;
+      *   }
+      *
+      * S1.after_low_level(S0, computation::root_dimension)
+      * means S1 is after S0 at the main program level and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S0;
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S1;
+      *
+      * To specify that this computation is after \p comp in multiple levels,
+      * the user can provide those levels in the \p levels vector.
+      *
+      * S1.after_low_level(S0, {0,1})
+      *
+      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after_low_level(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
+      *
+      */
+    // @{
+    void after_low_level(computation &comp, int level);
+    void after_low_level(computation &comp, std::vector<int> levels);
+    // @}
     /*
      * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.

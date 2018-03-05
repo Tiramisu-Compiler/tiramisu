@@ -52,10 +52,10 @@ void generate_function(std::string name)
 	#define THREE_D_L3_TILING 1
 #else
 	#define L3_B0 2
-	#define L3_B1 4
-	#define L3_B2 4
-	#define U1 32
-	#define B0 32
+	#define L3_B1 32
+	#define L3_B2 32
+	#define U1 64
+	#define B0 64
 	#if SIZE_IS_MULTIPLE_OF_TILE
 	    #define B1 64
 	#else
@@ -192,24 +192,26 @@ void generate_function(std::string name)
     // Ordering
     // ----------------------------------------------------------------------------------------------------------------
 #if PACK_ARRAY
-    packed_B_p1.after(packed_B, 1);
-    packed_B_p2.after(packed_B_p1, 1);
-    reduced_AB_0.after(packed_B_p2, -1);
+    packed_B_p1.after_low_level(packed_B, 1);
+    packed_B_p2.after_low_level(packed_B_p1, 1);
+    reduced_AB_0.after_low_level(packed_B_p2, -1);
+    reduced_AB_1.after_low_level(packed_B_p2, -1);
+    result.after_low_level(packed_B_p2, -1);
 #endif
 
-    reduced_AB_0_p0.after(reduced_AB_0, 1);
-    reduced_AB_0_p1.after(reduced_AB_0_p0, 1);
-    reduced_AB_0_p2.after(reduced_AB_0_p1, 1);
+    reduced_AB_0_p0.after_low_level(reduced_AB_0, 1);
+    reduced_AB_0_p1.after_low_level(reduced_AB_0_p0, 1);
+    reduced_AB_0_p2.after_low_level(reduced_AB_0_p1, 1);
 
-    reduced_AB_1.after(reduced_AB_0_p2, 0);
-    reduced_AB_1_p0.after(reduced_AB_1, 3);
-    reduced_AB_1_p1.after(reduced_AB_1_p0, 1);
-    reduced_AB_1_p2.after(reduced_AB_1_p1, 1);
+    reduced_AB_1.after_low_level(reduced_AB_0_p2, 0);
+    reduced_AB_1_p0.after_low_level(reduced_AB_1, 3);
+    reduced_AB_1_p1.after_low_level(reduced_AB_1_p0, 1);
+    reduced_AB_1_p2.after_low_level(reduced_AB_1_p1, 1);
 
-    result.after(reduced_AB_1_p2, 0);
-    result_p0.after(result, 1);
-    result_p1.after(result_p0, 1);
-    result_p2.after(result_p1, 1);
+    result.after_low_level(reduced_AB_1_p2, 0);
+    result_p0.after_low_level(result, 1);
+    result_p1.after_low_level(result_p0, 1);
+    result_p2.after_low_level(result_p1, 1);
 
  
     // ----------------------------------------------------------------------------------------------------------------
@@ -253,7 +255,7 @@ if (U1 < B1)
     // Unrolling
     // ----------------------------------------------------------------------------------------------------------------
 #if PACK_ARRAY
-    packed_B_p1.tag_unroll_level(lev0+lev1+split_level+4);
+    packed_B_p1.tag_unroll_level(lev0+lev1+4);
 #endif
     reduced_AB_0.tag_unroll_level(lev0+lev1+split_AB_0+2);
     reduced_AB_1.tag_unroll_level(lev0+lev1+lev2+split_AB_1+5);

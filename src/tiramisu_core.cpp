@@ -3310,8 +3310,11 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(this->get_iteration_domain() != NULL);
     this->check_dimensions_validity({L0, L1});
 
-    this->separateAndSplit(L0, sizeX);
-    this->separateAndSplit(L1 + 1, sizeY);
+//    this->separateAndSplit(L0, sizeX);
+//    this->separateAndSplit(L1 + 1, sizeY);
+    this->split(L0, sizeX);
+    this->split(L1 + 1, sizeY);
+
     this->interchange(L0 + 1, L1 + 1);
 
     DEBUG_INDENT(-4);
