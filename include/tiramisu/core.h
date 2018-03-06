@@ -23,6 +23,8 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
 
+// TODO Jess: add the loop collapsing stuff, but see if I can do it without templates
+
 namespace tiramisu
 {
 
@@ -32,6 +34,9 @@ class buffer;
 class constant;
 class generator;
 class computation_tester;
+class send;
+class recv;
+class send_recv;
 
 struct HalideCodegenOutput
 {
@@ -51,6 +56,27 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, Halide::Internal::Function> &env,
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
+
+enum xfer_attr {
+    SYNC,
+    ASYNC,
+    BLOCK,
+    NONBLOCK,
+    MPI,
+    CUDA,
+    CPU2CPU,
+    CPU2GPU,
+    GPU2CPU,
+    GPU2GPU
+};
+
+struct xfer {
+    tiramisu::send *s;
+    tiramisu::recv *r;
+    tiramisu::send_recv *sr;
+};
+
+typedef std::tuple<int, tiramisu::expr, tiramisu::expr> collapse_group;
 
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
@@ -117,6 +143,17 @@ private:
       * should be vectorized with a vector length 4.
       */
     std::vector<std::tuple<std::string, int, int>> vector_dimensions;
+
+    /**
+      * A vector representing the distributed dimensions around
+      * the computations of the function.
+      * A distributed dimension is identified using the pair
+      * <computation_name, level>, for example the pair
+      * <S0, 0> indicates that the loop with level 0
+      * (i.e. the outermost loop) around the computation S0
+      * should be distributed.
+      */
+    std::vector<std::pair<std::string, int>> distributed_dimensions;
 
     /**
       * A vector representing the GPU block dimensions around
@@ -200,6 +237,14 @@ private:
       * corresponds to the leftmost dimension in the iteration space).
       */
     void add_vector_dimension(std::string computation_name, int vec_dim, int len);
+
+    /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be distributed.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_distributed_dimension(std::string computation_name, int dim);
 
     /**
       * Tag the loop level \p L of the computation
@@ -585,6 +630,17 @@ protected:
       */
     bool should_vectorize(const std::string &comp, int lev) const;
 
+    /**
+      * Return true if the computation \p comp should be distributed
+      * at the loop level \p lev.
+      */
+    bool should_distribute(const std::string &comp, int lev) const;
+
+    /**
+      * This computation requires a call to the MPI_Comm_rank function.
+      */
+    bool needs_rank_call() const;
+
      /**
        * The set of all computations that have no computation scheduled before them.
        * Does not include allocation computations created using
@@ -855,6 +911,11 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
+
+    /**
+      * Lift certain computations for distributed execution to function calls.
+      */
+    void lift_dist_comps();
 };
 
 
@@ -1330,6 +1391,59 @@ private:
       */
     isl_set *time_processor_domain;
 
+    // TODO Jess initialize these to false in the appropriate init_computation functions
+    /**
+      * Does this computation represent a library call?
+      */
+    bool _is_library_call;
+
+    /**
+      * Does this computation execute in a nonblocking or asynchronous way?
+      */
+    bool _is_nonblock_or_async;
+
+    /**
+      * If the computation represents a library call, this is the name of the function.
+      */
+    std::string library_call_name;
+    
+    /**
+      * If the computation represents a library call, this will contain the 
+      * necessary arguments to the function.
+      */
+    std::vector<tiramisu::expr> library_call_args;
+
+    /**
+      * If the computation represents a library call and requires a linear index (for either a LHS or RHS access),
+      * this indicates which argument to the function represents the linear index.
+      */
+    // @{
+    int lhs_argument_idx;
+    int rhs_argument_idx;
+    // @}
+
+    /**
+      * If the computation represents a library call and requires a wait, this indicates which argument to the function
+      * represents the linear index.
+      */
+    int wait_argument_idx;
+
+    /**
+      * If the computation represents a library call and requires a wait, this is like a regular access map, but gives
+      * an access into a special wait buffer.
+      */
+    isl_map *wait_access_map;
+
+    /**
+      * By default, this becomes an o_access to signify that we are writing into a location. However, it can be changed
+      * to something like o_address_of to indicate that we don't want to do a store to the location, rather we just
+      * want to get a pointer to the store location.
+      */
+    // @{
+    tiramisu::op_t lhs_access_type;
+    tiramisu::op_t rhs_access_type;
+    // @}    
+
     // Private class methods.
 
     /**
@@ -1725,6 +1839,17 @@ private:
     bool is_let_stmt() const;
 
     /**
+      * Return true if this computation represents a call to a library function?
+      * Mainly used for distributed communication functions.
+      */
+    bool is_library_call() const;
+
+    /**
+      * Return true if the rank loop iterator should be removed from linearization.
+      */
+    bool should_drop_rank_iter() const;
+
+    /**
       * Assign a name to iteration domain dimensions that do not have a name.
       */
     void name_unnamed_iteration_domain_dimensions();
@@ -1805,6 +1930,11 @@ private:
       * get_update().
       */
     void separate(int dim, tiramisu::expr N, int v);
+
+    /**
+      * Like separate, but the precise separate points are specified in _separate_points. _max is the loop max.
+      */
+    void separate_at(var level, std::vector<tiramisu::expr> _separate_points, tiramisu::expr _max);
 
     /**
       * Separate then split the loop \p L0
@@ -2265,6 +2395,14 @@ public:
     computation(std::string iteration_domain, tiramisu::expr e,
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
+    
+    virtual bool is_send() const;
+
+    virtual bool is_recv() const;
+
+    virtual bool is_send_recv() const;
+
+    virtual bool is_wait() const;
 
     /**
        * \brief Add a let statement that is associated to this computation.
@@ -2274,7 +2412,7 @@ public:
        * accessible by this computation alone. i.e., it cannot be used
        * in any other computation.
        */
-     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
+    void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
      * \brief Add definitions of computations that have the same name as this
@@ -2317,9 +2455,9 @@ public:
      * An example of using this function is available in test_26.
      *
      */
-     void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
-                           bool schedule_this_computation, tiramisu::primitive_t t,
-                           tiramisu::function *fct);
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+				 bool schedule_this_computation, tiramisu::primitive_t t,
+				 tiramisu::function *fct);
 
     /**
      * \brief Add a predicate (condition) on the computation. The computation will be executed
@@ -2751,6 +2889,11 @@ public:
     void gen_time_space_domain();
 
     /**
+      * Specify that the rank loop iterator should be removed from linearization.
+      */
+    void drop_rank_iter();
+
+    /**
      * Return the iteration domain of the computation.
      * In this representation, the order of execution of computations
      * is not specified, the computations are also not mapped to memory.
@@ -2827,9 +2970,14 @@ public:
     void interchange(int L0, int L1);
 
     /**
-     * Mark this statement as a let statement.
-     */
-   void mark_as_let_statement();
+      * Mark this statement as a let statement.
+      */
+    void mark_as_let_statement();
+
+    /**
+      * Mark this statement as a library call.
+      */
+    void mark_as_library_call();   
 
    /**
       * Tag the loop level \p L to be parallelized.
@@ -3086,6 +3234,14 @@ public:
       *     void tag_vector_level(tiramisu::var L, int len);
       */
     void tag_vector_level(int L, int len);
+
+    /**
+      * Tag the loop level \p L to be distributed.
+      */
+    // @{
+    void tag_distribute_level(tiramisu::var L);
+    void tag_distribute_level(int L);
+    // @}
 
     /**
       * Tag the loop level \p L to be unrolled.
@@ -3642,6 +3798,199 @@ public:
     static std::string get_parameters_list(isl_set *set);
 };
 
+class xfer_prop {
+private:
+
+    std::vector<tiramisu::xfer_attr> attrs;
+
+    tiramisu::primitive_t dtype;
+
+    int xfer_prop_id;
+
+    xfer_prop();
+
+public:
+    
+    xfer_prop(tiramisu::primitive_t d_type, std::initializer_list<tiramisu::xfer_attr> attrs);
+    
+    xfer_prop(tiramisu::primitive_t d_type, std::initializer_list<tiramisu::xfer_attr> attrs, 
+	      int xfer_prop_id);
+
+    static std::set<int> xfer_prop_ids;
+
+    static std::string attr_to_string(xfer_attr attr);
+
+    tiramisu::primitive_t get_dtype() const;
+
+    int get_xfer_prop_id() const;
+
+    bool contains_attr(tiramisu::xfer_attr attr) const;
+
+    bool contains_attrs(std::vector<tiramisu::xfer_attr> attrs) const;
+
+    void add_attr(tiramisu::xfer_attr attr);
+
+};
+
+class communicator : public computation {
+private:
+
+    std::vector<tiramisu::expr> dims;
+
+    xfer_prop prop;
+
+    communicator();
+
+public:
+
+    communicator(std::string iteration_domain_str, tiramisu::expr rhs, bool schedule_this_computation,
+                 tiramisu::primitive_t data_type, tiramisu::function *fct);
+
+    communicator(std::string iteration_domain_str, tiramisu::expr rhs,
+                 bool schedule_this_computation, tiramisu::primitive_t, tiramisu::xfer_prop prop,
+                 tiramisu::function *fct);
+
+    xfer_prop get_xfer_props() const;
+
+    tiramisu::expr get_num_elements() const;
+
+    void add_dim(tiramisu::expr size);
+
+    /**
+      * Collapse a loop level.
+      */
+    std::vector<communicator *> collapse(int level, tiramisu::expr collapse_from_iter,
+                                         tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed);
+
+    /**
+      * Collapse several consecutive loop levels (must collapse from innermost towards outermost).
+      */
+    void collapse_many(std::vector<collapse_group> collapse_each);
+
+};
+
+class send : public communicator {
+private:
+
+    tiramisu::computation *producer = nullptr;
+
+    recv *matching_recv = nullptr;
+
+    tiramisu::expr msg_tag;
+
+    tiramisu::expr src;
+
+    tiramisu::expr dest;
+
+    static int next_msg_tag;
+
+public:
+    // TODO (Jess) is producer ever used?
+    send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs, 
+	 xfer_prop prop, bool schedule_this_computation, std::vector<expr> dims, 
+	 tiramisu::function *fct);
+
+    virtual bool is_send() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    tiramisu::computation *get_producer() const;
+
+    tiramisu::recv *get_matching_recv() const;
+
+    tiramisu::expr get_msg_tag() const;
+
+    tiramisu::expr get_src() const;
+
+    tiramisu::expr get_dest() const;
+
+    void set_matching_recv(tiramisu::recv *matching_recv);
+
+    void set_src(tiramisu::expr src);
+
+    void set_dest(tiramisu::expr dest);
+
+    void override_msg_tag(tiramisu::expr msg_tag);
+};
+
+class recv : public communicator {
+private:
+
+    send *matching_send = nullptr;
+
+    tiramisu::expr src;
+
+    tiramisu::expr dest;
+
+    tiramisu::expr msg_tag;
+
+public:
+
+    recv(std::string iteration_domain_str, bool schedule_this, tiramisu::xfer_prop prop, 
+	 tiramisu::function *fct);
+
+    virtual bool is_recv() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    tiramisu::send *get_matching_send() const;
+
+    tiramisu::expr get_msg_tag() const;
+
+    tiramisu::expr get_src() const;
+
+    tiramisu::expr get_dest() const;
+
+    void set_matching_send(tiramisu::send *matching_send);
+
+    void set_src(tiramisu::expr src);
+
+    void set_dest(tiramisu::expr dest);
+
+    void override_msg_tag(tiramisu::expr msg_tag);
+
+};
+
+class send_recv : public communicator {
+private:
+
+    tiramisu::computation *producer;
+
+public:
+
+    send_recv(std::string iteration_domain_str, tiramisu::computation *producer, 
+	      tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation, 
+	      tiramisu::function *fct, std::vector<expr> dims);
+
+    virtual bool is_send_recv() const override;
+
+};
+
+class wait : public communicator {
+private:
+
+    tiramisu::expr rhs;
+
+public:
+
+    wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct);
+
+    wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop, bool schedule_this,
+         tiramisu::function *fct);
+
+    virtual bool is_wait() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    std::vector<tiramisu::computation *> get_op_to_wait_on() const;
+
+};
 
 // Halide IR specific functions
 

@@ -7113,6 +7113,26 @@ void tiramisu::computation::add_associated_let_stmt(std::string variable_name, t
     DEBUG_INDENT(-4);
 }
 
+bool tiramisu::computation::is_send() const 
+{
+  return false;
+}
+
+bool tiramisu::computation::is_recv() const 
+{
+  return false;
+}
+
+bool tiramisu::computation::is_send_recv() const 
+{
+  return false;
+}
+
+bool tiramisu::computation::is_wait() const 
+{
+  return false;
+}
+
 const std::vector<std::pair<std::string, tiramisu::expr>>
         &tiramisu::computation::get_associated_let_stmts() const
 {
