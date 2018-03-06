@@ -25,6 +25,8 @@ int id_counter = 0;
 
 const var computation::root = var("root");
 
+static int next_dim_name = 0;
+
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
  * computation). Store the access in computation->access.
@@ -7724,6 +7726,10 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::set_parent_computation(tiramisu::computation *parent_computation) {
+    this->parent_computation = parent_computation;
+}
+
 std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
 
 tiramisu::xfer_prop::xfer_prop() { }
@@ -7795,7 +7801,6 @@ tiramisu::communicator::communicator(std::string iteration_domain_str, tiramisu:
                                      tiramisu::primitive_t data_type, tiramisu::function *fct) :
         computation(iteration_domain_str, e, schedule_this_computation, data_type, fct) {}
 
-// TODO(Jess) check for bad collapsing, such as not putting adjacent levels together
 void tiramisu::communicator::collapse_many(std::vector<tiramisu::collapse_group> collapse_each) {
     for (auto c : collapse_each) {
         this->collapse(std::get<0>(c), std::get<1>(c), -1, std::get<2>(c));
@@ -7824,27 +7829,25 @@ xfer_prop tiramisu::communicator::get_xfer_props() const
     return prop;
 }
 
-// TODO Jess: implement the loop collapsing for this
 std::vector<communicator *> tiramisu::communicator::collapse(int level, tiramisu::expr collapse_from_iter,
                                                              tiramisu::expr collapse_until_iter,
                                                              tiramisu::expr num_collapsed)
 {
 
-//    std::vector<communicator *> ret;
-//    if (collapse_until_iter.get_expr_type() == tiramisu::e_val && collapse_until_iter.get_int32_value() == -1) {
-//        this->add_dim(num_collapsed);
-//        // Instead of fully removing the loop, we modify the collapsed loop to only have a single iteration.
-//        full_loop_level_collapse(level, collapse_from_iter);
-//    } else {
-//        std::vector<communicator *> comms =
-//                partial_loop_level_collapse<communicator>(level, collapse_from_iter, collapse_until_iter,
-//                                                          num_collapsed);
-//        ret.push_back(comms[0]);
-//        ret.push_back(comms[1]);
-//    }
-//
-//    return ret;
-    return std::vector<communicator *>();
+    std::vector<communicator *> ret;
+    if (collapse_until_iter.get_expr_type() == tiramisu::e_val && collapse_until_iter.get_int32_value() == -1) {
+        this->add_dim(num_collapsed);
+        // Instead of fully removing the loop, we modify the collapsed loop to only have a single iteration.
+        full_loop_level_collapse(level, collapse_from_iter);
+    } else {
+        std::vector<communicator *> comms =
+                partial_loop_level_collapse<communicator>(level, collapse_from_iter, collapse_until_iter,
+                                                          num_collapsed);
+        ret.push_back(comms[0]);
+        ret.push_back(comms[1]);
+    }
+
+    return ret;
 }
 
 std::string create_send_func_name(const xfer_prop chan)
@@ -8183,5 +8186,109 @@ void tiramisu::wait::add_definitions(std::string iteration_domain_str,
     new_c->first_definition = this;
     this->updates.push_back(new_c);
 }
+
+// TODO Jess add back in get_loop_iterator_data_type
+void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter)
+{
+    std::string collapse_from_iter_repr = "";
+//    if (global::get_loop_iterator_data_type() == p_int32) {
+        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
+                                  std::to_string(collapse_from_iter.get_int32_value()) : collapse_from_iter.get_name();
+//    } else {
+//        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
+//                                  std::to_string(collapse_from_iter.get_int64_value()) : collapse_from_iter.get_name();
+//    }
+    isl_map *sched = this->get_schedule();
+    isl_map *sched_copy = isl_map_copy(sched);
+    int dim = loop_level_into_dynamic_dimension(level);
+    const char *_dim_name = isl_map_get_dim_name(sched, isl_dim_out, dim);
+    std::string dim_name = "";
+    if (!_dim_name) { // Since dim names are optional...
+        dim_name = "jr" + std::to_string(next_dim_name++);
+        sched = isl_map_set_dim_name(sched, isl_dim_out, dim, dim_name.c_str());
+    } else {
+        dim_name = _dim_name;
+    }
+    std::string subtract_cst =
+            dim_name + " > " + collapse_from_iter_repr; // > because you want a single iteration (iter 0)
+    isl_map *ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));
+    ident = isl_map_apply_domain(isl_map_copy(this->get_schedule()), ident);
+    assert(isl_map_n_out(ident) == isl_map_n_out(sched));
+    ident = isl_map_set_dim_name(ident, isl_dim_out, dim, dim_name.c_str());
+    isl_map *universe = isl_map_universe(isl_map_get_space(ident));
+    std::string transform_str = isl_map_to_str(universe);
+    std::vector<std::string> parts;
+    split_string(transform_str, "}", parts);
+    transform_str = parts[0] + ": " + subtract_cst + "}";
+    isl_map *transform = isl_map_read_from_str(this->get_ctx(), transform_str.c_str());
+    if (collapse_from_iter.get_expr_type() != tiramisu::e_val) { // This might be a free variable
+        transform = isl_map_add_free_var(collapse_from_iter_repr, transform, this->get_ctx());
+    }
+    sched = isl_map_subtract(sched, transform);
+    // update all the dim names because they get removed in the transform
+    assert(isl_map_n_out(sched) == isl_map_n_out(sched_copy)); // Shouldn't have added or removed any dims here...
+    this->set_schedule(sched);
+}
+
+void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector)
+{
+    size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+        vector.push_back(token);
+        str.erase(0, pos + delimiter.length());
+    }
+    token = str.substr(0, pos);
+    vector.push_back(token);
+}
+
+isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx) {
+    isl_map *final_map = nullptr;
+
+    // first, check to see if this variable is actually a free variable. If not, then we don't need to add it.
+    int num_domain_dims = isl_map_dim(map, isl_dim_in);
+    for (int i = 0; i < num_domain_dims; i++) {
+        if (std::strcmp(isl_map_get_dim_name(map, isl_dim_in, i), free_var_name.c_str()) == 0) {
+            return map;
+        }
+    }
+    int num_range_dims = isl_map_dim(map, isl_dim_out);
+    for (int i = 0; i < num_range_dims; i++) {
+        if (std::strcmp(isl_map_get_dim_name(map, isl_dim_out, i), free_var_name.c_str()) == 0) {
+            return map;
+        }
+    }
+
+    std::string map_str = isl_map_to_str(map);
+    std::vector<std::string> parts;
+    split_string(map_str, "{", parts);
+    if (parts[0] != "") { // A free variable already exists, so add this variable to that box
+        std::vector<std::string> free_parts;
+        split_string(parts[0], "[", free_parts);
+        // remove the right bracket
+        std::vector<std::string> tmp;
+        split_string(free_parts[free_parts.size() - 1], "]", tmp);
+        free_parts.insert(free_parts.end(), tmp[0]);
+        std::string free_vars = "";
+        int ctr = 0;
+        for (auto s: free_parts) {
+            if (s == free_var_name) {
+                // The variable name was already in the box, so we don't actually need to do anything
+                return map;
+            }
+            free_vars += ctr++ == 0 ? s : "," + s;
+        }
+        free_vars += "," + free_var_name;
+        free_vars = "[" + free_vars + "]" + "{" + parts[1];
+        final_map = isl_map_read_from_str(ctx, free_vars.c_str());
+    } else {
+        std::string m = "[" + free_var_name + "]->{" + parts[1];
+        final_map = isl_map_read_from_str(ctx, m.c_str());
+    }
+    assert(final_map && "Adding free param to map resulted in a null isl_map");
+    return final_map;
+}
+
 
 }

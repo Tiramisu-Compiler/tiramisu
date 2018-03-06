@@ -58,6 +58,11 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
 
+isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx);
+void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector);
+int loop_level_into_dynamic_dimension(int level);
+int loop_level_into_static_dimension(int level);
+
 enum xfer_attr {
     SYNC,
     ASYNC,
@@ -1394,6 +1399,26 @@ private:
     Halide::Internal::Stmt stmt;
 
     /**
+     * If this is a parent partition, then the partitions go in here.
+     */
+    std::vector<tiramisu::computation *> child_partitions;
+
+    /**
+     * If this is a child partition, this is the parent computation.
+     */
+    tiramisu::computation *parent_computation;
+
+    /**
+     * If true, this computation was partitioned into child partitions, so it is the parent.
+     */
+    bool _is_a_parent_partition;
+
+    /**
+     * If true, this computation is the result of partitioning a parent computation.
+     */
+    bool _is_a_child_partition;
+
+    /**
       * Time-processor domain of the computation.
       * In this representation, the logical time of execution and the
       * processor where the computation will be executed are both
@@ -1449,6 +1474,11 @@ private:
     // @}    
 
     // Private class methods.
+
+    /**
+     * Set the parent computation for this computation.
+     */
+    void set_parent_computation(tiramisu::computation *parent_computation);
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -2137,6 +2167,23 @@ protected:
     std::string library_call_name;
 
     /**
+      * Partially collapse the iterations of a loop. The part of the loop from collapse_from_iter to collapse_until_iter
+      * is fully collapsed into a single loop, and the remainder of the loop is left as is. This results in two new operations:
+      * one in the fully collapsed loop and the other in the remainder of the loop.
+      */
+    template <typename T>
+    std::vector<T *>partial_loop_level_collapse(int level, tiramisu::expr collapse_from_iter,
+                                                tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed);
+
+    /**
+      * Partition an operation into a new set of operations based on the constraints provided. The constraints should
+      * be provided as a set of iteration domains. These constraints are intersected with the parent
+      * operation's domain (if preserve_schedule = false) or the schedule (if preserve_schedule = true)
+      */
+    template <typename T>
+    std::vector<T *> partition(std::vector<std::pair<std::string, std::string>> domains);
+
+    /**
       * Dummy constructor for derived classes.
       */
     computation();
@@ -2317,6 +2364,11 @@ protected:
     void set_schedule(isl_map *map);
     void set_schedule(std::string map_str);
     // @}
+
+    /**
+      * Collapse all the iterations of a loop into one single iteration.
+      */
+    void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
 
 public:
 
@@ -3905,9 +3957,9 @@ private:
 
 public:
     // TODO (Jess) is producer ever used?
-    send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs, 
-	 xfer_prop prop, bool schedule_this_computation, std::vector<expr> dims, 
-	 tiramisu::function *fct);
+    send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs,
+         xfer_prop prop, bool schedule_this_computation, std::vector<expr> dims,
+         tiramisu::function *fct);
 
     virtual bool is_send() const override;
 
@@ -4011,6 +4063,101 @@ public:
 
 };
 
+// templated member functions
+
+template <typename T>
+std::vector<T *> tiramisu::computation::partial_loop_level_collapse(int level, tiramisu::expr collapse_from_iter,
+                                             tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed) {
+    int dyn_level = loop_level_into_dynamic_dimension(level);
+    isl_map *sched = this->get_schedule();
+    isl_map *dom_ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));
+    dom_ident = isl_map_apply_domain(isl_map_copy(this->get_schedule()), dom_ident);
+    std::string domain_str = isl_set_to_str(isl_map_domain(dom_ident));
+    std::vector<std::string> parts;
+    split_string(domain_str, "}", parts);
+    std::string dim_name = isl_map_get_dim_name(sched, isl_dim_out, dyn_level);
+    // The first new constraint is everything < collapse_until_iter
+    std::string first_cst = " and " + dim_name + " < " + (collapse_until_iter.get_expr_type() == tiramisu::e_val ?
+                                                          std::to_string(collapse_until_iter.get_int32_value()) :
+                                                          collapse_until_iter.get_name());
+    first_cst = parts[0] + first_cst + "}";
+
+
+    // The second constraint is everything >= collapse_until_iter
+    std::string second_cst = " and " + dim_name + " >= " + (collapse_until_iter.get_expr_type() == tiramisu::e_val ?
+                                                            std::to_string(collapse_until_iter.get_int32_value()) :
+                                                            collapse_until_iter.get_name());
+    second_cst = parts[0] + second_cst + "}";
+
+    isl_set *first_cst_set = isl_set_read_from_str(this->get_ctx(), first_cst.c_str());
+    isl_set *second_cst_set = isl_set_read_from_str(this->get_ctx(), second_cst.c_str());
+    isl_map *first_cst_map = isl_set_identity(first_cst_set);
+    isl_map *second_cst_map = isl_set_identity(second_cst_set);
+    std::string first_cst_name = std::string(isl_map_get_tuple_name(first_cst_map, isl_dim_in)) + "0";
+    first_cst_map = isl_map_set_tuple_name(first_cst_map, isl_dim_out, first_cst_name.c_str());
+    std::string second_cst_name = std::string(isl_map_get_tuple_name(second_cst_map, isl_dim_in)) + "1";
+    second_cst_map = isl_map_set_tuple_name(second_cst_map, isl_dim_out, second_cst_name.c_str());
+
+    std::vector<std::pair<std::string, std::string>> partition_by;
+    partition_by.push_back(std::pair<std::string, std::string>(first_cst_name, isl_map_to_str(first_cst_map)));
+    partition_by.push_back(std::pair<std::string, std::string>(second_cst_name, isl_map_to_str(second_cst_map)));
+    std::vector<T *> partitions = this->partition<T>(partition_by);
+    T *comm1 = partitions[0];
+    T *comm2 = partitions[1];
+
+    // give comm1 and comm2 the same initial schedule as their parent
+    isl_map *comm1_sched = isl_map_set_tuple_name(isl_map_copy(sched), isl_dim_in, first_cst_name.c_str());
+    comm1_sched = isl_map_set_tuple_name(comm1_sched, isl_dim_out, first_cst_name.c_str());
+    isl_map *comm2_sched = isl_map_set_tuple_name(isl_map_copy(sched), isl_dim_in, second_cst_name.c_str());
+    comm2_sched = isl_map_set_tuple_name(comm2_sched, isl_dim_out, second_cst_name.c_str());
+    comm1->set_schedule(comm1_sched);
+    comm2->set_schedule(comm2_sched);
+
+    comm1->add_dim(num_collapsed);
+    comm2->after(*comm1, level - 1);
+    comm1->predicate = this->get_predicate();
+    comm2->predicate = this->get_predicate();
+
+    if (collapse_until_iter.get_expr_type() != tiramisu::e_val) {
+        comm1->set_schedule(isl_map_add_free_var(collapse_until_iter.get_name(), comm1->get_schedule(),
+                                                 comm1->get_ctx()));
+        comm2->set_schedule(isl_map_add_free_var(collapse_until_iter.get_name(), comm2->get_schedule(),
+                                                 comm2->get_ctx()));
+    }
+
+    // Now, collapse the whole first operation
+    comm1->full_loop_level_collapse(level, collapse_from_iter);
+
+    return partitions;
+}
+
+
+template <typename T>
+std::vector<T *> tiramisu::computation::partition(std::vector<std::pair<std::string, std::string>> domains) {
+    std::vector<T *> output;
+    this->get_function()->align_schedules();
+    for (auto domain_iter = domains.begin(); domain_iter != domains.end(); domain_iter++) {
+        std::string partition_name = domain_iter->first;
+        isl_set *partition_iter_domain = isl_set_read_from_str(this->get_ctx(), (domain_iter->second).c_str());
+        partition_iter_domain = isl_set_set_tuple_name(partition_iter_domain, partition_name.c_str());
+        T *part = static_cast<T*>(this->copy());
+        part->set_iteration_domain(partition_iter_domain);
+        part->set_schedule(part->gen_identity_schedule_for_iteration_domain());
+        isl_map *sched = part->gen_identity_schedule_for_iteration_domain();
+        part->set_schedule(sched);
+        part->set_parent_computation(this);
+        part->_is_a_child_partition = true;
+        part->rename_computation(partition_name);
+        output.push_back(part);
+        this->child_partitions.push_back(part);
+    }
+
+    this->_is_a_parent_partition = true;
+    this->schedule_this_computation = false;
+
+    return output;
+}
+
 // Halide IR specific functions
 
 void halide_stmt_dump(Halide::Internal::Stmt s);
@@ -4022,8 +4169,6 @@ Halide::Module lower_halide_pipeline(
     const Halide::Internal::LoweredFunc::LinkageType linkage_type,
     Halide::Internal::Stmt s);
 
-int loop_level_into_dynamic_dimension(int level);
-int loop_level_into_static_dimension(int level);
 /**
   * TODO code cleaning:
   * - Go to the tutorials, add a small explanation about how Tiramisu should work in general.
