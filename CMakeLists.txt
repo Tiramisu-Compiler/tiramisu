@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
 enable_testing()
-
+set(USE_GPU FALSE)
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 
 execute_process(COMMAND bash ${PROJECT_DIR}/generate_config_path.sh
@@ -15,17 +15,22 @@ set(HEADER_FILES
         include/tiramisu/utils.h
         include/tiramisu/expr.h
         include/tiramisu/core.h
+	include/tiramisu/mpi_comm.h
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide)
+set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide mpi)
 
 
 ### CMAKE FILE INTERNALS ###
 
 FILE(STRINGS test_list TIRAMISU_TESTS)
 FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS)
-FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
+if (${USE_GPU})
+   FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
+else() 
+   FILE(STRINGS tutorial_list.no_gpu TIRAMISU_TUTORIALS)
+endif()
 
 include(configure_path.cmake)
 
@@ -50,7 +55,7 @@ string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
 
-set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
+set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg -lmpi")
 set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS}")
 
 
