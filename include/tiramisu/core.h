@@ -99,6 +99,11 @@ private:
     std::string name;
 
     /**
+     * True if this requires a call to MPI_Comm_rank or something similar.
+     */
+    bool _needs_rank_call;
+
+    /**
       * Function arguments. These are the buffers or scalars that are
       * passed to the function.
       */
@@ -1391,16 +1396,20 @@ private:
       */
     isl_set *time_processor_domain;
 
-    // TODO Jess initialize these to false in the appropriate init_computation functions
     /**
-      * Does this computation represent a library call?
+      * True if this computation represents a library call.
       */
     bool _is_library_call;
 
     /**
-      * Does this computation execute in a nonblocking or asynchronous way?
+      * True if the computation is executed in a nonblocking or asynchronous way.
       */
     bool _is_nonblock_or_async;
+
+    /**
+     * True if  the rank should be dropped from index linearization.
+     */
+    bool _drop_rank_iter;
 
     /**
       * If the computation represents a library call, this is the name of the function.
