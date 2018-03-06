@@ -37,6 +37,7 @@ class computation_tester;
 class send;
 class recv;
 class send_recv;
+class wait;
 
 struct HalideCodegenOutput
 {
@@ -89,6 +90,7 @@ class function
     friend computation;
     friend constant;
     friend generator;
+    friend tiramisu::wait;
 
 private:
     /**
@@ -1203,6 +1205,9 @@ class computation
     friend buffer;
     friend constant;
     friend computation_tester;
+    friend send;
+    friend recv;
+    friend tiramisu::wait;
 
 private:
 
@@ -1397,11 +1402,6 @@ private:
     isl_set *time_processor_domain;
 
     /**
-      * True if this computation represents a library call.
-      */
-    bool _is_library_call;
-
-    /**
       * True if the computation is executed in a nonblocking or asynchronous way.
       */
     bool _is_nonblock_or_async;
@@ -1410,11 +1410,6 @@ private:
      * True if  the rank should be dropped from index linearization.
      */
     bool _drop_rank_iter;
-
-    /**
-      * If the computation represents a library call, this is the name of the function.
-      */
-    std::string library_call_name;
     
     /**
       * If the computation represents a library call, this will contain the 
@@ -2130,6 +2125,16 @@ private:
     bool operator==(tiramisu::computation comp1);
 
 protected:
+
+    /**
+      * True if this computation represents a library call.
+      */
+    bool _is_library_call;
+
+    /**
+      * If the computation represents a library call, this is the name of the function.
+      */
+    std::string library_call_name;
 
     /**
       * Dummy constructor for derived classes.
@@ -3807,7 +3812,10 @@ public:
     static std::string get_parameters_list(isl_set *set);
 };
 
+// TODO Jess: add doc comments
+
 class xfer_prop {
+    friend class communicator;
 private:
 
     std::vector<tiramisu::xfer_attr> attrs;
@@ -3845,6 +3853,8 @@ class communicator : public computation {
 private:
 
     std::vector<tiramisu::expr> dims;
+
+protected:
 
     xfer_prop prop;
 
@@ -3971,9 +3981,9 @@ private:
 
 public:
 
-    send_recv(std::string iteration_domain_str, tiramisu::computation *producer, 
-	      tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation, 
-	      tiramisu::function *fct, std::vector<expr> dims);
+    send_recv(std::string iteration_domain_str, tiramisu::computation *producer,
+                  tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation,
+                  std::vector<expr> dims, tiramisu::function *fct);
 
     virtual bool is_send_recv() const override;
 
