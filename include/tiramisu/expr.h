@@ -268,7 +268,8 @@ public:
          std::vector<tiramisu::expr> vec,
          tiramisu::primitive_t type)
     {
-        assert(((o == tiramisu::o_access) || (o == tiramisu::o_call)) &&
+        assert(((o == tiramisu::o_access) || (o == tiramisu::o_call) || (o == tiramisu::o_address_of) ||
+                (o == tiramisu::o_lin_index) || (o == tiramisu::o_buffer)) &&
                "The operator is not an access or a call operator.");
 
         assert(vec.size() > 0);
@@ -279,7 +280,8 @@ public:
         this->dtype = type;
         this->defined = true;
 
-        if (o == tiramisu::o_access)
+        if (o == tiramisu::o_access || o == tiramisu::o_address_of || o == tiramisu::o_lin_index ||
+                o == tiramisu::o_buffer)
         {
             this->set_access(vec);
         }
@@ -289,7 +291,7 @@ public:
         }
         else
         {
-            tiramisu::error("Type of operator is not o_access or o_call.", true);
+            tiramisu::error("Type of operator is not o_access, o_call, o_address_of, o_buffer, or o_lin_index.", true);
         }
 
         this->name = name;
@@ -695,11 +697,44 @@ public:
     {
         assert((this->get_expr_type() == tiramisu::e_var) ||
                (this->get_op_type() == tiramisu::o_access) ||
+               (this->get_op_type() == tiramisu::o_address) ||
                (this->get_op_type() == tiramisu::o_call) ||
                (this->get_op_type() == tiramisu::o_allocate) ||
-               (this->get_op_type() == tiramisu::o_free));
+               (this->get_op_type() == tiramisu::o_free) ||
+               (this->get_op_type() == tiramisu::o_address_of) ||
+               (this->get_op_type() == tiramisu::o_lin_index) ||
+               (this->get_op_type() == tiramisu::o_buffer) ||
+               (this->get_op_type() == tiramisu::o_dummy));
 
         return name;
+    }
+
+    void set_name(std::string &name)
+    {
+        assert((this->get_expr_type() == tiramisu::e_var) ||
+               (this->get_op_type() == tiramisu::o_access) ||
+               (this->get_op_type() == tiramisu::o_call) ||
+               (this->get_op_type() == tiramisu::o_allocate) ||
+               (this->get_op_type() == tiramisu::o_free) ||
+               (this->get_op_type() == tiramisu::o_address_of) ||
+               (this->get_op_type() == tiramisu::o_lin_index) ||
+               (this->get_op_type() == tiramisu::o_dummy));
+
+        this->name = name;
+    }
+
+    tiramisu::expr replace_op_in_expr(const std::string &to_replace,
+                                      const std::string &replace_with)
+    {
+        if (this->name == to_replace) {
+            this->name = replace_with;
+            return *this;
+        }
+        for (int i = 0; i < this->op.size(); i++) {
+            tiramisu::expr operand = this->get_operand(i);
+            this->op[i] = operand.replace_op_in_expr(to_replace, replace_with);
+        }
+        return *this;
     }
 
     /**
@@ -721,7 +756,9 @@ public:
     const std::vector<tiramisu::expr> &get_access() const
     {
         assert(this->get_expr_type() == tiramisu::e_op);
-        assert(this->get_op_type() == tiramisu::o_access);
+        assert(this->get_op_type() == tiramisu::o_access || this->get_op_type() == tiramisu::o_lin_index ||
+               this->get_op_type() == tiramisu::o_address_of || this->get_op_type() == tiramisu::o_dummy ||
+                       this->get_op_type() == tiramisu::o_buffer);
 
         return access_vector;
     }
@@ -1114,6 +1151,19 @@ public:
                             std::cout << "Access to " +  this->get_name() + ". Access expressions:" << std::endl;
                             for (const auto &e : this->get_access())
                             {
+                                e.dump(exhaustive);
+                            }
+                        }
+                        if ((this->get_op_type() == tiramisu::o_address_of)) {
+                            std::cout << "Address to " + this->get_name() + ". Access expressions:" << std::endl;
+                            for (const auto &e : this->get_access()) {
+                                e.dump(exhaustive);
+                            }
+                        }
+                        if ((this->get_op_type() == tiramisu::o_lin_index)) {
+                            std::cout << "Linear address to " + this->get_name() + ". Access expressions:"
+                                      << std::endl;
+                            for (const auto &e : this->get_access()) {
                                 e.dump(exhaustive);
                             }
                         }
@@ -1543,6 +1593,9 @@ public:
                         str +=  ") ";
                         break;
                     case tiramisu::o_access:
+                    case tiramisu::o_address_of:
+                    case tiramisu::o_lin_index:
+                    case tiramisu::o_buffer:
                         str +=  this->get_name() + "(";
                         for (int k = 0; k < this->get_access().size(); k++)
                         {
