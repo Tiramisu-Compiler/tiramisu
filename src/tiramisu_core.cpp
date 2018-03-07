@@ -19,6 +19,7 @@ namespace tiramisu
 {
 std::map<std::string, computation *> computations_list;
 bool global::auto_data_mapping;
+primitive_t global::loop_iterator_type = p_int32;
 
 // Used for the generation of new variable names.
 int id_counter = 0;

@@ -35,7 +35,7 @@ tiramisu::var::var(std::string name, bool save)
     {
         this->name = name;
         this->etype = tiramisu::e_var;
-        this->dtype = global::get_loop_iterator_default_data_type();
+        this->dtype = global::get_loop_iterator_data_type();
         this->defined = true;
         if (save)
             var::declared_vars.insert(std::make_pair(name, *this));

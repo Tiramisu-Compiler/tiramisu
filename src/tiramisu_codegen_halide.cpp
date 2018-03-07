@@ -1706,22 +1706,22 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
         Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
         if (init_expr.type() !=
-                halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
+                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()))
         {
             init_expr =
                 Halide::Internal::Cast::make(
-                    halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()),
+                    halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
                     init_expr);
         }
         DEBUG(3, tiramisu::str_dump("init expression: "); std::cout << init_expr);
         Halide::Expr cond_upper_bound_halide_format =
             simplify(halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format));
         if (cond_upper_bound_halide_format.type() !=
-                halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()))
+                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()))
         {
             cond_upper_bound_halide_format =
                 Halide::Internal::Cast::make(
-                    halide_type_from_tiramisu_type(global::get_loop_iterator_default_data_type()),
+                    halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
                     cond_upper_bound_halide_format);
         }
         DEBUG(3, tiramisu::str_dump("Upper bound expression: ");

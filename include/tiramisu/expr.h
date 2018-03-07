@@ -47,6 +47,11 @@ private:
       */
     static bool auto_data_mapping;
 
+    /**
+     * Type of the loop iterators to generate.
+     */
+    static primitive_t loop_iterator_type;
+
 public:
     /**
       * If this option is set to true, Tiramisu automatically
@@ -75,12 +80,17 @@ public:
 
     static void set_default_tiramisu_options()
     {
+        global::loop_iterator_type = p_int32;
         set_auto_data_mapping(true);
     }
 
-    static primitive_t get_loop_iterator_default_data_type()
+    static void set_loop_iterator_type(primitive_t t) {
+        global::loop_iterator_type = t;
+    }
+
+    static primitive_t get_loop_iterator_data_type()
     {
-        return tiramisu::p_int32;
+        return global::loop_iterator_type;
     }
 
     global()
