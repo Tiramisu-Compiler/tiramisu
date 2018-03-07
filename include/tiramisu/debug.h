@@ -6,7 +6,7 @@
 /**
   * Debugging level.
   */
-#define DEBUG_LEVEL 10
+#define DEBUG_LEVEL 3
 
 /**
   * Set to 1 to enable debugging and 0 to disable debugging.
