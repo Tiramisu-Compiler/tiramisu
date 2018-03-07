@@ -22,6 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
+#include "cuda_ast.h"
 
 namespace tiramisu
 {
@@ -32,6 +33,7 @@ class buffer;
 class constant;
 class generator;
 class computation_tester;
+class sync;
 
 struct HalideCodegenOutput
 {
@@ -52,6 +54,8 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
 
+computation *get_computation_annotated_in_a_node(isl_ast_node *node);
+
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
   * a set of computations (tiramisu::computation).
@@ -63,6 +67,7 @@ class function
     friend computation;
     friend constant;
     friend generator;
+    friend cuda_ast::generator;
 
 private:
     /**
@@ -601,7 +606,7 @@ protected:
        * allocate_and_map_buffer_automatically().
        */
      std::unordered_set<tiramisu::computation *> starting_computations;
- 
+
      /**
       * A boolean set to true if low level scheduling was used in the program.
       * If it is used, then high level scheduling commands such as .before(),
@@ -653,7 +658,7 @@ public:
 
     /**
       * \brief Compute the bounds of each computation.
-      * 
+      *
       * \details Computing the bounds of each computation means computing
       * the constraints over the iteration domains of each computation in
       * the function.
@@ -810,6 +815,8 @@ public:
       */
     void gen_halide_stmt();
 
+    void gen_cuda_stmt();
+
     /**
       * Generate an isl AST that represents the function.
       */
@@ -870,6 +877,7 @@ class buffer
     friend computation;
     friend function;
     friend generator;
+    friend cuda_ast::generator;
 
 private:
     /**
@@ -920,6 +928,11 @@ private:
       * The type of the elements of the buffer.
       */
     tiramisu::primitive_t type;
+
+    /**
+     * The location of the buffer (host if in memory, else where on GPU).
+     */
+    cuda_ast::memory_location location;
 
 protected:
     /**
@@ -1114,6 +1127,15 @@ public:
      * Mark an array as already allocated.
      */
     void mark_as_allocated();
+
+    /* Tag the buffer as located in the GPU global memory. */
+    void tag_gpu_global();
+    /** Tag the buffer as located in the GPU register memory.
+      * The buffer needs to have a unique dimension of size 1 (i.e. needs to be a scalar).*/
+    void tag_gpu_register();
+    /* Tag the buffer as located in the GPU shared memory. */
+    void tag_gpu_shared();
+
 };
 
 /**
@@ -1143,7 +1165,9 @@ class computation
     friend generator;
     friend buffer;
     friend constant;
+    friend sync;
     friend computation_tester;
+    friend cuda_ast::generator;
 
 private:
 
@@ -1513,6 +1537,14 @@ private:
     void create_halide_assignment();
 
     /**
+      * Returns a pair of expressions (LHS, RHS) representing the assignment performed
+      * by the computation.
+      * The LHS would represent a memory buffer access, and the RHS would represent
+      * the value of the assignment.
+      */
+    std::pair<expr, expr> create_tiramisu_assignment();
+
+    /**
       * Apply a duplication transformation from iteration space to
       * time-processor space.
       * A duplication transformation duplicates the original computation,
@@ -1529,7 +1561,7 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
-     
+
     /*
      * Create a new Tiramisu constant M = v*floor(N/v) and use it as
      * a separator.
@@ -1645,10 +1677,6 @@ private:
       */
     tiramisu::computation *get_first_definition();
 
-    /**
-      * Return the Tiramisu expression associated with the computation.
-      */
-    const tiramisu::expr &get_expr() const;
 
     /**
       * Return the function where the computation is declared.
@@ -1712,6 +1740,12 @@ private:
       * Get the number of loop levels.
       */
     int get_loop_levels_number();
+
+    /**
+     * Gets the span of the loop level \p level (number of iterations) and returns
+     * it as a tiramisu::expr.
+     */
+    expr get_span(int level);
 
     /**
       * Get the number of dimensions of the time-space
@@ -2114,11 +2148,6 @@ protected:
     tiramisu::expr get_predicate();
 
     /**
-      * Return the name of the computation.
-      */
-    const std::string &get_name() const;
-
-    /**
       * Return a unique name of computation; made of the following pattern:
       * [computation name]@[computation address in memory]
       */
@@ -2437,7 +2466,7 @@ public:
       *
       * \details This computation is placed after \p comp in the loop level \p level.
       * \p level is a loop level in this computation.
-      * 
+      *
       * The root level is computation::root.
       *
       * For example assuming we have the two computations
@@ -2503,7 +2532,7 @@ public:
     /*
      * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.
-     * 
+     *
      * \details Assuming the name of the computation is C, the name of the generated buffer
      * is _C_buffer.
      *
@@ -2747,6 +2776,16 @@ public:
      * is not specified, the computations are also not mapped to memory.
      */
     isl_set *get_iteration_domain() const;
+
+    /**
+      * Return the Tiramisu expression associated with the computation.
+      */
+    const tiramisu::expr &get_expr() const;
+
+    /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
 
     /**
       * Get the last update of a computation.
@@ -3443,6 +3482,7 @@ protected:
                                                      int coeff,
                                                      const tiramisu::function *fct);
 
+
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast
       * tree.
@@ -3473,6 +3513,12 @@ protected:
             std::vector<isl_ast_expr *> &index_expr,
             const tiramisu::expr &tiramisu_expr);
 
+    static tiramisu::expr replace_accesses(const tiramisu::function * func, std::vector<isl_ast_expr *> &index_expr,
+                                           const tiramisu::expr &tiramisu_expr);
+    static std::string get_buffer_name(const tiramisu::computation *);
+    static tiramisu::expr comp_to_buffer(tiramisu::computation * comp, std::vector<isl_ast_expr *> &ie,
+                                                    const tiramisu::expr * expr = nullptr);
+
     /**
      * Linearize a multidimensional access to a Halide buffer.
      * Supposing that we have buf[N1][N2][N3], transform buf[i][j][k]
@@ -3485,6 +3531,8 @@ protected:
     static Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, std::vector<tiramisu::expr> index_expr);
     static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, std::vector<tiramisu::expr> index_expr);
     static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr);
+    static tiramisu::expr linearize_access(int dims, std::vector<tiramisu::expr> &strides, std::vector<tiramisu::expr> index_expr);
+    static tiramisu::expr linearize_access(int dims, std::vector<tiramisu::expr> &strides, isl_ast_expr *index_expr);
     //@}
 
     /**

@@ -61,22 +61,27 @@ tiramisu::expr& tiramisu::expr::operator=(tiramisu::expr const & e)
     return *this;
 }
 
-tiramisu::expr tiramisu::expr::substitute(std::vector<std::pair<var, expr>> substitutions)
+tiramisu::expr tiramisu::expr::substitute(std::vector<std::pair<var, expr>> substitutions) const
 {
     for (auto &substitution: substitutions)
         if (this->is_equal(substitution.first))
             return substitution.second;
 
-    expr new_expr = this->copy();
 
+    return apply_to_operands([&substitutions](const expr& e){
+        return e.substitute(substitutions);
+    });
+}
 
-    if (new_expr.etype == e_op) {
-        for (int i = 0; i < new_expr.op.size(); i++) {
-            new_expr.op[i] = new_expr.op[i].substitute(substitutions);
-        }
+tiramisu::expr tiramisu::expr::substitute_access(std::string original, std::string substitute) const {
+    expr && result = this->apply_to_operands([&original, &substitute](const expr& e){
+        return e.substitute_access(original, substitute);
+    });
+    if (result.get_op_type() == o_access && result.name == original)
+    {
+        result.name = substitute;
     }
-
-    return new_expr;
+    return result;
 }
 
 tiramisu::var::var(std::string name, bool save)
@@ -131,24 +136,43 @@ tiramisu::var::var(tiramisu::primitive_t type, std::string name, bool save)
 
 tiramisu::expr tiramisu::expr::copy() const
 {
-    tiramisu::expr *e = new tiramisu::expr();
-    *e = *this; // use copy assignment
-
-    return (*e);
+    return (*this);
 }
 
 
 std::unordered_map<std::string, var> tiramisu::var::declared_vars;
 
-expr const & caster<expr>::cast(expr const & val, primitive_t dtype)
-{
-    assert(val.get_data_type() == dtype);
-    return val;
+expr cast(primitive_t tT, const expr & e) {
+    if (e.get_data_type() == tT)
+        return e;
+    return expr{o_cast, tT, e};
 }
 
-var const & caster<var>::cast(var const & val, primitive_t dtype)
-{
-    assert(val.get_data_type() == dtype);
-    return val;
+expr tiramisu::expr::operator+(tiramisu::expr other) const {
+    return tiramisu::expr{o_add, *this, other};
+}
+
+expr tiramisu::expr::operator-(tiramisu::expr other) const {
+    return tiramisu::expr{o_sub, *this, other};
+}
+
+expr tiramisu::expr::operator*(tiramisu::expr other) const {
+    return tiramisu::expr{o_mul, *this, other};
+}
+
+expr tiramisu::expr::operator/(tiramisu::expr other) const {
+    return tiramisu::expr{o_div, *this, other};
+}
+
+expr tiramisu::expr::operator%(tiramisu::expr other) const {
+    return tiramisu::expr{o_mod, *this, other};
+}
+
+expr tiramisu::expr::operator>>(tiramisu::expr other) const {
+    return tiramisu::expr{o_right_shift, *this, other};
+}
+
+expr tiramisu::expr::operator<<(tiramisu::expr other) const {
+    return tiramisu::expr{o_left_shift, *this, other};
 }
 }

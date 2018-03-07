@@ -35,7 +35,11 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
 class buffer;
 class expr;
 class var;
+class sync;
 class global;
+
+template <typename T>
+using only_integral = typename std::enable_if<std::is_integral<T>::value, expr>::type;
 
 /**
   * A class that holds all the global variables necessary for Tiramisu.
@@ -107,30 +111,13 @@ public:
 
 
 
-template <typename T>
-struct caster
-{
-    static expr const & cast(T const & val, primitive_t dtype);
-};
-
-template <>
-struct caster<expr>
-{
-    static expr const & cast(expr const & val, primitive_t dtype);
-};
-
-template <>
-struct caster<var>
-{
-    static var const & cast(var const & val, primitive_t dtype);
-};
-
 /**
   * A class to represent tiramisu expressions.
   */
 class expr
 {
-    friend var;
+    friend class var;
+    friend class sync;
 
     /**
       * The type of the operator.
@@ -799,150 +786,39 @@ public:
     /**
       * Addition.
       */
-    template<typename T> friend tiramisu::expr operator+(tiramisu::expr e1, T val)
-    {
-        if ((std::is_same<T, uint8_t>::value) ||
-                (std::is_same<T, int8_t>::value) ||
-                (std::is_same<T, uint16_t>::value) ||
-                (std::is_same<T, int16_t>::value) ||
-                (std::is_same<T, int32_t>::value) ||
-                (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_add, e1, tiramisu::caster<T>::cast(val, e1.get_data_type()));
-        }
-        else
-        {
-            return tiramisu::expr(tiramisu::o_add, e1, val);
-        }
-    }
+
+    expr operator+(tiramisu::expr other) const;
+
 
     /**
       * Subtraction.
       */
-    template<typename T> friend tiramisu::expr operator-(tiramisu::expr e1, T val)
-    {
-        if ((std::is_same<T, uint8_t>::value) ||
-                (std::is_same<T, int8_t>::value) ||
-                (std::is_same<T, uint16_t>::value) ||
-                (std::is_same<T, int16_t>::value) ||
-                (std::is_same<T, int32_t>::value) ||
-                (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_sub, e1, expr(val));
-        }
-        else
-        {
-            return tiramisu::expr(tiramisu::o_sub, e1, val);
-        }
-    }
+    expr operator-(tiramisu::expr other) const;
 
     /**
       * Division.
       */
-    template<typename T> friend tiramisu::expr operator/(tiramisu::expr e1, T val)
-    {
-        if ((std::is_same<T, uint8_t>::value) ||
-                (std::is_same<T, int8_t>::value) ||
-                (std::is_same<T, uint16_t>::value) ||
-                (std::is_same<T, int16_t>::value) ||
-                (std::is_same<T, int32_t>::value) ||
-                (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_div, e1, expr(val));
-        }
-        else
-        {
-            return tiramisu::expr(tiramisu::o_div, e1, val);
-        }
-    }
+    expr operator/(tiramisu::expr other) const;
 
     /**
       * Multiplication.
       */
-    template<typename T> friend tiramisu::expr operator*(tiramisu::expr e1, T val)
-    {
-        if ((std::is_same<T, uint8_t>::value) ||
-                (std::is_same<T, int8_t>::value) ||
-                (std::is_same<T, uint16_t>::value) ||
-                (std::is_same<T, int16_t>::value) ||
-                (std::is_same<T, int32_t>::value) ||
-                (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_mul, e1, expr(val));
-        }
-        else
-        {
-            return tiramisu::expr(tiramisu::o_mul, e1, val);
-        }
-    }
+    expr operator*(tiramisu::expr other) const;
 
     /**
       * Modulo.
       */
-    template<typename T> friend tiramisu::expr operator%(tiramisu::expr e1, T val)
-    {
-        if ((std::is_same<T, uint8_t>::value) ||
-                (std::is_same<T, int8_t>::value) ||
-                (std::is_same<T, uint16_t>::value) ||
-                (std::is_same<T, int16_t>::value) ||
-                (std::is_same<T, int32_t>::value) ||
-                (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_mod, e1, expr(val));
-        }
-        else
-        {
-            return tiramisu::expr(tiramisu::o_mod, e1, val);
-        }
-    }
+    expr operator%(tiramisu::expr other) const;
 
     /**
       * Right shift operator.
       */
-    template<typename T> tiramisu::expr operator>>(T val) const
-    {
-        if ((std::is_same<T, tiramisu::expr>::value))
-        {
-            return tiramisu::expr(tiramisu::o_right_shift, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_right_shift, *this, expr(val));
-        }
-        else
-        {
-            tiramisu::error("Right shift of a tiramisu expression by a non supported type.\n", true);
-        }
-    }
+    expr operator>>(tiramisu::expr other) const;
 
     /**
       * Left shift operator.
       */
-    template<typename T> tiramisu::expr operator<<(T val) const
-    {
-        if ((std::is_same<T, tiramisu::expr>::value))
-        {
-            return tiramisu::expr(tiramisu::o_left_shift, *this, val);
-        }
-        else if ((std::is_same<T, uint8_t>::value) ||
-                 (std::is_same<T, int8_t>::value) ||
-                 (std::is_same<T, uint16_t>::value) ||
-                 (std::is_same<T, int16_t>::value) ||
-                 (std::is_same<T, int32_t>::value) ||
-                 (std::is_same<T, uint32_t>::value))
-        {
-            return tiramisu::expr(tiramisu::o_left_shift, *this, expr(val));
-        }
-        else
-        {
-            tiramisu::error("Left shift of a tiramisu expression by a non supported type.\n", true);
-        }
-    }
+    expr operator<<(tiramisu::expr other) const;
 
     /**
       * Logical and of two expressions.
@@ -1170,6 +1046,9 @@ public:
                         std::cout << "Expression value type:" << str_from_tiramisu_type_primitive(this->dtype) << std::endl;
                         break;
                     }
+                    case (tiramisu::e_sync):
+                        std::cout << "Sync object" << std::endl;
+                        break;
                     default:
                         tiramisu::error("Expression type not supported.", true);
                     }
@@ -1395,6 +1274,11 @@ public:
                         str +=  ")%(" + this->get_operand(1).to_str();
                         str +=  ")";
                         break;
+                    case tiramisu::o_memcpy:
+                        str += "memcpy(" + this->get_operand(0).to_str();
+                        str += ", " + this->get_operand(1).to_str();
+                        str += ")";
+                        break;
                     case tiramisu::o_select:
                         str +=  "select(" + this->get_operand(0).to_str();
                         str +=  ", " + this->get_operand(1).to_str();
@@ -1603,6 +1487,11 @@ public:
                     str +=  this->get_name();
                     break;
                 }
+                case (tiramisu::e_sync):
+                {
+                    str += "sync object";
+                    break;
+                }
                 default:
                     tiramisu::error("Expression type not supported.", true);
                 }
@@ -1617,7 +1506,30 @@ public:
       * For example: if \p substitutions is {(i, 5), (j, i)}, and the original expression is
       * i + j * 2, then this method returns 5 + i * 2.
       */
-    expr substitute(std::vector<std::pair<var, expr>> substitutions);
+    expr substitute(std::vector<std::pair<var, expr>> substitutions) const;
+
+    /**
+      * Returns an expression where every access to a computation named
+      * \p original is replaced with an access to a computation named
+      * \p substitute, with the same access indices.
+      * An example where this is useful is when modifying a computation
+      * that was designed to work with a host buffer to work with a GPU
+      * buffer.
+      */
+    expr substitute_access(std::string original, std::string substitute) const;
+
+    expr apply_to_operands(std::function<expr(const expr &)> f) const
+    {
+        tiramisu::expr e{*this};
+        for (int i = 0; i < access_vector.size(); i++)
+            e.access_vector[i] = f(e.access_vector[i]);
+        for (int i = 0; i < op.size(); i++)
+            e.op[i] = f(e.op[i]);
+        for (int i = 0; i < argument_vector.size(); i++)
+            e.argument_vector[i] = f(e.argument_vector[i]);
+
+        return e;
+    }
 
     /** Create a variable that can be used that a dimension is unbounded.
       * i < tiramisu::expr::unbounded()
@@ -1635,6 +1547,24 @@ public:
 
             e.dtype = tiramisu::p_none;
 	    return e;
+    }
+};
+
+/**
+  * A class that represents a synchronization object.
+  * e.g. in the context of GPUs this will get transformed to
+  * __syncthreads();
+  */
+class sync : public tiramisu::expr
+{
+public:
+    sync() : expr()
+    {
+        etype = e_sync;
+        _operator = o_none;
+        dtype = p_none;
+        defined = true;
+
     }
 };
 
@@ -1711,34 +1641,88 @@ Halide::Expr halide_expr_from_tiramisu_expr(
     const tiramisu::expr &tiramisu_expr);
 
 
-template <typename T>
-expr const & caster<T>::cast(T const & val, primitive_t dtype)
-{
-    static_assert(std::is_fundamental<T>::value, "Type must be fundamental");
-    switch (dtype) {
+/**
+  * Takes in a primitive value \p val, and returns an expression
+  * of tiramisu type \p tT that represents \p val.
+  */
+template <typename cT>
+expr value_cast(primitive_t tT, cT val) {
+
+//    static_assert(std::is_fundamental<cT>::value, "Type must be fundamental");
+
+    switch (tT) {
+
         case p_int8:
-            return *(new expr{static_cast<int8_t>(val)});
+            return expr{static_cast<int8_t>(val)};
         case p_uint8:
-            return *(new expr{static_cast<uint8_t>(val)});
+            return expr{static_cast<uint8_t>(val)};
         case p_int16:
-            return *(new expr{static_cast<int16_t>(val)});
+            return expr{static_cast<int16_t>(val)};
         case p_uint16:
-            return *(new expr{static_cast<uint16_t>(val)});
+            return expr{static_cast<uint16_t>(val)};
         case p_int32:
-            return *(new expr{static_cast<int32_t>(val)});
+            return expr{static_cast<int32_t>(val)};
         case p_uint32:
-            return *(new expr{static_cast<uint32_t>(val)});
+            return expr{static_cast<uint32_t>(val)};
         case p_int64:
-            return *(new expr{static_cast<int64_t>(val)});
+            return expr{static_cast<int64_t>(val)};
         case p_uint64:
-            return *(new expr{static_cast<uint64_t>(val)});
+            return expr{static_cast<uint64_t>(val)};
         case p_float32:
-            return *(new expr{static_cast<float>(val)});
+            return expr{static_cast<float>(val)};
         case p_float64:
-            return *(new expr{static_cast<double>(val)});
+            return expr{static_cast<double>(val)};
         default:
-            assert(false && "type not supported");
+            throw std::invalid_argument{"Type not supported"};
     }
+}
+
+/**
+  * Returns an expression that casts \p e to \p tT.
+  */
+expr cast(primitive_t tT, const expr & e);
+
+
+template <typename T>
+only_integral<T> operator+(const tiramisu::expr &e, T val)
+{
+    return e + value_cast(e.get_data_type(), val);
+}
+
+template <typename T>
+only_integral<T> operator-(const tiramisu::expr &e, T val)
+{
+    return e - value_cast(e.get_data_type(), val);
+}
+
+template <typename T>
+only_integral<T> operator/(const tiramisu::expr &e, T val)
+{
+    return e / expr{val};
+}
+
+template <typename T>
+only_integral<T> operator*(const tiramisu::expr &e, T val)
+{
+    return e * expr{val};
+}
+
+template <typename T>
+only_integral<T> operator%(const tiramisu::expr &e, T val)
+{
+    return e % expr{val};
+}
+
+template <typename T>
+only_integral<T> operator>>(const tiramisu::expr &e, T val)
+{
+    return e >> expr{val};
+}
+
+template <typename T>
+only_integral<T> operator<<(const tiramisu::expr &e, T val)
+{
+    return e << expr{val};
 }
 
 }

@@ -11,7 +11,7 @@
 /**
   * Set to 1 to enable debugging and 0 to disable debugging.
   */
-#define ENABLE_DEBUG 1
+#define ENABLE_DEBUG true
 
 namespace tiramisu
 {

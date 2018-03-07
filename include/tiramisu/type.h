@@ -15,6 +15,7 @@ enum expr_t
 {
     e_val,          // literal value, like 1, 2.4, 10, ...
     e_var,          // a variable of a primitive type (i.e., an identifier holding one value),
+    e_sync,         // syncs parallel computations. Currently used in the context of GPUs.
     e_op,           // an operation: add, mul, div, ...
     e_none          // undefined expression. The existence of an expression of e_none type means an error.
 };
@@ -38,6 +39,7 @@ enum primitive_t
     p_boolean,
     p_none
 };
+
 
 /**
   * Types of tiramisu operators.
@@ -94,6 +96,7 @@ enum op_t
     o_min,
     o_right_shift,
     o_left_shift,
+    o_memcpy,
 
 
     // Ternary operators
@@ -106,7 +109,7 @@ enum op_t
     o_call,
     o_access,
 
-    o_none
+    o_none,
 };
 
 /**

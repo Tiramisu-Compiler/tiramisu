@@ -1748,7 +1748,7 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v, tiramisu::var
         tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
                                      L0, false);
 
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + caster<int>::cast(1, global::get_loop_iterator_default_data_type());
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + value_cast(global::get_loop_iterator_default_data_type(), 1);
     loop_bound = loop_bound.simplify();
 
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be vectorized: "); loop_bound.dump(false));
@@ -1861,7 +1861,7 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
         tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
                                      L0, false);
 
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + caster<int>::cast(1, global::get_loop_iterator_default_data_type());
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + value_cast(global::get_loop_iterator_default_data_type(), 1);
     loop_bound = loop_bound.simplify();
 
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be unrolled: "); loop_bound.dump(false));
@@ -2082,7 +2082,7 @@ bool buffer::has_constant_extents()
     return constant_extent;
 }
 
-tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
+    tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -4758,7 +4758,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
                 }
 
                 param = tiramisu::expr(o_mul,
-                                       caster<long>::cast(c, global::get_loop_iterator_default_data_type()),
+                                       value_cast(global::get_loop_iterator_default_data_type(), c),
                                        param);
             }
 
@@ -4784,7 +4784,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
             v = -1 * v;
         }
 
-        tiramisu::expr c = caster<long>::cast(v, global::get_loop_iterator_default_data_type());
+        tiramisu::expr c = value_cast(global::get_loop_iterator_default_data_type(), v);
 
         if (e.is_defined() == false)
         {
@@ -6047,6 +6047,8 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
         return "op";
     case tiramisu::e_var:
         return "var";
+    case tiramisu::e_sync:
+        return "sync";
     default:
         tiramisu::error("Tiramisu type not supported.", true);
         return "";
@@ -6110,7 +6112,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct):
     allocated(false), argtype(argt), auto_allocate(true), dim_sizes(dim_sizes), fct(fct),
-    name(name), type(type)
+    name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
@@ -6923,7 +6925,9 @@ bool tiramisu::computation::has_accesses() const
     if ((this->get_expr().get_op_type() == tiramisu::o_access))
         return true;
     else if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
-            (this->get_expr().get_op_type() == tiramisu::o_free))
+            (this->get_expr().get_op_type() == tiramisu::o_free) ||
+            (this->get_expr().get_op_type() == tiramisu::o_memcpy) ||
+        (this->get_expr().get_expr_type() == tiramisu::e_sync))
     {
         return false;
     }
@@ -7058,9 +7062,9 @@ tiramisu::constant::constant(
     {
         this->set_name(param_name);
         this->set_expression(param_expr);
-        func->add_invariant(*this);
         this->mark_as_let_statement();
         this->data_type = t;
+        func->add_invariant(*this);
 
         DEBUG(3, tiramisu::str_dump("The constant is function wide, its name is : "));
         DEBUG(3, tiramisu::str_dump(this->get_name()));
@@ -7256,4 +7260,34 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
+expr tiramisu::computation::get_span(int level)
+{
+    this->check_dimensions_validity({level});
+    tiramisu::expr loop_upper_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, true);
+
+    tiramisu::expr loop_lower_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + value_cast(global::get_loop_iterator_default_data_type(), 1);
+    return loop_bound.simplify();
+}
+
+void tiramisu::buffer::tag_gpu_shared() {
+    location = cuda_ast::memory_location::shared;
+    set_auto_allocate(false);
+}
+
+void tiramisu::buffer::tag_gpu_global() {
+    location = cuda_ast::memory_location::global;
+}
+
+void tiramisu::buffer::tag_gpu_register() {
+    bool is_single_val = this->get_n_dims() == 1 && this->get_dim_sizes()[0].get_expr_type() == e_val && this->get_dim_sizes()[0].get_int_val() == 1;
+    assert(is_single_val && "Buffer needs to correspond to a single value to be in register");
+    location = cuda_ast::memory_location::reg;
+    set_auto_allocate(false);
+}
 }

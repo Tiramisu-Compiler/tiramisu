@@ -719,6 +719,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
         }
         case tiramisu::o_allocate:
         case tiramisu::o_free:
+        case tiramisu::o_memcpy:
             // They do not have any access.
             break;
         default:
@@ -745,7 +746,8 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
     tiramisu::expr output_expr;
 
     if (exp.get_expr_type() == tiramisu::e_val ||
-            exp.get_expr_type() == tiramisu::e_var)
+            exp.get_expr_type() == tiramisu::e_var ||
+            exp.get_expr_type() == tiramisu::e_sync)
     {
         output_expr = exp;
     }
@@ -850,6 +852,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             break;
         case tiramisu::o_allocate:
         case tiramisu::o_free:
+        case tiramisu::o_memcpy:
             output_expr = exp;
             break;
         default:
@@ -897,7 +900,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
     {
         isl_val *init_val = isl_ast_expr_get_val(isl_expr);
         std::cout << std::boolalpha << std::is_fundamental<long>::value << std::endl;
-        result = tiramisu::caster<long>::cast(isl_val_get_num_si(init_val), tiramisu::global::get_loop_iterator_default_data_type());
+        result = value_cast(tiramisu::global::get_loop_iterator_default_data_type(), isl_val_get_num_si(init_val));
         isl_val_free(init_val);
     }
     else if (isl_ast_expr_get_type(isl_expr) == isl_ast_expr_id)
@@ -1047,19 +1050,17 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
         it = iterators_map.find(exp.get_name());
         if (it != iterators_map.end())
             output_expr = tiramisu_expr_from_isl_ast_expr(iterators_map[exp.get_name()]);
-	else
+        else
             output_expr = exp;
     }
     else if ((exp.get_expr_type() == tiramisu::e_op) && (exp.get_op_type() == tiramisu::o_access))
     {
         DEBUG(10, tiramisu::str_dump("Replacing the occurrences of original iterators in an o_access."));
 
-        for (const auto &access : exp.get_access())
-        {
-            replace_original_indices_with_transformed_indices(access, iterators_map);
-        }
+        output_expr = exp.apply_to_operands([&iterators_map](const tiramisu::expr &exp){
+            return replace_original_indices_with_transformed_indices(exp, iterators_map);
+        });
 
-        output_expr = exp;
     }
     else if (exp.get_expr_type() == tiramisu::e_op)
     {
@@ -2251,6 +2252,179 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
     return index;
 }
 
+tiramisu::expr generator::linearize_access(int dims, std::vector<tiramisu::expr> &strides, std::vector<tiramisu::expr> index_expr)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!index_expr.empty());
+
+    // ISL dimension is ordered from outermost to innermost.
+
+    tiramisu::expr index = value_cast(global::get_loop_iterator_default_data_type(), 0);
+    auto stride = strides.rbegin();
+    auto i_expr = index_expr.begin();
+    for (;
+         stride != strides.rend() && i_expr != strides.end();
+         stride ++, i_expr ++)
+    {
+        index = index + (*stride) * (*i_expr);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return index;
+}
+
+tiramisu::expr generator::linearize_access(int dims, std::vector<tiramisu::expr> &strides, isl_ast_expr *index_expr)
+{
+    assert(isl_ast_expr_get_op_n_arg(index_expr) > 1);
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // ISL dimension is ordered from outermost to innermost.
+
+    tiramisu::expr index = value_cast(global::get_loop_iterator_default_data_type(), 0);
+    for (int i = dims; i >= 1; --i)
+    {
+        isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
+        tiramisu::expr operand_h = tiramisu_expr_from_isl_ast_expr(operand);
+        index = index + operand_h * strides[dims - i];
+        isl_ast_expr_free(operand);
+    }
+
+    DEBUG_INDENT(-4);
+
+    return index;
+}
+
+std::string generator::get_buffer_name(const tiramisu::computation * comp)
+{
+    isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
+    isl_space *space = isl_map_get_space(access);
+    const char *buffer_name = isl_space_get_tuple_name(space, isl_dim_out);
+    assert(buffer_name != nullptr);
+    return std::string{buffer_name};
+}
+
+tiramisu::expr generator::comp_to_buffer(tiramisu::computation *comp, std::vector<isl_ast_expr *> &index_expr,
+                                         const tiramisu::expr *expr)
+{
+    auto buffer_name = generator::get_buffer_name(comp);
+
+    DEBUG(3, tiramisu::str_dump("Buffer name extracted from the access relation: ", buffer_name.c_str()));
+
+    isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
+    isl_space *space = isl_map_get_space(access);
+
+    // Get the number of dimensions of the ISL map representing
+    // the access.
+    int access_dims = isl_space_dim(space, isl_dim_out);
+
+    // Fetch the actual buffer.
+    const auto &buffer_entry = comp->get_function()->get_buffers().find(buffer_name);
+    assert(buffer_entry != comp->get_function()->get_buffers().end());
+
+    const auto &tiramisu_buffer = buffer_entry->second;
+    DEBUG(3, tiramisu::str_dump("A Tiramisu buffer that corresponds to the buffer indicated in the access relation was found."));
+
+    DEBUG(10, tiramisu_buffer->dump(true));
+
+    auto dim_sizes = tiramisu_buffer->get_dim_sizes();
+
+    std::vector<tiramisu::expr> strides;
+    tiramisu::expr stride = value_cast(global::get_loop_iterator_default_data_type(), 1);
+
+    std::vector<isl_ast_expr *> empty_index_expr;
+    for (auto dim = dim_sizes.rbegin(); dim != dim_sizes.rend(); dim++)
+    {
+        strides.push_back(stride);
+        stride = stride * tiramisu::expr(o_cast, global::get_loop_iterator_default_data_type(), replace_original_indices_with_transformed_indices(*dim, comp->get_iterators_map()));
+    }
+    tiramisu::expr index;
+
+    // The number of dimensions in the Halide buffer should be equal to
+    // the number of dimensions of the access function.
+    assert(dim_sizes.size() == access_dims);
+    if (index_expr.empty())
+    {
+        assert(expr != nullptr);
+        DEBUG(10, tiramisu::str_dump("index_expr is empty. Retrieving access indices directly from the tiramisu access expression without scheduling."));
+
+        for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+        {
+            // Actually any access that does not require
+            // scheduling is supported but currently we only
+            // accept literal constants as anything else was not
+            // needed til now.
+            assert(expr->get_access()[i].is_constant() && "Only constant accesses are supported.");
+        }
+
+        index = tiramisu::generator::linearize_access((int) dim_sizes.size(), strides, expr->get_access());
+    }
+    else
+    {
+        assert(index_expr[0] != nullptr);
+        DEBUG(3, tiramisu::str_dump("Linearizing access of the LHS index expression."));
+
+        index = tiramisu::generator::linearize_access((int) dim_sizes.size(), strides, index_expr[0]);
+
+        DEBUG(3, tiramisu::str_dump("After linearization: ");
+                std::cout << index.to_str() << std::endl);
+
+        DEBUG(3, tiramisu::str_dump("Index expressions of this statement are:"));
+        print_isl_ast_expr_vector(index_expr);
+
+        DEBUG(3, tiramisu::str_dump(
+                "Erasing the first index expression from the vector of index expressions (the first index has just been linearized)."));
+        index_expr.erase(index_expr.begin());
+    }
+
+    return tiramisu::expr{o_access, buffer_name, {index}, tiramisu_buffer->get_elements_type()};
+}
+
+std::pair<expr, expr> computation::create_tiramisu_assignment()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Generating stmt for assignment."));
+
+    tiramisu::expr lhs, rhs;
+
+    // TODO handle let statements
+    assert(!this->is_let_stmt() && "create_tiramisu_assignment does not currently support let statements");
+
+    DEBUG(3, tiramisu::str_dump("This is not a let statement."));
+
+    lhs = generator::comp_to_buffer(this, this->index_expr);
+
+
+
+
+
+    // Replace the RHS expression to the transformed expressions.
+    // We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
+    // that an access can only appear when accessing a computation. And that case should be handled in the following transformation
+    // so no need to transform this->index_expr separately.
+    rhs = generator::replace_accesses(
+            this->get_function(), this->index_expr,
+            replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map()));
+
+    DEBUG(3, std::cout << "LHS: " << lhs.to_str());
+    DEBUG(3, std::cout << "RHS: " << rhs.to_str());
+
+
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
+            std::cout << this->stmt);
+
+    DEBUG_INDENT(-4);
+
+    return std::make_pair(lhs, rhs);
+
+}
+
 /*
  * Create a Halide assign statement from a computation.
  * The statement will assign the computations to a memory buffer based on the
@@ -2428,6 +2602,97 @@ void computation::create_halide_assignment()
 
     DEBUG_INDENT(-4);
 }
+    tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::vector<isl_ast_expr *> &index_expr,
+                                               const tiramisu::expr &tiramisu_expr){
+        tiramisu::expr result;
+
+        DEBUG_FCT_NAME(10);
+        DEBUG_INDENT(4);
+
+        DEBUG(10, tiramisu::str_dump("Input Tiramisu expression: "); tiramisu_expr.dump(false));
+        if (fct != nullptr)
+        {
+            DEBUG(10, tiramisu::str_dump("The input function is " + fct->get_name()));
+        }
+        else
+        {
+            DEBUG(10, tiramisu::str_dump("The input function is NULL."));
+        }
+        if (index_expr.empty())
+        {
+            DEBUG(10, tiramisu::str_dump("The input index_expr is empty."));
+        }
+        else
+        {
+            DEBUG(10, tiramisu::str_dump("The input index_expr is not empty."));
+        }
+
+        if (tiramisu_expr.get_expr_type() == tiramisu::e_op) {
+            auto op_type = tiramisu_expr.get_op_type();
+
+            expr modified_expr = tiramisu_expr.apply_to_operands([&fct, &index_expr](const expr & e){
+                return generator::replace_accesses(fct, index_expr, e);
+            });
+
+            if (op_type == o_access || op_type == o_address) {
+                DEBUG(10, tiramisu::str_dump("op type: o_access or o_address"));
+
+                const char *access_comp_name = nullptr;
+
+                if (op_type == tiramisu::o_access) {
+                    access_comp_name = modified_expr.get_name().c_str();
+                } else {
+                    access_comp_name = modified_expr.get_operand(0).get_name().c_str();
+                }
+
+                assert(access_comp_name != nullptr);
+
+                DEBUG(10, tiramisu::str_dump("Computation being accessed: ");
+                        tiramisu::str_dump(access_comp_name));
+
+                // Since we modify the names of update computations but do not modify the
+                // expressions.  When accessing the expressions we find the old names, so
+                // we need to look for the new names instead of the old names.
+                // We do this instead of actually changing the expressions, because changing
+                // the expressions will make the semantics of the printed program ambiguous,
+                // since we do not have any way to distinguish between which update is the
+                // consumer is consuming exactly.
+                std::vector<tiramisu::computation *> computations_vector
+                        = fct->get_computation_by_name(access_comp_name);
+                if (computations_vector.empty()) {
+                    // Search for update computations.
+                    computations_vector
+                            = fct->get_computation_by_name("_" + std::string(access_comp_name) + "_update_0");
+                    assert((!computations_vector.empty()) && "Computation not found.");
+                }
+
+                // We assume that computations that have the same name write all to the same buffer
+                // but may have different access relations.
+                tiramisu::computation *access_comp = computations_vector[0];
+                assert((access_comp != nullptr) && "Accessed computation is NULL.");
+                if (op_type == tiramisu::o_access) {
+                    result = generator::comp_to_buffer(access_comp, index_expr, &modified_expr);
+
+                } else {
+                    // It's an o_address
+                    std::string buffer_name = generator::get_buffer_name(access_comp);
+                    // TODO what to do in this case?
+                }
+            }
+            else
+            {
+                result = modified_expr;
+            }
+        } else
+        {
+            result = tiramisu_expr;
+        }
+
+        DEBUG_INDENT(-4);
+        DEBUG_FCT_NAME(10);
+
+        return result;
+    }
 
 Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
                                                        std::vector<isl_ast_expr *> &index_expr,

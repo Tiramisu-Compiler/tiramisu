@@ -10,15 +10,16 @@ execute_process(COMMAND bash ${PROJECT_DIR}/generate_config_path.sh
 
 # Add CMake header files
 set(HEADER_FILES
+        include/tiramisu/cuda_ast.h
         include/tiramisu/core.h
         include/tiramisu/debug.h
         include/tiramisu/utils.h
+        include/tiramisu/type.h
         include/tiramisu/expr.h
-        include/tiramisu/core.h
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide)
+set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide codegen_cuda)
 
 
 ### CMAKE FILE INTERNALS ###
