@@ -49,26 +49,19 @@ void generate_function(std::string name)
 
 #if AUTO_SCHEDULE
 	#include "SCHEDULE.h"
-	#define THREE_D_L3_TILING 1
+	#define L3_TILING 1
 #else
+	#define B0 64
+	#define B1 (SIZE_IS_MULTIPLE_OF_TILE?64:32)
+	#define B2 32
+
 	#define L3_B0 2
 	#define L3_B1 32
 	#define L3_B2 32
-	#define U1 64
-	#define B0 64
-	#if SIZE_IS_MULTIPLE_OF_TILE
-	    #define B1 64
-	#else
-	    #define B1 32
-	#endif
-	#define B2 32
 
-	#if SIZE_IS_MULTIPLE_OF_TILE
-	    #define THREE_D_L3_TILING 1
-	#else
-	    #define THREE_D_L3_TILING 0
-	    #define TWO_D_L3_TILING 0
-	#endif
+	#define U1 64
+
+	#define L3_TILING (SIZE_IS_MULTIPLE_OF_TILE?1:0)
 #endif
 
     std::string B0s = std::to_string(B0);
@@ -157,7 +150,7 @@ void generate_function(std::string name)
     // L3 tiling (only if SIZE_IS_MULTIPLE_OF_TILE)
     // ----------------------------------------------------------------------------------------------------------------
     int lev0 = 0, lev1 = 0, lev2 = 0;
-#if THREE_D_L3_TILING
+#if L3_TILING
     lev0 = 1;
     lev1 = 1;
     lev2 = 1;
