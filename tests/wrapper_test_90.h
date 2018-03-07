@@ -4,7 +4,7 @@
 
 // Define these values for each new test
 #define TEST_NAME_STR       "combination_of_transformations"
-#define TEST_NUMBER_STR     "89"
+#define TEST_NUMBER_STR     "90"
 // Data size
 #define SIZE 100
 

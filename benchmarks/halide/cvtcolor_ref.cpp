@@ -9,7 +9,7 @@ int main(int argc, char* argv[]) {
     ImageParam in{UInt(8), 3, "input"};
 
     Func RGB2Gray{"RGB2Gray"};
-    Var x,y,c;
+    Var x, y, c;
 
     const Expr yuv_shift = cast<uint32_t>(14);
     const Expr R2Y = cast<uint32_t>(4899);
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
                                 + in(x, y, 0) * R2Y),
                                 yuv_shift));
 
-    RGB2Gray.parallel(y); //.vectorize(x, 8);
+    RGB2Gray.parallel(y).vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
 
     RGB2Gray.compile_to_object("build/generated_fct_cvtcolor_ref.o", {in}, "cvtcolor_ref");
 

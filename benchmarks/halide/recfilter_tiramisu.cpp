@@ -81,14 +81,25 @@ int main(int argc, char **argv)
     rec_filter_s1.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, (((tiramisu::expr(a0)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s0(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y"), tiramisu::var("rec_filter_s1_r4__x")))) + (tiramisu::expr(a1)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s0(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y"), (tiramisu::var("rec_filter_s1_r4__x") - tiramisu::expr((int32_t)1)))))) + (tiramisu::expr(a2)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s0(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y"), (tiramisu::var("rec_filter_s1_r4__x") - tiramisu::expr((int32_t)2))))))));
     rec_filter_s1.set_access("{rec_filter_s1[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]->buff_rec_filter[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]}");
 
+
+    tiramisu::computation rec_filter_s2("[rec_filter_s1_c_loop_min, rec_filter_s1_c_loop_extent, rec_filter_s1_r4__y_loop_min, rec_filter_s1_r4__y_loop_extent, rec_filter_s1_r4__x_loop_min, rec_filter_s1_r4__x_loop_extent]->{rec_filter_s2[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]: "
+                        "(rec_filter_s1_c_loop_min <= rec_filter_s1_c <= ((rec_filter_s1_c_loop_min + rec_filter_s1_c_loop_extent) + -1)) and (rec_filter_s1_r4__y_loop_min <= rec_filter_s1_r4__y <= ((rec_filter_s1_r4__y_loop_min + rec_filter_s1_r4__y_loop_extent) + -1)) and (rec_filter_s1_r4__x_loop_min <= rec_filter_s1_r4__x <= ((rec_filter_s1_r4__x_loop_min + rec_filter_s1_r4__x_loop_extent) + -1))}",
+                        tiramisu::expr(), true, tiramisu::p_uint8, &recfilter_tiramisu);
+    rec_filter_s2.set_expression(tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, (((tiramisu::expr(a0)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s1(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y"), tiramisu::var("rec_filter_s1_r4__x")))) + (tiramisu::expr(a1)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s1(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y")  - tiramisu::expr((int32_t)1), (tiramisu::var("rec_filter_s1_r4__x")))))) + (tiramisu::expr(a2)*tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, rec_filter_s1(tiramisu::var("rec_filter_s1_c"), tiramisu::var("rec_filter_s1_r4__y") - tiramisu::expr((int32_t)2), (tiramisu::var("rec_filter_s1_r4__x"))))))));
+    rec_filter_s2.set_access("{rec_filter_s2[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]->buff_rec_filter[rec_filter_s1_c, rec_filter_s1_r4__y, rec_filter_s1_r4__x]}");
+
     // Define compute level for "rec_filter".
     rec_filter_s1.after(rec_filter_s0, computation::root);
+    rec_filter_s2.after(rec_filter_s1, computation::root);
 
     // Add schedules.
     rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_y"));
     rec_filter_s0.tag_parallel_level(tiramisu::var("rec_filter_s0_c"));
+    rec_filter_s0.vectorize(tiramisu::var("rec_filter_s0_c"), 8);
     rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_c"));
     rec_filter_s1.tag_parallel_level(tiramisu::var("rec_filter_s1_r4__y"));
+    rec_filter_s2.tag_parallel_level(tiramisu::var("rec_filter_s1_c"));
+    rec_filter_s2.tag_parallel_level(tiramisu::var("rec_filter_s1_r4__y"));
 
     recfilter_tiramisu.set_arguments({&buff_b0, &buff_rec_filter});
     recfilter_tiramisu.gen_time_space_domain();

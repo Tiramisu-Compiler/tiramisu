@@ -215,16 +215,6 @@ private:
     void add_unroll_dimension(std::string stmt_name, int L);
 
     /**
-      * This functions applies to the schedule of each computation
-      * in the function.  It makes the dimensions of the ranges of
-      * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
-      * This function is called automatically when gen_isl_ast()
-      * or gen_time_processor_domain() are called.
-      */
-    void align_schedules();
-
-    /**
      * Get live in/out computations in the function.
      */
     // @{
@@ -644,6 +634,16 @@ public:
     void add_context_constraints(const std::string &new_context);
 
     /**
+      * This functions applies to the schedule of each computation
+      * in the function.  It makes the dimensions of the ranges of
+      * all the schedules equal.  This is done by adding dimensions
+      * equal to 0 to the range of schedules.
+      * This function is called automatically when gen_isl_ast()
+      * or gen_time_processor_domain() are called.
+      */
+    void align_schedules();
+
+    /**
      * \brief For each computation, allocate a buffer and map the computation
      * to that buffer.
      *
@@ -905,9 +905,7 @@ private:
 
     /**
       * The sizes of the dimensions of the buffer.  Assuming the following
-      * buffer: buf[N0][N1][N2].  The first vector element represents the
-      * size of rightmost dimension of the buffer (i.e. N2), the second
-      * vector element is N1, and the last vector element is N0.
+      * buffer buf[N0][N1][N2], dim_sizes should be {N0, N1, N2}.
       */
     std::vector<tiramisu::expr> dim_sizes;
 
@@ -972,13 +970,9 @@ public:
       * \p name is the name of the buffer.
       *
       * \p dim_sizes is a vector of tiramisu expressions that represent the
-      * size of each dimension in the buffer.  The first vector element
-      * represents the rightmost array dimension, while the last vector
-      * element represents the leftmost array dimension.
-      * For example, in the buffer buf[N0][N1][N2], the first element
-      * in the vector \p dim_sizes represents the size of rightmost
-      * dimension of the buffer (i.e. N2), the second vector element
-      * is N1, and the last vector element is N0.
+      * size of each dimension in the buffer.
+      * Assuming we want to declare the buffer buf[N0][N1][N2],
+      * then the vector of sizes should be {N0, N1, N2}.
       * Buffer dimensions in Tiramisu have the same semantics as in
       * C/C++.
       *
@@ -1062,7 +1056,10 @@ public:
      * \endcode
      *
      */
+    //@{
+    tiramisu::computation *allocate_at(tiramisu::computation &C, tiramisu::var level);
     tiramisu::computation *allocate_at(tiramisu::computation &C, int level);
+    //@}
 
     /**
       * \brief Dump the function on standard output.
@@ -1104,10 +1101,6 @@ public:
 
     /**
       * Return the sizes of the dimensions of the buffer.
-      * Assuming the following buffer: buf[N0][N1][N2].  The first
-      * vector element represents the size of rightmost dimension
-      * of the buffer (i.e. N2), the second vector element is N1,
-      * and the last vector element is N0.
       */
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
 
@@ -1204,6 +1197,20 @@ private:
       * Data type: the type of the value returned by the computation.
       */
     tiramisu::primitive_t data_type;
+
+    /**
+      * Number of definitions added to this computation. Each time the function
+      * add_definitions is called, definitions_number is incremented.
+      */
+    int definitions_number;
+
+    /**
+      * The ID of this definition. Each new computation when created has a
+      * definition_ID equal to 0.  When a new definition is added, its ID
+      * is 1, when a new definition is added, its definition ID is set to 2,
+      * ...
+      */
+    int definition_ID;
 
     /**
      * An integer indicating the number of duplicates of this computation.
@@ -1350,75 +1357,6 @@ private:
     // Private class methods.
 
     /**
-      * Schedule this computation to run after the computation \p comp.
-      * The computations are placed after each other in the loop level \p level.
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
-      *
-      * For example assuming we have the two computations
-      *
-      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * In order to make S1 run after S0 in the i loop, one should use
-      *
-      *     S1.after_low_level(S0,0)
-      *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
-      *
-      * The corresponding code is
-      *
-      *     for (i=0; i<N; i++)
-      *     {
-      *         for (j=0; j<N; j++)
-      *             S0;
-      *         for (j=0; j<N; j++)
-      *             S1;
-      *     }
-      *
-      * S1.after_low_level(S0,1)
-      *
-      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
-      * the following code
-      *
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *   {
-      *     S0;
-      *     S1;
-      *   }
-      *
-      * S1.after_low_level(S0, computation::root_dimension)
-      * means S1 is after S0 at the main program level and would yield
-      * the following code
-      *
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *     S0;
-      * for (i=0; i<N; i++)
-      *   for (j=0; j<N; j++)
-      *     S1;
-      *
-      * To specify that this computation is after \p comp in multiple levels,
-      * the user can provide those levels in the \p levels vector.
-      *
-      * S1.after_low_level(S0, {0,1})
-      *
-      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
-      *
-      * Note that
-      *
-      * S1.after_low_level(S0, L)
-      *
-      * would mean that S1 and S0 share the same loop nests for all the loop
-      * levels that are before L and that S1 is after S0 in L only.  S1 is not
-      * after S0 in the loop levels that are before L.
-      *
-      */
-    // @{
-    void after_low_level(computation &comp, int level);
-    void after_low_level(computation &comp, std::vector<int> levels);
-    // @}
-
-    /**
       * Apply a transformation on the domain of the schedule.
       * This is a transformation from iteration domain to the time-processor
       * domain.
@@ -1439,37 +1377,6 @@ private:
       * the ISL string format.
       */
     void add_schedule_constraint(std::string domain_constraints, std::string range_constraints);
-
-    /**
-      * This function is equivalent to
-      *     void after(computation &comp, tiramisu::var iterator);
-      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
-      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
-      * of variable names, and this is the actual function used internally.
-      *
-      * The outermost loop level is 0.  The root level is computation::root_dimension.
-      *
-      * For example assuming we have the two computations
-      *
-      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
-      *
-      * In order to make S1 run after S0 in the i loop, one should use
-      *
-      *     S1.after(S0,0)
-      *
-      * which means: S1 is after S0 at the loop level 0 (which is i).
-      *
-      * The corresponding code is
-      *
-      *     for (i=0; i<N; i++)
-      *     {
-      *         for (j=0; j<N; j++)
-      *             S0;
-      *         for (j=0; j<N; j++)
-      *             S1;
-      *     }
-      */
-    void after(computation &comp, int level);
 
     /**
       * Check that the names used in \p dimensions are not already
@@ -1748,6 +1655,17 @@ private:
     expr get_span(int level);
 
     /**
+      * Return the root of the tree of definitions of this computation.
+      * The tree of definitions is the tree that emerges after adding multiple
+      * definitions to the same computation. Let's take the following example.
+      * Assuming we have the computation c0.  We can add a definition c1 to c0.
+      * The tree in this case would have two nodes, c0 and c1. c0 is the root.
+      * We can add another defintion c2 to c0. Then we can add another defintion c3
+      * to c1. In this case the tree would have four nodes where c0 is the root.
+      */
+    tiramisu::computation *get_root_of_definition_tree();
+
+    /**
       * Get the number of dimensions of the time-space
       * domain of the computation.
       */
@@ -1824,12 +1742,6 @@ private:
      * the accesses of the RHS.
      */
     bool has_accesses() const;
-
-    /**
-      * Identical to
-      *     void interchange(tiramisu::var L0, tiramisu::var L1);
-      */
-    void interchange(int L0, int L1);
 
     /**
       * Return if this computation represents a let statement.
@@ -1929,6 +1841,32 @@ private:
     void separate(int dim, tiramisu::expr N, int v);
 
     /**
+      * Separate then split the loop \p L0
+      * (see tiramisu::computation::separate and tiramisu::computation::split)
+      *
+      * This function returns true if the split actually happened (in some
+      * cases, if the loop cannot be split because it is too small for example,
+      * then no split happens even after calling the split function, in such
+      * cases the function returns false).
+      */
+    //@{
+    bool separateAndSplit(tiramisu::var L0, int sizeX);
+    bool separateAndSplit(tiramisu::var L0, int sizeX,
+	    tiramisu::var L0_outer, tiramisu::var L0_inner);
+    bool separateAndSplit(int L0, int sizeX);
+    //@}
+
+    /**
+      * Split the loop level \p L0 of the iteration space into two
+      * new loop levels.
+      *
+      * \p sizeX is the extent (size) of the inner loop created after
+      * splitting.
+      */
+    //@{
+    //@}
+
+    /**
       * Set the names of loop levels dimensions.
       * The loop levels are specified using \p loop_levels
       * and their names are specified using \p names.
@@ -1944,6 +1882,13 @@ private:
       * the static dimension names are set to default names.
       */
     void set_loop_level_names(std::vector<std::string> names);
+
+    /**
+      * Set the names of the dimensions of the schedule domain.
+      * The dimension names are specified using \p names, their positions
+      * are indicated using \p loop_levels.
+      */
+    void set_schedule_domain_dim_names(std::vector<int> loop_levels, std::vector<std::string> names);
 
     /**
       * Set the iteration domain of the computation
@@ -1991,12 +1936,6 @@ private:
 
     /**
       * Identical to
-      *		void split(tiramisu::var L0, int sizeX);
-      */
-    void split(int L0, int sizeX);
-
-    /**
-      * Identical to
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1);
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
       *			      tiramisu::var L2, tiramisu::var L3);
@@ -2033,36 +1972,6 @@ private:
     void tag_gpu_thread_level(int L0);
     void tag_gpu_thread_level(int L0, int L1);
     void tag_gpu_thread_level(int L0, int L1, int L2);
-    // @}
-
-    /**
-      * Identical to
-      *    void tag_parallel_level(int L);
-      */
-    void tag_parallel_level(int L);
-
-    /**
-      * Identical to
-      *     void tag_vector_level(tiramisu::var L, int len);
-      */
-    void tag_vector_level(int L, int len);
-
-   /**
-     * Identical to
-     *     void tag_unroll_level(tiramisu::var L);
-     */
-    void tag_unroll_level(int L);
-
-    /**
-      * Tile the two loop levels \p L0 and \p L1 with rectangular
-      * tiling. \p sizeX and \p sizeY represent the tile size.
-      * \p L0 and \p L1 should be two consecutive loop levels
-      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
-      * \p L0 > \p L1.
-      */
-    // @{
-    void tile(int L0, int L1, int sizeX, int sizeY);
-    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -2127,14 +2036,6 @@ protected:
       * results of this computation.
       */
     std::vector<tiramisu::expr>* compute_buffer_size();
-
-    /**
-      * Generates the time-space domain and construct an AST that scans that
-      * time-space domain, then compute the depth of this AST.
-      * This is useful for example to know if all the dimensions of the time-space
-      * domain will correspond to a loop level in the final generated AST.
-      */
-    int compute_maximal_AST_depth();
 
     /**
       * Return the context of the computations.
@@ -2529,6 +2430,105 @@ public:
       */
     void after(computation &comp, tiramisu::var iterator);
 
+    /**
+      * This function is equivalent to
+      *     void after(computation &comp, tiramisu::var iterator);
+      * except that it uses loop level numbers (0, 1, 2, ...) instead of using loop variables
+      * (tiramisu::var).  Tiramisu internally represent loop levels using numbers instead
+      * of variable names, and this is the actual function used internally.
+      *
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      */
+    void after(computation &comp, int level);
+
+    /**
+      * Schedule this computation to run after the computation \p comp.
+      * The computations are placed after each other in the loop level \p level.
+      * The outermost loop level is 0.  The root level is computation::root_dimension.
+      *
+      * For example assuming we have the two computations
+      *
+      *     {S0[i,j]: 0<=i<N and 0<=j<N} and {S1[i,j]: 0<=i<N and 0<=j<N}
+      *
+      * In order to make S1 run after S0 in the i loop, one should use
+      *
+      *     S1.after_low_level(S0,0)
+      *
+      * which means: S1 is after S0 at the loop level 0 (which is i).
+      *
+      * The corresponding code is
+      *
+      *     for (i=0; i<N; i++)
+      *     {
+      *         for (j=0; j<N; j++)
+      *             S0;
+      *         for (j=0; j<N; j++)
+      *             S1;
+      *     }
+      *
+      * S1.after_low_level(S0,1)
+      *
+      * means: S1 is after S0 at the loop level 1 (which is j) and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *   {
+      *     S0;
+      *     S1;
+      *   }
+      *
+      * S1.after_low_level(S0, computation::root_dimension)
+      * means S1 is after S0 at the main program level and would yield
+      * the following code
+      *
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S0;
+      * for (i=0; i<N; i++)
+      *   for (j=0; j<N; j++)
+      *     S1;
+      *
+      * To specify that this computation is after \p comp in multiple levels,
+      * the user can provide those levels in the \p levels vector.
+      *
+      * S1.after_low_level(S0, {0,1})
+      *
+      * means that S1 is after S0 in the loop level 0 and in the loop level 1.
+      *
+      * Note that
+      *
+      * S1.after_low_level(S0, L)
+      *
+      * would mean that S1 and S0 share the same loop nests for all the loop
+      * levels that are before L and that S1 is after S0 in L only.  S1 is not
+      * after S0 in the loop levels that are before L.
+      *
+      */
+    // @{
+    void after_low_level(computation &comp, int level);
+    void after_low_level(computation &comp, std::vector<int> levels);
+    // @}
     /*
      * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.
@@ -2639,7 +2639,7 @@ public:
       *
       * This computation is scheduled so that the values consumed by the
       * \p consumer are computed at the level \p L and in the same loop
-      * nest of the consumer.
+      * nest of the consumer. \p L is a loop level in the consumer.
       *
       * If the consumer needs this computation to be computed redundantly,
       * the function creates the necessary redundant computations and schedules
@@ -2670,6 +2670,15 @@ public:
       * before the consumer.
       */
     void compute_at(computation &consumer, tiramisu::var L);
+    void compute_at(computation &consumer, int L);
+
+    /**
+      * Generates the time-space domain and construct an AST that scans that
+      * time-space domain, then compute the depth of this AST.
+      * This is useful for example to know if all the dimensions of the time-space
+      * domain will correspond to a loop level in the final generated AST.
+      */
+    int compute_maximal_AST_depth();
 
     /**
       * Dump the iteration domain of the computation.  This is useful for
@@ -2793,6 +2802,18 @@ public:
     tiramisu::computation& get_last_update();
 
     /**
+      * Search the time-space domain (the range of the schedule) and
+      * return the loop level number that correspond to the dimension
+      * named \p dim.
+      * In other words, translate the vector of dimension name (\p dim_name)
+      * into a loop level number.
+      */
+    int get_loop_level_number_from_dimension_name(std::string dim_name)
+    {
+	    return this->get_loop_level_numbers_from_dimension_names({dim_name})[0];
+    }
+
+    /**
       * Returns a pointer to the computation scheduled immediately before this computation,
       * or a null pointer if none exist.
       */
@@ -2837,6 +2858,12 @@ public:
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
     void interchange(tiramisu::var L0, tiramisu::var L1);
+
+    /**
+      * Identical to
+      *     void interchange(tiramisu::var L0, tiramisu::var L1);
+      */
+    void interchange(int L0, int L1);
 
     /**
      * Mark this statement as a let statement.
@@ -3027,6 +3054,11 @@ public:
 	       tiramisu::var L0_outer, tiramisu::var L0_inner);
     //@}
 
+    /**
+      * Identical to
+      *		void split(tiramisu::var L0, int sizeX);
+      */
+    void split(int L0, int sizeX);
 
     /**
      * Fold the storage of the computation.
@@ -3067,6 +3099,12 @@ public:
     void tag_parallel_level(tiramisu::var L);
 
     /**
+      * Identical to
+      *    void tag_parallel_level(int L);
+      */
+    void tag_parallel_level(int L);
+
+    /**
       * Tag the loop level \p L to be vectorized.
       * \p len is the vector length.
       *
@@ -3083,11 +3121,23 @@ public:
     void tag_vector_level(tiramisu::var L, int len);
 
     /**
+      * Identical to
+      *     void tag_vector_level(tiramisu::var L, int len);
+      */
+    void tag_vector_level(int L, int len);
+
+    /**
       * Tag the loop level \p L to be unrolled.
       *
       * The user can only tag loop levels that have constant extent.
       */
     void tag_unroll_level(tiramisu::var L);
+
+    /**
+     * Identical to
+     *     void tag_unroll_level(tiramisu::var L);
+     */
+    void tag_unroll_level(int L);
 
     /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
@@ -3110,6 +3160,18 @@ public:
 	      tiramisu::var L0_outer, tiramisu::var L1_outer,
 	      tiramisu::var L2_outer, tiramisu::var L0_inner,
 	      tiramisu::var L1_inner, tiramisu::var L2_inner);
+    // @}
+
+    /**
+      * Tile the two loop levels \p L0 and \p L1 with rectangular
+      * tiling. \p sizeX and \p sizeY represent the tile size.
+      * \p L0 and \p L1 should be two consecutive loop levels
+      * (i.e., \p L0 = \p L1 + 1) and they should satisfy
+      * \p L0 > \p L1.
+      */
+    // @{
+    void tile(int L0, int L1, int sizeX, int sizeY);
+    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -3343,6 +3405,21 @@ public:
   */
 class constant: public computation
 {
+private:
+    /**
+      * If this constant is not function wide, i.e., if it is computed
+      * with a computation, then \p compute_with_computation is a pointer on the
+      * computation with whom this constant should be computed.
+      * We need to know this because we need to translate the accesses
+      * used within the RHS of this contant expression to the new scheduled
+      * accesses. Since a computation does not have a buffer access (it is
+      * translated into a let statement), it also does not have an iterator
+      * map, thus it cannot translate its accesses to scheduled accesses.
+      * Thus we use the iterator map of the computation with whome we
+      * compute this constant and take its iterator map.
+      */
+    tiramisu::computation *compute_with_computation;
+
 public:
 
     /**
@@ -3385,6 +3462,14 @@ public:
     constant(std::string param_name, const tiramisu::expr &param_expr,
              tiramisu::primitive_t t,
              tiramisu::function *func);
+
+    /**
+      * Get the computation with whom this constant is computed.
+      */
+    tiramisu::computation *get_computation_with_whom_this_is_computed()
+    {
+	    return compute_with_computation;
+    }
 
     /**
       * Dump the invariant on standard output (dump most of the fields of
@@ -3499,7 +3584,7 @@ protected:
       */
     static Halide::Internal::Stmt halide_stmt_from_isl_node(
         const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::string> &tagged_stmts,
+        int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
         bool is_a_child_block = false);
 
     // TODO doc

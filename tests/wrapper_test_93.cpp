@@ -62,7 +62,6 @@ int main(int, char **)
 
     auto A_reference = mttkrp(I, J, K, L, B_, C_, D_);
 
-    print_buffer(A_tiramisu);
     tiramisu_generated_code(I_.raw_buffer(), J_.raw_buffer(),
                             K_.raw_buffer(), L_.raw_buffer(),
                             Bsize_.raw_buffer(), B_.raw_buffer(),
@@ -70,8 +69,6 @@ int main(int, char **)
                             Dsize_.raw_buffer(), D_.raw_buffer(),
                             A_tiramisu.raw_buffer());
 
-    print_buffer(A_tiramisu);
-    print_buffer(A_reference);
     compare_buffers(TEST_ID_STR, A_tiramisu, A_reference);
 
     return 0;

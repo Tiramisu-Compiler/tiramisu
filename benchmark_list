@@ -1,6 +1,11 @@
-recfilter
 cvtcolor
 filter2D
 blurxy
 gaussian
+warp_affine
 fusion
+heat2d
+rgbyuv420
+recfilter
+resize
+laplacian

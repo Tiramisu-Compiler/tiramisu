@@ -78,14 +78,33 @@ int main(int argc, char **argv)
                         (((blur_x_s0(tiramisu::var("blur_y_s0_c"), tiramisu::var("blur_y_s0_y"), tiramisu::var("blur_y_s0_x")) + blur_x_s0(tiramisu::var("blur_y_s0_c"), (tiramisu::var("blur_y_s0_y") + tiramisu::expr((int32_t)1)), tiramisu::var("blur_y_s0_x"))) + blur_x_s0(tiramisu::var("blur_y_s0_c"), (tiramisu::var("blur_y_s0_y") + tiramisu::expr((int32_t)2)), tiramisu::var("blur_y_s0_x")))/tiramisu::expr((uint8_t)3)), true, tiramisu::p_uint8, &blurxy_tiramisu);
     blur_y_s0.set_access("{blur_y_s0[blur_y_s0_c, blur_y_s0_y, blur_y_s0_x]->buff_blur_y[blur_y_s0_c, blur_y_s0_y, blur_y_s0_x]}");
 
-    // Define compute level for "blur_y".
-    blur_y_s0.after(blur_x_s0, computation::root);
+    // Declare vars.
+    tiramisu::var blur_y_s0_c("blur_y_s0_c");
+    tiramisu::var blur_y_s0_x("blur_y_s0_x");
+    tiramisu::var blur_y_s0_x_x_inner("blur_y_s0_x_x_inner");
+    tiramisu::var blur_y_s0_x_x_outer("blur_y_s0_x_x_outer");
+    tiramisu::var blur_y_s0_y("blur_y_s0_y");
+    tiramisu::var blur_y_s0_y_y_inner("blur_y_s0_y_y_inner");
+    tiramisu::var blur_y_s0_y_y_outer("blur_y_s0_y_y_outer");
+
+    tiramisu::var blur_x_s0_c("blur_x_s0_c");
+    tiramisu::var blur_x_s0_x("blur_x_s0_x");
+    tiramisu::var blur_x_s0_x_outer("blur_x_s0_x_outer");
+    tiramisu::var blur_x_s0_x_inner("blur_x_s0_x_inner");
+
+
+    blurxy_tiramisu.add_context_constraints("[blur_y_s0_c_loop_min, blur_y_s0_c_loop_extent, blur_y_s0_y_loop_min, blur_y_s0_y_loop_extent, blur_y_s0_x_loop_min, blur_y_s0_x_loop_extent,blur_x_s0_c_loop_min, blur_x_s0_c_loop_extent, blur_x_s0_y_loop_min, blur_x_s0_y_loop_extent, blur_x_s0_x_loop_min, blur_x_s0_x_loop_extent]->{: blur_y_s0_c_loop_min=0 and blur_y_s0_y_loop_min=0 and blur_y_s0_x_loop_min=0 and blur_x_s0_c_loop_min=0 and blur_x_s0_y_loop_min=0 and blur_x_s0_x_loop_min=0 and blur_y_s0_y_loop_extent%8=0 and blur_x_s0_y_loop_extent%8=0 and blur_x_s0_x_loop_extent%8=0 and blur_y_s0_x_loop_extent%8=0 and blur_y_s0_c_loop_extent>0 and blur_y_s0_y_loop_extent>0 and blur_y_s0_x_loop_extent>0 and blur_x_s0_c_loop_extent>0 and blur_x_s0_y_loop_extent>0 and blur_x_s0_x_loop_extent>0}");
 
     // Add schedules.
-    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_y"));
-    blur_x_s0.tag_parallel_level(tiramisu::var("blur_x_s0_c"));
-    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_y"));
-    blur_y_s0.tag_parallel_level(tiramisu::var("blur_y_s0_c"));
+    blur_y_s0.split(blur_y_s0_y, 8, blur_y_s0_y_y_outer, blur_y_s0_y_y_inner);
+    blur_y_s0.parallelize(blur_y_s0_y_y_outer);
+    blur_y_s0.parallelize(blur_y_s0_c);
+    blur_y_s0.vectorize(blur_y_s0_x, 8);
+
+    blur_x_s0.compute_at(blur_y_s0, blur_y_s0_y_y_inner);
+    blur_x_s0.parallelize(blur_x_s0_c);
+    blur_x_s0.split(blur_x_s0_x, 8, blur_x_s0_x_outer, blur_x_s0_x_inner);
+    blur_x_s0.tag_vector_level(blur_x_s0_x_inner, 8);
 
     blurxy_tiramisu.set_arguments({&buff_p0, &buff_blur_y});
     blurxy_tiramisu.gen_time_space_domain();

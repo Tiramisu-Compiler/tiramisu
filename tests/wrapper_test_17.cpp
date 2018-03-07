@@ -18,6 +18,8 @@ int main(int, char **)
 
     test_tag_gpu_level(output_buf.raw_buffer());
 
+    output_buf.copy_to_host();
+
     compare_buffers("test_tag_gpu_level", output_buf, reference_buf);
 
     return 0;

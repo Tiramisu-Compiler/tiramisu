@@ -24,8 +24,8 @@ int main(int argc, char **argv)
     tiramisu::function heat2d_tiramisu("heat2d_tiramisu");
 
     // Input params.
-    float p0 = 0.3;
-    float p1 = 0.4;
+    float alpha = 0.3;
+    float beta = 0.4;
 
     int SIZE0 = 10000;
     int SIZE1 = 10000;
@@ -55,25 +55,36 @@ int main(int argc, char **argv)
                         tiramisu::expr((float)0), true, tiramisu::p_float32, &heat2d_tiramisu);
     heat2d_s0.set_access("{heat2d_s0[heat2d_s0_y, heat2d_s0_x]->buff_heat2d[heat2d_s0_y, heat2d_s0_x]}");
 
-    // Define loop bounds for dimension "heat2d_s1_r4__y".
-    tiramisu::constant heat2d_s1_r4__y_loop_min("heat2d_s1_r4__y_loop_min", tiramisu::expr((int32_t)1), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
-    tiramisu::constant heat2d_s1_r4__y_loop_extent("heat2d_s1_r4__y_loop_extent", (tiramisu::expr(input_extent_1) + tiramisu::expr((int32_t)-2)), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
+    // Define loop bounds for dimension "heat2d_s1_r__y".
+    tiramisu::constant heat2d_s1_r__y_loop_min("heat2d_s1_r__y_loop_min", tiramisu::expr((int32_t)1), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
+    tiramisu::constant heat2d_s1_r__y_loop_extent("heat2d_s1_r__y_loop_extent", (tiramisu::expr(input_extent_1) + tiramisu::expr((int32_t)-2)), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
 
-    // Define loop bounds for dimension "heat2d_s1_r4__x".
-    tiramisu::constant heat2d_s1_r4__x_loop_min("heat2d_s1_r4__x_loop_min", tiramisu::expr((int32_t)1), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
-    tiramisu::constant heat2d_s1_r4__x_loop_extent("heat2d_s1_r4__x_loop_extent", (tiramisu::expr(input_extent_0) + tiramisu::expr((int32_t)-2)), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
-    tiramisu::computation heat2d_s1("[heat2d_s1_r4__y_loop_min, heat2d_s1_r4__y_loop_extent, heat2d_s1_r4__x_loop_min, heat2d_s1_r4__x_loop_extent]->{heat2d_s1[heat2d_s1_r4__y, heat2d_s1_r4__x]: "
-                        "(heat2d_s1_r4__y_loop_min <= heat2d_s1_r4__y <= ((heat2d_s1_r4__y_loop_min + heat2d_s1_r4__y_loop_extent) + -1)) and (heat2d_s1_r4__x_loop_min <= heat2d_s1_r4__x <= ((heat2d_s1_r4__x_loop_min + heat2d_s1_r4__x_loop_extent) + -1))}",
-                        tiramisu::expr(), true, tiramisu::p_float32, &heat2d_tiramisu);
-    heat2d_s1.set_expression(((tiramisu::expr(p0)*input(tiramisu::var("heat2d_s1_r4__y"), tiramisu::var("heat2d_s1_r4__x"))) + (tiramisu::expr(p1)*(((input(tiramisu::var("heat2d_s1_r4__y"), (tiramisu::var("heat2d_s1_r4__x") + tiramisu::expr((int32_t)1))) + input(tiramisu::var("heat2d_s1_r4__y"), (tiramisu::var("heat2d_s1_r4__x") - tiramisu::expr((int32_t)1)))) + input((tiramisu::var("heat2d_s1_r4__y") + tiramisu::expr((int32_t)1)), tiramisu::var("heat2d_s1_r4__x"))) + input((tiramisu::var("heat2d_s1_r4__y") - tiramisu::expr((int32_t)1)), tiramisu::var("heat2d_s1_r4__x"))))));
-    heat2d_s1.set_access("{heat2d_s1[heat2d_s1_r4__y, heat2d_s1_r4__x]->buff_heat2d[heat2d_s1_r4__y, heat2d_s1_r4__x]}");
+    // Define loop bounds for dimension "heat2d_s1_r__x".
+    tiramisu::constant heat2d_s1_r__x_loop_min("heat2d_s1_r__x_loop_min", tiramisu::expr((int32_t)1), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
+    tiramisu::constant heat2d_s1_r__x_loop_extent("heat2d_s1_r__x_loop_extent", (tiramisu::expr(input_extent_0) + tiramisu::expr((int32_t)-2)), tiramisu::p_int32, true, NULL, 0, &heat2d_tiramisu);
+    tiramisu::computation heat2d_s1(
+        "[heat2d_s1_r__y_loop_min, heat2d_s1_r__y_loop_extent, heat2d_s1_r__x_loop_min, heat2d_s1_r__x_loop_extent]->{heat2d_s1[heat2d_s1_r__y, heat2d_s1_r__x]: "
+        "(heat2d_s1_r__y_loop_min <= heat2d_s1_r__y <= ((heat2d_s1_r__y_loop_min + heat2d_s1_r__y_loop_extent) + -1)) and (heat2d_s1_r__x_loop_min <= heat2d_s1_r__x <= ((heat2d_s1_r__x_loop_min + heat2d_s1_r__x_loop_extent) + -1))}",
+        tiramisu::expr(), true, tiramisu::p_float32, &heat2d_tiramisu);
+    heat2d_s1.set_expression(((tiramisu::expr(alpha) * input(tiramisu::var("heat2d_s1_r__y"), tiramisu::var("heat2d_s1_r__x"))) + (tiramisu::expr(beta) * (((input(tiramisu::var("heat2d_s1_r__y"), (tiramisu::var("heat2d_s1_r__x") + tiramisu::expr((int32_t)1))) + input(tiramisu::var("heat2d_s1_r__y"), (tiramisu::var("heat2d_s1_r__x") - tiramisu::expr((int32_t)1)))) + input((tiramisu::var("heat2d_s1_r__y") + tiramisu::expr((int32_t)1)), tiramisu::var("heat2d_s1_r__x"))) + input((tiramisu::var("heat2d_s1_r__y") - tiramisu::expr((int32_t)1)), tiramisu::var("heat2d_s1_r__x"))))));
+    heat2d_s1.set_access("{heat2d_s1[heat2d_s1_r__y, heat2d_s1_r__x]->buff_heat2d[heat2d_s1_r__y, heat2d_s1_r__x]}");
+
+    heat2d_tiramisu.add_context_constraints("[heat2d_s1_r__y_loop_min, heat2d_s1_r__y_loop_extent, heat2d_s1_r__x_loop_min, heat2d_s1_r__x_loop_extent]->{heat2d_s1_r__y_loop_min = 0 and heat2d_s1_r__y_loop_extent%8=0 and heat2d_s1_r__x_loop_min = 0 and heat2d_s1_r__x_loop_extent%8=0 and heat2d_s0_y_loop_min = 0 and heat2d_s0_y_loop_extent%8=0 and heat2d_s0_x_loop_min=0 and heat2d_s0_x_loop_extent%8=0}");
 
     // Define compute level for "heat2d".
     heat2d_s1.after(heat2d_s0, computation::root);
 
+    // Declare vars.
+    tiramisu::var heat2d_s0_x("heat2d_s0_x");
+    tiramisu::var heat2d_s0_y("heat2d_s0_y");
+    tiramisu::var heat2d_s1_r__x("heat2d_s1_r__x");
+    tiramisu::var heat2d_s1_r__y("heat2d_s1_r__y");
+
     // Add schedules.
-    heat2d_s0.tag_parallel_level(tiramisu::var("heat2d_s0_y"));
-    heat2d_s1.tag_parallel_level(tiramisu::var("heat2d_s1_r4__y"));
+    heat2d_s0.tag_parallel_level(heat2d_s0_y);
+    heat2d_s0.vectorize(heat2d_s0_x, 8);
+    heat2d_s1.tag_parallel_level(heat2d_s1_r__y);
+    heat2d_s1.vectorize(heat2d_s1_r__x, 8);
 
     heat2d_tiramisu.set_arguments({&buff_input, &buff_heat2d});
     heat2d_tiramisu.gen_time_space_domain();

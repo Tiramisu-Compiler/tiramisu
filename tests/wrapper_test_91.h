@@ -3,23 +3,22 @@
 
 
 // Define these values for each new test
-#define TEST_NAME_STR       "64_bit_iterator"
+#define TEST_NAME_STR       "new_update_formulation"
 #define TEST_NUMBER_STR     "91"
-#define TEST_ID_STR "test_" TEST_NUMBER_STR "_" TEST_NAME_STR
 // Data size
-#define SIZE0 10
+#define SIZE 10
 
 
-// ---------------------------------------------------------------------------------
-// TODO: Only need to update the declaration of tiramisu_generated_code ------------
-// ---------------------------------------------------------------------------------
+// --------------------------------------------------------
+// No need to modify anything in the following ------------
+// --------------------------------------------------------
 
 #include <tiramisu/utils.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-int tiramisu_generated_code(halide_buffer_t *);
+int tiramisu_generated_code(halide_buffer_t *, halide_buffer_t *);
 int tiramisu_generated_code_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

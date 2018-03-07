@@ -22,6 +22,10 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
     Halide::Buffer<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
+    // Warm up
+    filter2D_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
+    filter2D_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -48,10 +52,11 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-//  compare_2_2D_arrays("Blurxy",  output1.data(), output2.data(), input.extent(0), input.extent(1));
-
     Halide::Tools::save_image(output1, "./build/filter2D_tiramisu.png");
     Halide::Tools::save_image(output2, "./build/filter2D_ref.png");
+
+    if (CHECK_CORRECTNESS)
+        compare_buffers("filter2D",  output1, output2);
 
     return 0;
 }

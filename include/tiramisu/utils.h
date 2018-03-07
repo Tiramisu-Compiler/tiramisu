@@ -87,7 +87,7 @@ inline void copy_buffer(const Halide::Buffer<T> &from, Halide::Buffer<T> &to)
 }
 
 template<typename T>
-inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &result,
+inline void compare_buffers_approximately(const std::string &test, const Halide::Buffer<T> &result,
 							const Halide::Buffer<T> &expected)
 {
     if ((result.dimensions() != expected.dimensions()) ||
@@ -101,10 +101,68 @@ inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &re
     for (int z = 0; z < result.channels(); z++) {
         for (int y = 0; y < result.height(); y++) {
             for (int x = 0; x < result.width(); x++) {
-                if (result(x, y, z) != expected(x, y, z)) {
-                    tiramisu::error("\033[1;31mTest " + test + " failed. Expected: " +
+                if (result(x, y, z) - expected(x, y, z) > 0.1) {
+                    tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
+                                    ", " + std::to_string(y) + ", " + std::to_string(z) + "), expected: " +
                     				std::to_string(expected(x, y, z)) + ", got: " +
                     				std::to_string(result(x, y, z)) + ".\033[0m\n", false);
+                    return;
+                }
+            }
+        }
+    }
+    tiramisu::str_dump("\033[1;32mTest " + test + " succeeded.\033[0m\n");
+}
+
+template<typename T>
+inline void compare_4D_buffers(const std::string &test, const Halide::Buffer<T> &result,
+							const Halide::Buffer<T> &expected, int box)
+{
+    for (int n = 0; n < result.extent(3); n++) {
+        for (int z = 0; z < result.extent(2); z++) {
+            for (int y = 0; y < result.extent(1)-box; y++) {
+                for (int x = 0; x < result.extent(0)-box; x++) {
+#if 0
+ 		    std::cout << "Comparing " << result(x, y, z, n) << " and "
+			      << expected(x, y, z, n) << " at position " <<
+			         "(" + std::to_string(x) + "/" + std::to_string(result.extent(0)-box) + ", " + std::to_string(y) + "/" + std::to_string(result.extent(1)-box) +
+			         ", " + std::to_string(z) + "/" + std::to_string(result.extent(2)) + ", " + std::to_string(n) + "/" + std::to_string(result.extent(3)) + ")"
+			      << std::endl;
+#endif
+		    if (result(x, y, z, n) != expected(x, y, z, n)) {
+			tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
+                                    ", " + std::to_string(y) + ", " + std::to_string(z) + ", " + std::to_string(n)+ "), expected: " +
+                                    std::to_string(expected(x, y, z, n)) + ", got: " +
+                                    std::to_string(result(x, y, z, n)) + ".\033[0m\n", false);
+                         return;
+		    }
+                }
+            }
+        }
+    }
+    tiramisu::str_dump("\033[1;32mTest " + test + " succeeded.\033[0m\n");
+}
+
+template<typename T>
+inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &result,
+							const Halide::Buffer<T> &expected)
+{
+/*    if ((result.dimensions() != expected.dimensions()) ||
+    	(result.channels() != expected.channels()) ||
+        (result.height() != expected.height()) ||
+        (result.width() != expected.width()))
+    {
+        tiramisu::error("result has different dimension size from expected\n", true);
+    }*/
+
+    for (int z = 0; z < result.channels(); z++) {
+        for (int y = 0; y < result.height(); y++) {
+            for (int x = 0; x < result.width(); x++) {
+                if (result(x, y, z) != expected(x, y, z)) {
+                    tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
+                                    ", " + std::to_string(y) + ", " + std::to_string(z) + "), expected: " +
+                                    std::to_string(expected(x, y, z)) + ", got: " +
+                                    std::to_string(result(x, y, z)) + ".\033[0m\n", false);
                     return;
                 }
             }

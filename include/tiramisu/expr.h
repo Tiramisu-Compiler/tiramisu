@@ -1266,8 +1266,12 @@ public:
                         break;
                     case tiramisu::o_div:
                         str +=  "(" + this->get_operand(0).to_str();
-                        str +=  ")/(" + this->get_operand(1).to_str();
-                        str +=  ")";
+                        str +=  ")/";
+			if (this->get_operand(1).etype != tiramisu::e_val)
+			    str += "(";
+			str += this->get_operand(1).to_str();
+			if (this->get_operand(1).etype != tiramisu::e_val)
+			    str +=  ")";
                         break;
                     case tiramisu::o_mod:
                         str +=  "(" + this->get_operand(0).to_str();

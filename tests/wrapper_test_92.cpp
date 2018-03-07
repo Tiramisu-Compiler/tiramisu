@@ -15,12 +15,20 @@ extern "C" {
 
 int main(int, char **)
 {
-    // TODO: create Halide buffers for reference and output
+    Halide::Buffer<int32_t> N(1, "N");
+    N(0) = SIZE;
 
-    tiramisu_generated_code(/* TODO: provide inputs for code */);
+    Halide::Buffer<uint8_t> reference_buf0(SIZE, "reference_buf0");
+    init_buffer(reference_buf0, (uint8_t)5);
 
-    // TODO: do assertions. use TEST_ID_STR to name the test.
-    // e.g.: compare_buffers(TEST_ID_STR, output_buffer, reference_buffer);
+    Halide::Buffer<uint8_t> output_buf0(SIZE, "output_buf0");
+    init_buffer(output_buf0, (uint8_t)0);
+
+    tiramisu_generated_code(N.raw_buffer(), output_buf0.raw_buffer());
+
+    print_buffer(output_buf0);
+
+    compare_buffers("test_" + std::string(TEST_NUMBER_STR) + "_"  + std::string(TEST_NAME_STR), output_buf0, reference_buf0);
 
     return 0;
 }

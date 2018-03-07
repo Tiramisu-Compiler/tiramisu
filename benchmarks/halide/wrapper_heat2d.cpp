@@ -16,13 +16,17 @@ int main(int, char**)
     // Init randomly
     for (int y = 0; y < input.height(); ++y) {
         for (int x = 0; x < input.width(); ++x) {
-            input(x, y) = random();
-            input(x, y) = random();
+            input(x, y) = 1;
+            input(x, y) = 1;
         }
     }
 
     Halide::Buffer<float> output1(input.width(), input.height());
     Halide::Buffer<float> output2(input.width(), input.height());
+
+    // Warm up code.
+    heat2d_tiramisu(input.raw_buffer(), output1.raw_buffer());
+    heat2d_ref(input.raw_buffer(), output2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -48,8 +52,8 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    Halide::Tools::save_image(output1, "./build/heat2d_tiramisu.png");
-    Halide::Tools::save_image(output2, "./build/heat2d_ref.png");
+    if (CHECK_CORRECTNESS)
+	compare_buffers_approximately("benchmark_heat2d", output1, output2);
 
     return 0;
 }
