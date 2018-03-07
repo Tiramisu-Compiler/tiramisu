@@ -57,6 +57,7 @@ using namespace tiramisu;
 void generate_function(std::string name, int val0)
 {
     tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(p_int32);
 
     // -------------------------------------------------------
     // Layer I
