@@ -162,7 +162,7 @@ inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &re
                     tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
                                     ", " + std::to_string(y) + ", " + std::to_string(z) + "), expected: " +
                                     std::to_string(expected(x, y, z)) + ", got: " +
-                                    std::to_string(result(x, y, z)) + ".\033[0m\n", false);
+                                    std::to_string(result(x, y, z)) + ".\033[0m\n", true);
                     return;
                 }
             }

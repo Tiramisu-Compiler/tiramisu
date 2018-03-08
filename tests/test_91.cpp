@@ -72,7 +72,7 @@ void generate_function(std::string name, int val0)
     tiramisu::computation		 f_1("[N]->{f_1[i,j,k0,k1]: 0<=i<N and 0<=j<N and 0<=k0<N and 0<=k1<N}", tiramisu::expr(), true, p_uint8, &function0);
     f_1.set_expression(f_1(tiramisu::var("i"), tiramisu::var("j"), tiramisu::var("k0"), tiramisu::var("k1")) + tiramisu::expr((uint8_t) 1));
     tiramisu::computation		 g_1("[N]->{g_1[i,j,k0,k1]: 0<=i<N and 0<=j<N and 0<=k0<N and 0<=k1<N}", tiramisu::expr(), true, p_uint8, &function0);
-    g_1.set_expression(f_1(tiramisu::var("i"), tiramisu::var("j"), tiramisu::var("k0"),  tiramisu::var("k1")));
+    g_1.set_expression(f_1(tiramisu::var("i"), tiramisu::var("j"), 0, 0));//tiramisu::var("k0"),  tiramisu::var("k1")));
 
     // -------------------------------------------------------
     // Layer II
@@ -94,7 +94,7 @@ void generate_function(std::string name, int val0)
     f.set_access("{f[i,j,k]->f_b[j,k]}");
     g.set_access("{g[i,j]->g_b[i,j]}");
     f_1.set_access("{f_1[i,j,k0,k1]->f_b[k0,k1]}");
-    g_1.set_access("{g_1[i,j,k0,k1]->g_b[0,0]}");
+    g_1.set_access("{g_1[i,j,k0,k1]->g_b[k0,k1]}");
 
     // -------------------------------------------------------
     // Code Generation
