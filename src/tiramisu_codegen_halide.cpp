@@ -2155,7 +2155,7 @@ Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *sha
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), 0);
     for (int i = dims; i >= 1; --i)
     {
         isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);
@@ -2178,7 +2178,7 @@ Halide::Expr generator::linearize_access(int dims, const halide_dimension_t *sha
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), 0);
     for (int i = dims; i >= 1; --i)
     {
 	std::vector<isl_ast_expr *> ie = {};
@@ -2200,7 +2200,7 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), 0);
     for (int i = dims; i >= 1; --i)
     {
 	std::vector<isl_ast_expr *> ie = {};
@@ -2222,7 +2222,7 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
 
     // ISL dimension is ordered from outermost to innermost.
 
-    Halide::Expr index = 0;
+    Halide::Expr index = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), 0);
     for (int i = dims; i >= 1; --i)
     {
         isl_ast_expr *operand = isl_ast_expr_get_op_arg(index_expr, i);

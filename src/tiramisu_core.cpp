@@ -5030,7 +5030,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
         if (isl_val_is_zero(coeff) == isl_bool_false)
         {
             const char *name = isl_space_get_dim_name(space, isl_dim_param, i);
-            tiramisu::expr param = tiramisu::var(p_int32, std::string(name));
+            tiramisu::expr param = tiramisu::var(global::get_loop_iterator_data_type(), std::string(name));
             if (isl_val_is_one(coeff) == isl_bool_false)
             {
                 int c = isl_val_get_num_si(coeff);
@@ -5042,8 +5042,8 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
                 }
 
                 param = tiramisu::expr(o_mul,
-                                       tiramisu::expr((int32_t) c),
-                                       param);
+                                       tiramisu::expr(o_cast, tiramisu::global::get_loop_iterator_data_type(),
+                                                      tiramisu::expr((int32_t) c)), param);
             }
 
             if (e.is_defined() == false)
@@ -5068,7 +5068,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
             v = -1 * v;
         }
 
-        tiramisu::expr c = tiramisu::expr((int32_t) v);
+        tiramisu::expr c = tiramisu::expr(o_cast, global::get_loop_iterator_data_type(), tiramisu::expr((int32_t) v));
 
         if (e.is_defined() == false)
         {
@@ -5423,14 +5423,15 @@ bool computation::separateAndSplit(int L0, int v)
     int original_depth = this->compute_maximal_AST_depth();
 
     tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, true);
+        tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
+                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true));
 
     tiramisu::expr loop_lower_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, false);
+        tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
+                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, false));
 
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound +
+            tiramisu::expr(o_cast, global::get_loop_iterator_data_type(), tiramisu::expr((int32_t) 1));
     loop_bound = loop_bound.simplify();
 
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be separated and split: "); loop_bound.dump(false));
@@ -8188,17 +8189,16 @@ void tiramisu::wait::add_definitions(std::string iteration_domain_str,
     this->updates.push_back(new_c);
 }
 
-// TODO Jess add back in get_loop_iterator_data_type
 void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter)
 {
     std::string collapse_from_iter_repr = "";
-//    if (global::get_loop_iterator_data_type() == p_int32) {
+    if (global::get_loop_iterator_data_type() == p_int32) {
         collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
                                   std::to_string(collapse_from_iter.get_int32_value()) : collapse_from_iter.get_name();
-//    } else {
-//        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
-//                                  std::to_string(collapse_from_iter.get_int64_value()) : collapse_from_iter.get_name();
-//    }
+    } else {
+        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
+                                  std::to_string(collapse_from_iter.get_int64_value()) : collapse_from_iter.get_name();
+    }
     isl_map *sched = this->get_schedule();
     isl_map *sched_copy = isl_map_copy(sched);
     int dim = loop_level_into_dynamic_dimension(level);
