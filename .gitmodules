@@ -1,7 +1,7 @@
 [submodule "Halide"]
 	path = Halide
-	url = git@github.com:psuriana/Halide.git
-	branch = tiramisu
+	url = git@github.com:jrayzero/Halide.git
+	branch = tiramisu_64_bit
 [submodule "3rdParty/isl"]
 	path = 3rdParty/isl
 	url = git://repo.or.cz/isl.git
