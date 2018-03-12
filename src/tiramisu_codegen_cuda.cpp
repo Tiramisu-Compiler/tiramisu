@@ -18,6 +18,7 @@
 #include <tiramisu/core.h>
 #include <tiramisu/type.h>
 #include <tiramisu/expr.h>
+#include <tiramisu/utils.h>
 
 #include <string>
 #include <tiramisu/cuda_ast.h>
@@ -47,16 +48,23 @@ namespace tiramisu {
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_node_ptr &node) {
-        isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node.get())};
         isl_ast_node_ptr then_body{isl_ast_node_if_get_then(node.get())};
+        isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node.get())};
+
+        statement_ptr then_body_stmt{cuda_stmt_from_isl_node(then_body)};
+        optional<statement_ptr> else_body_stmt;
         if (isl_ast_node_if_has_else(node.get())) {
             isl_ast_node_ptr else_body{isl_ast_node_if_get_else(node.get())};
-            return statement_ptr{new cuda_ast::if_condition{cuda_stmt_handle_isl_expr(condition, node),
-                                                            cuda_stmt_from_isl_node(then_body),
-                                                            cuda_stmt_from_isl_node(else_body)}};
+            else_body_stmt = cuda_stmt_from_isl_node(else_body);
+        }
+
+        statement_ptr condition_stmt{cuda_stmt_handle_isl_expr(condition, node)};
+        std::cerr << condition_stmt->print() << std::endl;
+
+        if (else_body_stmt) {
+            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt, else_body_stmt.get()}};
         } else {
-            return statement_ptr{new cuda_ast::if_condition{cuda_stmt_handle_isl_expr(condition, node),
-                                                            cuda_stmt_from_isl_node(then_body)}};
+            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt}};
         }
 
     }
@@ -138,11 +146,16 @@ namespace tiramisu {
             gpu_iterators.erase(gpu_it);
             if (gpu_iterators.empty())
             {
+                auto * final_body = new cuda_ast::block;
+                for (auto &dec : kernel_simplified_vars)
+                    final_body->add_statement(dec);
                 for (auto &cond : gpu_conditions)
-                    body_statement = statement_ptr {new if_condition(cond, body_statement)};
+                    body_statement = statement_ptr{new if_condition(cond, body_statement)};
+                final_body->add_statement(body_statement);
                 gpu_conditions.clear();
                 gpu_local.clear();
-                current_kernel->set_body(body_statement);
+                kernel_simplified_vars.clear();
+                current_kernel->set_body(statement_ptr{final_body});
                 kernels.push_back(current_kernel);
                 result = statement_ptr{new kernel_call{current_kernel}};
                 current_kernel.reset();
@@ -190,10 +203,7 @@ namespace tiramisu {
                 std::string id_string(isl_id_get_name(id));
                 DEBUG(3, std::cout << '"' << id_string << '"');
                 // TODO handle scheduled lets
-                auto scalar_it = m_scalar_data.find(id_string);
-                assert(scalar_it != m_scalar_data.end() && "Unknown name");
-                return statement_ptr {
-                        new cuda_ast::scalar{scalar_it->second.first, id_string, scalar_it->second.second}};
+                return get_scalar_from_name(id_string);
             }
             case isl_ast_expr_int: {
                 isl_val_ptr val{isl_ast_expr_get_val(expr.get())};
@@ -211,44 +221,17 @@ namespace tiramisu {
         long num = isl_val_get_num_si(node.get());
         long den = isl_val_get_den_si(node.get());
         assert(den == 1);
-        return value_ptr{new cuda_ast::value{global::get_loop_iterator_default_data_type(), num}};
+        return value_ptr{new cuda_ast::value{value_cast(global::get_loop_iterator_default_data_type(), num)}};
     }
 
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::parse_tiramisu(const tiramisu::expr &tiramisu_expr) {
         switch (tiramisu_expr.get_expr_type()) {
             case e_val:
-                return statement_ptr{new cuda_ast::value{tiramisu_expr.get_data_type(), tiramisu_expr.get_int_val()}};
+                return statement_ptr{new cuda_ast::value{tiramisu_expr}};
             case e_var:
             {
-                auto it = this->gpu_iterators.find(tiramisu_expr.get_name());
-                if (it != this->gpu_iterators.end())
-                {
-                    return statement_ptr {new cuda_ast::gpu_iterator_read{it->second}};
-                } else {
-                    scalar_ptr used_scalar{new cuda_ast::scalar{tiramisu_expr.get_data_type(), tiramisu_expr.get_name(),
-                                                               this->m_scalar_data[tiramisu_expr.get_name()].second}};
-                    if (this->in_kernel)
-                    {
-                        bool defined_inside = false;
-                        // Check if it was defined inside
-                        for (auto it = iterator_stack.rbegin(); it != iterator_stack.rend(); it++)
-                        {
-                            if (tiramisu_expr.get_name() == *it)
-                            {
-                                defined_inside = true;
-                                break;
-                            }
-                            if (gpu_iterators.find(tiramisu_expr.get_name()) != gpu_iterators.end())
-                            {
-                                break;
-                            }
-                        }
-                        if (!defined_inside)
-                            this->current_kernel->add_used_scalar(used_scalar);
-                    }
-                    return used_scalar;
-                }
+                return get_scalar_from_name(tiramisu_expr.get_name());
             }
 
             case e_none:
@@ -351,9 +334,9 @@ namespace tiramisu {
         return buffer;
     }
 
-    cuda_ast::gpu_iterator cuda_ast::generator::get_gpu_condition(gpu_iterator::type_t type,
-                                                                   gpu_iterator::dimension_t dim,
-                                                                   cuda_ast::statement_ptr upper_bound) {
+    cuda_ast::gpu_iterator cuda_ast::generator::get_gpu_condition(gpu_iterator::type_t type, gpu_iterator::dimension_t dim,
+                                                                      cuda_ast::statement_ptr lower_bound,
+                                                                      cuda_ast::statement_ptr upper_bound) {
         auto min_cap = upper_bound->extract_min_cap();
         statement_ptr actual_bound;
         if (min_cap.first)
@@ -364,7 +347,7 @@ namespace tiramisu {
         }
         gpu_iterator result{type, dim,  statement_ptr{new binary{actual_bound->get_type(),
                                                                  actual_bound,
-                                                                statement_ptr{new value{actual_bound->get_type(), 1}},
+                                                                statement_ptr{new value{value_cast(actual_bound->get_type(), 1)}},
                                                                 "+"}}};
         if (min_cap.first) {
             statement_ptr it_access{new gpu_iterator_read{result}};
@@ -373,6 +356,18 @@ namespace tiramisu {
                             new binary{p_boolean, it_access, min_cap.second->replace_iterators(gpu_iterators), "<="}}
             );
         }
+
+        kernel_simplified_vars.push_back( statement_ptr{ new declaration{ assignment_ptr{
+                new scalar_assignment{
+                        scalar_ptr{new scalar{lower_bound->get_type(), result.simplified_name(), memory_location::reg, true}},
+                        statement_ptr { new binary{
+                                lower_bound->get_type(),
+                                statement_ptr{new gpu_iterator_read{result, false}},
+                                lower_bound->replace_iterators(gpu_iterators),
+                                "+"
+                        }}
+                }}}}
+        );
         return result;
     }
 
@@ -382,59 +377,73 @@ namespace tiramisu {
         if (op_type == isl_ast_op_call) {
             auto *comp = get_computation_annotated_in_a_node(node.get());
             // TODO use lower bound
-            for (auto & comp_gpu_pair : this->m_fct.gpu_block_dimensions)
-            {
-                if (comp_gpu_pair.first == comp->get_name())
-                {
-                    int level;
-                    this->in_kernel = true;
-                    if ((level = std::get<0>(comp_gpu_pair.second)) != -1)
-                    {
-                        this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK, gpu_iterator::dimension_t::x, iterator_upper_bound[level]);
-                    }
-                    if ((level = std::get<1>(comp_gpu_pair.second)) != -1)
-                    {
-                        this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK, gpu_iterator::dimension_t::y, iterator_upper_bound[level]);
-                    }
-                    if ((level = std::get<2>(comp_gpu_pair.second)) != -1)
-                    {
-                        this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK, gpu_iterator::dimension_t::z, iterator_upper_bound[level]);
-                    }
-                    break;
-                }
-            }
-
-            if (in_kernel)
-            {
-                for (auto & comp_gpu_pair : this->m_fct.gpu_thread_dimensions)
-                {
-                    if (comp_gpu_pair.first == comp->get_name())
-                    {
+            if (!this->in_kernel) {
+                for (auto &comp_gpu_pair : this->m_fct.gpu_block_dimensions) {
+                    if (comp_gpu_pair.first == comp->get_name()) {
                         int level;
-                        if ((level = std::get<0>(comp_gpu_pair.second)) != -1)
-                        {
-                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::THREAD, gpu_iterator::dimension_t::x, iterator_upper_bound[level]);
+                        this->in_kernel = true;
+                        if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
+                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
+                                                                                           gpu_iterator::dimension_t::x,
+                                                                                           iterator_lower_bound[level],
+                                                                                           iterator_upper_bound[level]);
                         }
-                        if ((level = std::get<1>(comp_gpu_pair.second)) != -1)
-                        {
-                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::THREAD, gpu_iterator::dimension_t::y, iterator_upper_bound[level]);
+                        if ((level = std::get<1>(comp_gpu_pair.second)) != -1) {
+                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
+                                                                                           gpu_iterator::dimension_t::y,
+                                                                                           iterator_lower_bound[level],
+                                                                                           iterator_upper_bound[level]);
                         }
-                        if ((level = std::get<2>(comp_gpu_pair.second)) != -1)
-                        {
-                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::THREAD, gpu_iterator::dimension_t::z, iterator_upper_bound[level]);
+                        if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
+                            this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
+                                                                                           gpu_iterator::dimension_t::z,
+                                                                                           iterator_lower_bound[level],
+                                                                                           iterator_upper_bound[level]);
                         }
-                        this->current_kernel = kernel_ptr{new kernel};
                         break;
                     }
                 }
-            }
-            for (auto &it : gpu_conditions) {
-                auto used_scalars = it->extract_scalars();
-                for (auto &scalar: used_scalars) {
-                    if (gpu_iterators.find(scalar) == gpu_iterators.end()) {
-                        auto data = m_scalar_data.at(scalar);
-                        this->current_kernel->add_used_scalar(
-                                scalar_ptr{new cuda_ast::scalar{data.first, scalar, data.second}});
+
+
+                if (in_kernel) {
+                    for (auto &comp_gpu_pair : this->m_fct.gpu_thread_dimensions) {
+                        if (comp_gpu_pair.first == comp->get_name()) {
+                            int level;
+                            if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
+                                this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
+                                        gpu_iterator::type_t::THREAD,
+                                        gpu_iterator::dimension_t::x,
+                                        iterator_lower_bound[level],
+                                        iterator_upper_bound[level]);
+                            }
+                            if ((level = std::get<1>(comp_gpu_pair.second)) != -1) {
+                                this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
+                                        gpu_iterator::type_t::THREAD,
+                                        gpu_iterator::dimension_t::y,
+                                        iterator_lower_bound[level],
+                                        iterator_upper_bound[level]);
+                            }
+                            if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
+                                this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
+                                        gpu_iterator::type_t::THREAD,
+                                        gpu_iterator::dimension_t::z,
+                                        iterator_lower_bound[level],
+                                        iterator_upper_bound[level]);
+                            }
+                            this->current_kernel = kernel_ptr{new kernel};
+                            break;
+                        }
+                    }
+                }
+                std::cerr << "added to gpu " << this->gpu_iterators.size() << " iterators " << std::endl;
+                for (auto &it : gpu_conditions) {
+                    auto used_scalars = it->extract_scalars();
+                    for (auto &scalar: used_scalars) {
+                        if (gpu_iterators.find(scalar) == gpu_iterators.end()) {
+                            auto data = m_scalar_data.at(scalar);
+                            this->current_kernel->add_used_scalar(
+                                    scalar_ptr{new cuda_ast::scalar{data.first, scalar, data.second}});
+                        }
                     }
                 }
             }
@@ -536,13 +545,14 @@ namespace tiramisu {
         {
             body->add_statement(cuda_ast::statement_ptr{new cuda_ast::kernel_definition{kernel}});
         }
+        auto function_body = new cuda_ast::block;
 
         for (auto &invariant: this->get_invariants()) {
             std::vector<isl_ast_expr*> ie{};
             auto rhs = generator.parse_tiramisu(generator::replace_accesses(this, ie, invariant.get_expr()));
             auto scalar = cuda_ast::scalar_ptr{
-                    new cuda_ast::scalar{rhs->get_type(), invariant.get_name(), cuda_ast::memory_location::constant}};
-            body->add_statement(
+                    new cuda_ast::scalar{rhs->get_type(), invariant.get_name(), cuda_ast::memory_location::constant, true}};
+            function_body->add_statement(
                     cuda_ast::statement_ptr{new cuda_ast::declaration{
                             cuda_ast::assignment_ptr{new cuda_ast::scalar_assignment{scalar, rhs}}}});
         }
@@ -564,7 +574,6 @@ namespace tiramisu {
                 buf->mark_as_allocated();
             }
         }
-        auto function_body = new cuda_ast::block;
         for (auto &a : allocations)
             function_body->add_statement(a);
         function_body->add_statement(main_body);
@@ -614,9 +623,20 @@ namespace tiramisu {
                                                                                  size(size) {}
 
     cuda_ast::scalar::scalar(primitive_t type, const std::string &name, cuda_ast::memory_location location)
-            : abstract_identifier(type, name, location) {}
+            : abstract_identifier(type, name, location), is_const(false) {}
 
-    cuda_ast::value::value(primitive_t type, long val) : statement(type), val(val) {}
+    cuda_ast::scalar::scalar(primitive_t type, const std::string &name, memory_location location, bool is_const) : abstract_identifier(type, name, location), is_const(is_const){}
+
+    cuda_ast::value::value(uint8_t val) : statement(p_uint8), u8_val(val) {}
+    cuda_ast::value::value(int8_t val) : statement(p_int8), i8_val(val) {}
+    cuda_ast::value::value(uint16_t val) : statement(p_uint16), u16_val(val) {}
+    cuda_ast::value::value(int16_t val) : statement(p_int16), i16_val(val) {}
+    cuda_ast::value::value(uint32_t val) : statement(p_uint32), u32_val(val) {}
+    cuda_ast::value::value(int32_t val) : statement(p_int32), i32_val(val) {}
+    cuda_ast::value::value(uint64_t val) : statement(p_uint64), u64_val(val) {}
+    cuda_ast::value::value(int64_t val) : statement(p_int64), i64_val(val) {}
+    cuda_ast::value::value(float val) : statement(p_float32), f32_val(val) {}
+    cuda_ast::value::value(double val) : statement(p_float64), f64_val(val) {}
 
     cuda_ast::function_call::function_call(primitive_t type, const std::string &name,
                                            const std::vector<cuda_ast::statement_ptr> &arguments) : statement(type),
@@ -742,7 +762,41 @@ namespace tiramisu {
     }
 
     void cuda_ast::value::print(std::stringstream &ss, const std::string &base) {
-        ss << val;
+        switch (get_type())
+        {
+            case p_uint8:
+            ss << u8_val;
+                break;
+            case p_int8:
+                ss << i8_val;
+                break;
+            case p_uint16:
+                ss << u16_val;
+                break;
+            case p_int16:
+                ss << i16_val;
+                break;
+            case p_uint32:
+                ss << u32_val;
+                break;
+            case p_int32:
+                ss << i32_val;
+                break;
+            case p_uint64:
+                ss << u64_val;
+                break;
+            case p_int64:
+                ss << i64_val;
+                break;
+            case p_float32:
+                ss << f32_val;
+                break;
+            case p_float64:
+                ss << f64_val;
+                break;
+            default:
+                assert(!"Value type not supported.");
+        }
     }
 
     void cuda_ast::scalar_assignment::print(std::stringstream &ss, const std::string &base) {
@@ -843,8 +897,7 @@ namespace tiramisu {
 
     void cuda_ast::declaration::print(std::stringstream &ss, const std::string &base) {
         if (is_initialized) {
-            ss << tiramisu_type_to_cuda_type.at(asgmnt->get_type()) << " ";
-            asgmnt->print(ss, base);
+            asgmnt->print_declaration(ss, base);
         } else {
             switch (id->get_location()) {
                 case cuda_ast::memory_location::shared:
@@ -888,6 +941,8 @@ namespace tiramisu {
     }
 
     void cuda_ast::scalar::print_declaration(std::stringstream &ss, const std::string &base) {
+        if (is_const)
+            ss << "const ";
         ss << tiramisu_type_to_cuda_type.at(get_type()) << " ";
         print(ss, base);
     }
@@ -899,9 +954,9 @@ namespace tiramisu {
     }
 
     cuda_ast::kernel::dim3d_t::dim3d_t() {
-        x = statement_ptr{new cuda_ast::value{global::get_loop_iterator_default_data_type(), 1}};
-        y = statement_ptr{new cuda_ast::value{global::get_loop_iterator_default_data_type(), 1}};
-        z = statement_ptr{new cuda_ast::value{global::get_loop_iterator_default_data_type(), 1}};
+        x = statement_ptr{new cuda_ast::value{value_cast(global::get_loop_iterator_default_data_type(), 1)}};
+        y = statement_ptr{new cuda_ast::value{value_cast(global::get_loop_iterator_default_data_type(), 1)}};
+        z = statement_ptr{new cuda_ast::value{value_cast(global::get_loop_iterator_default_data_type(), 1)}};
     }
 
 
@@ -996,30 +1051,35 @@ namespace tiramisu {
         kernel->body->print_body(ss, base);
     }
 
-    cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it) : statement(global::get_loop_iterator_default_data_type()), it(it){}
+    cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it) : statement(global::get_loop_iterator_default_data_type()), it(it), simplified(true){}
+    cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it, bool simplified) : statement(global::get_loop_iterator_default_data_type()), it(it), simplified(simplified){}
 
     void cuda_ast::gpu_iterator_read::print(std::stringstream &ss, const std::string &base) {
-        switch (it.type)
+        if (simplified)
         {
-            case gpu_iterator::type_t::BLOCK:
-                ss << "blockIdx";
-                break;
-            case gpu_iterator::type_t::THREAD:
-                ss << "threadIdx";
-                break;
+            ss << it.simplified_name();
         }
-        ss << '.';
-        switch (it.dimension)
-        {
-            case gpu_iterator::dimension_t::x:
-                ss << 'x';
-                break;
-            case gpu_iterator::dimension_t::y:
-                ss << 'y';
-                break;
-            case gpu_iterator::dimension_t::z:
-                ss << 'z';
-                break;
+        else {
+            switch (it.type) {
+                case gpu_iterator::type_t::BLOCK:
+                    ss << "blockIdx";
+                    break;
+                case gpu_iterator::type_t::THREAD:
+                    ss << "threadIdx";
+                    break;
+            }
+            ss << '.';
+            switch (it.dimension) {
+                case gpu_iterator::dimension_t::x:
+                    ss << 'x';
+                    break;
+                case gpu_iterator::dimension_t::y:
+                    ss << 'y';
+                    break;
+                case gpu_iterator::dimension_t::z:
+                    ss << 'z';
+                    break;
+            }
         }
     }
 
@@ -1184,9 +1244,46 @@ namespace tiramisu {
         return std::unordered_set<std::string>{};
     }
 
+    cuda_ast::value_ptr cuda_ast::value::copy() {
+        switch (get_type())
+        {
+            case p_uint8:
+                return value_ptr{new value{u8_val}};
+                break;
+            case p_int8:
+                return value_ptr{new value{i8_val}};
+                break;
+            case p_uint16:
+                return value_ptr{new value{u16_val}};
+                break;
+            case p_int16:
+                return value_ptr{new value{i16_val}};
+                break;
+            case p_uint32:
+                return value_ptr{new value{u32_val}};
+                break;
+            case p_int32:
+                return value_ptr{new value{i32_val}};
+                break;
+            case p_uint64:
+                return value_ptr{new value{u64_val}};
+                break;
+            case p_int64:
+                return value_ptr{new value{i64_val}};
+                break;
+            case p_float32:
+                return value_ptr{new value{f32_val}};
+                break;
+            case p_float64:
+                return value_ptr{new value{f64_val}};
+                break;
+            default:
+                assert(!"Value type not supported.");
+        }
+    }
     cuda_ast::statement_ptr cuda_ast::value::replace_iterators(
             std::unordered_map<std::string, gpu_iterator> &iterators) {
-        return statement_ptr{new value{get_type(), val}};
+        return this->copy();
     }
 
     cuda_ast::statement_ptr cuda_ast::buffer_access::replace_iterators(
@@ -1205,6 +1302,121 @@ namespace tiramisu {
             result.insert(subresult.begin(), subresult.end());
         }
         return result;
+
+    }
+
+
+    std::string cuda_ast::gpu_iterator::simplified_name() {
+        std::string result = "__";
+        switch (type)
+        {
+            case type_t::THREAD :
+                result += "t";
+                break;
+            case type_t::BLOCK :
+                result += "b";
+                break;
+        }
+        switch (dimension)
+        {
+            case dimension_t::x :
+                result += "x";
+                break;
+            case dimension_t::y :
+                result += "y";
+                break;
+            case dimension_t::z :
+                result += "z";
+                break;
+        }
+        return result + "__";
+    }
+
+    void cuda_ast::assignment::print_declaration(std::stringstream &ss, const std::string &base) {
+        print(ss, base);
+    }
+
+    void cuda_ast::scalar_assignment::print_declaration(std::stringstream &ss, const std::string &base) {
+        m_scalar->print_declaration(ss, base);
+        ss << " = ";
+        m_rhs->print(ss, base);
+    }
+
+    cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name)
+    {
+        auto it = this->gpu_iterators.find(name);
+        std::cout << "iterators" << std::endl;
+        for (auto &i: gpu_iterators)
+        {
+            std::cout << i.first << " " << name << std::endl;
+        }
+        if (it != this->gpu_iterators.end())
+        {
+            return statement_ptr {new cuda_ast::gpu_iterator_read{it->second}};
+        } else {
+            auto data_it = m_scalar_data.find(name);
+            assert(data_it != m_scalar_data.end() && "Unknown name");
+            auto const &data = data_it->second;
+            scalar_ptr used_scalar{new cuda_ast::scalar{data.first, name, data.second}};
+            if (this->in_kernel)
+            {
+                bool defined_inside = false;
+                // Check if it was defined inside
+                for (auto it = iterator_stack.rbegin(); it != iterator_stack.rend(); it++)
+                {
+                    if (name == *it)
+                    {
+                        defined_inside = true;
+                        break;
+                    }
+                    if (gpu_iterators.find(name) != gpu_iterators.end())
+                    {
+                        break;
+                    }
+                }
+                if (!defined_inside)
+                    this->current_kernel->add_used_scalar(used_scalar);
+            }
+            return used_scalar;
+        }
+    }
+
+    cuda_ast::value::value(const tiramisu::expr &expr) : statement(expr.get_data_type()) {
+        switch (get_type())
+        {
+            case p_uint8:
+                u8_val = expr.get_uint8_value();
+                break;
+            case p_int8:
+                i8_val = expr.get_int8_value();
+                break;
+            case p_uint16:
+                u16_val = expr.get_uint16_value();
+                break;
+            case p_int16:
+                i16_val = expr.get_int16_value();
+                break;
+            case p_uint32:
+                u32_val = expr.get_uint32_value();
+                break;
+            case p_int32:
+                i32_val = expr.get_int32_value();
+                break;
+            case p_uint64:
+                u64_val = expr.get_uint64_value();
+                break;
+            case p_int64:
+                i64_val = expr.get_int64_value();
+                break;
+            case p_float32:
+                f32_val = expr.get_float32_value();
+                break;
+            case p_float64:
+                f64_val = expr.get_float64_value();
+                break;
+            default:
+                assert(!"Value type not supported.");
+        }
 
     }
 };

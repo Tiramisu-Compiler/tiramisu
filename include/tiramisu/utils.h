@@ -224,4 +224,25 @@ class tiramisu_timer
     }
 };
 
+template <typename T>
+class optional
+{
+    T value;
+    bool has_value;
+
+public:
+    optional() : has_value(false) {}
+    optional(T value) : value(value), has_value(true) {}
+
+    explicit operator bool() const
+    {
+        return has_value;
+    }
+
+    T get()
+    {
+        return value;
+    }
+};
+
 #endif

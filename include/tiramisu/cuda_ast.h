@@ -253,8 +253,10 @@ private:
 
 class scalar : public abstract_identifier
 {
+    bool is_const;
 public:
     scalar(primitive_t type, const std::string &name, memory_location location);
+    scalar(primitive_t type, const std::string &name, memory_location location, bool is_const);
 
 public:
     void print(std::stringstream &ss, const std::string &base) override;
@@ -264,25 +266,58 @@ public:
 };
     typedef std::shared_ptr<scalar> scalar_ptr;
 
+class value;
+typedef std::shared_ptr<value> value_ptr;
+
 class value : public statement
 {
 public:
-    value(primitive_t type, long val);
+
+    explicit value(const tiramisu::expr & expr);
+    explicit value(uint8_t val);
+    explicit value(int8_t val);
+    explicit value(uint16_t val);
+    explicit value(int16_t val);
+    explicit value(uint32_t val);
+    explicit value(int32_t val);
+    explicit value(uint64_t val);
+    explicit value(int64_t val);
+    explicit value(float val);
+    explicit value(double val);
+
+    value_ptr copy();
 
 public:
     void print(std::stringstream &ss, const std::string &base) override;
     statement_ptr replace_iterators(std::unordered_map<std::string, gpu_iterator> & iterators) override;
 
 private:
-    // TODO more generic
-    long val;
+
+    /**
+      * The value.
+      */
+    union
+    {
+        uint8_t     u8_val;
+        int8_t      i8_val;
+        uint16_t    u16_val;
+        int16_t     i16_val;
+        uint32_t    u32_val;
+        int32_t     i32_val;
+        uint64_t    u64_val;
+        int64_t     i64_val;
+        float       f32_val;
+        double      f64_val;
+    };
 };
-    typedef std::shared_ptr<value> value_ptr;
 
 class assignment : public statement
 {
 protected:
     explicit assignment(primitive_t type);
+
+public:
+    virtual void print_declaration(std::stringstream &ss, const std::string &base);
 };
     typedef std::shared_ptr<assignment> assignment_ptr;
 
@@ -293,6 +328,7 @@ class scalar_assignment : public assignment
 public:
     scalar_assignment(scalar_ptr scalar, statement_ptr rhs);
     void print(std::stringstream &ss, const std::string &base) override;
+    void print_declaration(std::stringstream &ss, const std::string &base) override;
 
 };
 
@@ -461,14 +497,18 @@ struct gpu_iterator
         z
     } dimension;
     statement_ptr size;
+    // returns a simplified name; __tx__, __ty__, __tz__, __bx__, __by__, __bz__
+    std::string simplified_name();
 };
 
 class gpu_iterator_read : public statement
 {
 private:
     gpu_iterator it;
+    bool simplified;
 public:
     explicit gpu_iterator_read(gpu_iterator it);
+    explicit gpu_iterator_read(gpu_iterator it, bool simplified);
     void print(std::stringstream &ss, const std::string &base) override;
 };
 
@@ -588,13 +628,17 @@ private:
     std::vector<std::string> iterator_stack;
     std::vector<cuda_ast::statement_ptr> iterator_upper_bound;
     std::vector<cuda_ast::statement_ptr> iterator_lower_bound;
+    std::vector<cuda_ast::statement_ptr> kernel_simplified_vars;
     // Scalars needed by the kernel
     std::unordered_map<std::string, cuda_ast::scalar_ptr> kernel_scalars;
     // A mapping from iterator name to GPU info
     std::unordered_map<std::string, cuda_ast::gpu_iterator> gpu_iterators;
     std::vector<cuda_ast::statement_ptr> gpu_conditions;
     std::unordered_set<std::string> gpu_local;
-    cuda_ast::gpu_iterator get_gpu_condition(gpu_iterator::type_t type, gpu_iterator::dimension_t dim, cuda_ast::statement_ptr upper_bound);
+    cuda_ast::gpu_iterator get_gpu_condition(gpu_iterator::type_t type, gpu_iterator::dimension_t dim,
+                                                 cuda_ast::statement_ptr lower_bound,
+                                                 cuda_ast::statement_ptr upper_bound);
+    statement_ptr get_scalar_from_name(std::string name);
 public:
     explicit generator(tiramisu::function &fct);
 
