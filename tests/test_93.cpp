@@ -22,7 +22,7 @@ using namespace tiramisu;
 void generate_function(std::string name)
 {
     tiramisu::global::set_default_tiramisu_options();
-    tiramisu::global::set_loop_iterator_default_data_type(p_int32);
+
 
     tiramisu::var i("i"), j("j"), k("k"), l("l"), m("m"), n("n"), o("o"), p("p");
 

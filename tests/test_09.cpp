@@ -17,7 +17,7 @@ void generate_function_1(std::string name, int size0, int size1, int val0, int v
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
-    tiramisu::global::set_loop_iterator_default_data_type(p_int32);
+
 
     tiramisu::function test_reduction_operator("test_reduction_operator");
 
