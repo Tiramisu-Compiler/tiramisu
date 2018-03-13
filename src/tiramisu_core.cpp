@@ -8316,6 +8316,48 @@ xfer tiramisu::computation::create_xfer(std::string iter_domain_str, xfer_prop p
     return c;
 }
 
+void tiramisu::function::lift_dist_comps(tiramisu::computation *comp) {
+    if (comp->is_send()) {
+        send *s = static_cast<send *>(comp);
+        tiramisu::expr num_elements(s->get_num_elements());
+        tiramisu::expr send_type(s->get_xfer_props().get_dtype());
+        bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK);
+        s->rhs_argument_idx = 3;
+        s->library_call_args.resize(isnonblock ? 6 : 5);
+        s->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
+        s->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_dest());
+        s->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_msg_tag());
+        s->library_call_args[4] = send_type;
+        if (isnonblock) {
+            // This additional RHS argument is to the request buffer. It is really more of a side effect.
+            s->wait_argument_idx = 5;
+        }
+    } else if (comp->is_recv()) {
+        recv *r = static_cast<recv *>(comp);
+        send *s = r->get_matching_send();
+        tiramisu::expr num_elements(r->get_num_elements());
+        tiramisu::expr recv_type(s->get_xfer_props().get_dtype());
+        bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK);
+        r->lhs_argument_idx = 3;
+        r->library_call_args.resize(isnonblock ? 6 : 5);
+        r->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
+        r->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_src());
+        r->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_msg_tag().is_defined() ?
+                                                                            r->get_msg_tag() : s->get_msg_tag());
+        r->library_call_args[4] = recv_type;
+        r->lhs_access_type = tiramisu::o_address_of;
+        if (isnonblock) {
+            // This RHS argument is to the request buffer. It is really more of a side effect.
+            r->wait_argument_idx = 5;
+        }
+    } else if (comp->is_wait()) {
+        wait *w = static_cast<wait *>(comp);
+        w->rhs_argument_idx = 0;
+        w->library_call_args.resize(1);
+        w->library_call_name = "tiramisu_MPI_Wait";
+    }
+}
+
 void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector)
 {
     size_t pos = 0;

@@ -933,7 +933,7 @@ public:
     /**
       * Lift certain computations for distributed execution to function calls.
       */
-    void lift_dist_comps();
+    void lift_dist_comps(tiramisu::computation *comp);
 };
 
 
