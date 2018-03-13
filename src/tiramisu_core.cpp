@@ -1814,14 +1814,28 @@ tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr
      * multiple of w that is still smaller than N.  Add this constant to
      * the list of invariants.
      */
+    primitive_t f_type, i_type, u_type;
+    if (global::get_loop_iterator_data_type() == p_int32)
+    {
+        f_type = p_float32;
+        i_type = p_int32;
+        u_type = p_uint32;
+    }
+    else
+    {
+        f_type = p_float64;
+        i_type = p_int64;
+        u_type = p_uint64;
+    }
+
     std::string separator_name = tiramisu::generate_new_variable_name();
     tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound, tiramisu::expr(v));
-    tiramisu::expr cast_expr = tiramisu::expr(o_cast, tiramisu::p_float32, div_expr);
+    tiramisu::expr cast_expr = tiramisu::expr(o_cast, f_type, div_expr);
     tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
-    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, tiramisu::p_int32, floor_expr);
+    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, i_type, floor_expr);
     tiramisu::expr separator_expr = tiramisu::expr(o_mul, tiramisu::expr(v), cast2_expr);
     tiramisu::constant *separation_param = new tiramisu::constant(
-        separator_name, separator_expr, p_uint32, true, NULL, 0, this->get_function());
+        separator_name, separator_expr, u_type, true, NULL, 0, this->get_function());
 
     DEBUG_INDENT(-4);
 
@@ -5033,7 +5047,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
             tiramisu::expr param = tiramisu::var(global::get_loop_iterator_data_type(), std::string(name));
             if (isl_val_is_one(coeff) == isl_bool_false)
             {
-                int c = isl_val_get_num_si(coeff);
+                long c = isl_val_get_num_si(coeff);
 
                 // For lower bounds, inverse the sign.
                 if (upper == false)
@@ -5060,7 +5074,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
     isl_val *ct = isl_constraint_get_constant_val(cst);
     if ((isl_val_is_zero(ct) == isl_bool_false) || (e.is_defined() == false))
     {
-        int v = isl_val_get_num_si(ct);
+        long v = isl_val_get_num_si(ct);
 
         // For lower bounds, inverse the sign.
         if (upper == false)
@@ -6461,6 +6475,8 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
         return "op";
     case tiramisu::e_var:
         return "var";
+    case tiramisu::e_sync:
+        return "sync";
     default:
         tiramisu::error("Tiramisu type not supported.", true);
         return "";
@@ -6524,7 +6540,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct):
     allocated(false), argtype(argt), auto_allocate(true), dim_sizes(dim_sizes), fct(fct),
-    name(name), type(type)
+    name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
@@ -6954,6 +6970,12 @@ const tiramisu::expr &tiramisu::computation::get_expr() const
     return expression;
 }
 
+tiramisu::computation::operator expr()
+{
+    // assert(this->is_let_stmt() && "Can only use let statements as expressions.");
+    return var(this->get_data_type(), this->get_name());
+}
+
 /**
   * Return the function where the computation is declared.
   */
@@ -7356,22 +7378,22 @@ void tiramisu::computation::add_associated_let_stmt(std::string variable_name, t
     DEBUG_INDENT(-4);
 }
 
-bool tiramisu::computation::is_send() const 
+bool tiramisu::computation::is_send() const
 {
   return false;
 }
 
-bool tiramisu::computation::is_recv() const 
+bool tiramisu::computation::is_recv() const
 {
   return false;
 }
 
-bool tiramisu::computation::is_send_recv() const 
+bool tiramisu::computation::is_send_recv() const
 {
   return false;
 }
 
-bool tiramisu::computation::is_wait() const 
+bool tiramisu::computation::is_wait() const
 {
   return false;
 }
@@ -7385,10 +7407,12 @@ const std::vector<std::pair<std::string, tiramisu::expr>>
 bool tiramisu::computation::has_accesses() const
 {
     if ((this->get_expr().get_op_type() == tiramisu::o_access))
-	return true;
+        return true;
     else if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
             (this->get_expr().get_op_type() == tiramisu::o_free) ||
-	    (this->is_let_stmt()))
+            (this->get_expr().get_op_type() == tiramisu::o_memcpy) ||
+            (this->get_expr().get_expr_type() == tiramisu::e_sync) ||
+            (this->is_let_stmt()))
     {
         return false;
     }
@@ -7530,9 +7554,10 @@ tiramisu::constant::constant(
     {
         this->set_name(param_name);
         this->set_expression(param_expr);
-        func->add_invariant(*this);
         this->mark_as_let_statement();
-	this->compute_with_computation = NULL;
+        this->data_type = t;
+        func->add_invariant(*this);
+        this->compute_with_computation = NULL;
 
         DEBUG(3, tiramisu::str_dump("The constant is function wide, its name is : "));
         DEBUG(3, tiramisu::str_dump(this->get_name()));
@@ -7598,7 +7623,8 @@ void tiramisu::constant::dump(bool exhaustive) const
 
 tiramisu::constant::operator expr()
 {
-    return this->get_expr();
+    return var(this->get_data_type(), this->get_name());
+    // return this->get_expr();
 }
 
 void tiramisu::buffer::set_dim_size(int dim, int size)
@@ -8292,4 +8318,34 @@ isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, is
 }
 
 
+expr tiramisu::computation::get_span(int level)
+{
+    this->check_dimensions_validity({level});
+    tiramisu::expr loop_upper_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, true);
+
+    tiramisu::expr loop_lower_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + value_cast(global::get_loop_iterator_data_type(), 1);
+    return loop_bound.simplify();
+}
+
+void tiramisu::buffer::tag_gpu_shared() {
+    location = cuda_ast::memory_location::shared;
+    set_auto_allocate(false);
+}
+
+void tiramisu::buffer::tag_gpu_global() {
+    location = cuda_ast::memory_location::global;
+}
+
+void tiramisu::buffer::tag_gpu_register() {
+    bool is_single_val = this->get_n_dims() == 1 && this->get_dim_sizes()[0].get_expr_type() == e_val && this->get_dim_sizes()[0].get_int_val() == 1;
+    assert(is_single_val && "Buffer needs to correspond to a single value to be in register");
+    location = cuda_ast::memory_location::reg;
+    set_auto_allocate(false);
+}
 }

@@ -50,6 +50,7 @@ std::vector<std::pair<std::string, bool>> test_results;
 
 void test_get_parameters_list(isl_ctx *ctx)
 {
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
     tiramisu::str_dump("------------ test_get_parameters_list - test 0 -----------\n");
     isl_set *set_0 = isl_set_read_from_str(ctx, SET_1D_0);
     std::string list = utility::get_parameters_list(set_0);
@@ -81,6 +82,7 @@ void test_get_parameters_list(isl_ctx *ctx)
 
 void test_get_upper_bounds(isl_ctx *ctx)
 {
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
     tiramisu::str_dump("------------ test_get_upper_bounds - test 0 -----------\n");
     isl_set *set_0 = isl_set_read_from_str(ctx, SET_1D_0);
     expr e_0 = utility::get_bound(set_0, 0, true);
@@ -167,6 +169,7 @@ void test_get_upper_bounds(isl_ctx *ctx)
 
 void test_get_lower_bounds(isl_ctx *ctx)
 {
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
     tiramisu::str_dump("------------ test_get_lower_bounds - test 0 -----------\n");
     isl_set *set_0 = isl_set_read_from_str(ctx, SET_1D_0);
     expr e_0 = utility::get_bound(set_0, 0, false);
@@ -208,6 +211,7 @@ public:
     static void test_get_iteration_domain_dimension_names()
     {
 	tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
 	tiramisu::function function0(FCT_NAME);
 	tiramisu::constant N("N", tiramisu::expr((int32_t) SIZE), p_int32,
 			true, NULL, 0, &function0);
@@ -263,6 +267,7 @@ public:
     static void test_get_dimension_numbers_from_dimension_names()
     {
 	tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
 	tiramisu::function function0(FCT_NAME);
 	tiramisu::constant N("N", tiramisu::expr((int32_t) SIZE), p_int32,
 			true, NULL, 0, &function0);
@@ -352,6 +357,7 @@ public:
     static void test_names_functions()
     {
 	tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
 	tiramisu::function function0(FCT_NAME);
 	tiramisu::constant N("N", tiramisu::expr((int32_t) SIZE), p_int32, true, NULL, 0, &function0);
 	tiramisu::var i("i");

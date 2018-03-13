@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
 enable_testing()
-set(USE_GPU FALSE)
+
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 
 execute_process(COMMAND bash ${PROJECT_DIR}/generate_config_path.sh
@@ -10,27 +10,24 @@ execute_process(COMMAND bash ${PROJECT_DIR}/generate_config_path.sh
 
 # Add CMake header files
 set(HEADER_FILES
+        include/tiramisu/cuda_ast.h
         include/tiramisu/core.h
         include/tiramisu/debug.h
         include/tiramisu/utils.h
+        include/tiramisu/type.h
         include/tiramisu/expr.h
-        include/tiramisu/core.h
 	include/tiramisu/mpi_comm.h
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide mpi)
+set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda)
 
 
 ### CMAKE FILE INTERNALS ###
 
 FILE(STRINGS test_list TIRAMISU_TESTS)
 FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS)
-if (${USE_GPU})
-   FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
-else() 
-   FILE(STRINGS tutorial_list.no_gpu TIRAMISU_TUTORIALS)
-endif()
+FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
 
 include(configure_path.cmake)
 

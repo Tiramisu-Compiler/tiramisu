@@ -42,6 +42,7 @@ consume f {
 void generate_function_1(int size)
 {
     tiramisu::global::set_default_tiramisu_options();
+    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
 
     Var x("x"), y("y");
     Func f("f");

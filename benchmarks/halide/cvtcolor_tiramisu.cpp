@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
+    global::set_loop_iterator_default_data_type(p_int32);
     tiramisu::function cvtcolor_tiramisu("cvtcolor_tiramisu");
 
     tiramisu::computation SIZES("{SIZES[i]: 0<=i<=1}", tiramisu::expr(), false, p_int32, &cvtcolor_tiramisu);

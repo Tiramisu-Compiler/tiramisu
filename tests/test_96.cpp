@@ -11,43 +11,34 @@
 #include <string.h>
 #include <Halide.h>
 
-#include "wrapper_test_52.h"
+#include "wrapper_test_96.h"
 
 using namespace tiramisu;
 
 /**
- * Test allocate_buffers_automatically().
+ * This test checks that it is possible to run 64 bit iterator variables.
  */
 
-void generate_function(std::string name, int size, int val0)
+void generate_function(std::string name)
 {
     tiramisu::global::set_default_tiramisu_options();
-    tiramisu::global::set_loop_iterator_default_data_type(tiramisu::p_int32);
+    global::set_loop_iterator_default_data_type(p_int64);
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
     tiramisu::function function0(name);
-    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::var i("i");
-    tiramisu::var j("j");
-    tiramisu::computation S0("[N]->{S0[i,j]: 0<=i<N and 0<=j<N}", tiramisu::expr(), false, p_uint8, &function0);
-    tiramisu::computation S1("[N]->{S1[i,j]: 0<=i<N and 0<=j<N}", S0(i,j), true, p_uint8, &function0);
-    tiramisu::computation S2("[N]->{S2[i,j]: 0<=i<N and 0<=j<N}", S1(i,j) + S0(i,j), true, p_uint8, &function0);
-    tiramisu::computation S3("[N]->{S3[i,j]: 0<=i<N and 0<=j<N}", S2(i,j) - S0(0,2), true, p_uint8, &function0);
+
+    var i(p_int64, "i");
+    constant N("N", expr((int64_t) SIZE0), p_int64, true, nullptr, computation::root_dimension, &function0);
+
+    computation S("[N]->{S[i]: 0 <= i < N}", (i * i) - N, true, p_int64, &function0);
 
     // -------------------------------------------------------
-    // Layer II 
+    // Layer II
     // -------------------------------------------------------
 
-    S2.after(S1,computation::root);
-    S3.after(S2,computation::root);
-
-    S1.tag_parallel_level(j);
-    S2.tag_parallel_level(j);
-    S3.tag_parallel_level(i);
-    S3.tag_parallel_level(i);
 
     // -------------------------------------------------------
     // Layer III
@@ -59,7 +50,7 @@ void generate_function(std::string name, int size, int val0)
     // Code Generation
     // -------------------------------------------------------
 
-    function0.set_arguments({S0.get_automatically_allocated_buffer(), S3.get_automatically_allocated_buffer()});
+    function0.set_arguments({S.get_automatically_allocated_buffer()});
     function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
@@ -68,7 +59,7 @@ void generate_function(std::string name, int size, int val0)
 
 int main(int argc, char **argv)
 {
-    generate_function("tiramisu_generated_code", SIZE1, 5);
+    generate_function("tiramisu_generated_code");
 
     return 0;
 }
