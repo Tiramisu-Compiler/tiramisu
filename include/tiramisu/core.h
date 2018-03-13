@@ -115,6 +115,11 @@ private:
     bool _needs_rank_call;
 
     /**
+     * Offset the rank by this amount.
+     */
+    int rank_offset = 0;
+
+    /**
       * Function arguments. These are the buffers or scalars that are
       * passed to the function.
       */
@@ -1484,7 +1489,7 @@ private:
       * If the computation represents a library call and requires a wait, this is like a regular access map, but gives
       * an access into a special wait buffer.
       */
-    isl_map *wait_access_map;
+    isl_map *wait_access_map = nullptr;
 
     /**
       * By default, this becomes an o_access to signify that we are writing into a location. However, it can be changed
@@ -2202,6 +2207,11 @@ protected:
       * If the computation represents a library call, this is the name of the function.
       */
     std::string library_call_name;
+
+    /**
+      * An index expression just for the request buffer.
+      */
+    isl_ast_expr *wait_index_expr;
 
     /**
       * Partially collapse the iterations of a loop. The part of the loop from collapse_from_iter to collapse_until_iter
