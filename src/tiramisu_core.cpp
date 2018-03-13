@@ -8257,6 +8257,65 @@ void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr c
     this->set_schedule(sched);
 }
 
+xfer tiramisu::computation::create_xfer(std::string send_iter_domain, std::string recv_iter_domain,
+                                        tiramisu::expr send_dest, tiramisu::expr recv_src,
+                                        xfer_prop send_prop, xfer_prop recv_prop,
+                                        tiramisu::expr send_expr, tiramisu::function *fct) {
+    if (send_prop.contains_attr(MPI)) {
+        assert(recv_prop.contains_attr(MPI));
+    } else if (send_prop.contains_attr(CUDA)) {
+        assert(recv_prop.contains_attr(CUDA));
+    }
+
+    assert(send_expr.get_op_type() == tiramisu::o_access);
+    tiramisu::computation *producer = fct->get_computation_by_name(send_expr.get_name())[0];
+
+    isl_set *s_iter_domain = isl_set_read_from_str(producer->get_ctx(), send_iter_domain.c_str());
+    isl_set *r_iter_domain = isl_set_read_from_str(producer->get_ctx(), recv_iter_domain.c_str());
+    tiramisu::send *s = new tiramisu::send(isl_set_to_str(s_iter_domain), producer, send_expr, send_prop, true,
+                                           {1}, producer->get_function());
+    tiramisu::recv *r = new tiramisu::recv(isl_set_to_str(r_iter_domain), true, recv_prop, fct);
+    isl_map *send_sched = s->gen_identity_schedule_for_iteration_domain();
+    isl_map *recv_sched = r->gen_identity_schedule_for_iteration_domain();
+
+    s->set_src(expr());
+    s->set_dest(send_dest);
+    r->set_src(recv_src);
+    r->set_dest(expr());
+
+    s->set_schedule(send_sched);
+    r->set_schedule(recv_sched);
+    s->set_matching_recv(r);
+    r->set_matching_send(s);
+
+    tiramisu::xfer c;
+    c.s = s;
+    c.r = r;
+    c.sr = nullptr;
+
+    return c;
+}
+
+xfer tiramisu::computation::create_xfer(std::string iter_domain_str, xfer_prop prop, tiramisu::expr expr,
+                                        tiramisu::function *fct) {
+    assert(expr.get_op_type() == tiramisu::o_access);
+    tiramisu::computation *producer = fct->get_computation_by_name(expr.get_name())[0];
+
+    isl_set *iter_domain = isl_set_read_from_str(producer->get_ctx(), iter_domain_str.c_str());
+    tiramisu::send_recv *sr = new tiramisu::send_recv(isl_set_to_str(iter_domain), producer, expr, prop, true, {1},
+                                                      producer->get_function());
+    isl_map *sched = sr->gen_identity_schedule_for_iteration_domain();
+
+    sr->set_schedule(sched);
+
+    tiramisu::xfer c;
+    c.s = nullptr;
+    c.r = nullptr;
+    c.sr = sr;
+
+    return c;
+}
+
 void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector)
 {
     size_t pos = 0;

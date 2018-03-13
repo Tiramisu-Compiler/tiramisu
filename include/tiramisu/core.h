@@ -38,6 +38,7 @@ class recv;
 class send_recv;
 class wait;
 class sync;
+class xfer_prop;
 
 struct HalideCodegenOutput
 {
@@ -3613,6 +3614,14 @@ public:
     }
 
     operator expr();
+
+    static xfer create_xfer(std::string send_iter_domain, std::string recv_iter_domain, tiramisu::expr send_dest,
+                            tiramisu::expr recv_src, xfer_prop send_prop, xfer_prop recv_prop,
+                            tiramisu::expr send_expr, tiramisu::function *fct);
+
+    static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
+                            tiramisu::function *fct);
+
 };
 
 
