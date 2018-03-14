@@ -6734,6 +6734,14 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     this->_is_nonblock_or_async = false;
     this->_drop_rank_iter = false;
 
+    this->lhs_access_type = tiramisu::o_access;
+    this->lhs_argument_idx = -1;
+    this->rhs_argument_idx = -1;
+    this->wait_argument_idx = -1;
+    this->_is_library_call = false;
+    this->wait_access_map = nullptr;
+    this->wait_index_expr = nullptr;
+
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
 
@@ -6808,6 +6816,14 @@ tiramisu::computation::computation()
     this->expression = tiramisu::expr();
 
     this->ctx = NULL;
+
+    this->lhs_access_type = tiramisu::o_access;
+    this->lhs_argument_idx = -1;
+    this->rhs_argument_idx = -1;
+    this->wait_argument_idx = -1;
+    this->_is_library_call = false;
+    this->wait_access_map = nullptr;
+    this->wait_index_expr = nullptr;
 
     this->iteration_domain = NULL;
     this->name = "";

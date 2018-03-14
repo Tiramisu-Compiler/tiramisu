@@ -114,6 +114,7 @@ class expr
 {
     friend class var;
     friend class sync;
+    friend class computation;
 
     /**
       * The type of the operator.
