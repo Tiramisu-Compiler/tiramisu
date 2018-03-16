@@ -43,7 +43,7 @@ void generate_function(std::string name)
     tiramisu::constant a("a", alpha(0), p_float32, true, NULL, 0, &function0);
     tiramisu::constant b("b", beta(0), p_float32, true, NULL, 0, &function0);
 
-#define PACK_ARRAY 0
+#define PACK_ARRAY 1
 #define AUTO_SCHEDULE 0
 #define INNER_SPLIT 1
 
@@ -74,10 +74,10 @@ void generate_function(std::string name)
     tiramisu::computation reduced_AB_0_p2("[N, M, K]->{reduced_AB_0_p2[i,j,0]: "+B0s+"*floor(N/"+B0s+")<=i<N and "+B1s+"*floor(M/"+B1s+")<=j<M}",              (float) 0, true, p_float32, &function0);
 
 #if PACK_ARRAY
-    tiramisu::computation packed_B   ("[N, M, K]->{packed_B   [j,k]: 0<=j<"+B1s+"*floor(M/"+B1s+") and 0<=k<"+B2s+"*floor(K/"+B2s+")}", B(k,j), true, p_float32, &function0);
-    tiramisu::computation packed_B_p0("[N, M, K]->{packed_B_p0[j,k]: 0<=j<"+B1s+"*floor(M/"+B1s+") and "+B2s+"*floor(K/"+B2s+")<=k<K}", B(k,j), true, p_float32, &function0);
-    tiramisu::computation packed_B_p1("[N, M, K]->{packed_B_p1[j,k]: "+B1s+"*floor(M/"+B1s+")<=j<M and 0<=k<"+B2s+"*floor(K/"+B2s+")}", B(k,j), true, p_float32, &function0);
-    tiramisu::computation packed_B_p2("[N, M, K]->{packed_B_p2[j,k]: "+B1s+"*floor(M/"+B1s+")<=j<M and "+B2s+"*floor(K/"+B2s+")<=k<K}", B(k,j), true, p_float32, &function0);
+    tiramisu::computation packed_B   ("[N, M, K]->{packed_B   [j,k]: 0<=j<"+B1s+"*floor(M/"+B1s+") and 0<=k<"+B2s+"*floor(K/"+B2s+")}", B(j,k), true, p_float32, &function0);
+    tiramisu::computation packed_B_p0("[N, M, K]->{packed_B_p0[j,k]: 0<=j<"+B1s+"*floor(M/"+B1s+") and "+B2s+"*floor(K/"+B2s+")<=k<K}", B(j,k), true, p_float32, &function0);
+    tiramisu::computation packed_B_p1("[N, M, K]->{packed_B_p1[j,k]: "+B1s+"*floor(M/"+B1s+")<=j<M and 0<=k<"+B2s+"*floor(K/"+B2s+")}", B(j,k), true, p_float32, &function0);
+    tiramisu::computation packed_B_p2("[N, M, K]->{packed_B_p2[j,k]: "+B1s+"*floor(M/"+B1s+")<=j<M and "+B2s+"*floor(K/"+B2s+")<=k<K}", B(j,k), true, p_float32, &function0);
 #endif
 
     tiramisu::computation reduced_AB_1   ("[N, M, K]->{reduced_AB_1   [i,j,k]: 0<=i<N and              0<=j<"+B1s+"*floor(M/"+B1s+") and                        0<=k<"+B2s+"*floor(K/"+B2s+")}", reduced_AB_0(i,j,0) + A(i,k)*B(k,j), true, p_float32, &function0);
@@ -113,6 +113,7 @@ void generate_function(std::string name)
     result.tag_parallel_level(0);
 
 #if PACK_ARRAY
+    packed_B.tag_parallel_level(0);
     packed_B_p1.tag_parallel_level(0);
     packed_B_p0.tag_parallel_level(0);
 #endif
@@ -127,7 +128,7 @@ void generate_function(std::string name)
     reduced_AB_0_p1.tile(0,1, B0,B1);
     reduced_AB_0_p2.tile(0,1, B0,B1);
 
-#if PACK_ARRAY
+#if 0 //PACK_ARRAY
     packed_B.tile(0,1, B1,B2);
     packed_B_p0.tile(0,1, B1,B2);
     packed_B_p1.tile(0,1, B1,B2);
@@ -160,7 +161,7 @@ void generate_function(std::string name)
     reduced_AB_0_p1.tile(0,1, L3_B0, L3_B1);
     reduced_AB_0_p2.tile(0,1, L3_B0, L3_B1);
 
-    #if PACK_ARRAY
+    #if 0 //PACK_ARRAY
     packed_B.tile(0,1, L3_B1,L3_B2);
     packed_B_p0.tile(0,1, L3_B1,L3_B2);
     packed_B_p1.tile(0,1, L3_B1,L3_B2);
@@ -216,7 +217,7 @@ void generate_function(std::string name)
 #if INNER_SPLIT
 if (U1 < B1)
 {
-    #if PACK_ARRAY
+    #if 0 //PACK_ARRAY
     packed_B_p1.split(lev0+lev1+4, U1);
     #endif
 
@@ -247,7 +248,7 @@ if (U1 < B1)
     // ----------------------------------------------------------------------------------------------------------------
     // Unrolling
     // ----------------------------------------------------------------------------------------------------------------
-#if PACK_ARRAY
+#if 0 //PACK_ARRAY
     packed_B_p1.tag_unroll_level(lev0+lev1+4);
 #endif
     reduced_AB_0.tag_unroll_level(lev0+lev1+split_AB_0+2);
@@ -278,7 +279,8 @@ if (U1 < B1)
     tiramisu::buffer buf_beta("buf_beta", {1}, tiramisu::p_float32, a_input, &function0);
     tiramisu::buffer buf_A("buf_A", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "K")}, tiramisu::p_float32, a_input, &function0);
     tiramisu::buffer buf_B("buf_B", {tiramisu::var(p_int32, "K"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_input, &function0);
-    tiramisu::buffer buf_Bp("buf_Bp", {tiramisu::var(p_int32, "M"), tiramisu::var(p_int32, "K")}, tiramisu::p_float32, a_temporary, &function0);
+    std::vector<tiramisu::expr> sz = {(tiramisu::var(p_int32, "M")/B1), tiramisu::var(p_int32, "K"), (tiramisu::var(p_int32, "M")%B1)};
+    tiramisu::buffer buf_Bp("buf_Bp", sz, tiramisu::p_float32, a_temporary, &function0);
     tiramisu::buffer buf_temps("buf_temp", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_temporary, &function0);
     tiramisu::buffer buf_C("buf_C", {tiramisu::var(p_int32, "N"), tiramisu::var(p_int32, "M")}, tiramisu::p_float32, a_output, &function0);
 
@@ -288,10 +290,10 @@ if (U1 < B1)
     A.set_access("{A[i,j]->buf_A[i,j]}");
     B.set_access("{B[i,j]->buf_B[i,j]}");
 #if PACK_ARRAY
-    packed_B.set_access("{packed_B[j,k]->buf_Bp[j%"+B1s+",k%"+B2s+"]}");
-    packed_B_p0.set_access("{packed_B_p0[j,k]->buf_Bp[j%"+B1s+",k%"+B2s+"]}");
-    packed_B_p1.set_access("{packed_B_p1[j,k]->buf_Bp[j%"+B1s+",k%"+B2s+"]}");
-    packed_B_p2.set_access("{packed_B_p2[j,k]->buf_Bp[j%"+B1s+",k%"+B2s+"]}");
+    packed_B.set_access("{packed_B[j,k]->buf_Bp[j/"+B1s+",k,j%"+B1s+"]}");
+    packed_B_p0.set_access("{packed_B_p0[j,k]->buf_Bp[j/"+B1s+",k,j%"+B1s+"]}");
+    packed_B_p1.set_access("{packed_B_p1[j,k]->buf_Bp[j/"+B1s+",k,j%"+B1s+"]}");
+    packed_B_p2.set_access("{packed_B_p2[j,k]->buf_Bp[j/"+B1s+",k,j%"+B1s+"]}");
 #endif
     C.set_access("{C[i,j]->buf_C[i,j]}");
     reduced_AB_0.set_access   ("{reduced_AB_0   [i,j,k]->buf_temp[i,j]}");
