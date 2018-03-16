@@ -32,11 +32,14 @@ for (int i=0; i<nrow; i++)
 
 using namespace tiramisu;
 
-#define B0 64
+#define THREADS 32
+#define B0 256
 #define B1 8
 
 #define B0s std::to_string(B0)
 #define B1s std::to_string(B1)
+
+#define EXTRA_OPTIMIZATIONS 1
 
 int main(int argc, char **argv)
 {
@@ -60,12 +63,14 @@ int main(int argc, char **argv)
     // -----------------------------------------------------------------
     // Layer II
     // ----------------------------------------------------------------- 
-    w.split(0, SIZE/16);
+    w.split(0, SIZE/THREADS);
     w.tag_parallel_level(0);
+#if EXTRA_OPTIMIZATIONS
     w.split(1, B0);
     w.split(2, B1);
     w.tag_unroll_level(2);
     w.tag_vector_level(3, B1);
+#endif
 
     // ---------------------------------------------------------------------------------
     // Layer III
