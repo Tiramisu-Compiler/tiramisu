@@ -38,7 +38,7 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source ${TIRAMISU_ROOT}/configure_paths.sh
 
-CXXFLAGS="-std=c++11 -O3"
+CXXFLAGS="-std=c++11 -O3 -fopenmp"
 
 # Compile options
 # - Make g++ dump generated assembly
@@ -47,7 +47,9 @@ CXXFLAGS="-std=c++11 -O3"
 #   CXXFLAGS -fopt-info-vec
 # - Pass options to the llvm compiler
 #   HL_LLVM_ARGS="-help" 
-
+# Execution env variables
+#   OMP_NUM_THREADS=48
+#   to set the number of threads to use by OpenMP.
 
 INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${TIRAMISU_ROOT}/${HALIDE_SOURCE_DIRECTORY}/include/ -I${TIRAMISU_ROOT}/${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
 LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread"
