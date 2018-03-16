@@ -3617,6 +3617,115 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
 }
 
+void tiramisu::generator::update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
+                                                    std::string replace_with) {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    tiramisu::generator::_update_producer_expr_name(comp->expression, name_to_replace, replace_with);
+
+    DEBUG_INDENT(-4);
+    DEBUG_FCT_NAME(3);
+}
+
+void tiramisu::generator::_update_producer_expr_name(tiramisu::expr &current_exp, std::string name_to_replace,
+                                                     std::string replace_with) {
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    if ((current_exp.get_expr_type() == tiramisu::e_op) && ((current_exp.get_op_type() == tiramisu::o_access) ||
+                                                            (current_exp.get_op_type() == tiramisu::o_lin_index) ||
+                                                            (current_exp.get_op_type() == tiramisu::o_address_of))) {
+        // Shouldn't be any sub-expressions to iterate through with an access.
+        if (current_exp.get_name() == name_to_replace) {
+            current_exp.set_name(replace_with);
+        }
+
+    } else if (current_exp.get_expr_type() == tiramisu::e_op) {
+        DEBUG(3, tiramisu::str_dump("Extracting access from e_op."));
+
+        switch (current_exp.get_op_type())
+        {
+            case tiramisu::o_minus:
+            case tiramisu::o_logical_not:
+            case tiramisu::o_floor:
+            case tiramisu::o_cast:
+            case tiramisu::o_sin:
+            case tiramisu::o_cos:
+            case tiramisu::o_tan:
+            case tiramisu::o_asin:
+            case tiramisu::o_acos:
+            case tiramisu::o_atan:
+            case tiramisu::o_abs:
+            case tiramisu::o_sqrt:
+            case tiramisu::o_expo:
+            case tiramisu::o_log:
+            case tiramisu::o_ceil:
+            case tiramisu::o_round:
+            case tiramisu::o_trunc:
+            case tiramisu::o_address:
+            {
+                tiramisu::expr &exp0 = current_exp.op[0];
+                generator::_update_producer_expr_name(exp0, name_to_replace, replace_with);
+                break;
+            }
+            case tiramisu::o_logical_and:
+            case tiramisu::o_logical_or:
+            case tiramisu::o_max:
+            case tiramisu::o_min:
+            case tiramisu::o_add:
+            case tiramisu::o_sub:
+            case tiramisu::o_mul:
+            case tiramisu::o_div:
+            case tiramisu::o_mod:
+            case tiramisu::o_le:
+            case tiramisu::o_lt:
+            case tiramisu::o_ge:
+            case tiramisu::o_gt:
+            case tiramisu::o_eq:
+            case tiramisu::o_ne:
+            case tiramisu::o_right_shift:
+            case tiramisu::o_left_shift:
+            {
+                tiramisu::expr &exp0 = current_exp.op[0];
+                tiramisu::expr &exp1 = current_exp.op[1];
+                generator::_update_producer_expr_name(exp0, name_to_replace, replace_with);
+                generator::_update_producer_expr_name(exp1, name_to_replace, replace_with);
+                break;
+            }
+            case tiramisu::o_select:
+            case tiramisu::o_cond:
+            {
+                tiramisu::expr &exp0 = current_exp.op[0];
+                tiramisu::expr &exp1 = current_exp.op[1];
+                tiramisu::expr &exp2 = current_exp.op[2];
+                generator::_update_producer_expr_name(exp0, name_to_replace, replace_with);
+                generator::_update_producer_expr_name(exp1, name_to_replace, replace_with);
+                generator::_update_producer_expr_name(exp2, name_to_replace, replace_with);
+                break;
+            }
+            case tiramisu::o_call:
+            {
+                for (auto &e : current_exp.argument_vector) {
+                    generator::_update_producer_expr_name(e, name_to_replace, replace_with);
+                }
+                break;
+            }
+            case tiramisu::o_allocate:
+            case tiramisu::o_free:
+            case tiramisu::o_type:
+                // They do not have any access.
+                break;
+            default:
+                tiramisu::error("Replacing expression name for an unsupported tiramisu expression.", 1);
+        }
+    }
+
+    DEBUG_INDENT(-4);
+    DEBUG_FCT_NAME(3);
+}
+
 Halide::Expr make_comm_call(Halide::Type type, std::string func_name, std::vector<Halide::Expr> args) {
     return Halide::Internal::Call::make(type, func_name, args, Halide::Internal::Call::CallType::Extern);
 }

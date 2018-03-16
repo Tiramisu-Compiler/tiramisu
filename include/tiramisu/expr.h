@@ -115,6 +115,7 @@ class expr
     friend class var;
     friend class sync;
     friend class computation;
+    friend class generator;
 
     /**
       * The type of the operator.

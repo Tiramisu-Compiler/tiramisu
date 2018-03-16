@@ -3878,6 +3878,22 @@ protected:
                                             const tiramisu::expr &exp,
                                             std::vector<isl_map *> &accesses,
                                             bool return_buffer_accesses);
+
+    /**
+     * Traverse a tiramisu expression (\p current_exp) until an expression with the specified name is found.
+     * Replace that name with a new name. Replaces all occurrences.
+     */
+    static void _update_producer_expr_name(tiramisu::expr &current_exp, std::string name_to_replace,
+                                           std::string replace_with);
+
+public:
+
+    /**
+     * Traverse a tiramisu expression (\p current_exp) until an expression with the specified name is found.
+     * Replace that name with a new name. Replaces all occurrences.
+     */
+    static void update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
+                                          std::string replace_with);
 };
 
 /**
@@ -3932,6 +3948,7 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
+
 };
 
 // TODO Jess: add doc comments
