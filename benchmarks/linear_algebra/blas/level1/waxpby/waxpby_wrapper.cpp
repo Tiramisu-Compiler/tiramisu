@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include "benchmarks.h"
+#include <omp.h>
 
 #define DATATYPE double
 
@@ -17,11 +18,14 @@ int waxpby_ref(const int n,
   	       double * const w)
 {
 
+  #pragma omp parallel for
   for (int i=0; i<n; i++)
 	w[i] = alpha * x[i] + beta * y[i];
 
   return(0);
 }
+
+#define nrow SIZE
 
 int main(int, char **)
 {
@@ -45,9 +49,9 @@ int main(int, char **)
     double alpha = 1;
     double beta = 1;
 
-    Halide::Buffer<double> b_x(N);
+    Halide::Buffer<double> b_x(nrow);
     init_buffer(b_x, (double) 1);
-    Halide::Buffer<double> b_y(N);
+    Halide::Buffer<double> b_y(nrow);
     init_buffer(b_y, (double) 1);
 
     Halide::Buffer<double> b_alpha(1);
@@ -55,9 +59,9 @@ int main(int, char **)
     Halide::Buffer<double> b_beta(1);
     init_buffer(b_beta, (double) beta);
 
-    Halide::Buffer<double> b_w(N);
+    Halide::Buffer<double> b_w(nrow);
     init_buffer(b_w, (double) 0);
-    Halide::Buffer<double> b_w_ref(N);
+    Halide::Buffer<double> b_w_ref(nrow);
     init_buffer(b_w_ref, (double) 0);
 
     {
@@ -66,7 +70,7 @@ int main(int, char **)
 	    init_buffer(b_w_ref, (double)0);
 	    auto start1 = std::chrono::high_resolution_clock::now();
 	    if (run_ref == true)
-	    	waxpby_ref(N, alpha, b_x.data(), beta, b_y.data(), b_w_ref.data());
+	    	waxpby_ref(nrow, alpha, b_x.data(), beta, b_y.data(), b_w_ref.data());
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);

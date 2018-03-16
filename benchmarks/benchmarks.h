@@ -20,7 +20,7 @@
 #define N 4096
 #define M N
 #define K N
-#define SIZE (2048*1024)
+#define SIZE (65536*4096)
 
 #elif TIRAMISU_LARGE
 
