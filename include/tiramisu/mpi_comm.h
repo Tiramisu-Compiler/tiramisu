@@ -3,6 +3,10 @@
 
 #include <mpi.h>
 
+int tiramisu_MPI_init();
+void tiramisu_MPI_cleanup();
+void tiramisu_MPI_global_barrier();
+
 extern "C" {
 
 inline void check_MPI_error(int ret_val);

@@ -662,6 +662,11 @@ protected:
       */
     bool needs_rank_call() const;
 
+    /**
+      * Lift certain computations for distributed execution to function calls.
+      */
+    void lift_mpi_comp(tiramisu::computation *comp);
+
      /**
        * The set of all computations that have no computation scheduled before them.
        * Does not include allocation computations created using
@@ -938,7 +943,7 @@ public:
     /**
       * Lift certain computations for distributed execution to function calls.
       */
-    void lift_dist_comps(tiramisu::computation *comp);
+    void lift_dist_comps();
 };
 
 
