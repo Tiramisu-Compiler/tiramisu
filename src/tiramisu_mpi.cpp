@@ -1,6 +1,24 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
 #include "tiramisu/mpi_comm.h"
+
+int tiramisu_MPI_init() {
+    int provided = -1;
+    MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
+    assert(provided == MPI_THREAD_FUNNELED && "Did not get the appropriate MPI thread requirement.");
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    return rank;
+}
+
+void tiramisu_MPI_cleanup() {
+    MPI_Finalize();
+}
+
+void tiramisu_MPI_global_barrier() {
+    MPI_Barrier(MPI_COMM_WORLD);
+}
 
 extern "C" {
 

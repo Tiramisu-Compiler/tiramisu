@@ -8332,7 +8332,23 @@ xfer tiramisu::computation::create_xfer(std::string iter_domain_str, xfer_prop p
     return c;
 }
 
-void tiramisu::function::lift_dist_comps(tiramisu::computation *comp) {
+void tiramisu::function::lift_dist_comps() {
+    for (std::vector<tiramisu::computation *>::iterator comp = body.begin(); comp != body.end(); comp++) {
+        if ((*comp)->is_send() || (*comp)->is_recv() || (*comp)->is_wait() || (*comp)->is_send_recv()) {
+            xfer_prop chan = static_cast<tiramisu::communicator *>(*comp)->get_xfer_props();
+            if (chan.contains_attr(MPI)) {
+                lift_mpi_comp(*comp);
+            } else if (chan.contains_attr(CUDA)) {
+                assert(false && "CUDA lifter not implemented yet");
+//                lift_cuda_comp(*comp);
+            } else {
+                assert(false);
+            }
+        }
+    }
+}
+
+void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
     if (comp->is_send()) {
         send *s = static_cast<send *>(comp);
         tiramisu::expr num_elements(s->get_num_elements());
