@@ -26,6 +26,7 @@
 #include <tiramisu/type.h>
 #include <string>
 #include <vector>
+#include "utils.h"
 
 namespace tiramisu
 {
@@ -242,6 +243,7 @@ public:
     const std::string &get_name() const;
     memory_location get_location() const;
     virtual void print_declaration(std::stringstream &ss, const std::string &base) = 0;
+    virtual bool is_buffer() const;
 
 
 private:
@@ -260,6 +262,7 @@ public:
     void print(std::stringstream &ss, const std::string &base) override;
     void print_declaration(std::stringstream &ss, const std::string &base) override;
     void print_size(std::stringstream &ss, const std::string &base, const std::string &seperator);
+    bool is_buffer() const override;
 
 
 private:
@@ -528,8 +531,29 @@ public:
     void print(std::stringstream &ss, const std::string &base) override;
 };
 
+
         class kernel_call;
         class kernel_definition;
+
+class return_statement : public statement
+{
+private:
+    statement_ptr return_value;
+public:
+    explicit return_statement(statement_ptr return_value);
+    void print(std::stringstream &ss, const std::string &base) override;
+};
+class host_function : public statement
+{
+public:
+    host_function(primitive_t type, std::string name, const std::vector<abstract_identifier_ptr> &arguments, statement_ptr body);
+    void print(std::stringstream &ss, const std::string &base) override;
+
+private:
+    std::string name;
+    statement_ptr body;
+    std::vector<abstract_identifier_ptr> arguments;
+};
 
 class kernel
 {
@@ -556,8 +580,11 @@ public:
     void set_dimension(gpu_iterator dimension);
     void set_body(statement_ptr body);
     std::string get_name() const;
+    std::string get_wrapper_name() const;
+    static constexpr auto wrapper_return_type = p_int32;
     void add_used_scalar(scalar_ptr scalar);
     void add_used_buffer(buffer_ptr buffer);
+    std::vector<abstract_identifier_ptr> get_arguments();
 
 };
 typedef std::shared_ptr<kernel> kernel_ptr;
@@ -582,18 +609,6 @@ public:
 
 private:
     kernel_ptr kernel;
-};
-
-class host_function : public statement
-{
-public:
-    host_function(primitive_t type, std::string name, const std::vector<abstract_identifier_ptr> &arguments, statement_ptr body);
-    void print(std::stringstream &ss, const std::string &base) override;
-
-private:
-    std::string name;
-    statement_ptr body;
-    std::vector<abstract_identifier_ptr> arguments;
 };
 
 class memcpy : public statement
@@ -638,6 +653,7 @@ private:
     cuda_ast::statement_ptr parse_tiramisu(const tiramisu::expr & tiramisu_expr);
     int loop_level = 0;
     kernel_ptr current_kernel;
+    std::unordered_map<std::string, std::list<kernel_ptr>> iterator_to_kernel_map;
     std::vector<kernel_ptr> kernels;
     // Will be set to true as soon as GPU computation is encountered, and set to false as soon as GPU loop is exited
     bool in_kernel = false;
@@ -671,6 +687,37 @@ public:
 
     static cuda_ast::value_ptr cuda_stmt_handle_isl_val(isl_val_ptr &node);
 };
+
+namespace {
+
+    struct exec_result {
+        bool exec_succeeded;
+        int result;
+        std::string std_out;
+        std::string std_err;
+
+        bool fail();
+
+        bool succeed();
+    };
+
+}
+
+    class compiler
+    {
+        std::string code;
+
+        bool compile_cpu_obj(const std::string &filename, const std::string &obj_name) const;
+        bool compile_gpu_obj(const std::string &obj_name) const;
+        static exec_result exec(const std::string &cmd);
+        static void assert_nvcc();
+
+    public:
+        std::string get_cpu_obj(const std::string &obj_name) const;
+        std::string get_gpu_obj(const std::string &obj_name) const;
+        explicit compiler(const std::string &code);
+        bool compile(const std::string &obj_name) const;
+    };
 
 }
 
