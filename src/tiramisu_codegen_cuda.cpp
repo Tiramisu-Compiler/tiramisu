@@ -1702,7 +1702,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             return false;
         }
         DEBUG(3, cout << "Opened file " << filename << " for writing.");
-        code_file << "#include <cstdint>\n";
+        code_file << "#include <stdint.h>\n";
         code_file << code;
         code_file.flush();
         if (code_file.fail()) {
