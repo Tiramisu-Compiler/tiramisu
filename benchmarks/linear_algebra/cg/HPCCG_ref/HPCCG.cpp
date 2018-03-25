@@ -115,23 +115,36 @@ int HPCCG(HPC_Sparse_Matrix * A,
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
 
-  for(int k=1; k<max_iter && normr > tolerance; k++ )
+  // Iteration 1
+  {
+      TICK(); waxpby(nrow, 1.0, r, 0.0, r, p); TOCK(t2);
+      normr = sqrt(rtrans);
+      if (rank==0 && (1%print_freq == 0 || 2 == max_iter))
+      cout << "Iteration = "<< 1 << "   Residual = "<< normr << endl;
+     
+
+#ifdef USING_MPI
+      TICK(); exchange_externals(A,p); TOCK(t5); 
+#endif
+      TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3); // 2*nnz ops
+      double alpha = 0.0;
+      TICK(); ddot(nrow, p, Ap, &alpha, t4); TOCK(t1); // 2*nrow ops
+      alpha = rtrans/alpha;
+      TICK(); waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
+      waxpby(nrow, 1.0, r, -alpha, Ap, r);  TOCK(t2);// 2*nrow ops
+      niters = 1;
+  }
+
+  // Iterations 2, 3, ....
+  for(int k=2; k<max_iter && normr > tolerance; k++ )
     {
-      if (k == 1)
-	{
-	  TICK(); waxpby(nrow, 1.0, r, 0.0, r, p); TOCK(t2);
-	}
-      else
-	{
-	  oldrtrans = rtrans;
-	  TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
-	  double beta = rtrans/oldrtrans;
-	  TICK(); waxpby (nrow, 1.0, r, beta, p, p);  TOCK(t2);// 2*nrow ops
-	}
+      oldrtrans = rtrans;
+      TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
+      double beta = rtrans/oldrtrans;
+      TICK(); waxpby (nrow, 1.0, r, beta, p, p);  TOCK(t2);// 2*nrow ops
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
-     
 
 #ifdef USING_MPI
       TICK(); exchange_externals(A,p); TOCK(t5); 

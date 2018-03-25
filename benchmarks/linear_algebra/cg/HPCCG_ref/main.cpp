@@ -175,9 +175,12 @@ int main(int argc, char *argv[])
   double normr = 0.0;
   int max_iter = 150;
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
-  ierr = HPCCG( A, b, x, max_iter, tolerance, niters, normr, times);
+  int nrow = A->local_nrow;
+  double * r_ref = new double [nrow];
+  double * r_tiramisu = new double [nrow];
 
-	if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
+  ierr = HPCCG(A, b, x, max_iter, tolerance, niters, normr, times);
+  if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
 #ifdef USING_MPI
       double t4 = times[4];
@@ -286,6 +289,9 @@ int main(int argc, char *argv[])
 
 
   // Finish up
+  delete [] r_ref;
+  delete [] r_tiramisu;
+
 #ifdef USING_MPI
   MPI_Finalize();
 #endif
