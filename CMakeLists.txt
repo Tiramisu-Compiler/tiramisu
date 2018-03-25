@@ -27,8 +27,11 @@ set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering 
 include(configure.cmake)
 
 if (${USE_GPU})
-    find_package(CUDA)
+    find_package(CUDA REQUIRED)
     set(GPU_ENV_EXEC "${CMAKE_COMMAND} -E env NVCC_BIN_DIR=${CUDA_TOOLKIT_ROOT_DIR}/bin/")
+    add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
+    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES})
+    target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
 endif()
 
 
@@ -133,10 +136,17 @@ add_library(tiramisu SHARED ${T_CODE})
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
 
+function(link_tags name)
+    if (${is_gpu})
+        target_link_libraries(${name} cuda_wrapper)
+    endif()
+endfunction()
+
 function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(${name} ${LINK_FLAGS})
+    link_tags(${name})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${result}")
         add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR})
@@ -157,6 +167,7 @@ function(build_w name objs wrapper header)
     add_executable(${name} ${wrapper} ${objs} ${header})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(${name} ${LINK_FLAGS})
+    link_tags(${name})
 endfunction()
 
 macro(set_obj inp_obj)
