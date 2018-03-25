@@ -1,0 +1,12 @@
+# These commands will run the HPCCG executable on 1-64 processors at powers
+# of 2 and change the problem size so that the same global problem is
+# being solved regardless of processor count.  This is sometimes referred
+# to as "strong scaling".
+
+mpirun -np 1 test_HPCCG 64 64 1024 > strongOut_01
+mpirun -np 2 test_HPCCG 64 64 512 > strongOut_02
+mpirun -np 4 test_HPCCG 64 64 256 > strongOut_04
+mpirun -np 8 test_HPCCG 64 64 128 > strongOut_08
+mpirun -np 16 test_HPCCG 64 64 64 > strongOut_16
+mpirun -np 32 test_HPCCG 64 64 32 > strongOut_32
+mpirun -np 64 test_HPCCG 64 64 16 > strongOut_64

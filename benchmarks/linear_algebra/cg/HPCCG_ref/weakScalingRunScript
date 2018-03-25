@@ -1,0 +1,11 @@
+# These commands will run the HPCCG executable on 1-64 processors at powers
+# of 2 and change the problem size so that the same local problem size is
+# being solved regardless of processor count.  This is sometimes referred
+# to as "weak scaling".
+
+mpirun -np 1 test_HPCCG 64 64 64 > weakOut_01
+mpirun -np 2 test_HPCCG 64 64 64 > weakOut_02
+mpirun -np 4 test_HPCCG 64 64 64 > weakOut_04
+mpirun -np 8 test_HPCCG 64 64 64 > weakOut_08
+mpirun -np 16 test_HPCCG 64 64 64 > weakOut_16
+mpirun -np 64 test_HPCCG 64 64 64 > weakOut_64
