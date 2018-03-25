@@ -52,7 +52,11 @@
 #include <mpi.h> // If this routine is compiled with -DUSING_MPI
                  // then include mpi.h
 #endif
-int HPCCG(HPC_Sparse_Matrix * A,
+int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
+	  const double * const b, double * const x,
+	  const int max_iter, const double tolerance, int & niters, double & normr, double * times);
+
+int HPCCG_ref(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int & niters, double & normr, double * times);
 

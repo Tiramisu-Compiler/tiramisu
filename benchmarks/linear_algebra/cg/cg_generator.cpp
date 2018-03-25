@@ -55,6 +55,7 @@ int main(int argc, char **argv)
     computation y("[M]->{y[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &cg);
     computation beta("[M]->{beta[0]}", tiramisu::expr(), false, p_float64, &cg);
 
+    // Algorithm
     tiramisu::var j("j");
     computation w("[M]->{w[j]: 0<=j<M}", x(j) + beta(0)*y(j), true, p_float64, &cg);
 

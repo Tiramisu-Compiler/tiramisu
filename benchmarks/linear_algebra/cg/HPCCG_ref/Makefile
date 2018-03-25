@@ -76,8 +76,8 @@ USE_MPI =
 #    enhance performance.
 
 #IA32 with GCC: 
-#CPP_OPT_FLAGS = -O3 -funroll-all-loops -malign-double
-CPP_OPT_FLAGS = -O3 -ftree-vectorize -ftree-vectorizer-verbose=2
+#CPP_OPT_FLAGS = -O3 -funroll-all-loops -malign-double -ftree-vectorizer-verbose=2
+CPP_OPT_FLAGS = -O3 -ftree-vectorize
 
 #
 # 4) MPI library:
@@ -94,14 +94,14 @@ CPP_OPT_FLAGS = -O3 -ftree-vectorize -ftree-vectorizer-verbose=2
 #    If you want to run the program with OpenMP, make sure USING_OMP is set
 #    to -DUSING_OMP
 
-USE_OMP = 
-#USE_OMP = -DUSING_OMP
+#USE_OMP = 
+USE_OMP = -DUSING_OMP
 
 #
 # 6) OpenMP Compiler argument
 #    GCC and Intel compilers require -fopenmp and -openmp, resp.  Other compilers may differ.
 
-#OMP_FLAGS = -fopenmp
+OMP_FLAGS = -fopenmp
 #OMP_FLAGS = -openmp
 
 #
@@ -120,7 +120,8 @@ CXXFLAGS= $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
 
 LIB_PATHS= $(SYS_LIB)
 
-TEST_CPP = main.cpp generate_matrix.cpp read_HPC_row.cpp \
+#read_HPC_row.cpp
+TEST_CPP = main.cpp generate_matrix.cpp \
 	  compute_residual.cpp mytimer.cpp dump_matlab_matrix.cpp \
           HPC_sparsemv.cpp HPCCG.cpp waxpby.cpp ddot.cpp \
           make_local_matrix.cpp exchange_externals.cpp \

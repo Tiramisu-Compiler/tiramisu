@@ -79,10 +79,10 @@ using std::endl;
 #include <omp.h>
 #endif
 #include "generate_matrix.hpp"
-#include "read_HPC_row.hpp"
 #include "mytimer.hpp"
 #include "HPC_sparsemv.hpp"
 #include "compute_residual.hpp"
+//#include "read_HPC_row.hpp"
 #include "HPCCG.hpp"
 #include "HPC_Sparse_Matrix.hpp"
 #include "dump_matlab_matrix.hpp"
@@ -153,7 +153,9 @@ int main(int argc, char *argv[])
   }
   else
   {
-    read_HPC_row(argv[1], &A, &x, &b, &xexact);
+    //read_HPC_row(argv[1], &A, &x, &b, &xexact);
+    std::cerr << "Reading a linear system is disabled\n";
+    exit(0);
   }
 
 
@@ -179,7 +181,7 @@ int main(int argc, char *argv[])
   double * r_ref = new double [nrow];
   double * r_tiramisu = new double [nrow];
 
-  ierr = HPCCG(A, b, x, max_iter, tolerance, niters, normr, times);
+  ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
 #ifdef USING_MPI
