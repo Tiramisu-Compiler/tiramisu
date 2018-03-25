@@ -1,4 +1,5 @@
 cvtcolor
+cvtcolorgpu[gpu]
 filter2D
 blurxy
 gaussian
@@ -9,3 +10,5 @@ rgbyuv420
 recfilter
 resize
 laplacian
+heat2dgpu[gpu]
+gaussiangpu[gpu]

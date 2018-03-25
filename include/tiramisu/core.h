@@ -243,6 +243,10 @@ private:
      */
     std::vector<std::string> iterator_names;
 
+    std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> iterator_to_kernel_list;
+
+    std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
+
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
       * be parallelized.
@@ -1742,11 +1746,6 @@ private:
     tiramisu::computation *get_first_definition();
 
     /**
-      * Return the Tiramisu expression associated with the computation.
-      */
-    const tiramisu::expr &get_expr() const;
-
-    /**
       * Return the function where the computation is declared.
       */
     tiramisu::function *get_function() const;
@@ -2256,11 +2255,6 @@ protected:
      * was added using add_predicate().
      */
     tiramisu::expr get_predicate();
-
-    /**
-      * Return the name of the computation.
-      */
-    const std::string &get_name() const;
 
     /**
       * Return a unique name of computation; made of the following pattern:
@@ -3012,6 +3006,11 @@ public:
     void drop_rank_iter();
 
     /**
+      * Return the Tiramisu expression associated with the computation.
+      */
+    const tiramisu::expr &get_expr() const;
+
+    /**
      * Return the iteration domain of the computation.
      * In this representation, the order of execution of computations
      * is not specified, the computations are also not mapped to memory.
@@ -3034,6 +3033,11 @@ public:
     {
 	    return this->get_loop_level_numbers_from_dimension_names({dim_name})[0];
     }
+
+    /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
 
     /**
       * Returns a pointer to the computation scheduled immediately before this computation,
@@ -3825,14 +3829,18 @@ protected:
       *     should only be generated in non-child blocks so that their scope reaches
       *     the whole block.
       */
-    static Halide::Internal::Stmt halide_stmt_from_isl_node(
-        const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-        bool is_a_child_block = false);
+    static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
+                                                            int level,
+                                                            std::vector<std::pair<std::string, std::string>> &tagged_stmts,
+                                                            bool is_a_child_block,
+                                                            std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
             const Halide::Internal::Stmt &second);
+
+    static Halide::Internal::Stmt make_buffer_alloc(buffer *b, const std::vector<Halide::Expr> &extents,
+                                                    Halide::Internal::Stmt &stmt);
 
     /**
      * Create a Halide expression from a  Tiramisu expression.

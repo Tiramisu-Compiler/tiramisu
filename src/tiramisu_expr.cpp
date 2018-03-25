@@ -2,6 +2,7 @@
 
 namespace tiramisu
 {
+    std::string tiramisu::global::nvcc_bin_dir;
 
 tiramisu::expr& tiramisu::expr::operator=(tiramisu::expr const & e)
 {

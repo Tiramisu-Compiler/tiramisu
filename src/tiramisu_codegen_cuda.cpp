@@ -25,8 +25,13 @@
 #include <isl/ast_type.h>
 #include <isl/ast.h>
 
+#include <fstream>
+#include <memory>
+
 namespace tiramisu {
 namespace cuda_ast {
+    // TODO expose as an option
+    const std::string arch = "sm_37";
 
 const tiramisu::cuda_ast::op_data_t tiramisu_operation_description(tiramisu::op_t op) {
     switch (op) {
@@ -164,17 +169,16 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node.get())};
 
         statement_ptr then_body_stmt{cuda_stmt_from_isl_node(then_body)};
-        optional<statement_ptr> else_body_stmt;
+        statement_ptr else_body_stmt;
         if (isl_ast_node_if_has_else(node.get())) {
             isl_ast_node_ptr else_body{isl_ast_node_if_get_else(node.get())};
             else_body_stmt = cuda_stmt_from_isl_node(else_body);
         }
 
         statement_ptr condition_stmt{cuda_stmt_handle_isl_expr(condition, node)};
-        std::cerr << condition_stmt->print() << std::endl;
 
         if (else_body_stmt) {
-            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt, else_body_stmt.get()}};
+            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt, else_body_stmt}};
         } else {
             return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt}};
         }
@@ -270,6 +274,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 current_kernel->set_body(statement_ptr{final_body});
                 kernels.push_back(current_kernel);
                 result = statement_ptr{new kernel_call{current_kernel}};
+                iterator_to_kernel_map[iterator_name].push_back(current_kernel);
                 current_kernel.reset();
                 in_kernel = false;
             } else {
@@ -699,8 +704,37 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         std::cout << ((cuda_ast::statement *) body)->print() << std::endl;
         delete body;
 
-        DEBUG_INDENT(-4);
+        std::shared_ptr<cuda_ast::block> resulting_file{new cuda_ast::block};
 
+
+        for (auto &kernel: generator.kernels)
+        {
+            resulting_file->add_statement(cuda_ast::statement_ptr{new cuda_ast::kernel_definition{kernel}});
+
+            std::shared_ptr<cuda_ast::block> wrapper_block{new cuda_ast::block};
+            wrapper_block->add_statement(cuda_ast::statement_ptr{new cuda_ast::kernel_call{kernel}});
+            wrapper_block->add_statement(cuda_ast::statement_ptr{
+                    new cuda_ast::return_statement{
+                            cuda_ast::statement_ptr{new cuda_ast::value(value_cast(cuda_ast::kernel::wrapper_return_type, 0))}
+                    }
+            });
+            resulting_file->add_statement(
+                    cuda_ast::statement_ptr{new cuda_ast::host_function{cuda_ast::kernel::wrapper_return_type,
+                                                                        kernel->get_wrapper_name(), kernel->get_arguments(),
+                                                                        std::static_pointer_cast<cuda_ast::statement>(wrapper_block)}}
+            );
+        }
+
+
+        std::string code = std::static_pointer_cast<cuda_ast::statement>(resulting_file)->print();
+        std::cout << code << std::endl;
+
+        nvcc_compiler = std::shared_ptr<cuda_ast::compiler>{new cuda_ast::compiler{code}};
+
+        iterator_to_kernel_list = generator.iterator_to_kernel_map;
+
+
+        DEBUG_INDENT(-4);
     }
 
     tiramisu::cuda_ast::generator::generator(tiramisu::function &fct) : m_fct(fct) {
@@ -853,7 +887,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         ss << base << "{\n";
         ss << base << "\t";
         this->print(ss, base + "\t");
-        ss << ";\n";
+        ss << ";";
+        ss << "\n";
         ss << base << "}";
     }
 
@@ -1105,6 +1140,10 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return "_kernel_" + std::to_string(this->kernel_number);
     }
 
+    std::string cuda_ast::kernel::get_wrapper_name() const {
+        return this->get_name() + "_wrapper";
+    }
+
     cuda_ast::kernel_call::kernel_call(kernel_ptr kernel) : statement(p_none), kernel(kernel){}
     void cuda_ast::kernel_call::print(std::stringstream &ss, const std::string &base) {
         ss << "{\n";
@@ -1144,13 +1183,20 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     cuda_ast::kernel_definition::kernel_definition(kernel_ptr kernel) : statement(p_none), kernel(kernel){}
 
+    std::vector<cuda_ast::abstract_identifier_ptr> cuda_ast::kernel::get_arguments() {
+        std::vector<abstract_identifier_ptr> arguments;
+        for (auto &c: used_constants)
+            arguments.push_back(c.second);
+        for (auto &b: used_buffers)
+            arguments.push_back(b.second);
+        return arguments;
+    }
+
+
+
     void cuda_ast::kernel_definition::print(std::stringstream &ss, const std::string &base) {
         ss << "__global__ void " << kernel->get_name() << "(";
-        std::vector<abstract_identifier_ptr> arguments;
-        for (auto &c: kernel->used_constants)
-            arguments.push_back(c.second);
-        for (auto &b: kernel->used_buffers)
-            arguments.push_back(b.second);
+        auto arguments = kernel->get_arguments();
         for (auto it = arguments.begin(); it != arguments.end();)
         {
             (*it)->print_declaration(ss, base);
@@ -1162,6 +1208,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         ss<<")\n" << base;
         kernel->body->print_body(ss, base);
     }
+
 
     cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it) : statement(global::get_loop_iterator_data_type()), it(it), simplified(true){}
     cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it, bool simplified) : statement(global::get_loop_iterator_data_type()), it(it), simplified(simplified){}
@@ -1531,5 +1578,157 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
 
     }
+
+    cuda_ast::compiler::compiler(const std::string &code) : code(code){}
+
+    std::string cuda_ast::compiler::get_cpu_obj(const std::string &obj_name) const {
+        return obj_name + "_cpu.o";
+    }
+
+    std::string cuda_ast::compiler::get_gpu_obj(const std::string &obj_name) const {
+        return obj_name + "_gpu.o";
+    }
+
+    bool cuda_ast::exec_result::succeed() {
+        return exec_succeeded && result == 0;
+    }
+
+    bool cuda_ast::exec_result::fail() {
+        return !succeed();
+    }
+
+    cuda_ast::exec_result cuda_ast::compiler::exec(const std::string &cmd) {
+        // TODO support Windows, stderr
+        using namespace std;
+        stringstream out, err;
+        array<char, 128> buffer;
+        FILE * file{popen(cmd.c_str(), "r")};
+        if (!file)
+            return exec_result{false, -1, "", ""};
+        while (!feof(file))
+        {
+            if (fgets(buffer.data(), 128, file) != nullptr)
+                out << buffer.data();
+        }
+
+        return exec_result{true, pclose(file), out.str(), err.str()};
+    }
+
+    void cuda_ast::compiler::assert_nvcc()
+    {
+        // TODO check version
+        auto result = exec(global::get_nvcc_bin_dir() + "nvcc -V");
+        if (result.fail())
+            tiramisu::error("Could not find nvcc. Please make sure it's in the path or set the environment variable "
+                            NVCC_BIN_DIR_ENV_VAR " to the directory containing nvcc (including the final directory separator).", true);
+
+    }
+
+    bool cuda_ast::compiler::compile_cpu_obj(const std::string &filename, const std::string &obj_name) const {
+        using namespace std;
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+        assert_nvcc();
+
+        stringstream command;
+        command << global::get_nvcc_bin_dir() << "nvcc";
+        // Specify the device architecture
+        command << " -arch=" << arch;
+        // Say that this is actually cuda code
+        command << " -x cu";
+        // Create a .o file
+        command << " -c";
+        // Export device code
+        command << " -dc";
+        // Specify input file name
+        command << " " << filename;
+        // Specify output name
+        command << " -o " << get_cpu_obj(obj_name);
+
+        DEBUG(3, cout << "The command to compile the CPU object is : " << command.str());
+
+        auto result = exec(command.str());
+
+        if (result.fail())
+            tiramisu::error("Failed to compile the CPU object for the GPU code.", false);
+
+        DEBUG_INDENT(-4);
+
+        return result.succeed();
+    }
+
+    bool cuda_ast::compiler::compile_gpu_obj(const std::string &obj_name) const
+    {
+        using namespace std;
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+        assert_nvcc();
+
+        stringstream command;
+        command << global::get_nvcc_bin_dir() << "nvcc";
+        // Specify the device architecture
+        command << " -arch=" << arch;
+        // Link device object code
+        command << " -dlink";
+        // Specify input file name
+        command << " " << get_cpu_obj(obj_name);
+        // Specify output name
+        command << " -o " << get_gpu_obj(obj_name);
+
+        DEBUG(3, cout << "The command to compile the GPU object is : " << command.str());
+
+        auto result = exec(command.str());
+
+        if (result.fail())
+            tiramisu::error("Failed to compile the GPU object for the GPU code.", false);
+
+        DEBUG_INDENT(-4);
+
+        return result.succeed();
+    }
+
+    bool cuda_ast::compiler::compile(const std::string & obj_name) const {
+        using namespace std;
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+        char cwd[500];
+        getcwd(cwd, 500);
+        cout << cwd << endl;
+        ofstream code_file;
+        string filename = obj_name + ".cu";
+        code_file.open(filename, fstream::out | fstream::trunc);
+        if (code_file.fail()) {
+            tiramisu::error("Failed to open file " + filename + " for writing. Cannot compile GPU code.", false);
+            return false;
+        }
+        DEBUG(3, cout << "Opened file " << filename << " for writing.");
+        code_file << "#include <cstdint>\n";
+        code_file << code;
+        code_file.flush();
+        if (code_file.fail()) {
+            tiramisu::error("Failed to write to file " + filename + ". Cannot compile GPU code.", false);
+            return false;
+        }
+
+        DEBUG_INDENT(-4);
+
+        return compile_cpu_obj(filename, obj_name) && compile_gpu_obj(obj_name);
+    }
+
+    bool cuda_ast::abstract_identifier::is_buffer() const {
+        return false;
+    }
+
+    bool cuda_ast::buffer::is_buffer() const {
+        return true;
+    }
+
+    cuda_ast::return_statement::return_statement(statement_ptr return_value) : statement(p_none), return_value(return_value){}
+
+    void cuda_ast::return_statement::print(std::stringstream &ss, const std::string &base) {
+        ss << "return ";
+        return_value->print(ss, base);
+    }
+
 };
 

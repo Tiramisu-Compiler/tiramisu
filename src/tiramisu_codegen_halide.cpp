@@ -1574,10 +1574,11 @@ Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Inte
     }
 }
 
-Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
-    const tiramisu::function &fct, isl_ast_node *node,
-    int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-    bool is_a_child_block)
+Halide::Internal::Stmt
+tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
+                                               std::vector<std::pair<std::string, std::string>> &tagged_stmts,
+                                               bool is_a_child_block,
+                                               std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1599,24 +1600,120 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
             Halide::Internal::Stmt block;
 
+            auto op_type = o_none;
+
+            if (isl_ast_node_get_type(child) == isl_ast_node_user)
+                op_type = get_computation_annotated_in_a_node(child)->get_expr().get_op_type();
+
             if ((isl_ast_node_get_type(child) == isl_ast_node_user) &&
-                ((get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_allocate) ||
-                 (get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_free)))
+                (op_type == o_allocate || op_type == o_free || op_type == o_memcpy))
             {
                 tiramisu::computation *comp = get_computation_annotated_in_a_node(child);
-                if (get_computation_annotated_in_a_node(child)->get_expr().get_op_type() == tiramisu::o_allocate)
+                if (op_type == tiramisu::o_allocate)
                 {
                     DEBUG(3, tiramisu::str_dump("Adding a computation to vector of allocate stmts (for later construction)"));
                     allocate_stmts_vector.push_back(comp);
                 }
-                else
+                else if (op_type == tiramisu::o_free)
+                {
                     block = Halide::Internal::Free::make(comp->get_name());
+                }
+                else
+                {
+                    auto const &e = comp->get_expr();
+                    auto buffer_1 = fct.get_buffers().at(e.get_operand(0).get_name());
+                    auto buffer_2 = fct.get_buffers().at(e.get_operand(1).get_name());
+                    buffer * gpu_b, * host_b;
+                    bool to_host = false, from_host = false;
+                    if (buffer_1->location != cuda_ast::memory_location::host && buffer_2->location == cuda_ast::memory_location::host) {
+                        gpu_b = buffer_1;
+                        host_b = buffer_2;
+                        to_host = true;
+                    }
+                    else if (buffer_1->location == cuda_ast::memory_location::host && buffer_2->location != cuda_ast::memory_location::host) {
+                        gpu_b = buffer_2;
+                        host_b = buffer_1;
+                        from_host = true;
+                    }
+                    assert(from_host || to_host);
+                    // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
+                    // to outermost; thus, we need to reverse the order
+                    // TODO: refactor
+                    halide_dimension_t *shape = new halide_dimension_t[host_b->get_dim_sizes().size()];
+                    int stride = 1;
+                    std::vector<Halide::Expr> strides_vector;
+
+                    if (host_b->has_constant_extents())
+                    {
+                        DEBUG(10, tiramisu::str_dump("Buffer has constant extents."));
+                        for (size_t i = 0; i < host_b->get_dim_sizes().size(); i++)
+                        {
+                            shape[i].min = 0;
+                            int dim_idx = host_b->get_dim_sizes().size() - i - 1;
+                            shape[i].extent = (int)host_b->get_dim_sizes()[dim_idx].get_int_val();
+                            shape[i].stride = stride;
+                            stride *= (int)host_b->get_dim_sizes()[dim_idx].get_int_val();
+                        }
+                    }
+                    else
+                    {
+                        DEBUG(10, tiramisu::str_dump("Buffer has non-constant extents."));
+                        std::vector<isl_ast_expr *> empty_index_expr;
+                        Halide::Expr stride_expr = Halide::Expr(1);
+                        for (int i = 0; i < host_b->get_dim_sizes().size(); i++)
+                        {
+                            int dim_idx = host_b->get_dim_sizes().size() - i - 1;
+                            strides_vector.push_back(stride_expr);
+                            stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(&fct, empty_index_expr, host_b->get_dim_sizes()[dim_idx]);
+                        }
+                    }
+                    auto h_type = halide_type_from_tiramisu_type(host_b->get_elements_type());
+                    Halide::Internal::Parameter param =
+                            Halide::Internal::Parameter{h_type,
+                                                        true,
+                                                        host_b->get_dim_sizes().size(),
+                                                        host_b->get_name()};
+                    Halide::Buffer<> halide_buffer =
+                            Halide::Buffer<>(
+                                    halide_type_from_tiramisu_type(host_b->get_elements_type()),
+                                    NULL,
+                                    host_b->get_dim_sizes().size(),
+                                    shape,
+                                    host_b->get_name());
+                    param = Halide::Internal::Parameter(halide_buffer.type(), true, halide_buffer.dimensions(), halide_buffer.name());
+                    param.set_buffer(halide_buffer);
+                    auto loaded_symbol =
+                            Halide::Internal::Load::make(
+                            h_type, host_b->get_name(), {0}, halide_buffer,
+                            param, Halide::Internal::const_true(h_type.lanes()));
+
+
+                    auto buffer_address =
+                            cast(Halide::Handle(1),
+                                 Halide::Internal::Call::make(Halide::Handle(1, h_type.handle_type),
+                                                              Halide::Internal::Call::address_of, {loaded_symbol},
+                                                              Halide::Internal::Call::Intrinsic));
+                    auto gpu_buffer = Halide::Internal::Variable::make(Halide::type_of<void *>(), gpu_b->get_name());
+                    auto host_result_buffer = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
+                                                              host_b->get_name() + ".buffer");
+                    if (to_host)
+                        block = Halide::Internal::Evaluate::make(
+                                Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_host",
+                                                             {buffer_address, gpu_buffer}, Halide::Internal::Call::Extern)
+                        );
+                    else if (from_host)
+                        block = Halide::Internal::Evaluate::make(
+                                Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_device",
+                                                             {gpu_buffer, buffer_address}, Halide::Internal::Call::Extern)
+                        );
+                }
             }
             else
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
                 // Generate a child block
-                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true);
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true,
+                                                                       iterator_to_kernel_map);
             }
             isl_ast_node_free(child);
 
@@ -1720,10 +1817,12 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
                 {
-                    result = Halide::Internal::Allocate::make(
-                           buf->get_name(),
-                           halide_type_from_tiramisu_type(buf->get_elements_type()),
-                           halide_dim_sizes, Halide::Internal::const_true(), result);
+//                    result = Halide::Internal::Allocate::make(
+//                           buf->get_name(),
+//                           halide_type_from_tiramisu_type(buf->get_elements_type()),
+//                           halide_dim_sizes, Halide::Internal::const_true(), result);
+                    result = make_buffer_alloc(buf, halide_dim_sizes, result);
+
 
                     buf->mark_as_allocated();
 
@@ -1760,249 +1859,284 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
         char *cstr = isl_ast_expr_to_C_str(iter);
         std::string iterator_str = std::string(cstr);
 
-        isl_ast_expr *init = isl_ast_node_for_get_init(node);
-        isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
-        isl_ast_expr *inc  = isl_ast_node_for_get_inc(node);
+        auto it_kernel = iterator_to_kernel_map.find(iterator_str);
 
-        isl_val *inc_val = isl_ast_expr_get_val(inc);
-        if (!isl_val_is_one(inc_val))
+        if (it_kernel != iterator_to_kernel_map.end())
         {
-            tiramisu::error("The increment in one of the loops is not +1."
-                            "This is not supported by Halide", 1);
-        }
-        isl_val_free(inc_val);
+            assert(!(it_kernel->second.empty()) && "Required kernel was not generated");
+            auto k = it_kernel->second.back();
+            it_kernel->second.pop_back();
 
-        isl_ast_node *body = isl_ast_node_for_get_body(node);
-        isl_ast_expr *cond_upper_bound_isl_format = NULL;
-
-        /*
-           Halide expects the loop bound to be of the form
-            iter < bound
-           where as ISL can generated loop bounds of the forms
-            ite < bound
-           and
-            iter <= bound
-           We need to transform the two ISL loop bounds into the Halide
-           format.
-        */
-        if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt)
-        {
-            cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
-        }
-        else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le)
-        {
-            // Create an expression of "1".
-            isl_val *one = isl_val_one(isl_ast_node_get_ctx(node));
-            // Add 1 to the ISL ast upper bound to transform it into a strinct bound.
-            cond_upper_bound_isl_format = isl_ast_expr_add(
-                                              isl_ast_expr_get_op_arg(cond, 1),
-                                              isl_ast_expr_from_val(one));
-        }
-        else
-        {
-            tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt" , 1);
-        }
-        assert(cond_upper_bound_isl_format != NULL);
-        DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
-
-        Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
-        if (init_expr.type() !=
-                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()))
-        {
-            init_expr =
-                Halide::Internal::Cast::make(
-                    halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
-                    init_expr);
-        }
-        DEBUG(3, tiramisu::str_dump("init expression: "); std::cout << init_expr);
-        Halide::Expr cond_upper_bound_halide_format =
-            simplify(halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format));
-        if (cond_upper_bound_halide_format.type() !=
-                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()))
-        {
-            cond_upper_bound_halide_format =
-                Halide::Internal::Cast::make(
-                    halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
-                    cond_upper_bound_halide_format);
-        }
-        DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
-              std::cout << cond_upper_bound_halide_format);
-        Halide::Internal::Stmt halide_body =
-                tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts);
-        Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
-        Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
-
-        // Change the type from Serial to parallel or vector if the
-        // current level was marked as such.
-        size_t tt = 0;
-        bool convert_to_conditional = false;
-        while (tt < tagged_stmts.size())
-        {
-            if (tagged_stmts[tt].first != "") {
-                if (tagged_stmts[tt].second == "parallelize" && fct.should_parallelize(tagged_stmts[tt].first, level)) {
-                    fortype = Halide::Internal::ForType::Parallel;
-                    // Since this statement is treated, remove it from the list of
-                    // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt].first = "";
-                    // As soon as we find one tagged statement that actually useful we exit
-                    break;
-                } else if (tagged_stmts[tt].second == "vectorize" &&
-                           fct.should_vectorize(tagged_stmts[tt].first, level)) {
-                    DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
-                                                + std::to_string(level) + ", tagged stmt is " +
-                                                tagged_stmts[tt].first));
-
-                    int vector_length = fct.get_vector_length(tagged_stmts[tt].first, level);
-
-                    for (auto vd: fct.vector_dimensions) {
-                        DEBUG(3, "stmt = " + std::get<0>(vd) + ", level = " +
-                                 std::to_string(std::get<1>(vd)) + ", length = " +
-                                 std::to_string(std::get<2>(vd)));
-                    }
-
-                    DEBUG(3, tiramisu::str_dump("Tagged statements (before removing this tagged stmt):"));
-                    size_t tttt = 0;
-                    while (tttt < tagged_stmts.size()) {
-                        DEBUG(3, tiramisu::str_dump(
-                                "Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first +
-                                " with tag " + tagged_stmts[tttt].second));
-                        tttt++;
-                    }
-
-                    DEBUG(3, tiramisu::str_dump("Vector length = ");
-                            tiramisu::str_dump(std::to_string(vector_length)));
-
-                    // Currently we assume that when vectorization is used,
-                    // then the original loop extent is > vector_length.
-                    cond_upper_bound_halide_format = Halide::Expr(vector_length);
-                    fortype = Halide::Internal::ForType::Vectorized;
-                    DEBUG(3, tiramisu::str_dump("Loop vectorized"));
-
-                    /*
-                      The following code checks if the upper bound is a constant.
-
-                            const Halide::Internal::IntImm *extent =
-                                         cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-
-                                if (!extent)
-                                {
-                                    DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
-                                    // Currently we can only print Halide expressions using
-                                    // "std::cout << ".
-                                    DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
-                                }
-                    */
-
-                    // Since this statement is treated, remove it from the list of
-                    // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt].first = "";
-
-                    DEBUG(3, tiramisu::str_dump("Tagged statements:"));
-                    tttt = 0;
-                    while (tttt < tagged_stmts.size()) {
-                        DEBUG(3, tiramisu::str_dump(
-                                "Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first +
-                                " with tag " + tagged_stmts[tttt].second));
-                        tttt++;
-                    }
-                    break;
-                } else if (tagged_stmts[tt].second == "map_to_gpu_thread" &&
-                           fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
-                    fortype = Halide::Internal::ForType::GPUThread;
-                    dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt].first, level);
-                    Halide::Expr new_iterator_var =
-                            Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
-                    halide_body = Halide::Internal::LetStmt::make(
-                            iterator_str,
-                            new_iterator_var,
-                            halide_body);
-                    iterator_str = gpu_iter;
-                    DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
-
-                    // Since this statement is treated, remove it from the list of
-                    // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt].first = "";
-                    break;
-                } else if (tagged_stmts[tt].second == "map_to_gpu_block" &&
-                           fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
-                    fortype = Halide::Internal::ForType::GPUBlock;
-                    dev_api = Halide::DeviceAPI::OpenCL;
-                    std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt].first, level);
-                    Halide::Expr new_iterator_var =
-                            Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
-                    halide_body = Halide::Internal::LetStmt::make(
-                            iterator_str,
-                            new_iterator_var,
-                            halide_body);
-                    iterator_str = gpu_iter;
-                    DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
-
-                    // Since this statement is treated, remove it from the list of
-                    // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt].first = "";
-                    break;
-                } else if (tagged_stmts[tt].second == "unroll" && fct.should_unroll(tagged_stmts[tt].first, level)) {
-                    DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
-                            tiramisu::str_dump(std::to_string(level)));
-
-                    const Halide::Internal::IntImm *extent =
-                            cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                    if (extent) {
-                        fortype = Halide::Internal::ForType::Unrolled;
-                        DEBUG(3, tiramisu::str_dump("Loop unrolled"));
-                    } else {
-                        DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
-                        DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
-                    }
-
-                    // Since this statement is treated, remove it from the list of
-                    // tagged statements so that it does not get treated again later.
-                    tagged_stmts[tt].first = "";
-                    break;
-                } else if (tagged_stmts[tt].second == "distribute" && fct.should_distribute(tagged_stmts[tt].first, level)) {
-                    // Change this loop into an if statement instead
-                    convert_to_conditional = true;
-                    tagged_stmts[tt].first = "";
-                    break;
-                }
+            std::vector<Halide::Expr> args;
+            std::vector<isl_ast_expr *> ie;
+            for (auto &id: k->get_arguments())
+            {
+//                if (id->is_buffer())
+//                {
+//                    auto h_type = halide_type_from_tiramisu_type(id->get_type());
+//                    auto loaded_symbol = Halide::Internal::Load::make(
+//                            h_type, id->get_name(), {0}, Halide::Buffer<>(),
+//                            Halide::Internal::Parameter(), Halide::Internal::const_true(h_type.lanes()));
+//
+//                    auto buffer_address = Halide::Internal::Call::make(Halide::Handle(1, h_type.handle_type),
+//                                                          Halide::Internal::Call::address_of, {loaded_symbol},
+//                                                          Halide::Internal::Call::Intrinsic);
+//
+//                    args.push_back(buffer_address);
+//                } else
+//                {
+                args.push_back(
+                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(id->get_type()), id->get_name())
+                );
+//                }
             }
-            tt++;
-        }
 
-        DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now:"));
-        for (const auto &ts: tagged_stmts)
-        DEBUG(10, tiramisu::str_dump(ts.first + " with tag " + ts.second));
-        DEBUG(10, tiramisu::str_dump(""));
 
-        if (convert_to_conditional)
-        {
-            DEBUG(3, tiramisu::str_dump("Converting for loop into a rank conditional."));
-            Halide::Expr rank_var =
-                    Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank");
-            Halide::Expr condition = rank_var >= init_expr;
-            condition = condition && (rank_var < cond_upper_bound_halide_format);
-            Halide::Internal::Stmt else_s;
-            // We need a reference still to this iterator name, so set it equal to the rank
-            halide_body = Halide::Internal::LetStmt::make(iterator_str, rank_var, halide_body);
-            result = Halide::Internal::IfThenElse::make(condition, halide_body, else_s);
-        }
-        else
-        {
-            DEBUG(3, tiramisu::str_dump("Creating the for loop."));
-            result = Halide::Internal::For::make(iterator_str, init_expr, cond_upper_bound_halide_format - init_expr,
-                                                 fortype, dev_api, halide_body);
-            DEBUG(3, tiramisu::str_dump("For loop created."));
-            DEBUG(10, std::cout << result);
-        }
+            result = Halide::Internal::Evaluate::make(
+                    Halide::Internal::Call::make(
+                            halide_type_from_tiramisu_type(cuda_ast::kernel::wrapper_return_type),
+                            k->get_wrapper_name(), args, Halide::Internal::Call::Extern));
+        } else {
 
+            isl_ast_expr *init = isl_ast_node_for_get_init(node);
+            isl_ast_expr *cond = isl_ast_node_for_get_cond(node);
+            isl_ast_expr *inc = isl_ast_node_for_get_inc(node);
+
+            isl_val *inc_val = isl_ast_expr_get_val(inc);
+            if (!isl_val_is_one(inc_val)) {
+                tiramisu::error("The increment in one of the loops is not +1."
+                                        "This is not supported by Halide", 1);
+            }
+            isl_val_free(inc_val);
+
+            isl_ast_node *body = isl_ast_node_for_get_body(node);
+            isl_ast_expr *cond_upper_bound_isl_format = NULL;
+
+            /*
+               Halide expects the loop bound to be of the form
+                iter < bound
+               where as ISL can generated loop bounds of the forms
+                ite < bound
+               and
+                iter <= bound
+               We need to transform the two ISL loop bounds into the Halide
+               format.
+            */
+            if (isl_ast_expr_get_op_type(cond) == isl_ast_op_lt) {
+                cond_upper_bound_isl_format = isl_ast_expr_get_op_arg(cond, 1);
+            } else if (isl_ast_expr_get_op_type(cond) == isl_ast_op_le) {
+                // Create an expression of "1".
+                isl_val *one = isl_val_one(isl_ast_node_get_ctx(node));
+                // Add 1 to the ISL ast upper bound to transform it into a strinct bound.
+                cond_upper_bound_isl_format = isl_ast_expr_add(
+                        isl_ast_expr_get_op_arg(cond, 1),
+                        isl_ast_expr_from_val(one));
+            } else {
+                tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt", 1);
+            }
+            assert(cond_upper_bound_isl_format != NULL);
+            DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
+
+            Halide::Expr init_expr = halide_expr_from_isl_ast_expr(init);
+            if (init_expr.type() !=
+                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type())) {
+                init_expr =
+                        Halide::Internal::Cast::make(
+                                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
+                                init_expr);
+            }
+            DEBUG(3, tiramisu::str_dump("init expression: ");
+                    std::cout << init_expr);
+            Halide::Expr cond_upper_bound_halide_format =
+                    simplify(halide_expr_from_isl_ast_expr(cond_upper_bound_isl_format));
+            if (cond_upper_bound_halide_format.type() !=
+                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type())) {
+                cond_upper_bound_halide_format =
+                        Halide::Internal::Cast::make(
+                                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
+                                cond_upper_bound_halide_format);
+            }
+            DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
+                    std::cout << cond_upper_bound_halide_format);
+            Halide::Internal::Stmt halide_body =
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false,
+                                                                   iterator_to_kernel_map);
+            Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
+            Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
+
+            // Change the type from Serial to parallel or vector if the
+            // current level was marked as such.
+            size_t tt = 0;
+            bool convert_to_conditional = false;
+            while (tt < tagged_stmts.size()) {
+                if (tagged_stmts[tt].first != "") {
+                    if (tagged_stmts[tt].second == "parallelize" &&
+                        fct.should_parallelize(tagged_stmts[tt].first, level)) {
+                        fortype = Halide::Internal::ForType::Parallel;
+                        // Since this statement is treated, remove it from the list of
+                        // tagged statements so that it does not get treated again later.
+                        tagged_stmts[tt].first = "";
+                        // As soon as we find one tagged statement that actually useful we exit
+                        break;
+                    } else if (tagged_stmts[tt].second == "vectorize" &&
+                               fct.should_vectorize(tagged_stmts[tt].first, level)) {
+                        DEBUG(3, tiramisu::str_dump("Trying to vectorize at level "
+                                                    + std::to_string(level) + ", tagged stmt is " +
+                                                    tagged_stmts[tt].first));
+
+                        int vector_length = fct.get_vector_length(tagged_stmts[tt].first, level);
+
+                        for (auto vd: fct.vector_dimensions) {
+                            DEBUG(3, "stmt = " + std::get<0>(vd) + ", level = " +
+                                     std::to_string(std::get<1>(vd)) + ", length = " +
+                                     std::to_string(std::get<2>(vd)));
+                        }
+
+                        DEBUG(3, tiramisu::str_dump("Tagged statements (before removing this tagged stmt):"));
+                        size_t tttt = 0;
+                        while (tttt < tagged_stmts.size()) {
+                            DEBUG(3, tiramisu::str_dump(
+                                    "Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first +
+                                    " with tag " + tagged_stmts[tttt].second));
+                            tttt++;
+                        }
+
+                        DEBUG(3, tiramisu::str_dump("Vector length = ");
+                                tiramisu::str_dump(std::to_string(vector_length)));
+
+                        // Currently we assume that when vectorization is used,
+                        // then the original loop extent is > vector_length.
+                        cond_upper_bound_halide_format = Halide::Expr(vector_length);
+                        fortype = Halide::Internal::ForType::Vectorized;
+                        DEBUG(3, tiramisu::str_dump("Loop vectorized"));
+
+                        /*
+                          The following code checks if the upper bound is a constant.
+
+                                const Halide::Internal::IntImm *extent =
+                                             cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+
+                                    if (!extent)
+                                    {
+                                        DEBUG(3, tiramisu::str_dump("Loop not vectorized (extent is non constant)"));
+                                        // Currently we can only print Halide expressions using
+                                        // "std::cout << ".
+                                        DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                                    }
+                        */
+
+                        // Since this statement is treated, remove it from the list of
+                        // tagged statements so that it does not get treated again later.
+                        tagged_stmts[tt].first = "";
+
+                        DEBUG(3, tiramisu::str_dump("Tagged statements:"));
+                        tttt = 0;
+                        while (tttt < tagged_stmts.size()) {
+                            DEBUG(3, tiramisu::str_dump(
+                                    "Tagged stmt: " + std::to_string(tttt) + ": " + tagged_stmts[tttt].first +
+                                    " with tag " + tagged_stmts[tttt].second));
+                            tttt++;
+                        }
+                        break;
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_thread" &&
+                               fct.should_map_to_gpu_thread(tagged_stmts[tt].first, level)) {
+                        fortype = Halide::Internal::ForType::GPUThread;
+                        dev_api = Halide::DeviceAPI::OpenCL;
+                        std::string gpu_iter = fct.get_gpu_thread_iterator(tagged_stmts[tt].first, level);
+                        Halide::Expr new_iterator_var =
+                                Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                        halide_body = Halide::Internal::LetStmt::make(
+                                iterator_str,
+                                new_iterator_var,
+                                halide_body);
+                        iterator_str = gpu_iter;
+                        DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
+
+                        // Since this statement is treated, remove it from the list of
+                        // tagged statements so that it does not get treated again later.
+                        tagged_stmts[tt].first = "";
+                        break;
+                    } else if (tagged_stmts[tt].second == "map_to_gpu_block" &&
+                               fct.should_map_to_gpu_block(tagged_stmts[tt].first, level)) {
+                        assert(false);
+                        fortype = Halide::Internal::ForType::GPUBlock;
+                        dev_api = Halide::DeviceAPI::OpenCL;
+                        std::string gpu_iter = fct.get_gpu_block_iterator(tagged_stmts[tt].first, level);
+                        Halide::Expr new_iterator_var =
+                                Halide::Internal::Variable::make(Halide::Int(32), gpu_iter);
+                        halide_body = Halide::Internal::LetStmt::make(
+                                iterator_str,
+                                new_iterator_var,
+                                halide_body);
+                        iterator_str = gpu_iter;
+                        DEBUG(3, tiramisu::str_dump("Loop over " + gpu_iter + " created.\n"));
+
+                        // Since this statement is treated, remove it from the list of
+                        // tagged statements so that it does not get treated again later.
+                        tagged_stmts[tt].first = "";
+                        break;
+                    } else if (tagged_stmts[tt].second == "unroll" &&
+                               fct.should_unroll(tagged_stmts[tt].first, level)) {
+                        DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
+                                tiramisu::str_dump(std::to_string(level)));
+
+                        const Halide::Internal::IntImm *extent =
+                                cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+                        if (extent) {
+                            fortype = Halide::Internal::ForType::Unrolled;
+                            DEBUG(3, tiramisu::str_dump("Loop unrolled"));
+                        } else {
+                            DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
+                            DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+                        }
+
+                        // Since this statement is treated, remove it from the list of
+                        // tagged statements so that it does not get treated again later.
+                        tagged_stmts[tt].first = "";
+                        break;
+                    } else if (tagged_stmts[tt].second == "distribute" &&
+                               fct.should_distribute(tagged_stmts[tt].first, level)) {
+                        // Change this loop into an if statement instead
+                        convert_to_conditional = true;
+                        tagged_stmts[tt].first = "";
+                        break;
+                    }
+                }
+                tt++;
+            }
+
+            DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now:"));
+            for (const auto &ts: tagged_stmts) DEBUG(10, tiramisu::str_dump(ts.first + " with tag " + ts.second));
+            DEBUG(10, tiramisu::str_dump(""));
+
+            if (convert_to_conditional) {
+                DEBUG(3, tiramisu::str_dump("Converting for loop into a rank conditional."));
+                Halide::Expr rank_var =
+                        Halide::Internal::Variable::make(
+                                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank");
+                Halide::Expr condition = rank_var >= init_expr;
+                condition = condition && (rank_var < cond_upper_bound_halide_format);
+                Halide::Internal::Stmt else_s;
+                // We need a reference still to this iterator name, so set it equal to the rank
+                halide_body = Halide::Internal::LetStmt::make(iterator_str, rank_var, halide_body);
+                result = Halide::Internal::IfThenElse::make(condition, halide_body, else_s);
+            } else {
+                DEBUG(3, tiramisu::str_dump("Creating the for loop."));
+                result = Halide::Internal::For::make(iterator_str, init_expr,
+                                                     cond_upper_bound_halide_format - init_expr,
+                                                     fortype, dev_api, halide_body);
+                DEBUG(3, tiramisu::str_dump("For loop created."));
+                DEBUG(10, std::cout << result);
+            }
+
+            isl_ast_expr_free(init);
+            isl_ast_expr_free(cond);
+            isl_ast_expr_free(inc);
+            isl_ast_node_free(body);
+            isl_ast_expr_free(cond_upper_bound_isl_format);
+        }
         isl_ast_expr_free(iter);
         free(cstr);
-        isl_ast_expr_free(init);
-        isl_ast_expr_free(cond);
-        isl_ast_expr_free(inc);
-        isl_ast_node_free(body);
-        isl_ast_expr_free(cond_upper_bound_isl_format);
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_user)
     {
@@ -2127,8 +2261,8 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
             DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
             Halide::Internal::Stmt if_s =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt,
-                                                    level, tagged_stmts);
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false,
+                                                                   iterator_to_kernel_map);
 
             DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
 
@@ -2149,7 +2283,8 @@ Halide::Internal::Stmt tiramisu::generator::halide_stmt_from_isl_node(
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
-                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts);
+                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false,
+                                                                            iterator_to_kernel_map);
                     DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
                 }
             }
@@ -2189,7 +2324,8 @@ void function::gen_halide_stmt()
     Halide::Internal::Stmt stmt;
 
     // Generate the statement that represents the whole function
-    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts);
+    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, false,
+                                                          this->iterator_to_kernel_list);
 
     DEBUG(3, tiramisu::str_dump("The following Halide statement was generated:\n"); std::cout << stmt << std::endl);
 
@@ -2210,10 +2346,11 @@ void function::gen_halide_stmt()
                 std::vector<isl_ast_expr *> ie = {};
                 halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(this, ie, sz));
             }
-            stmt = Halide::Internal::Allocate::make(
-                       buf->get_name(),
-                       halide_type_from_tiramisu_type(buf->get_elements_type()),
-                       halide_dim_sizes, Halide::Internal::const_true(), stmt);
+            stmt = generator::make_buffer_alloc(buf, halide_dim_sizes, stmt);
+//            stmt = Halide::Internal::Allocate::make(
+//                       buf->get_name(),
+//                       halide_type_from_tiramisu_type(buf->get_elements_type()),
+//                       halide_dim_sizes, Halide::Internal::const_true(), stmt);
 
             buf->mark_as_allocated();
         }
@@ -2239,7 +2376,6 @@ void function::gen_halide_stmt()
                    param.get_name(),
                    generator::halide_expr_from_tiramisu_expr(this, ie, param.get_expr()),
                    stmt);
-        std::cout << "Debug Malek " << stmt << std::endl;
     }
 
     if (this->_needs_rank_call) {
@@ -2263,6 +2399,37 @@ void function::gen_halide_stmt()
 
     DEBUG_INDENT(-4);
 }
+
+    Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector<Halide::Expr> &extents,
+                                                        Halide::Internal::Stmt &stmt) {
+        using cuda_ast::memory_location;
+        if (b->location == memory_location::host)
+        {
+            return Halide::Internal::Allocate::make(
+                    b->get_name(),
+                    halide_type_from_tiramisu_type(b->get_elements_type()),
+                    extents, Halide::Internal::const_true(), stmt);
+        }
+        else if (b->location == memory_location::global)
+        {
+            Halide::Expr size = extents[0];
+            for (int  i = 1; i < extents.size(); i++)
+            {
+                size = size * extents[i];
+            }
+            return Halide::Internal::LetStmt::make(
+                    b->get_name(),
+                    Halide::cast(Halide::Handle(1, halide_type_from_tiramisu_type(b->get_elements_type()).handle_type),
+                        Halide::Internal::Call::make(Halide::Handle(1), "tiramisu_cuda_malloc", {Halide::cast(Halide::UInt(64), size)}, Halide::Internal::Call::Extern)
+                    ),
+                    stmt
+            );
+
+        }
+
+        return stmt;
+
+    }
 
 isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
@@ -2522,18 +2689,16 @@ std::pair<expr, expr> computation::create_tiramisu_assignment()
 
     DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
-    lhs = generator::comp_to_buffer(this, this->index_expr);
+    std::vector<isl_ast_expr *> index_expr_copy = this->index_expr;
 
-
-
-
+    lhs = generator::comp_to_buffer(this, index_expr_copy);
 
     // Replace the RHS expression to the transformed expressions.
     // We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
     // that an access can only appear when accessing a computation. And that case should be handled in the following transformation
     // so no need to transform this->index_expr separately.
     rhs = generator::replace_accesses(
-            this->get_function(), this->index_expr,
+            this->get_function(), index_expr_copy,
             replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map()));
 
     DEBUG(3, std::cout << "LHS: " << lhs.to_str());
@@ -3381,46 +3546,46 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 {
                     Halide::Expr index;
 
-		    // If index_expr is empty, and since tiramisu_expr is
-		    // an access expression, this means that index_expr was not
-		    // computed using the statement generator because this
-		    // expression is not an expression that is associated with
-		    // a computation. It is rather an expression used by
-		    // a computation (for example, as the size of a buffer
-		    // dimension). So in this case, we retrieve the indices directly
-		    // from tiramisu_expr.
-		    // The possible problem in this case, is that the indices
-		    // in tiramisu_expr cannot be adapted to the schedule if
-		    // these indices are i, j, .... This means that these
-		    // indices have to be constant value only. So we check for this.
-		    if (index_expr.size() == 0)
-		    {
-			DEBUG(10, tiramisu::str_dump("index_expr is empty. Retrieving access indices directly from the tiramisu access expression without scheduling."));
+                    // If index_expr is empty, and since tiramisu_expr is
+                    // an access expression, this means that index_expr was not
+                    // computed using the statement generator because this
+                    // expression is not an expression that is associated with
+                    // a computation. It is rather an expression used by
+                    // a computation (for example, as the size of a buffer
+                    // dimension). So in this case, we retrieve the indices directly
+                    // from tiramisu_expr.
+                    // The possible problem in this case, is that the indices
+                    // in tiramisu_expr cannot be adapted to the schedule if
+                    // these indices are i, j, .... This means that these
+                    // indices have to be constant value only. So we check for this.
+                    if (index_expr.size() == 0)
+                    {
+                        DEBUG(10, tiramisu::str_dump("index_expr is empty. Retrieving access indices directly from the tiramisu access expression without scheduling."));
 
-			for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
-			{
-			   // Actually any access that does not require
-			   // scheduling is supported but currently we only
-			   // accept literal constants as anything else was not
-			   // needed til now.
-			   assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
-			}
+                        for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
+                        {
+                            // Actually any access that does not require
+                            // scheduling is supported but currently we only
+                            // accept literal constants as anything else was not
+                            // needed til now.
+                            assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
+                        }
 
-			if (tiramisu_buffer->has_constant_extents())
-			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, tiramisu_expr.get_access());
-			else
-			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, tiramisu_expr.get_access());
-		    }
-		    else
-		    {
-			DEBUG(10, tiramisu::str_dump("index_expr is NOT empty. Retrieving access indices from index_expr (i.e., retrieving indices adapted to the schedule)."));
-			if (tiramisu_buffer->has_constant_extents())
-			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
-			else
-			    index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, index_expr[0]);
+                        if (tiramisu_buffer->has_constant_extents())
+                            index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, tiramisu_expr.get_access());
+                        else
+                            index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, tiramisu_expr.get_access());
+                    }
+                    else
+                    {
+                        DEBUG(10, tiramisu::str_dump("index_expr is NOT empty. Retrieving access indices from index_expr (i.e., retrieving indices adapted to the schedule)."));
+                        if (tiramisu_buffer->has_constant_extents())
+                            index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), shape, index_expr[0]);
+                        else
+                            index = tiramisu::generator::linearize_access(tiramisu_buffer->get_dim_sizes().size(), strides_vector, index_expr[0]);
 
-			index_expr.erase(index_expr.begin());
-		    }
+                        index_expr.erase(index_expr.begin());
+                    }
                     if (tiramisu_expr.get_op_type() == tiramisu::o_lin_index) {
                         result = index;
                     }
@@ -3590,7 +3755,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     // Halide::Target::OpenCL, etc.
     std::vector<Halide::Target::Feature> features =
     {
-        Halide::Target::AVX2, Halide::Target::SSE41, Halide::Target::OpenCL,
+        Halide::Target::AVX2, Halide::Target::SSE41,// Halide::Target::OpenCL,
 	Halide::Target::FMA, Halide::Target::LargeBuffers
     };
 
@@ -3609,12 +3774,16 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
         fct_arguments.push_back(buffer_arg);
     }
 
+
     Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
                                              Halide::Internal::LoweredFunc::External,
                                              this->get_halide_stmt());
 
     m.compile(Halide::Outputs().object(obj_file_name));
     m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
+
+    if (nvcc_compiler)
+        nvcc_compiler->compile(obj_file_name);
 }
 
 void tiramisu::generator::update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
