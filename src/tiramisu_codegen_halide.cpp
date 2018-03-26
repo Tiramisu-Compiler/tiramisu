@@ -1640,52 +1640,48 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
                     // to outermost; thus, we need to reverse the order
                     // TODO: refactor
-                    halide_dimension_t *shape = new halide_dimension_t[host_b->get_dim_sizes().size()];
                     int stride = 1;
-                    std::vector<Halide::Expr> strides_vector;
+                    Halide::Expr stride_expr = Halide::Expr(1);
 
                     if (host_b->has_constant_extents())
                     {
                         DEBUG(10, tiramisu::str_dump("Buffer has constant extents."));
                         for (size_t i = 0; i < host_b->get_dim_sizes().size(); i++)
                         {
-                            shape[i].min = 0;
                             int dim_idx = host_b->get_dim_sizes().size() - i - 1;
-                            shape[i].extent = (int)host_b->get_dim_sizes()[dim_idx].get_int_val();
-                            shape[i].stride = stride;
                             stride *= (int)host_b->get_dim_sizes()[dim_idx].get_int_val();
                         }
+                        stride_expr = stride;
                     }
                     else
                     {
                         DEBUG(10, tiramisu::str_dump("Buffer has non-constant extents."));
                         std::vector<isl_ast_expr *> empty_index_expr;
-                        Halide::Expr stride_expr = Halide::Expr(1);
                         for (int i = 0; i < host_b->get_dim_sizes().size(); i++)
                         {
                             int dim_idx = host_b->get_dim_sizes().size() - i - 1;
-                            strides_vector.push_back(stride_expr);
                             stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(&fct, empty_index_expr, host_b->get_dim_sizes()[dim_idx]);
                         }
                     }
+                    auto size = Halide::cast(Halide::type_of<uint64_t >(), stride_expr);
                     auto h_type = halide_type_from_tiramisu_type(host_b->get_elements_type());
                     Halide::Internal::Parameter param =
                             Halide::Internal::Parameter{h_type,
                                                         true,
                                                         host_b->get_dim_sizes().size(),
                                                         host_b->get_name()};
-                    Halide::Buffer<> halide_buffer =
-                            Halide::Buffer<>(
-                                    halide_type_from_tiramisu_type(host_b->get_elements_type()),
-                                    NULL,
-                                    host_b->get_dim_sizes().size(),
-                                    shape,
-                                    host_b->get_name());
-                    param = Halide::Internal::Parameter(halide_buffer.type(), true, halide_buffer.dimensions(), halide_buffer.name());
-                    param.set_buffer(halide_buffer);
+//                    Halide::Buffer<> halide_buffer =
+//                            Halide::Buffer<>(
+//                                    halide_type_from_tiramisu_type(host_b->get_elements_type()),
+//                                    NULL,
+//                                    host_b->get_dim_sizes().size(),
+//                                    shape,
+//                                    host_b->get_name());
+//                    param = Halide::Internal::Parameter(halide_buffer.type(), true, halide_buffer.dimensions(), halide_buffer.name());
+//                    param.set_buffer(halide_buffer);
                     auto loaded_symbol =
                             Halide::Internal::Load::make(
-                            h_type, host_b->get_name(), {0}, halide_buffer,
+                            h_type, host_b->get_name(), {0}, Halide::Buffer<>(),
                             param, Halide::Internal::const_true(h_type.lanes()));
 
 
@@ -1700,12 +1696,12 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     if (to_host)
                         block = Halide::Internal::Evaluate::make(
                                 Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_host",
-                                                             {buffer_address, gpu_buffer}, Halide::Internal::Call::Extern)
+                                                             {buffer_address, gpu_buffer, size}, Halide::Internal::Call::Extern)
                         );
                     else if (from_host)
                         block = Halide::Internal::Evaluate::make(
                                 Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_device",
-                                                             {gpu_buffer, buffer_address}, Halide::Internal::Call::Extern)
+                                                             {gpu_buffer, buffer_address, size}, Halide::Internal::Call::Extern)
                         );
                 }
             }
@@ -1872,24 +1868,9 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             std::vector<isl_ast_expr *> ie;
             for (auto &id: k->get_arguments())
             {
-//                if (id->is_buffer())
-//                {
-//                    auto h_type = halide_type_from_tiramisu_type(id->get_type());
-//                    auto loaded_symbol = Halide::Internal::Load::make(
-//                            h_type, id->get_name(), {0}, Halide::Buffer<>(),
-//                            Halide::Internal::Parameter(), Halide::Internal::const_true(h_type.lanes()));
-//
-//                    auto buffer_address = Halide::Internal::Call::make(Halide::Handle(1, h_type.handle_type),
-//                                                          Halide::Internal::Call::address_of, {loaded_symbol},
-//                                                          Halide::Internal::Call::Intrinsic);
-//
-//                    args.push_back(buffer_address);
-//                } else
-//                {
                 args.push_back(
                         Halide::Internal::Variable::make(halide_type_from_tiramisu_type(id->get_type()), id->get_name())
                 );
-//                }
             }
 
 
