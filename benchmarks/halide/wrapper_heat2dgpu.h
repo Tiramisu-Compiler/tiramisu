@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int heat2dgpu_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_output_buffer);
+int heat2dgpu_tiramisu(halide_buffer_t *_b_size_buffer, halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_output_buffer);
 int heat2dgpu_tiramisu_argv(void **args);
 int heat2dgpu_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_output_buffer);
 int heat2dgpu_ref_argv(void **args);
