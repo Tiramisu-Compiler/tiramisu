@@ -215,32 +215,20 @@ int main_ref(int argc, char *argv[], double **r)
 #endif
 
 #ifdef USING_OMP
-          int nthreads = 1;
-#pragma omp parallel
-          nthreads = omp_get_num_threads();
-          std::cout << "OpenMP (Number of threads = " << nthreads << ")" << std::endl;
+      int nthreads = 1;
+      #pragma omp parallel
+      nthreads = omp_get_num_threads();
+      std::cout << "OpenMP (Number of threads = " << nthreads << ")" << std::endl;
 #else
-          std::cout << "OpenMP (not enabled)" << std::endl; 
+      std::cout << "OpenMP (not enabled)" << std::endl; 
 #endif
 
-      std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", ";
-      std::cout << ny << ", ";
-      std::cout << nz << ")" << std::endl;
-
+      std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
       std::cout << "Number of iterations: " << niters  << ".  ";
       std::cout << "Final residual: " << normr  << std::endl;
- 
-      std::cout << "Time (sec) - Total: " << times[0] << ";  DDOT: " << times[1] << ";  WAXPBY: " << times[2] << ";  SPARSEMV: " << times[3] << std::endl;
-
-      std::cout << "FLOPS Summary - Total: " << fnops;
-      std::cout << ";  DDOT: " << fnops_ddot;
-      std::cout << ";  WAXPBY: " << fnops_waxpby;
-      std::cout << ";  SPARSEMV: " << fnops_sparsemv  << std::endl;
-
-      std::cout << "MFLOPS Summary - Total: " << fnops/times[0]/1.0E6;
-      std::cout << ";  DDOT: " << fnops_ddot/times[1]/1.0E6;
-      std::cout << ";  WAXPBY: " << fnops_waxpby/times[2]/1.0E6;
-      std::cout << ";  SPARSEMV: " << fnops_sparsemv/(times[3])/1.0E6  << std::endl;
+      std::cout << "Time (sec): " << times[0] << ";" << std::endl;
+      std::cout << "Total number of Floating operations (FLOPS): " << fnops << std::endl;
+      std::cout << "MFLOPS: " << fnops/times[0]/1.0E6 << std::endl;
 
 #ifdef USING_MPI
       std::cout << "DDOT Timing Variations - Min DDOT MPI_Allreduce time: " << t4min << ";  ";
@@ -392,40 +380,27 @@ int main_tiramisu(int argc, char *argv[], double **r)
       double fnops_sparsemv = fniters*2*fnnz;
       double fnops = fnops_ddot+fnops_waxpby+fnops_sparsemv;
 
-
 #ifdef USING_MPI
-          std::cout << "MPI (Number of ranks = " << size << ") - ";
+      std::cout << "MPI (Number of ranks = " << size << ") - ";
 #else
-          std::cout << "MPI (not enabled) - ";
+      std::cout << "MPI (not enabled) - ";
 #endif
 
 #ifdef USING_OMP
-          int nthreads = 1;
-#pragma omp parallel
-          nthreads = omp_get_num_threads();
-          std::cout << "OpenMP (Number of threads = " << nthreads << ")" << std::endl;
+      int nthreads = 1;
+      #pragma omp parallel
+      nthreads = omp_get_num_threads();
+      std::cout << "OpenMP (Number of threads = " << nthreads << ")" << std::endl;
 #else
-          std::cout << "OpenMP (not enabled)" << std::endl; 
+      std::cout << "OpenMP (not enabled)" << std::endl; 
 #endif
 
-      std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", ";
-      std::cout << ny << ", ";
-      std::cout << nz << ")" << std::endl;
-
+      std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
       std::cout << "Number of iterations: " << niters  << ".  ";
       std::cout << "Final residual: " << normr  << std::endl;
- 
-      std::cout << "Time (sec) - Total: " << times[0] << ";  DDOT: " << times[1] << ";  WAXPBY: " << times[2] << ";  SPARSEMV: " << times[3] << std::endl;
-
-      std::cout << "FLOPS Summary - Total: " << fnops;
-      std::cout << ";  DDOT: " << fnops_ddot;
-      std::cout << ";  WAXPBY: " << fnops_waxpby;
-      std::cout << ";  SPARSEMV: " << fnops_sparsemv  << std::endl;
-
-      std::cout << "MFLOPS Summary - Total: " << fnops/times[0]/1.0E6;
-      std::cout << ";  DDOT: " << fnops_ddot/times[1]/1.0E6;
-      std::cout << ";  WAXPBY: " << fnops_waxpby/times[2]/1.0E6;
-      std::cout << ";  SPARSEMV: " << fnops_sparsemv/(times[3])/1.0E6  << std::endl;
+      std::cout << "Time (sec): " << times[0] << ";" << std::endl;
+      std::cout << "Total number of Floating operations (FLOPS): " << fnops << std::endl;
+      std::cout << "MFLOPS: " << fnops/times[0]/1.0E6 << std::endl;
 
 #ifdef USING_MPI
       std::cout << "DDOT Timing Variations - Min DDOT MPI_Allreduce time: " << t4min << ";  ";
