@@ -138,7 +138,13 @@ int main(int argc, char **argv)
     shared_init_bot_edge.tag_gpu_level(i0, j0, i1, j1);
     shared_init_left_edge.tag_gpu_level(i0, j0, i1, j1);
     shared_init_right_edge.tag_gpu_level(i0, j0, i1, j1);
-    
+
+    computation copy_to_device{"{copy_to_device[0]}", expr(o_memcpy, var(buff_in.get_name()), var(buff_in_gpu.get_name())), true, p_none, &heat2d_tiramisu};
+    computation copy_to_host{"{copy_to_host[0]}", expr(o_memcpy, var(buff_out_gpu.get_name()), var(buff_out.get_name())), true, p_none, &heat2d_tiramisu};
+
+    copy_to_device.before(out_init, computation::root);
+    copy_to_host.after(out_comp, computation::root);
+
     
 
 
