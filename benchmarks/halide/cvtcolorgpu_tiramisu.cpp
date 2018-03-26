@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
     computation input{"[N, M] -> {input[i, j, c] : 0 <= i < N  and 0 <= j < M and 0 <= c < 3}",
                       expr(), false, d_type, &fct};
-    computation output{"[N, M] -> {output[i, j, c] : 0 <= i < N  and 0 <= j < M and 0 <= c < 3}",
+    computation output{"[N, M] -> {output[i, j] : 0 <= i < N  and 0 <= j < M}",
                        cast(d_type, cv_descale(
                                cast(comp_type, input(i, j, 0)) * R2Y +
                                cast(comp_type, input(i, j, 1)) * G2Y +
@@ -61,14 +61,14 @@ int main(int argc, char **argv)
 
     buffer in_buffer{"in_buffer", {3, M, N}, d_type, a_input, &fct};
     buffer sizes_buffer{"sizes_buffer", {2}, it_type, a_input, &fct};
-    buffer out_buffer{"out_buffer", {3, M, N}, d_type, a_output, &fct};
+    buffer out_buffer{"out_buffer", {M, N}, d_type, a_output, &fct};
 
     input.set_access("{input[i, j, c] -> in_buffer[c, j, i]}");
-    output.set_access("{output[i, j, c] -> out_buffer[c, j, i]}");
+    output.set_access("{output[i, j] -> out_buffer[j, i]}");
     sizes.set_access("{sizes[i] -> sizes_buffer[i]}");
 
     buffer in_gpu{"in_gpu", {3, M, N}, d_type, a_temporary, &fct};
-    buffer out_gpu{"out_gpu", {3, M, N}, d_type, a_temporary, &fct};
+    buffer out_gpu{"out_gpu", {M, N}, d_type, a_temporary, &fct};
 
     in_gpu.tag_gpu_global();
     out_gpu.tag_gpu_global();
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
 
     input.set_access("{input[i, j, c] -> in_gpu[c, j, i]}");
-    output.set_access("{output[i, j, c] -> out_gpu[c, j, i]}");
+    output.set_access("{output[i, j] -> out_gpu[j, i]}");
     output.gpu_tile(i, j, 16, 16);
 
     output.between(copy_input, computation::root, copy_output, computation::root);
