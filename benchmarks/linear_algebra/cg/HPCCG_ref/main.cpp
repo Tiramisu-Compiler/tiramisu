@@ -92,7 +92,7 @@ using std::endl;
 
 #undef DEBUG
 
-#define MAX_ITER 2
+#define MAX_ITER 150
 
 int main_ref(int argc, char *argv[], double **r)
 {
@@ -184,22 +184,9 @@ int main_ref(int argc, char *argv[], double **r)
   ierr = HPCCG_ref(A, b, x, max_iter, tolerance, niters, normr, times, *r);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
-#ifdef USING_MPI
-      double t4 = times[4];
-      double t4min = 0.0;
-      double t4max = 0.0;
-      double t4avg = 0.0;
-      MPI_Allreduce(&t4, &t4min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&t4, &t4max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&t4, &t4avg, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      t4avg = t4avg/((double) size);
-#endif
-
-// initialize YAML doc
-
   if (rank==0)  // Only PE 0 needs to compute and report timing results
     {
-      double fniters = niters; 
+      double fniters = 1; //niters; 
       double fnrow = A->total_nrow;
       double fnnz = A->total_nnz;
       double fnops_ddot = fniters*4*fnrow;
@@ -226,25 +213,9 @@ int main_ref(int argc, char *argv[], double **r)
       std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
       std::cout << "Number of iterations: " << niters  << ".  ";
       std::cout << "Final residual: " << normr  << std::endl;
-      std::cout << "Time (sec): " << times[0] << ";" << std::endl;
+      std::cout << "Time (per iteration): " << times[1] << ";" << std::endl;
       std::cout << "Total number of Floating operations (FLOPS): " << fnops << std::endl;
-      std::cout << "MFLOPS: " << fnops/times[0]/1.0E6 << std::endl;
-
-#ifdef USING_MPI
-      std::cout << "DDOT Timing Variations - Min DDOT MPI_Allreduce time: " << t4min << ";  ";
-      std::cout << "Max DDOT MPI_Allreduce time: " << t4max << ";  ";
-      std::cout << "Avg DDOT MPI_Allreduce time: " << t4avg << std::endl;
-
-      double totalSparseMVTime = times[3] + times[5]+ times[6];
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV MFLOPS W OVERHEAD: " << fnops_sparsemv/(totalSparseMVTime)/1.0E6 << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Time: " << (times[5]+times[6]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Pct: " << (times[5]+times[6])/totalSparseMVTime*100.0 << ";  " << std::endl;
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV PARALLEL OVERHEAD Setup Time: " << (times[6]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Setup Pct: " << (times[6])/totalSparseMVTime*100.0 << ";  " << std::endl;
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV PARALLEL OVERHEAD Bdry Exch Time: " << (times[5]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Bdry Exch Pct: " << (times[5])/totalSparseMVTime*100.0 << std::endl;
-#endif
-
+      std::cout << "MFLOPS: " << fnops/times[1]/1.0E6 << std::endl;
     }
 
 
@@ -357,19 +328,6 @@ int main_tiramisu(int argc, char *argv[], double **r)
   ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times, *r);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
-#ifdef USING_MPI
-      double t4 = times[4];
-      double t4min = 0.0;
-      double t4max = 0.0;
-      double t4avg = 0.0;
-      MPI_Allreduce(&t4, &t4min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&t4, &t4max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&t4, &t4avg, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      t4avg = t4avg/((double) size);
-#endif
-
-// initialize YAML doc
-
   if (rank==0)  // Only PE 0 needs to compute and report timing results
     {
       double fniters = niters; 
@@ -398,25 +356,9 @@ int main_tiramisu(int argc, char *argv[], double **r)
       std::cout << "Dimensions : (nx, ny, nz) = (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
       std::cout << "Number of iterations: " << niters  << ".  ";
       std::cout << "Final residual: " << normr  << std::endl;
-      std::cout << "Time (sec): " << times[0] << ";" << std::endl;
+      std::cout << "Time (per iteration): " << times[1] << ";" << std::endl;
       std::cout << "Total number of Floating operations (FLOPS): " << fnops << std::endl;
-      std::cout << "MFLOPS: " << fnops/times[0]/1.0E6 << std::endl;
-
-#ifdef USING_MPI
-      std::cout << "DDOT Timing Variations - Min DDOT MPI_Allreduce time: " << t4min << ";  ";
-      std::cout << "Max DDOT MPI_Allreduce time: " << t4max << ";  ";
-      std::cout << "Avg DDOT MPI_Allreduce time: " << t4avg << std::endl;
-
-      double totalSparseMVTime = times[3] + times[5]+ times[6];
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV MFLOPS W OVERHEAD: " << fnops_sparsemv/(totalSparseMVTime)/1.0E6 << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Time: " << (times[5]+times[6]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Pct: " << (times[5]+times[6])/totalSparseMVTime*100.0 << ";  " << std::endl;
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV PARALLEL OVERHEAD Setup Time: " << (times[6]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Setup Pct: " << (times[6])/totalSparseMVTime*100.0 << ";  " << std::endl;
-      std::cout << "SPARSEMV OVERHEADS - SPARSEMV PARALLEL OVERHEAD Bdry Exch Time: " << (times[5]) << ";  ";
-      std::cout << "SPARSEMV PARALLEL OVERHEAD Bdry Exch Pct: " << (times[5])/totalSparseMVTime*100.0 << std::endl;
-#endif
-
+      std::cout << "MFLOPS: " << fnops/times[1]/1.0E6 << std::endl;
     }
 
   // Compute difference between known exact solution and computed solution
@@ -451,7 +393,7 @@ int main(int argc, char *argv[])
 
   // Compare r_ref and r_tiramisu
   for (int i = 0; i < nrow; i++)
-    if (r_ref[i] != r_tiramisu[i])
+    if (r_ref[i] - r_tiramisu[i] >= 0.001)
     {
 	std::cerr << "r_ref[" << i << "] != r_tiramisu[" << i << "]" << std::endl;
         exit(1);

@@ -66,21 +66,33 @@ using std::endl;
 #include <cmath>
 #include "mytimer.hpp"
 #include "HPCCG.hpp"
+#include <chrono>
+#include <vector>
+#include <algorithm>
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
 #define TOCK(t) t += mytimer() - t0
+
+double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+{
+    double median;
+    size_t size = scores.size();
+
+    std::sort(scores.begin(), scores.end());
+
+    if (size % 2 == 0)
+        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+    else
+        median = scores[size / 2].count();
+
+    return median;
+}
 
 int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int &niters, double & normr,
 	  double * times, double *r)
 {
-  double t_begin = mytimer();  // Start timing right away
-
-  double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0;
-#ifdef USING_MPI
-  double t5 = 0.0;
-#endif
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
 
@@ -103,58 +115,66 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   if (print_freq<1)  print_freq=1;
 
   // p is of length ncols, copy x to p for sparse MV operation
-  TICK(); waxpby(nrow, 1.0, x, 0.0, x, p); TOCK(t2);
+  waxpby(nrow, 1.0, x, 0.0, x, p);
 #ifdef USING_MPI
-  TICK(); exchange_externals(A,p); TOCK(t5); 
+  exchange_externals(A,p);
 #endif
-  TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3);
-  TICK(); waxpby(nrow, 1.0, b, -1.0, Ap, r); TOCK(t2);
-  TICK(); ddot(nrow, r, r, &rtrans, t4); TOCK(t1);
+  HPC_sparsemv(A, p, Ap);
+  waxpby(nrow, 1.0, b, -1.0, Ap, r);
+  ddot(nrow, r, r, &rtrans);
   normr = sqrt(rtrans);
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
+  
+  std::vector<std::chrono::duration<double,std::milli>> duration_vector_one_iter;
+  std::vector<std::chrono::duration<double,std::milli>> duration_vector_comm;
 
   for(int k=1; k<=max_iter && normr > tolerance; k++ )
     {
+      auto start_one_iter = std::chrono::high_resolution_clock::now();
       if (k == 1)
-	{
-	  TICK(); waxpby(nrow, 1.0, r, 0.0, r, p); TOCK(t2);
-	}
+	  waxpby(nrow, 1.0, r, 0.0, r, p);
       else
 	{
 	  oldrtrans = rtrans;
-	  TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
+	  ddot (nrow, r, r, &rtrans); // 2*nrow ops
 	  double beta = rtrans/oldrtrans;
-	  TICK(); waxpby (nrow, 1.0, r, beta, p, p);  TOCK(t2);// 2*nrow ops
+	  waxpby (nrow, 1.0, r, beta, p, p); // 2*nrow ops
 	}
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
-     
 
 #ifdef USING_MPI
-      TICK(); exchange_externals(A,p); TOCK(t5); 
+      auto start_comm = std::chrono::high_resolution_clock::now();
+      exchange_externals(A,p);
+      auto end_comm = std::chrono::high_resolution_clock::now();
 #endif
-      TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3); // 2*nnz ops
+
+      HPC_sparsemv(A, p, Ap); // 2*nnz ops
       double alpha = 0.0;
-      TICK(); ddot(nrow, p, Ap, &alpha, t4); TOCK(t1); // 2*nrow ops
+      ddot(nrow, p, Ap, &alpha); // 2*nrow ops
       alpha = rtrans/alpha;
-      TICK(); waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
-      waxpby(nrow, 1.0, r, -alpha, Ap, r);  TOCK(t2);// 2*nrow ops
+      waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
+      waxpby(nrow, 1.0, r, -alpha, Ap, r);  // 2*nrow ops
       niters = k;
+      auto end_one_iter = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
+      duration_vector_one_iter.push_back(duration_one_iter);
+
+#ifdef USING_MPI
+      std::chrono::duration<double,std::milli> duration_one_comm = end_comm - start_comm;
+      duration_vector_one_iter.push_back(duration_one_iter);
+#endif
     }
 
   // Store times
-  times[1] = t1; // ddot time
-  times[2] = t2; // waxpby time
-  times[3] = t3; // sparsemv time
-  times[4] = t4; // AllReduce time
+  times[1] = median(duration_vector_one_iter); // Iteration total time
 #ifdef USING_MPI
-  times[5] = t5; // exchange boundary time
+  times[5] = median(duration_vector_comm); // exchange boundary time
 #endif
   delete [] p;
   delete [] Ap;
-  times[0] = mytimer() - t_begin;  // Total time. All done...
   return(0);
 }
 
@@ -162,14 +182,7 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int &niters, double & normr,
 	  double * times, double *r)
-
 {
-  double t_begin = mytimer();  // Start timing right away
-
-  double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0;
-#ifdef USING_MPI
-  double t5 = 0.0;
-#endif
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
 
@@ -192,57 +205,65 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
   if (print_freq<1)  print_freq=1;
 
   // p is of length ncols, copy x to p for sparse MV operation
-  TICK(); waxpby(nrow, 1.0, x, 0.0, x, p); TOCK(t2);
+  waxpby(nrow, 1.0, x, 0.0, x, p);
 #ifdef USING_MPI
-  TICK(); exchange_externals(A,p); TOCK(t5); 
+  exchange_externals(A,p);
 #endif
-  TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3);
-  TICK(); waxpby(nrow, 1.0, b, -1.0, Ap, r); TOCK(t2);
-  TICK(); ddot(nrow, r, r, &rtrans, t4); TOCK(t1);
+  HPC_sparsemv(A, p, Ap);
+  waxpby(nrow, 1.0, b, -1.0, Ap, r);
+  ddot(nrow, r, r, &rtrans);
   normr = sqrt(rtrans);
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
+  
+  std::vector<std::chrono::duration<double,std::milli>> duration_vector_one_iter;
+  std::vector<std::chrono::duration<double,std::milli>> duration_vector_comm;
 
   for(int k=1; k<=max_iter && normr > tolerance; k++ )
     {
+      auto start_one_iter = std::chrono::high_resolution_clock::now();
       if (k == 1)
-	{
-	  TICK(); waxpby(nrow, 1.0, r, 0.0, r, p); TOCK(t2);
-	}
+	  waxpby(nrow, 1.0, r, 0.0, r, p);
       else
 	{
 	  oldrtrans = rtrans;
-	  TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
+	  ddot (nrow, r, r, &rtrans); // 2*nrow ops
 	  double beta = rtrans/oldrtrans;
-	  TICK(); waxpby (nrow, 1.0, r, beta, p, p);  TOCK(t2);// 2*nrow ops
+	  waxpby (nrow, 1.0, r, beta, p, p); // 2*nrow ops
 	}
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
-     
 
 #ifdef USING_MPI
-      TICK(); exchange_externals(A,p); TOCK(t5); 
+      auto start_comm = std::chrono::high_resolution_clock::now();
+      exchange_externals(A,p);
+      auto end_comm = std::chrono::high_resolution_clock::now();
 #endif
-      TICK(); HPC_sparsemv(A, p, Ap); TOCK(t3); // 2*nnz ops
+
+      HPC_sparsemv(A, p, Ap); // 2*nnz ops
       double alpha = 0.0;
-      TICK(); ddot(nrow, p, Ap, &alpha, t4); TOCK(t1); // 2*nrow ops
+      ddot(nrow, p, Ap, &alpha); // 2*nrow ops
       alpha = rtrans/alpha;
-      TICK(); waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
-      waxpby(nrow, 1.0, r, -alpha, Ap, r);  TOCK(t2);// 2*nrow ops
+      waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
+      waxpby(nrow, 1.0, r, -alpha, Ap, r);  // 2*nrow ops
       niters = k;
+      auto end_one_iter = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
+      duration_vector_one_iter.push_back(duration_one_iter);
+
+#ifdef USING_MPI
+      std::chrono::duration<double,std::milli> duration_one_comm = end_comm - start_comm;
+      duration_vector_one_iter.push_back(duration_one_iter);
+#endif
     }
 
   // Store times
-  times[1] = t1; // ddot time
-  times[2] = t2; // waxpby time
-  times[3] = t3; // sparsemv time
-  times[4] = t4; // AllReduce time
+  times[1] = median(duration_vector_one_iter); // Iteration total time
 #ifdef USING_MPI
-  times[5] = t5; // exchange boundary time
+  times[5] = median(duration_vector_comm); // exchange boundary time
 #endif
   delete [] p;
   delete [] Ap;
-  times[0] = mytimer() - t_begin;  // Total time. All done...
   return(0);
 }
