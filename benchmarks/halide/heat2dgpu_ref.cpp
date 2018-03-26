@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
     heat2d.compile_to_object("build/generated_fct_heat2dgpu_ref.o",
                              {in},
-                             "heat2d_ref",
+                             "heat2dgpu_ref",
                              target);
 
     heat2d.compile_to_lowered_stmt("build/generated_fct_heat2dgpu_ref.txt",
