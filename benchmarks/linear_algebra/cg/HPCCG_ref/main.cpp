@@ -92,6 +92,8 @@ using std::endl;
 
 #undef DEBUG
 
+#define MAX_ITER 2
+
 int main_ref(int argc, char *argv[], double **r)
 {
   HPC_Sparse_Matrix *A;
@@ -174,7 +176,7 @@ int main_ref(int argc, char *argv[], double **r)
   double t1 = mytimer();   // Initialize it (if needed)
   int niters = 0;
   double normr = 0.0;
-  int max_iter = 45; //150 is the default.
+  int max_iter = MAX_ITER; //150 is the default.
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
   int nrow = A->local_nrow;
   *r = (double *) malloc(sizeof(double)*nrow);
@@ -359,7 +361,7 @@ int main_tiramisu(int argc, char *argv[], double **r)
   double t1 = mytimer();   // Initialize it (if needed)
   int niters = 0;
   double normr = 0.0;
-  int max_iter = 45; //150 is the default.
+  int max_iter = MAX_ITER; //150 is the default.
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
   int nrow = A->local_nrow;
   *r = (double *) malloc(sizeof(double)*nrow);

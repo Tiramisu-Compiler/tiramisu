@@ -136,7 +136,7 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   }
 
   // Iterations 2, 3, ....
-  for(int k=2; k<max_iter && normr > tolerance; k++ )
+  for(int k=2; k<=max_iter && normr > tolerance; k++ )
     {
       oldrtrans = rtrans;
       TICK(); ddot (nrow, r, r, &rtrans, t4); TOCK(t1);// 2*nrow ops
@@ -219,7 +219,7 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
 
-  for(int k=1; k<max_iter && normr > tolerance; k++ )
+  for(int k=1; k<=max_iter && normr > tolerance; k++ )
     {
       if (k == 1)
 	{
