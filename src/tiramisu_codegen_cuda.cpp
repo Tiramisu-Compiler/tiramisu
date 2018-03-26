@@ -31,7 +31,7 @@
 namespace tiramisu {
 namespace cuda_ast {
     // TODO expose as an option
-    const std::string arch = "sm_37";
+    const std::string arch = "sm_30";
 
 const tiramisu::cuda_ast::op_data_t tiramisu_operation_description(tiramisu::op_t op) {
     switch (op) {

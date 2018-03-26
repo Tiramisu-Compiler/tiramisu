@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     output.between(copy_input, computation::root, copy_output, computation::root);
 
 
-    fct.set_arguments({&in_buffer, &sizes_buffer, &out_buffer});
+    fct.set_arguments({&sizes_buffer, &in_buffer, &out_buffer});
     fct.gen_time_space_domain();
     fct.gen_isl_ast();
     fct.gen_cuda_stmt();
