@@ -3841,6 +3841,7 @@ protected:
 
     static Halide::Internal::Stmt make_buffer_alloc(buffer *b, const std::vector<Halide::Expr> &extents,
                                                     Halide::Internal::Stmt &stmt);
+    static Halide::Internal::Stmt make_buffer_free(buffer *b);
 
     /**
      * Create a Halide expression from a  Tiramisu expression.

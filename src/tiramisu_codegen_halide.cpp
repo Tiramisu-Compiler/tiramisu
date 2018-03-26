@@ -1616,7 +1616,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                 }
                 else if (op_type == tiramisu::o_free)
                 {
-                    block = Halide::Internal::Free::make(comp->get_name());
+                    auto * buffer = (comp->get_access_relation() != nullptr) ? fct.get_buffers().at(get_buffer_name(comp)) : nullptr;
+                    block = generator::make_buffer_free(buffer);
                 }
                 else
                 {
@@ -2151,7 +2152,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             else
             {
                 tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
-                result = Halide::Internal::Free::make(comp->get_name());
+                auto * buffer = (comp->get_access_relation() != nullptr) ? fct.get_buffers().at(get_buffer_name(comp)) : nullptr;
+                result = generator::make_buffer_free(buffer);
             }
           }
         else
@@ -2328,6 +2330,23 @@ void function::gen_halide_stmt()
                                                           this->iterator_to_kernel_list);
 
     DEBUG(3, tiramisu::str_dump("The following Halide statement was generated:\n"); std::cout << stmt << std::endl);
+
+    Halide::Internal::Stmt freestmts;
+    for (const auto &b : this->get_buffers())
+    {
+        tiramisu::buffer *buf = b.second;
+        if (buf->get_argument_type() == tiramisu::a_temporary && buf->get_auto_allocate() == true && buf->location == cuda_ast::memory_location::global)
+        {
+            auto free = generator::make_buffer_free(buf);
+            if (freestmts.defined())
+                freestmts = Halide::Internal::Block::make(free, freestmts);
+            else
+                freestmts = free;
+        }
+    }
+
+    if (freestmts.defined())
+        stmt = Halide::Internal::Block::make(stmt, freestmts);
 
     // Allocate buffers that are not passed as an argument to the function
     for (const auto &b : this->get_buffers())
@@ -3914,5 +3933,18 @@ Halide::Expr halide_expr_from_tiramisu_type(tiramisu::primitive_t ptype) {
         default: { assert(false && "Bad type specified"); return Halide::Expr(); }
     }
 }
+
+    Halide::Internal::Stmt generator::make_buffer_free(buffer * b) {
+        assert(b != nullptr);
+        if (b->location == cuda_ast::memory_location::global)
+        {
+            return Halide::Internal::Evaluate::make(
+                    Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_free",
+                                                 {Halide::Internal::Variable::make(Halide::type_of<void *>(), b->get_name())}, Halide::Internal::Call::Extern)
+            );
+        } else {
+            return Halide::Internal::Free::make(b->get_name());
+        }
+    }
 
 }
