@@ -181,7 +181,7 @@ int main_ref(int argc, char *argv[], double **r)
   int nrow = A->local_nrow;
   *r = (double *) malloc(sizeof(double)*nrow);
 
-  ierr = HPCCG_ref(A, b, x, max_iter, tolerance, niters, normr, times);
+  ierr = HPCCG_ref(A, b, x, max_iter, tolerance, niters, normr, times, *r);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
 #ifdef USING_MPI
@@ -354,7 +354,7 @@ int main_tiramisu(int argc, char *argv[], double **r)
   int nrow = A->local_nrow;
   *r = (double *) malloc(sizeof(double)*nrow);
 
-  ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times);
+  ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times, *r);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
 #ifdef USING_MPI

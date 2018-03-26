@@ -54,11 +54,11 @@
 #endif
 int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
-	  const int max_iter, const double tolerance, int & niters, double & normr, double * times);
+	  const int max_iter, const double tolerance, int & niters, double & normr, double * times, double *r);
 
 int HPCCG_ref(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
-	  const int max_iter, const double tolerance, int & niters, double & normr, double * times);
+	  const int max_iter, const double tolerance, int & niters, double & normr, double * times, double *r);
 
 // this function will compute the Conjugate Gradient...
 // A <=> Matrix
