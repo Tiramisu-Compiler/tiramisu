@@ -57,7 +57,7 @@ string YAML_Doc::generateYAML(){
 #ifdef REDSTORM
     mkdir(destinationDirectory.c_str(),0755);
 #else
-    system(mkdir_cmd.c_str());
+    int dummy_return_value = system(mkdir_cmd.c_str());
 #endif
     filename = destinationDirectory + "/" + destinationFileName;
   }
