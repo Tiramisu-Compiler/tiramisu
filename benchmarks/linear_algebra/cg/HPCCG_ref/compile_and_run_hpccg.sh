@@ -2,4 +2,4 @@ make -B
 
 echo
 
-./test_HPCCG 1000 100 100
+./test_HPCCG 6000 100 100

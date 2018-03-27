@@ -107,43 +107,15 @@ int main_ref(int argc, char *argv[], double **r)
   int nx,ny,nz;
 
 #ifdef USING_MPI
-
   MPI_Init(&argc, &argv);
   int size, rank; // Number of MPI processes, My process ID
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
   //  if (size < 100) cout << "Process "<<rank<<" of "<<size<<" is alive." <<endl;
-
 #else
-
   int size = 1; // Serial case (not using MPI)
   int rank = 0; 
-
 #endif
-
-
-#ifdef DEBUG
-  if (rank==0)
-   {
-    int junk = 0;
-    cout << "Press enter to continue"<< endl;
-    cin >> junk;
-   }
-
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-
-  if(argc != 2 && argc!=4) {
-    if (rank==0)
-      cerr << "Usage:" << endl
-	   << "Mode 1: " << argv[0] << " nx ny nz" << endl
-	   << "     where nx, ny and nz are the local sub-block dimensions, or" << endl
-	   << "Mode 2: " << argv[0] << " HPC_data_file " << endl
-	   << "     where HPC_data_file is a globally accessible file containing matrix data." << endl;
-    exit(1);
-  }
 
   if (argc==4) 
   {
@@ -164,13 +136,10 @@ int main_ref(int argc, char *argv[], double **r)
   if (dump_matrix && size<=4) dump_matlab_matrix(A, rank);
 
 #ifdef USING_MPI
-
   // Transform matrix indices from global to local values.
   // Define number of columns for the local matrix.
-
   t6 = mytimer(); make_local_matrix(A);  t6 = mytimer() - t6;
   times[6] = t6;
-
 #endif
 
   double t1 = mytimer();   // Initialize it (if needed)
@@ -251,43 +220,15 @@ int main_tiramisu(int argc, char *argv[], double **r)
   int nx,ny,nz;
 
 #ifdef USING_MPI
-
   MPI_Init(&argc, &argv);
   int size, rank; // Number of MPI processes, My process ID
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
   //  if (size < 100) cout << "Process "<<rank<<" of "<<size<<" is alive." <<endl;
-
 #else
-
   int size = 1; // Serial case (not using MPI)
   int rank = 0; 
-
 #endif
-
-
-#ifdef DEBUG
-  if (rank==0)
-   {
-    int junk = 0;
-    cout << "Press enter to continue"<< endl;
-    cin >> junk;
-   }
-
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-
-  if(argc != 2 && argc!=4) {
-    if (rank==0)
-      cerr << "Usage:" << endl
-	   << "Mode 1: " << argv[0] << " nx ny nz" << endl
-	   << "     where nx, ny and nz are the local sub-block dimensions, or" << endl
-	   << "Mode 2: " << argv[0] << " HPC_data_file " << endl
-	   << "     where HPC_data_file is a globally accessible file containing matrix data." << endl;
-    exit(1);
-  }
 
   if (argc==4) 
   {
@@ -308,13 +249,10 @@ int main_tiramisu(int argc, char *argv[], double **r)
   if (dump_matrix && size<=4) dump_matlab_matrix(A, rank);
 
 #ifdef USING_MPI
-
   // Transform matrix indices from global to local values.
   // Define number of columns for the local matrix.
-
   t6 = mytimer(); make_local_matrix(A);  t6 = mytimer() - t6;
   times[6] = t6;
-
 #endif
 
   double t1 = mytimer();   // Initialize it (if needed)
@@ -330,7 +268,7 @@ int main_tiramisu(int argc, char *argv[], double **r)
 
   if (rank==0)  // Only PE 0 needs to compute and report timing results
     {
-      double fniters = niters; 
+      double fniters = 1; //niters; 
       double fnrow = A->total_nrow;
       double fnnz = A->total_nnz;
       double fnops_ddot = fniters*4*fnrow;
@@ -380,15 +318,41 @@ int main_tiramisu(int argc, char *argv[], double **r)
   return nrow;
 } 
 
+int flush_cache()
+{
+  int cs = (1024 * 1024 * 1024);
+  double* flush = (double*) calloc (cs, sizeof(double));
+  double* flush2 = (double*) calloc (cs, sizeof(double));
+  double* flush3 = (double*) calloc (cs, sizeof(double));
+  double* flush4 = (double*) calloc (cs, sizeof(double));
+
+  int i;
+  double tmp = 0.0;
+#pragma omp parallel for
+  for (i = 0; i < cs; i++)
+  {
+    tmp += flush[i];
+    tmp += flush2[i] + flush3[i] + flush4[i];
+  }
+  free (flush);
+  free (flush2);
+  free (flush3);
+  free (flush4);
+
+  return tmp;
+}
+
 int main(int argc, char *argv[])
 {
   double * r_ref;
   double * r_tiramisu;
 
-  std::cout << "*************************** Reference CG ***************************************" << std::endl;
-  int nrow = main_ref(argc, argv, &r_tiramisu);
+  int res = flush_cache();
   std::cout << "*************************** Tiramisu CG **************************************" << std::endl;
   main_tiramisu(argc, argv, &r_ref);
+  std::cout << "*************************** Reference CG ***************************************" << std::endl;
+  res += flush_cache();
+  int nrow = main_ref(argc, argv, &r_tiramisu);
   std::cout << "******************************************************************" << std::endl;
 
   // Compare r_ref and r_tiramisu
@@ -403,5 +367,5 @@ int main(int argc, char *argv[])
   free(r_ref);
   free(r_tiramisu);
 
-  return 0 ;
+  return res ;
 }
