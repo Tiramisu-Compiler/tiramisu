@@ -100,9 +100,11 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   Halide::Buffer<double> p(ncol); // In parallel case, A is rectangular
   Halide::Buffer<double> Ap(nrow);
   Halide::Buffer<double> rtrans(1);
+  Halide::Buffer<double> alpha(1);
 
   normr = 0.0;
   rtrans(0) = 0.0;
+  alpha(0) = 0.0;
   double oldrtrans = 0.0;
 
 #ifdef USING_MPI
@@ -156,11 +158,11 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 #endif
 
       HPC_sparsemv(A, p.data(), Ap.data()); // 2*nnz ops
-      double alpha = 0.0;
-      ddot(nrow, p.data(), Ap.data(), &alpha); // p*Ap -> alpha. (2*nrow ops)
-      alpha = rtrans(0)/alpha;
-      waxpby(nrow, 1.0, x, alpha, p.data(), x);// 2*nrow ops
-      waxpby(nrow, 1.0, r.data(), -alpha, Ap.data(), r.data());  // 2*nrow ops
+      alpha(0) = 0.0;
+      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha. (2*nrow ops)
+      alpha(0) = rtrans(0)/alpha(0);
+      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// 2*nrow ops
+      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  // 2*nrow ops
       niters = k;
 
 
