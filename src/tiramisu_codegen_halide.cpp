@@ -1663,8 +1663,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                             stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(&fct, empty_index_expr, host_b->get_dim_sizes()[dim_idx]);
                         }
                     }
-                    auto size = Halide::cast(Halide::type_of<uint64_t >(), stride_expr);
                     auto h_type = halide_type_from_tiramisu_type(host_b->get_elements_type());
+                    auto size = Halide::cast(Halide::type_of<uint64_t >(), stride_expr * h_type.bytes());
                     Halide::Internal::Parameter param =
                             Halide::Internal::Parameter{h_type,
                                                         true,
