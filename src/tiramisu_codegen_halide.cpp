@@ -2403,11 +2403,12 @@ void function::gen_halide_stmt()
     Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector<Halide::Expr> &extents,
                                                         Halide::Internal::Stmt &stmt) {
         using cuda_ast::memory_location;
+        auto h_type = halide_type_from_tiramisu_type(b->get_elements_type());
         if (b->location == memory_location::host)
         {
             return Halide::Internal::Allocate::make(
                     b->get_name(),
-                    halide_type_from_tiramisu_type(b->get_elements_type()),
+                    h_type,
                     extents, Halide::Internal::const_true(), stmt);
         }
         else if (b->location == memory_location::global)
@@ -2419,9 +2420,8 @@ void function::gen_halide_stmt()
             }
             return Halide::Internal::LetStmt::make(
                     b->get_name(),
-                    Halide::cast(Halide::Handle(1, halide_type_from_tiramisu_type(b->get_elements_type()).handle_type),
-                        Halide::Internal::Call::make(Halide::Handle(1), "tiramisu_cuda_malloc", {Halide::cast(Halide::UInt(64), size)}, Halide::Internal::Call::Extern)
-                    ),
+                    Halide::Internal::Call::make(Halide::type_of<void *>(), "tiramisu_cuda_malloc",
+                                                 {Halide::cast(Halide::UInt(64), size * h_type.bytes())}, Halide::Internal::Call::Extern),
                     stmt
             );
 
