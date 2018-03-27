@@ -95,7 +95,7 @@ using std::endl;
 
 #define MAX_ITER 150
 
-int main_ref(int argc, char *argv[], double **r)
+int main_ref(int argc, char *argv[], double **r, double &normr)
 {
   HPC_Sparse_Matrix *A;
   double *x, *b, *xexact;
@@ -145,7 +145,6 @@ int main_ref(int argc, char *argv[], double **r)
 
   double t1 = mytimer();   // Initialize it (if needed)
   int niters = 0;
-  double normr = 0.0;
   int max_iter = MAX_ITER; //150 is the default.
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
   int nrow = A->local_nrow;
@@ -208,7 +207,7 @@ int main_ref(int argc, char *argv[], double **r)
   return nrow ;
 }
 
-int main_tiramisu(int argc, char *argv[], Halide::Buffer<double> &r_tiramisu)
+int main_tiramisu(int argc, char *argv[], Halide::Buffer<double> &r_tiramisu, double &normr)
 {
   HPC_Sparse_Matrix *A;
   double *x, *b, *xexact;
@@ -258,7 +257,6 @@ int main_tiramisu(int argc, char *argv[], Halide::Buffer<double> &r_tiramisu)
 
   double t1 = mytimer();   // Initialize it (if needed)
   int niters = 0;
-  double normr = 0.0;
   int max_iter = MAX_ITER; //150 is the default.
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
   int nrow = A->local_nrow;
@@ -349,23 +347,35 @@ int main(int argc, char *argv[])
 
   double * r_ref;
   Halide::Buffer<double> r_tiramisu(atoi(argv[1])*atoi(argv[2])*atoi(argv[3]));
+  double normr_tiramisu = 0.0;
+  double normr_ref = 0.0;
 
   int res = flush_cache();
   std::cout << "*************************** Tiramisu CG **************************************" << std::endl;
-  main_tiramisu(argc, argv, r_tiramisu);
+  main_tiramisu(argc, argv, r_tiramisu, normr_tiramisu);
   std::cout << "*************************** Reference CG ***************************************" << std::endl;
   res += flush_cache();
-  int nrow = main_ref(argc, argv, &r_ref);
+  int nrow = main_ref(argc, argv, &r_ref, normr_ref);
   std::cout << "******************************************************************" << std::endl;
+
+  if (std::abs(normr_ref - normr_tiramisu) >= 0.000000000000000000001)
+  {
+	std::cerr << "Residuals of the two computations are not equal" << std::endl;
+        std::cerr << "normr_ref = " << normr_ref << " and normr_tiramisu = " << normr_tiramisu << std::endl;
+        std::cerr << "normr_ref - normr_tiramisu = " << normr_ref - normr_tiramisu << std::endl;
+        exit(1);
+  }
 
   // Compare r_ref and r_tiramisu
   for (int i = 0; i < nrow; i++)
-    if (r_ref[i] - r_tiramisu(i) >= 0.001)
+    if (std::abs(r_ref[i] - r_tiramisu(i)) >= 0.0001)
     {
 	std::cerr << "r_ref[" << i << "] != r_tiramisu[" << i << "]" << std::endl;
         exit(1);
     }
-  std::cerr << "Correct computations." << std::endl;
+  std::cout << "Correct computations." << std::endl;
+  std::cout << "Residuals equal." << std::endl;
+
 
   free(r_ref);
 
