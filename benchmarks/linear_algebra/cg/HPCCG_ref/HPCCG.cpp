@@ -92,7 +92,7 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int &niters, double & normr,
-	  double * times, double *r)
+	  double * times, Halide::Buffer<double> &r)
 {
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
@@ -121,8 +121,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   exchange_externals(A,p.data());
 #endif
   HPC_sparsemv(A, p.data(), Ap.data());
-  waxpby(nrow, 1.0, b, -1.0, Ap.data(), r);
-  ddot(nrow, r, r, &rtrans);
+  waxpby(nrow, 1.0, b, -1.0, Ap.data(), r.data());
+  ddot(nrow, r.data(), r.data(), &rtrans);
   normr = sqrt(rtrans);
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
@@ -133,14 +133,16 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   for(int k=1; k<=max_iter && normr > tolerance; k++ )
     {
       auto start_one_iter = std::chrono::high_resolution_clock::now();
+
+
       if (k == 1)
-	  waxpby(nrow, 1.0, r, 0.0, r, p.data());
+	  waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data());
       else
 	{
 	  oldrtrans = rtrans;
-	  ddot (nrow, r, r, &rtrans); // 2*nrow ops
+	  ddot (nrow, r.data(), r.data(), &rtrans); // 2*nrow ops
 	  double beta = rtrans/oldrtrans;
-	  waxpby (nrow, 1.0, r, beta, p.data(), p.data()); // 2*nrow ops
+	  waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // 2*nrow ops
 	}
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
@@ -157,12 +159,13 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       ddot(nrow, p.data(), Ap.data(), &alpha); // 2*nrow ops
       alpha = rtrans/alpha;
       waxpby(nrow, 1.0, x, alpha, p.data(), x);// 2*nrow ops
-      waxpby(nrow, 1.0, r, -alpha, Ap.data(), r);  // 2*nrow ops
+      waxpby(nrow, 1.0, r.data(), -alpha, Ap.data(), r.data());  // 2*nrow ops
       niters = k;
+
+
       auto end_one_iter = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
       duration_vector_one_iter.push_back(duration_one_iter);
-
 #ifdef USING_MPI
       std::chrono::duration<double,std::milli> duration_one_comm = end_comm - start_comm;
       duration_vector_one_iter.push_back(duration_one_iter);

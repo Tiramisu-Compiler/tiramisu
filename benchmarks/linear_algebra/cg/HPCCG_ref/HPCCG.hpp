@@ -46,6 +46,7 @@
 #include "ddot.hpp"
 #include "waxpby.hpp"
 #include "HPC_Sparse_Matrix.hpp"
+#include "Halide.h"
 
 #ifdef USING_MPI
 #include "exchange_externals.hpp"
@@ -54,7 +55,7 @@
 #endif
 int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
-	  const int max_iter, const double tolerance, int & niters, double & normr, double * times, double *r);
+	  const int max_iter, const double tolerance, int & niters, double & normr, double * times, Halide::Buffer<double> &r);
 
 int HPCCG_ref(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,

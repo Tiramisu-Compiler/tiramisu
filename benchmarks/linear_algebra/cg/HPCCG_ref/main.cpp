@@ -89,6 +89,7 @@ using std::endl;
 
 #include "YAML_Element.hpp"
 #include "YAML_Doc.hpp"
+#include "Halide.h"
 
 #undef DEBUG
 
@@ -207,7 +208,7 @@ int main_ref(int argc, char *argv[], double **r)
   return nrow ;
 }
 
-int main_tiramisu(int argc, char *argv[], double **r)
+int main_tiramisu(int argc, char *argv[], Halide::Buffer<double> &r_tiramisu)
 {
   HPC_Sparse_Matrix *A;
   double *x, *b, *xexact;
@@ -261,9 +262,9 @@ int main_tiramisu(int argc, char *argv[], double **r)
   int max_iter = MAX_ITER; //150 is the default.
   double tolerance = 0.0; // Set tolerance to zero to make all runs do max_iter iterations
   int nrow = A->local_nrow;
-  *r = (double *) malloc(sizeof(double)*nrow);
+  //*r = (double *) malloc(sizeof(double)*nrow);
 
-  ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times, *r);
+  ierr = HPCCG_tiramisu(A, b, x, max_iter, tolerance, niters, normr, times, r_tiramisu);
   if (ierr) cerr << "Error in call to CG: " << ierr << ".\n" << endl;
 
   if (rank==0)  // Only PE 0 needs to compute and report timing results
@@ -344,20 +345,22 @@ int flush_cache()
 
 int main(int argc, char *argv[])
 {
+  assert(argc >= 3);
+
   double * r_ref;
-  double * r_tiramisu;
+  Halide::Buffer<double> r_tiramisu(atoi(argv[1])*atoi(argv[2])*atoi(argv[3]));
 
   int res = flush_cache();
   std::cout << "*************************** Tiramisu CG **************************************" << std::endl;
-  main_tiramisu(argc, argv, &r_ref);
+  main_tiramisu(argc, argv, r_tiramisu);
   std::cout << "*************************** Reference CG ***************************************" << std::endl;
   res += flush_cache();
-  int nrow = main_ref(argc, argv, &r_tiramisu);
+  int nrow = main_ref(argc, argv, &r_ref);
   std::cout << "******************************************************************" << std::endl;
 
   // Compare r_ref and r_tiramisu
   for (int i = 0; i < nrow; i++)
-    if (r_ref[i] - r_tiramisu[i] >= 0.001)
+    if (r_ref[i] - r_tiramisu(i) >= 0.001)
     {
 	std::cerr << "r_ref[" << i << "] != r_tiramisu[" << i << "]" << std::endl;
         exit(1);
@@ -365,7 +368,6 @@ int main(int argc, char *argv[])
   std::cerr << "Correct computations." << std::endl;
 
   free(r_ref);
-  free(r_tiramisu);
 
   return res ;
 }
