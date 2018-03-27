@@ -671,6 +671,7 @@ private:
                                                  cuda_ast::statement_ptr lower_bound,
                                                  cuda_ast::statement_ptr upper_bound);
     statement_ptr get_scalar_from_name(std::string name);
+    std::unordered_map<computation *, std::vector<isl_ast_expr*>> index_exprs;
 public:
     explicit generator(tiramisu::function &fct);
 

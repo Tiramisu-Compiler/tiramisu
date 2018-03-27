@@ -1610,7 +1610,7 @@ private:
       * The LHS would represent a memory buffer access, and the RHS would represent
       * the value of the assignment.
       */
-    std::pair<expr, expr> create_tiramisu_assignment();
+    std::pair<expr, expr> create_tiramisu_assignment(std::vector<isl_ast_expr *> &index_expr);
 
     /**
       * Apply a duplication transformation from iteration space to

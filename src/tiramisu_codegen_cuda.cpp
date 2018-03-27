@@ -587,7 +587,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
 
             auto &associated_lets = comp->get_associated_let_stmts();
-            auto result = comp->create_tiramisu_assignment();
+            if (index_exprs.find(comp) == index_exprs.end())
+                index_exprs[comp] = comp->index_expr;
+            auto result = comp->create_tiramisu_assignment(index_exprs[comp]);
             cuda_ast::buffer_ptr b = this->get_buffer(result.first.get_name());
             auto ba = statement_ptr{new buffer_assignment{b, parse_tiramisu(result.first.get_access()[0]),
                                                           parse_tiramisu(result.second)}};

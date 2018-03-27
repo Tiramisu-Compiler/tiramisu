@@ -2675,7 +2675,7 @@ tiramisu::expr generator::comp_to_buffer(tiramisu::computation *comp, std::vecto
     return tiramisu::expr{o_access, buffer_name, {index}, tiramisu_buffer->get_elements_type()};
 }
 
-std::pair<expr, expr> computation::create_tiramisu_assignment()
+std::pair<expr, expr> computation::create_tiramisu_assignment(std::vector<isl_ast_expr *> &index_expr)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2689,16 +2689,15 @@ std::pair<expr, expr> computation::create_tiramisu_assignment()
 
     DEBUG(3, tiramisu::str_dump("This is not a let statement."));
 
-    std::vector<isl_ast_expr *> index_expr_copy = this->index_expr;
 
-    lhs = generator::comp_to_buffer(this, index_expr_copy);
+    lhs = generator::comp_to_buffer(this, index_expr);
 
     // Replace the RHS expression to the transformed expressions.
     // We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
     // that an access can only appear when accessing a computation. And that case should be handled in the following transformation
     // so no need to transform this->index_expr separately.
     rhs = generator::replace_accesses(
-            this->get_function(), index_expr_copy,
+            this->get_function(), index_expr,
             replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map()));
 
     DEBUG(3, std::cout << "LHS: " << lhs.to_str());
