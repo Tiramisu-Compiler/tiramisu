@@ -107,7 +107,7 @@ OMP_FLAGS = -fopenmp
 #
 # 7) System libraries: (May need to add -lg2c before -lm)
 
-SYS_LIB =-lm
+SYS_LIB =-lm -L ../../../../Halide/lib/ -lHalide -lz -lpthread -ldl
 
 #
 # 6) Specify name if executable (optional):
@@ -116,7 +116,7 @@ TARGET = test_HPCCG
 
 ################### Derived Quantities (no modification required) ##############
 
-CXXFLAGS= $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC) -std=c++11
+CXXFLAGS= -std=c++11 -I ../../../../Halide/include/ $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
 
 LIB_PATHS= $(SYS_LIB)
 

@@ -69,6 +69,7 @@ using std::endl;
 #include <chrono>
 #include <vector>
 #include <algorithm>
+#include "Halide.h"
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
 #define TOCK(t) t += mytimer() - t0
@@ -96,8 +97,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
 
-  double * p = new double [ncol]; // In parallel case, A is rectangular
-  double * Ap = new double [nrow];
+  Halide::Buffer<double> p(ncol); // In parallel case, A is rectangular
+  Halide::Buffer<double> Ap(nrow);
 
   normr = 0.0;
   double rtrans = 0.0;
@@ -115,12 +116,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   if (print_freq<1)  print_freq=1;
 
   // p is of length ncols, copy x to p for sparse MV operation
-  waxpby(nrow, 1.0, x, 0.0, x, p);
+  waxpby(nrow, 1.0, x, 0.0, x, p.data());
 #ifdef USING_MPI
-  exchange_externals(A,p);
+  exchange_externals(A,p.data());
 #endif
-  HPC_sparsemv(A, p, Ap);
-  waxpby(nrow, 1.0, b, -1.0, Ap, r);
+  HPC_sparsemv(A, p.data(), Ap.data());
+  waxpby(nrow, 1.0, b, -1.0, Ap.data(), r);
   ddot(nrow, r, r, &rtrans);
   normr = sqrt(rtrans);
 
@@ -133,13 +134,13 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
     {
       auto start_one_iter = std::chrono::high_resolution_clock::now();
       if (k == 1)
-	  waxpby(nrow, 1.0, r, 0.0, r, p);
+	  waxpby(nrow, 1.0, r, 0.0, r, p.data());
       else
 	{
 	  oldrtrans = rtrans;
 	  ddot (nrow, r, r, &rtrans); // 2*nrow ops
 	  double beta = rtrans/oldrtrans;
-	  waxpby (nrow, 1.0, r, beta, p, p); // 2*nrow ops
+	  waxpby (nrow, 1.0, r, beta, p.data(), p.data()); // 2*nrow ops
 	}
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
@@ -147,16 +148,16 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
 #ifdef USING_MPI
       auto start_comm = std::chrono::high_resolution_clock::now();
-      exchange_externals(A,p);
+      exchange_externals(A,p.data());
       auto end_comm = std::chrono::high_resolution_clock::now();
 #endif
 
-      HPC_sparsemv(A, p, Ap); // 2*nnz ops
+      HPC_sparsemv(A, p.data(), Ap.data()); // 2*nnz ops
       double alpha = 0.0;
-      ddot(nrow, p, Ap, &alpha); // 2*nrow ops
+      ddot(nrow, p.data(), Ap.data(), &alpha); // 2*nrow ops
       alpha = rtrans/alpha;
-      waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
-      waxpby(nrow, 1.0, r, -alpha, Ap, r);  // 2*nrow ops
+      waxpby(nrow, 1.0, x, alpha, p.data(), x);// 2*nrow ops
+      waxpby(nrow, 1.0, r, -alpha, Ap.data(), r);  // 2*nrow ops
       niters = k;
       auto end_one_iter = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
@@ -173,8 +174,7 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 #ifdef USING_MPI
   times[5] = median(duration_vector_comm); // exchange boundary time
 #endif
-  delete [] p;
-  delete [] Ap;
+
   return(0);
 }
 
