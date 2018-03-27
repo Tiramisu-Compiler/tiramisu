@@ -99,9 +99,10 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
   Halide::Buffer<double> p(ncol); // In parallel case, A is rectangular
   Halide::Buffer<double> Ap(nrow);
+  Halide::Buffer<double> rtrans(1);
 
   normr = 0.0;
-  double rtrans = 0.0;
+  rtrans(0) = 0.0;
   double oldrtrans = 0.0;
 
 #ifdef USING_MPI
@@ -122,8 +123,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 #endif
   HPC_sparsemv(A, p.data(), Ap.data());
   waxpby(nrow, 1.0, b, -1.0, Ap.data(), r.data());
-  ddot(nrow, r.data(), r.data(), &rtrans);
-  normr = sqrt(rtrans);
+  ddot(nrow, r.data(), r.data(), rtrans.data());
+  normr = sqrt(rtrans(0));
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
   
@@ -139,12 +140,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data());
       else
 	{
-	  oldrtrans = rtrans;
-	  ddot (nrow, r.data(), r.data(), &rtrans); // 2*nrow ops
-	  double beta = rtrans/oldrtrans;
+	  oldrtrans = rtrans(0);
+	  ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans. (2*nrow ops)
+	  double beta = rtrans(0)/oldrtrans;
 	  waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // 2*nrow ops
 	}
-      normr = sqrt(rtrans);
+      normr = sqrt(rtrans(0));
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
 
@@ -156,8 +157,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
       HPC_sparsemv(A, p.data(), Ap.data()); // 2*nnz ops
       double alpha = 0.0;
-      ddot(nrow, p.data(), Ap.data(), &alpha); // 2*nrow ops
-      alpha = rtrans/alpha;
+      ddot(nrow, p.data(), Ap.data(), &alpha); // p*Ap -> alpha. (2*nrow ops)
+      alpha = rtrans(0)/alpha;
       waxpby(nrow, 1.0, x, alpha, p.data(), x);// 2*nrow ops
       waxpby(nrow, 1.0, r.data(), -alpha, Ap.data(), r.data());  // 2*nrow ops
       niters = k;
