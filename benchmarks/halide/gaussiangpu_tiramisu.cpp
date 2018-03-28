@@ -93,12 +93,12 @@ int main(int argc, char **argv)
 
     buffer gpu_in{"gpu_in", {N, M, C}, data_type, a_temporary, &gaussian_tiramisu};
     gpu_in.tag_gpu_global();
-    gpu_input.set_access("{gpu_input[i, j, c] -> gpu_in[i, j, c]}");
+    gpu_input.set_access("{gpu_input[i, j, c] -> gpu_in[c, j, i]}");
     buffer gpu_out{"gpu_out", {N - 5, M - 5, C}, data_type, a_temporary, &gaussian_tiramisu};
     gpu_out.tag_gpu_global();
 
     gaussian_x.set_access("{gaussian_x[i, j0, j1, c] -> sybuf[i % " BLOCK_SIZE_I ", j1]}");
-    gaussian_y.set_access("{gaussian_y[i, j, c] -> gpu_out[i, j, c]}");
+    gaussian_y.set_access("{gaussian_y[i, j, c] -> gpu_out[c, j, i]}");
 
 
     MAKE_BIGGER_LOOP(shared_x_dec, "shared_x_dec", expr(o_allocate, sxbuf.get_name()));
