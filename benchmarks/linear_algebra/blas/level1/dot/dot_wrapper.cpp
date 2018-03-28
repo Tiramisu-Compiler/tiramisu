@@ -41,6 +41,8 @@ int main(int, char **)
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
 
+    Halide::Buffer<int> b_SIZES(1);
+    b_SIZES(0) = SIZE;
     Halide::Buffer<double> b_x_buf(SIZE);
     init_buffer(b_x_buf, (double) 1);
     Halide::Buffer<double> b_y_buf(SIZE);
@@ -68,7 +70,7 @@ int main(int, char **)
 	    init_buffer(b_res, (double)0);
 	    auto start2 = std::chrono::high_resolution_clock::now();
  	    if (run_tiramisu == true)
-	    	dot(b_x_buf.raw_buffer(), b_y_buf.raw_buffer(), b_res.raw_buffer());
+	    	dot(b_SIZES.raw_buffer(), b_x_buf.raw_buffer(), b_y_buf.raw_buffer(), b_res.raw_buffer());
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);

@@ -33,13 +33,14 @@ int main(int argc, char **argv)
 
     function dot("dot");
 
-    constant M_CST("M", expr(SIZE), p_int32, true, NULL, 0, &dot);
-
 #define B0 4
 
     // Inputs
+    computation SIZES("[M]->{SIZES[0]}", tiramisu::expr(), false, p_int32, &dot);
     computation x("[M]->{x[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &dot);
     computation y("[M]->{y[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &dot);
+
+    constant M_CST("M", SIZES(0), p_int32, true, NULL, 0, &dot);
 
     tiramisu::var j("j");
     computation res_init("[M]->{res_init[0]}",    tiramisu::expr((double) 0), true, p_float64, &dot);
@@ -69,11 +70,13 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------
+    buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &dot);
     buffer b_x("b_x", {tiramisu::expr(SIZE)}, p_float64, a_input, &dot);
     buffer b_y("b_y", {tiramisu::expr(SIZE)}, p_float64, a_input, &dot);
     buffer b_res("b_res", {tiramisu::expr((int) 0)}, p_float64, a_output, &dot);
     buffer b_mul("b_mul", {tiramisu::expr((int) B0)}, p_float64, a_temporary, &dot);
 
+    SIZES.set_access("{SIZES[0]->b_SIZES[0]}");
     x.set_access("{x[j]->b_x[j]}");
     y.set_access("{y[j]->b_y[j]}");
     res_init.set_access("{res_init[j]->b_res[0]}");
@@ -83,7 +86,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------------------------
     // Generate code
     // ------------------------------------------------------------------
-    dot.set_arguments({&b_x, &b_y, &b_res});
+    dot.set_arguments({&b_SIZES, &b_x, &b_y, &b_res});
     dot.gen_time_space_domain();
     dot.gen_isl_ast();
     dot.gen_halide_stmt();
