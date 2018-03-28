@@ -359,11 +359,11 @@ int main(int argc, char *argv[])
   int nrow = main_ref(argc, argv, &r_ref, normr_ref);
   std::cout << "******************************************************************" << std::endl;
 
-  if (std::abs(normr_ref - normr_tiramisu) >= 0.000000000000000000001)
+  if (std::abs(normr_ref - normr_tiramisu) >= 0.0000000001)
   {
 	std::cerr << "Residuals of the two computations are not equal" << std::endl;
         std::cerr << "normr_ref = " << normr_ref << " and normr_tiramisu = " << normr_tiramisu << std::endl;
-        std::cerr << "normr_ref - normr_tiramisu = " << normr_ref - normr_tiramisu << std::endl;
+        std::cerr << "std::abs(normr_ref - normr_tiramisu) = " << std::abs(normr_ref - normr_tiramisu) << std::endl;
         exit(1);
   }
 
@@ -372,6 +372,7 @@ int main(int argc, char *argv[])
     if (std::abs(r_ref[i] - r_tiramisu(i)) >= 0.0001)
     {
 	std::cerr << "r_ref[" << i << "] != r_tiramisu[" << i << "]" << std::endl;
+	std::cerr << "std::abs(r_ref[" << i << "] - r_tiramisu[" << i << "]) = " << std::abs(r_ref[i] - r_tiramisu(i))  << std::endl;
         exit(1);
     }
   std::cout << "Correct computations." << std::endl;
