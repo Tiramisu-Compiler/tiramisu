@@ -548,8 +548,10 @@ class host_function : public statement
 public:
     host_function(primitive_t type, std::string name, const std::vector<abstract_identifier_ptr> &arguments, statement_ptr body);
     void print(std::stringstream &ss, const std::string &base) override;
+    void set_pointer_return(bool val = true);
 
 private:
+    bool pointer_return;
     std::string name;
     statement_ptr body;
     std::vector<abstract_identifier_ptr> arguments;

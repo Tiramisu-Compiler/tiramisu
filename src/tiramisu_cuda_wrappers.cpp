@@ -35,6 +35,13 @@ int tiramisu_cuda_memcpy_to_host(void * to, void * from, uint64_t size)
 }
 
 extern "C"
+int tiramisu_cuda_memcpy_to_symbol(void * to, void * from, uint64_t size)
+{
+    handle_cuda_error(cudaMemcpyToSymbol(to, from, size), __FUNCTION__);
+    return 0;
+}
+
+extern "C"
 void * tiramisu_cuda_malloc(uint64_t size)
 {
     void * result;

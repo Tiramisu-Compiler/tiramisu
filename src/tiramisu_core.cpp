@@ -8471,6 +8471,10 @@ void tiramisu::buffer::tag_gpu_shared() {
     set_auto_allocate(false);
 }
 
+void tiramisu::buffer::tag_gpu_constant() {
+    location = cuda_ast::memory_location::constant;
+}
+
 void tiramisu::buffer::tag_gpu_global() {
     location = cuda_ast::memory_location::global;
 }

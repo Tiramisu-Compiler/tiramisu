@@ -1690,7 +1690,9 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                                  Halide::Internal::Call::make(Halide::Handle(1, h_type.handle_type),
                                                               Halide::Internal::Call::address_of, {loaded_symbol},
                                                               Halide::Internal::Call::Intrinsic));
-                    auto gpu_buffer = Halide::Internal::Variable::make(Halide::type_of<void *>(), gpu_b->get_name());
+                    auto gpu_buffer = (gpu_b->location == cuda_ast::memory_location::constant)
+                                      ? Halide::Internal::Call::make(Halide::type_of<void *>(), gpu_b->get_name() + "_get_symbol", {}, Halide::Internal::Call::Extern)
+                                      : Halide::Internal::Variable::make(Halide::type_of<void *>(), gpu_b->get_name());
                     auto host_result_buffer = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                               host_b->get_name() + ".buffer");
                     if (to_host)
@@ -1700,7 +1702,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         );
                     else if (from_host)
                         block = Halide::Internal::Evaluate::make(
-                                Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_device",
+                                Halide::Internal::Call::make(Halide::Int(32), (gpu_b->location == cuda_ast::memory_location::constant) ? "tiramisu_cuda_memcpy_to_symbol" : "tiramisu_cuda_memcpy_to_device",
                                                              {gpu_buffer, buffer_address, size}, Halide::Internal::Call::Extern)
                         );
                 }
