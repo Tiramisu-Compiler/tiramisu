@@ -138,33 +138,28 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       auto start_one_iter = std::chrono::high_resolution_clock::now();
 
 
+      alpha(0) = 0.0;
+
       if (k == 1)
-	  waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data());
+	  waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data()); // r + 0*p -> p
       else
 	{
 	  oldrtrans = rtrans(0);
 	  ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans. (2*nrow ops)
 	  double beta = rtrans(0)/oldrtrans;
-	  waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // 2*nrow ops
+	  waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // r + beta*p -> p.  (2*nrow ops)
 	}
+
+      HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap.  (2*nnz ops)
+      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha.  (2*nrow ops)
+      alpha(0) = rtrans(0)/alpha(0);
+      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x.  (2*nrow ops)
+      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  // 2*nrow ops
+
+      niters = k;
       normr = sqrt(rtrans(0));
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
-
-#ifdef USING_MPI
-      auto start_comm = std::chrono::high_resolution_clock::now();
-      exchange_externals(A,p.data());
-      auto end_comm = std::chrono::high_resolution_clock::now();
-#endif
-
-      HPC_sparsemv(A, p.data(), Ap.data()); // 2*nnz ops
-      alpha(0) = 0.0;
-      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha. (2*nrow ops)
-      alpha(0) = rtrans(0)/alpha(0);
-      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// 2*nrow ops
-      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  // 2*nrow ops
-      niters = k;
-
 
       auto end_one_iter = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
