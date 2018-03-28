@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     shared_y_dec.after(shared_x_dec, c);
     shared_y_dec.before(gaussian_x, c);
 
-    MAKE_BIGGER_LOOP(copy_to_shared, "copy_to_shared", gpu_input((i0 + 1) * block_size_l + i1,j0 * block_size_s + j1, c));
+    MAKE_BIGGER_LOOP(copy_to_shared, "copy_to_shared", gpu_input(i0 * block_size_l + i1,j0 * block_size_s + j1, c));
     copy_to_shared.set_access("{copy_to_shared[i0, j0, i1, j1, c] -> sxbuf[i1, j1]}");
 
     MAKE_BIGGER_LOOP(copy_to_shared_tr, "copy_to_shared_tr", gpu_input((i0 + 1) * block_size_l + i1,j0 * block_size_s + j1, c));
