@@ -133,23 +133,10 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_one_iter;
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_comm;
 
-  for(int k=1; k<=max_iter && normr > tolerance; k++ )
+  for(int k=1; k<=1 && normr > tolerance; k++ )
     {
-      auto start_one_iter = std::chrono::high_resolution_clock::now();
-
-
       alpha(0) = 0.0;
-
-      if (k == 1)
-	  waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data()); // r + 0*p -> p
-      else
-	{
-	  oldrtrans = rtrans(0);
-	  ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans
-	  double beta = rtrans(0)/oldrtrans;
-	  waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // r + beta*p -> p
-	}
-
+      waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data()); // r + 0*p -> p
       HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
       ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha
       alpha(0) = rtrans(0)/alpha(0);
@@ -158,9 +145,32 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
       niters = k;
       normr = sqrt(rtrans(0));
+    }
+
+
+  for(int k=2; k<=max_iter && normr > tolerance; k++ )
+    {
+      auto start_one_iter = std::chrono::high_resolution_clock::now();
+
+
+
+      alpha(0) = 0.0;
+      oldrtrans = rtrans(0);
+      ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans
+      double beta = rtrans(0)/oldrtrans;
+      waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // r + beta*p -> p
+      HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
+      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha
+      alpha(0) = rtrans(0)/alpha(0);
+      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
+      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  //  r - alpha.Ap -> r
+
+
+
+      niters = k;
+      normr = sqrt(rtrans(0));
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
       cout << "Iteration = "<< k << "   Residual = "<< normr << endl;
-
       auto end_one_iter = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
       duration_vector_one_iter.push_back(duration_one_iter);
