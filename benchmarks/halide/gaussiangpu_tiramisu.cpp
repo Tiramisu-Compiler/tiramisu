@@ -19,15 +19,16 @@ constexpr auto it_type = p_int32;
 constexpr auto data_type = p_uint8;
 constexpr auto work_type = p_float32;
 constexpr auto block_size = 16;
-constexpr auto block_size_i = 16;
-#define BLOCK_SIZE_I "16"
+#define BLOCK_SIZE "16"
+constexpr auto block_size_i = 11;
+#define BLOCK_SIZE_I "11"
 constexpr auto block_size_j = 11;
 #define BLOCK_SIZE_J "11"
 constexpr auto kern_size = 5;
 
-#define MAKE_BIGGER_LOOP_TYPED(name, str_name, e, type) computation name{"[N, M, C] -> {" str_name "[i, j0, j1, c]: 0 <= i < N - 5 and 0 <= j0 * " BLOCK_SIZE_J " < M - 5 and 0 <= j1 < " BLOCK_SIZE_J " + 5 and 0 <= j0 * " BLOCK_SIZE_J " + j1 < M and 0 <= c < C}", (e), true, data_type, &gaussian_tiramisu};\
-                            (name).split(i, block_size_i, i0, i1); \
-                            (name).interchange(i1, j0)
+#define MAKE_BIGGER_LOOP_TYPED(name, str_name, e, type) computation name{\
+                    "[N, M, C] -> {" str_name "[i0, j0, i1, j1, c]: 0 <= i0 * " BLOCK_SIZE_I " < N - 5 and 0 <= i1 < " BLOCK_SIZE_I " + 5 and 0 <= i0 * " BLOCK_SIZE_I " + i1 < N" \
+                    " and 0 <= j0 * " BLOCK_SIZE_J " < M - 5 and 0 <= j1 < " BLOCK_SIZE_J " + 5 and 0 <= j0 * " BLOCK_SIZE_J " + j1 < M and 0 <= c < C}", (e), true, data_type, &gaussian_tiramisu}
 
 #define MAKE_BIGGER_LOOP(name, str_name, e) MAKE_BIGGER_LOOP_TYPED(name, str_name, e, data_type)
 
@@ -46,14 +47,14 @@ int main(int argc, char **argv)
     constant M{"M", sizes(1), it_type, true, nullptr, computation::root_dimension, &gaussian_tiramisu};
     constant C{"C", sizes(2), it_type, true, nullptr, computation::root_dimension, &gaussian_tiramisu};
     computation gpu_input{"[N, M, C] -> {gpu_input[i, j, c]: 0 <= i < N and 0 <= j < M and 0 <= c < C}", expr(), false, data_type, &gaussian_tiramisu};
-    computation shared_x{"[N, M] -> {shared_x[i, o_i, j1]: 0 <= i < N and 0 <= j1 < " BLOCK_SIZE_J " + 5 and 0 <= o_i < 5}", expr(), false, data_type, &gaussian_tiramisu};
+    computation shared_x{"[N, M] -> {shared_x[i1, o_i, j1]: 0 <= i1 < " BLOCK_SIZE_I " + 5 and 0 <= j1 < " BLOCK_SIZE_J " + 5 and 0 <= o_i < 5}", expr(), false, data_type, &gaussian_tiramisu};
     computation shared_y{"[N, M] -> {shared_y[i, j, o_j]: 0 <= i < N and 0 <= j < M and 0 <= o_j < 5}", expr(), false, work_type, &gaussian_tiramisu};
     computation kernel_x{"{kernel_x[i]: 0 <= i < 5}", expr(), false, work_type, &gaussian_tiramisu};
     computation kernel_y{"{kernel_y[i]: 0 <= i < 5}", expr(), false, work_type, &gaussian_tiramisu};
 
     tiramisu::expr e = value_cast(work_type, 0);
     for (int k = 0; k < 5; k++)
-        e = e + cast(work_type, shared_x(i, k, j1)) * kernel_x(k);
+        e = e + cast(work_type, shared_x(i1, k, j1)) * kernel_x(k);
     MAKE_BIGGER_LOOP_TYPED(gaussian_x, "gaussian_x", e, work_type);
 
     std::cout << isl_set_to_str(gaussian_x.get_iteration_domain()) << std::endl;
@@ -69,6 +70,8 @@ int main(int argc, char **argv)
 
     gaussian_x.before(gaussian_y, c);
     gaussian_x.tag_gpu_level(i0, j0, i1, j1);
+
+    gaussian_x.add_predicate(j1 < block_size_j);
 
 
     buffer sizes_b{"sizes_b", {3}, it_type, a_input, &gaussian_tiramisu};
@@ -88,7 +91,7 @@ int main(int argc, char **argv)
     sxbuf.tag_gpu_shared();
     buffer sybuf{"sybuf", {block_size_i + 5, block_size_j}, work_type, a_temporary, &gaussian_tiramisu};
     sybuf.tag_gpu_shared();
-    shared_x.set_access("{shared_x[i, o_i, j1] -> sxbuf[i % " BLOCK_SIZE_I " + o_i, j1]}");
+    shared_x.set_access("{shared_x[i1, o_i, j1] -> sxbuf[i1 + o_i, j1]}");
     shared_y.set_access("{shared_y[i, j, o_j] -> sybuf[i % " BLOCK_SIZE_I ", j % " BLOCK_SIZE_J " + o_j]}");
 
     buffer gpu_in{"gpu_in", {C, M, N}, data_type, a_temporary, &gaussian_tiramisu};
@@ -97,7 +100,7 @@ int main(int argc, char **argv)
     buffer gpu_out{"gpu_out", {C, M - 5, N - 5}, data_type, a_temporary, &gaussian_tiramisu};
     gpu_out.tag_gpu_global();
 
-    gaussian_x.set_access("{gaussian_x[i, j0, j1, c] -> sybuf[i % " BLOCK_SIZE_I ", j1]}");
+    gaussian_x.set_access("{gaussian_x[i0, j0, i1, j1, c] -> sybuf[i1, j1]}");
     gaussian_y.set_access("{gaussian_y[i, j, c] -> gpu_out[c, j, i]}");
 
 
@@ -109,20 +112,20 @@ int main(int argc, char **argv)
     shared_y_dec.after(shared_x_dec, c);
     shared_y_dec.before(gaussian_x, c);
 
-    MAKE_BIGGER_LOOP(copy_to_shared, "copy_to_shared", gpu_input(i, j0 * block_size_j + j1, c));
-    copy_to_shared.set_access("{copy_to_shared[i, j0, j1, c] -> sxbuf[i % " BLOCK_SIZE_I", j1]}");
+    MAKE_BIGGER_LOOP(copy_to_shared, "copy_to_shared", gpu_input(i0 * block_size_i + i1, j0 * block_size_j + j1, c));
+    copy_to_shared.set_access("{copy_to_shared[i0, j0, i1, j1, c] -> sxbuf[i1, j1]}");
 
-    MAKE_BIGGER_LOOP(copy_to_shared_bl, "copy_to_shared_bl", gpu_input(i + block_size_i, j0 * block_size_j + j1, c));
-    copy_to_shared_bl.set_access("{copy_to_shared_bl[i, j0, j1, c] -> sxbuf[i % " BLOCK_SIZE_I" + " BLOCK_SIZE_I ", j1]}");
-    copy_to_shared_bl.add_predicate(i % block_size_i < 5);
+    MAKE_BIGGER_LOOP(copy_to_shared_bl, "copy_to_shared_bl", gpu_input((i0 + 1) * block_size_i + i1, j0 * block_size_j + j1, c));
+    copy_to_shared_bl.set_access("{copy_to_shared_bl[i0, j0, i1, j1, c] -> sxbuf[i1 + " BLOCK_SIZE_I ", j1]}");
+    copy_to_shared_bl.add_predicate(i1 < 5);
 
-    MAKE_BIGGER_LOOP(copy_to_shared_tr, "copy_to_shared_tr", gpu_input(i, (j0 + 1) * block_size_j + j1, c));
-    copy_to_shared_tr.set_access("{copy_to_shared_tr[i, j0, j1, c] -> sxbuf[i % " BLOCK_SIZE_I", j1 + " BLOCK_SIZE_J"]}");
+    MAKE_BIGGER_LOOP(copy_to_shared_tr, "copy_to_shared_tr", gpu_input(i0 * block_size_i + i1, (j0 + 1) * block_size_j + j1, c));
+    copy_to_shared_tr.set_access("{copy_to_shared_tr[i0, j0, i1, j1, c] -> sxbuf[i1, j1 + " BLOCK_SIZE_J"]}");
     copy_to_shared_tr.add_predicate(j1 < 5);
 
-    MAKE_BIGGER_LOOP(copy_to_shared_br, "copy_to_shared_br", gpu_input(i + block_size_i, j0 * block_size_j + j1, c));
-    copy_to_shared_br.set_access("{copy_to_shared_br[i, j0, j1, c] -> sxbuf[i % " BLOCK_SIZE_I" + " BLOCK_SIZE_I ", j1 + " BLOCK_SIZE_J "]}");
-    copy_to_shared_br.add_predicate(i % block_size_i < 5 && j1 < 5);
+    MAKE_BIGGER_LOOP(copy_to_shared_br, "copy_to_shared_br", gpu_input((i0 + 1) * block_size_i + i1, j0 * block_size_j + j1, c));
+    copy_to_shared_br.set_access("{copy_to_shared_br[i0, j0, i1, j1, c] -> sxbuf[i1 + " BLOCK_SIZE_I ", j1 + " BLOCK_SIZE_J "]}");
+    copy_to_shared_br.add_predicate(i1 < 5 && j1 < 5);
 
     copy_to_shared.between(shared_y_dec, c, gaussian_x, c);
     copy_to_shared_tr.between(copy_to_shared, c, gaussian_x, c);
