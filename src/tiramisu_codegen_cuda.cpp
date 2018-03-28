@@ -1730,18 +1730,20 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         cout << cwd << endl;
         ofstream code_file;
         string filename = obj_name + ".cu";
-        code_file.open(filename, fstream::out | fstream::trunc);
-        if (code_file.fail()) {
-            tiramisu::error("Failed to open file " + filename + " for writing. Cannot compile GPU code.", false);
-            return false;
-        }
-        DEBUG(3, cout << "Opened file " << filename << " for writing.");
-        code_file << "#include <stdint.h>\n";
-        code_file << code;
-        code_file.flush();
-        if (code_file.fail()) {
-            tiramisu::error("Failed to write to file " + filename + ". Cannot compile GPU code.", false);
-            return false;
+        if (!getenv("CUDA_NO_OVERWRITE")) {
+            code_file.open(filename, fstream::out | fstream::trunc);
+            if (code_file.fail()) {
+                tiramisu::error("Failed to open file " + filename + " for writing. Cannot compile GPU code.", false);
+                return false;
+            }
+            DEBUG(3, cout << "Opened file " << filename << " for writing.");
+            code_file << "#include <stdint.h>\n";
+            code_file << code;
+            code_file.flush();
+            if (code_file.fail()) {
+                tiramisu::error("Failed to write to file " + filename + ". Cannot compile GPU code.", false);
+                return false;
+            }
         }
 
         DEBUG_INDENT(-4);
