@@ -72,8 +72,8 @@ int main(int argc, char **argv)
 
 
     buffer sizes_b{"sizes_b", {3}, it_type, a_input, &gaussian_tiramisu};
-    buffer input{"input", {N, M, C}, data_type, a_input, &gaussian_tiramisu};
-    buffer output{"output", {N - 5, M - 5, C}, data_type, a_output, &gaussian_tiramisu};
+    buffer input{"input", {C, M, N}, data_type, a_input, &gaussian_tiramisu};
+    buffer output{"output", {C, M - 5, N - 5}, data_type, a_output, &gaussian_tiramisu};
     sizes.set_access("{sizes[i] -> sizes_b[i]}");
     buffer kxo{"kxo", {5}, work_type, a_input, &gaussian_tiramisu};
     buffer kx{"kx", {5}, work_type, a_temporary, &gaussian_tiramisu};
@@ -91,10 +91,10 @@ int main(int argc, char **argv)
     shared_x.set_access("{shared_x[i, o_i, j1] -> sxbuf[i % " BLOCK_SIZE_I " + o_i, j1]}");
     shared_y.set_access("{shared_y[i, j, o_j] -> sybuf[i % " BLOCK_SIZE_I ", j % " BLOCK_SIZE_J " + o_j]}");
 
-    buffer gpu_in{"gpu_in", {N, M, C}, data_type, a_temporary, &gaussian_tiramisu};
+    buffer gpu_in{"gpu_in", {C, M, N}, data_type, a_temporary, &gaussian_tiramisu};
     gpu_in.tag_gpu_global();
     gpu_input.set_access("{gpu_input[i, j, c] -> gpu_in[c, j, i]}");
-    buffer gpu_out{"gpu_out", {N - 5, M - 5, C}, data_type, a_temporary, &gaussian_tiramisu};
+    buffer gpu_out{"gpu_out", {C, M - 5, N - 5}, data_type, a_temporary, &gaussian_tiramisu};
     gpu_out.tag_gpu_global();
 
     gaussian_x.set_access("{gaussian_x[i, j0, j1, c] -> sybuf[i % " BLOCK_SIZE_I ", j1]}");
