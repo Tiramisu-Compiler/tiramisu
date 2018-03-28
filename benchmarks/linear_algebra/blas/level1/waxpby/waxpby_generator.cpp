@@ -47,13 +47,15 @@ int main(int argc, char **argv)
 
     function waxpby("waxpby");
 
-    constant M_CST("M", expr(nrow), p_int32, true, NULL, 0, &waxpby);
 
     // Inputs
+    computation SIZES("[M]->{SIZES[0]}", tiramisu::expr(), false, p_int32, &waxpby);
     computation x("[M]->{x[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &waxpby);
     computation y("[M]->{y[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &waxpby);
     computation alpha("[M]->{alpha[0]}", tiramisu::expr(), false, p_float64, &waxpby);
     computation beta("[M]->{beta[0]}", tiramisu::expr(), false, p_float64, &waxpby);
+
+    constant M_CST("M", SIZES(0), p_int32, true, NULL, 0, &waxpby);
 
     tiramisu::var j("j");
     computation w("[M]->{w[j]: 0<=j<M}", alpha(0)*x(j) + beta(0)*y(j), true, p_float64, &waxpby);
@@ -75,12 +77,14 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------
+    buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &waxpby);
     buffer b_x("b_x", {tiramisu::expr(nrow)}, p_float64, a_input, &waxpby);
     buffer b_y("b_y", {tiramisu::expr(nrow)}, p_float64, a_input, &waxpby);
-    buffer b_alpha("b_alpha", {tiramisu::expr(0)}, p_float64, a_input, &waxpby);
-    buffer b_beta("b_beta", {tiramisu::expr(0)}, p_float64, a_input, &waxpby);
+    buffer b_alpha("b_alpha", {tiramisu::expr(1)}, p_float64, a_input, &waxpby);
+    buffer b_beta("b_beta", {tiramisu::expr(1)}, p_float64, a_input, &waxpby);
     buffer b_w("b_w", {tiramisu::expr(nrow)}, p_float64, a_output, &waxpby);
 
+    SIZES.set_access("{SIZES[0]->b_SIZES[0]}");
     x.set_access("{x[j]->b_x[j]}");
     y.set_access("{y[j]->b_y[j]}");
     alpha.set_access("{alpha[0]->b_alpha[0]}");
@@ -90,7 +94,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------------------------
     // Generate code
     // ------------------------------------------------------------------
-    waxpby.set_arguments({&b_alpha, &b_x, &b_beta, &b_y, &b_w});
+    waxpby.set_arguments({&b_SIZES, &b_alpha, &b_x, &b_beta, &b_y, &b_w});
     waxpby.gen_time_space_domain();
     waxpby.gen_isl_ast();
     waxpby.gen_halide_stmt();

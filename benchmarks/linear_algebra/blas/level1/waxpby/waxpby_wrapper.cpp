@@ -49,6 +49,9 @@ int main(int, char **)
     double alpha = 1;
     double beta = 1;
 
+    Halide::Buffer<int> SIZES(1);
+    SIZES(0) = nrow;
+
     Halide::Buffer<double> b_x(nrow);
     init_buffer(b_x, (double) 1);
     Halide::Buffer<double> b_y(nrow);
@@ -82,7 +85,7 @@ int main(int, char **)
 	    init_buffer(b_w, (double)0);
 	    auto start2 = std::chrono::high_resolution_clock::now();
  	    if (run_tiramisu == true)
-	    	waxpby(b_alpha.raw_buffer(), b_x.raw_buffer(), b_beta.raw_buffer(), b_y.raw_buffer(), b_w.raw_buffer());
+	    	waxpby(SIZES.raw_buffer(), b_alpha.raw_buffer(), b_x.raw_buffer(), b_beta.raw_buffer(), b_y.raw_buffer(), b_w.raw_buffer());
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
