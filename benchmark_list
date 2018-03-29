@@ -12,3 +12,4 @@ resize
 laplacian
 heat2dgpu[gpu]
 gaussiangpu[gpu]
+rgbyuv420gpu[gpu]

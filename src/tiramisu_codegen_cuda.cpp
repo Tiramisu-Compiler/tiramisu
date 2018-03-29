@@ -940,34 +940,34 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         switch (get_type())
         {
             case p_uint8:
-            ss << u8_val;
+            ss << +u8_val;
                 break;
             case p_int8:
-                ss << i8_val;
+                ss << +i8_val;
                 break;
             case p_uint16:
-                ss << u16_val;
+                ss << +u16_val;
                 break;
             case p_int16:
-                ss << i16_val;
+                ss << +i16_val;
                 break;
             case p_uint32:
-                ss << u32_val;
+                ss << +u32_val;
                 break;
             case p_int32:
-                ss << i32_val;
+                ss << +i32_val;
                 break;
             case p_uint64:
-                ss << u64_val;
+                ss << +u64_val;
                 break;
             case p_int64:
-                ss << i64_val;
+                ss << +i64_val;
                 break;
             case p_float32:
-                ss << f32_val;
+                ss << +f32_val;
                 break;
             case p_float64:
-                ss << f64_val;
+                ss << +f64_val;
                 break;
             default:
                 assert(!"Value type not supported.");

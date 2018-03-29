@@ -1792,13 +1792,13 @@ only_integral<T> operator/(T val, const tiramisu::expr &e)
 template <typename T>
 only_integral<T> operator*(const tiramisu::expr &e, T val)
 {
-    return e * expr{val};
+    return e * value_cast(e.get_data_type(), val);
 }
 
 template <typename T>
 only_integral<T> operator*(T val, const tiramisu::expr &e)
 {
-    return expr{val} * e;
+    return value_cast(e.get_data_type(), val) * e;
 }
 
 template <typename T>
