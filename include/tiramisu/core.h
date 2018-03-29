@@ -937,11 +937,6 @@ protected:
     bool get_auto_allocate();
 
     /**
-      * Set whether the buffer should be allocated automatically.
-      */
-    void set_auto_allocate(bool auto_allocation);
-
-    /**
      * Set the size of a dimension of the buffer.
      */
     void set_dim_size(int dim, int size);
@@ -1090,6 +1085,11 @@ public:
       * Return the sizes of the dimensions of the buffer.
       */
     const std::vector<tiramisu::expr> &get_dim_sizes() const;
+
+    /**
+      * Set whether the buffer should be allocated automatically.
+      */
+    void set_auto_allocate(bool auto_allocation);
 
     /**
      * Return true if all extents of the buffer are literal integer

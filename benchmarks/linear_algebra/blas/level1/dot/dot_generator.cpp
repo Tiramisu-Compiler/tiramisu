@@ -26,14 +26,17 @@ for (i = 0; i < M; i++)
 
 using namespace tiramisu;
 
+
+#define B0 4
+#define THREADS 32
+
+
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
 
     function dot("dot");
-
-#define B0 4
 
     // Inputs
     computation SIZES("[M]->{SIZES[0]}", tiramisu::expr(), false, p_int32, &dot);
@@ -49,23 +52,27 @@ int main(int argc, char **argv)
 
     res.set_expression(res(j) + mul(j));
 
-    dot.set_context_set("[M]->{: M>0 and M%"+std::to_string(B0)+"=0}");
+    dot.set_context_set("[M]->{: M>0 and M%"+std::to_string(B0*THREADS)+"=0}");
 
     // -----------------------------------------------------------------
     // Layer II
     // ----------------------------------------------------------------- 
 
+    // Split (prepare for parallelization)
+    mul.split(0, THREADS);
+    res.split(0, THREADS);
+
     // Split (prepare for vectorization and split)
-    mul.split(0, B0);
-    res.split(0, B0);
+    mul.split(1, B0);
+    res.split(1, B0);
 
     // Vectorization and unrolling
-    mul.tag_vector_level(1, B0);
-    res.tag_unroll_level(1);
+    mul.tag_vector_level(2, B0);
+    res.tag_unroll_level(2);
 
     // Ordering
-    mul.after_low_level(res_init,0);
-    res.after_low_level(mul, 0);
+    mul.after_low_level(res_init,1);
+    res.after_low_level(mul, 1);
 
     // ---------------------------------------------------------------------------------
     // Layer III
