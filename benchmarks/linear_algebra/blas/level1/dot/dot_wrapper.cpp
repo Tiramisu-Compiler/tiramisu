@@ -15,9 +15,13 @@ int dot_ref(const int n,
           double * const result)
 {
   *result = 0.0;
-
+   double loc_res = 0.0;
+  
+  #pragma omp parallel for reduction(+: loc_res)
   for (int i=0; i<n; i++)
-	(*result) += x[i]*y[i];
+	loc_res += x[i]*y[i];
+
+  (*result) = loc_res;
 
   return(0);
 }

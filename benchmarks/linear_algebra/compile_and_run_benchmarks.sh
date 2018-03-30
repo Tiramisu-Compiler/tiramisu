@@ -47,9 +47,12 @@ CXXFLAGS="-std=c++11 -O3 -fopenmp"
 #   CXXFLAGS -fopt-info-vec
 # - Pass options to the llvm compiler
 #   HL_LLVM_ARGS="-help" 
+# - Set thread number for Halide
+#   HL_NUM_THREADS=32
 # Execution env variables
 #   OMP_NUM_THREADS=48
 #   to set the number of threads to use by OpenMP.
+
 
 INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${TIRAMISU_ROOT}/${HALIDE_SOURCE_DIRECTORY}/include/ -I${TIRAMISU_ROOT}/${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
 LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread"
