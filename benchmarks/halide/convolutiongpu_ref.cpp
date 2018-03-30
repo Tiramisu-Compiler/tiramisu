@@ -21,9 +21,12 @@ int main(int argc, char* argv[]) {
 
     convolutiongpu.gpu_tile(x, y, x1, y1, 16, 16);
 
-    convolutiongpu.compile_to_object("build/generated_fct_convolutiongpu_ref.o", {in, kernel}, "convolutiongpu_ref");
+    Halide::Target target = Halide::get_host_target();
+    target.set_feature(Target::Feature::CUDA, true);
 
-    convolutiongpu.compile_to_lowered_stmt("build/generated_fct_convolutiongpu_ref.txt", {in, kernel}, Text);
+    convolutiongpu.compile_to_object("build/generated_fct_convolutiongpu_ref.o", {in, kernel}, "convolutiongpu_ref", target);
+
+    convolutiongpu.compile_to_lowered_stmt("build/generated_fct_convolutiongpu_ref.txt", {in, kernel}, Text, target);
 
     return 0;
 }
