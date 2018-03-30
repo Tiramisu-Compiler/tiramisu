@@ -93,30 +93,30 @@ int main(int argc, char **argv)
     shared_dec.after(copy_in, computation::root);
     computation shared_copy{"[N, M] -> {shared_copy[i, j, c]: 0 <= i < N and 0 <= j < M and 0 <= c < 3}",
                             cast(work_type, in(i, j, c)), true, data_type, &convolutiongpu_tiramisu};
-    shared_copy.set_access("{shared_copy[i, j, c] -> shared[i, j]}");
+    shared_copy.set_access("{shared_copy[i, j, c] -> shared[i % " BLOCK_SIZE ", j % " BLOCK_SIZE "]}");
     shared_copy.tile(i, j, block_size, block_size, i0, j0, i1, j1);
     shared_copy.tag_gpu_level(i0, j0, i1, j1);
     shared_copy.after(shared_dec, c);
 
     computation shared_copy_right{"[N, M] -> {shared_copy_right[i, j, c]: 0 <= i < N and 0 <= j < M and 0 <= c < 3}",
                                   cast(work_type, in(i + block_size, j, c)), true, data_type, &convolutiongpu_tiramisu};
-    shared_copy_right.add_predicate(i % block_size < 2);
-    shared_copy_right.set_access("{shared_copy_right[i, j, c] -> shared[i + " BLOCK_SIZE ", j]}");
+    shared_copy_right.add_predicate(i % block_size < 2 && i + block_size < N);
+    shared_copy_right.set_access("[N, M] -> {shared_copy_right[i, j, c] -> shared[i % " BLOCK_SIZE " + " BLOCK_SIZE ", j % " BLOCK_SIZE "]}");
     shared_copy_right.tile(i, j, block_size, block_size, i0, j0, i1, j1);
     shared_copy_right.after(shared_copy, c);
 
     computation shared_copy_bottom{"[N, M] -> {shared_copy_bottom[i, j, c]: 0 <= i < N and 0 <= j < M and 0 <= c < 3}",
                                    cast(work_type, in(i, j + block_size, c)), true, data_type, &convolutiongpu_tiramisu};
-    shared_copy_bottom.add_predicate(j % block_size < 2);
-    shared_copy_bottom.set_access("{shared_copy_bottom[i, j, c] -> shared[i, j + " BLOCK_SIZE "]}");
+    shared_copy_bottom.add_predicate(j % block_size < 2 && j + block_size < M);
+    shared_copy_bottom.set_access("[N, M] -> {shared_copy_bottom[i, j, c] -> shared[i % " BLOCK_SIZE ", j % " BLOCK_SIZE " + " BLOCK_SIZE "]}");
     shared_copy_bottom.tile(i, j, block_size, block_size, i0, j0, i1, j1);
     shared_copy_bottom.after(shared_copy_right, c);
 
 
     computation shared_copy_diag{"[N, M] -> {shared_copy_diag[i, j, c]: 0 <= i < N and 0 <= j < M and 0 <= c < 3}",
                                  cast(work_type, in(i + block_size, j + block_size, c)), true, data_type, &convolutiongpu_tiramisu};
-    shared_copy_diag.add_predicate(i % block_size < 2 && j % block_size < 2);
-    shared_copy_diag.set_access("{shared_copy_diag[i, j, c] -> shared[i + " BLOCK_SIZE ", j + " BLOCK_SIZE "]}");
+    shared_copy_diag.add_predicate(i % block_size < 2 && j % block_size < 2 && i + block_size < N && j + block_size < M);
+    shared_copy_diag.set_access("[N, M] -> {shared_copy_diag[i, j, c] -> shared[i % " BLOCK_SIZE " + " BLOCK_SIZE ", j % " BLOCK_SIZE " + " BLOCK_SIZE "]}");
     shared_copy_diag.tile(i, j, block_size, block_size, i0, j0, i1, j1);
     shared_copy_diag.after(shared_copy_bottom, c);
 
