@@ -70,6 +70,8 @@ using std::endl;
 #include <vector>
 #include <algorithm>
 #include "Halide.h"
+#include "generated_waxpby.o.h"
+
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
 #define TOCK(t) t += mytimer() - t0
@@ -101,6 +103,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   Halide::Buffer<double> Ap(nrow);
   Halide::Buffer<double> rtrans(1);
   Halide::Buffer<double> alpha(1);
+  Halide::Buffer<int> NROW(1);
+  NROW(0) = nrow;
+  Halide::Buffer<double> beta(1);
+  Halide::Buffer<double> a(1);
+  a(0) = 1.0;
+
 
   normr = 0.0;
   rtrans(0) = 0.0;
@@ -157,10 +165,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       alpha(0) = 0.0;
       oldrtrans = rtrans(0);
       ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans
-      double beta = rtrans(0)/oldrtrans;
-      waxpby (nrow, 1.0, r.data(), beta, p.data(), p.data()); // r + beta*p -> p
+      beta(0) = rtrans(0)/oldrtrans;
+
+      waxpby(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
       HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
       ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha
+      
       alpha(0) = rtrans(0)/alpha(0);
       waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
       waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  //  r - alpha.Ap -> r
