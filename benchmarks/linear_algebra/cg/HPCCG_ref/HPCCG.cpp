@@ -71,6 +71,7 @@ using std::endl;
 #include <algorithm>
 #include "Halide.h"
 #include "generated_waxpby.o.h"
+#include "generated_dot.o.h"
 
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
@@ -164,12 +165,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
       alpha(0) = 0.0;
       oldrtrans = rtrans(0);
-      ddot (nrow, r.data(), r.data(), rtrans.data()); // r*r -> rtrans
+      dot (NROW.raw_buffer(), r.raw_buffer(), r.raw_buffer(), rtrans.raw_buffer()); // r*r -> rtrans
       beta(0) = rtrans(0)/oldrtrans;
 
       waxpby(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
       HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
-      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha
+      dot(NROW.raw_buffer(), p.raw_buffer(), Ap.raw_buffer(), alpha.raw_buffer()); // p*Ap -> alpha
       
       alpha(0) = rtrans(0)/alpha(0);
       waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x

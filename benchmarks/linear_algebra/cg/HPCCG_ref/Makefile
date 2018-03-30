@@ -116,7 +116,7 @@ TARGET = test_HPCCG
 
 ################### Derived Quantities (no modification required) ##############
 
-CXXFLAGS= -std=c++11 -I ../../../../Halide/include/ -I ../../blas/level1/waxpby/ $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
+CXXFLAGS= -std=c++11 -I ../../../../Halide/include/ -I ../../blas/level1/dot/ -I ../../blas/level1/waxpby/ $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
 
 LIB_PATHS= $(SYS_LIB)
 
@@ -130,7 +130,7 @@ TEST_CPP = main.cpp generate_matrix.cpp \
 TEST_OBJ          = $(TEST_CPP:.cpp=.o)
 
 $(TARGET): $(TEST_OBJ)
-	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(TEST_OBJ) $(LIB_PATHS) ../../blas/level1/waxpby/generated_waxpby.o -o $(TARGET)
+	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(TEST_OBJ) $(LIB_PATHS) ../../blas/level1/dot/generated_dot.o ../../blas/level1/waxpby/generated_waxpby.o -o $(TARGET)
 
 test:
 	@echo "Not implemented yet..."
