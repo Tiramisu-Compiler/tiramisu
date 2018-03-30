@@ -1,4 +1,5 @@
 #include <tiramisu/expr.h>
+#include <tiramisu/core.h>
 
 namespace tiramisu
 {
@@ -176,4 +177,14 @@ expr tiramisu::expr::operator>>(tiramisu::expr other) const {
 expr tiramisu::expr::operator<<(tiramisu::expr other) const {
     return tiramisu::expr{o_left_shift, *this, other};
 }
+
+expr memcpy(const buffer &from, const buffer &to) {
+    return expr(o_memcpy, var(from.get_name()), var(to.get_name()));
+}
+
+expr allocate(const buffer &b)
+{
+    return expr{o_allocate, b.get_name()};
+}
+
 }

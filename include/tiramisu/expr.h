@@ -1837,5 +1837,8 @@ only_integral<T> operator<<(T val, const tiramisu::expr &e)
     return expr{val} << e;
 }
 
+expr memcpy(const buffer& from, const buffer& to);
+expr allocate(const buffer& b);
+
 }
 #endif

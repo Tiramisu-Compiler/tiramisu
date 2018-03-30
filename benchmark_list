@@ -1,6 +1,6 @@
 cvtcolor
 cvtcolorgpu[gpu]
-filter2D
+convolution
 blurxy
 gaussian
 warp_affine
@@ -13,3 +13,4 @@ laplacian
 heat2dgpu[gpu]
 gaussiangpu[gpu]
 rgbyuv420gpu[gpu]
+convolutiongpu[gpu]

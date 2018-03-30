@@ -1,4 +1,4 @@
-#include "wrapper_filter2D.h"
+#include "wrapper_convolutiongpu.h"
 #include "../benchmarks.h"
 
 #include "Halide.h"
@@ -13,24 +13,27 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
     Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<int32_t> sizes(2);
+    sizes(0) = input.extent(0);
+    sizes(1) = input.extent(1);
 
     Halide::Buffer<float> kernel(3, 3);
     kernel(0,0) = 0; kernel(0,1) = 1.0f/5; kernel(0,2) = 0;
     kernel(1,0) = 1.0f/5; kernel(1,1) = 1.0f/5; kernel(1,2) = 1.0f/5;
     kernel(2,0) = 0; kernel(2,1) = 1; kernel(2,2) = 0;
 
-    Halide::Buffer<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
-    Halide::Buffer<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
+    Halide::Buffer<uint8_t> output1(input.width()-2, input.height()-2, input.channels());
+    Halide::Buffer<uint8_t> output2(input.width()-2, input.height()-2, input.channels());
 
     // Warm up
-    filter2D_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
-    filter2D_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    convolutiongpu_tiramisu(sizes.raw_buffer(), input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
+    convolutiongpu_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        filter2D_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
+        convolutiongpu_tiramisu(sizes.raw_buffer(), input.raw_buffer(), kernel.raw_buffer(),
 			output1.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -41,22 +44,22 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
-        filter2D_ref(input.raw_buffer(), kernel.raw_buffer(),
+        convolutiongpu_ref(input.raw_buffer(), kernel.raw_buffer(),
 			output2.raw_buffer());
         auto end2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);
     }
 
-    print_time("performance_CPU.csv", "filter2D",
+    print_time("performance_CPU.csv", "convolutiongpu",
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    Halide::Tools::save_image(output1, "./build/filter2D_tiramisu.png");
-    Halide::Tools::save_image(output2, "./build/filter2D_ref.png");
+    Halide::Tools::save_image(output1, "./build/convolutiongpu_tiramisu.png");
+    Halide::Tools::save_image(output2, "./build/convolutiongpu_ref.png");
 
     if (CHECK_CORRECTNESS)
-        compare_buffers("filter2D",  output1, output2);
+        compare_buffers("convolutiongpu",  output1, output2);
 
     return 0;
 }

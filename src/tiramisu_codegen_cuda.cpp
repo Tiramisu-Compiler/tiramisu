@@ -1226,7 +1226,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
 
     void cuda_ast::kernel_definition::print(std::stringstream &ss, const std::string &base) {
-        ss << "__global__ void " << kernel->get_name() << "(";
+        ss << "static __global__ void " << kernel->get_name() << "(";
         auto arguments = kernel->get_arguments();
         for (auto it = arguments.begin(); it != arguments.end();)
         {
