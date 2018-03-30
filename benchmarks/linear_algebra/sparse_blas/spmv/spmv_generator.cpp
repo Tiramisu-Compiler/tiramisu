@@ -41,6 +41,9 @@ for (i = 0; i < M; i++)
     }
 */
 
+#define THREADS 32
+#define PARTITIONS (SIZE/THREADS)
+
 
 using namespace tiramisu;
 
@@ -51,14 +54,14 @@ int main(int argc, char **argv)
 
     function spmv("spmv");
 
-    constant M_CST("M", expr(N), p_int32, true, NULL, 0, &spmv);
-
     // Inputs
+    computation SIZES("[M]->{SIZES[0]}", tiramisu::expr(), false, p_int32, &spmv);
     computation c_row_start("[M]->{c_row_start[i]: 0<=i<M}", tiramisu::expr(), false, p_uint8, &spmv);
     computation c_col_idx("[b0,b1]->{c_col_idx[j]: b0<=j<b1}", tiramisu::expr(), false, p_uint8, &spmv);
     computation c_values("[b0,b1]->{c_values[j]: b0<=j<b1}", tiramisu::expr(), false, p_uint8, &spmv);
     computation c_x("[M,b0,b1]->{c_x[j]: b0<=j<b1}", tiramisu::expr(), false, p_uint8, &spmv);
 
+    constant M_CST("M", SIZES(0), p_int32, true, NULL, 0, &spmv);
 
     computation c_y("[M,b0,b1]->{c_y[i,j]: 0<=i<M and b0<=j<b1}", tiramisu::expr(), true, p_uint8, &spmv);
 
@@ -74,22 +77,30 @@ int main(int argc, char **argv)
     // -----------------------------------------------------------------
     // Layer II
     // ----------------------------------------------------------------- 
-    b1.after_low_level(b0, 0);
-    t.after_low_level(b1,0);
-    c_y.after_low_level(t,1);
+    b0.split(0, PARTITIONS);
+    b1.split(0, PARTITIONS);
+    t.split(0, PARTITIONS);
+    c_y.split(0, PARTITIONS);
+
+    c_y.tag_parallel_level(0);
 
 
-    //c_y.tag_parallel_level(0);
+    b1.after(b0, 1);
+    t.after(b1,1);
+    c_y.after(t,2);
+
 
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------
+    buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &spmv);
     buffer b_row_start("b_row_start", {tiramisu::expr(N)}, p_int32, a_input, &spmv);
     buffer b_col_idx("b_col_idx", {tiramisu::expr(N)}, p_int32, a_input, &spmv);
     buffer b_values("b_values", {tiramisu::expr((N*N))}, p_float64, a_input, &spmv);
     buffer b_x("b_x", {tiramisu::expr(N*N)}, p_float64, a_input, &spmv);
     buffer b_y("b_y", {tiramisu::expr(N*N)}, p_float64, a_output, &spmv);
 
+    SIZES.set_access("{SIZES[0]->b_SIZES[0]}");
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");
     c_values.set_access("{c_values[j]->b_values[j]}");
@@ -99,7 +110,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------------------------
     // Generate code
     // ------------------------------------------------------------------
-    spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
+    spmv.set_arguments({&b_SIZES, &b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
     spmv.gen_time_space_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();

@@ -74,6 +74,7 @@ void spmv_CSR(int nRows, int nNonzero,
         double *vec,
         double *out)
 {
+    #pragma omp parallel for
     for (int i = 0; i < nRows; i++) {
         int start = rowDelims[i];
         int end = rowDelims[i+1];
@@ -96,7 +97,7 @@ int main(int, char **)
     bool run_ref = false;
     bool run_tiramisu = false;
 
-    const char* env_ref = std::getenv("RUN_MKL");
+    const char* env_ref = std::getenv("RUN_REF");
     if ((env_ref != NULL) && (env_ref[0] == '1'))
 	run_ref = true;
     const char* env_tira = std::getenv("RUN_TIRAMISU");
@@ -116,6 +117,8 @@ int main(int, char **)
     std::vector<int> sz = {N};
     std::vector<int> sz2 = {N*N/100};
 
+    Halide::Buffer<int> b_SIZES(1);
+    b_SIZES(0) = N;
     Halide::Buffer<int> b_row_start_buf(rowDelims, sz);
     Halide::Buffer<int> b_col_idx_buf(columns, sz);
     Halide::Buffer<double> b_values_buf(values, sz2);
@@ -146,7 +149,7 @@ int main(int, char **)
 	    init_buffer(b_y_buf, (double)0);
 	    auto start2 = std::chrono::high_resolution_clock::now();
  	    if (run_tiramisu == true)
-    		spmv(b_row_start_buf.raw_buffer(), b_col_idx_buf.raw_buffer(), b_values_buf.raw_buffer(), b_x_buf.raw_buffer(), b_y_buf.raw_buffer());
+    		spmv(b_SIZES.raw_buffer(), b_row_start_buf.raw_buffer(), b_col_idx_buf.raw_buffer(), b_values_buf.raw_buffer(), b_x_buf.raw_buffer(), b_y_buf.raw_buffer());
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
