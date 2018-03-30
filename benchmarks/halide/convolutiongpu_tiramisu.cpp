@@ -76,8 +76,8 @@ int main(int argc, char **argv)
     shared.tag_gpu_shared();
     shared_in.set_access("{shared_in[i, o_i, j, o_j] -> shared[i % " BLOCK_SIZE " + o_i, j % " BLOCK_SIZE" + o_j]}");
 
-    buffer out_host{"out_host", {3, M - 2, N - 2}, work_type, a_output, &convolutiongpu_tiramisu};
-    buffer out_gpu{"out_gpu", {3, M - 2, N - 2}, work_type, a_temporary, &convolutiongpu_tiramisu};
+    buffer out_host{"out_host", {3, M - 2, N - 2}, data_type, a_output, &convolutiongpu_tiramisu};
+    buffer out_gpu{"out_gpu", {3, M - 2, N - 2}, data_type, a_temporary, &convolutiongpu_tiramisu};
     out_gpu.tag_gpu_global();
     out.set_access("{out[i, j, c] -> out_gpu[c, j, i]}");
 
