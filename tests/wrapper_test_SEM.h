@@ -4,7 +4,7 @@
 
 // Define these values for each new test
 #define TEST_NAME_STR       "SEM"
-#define N 2
+#define N 10
 
 #include <tiramisu/utils.h>
 
