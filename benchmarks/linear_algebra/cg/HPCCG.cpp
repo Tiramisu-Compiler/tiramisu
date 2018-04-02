@@ -71,6 +71,7 @@ using std::endl;
 #include <algorithm>
 #include "Halide.h"
 #include "generated_waxpby.o.h"
+#include "generated_cg.o.h"
 #include "generated_dot.o.h"
 #include "generated_spmv.o.h"
 
@@ -295,14 +296,13 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       dot (NROW.raw_buffer(), r.raw_buffer(), r.raw_buffer(), rtrans.raw_buffer()); // r*r -> rtrans
       beta(0) = rtrans(0)/oldrtrans;
 
-      waxpby(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
+      cg(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
       spmv(NROW.raw_buffer(), row_start.raw_buffer(), col_idx.raw_buffer(), A_tiramisu.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer()); // A*p -> Ap
       dot(NROW.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer(), alpha.raw_buffer()); // p*Ap -> alpha
 
       alpha(0) = rtrans(0)/alpha(0);
       hpccg_waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
       hpccg_waxpby(nrow, 1.0, r.data(), -alpha(0), Ap2.data(), r.data());  //  r - alpha.Ap -> r
-
 
 
       niters = k;

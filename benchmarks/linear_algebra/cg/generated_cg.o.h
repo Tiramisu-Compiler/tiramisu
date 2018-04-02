@@ -29,8 +29,8 @@ struct buffer_t;
 extern "C" {
 #endif
 
-int cg(struct halide_buffer_t *_b_r_buffer, struct halide_buffer_t *_b_beta_buffer, struct halide_buffer_t *_b_p_buffer) HALIDE_FUNCTION_ATTRS;
-int cg_old_buffer_t(struct buffer_t *_b_r, struct buffer_t *_b_beta, struct buffer_t *_b_p) HALIDE_FUNCTION_ATTRS;
+int cg(struct halide_buffer_t *_b_SIZES_buffer, struct halide_buffer_t *_b_alpha_buffer, struct halide_buffer_t *_b_x_buffer, struct halide_buffer_t *_b_beta_buffer, struct halide_buffer_t *_b_y_buffer, struct halide_buffer_t *_b_w_buffer) HALIDE_FUNCTION_ATTRS;
+int cg_old_buffer_t(struct buffer_t *_b_SIZES, struct buffer_t *_b_alpha, struct buffer_t *_b_x, struct buffer_t *_b_beta, struct buffer_t *_b_y, struct buffer_t *_b_w) HALIDE_FUNCTION_ATTRS;
 
 #ifdef __cplusplus
 }  // extern "C"

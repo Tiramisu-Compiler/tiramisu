@@ -28,14 +28,13 @@ for (int i=0; i<nrow; i++)
 
 */
 
-#define nrow SIZE
-
 using namespace tiramisu;
+
+#define nrow SIZE
 
 #define THREADS 32
 #define B0 256
 #define B1 8
-
 #define B0s std::to_string(B0)
 #define B1s std::to_string(B1)
 
@@ -48,16 +47,18 @@ int main(int argc, char **argv)
 
     function cg("cg");
 
-    constant M_CST("M", expr(nrow), p_int32, true, NULL, 0, &cg);
 
     // Inputs
+    computation SIZES("[M]->{SIZES[0]}", tiramisu::expr(), false, p_int32, &cg);
     computation x("[M]->{x[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &cg);
     computation y("[M]->{y[j]: 0<=j<M}", tiramisu::expr(), false, p_float64, &cg);
+    computation alpha("[M]->{alpha[0]}", tiramisu::expr(), false, p_float64, &cg);
     computation beta("[M]->{beta[0]}", tiramisu::expr(), false, p_float64, &cg);
 
-    // Algorithm
+    constant M_CST("M", SIZES(0), p_int32, true, NULL, 0, &cg);
+
     tiramisu::var j("j");
-    computation w("[M]->{w[j]: 0<=j<M}", x(j) + beta(0)*y(j), true, p_float64, &cg);
+    computation w("[M]->{w[j]: 0<=j<M}", alpha(0)*x(j) + beta(0)*y(j), true, p_float64, &cg);
 
     cg.set_context_set("[M]->{: M>0 and M%"+B0s+"=0}");
 
@@ -76,19 +77,24 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------
-    buffer b_r("b_r", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
-    buffer b_p("b_p", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
-    buffer b_beta("b_beta", {tiramisu::expr(0)}, p_float64, a_input, &cg);
+    buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &cg);
+    buffer b_x("b_x", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
+    buffer b_y("b_y", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
+    buffer b_alpha("b_alpha", {tiramisu::expr(1)}, p_float64, a_input, &cg);
+    buffer b_beta("b_beta", {tiramisu::expr(1)}, p_float64, a_input, &cg);
+    buffer b_w("b_w", {tiramisu::expr(nrow)}, p_float64, a_output, &cg);
 
-    x.set_access("{x[j]->b_r[j]}");
-    y.set_access("{y[j]->b_p[j]}");
+    SIZES.set_access("{SIZES[0]->b_SIZES[0]}");
+    x.set_access("{x[j]->b_x[j]}");
+    y.set_access("{y[j]->b_y[j]}");
+    alpha.set_access("{alpha[0]->b_alpha[0]}");
     beta.set_access("{beta[0]->b_beta[0]}");
-    w.set_access("{w[j]->b_p[j]}");
+    w.set_access("{w[j]->b_w[j]}");
 
     // ------------------------------------------------------------------
     // Generate code
     // ------------------------------------------------------------------
-    cg.set_arguments({&b_r, &b_beta, &b_p});
+    cg.set_arguments({&b_SIZES, &b_alpha, &b_x, &b_beta, &b_y, &b_w});
     cg.gen_time_space_domain();
     cg.gen_isl_ast();
     cg.gen_halide_stmt();

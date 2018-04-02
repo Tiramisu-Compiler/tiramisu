@@ -107,7 +107,7 @@ OMP_FLAGS = -fopenmp
 #
 # 7) System libraries: (May need to add -lg2c before -lm)
 
-SYS_LIB =-lm -L ../../../../Halide/lib/ -lHalide -lz -lpthread -ldl
+SYS_LIB =-lm -L ../../../Halide/lib/ -lHalide -lz -lpthread -ldl
 
 #
 # 6) Specify name if executable (optional):
@@ -116,7 +116,7 @@ TARGET = test_HPCCG
 
 ################### Derived Quantities (no modification required) ##############
 
-CXXFLAGS= -std=c++11 -I ../../../../Halide/include/ -I ../../blas/level1/dot/ -I ../../blas/level1/waxpby/ $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
+CXXFLAGS= -std=c++11 -I ../../../Halide/include/ -I ../blas/level1/dot/ -I ../blas/level1/waxpby/ -I ../sparse_blas/spmv/ $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(USE_OMP) $(USE_MPI) $(MPI_INC)
 
 LIB_PATHS= $(SYS_LIB)
 
@@ -130,7 +130,7 @@ TEST_CPP = main.cpp generate_matrix.cpp \
 TEST_OBJ          = $(TEST_CPP:.cpp=.o)
 
 $(TARGET): $(TEST_OBJ)
-	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(TEST_OBJ) $(LIB_PATHS) ../../blas/level1/dot/generated_dot.o ../../blas/level1/waxpby/generated_waxpby.o -o $(TARGET)
+	$(LINKER) $(CPP_OPT_FLAGS) $(OMP_FLAGS) $(TEST_OBJ) $(LIB_PATHS) ../blas/level1/dot/generated_dot.o generated_cg.o ../blas/level1/waxpby/generated_waxpby.o ../sparse_blas/spmv/generated_spmv.o -o $(TARGET)
 
 test:
 	@echo "Not implemented yet..."

@@ -57,6 +57,8 @@ int main(int, char **)
     double alpha = 1;
     double beta = 1;
 
+    Halide::Buffer<int> NROW(1);
+    NROW(0) = nrow;
     Halide::Buffer<double> b_r(nrow);
     init_buffer(b_r, (double) 2);
     Halide::Buffer<double> b_p(nrow);
@@ -95,7 +97,7 @@ int main(int, char **)
 	    auto start2 = std::chrono::high_resolution_clock::now();
  	    if (run_tiramisu == true)
 	    {
-	    	cg(b_r.raw_buffer(), b_beta.raw_buffer(), b_p.raw_buffer());
+                cg(NROW.raw_buffer(), b_alpha.raw_buffer(), b_r.raw_buffer(), b_beta.raw_buffer(), b_p.raw_buffer(), b_p.raw_buffer()); // r + beta*p -> p
 	    }
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;

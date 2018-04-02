@@ -37,7 +37,6 @@ for (int i=0; i<n; i++)
 
 #define EXTRA_OPTIMIZATIONS 1
 
-
 using namespace tiramisu;
 
 int main(int argc, char **argv)
