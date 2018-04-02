@@ -145,12 +145,12 @@ int main(int, char **) {
 
   tiramisu_timer timer;
   timer.start();
-  tiramisu_generated_code(D.raw_buffer(), G.raw_buffer(), u.raw_buffer(), tmp_buff.raw_buffer());
+  tiramisu_generated_code(D.raw_buffer(), G.raw_buffer(), u.raw_buffer());
   timer.stop();
   timer.print("Tiramisu SEM");
 
 
-  std::cerr << "***TMP OUTPUT***" << std::endl;
+  /*  std::cerr << "***TMP OUTPUT***" << std::endl;
   for (int t = 0; t < 3; t++) {
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
@@ -168,15 +168,15 @@ int main(int, char **) {
       std::cerr << ((double*)(D.raw_buffer()->host))[i*N+j] << std::endl;
     }
   }
-  
-  /*  std::cerr << "***U OUTPUT***" << std::endl;
+  */
+  std::cerr << "***U OUTPUT***" << std::endl;
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
       for (int k = 0; k < N; k++) {
 	std::cerr << ((double*)(u.raw_buffer()->host))[i*N*N+j*N+k] << std::endl;
       }
     }
-    }*/
+  }
 
   
   return 0;
