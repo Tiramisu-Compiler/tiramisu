@@ -5,3 +5,6 @@
 	- While in ISL the names of dimensions is not important, the dimension
 	names in Tiramisu is important (this is because we need to match the indices
 	of tiramisu access expressions to the dimensions of the access function).
+	- When you tile or split or increase the number of dimensions, there's no
+	way to specify the new dimension number when adding an associated let
+	statement as a constant.

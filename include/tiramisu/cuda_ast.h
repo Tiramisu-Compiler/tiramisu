@@ -663,8 +663,6 @@ private:
     std::vector<cuda_ast::statement_ptr> iterator_upper_bound;
     std::vector<cuda_ast::statement_ptr> iterator_lower_bound;
     std::vector<cuda_ast::statement_ptr> kernel_simplified_vars;
-    // Scalars needed by the kernel
-    std::unordered_map<std::string, cuda_ast::scalar_ptr> kernel_scalars;
     // A mapping from iterator name to GPU info
     std::unordered_map<std::string, cuda_ast::gpu_iterator> gpu_iterators;
     std::vector<cuda_ast::statement_ptr> gpu_conditions;

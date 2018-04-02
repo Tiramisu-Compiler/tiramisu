@@ -1723,11 +1723,6 @@ private:
     const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
 
     /**
-      * Get the data type of the computation.
-      */
-    tiramisu::primitive_t get_data_type() const;
-
-    /**
      * Get the name of dynamic dimension that corresponds to the
      * \p loop_level in the time-space domain.
      */
@@ -3008,6 +3003,11 @@ public:
     void drop_rank_iter();
 
     /**
+      * Get the data type of the computation.
+      */
+    tiramisu::primitive_t get_data_type() const;
+
+    /**
       * Return the Tiramisu expression associated with the computation.
       */
     const tiramisu::expr &get_expr() const;
@@ -3742,6 +3742,7 @@ class generator
     friend function;
     friend computation;
     friend buffer;
+    friend cuda_ast::generator;
 
 protected:
 

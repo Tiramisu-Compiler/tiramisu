@@ -2687,27 +2687,65 @@ std::pair<expr, expr> computation::create_tiramisu_assignment(std::vector<isl_as
     tiramisu::expr lhs, rhs;
 
     // TODO handle let statements
-    assert(!this->is_let_stmt() && "create_tiramisu_assignment does not currently support let statements");
+    if (this->is_let_stmt())
+    {
+        DEBUG(3, tiramisu::str_dump("This is a let statement."));
+        DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The expression associated with the let statement: ");
+                this->expression.dump(false));
+        DEBUG_NEWLINE(10);
 
-    DEBUG(3, tiramisu::str_dump("This is not a let statement."));
+        // Assuming this computation is not the original computation, but a
+        // definition that was added to the original computation. We need to
+        // retrieve the original computation.
+        auto *root = (tiramisu::constant *)
+                this->get_root_of_definition_tree();
+
+        if (root->get_computation_with_whom_this_is_computed() != NULL)
+        {
+
+            rhs = generator::replace_accesses(this->get_function(),
+                                              this->get_index_expr(),
+                                              replace_original_indices_with_transformed_indices(this->expression,
+                                                                                                root->get_computation_with_whom_this_is_computed()->get_iterators_map()));
+        }
+        else
+        {
+
+            rhs = generator::replace_accesses(this->get_function(),
+                                              this->get_index_expr(),
+                                              this->expression);
+
+        }
 
 
-    lhs = generator::comp_to_buffer(this, index_expr);
+        if (this->get_data_type() != rhs.get_data_type())
+        {
+            rhs = cast(this->get_data_type(), rhs);
+        }
 
-    // Replace the RHS expression to the transformed expressions.
-    // We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
-    // that an access can only appear when accessing a computation. And that case should be handled in the following transformation
-    // so no need to transform this->index_expr separately.
-    rhs = generator::replace_accesses(
-            this->get_function(), index_expr,
-            replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map()));
+        const std::string &let_stmt_name = this->get_name();
 
+        lhs = var(this->get_data_type(), let_stmt_name);
+    }
+    else
+    {
+
+        DEBUG(3, tiramisu::str_dump("This is not a let statement."));
+
+
+        lhs = generator::comp_to_buffer(this, index_expr);
+
+        // Replace the RHS expression to the transformed expressions.
+        // We do not need to transform the indices of expression (this->index_expr), because in Tiramisu we assume
+        // that an access can only appear when accessing a computation. And that case should be handled in the following transformation
+        // so no need to transform this->index_expr separately.
+        rhs = generator::replace_accesses(
+                this->get_function(), index_expr,
+                replace_original_indices_with_transformed_indices(this->expression, this->get_iterators_map()));
+
+    }
     DEBUG(3, std::cout << "LHS: " << lhs.to_str());
     DEBUG(3, std::cout << "RHS: " << rhs.to_str());
-
-
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("End of create_halide_stmt. Generated statement is: ");
-            std::cout << this->stmt);
 
     DEBUG_INDENT(-4);
 

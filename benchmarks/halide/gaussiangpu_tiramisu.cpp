@@ -57,8 +57,6 @@ int main(int argc, char **argv)
         e = e + cast(work_type, shared_x(i1, k, j1)) * kernel_x(k);
     MAKE_BIGGER_LOOP_TYPED(gaussian_x, "gaussian_x", e, work_type);
 
-    std::cout << isl_set_to_str(gaussian_x.get_iteration_domain()) << std::endl;
-
     e = value_cast(work_type, 0);
     for (int k = 0; k < 5; k++)
         e = e + shared_y(i, j, k) * kernel_y(k);
