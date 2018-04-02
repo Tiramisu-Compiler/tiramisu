@@ -72,10 +72,27 @@ using std::endl;
 #include "Halide.h"
 #include "generated_waxpby.o.h"
 #include "generated_dot.o.h"
+#include "generated_spmv.o.h"
 
 
 #define TICK()  t0 = mytimer() // Use TICK and TOCK to time a code section
 #define TOCK(t) t += mytimer() - t0
+
+template<typename T>
+inline void init_buffer(Halide::Buffer<T> &buf, T val)
+{
+    for (int z = 0; z < buf.channels(); z++)
+    {
+        for (int y = 0; y < buf.height(); y++)
+        {
+            for (int x = 0; x < buf.width(); x++)
+            {
+                buf(x, y, z) = val;
+            }
+        }
+    }
+}
+
 
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 {
@@ -92,6 +109,110 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
     return median;
 }
 
+int HPCCG_matrix_to_tiramisu_matrix(HPC_Sparse_Matrix *A,
+				    Halide::Buffer<int> &row_start,
+				    Halide::Buffer<int> &col_idx,
+				    Halide::Buffer<double> &A_tiramisu)
+{
+  const int nrow = (const int) A->local_nrow;
+  const int debug_HPCCG_matrix_to_tiramisu_matrix = 0;
+
+  row_start(0) = 0;
+
+  std::cerr << "row_start.size(): " << row_start.number_of_elements() << ". " <<
+	       "col_idx.size(): " << col_idx.number_of_elements() << ". " <<
+               "A_tiramisu.size(): " <<  A_tiramisu.number_of_elements() << ". " <<
+	       "A->total_nnz: " << A->total_nnz << std::endl;
+  std::cerr.flush();
+
+  for (int i=0; i< nrow; i++)
+    {
+      const double * const cur_vals = (const double * const) A->ptr_to_vals_in_row[i];
+      const int    * const cur_inds = (const int    * const) A->ptr_to_inds_in_row[i];
+      const int cur_nnz = (const int) A->nnz_in_row[i];
+
+      row_start(i+1) = row_start(i) + cur_nnz;
+
+      if (debug_HPCCG_matrix_to_tiramisu_matrix) {
+      		std::cerr << "i = " << i << ", row_start(i) = " << row_start(i) << std::endl;
+      		std::cerr.flush();
+      }
+
+      for (int j=0; j< cur_nnz; j++)
+      {
+          col_idx(row_start(i)+j) = cur_inds[j];
+          A_tiramisu(row_start(i)+j) = cur_vals[j];
+
+	  if (debug_HPCCG_matrix_to_tiramisu_matrix) {
+		std::cerr<<"	j = "<<j<< ", col_idx(" << row_start(i)+j << ") = " << col_idx(row_start(i)+j) << ", A_tiramisu(" << row_start(i)+j << ") = " << A_tiramisu(row_start(i)+j) << std::endl;
+		std::cerr.flush();
+	  }
+      }
+    }
+}
+
+int     print_spmv(// Input HPCCG format
+		   HPC_Sparse_Matrix *HPCCG_A,
+		   const double * const x,
+ 		   double * const y,
+                   // Input Tiramisu format
+                   int tiramisu_NROW,
+		   Halide::Buffer<int> &row_start,
+		   Halide::Buffer<int> &col_idx,
+		   Halide::Buffer<double> &A_tiramisu,
+		   Halide::Buffer<double> &p,
+		   Halide::Buffer<double> &Ap)
+{
+
+  const int nrow = (const int) HPCCG_A->local_nrow;
+  std::cerr << "[HPPCG_A]: nrow = " << nrow << std::endl;
+  std::cerr << "[Tiramisu_A]: tiramisu_NROW = " << tiramisu_NROW << std::endl;
+  std::cerr << "[HPPCG_A]: i iterating in [0, " << nrow << "]" << std::endl;
+
+  for (int i=0; i< nrow; i++)
+    {
+      std::cerr << "[HPPCG_A]: i is " << i << std::endl;
+
+      double sum = 0.0;
+      const double * const cur_vals = (const double * const) HPCCG_A->ptr_to_vals_in_row[i];
+      const int    * const cur_inds = (const int    * const) HPCCG_A->ptr_to_inds_in_row[i];
+      const int cur_nnz = (const int) HPCCG_A->nnz_in_row[i];
+
+      std::cerr << "[HPPCG_A]: j iterating in [0, " << cur_nnz << "]" << std::endl;
+      for (int j=0; j< cur_nnz; j++)
+	{
+          std::cerr << "	[HPPCG_A]: j is " << j << std::endl;
+          std::cerr << "	[HPPCG_A]: sum = sum + cur_vals[" << j << "]*x[cur_inds[" << j << "]]" << std::endl;
+          std::cerr << "	[HPPCG_A]: sum = " << sum << " + cur_vals[" << j << "]*x[" <<   cur_inds[j] << "]" << std::endl;
+          std::cerr << "	[HPPCG_A]: sum = " << sum << " + " << cur_vals[j]     <<  "*"   << x[cur_inds[j]] << std::endl;
+
+          sum += cur_vals[j]*x[cur_inds[j]];
+
+	  std::cerr << "	[HPPCG_A]: sum is " << sum << std::endl;
+	}
+
+      std::cerr << "[HPPCG_A]: y[" << i << "] = " << sum << std::endl;
+      //y[i] = sum;
+
+      // ------------------------------------------------------------
+      std::cerr << "[Tiramisu_A]: j iterating in [" << row_start(i) << ", " << row_start(i+1) << "]" << std::endl;
+      for (int j=row_start(i); j<row_start(i+1); j++)
+	{
+          std::cerr << "	[Tiramisu_A]: j is " << j << std::endl;
+          std::cerr << "	[Tiramisu_A]: Ap(i) = Ap(i) + A_tiramisu[" << j << "]*p[col_idx[" << j << "]]" << std::endl;
+          std::cerr << "	[Tiramisu_A]: Ap(i) = " << Ap(i) << " + A_tiramisu[" << j << "]*p[" << col_idx(j) << "]" << std::endl;
+          std::cerr << "	[Tiramisu_A]: Ap(i) = " << Ap(i) << " + " << A_tiramisu(j) << "*" << p(col_idx(j)) << std::endl;
+
+          Ap(i) += A_tiramisu(j) * p(col_idx(j));
+
+	  std::cerr << "	[Tiramisu_A]: Ap(i) is " << Ap(i) << std::endl;
+	}
+
+      std::cerr << "[Tiramisu_A]: Ap(" << i << ") = " << Ap(i) << std::endl;
+    }
+  return(0);
+}
+
 int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 	  const double * const b, double * const x,
 	  const int max_iter, const double tolerance, int &niters, double & normr,
@@ -100,8 +221,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
 
-  Halide::Buffer<double> p(ncol); // In parallel case, A is rectangular
-  Halide::Buffer<double> Ap(nrow);
+  Halide::Buffer<double> p(A->total_nnz); // In parallel case, A is rectangular
+  Halide::Buffer<double> Ap(A->total_nnz);
   Halide::Buffer<double> rtrans(1);
   Halide::Buffer<double> alpha(1);
   Halide::Buffer<int> NROW(1);
@@ -109,7 +230,11 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   Halide::Buffer<double> beta(1);
   Halide::Buffer<double> a(1);
   a(0) = 1.0;
+  Halide::Buffer<int> row_start(A->total_nnz+1);
+  Halide::Buffer<int> col_idx(A->total_nnz+1);
+  Halide::Buffer<double> A_tiramisu(A->total_nnz+1);
 
+  HPCCG_matrix_to_tiramisu_matrix(A, row_start, col_idx, A_tiramisu);
 
   normr = 0.0;
   rtrans(0) = 0.0;
@@ -128,13 +253,14 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   if (print_freq<1)  print_freq=1;
 
   // p is of length ncols, copy x to p for sparse MV operation
-  waxpby(nrow, 1.0, x, 0.0, x, p.data());
+  hpccg_waxpby(nrow, 1.0, x, 0.0, x, p.data());
+
 #ifdef USING_MPI
   exchange_externals(A,p.data());
 #endif
   HPC_sparsemv(A, p.data(), Ap.data());
-  waxpby(nrow, 1.0, b, -1.0, Ap.data(), r.data());
-  ddot(nrow, r.data(), r.data(), rtrans.data());
+  hpccg_waxpby(nrow, 1.0, b, -1.0, Ap.data(), r.data());
+  hpccg_ddot(nrow, r.data(), r.data(), rtrans.data());
   normr = sqrt(rtrans(0));
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
@@ -144,13 +270,14 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
   for(int k=1; k<=1 && normr > tolerance; k++ )
     {
+      Halide::Buffer<double> Ap1(A->total_nnz);
       alpha(0) = 0.0;
-      waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data()); // r + 0*p -> p
-      HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
-      ddot(nrow, p.data(), Ap.data(), alpha.data()); // p*Ap -> alpha
+      hpccg_waxpby(nrow, 1.0, r.data(), 0.0, r.data(), p.data()); // r + 0*p -> p
+      HPC_sparsemv(A, p.data(), Ap1.data()); // A*p -> Ap
+      hpccg_ddot(nrow, p.data(), Ap1.data(), alpha.data()); // p*Ap -> alpha
       alpha(0) = rtrans(0)/alpha(0);
-      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
-      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  //  r - alpha.Ap -> r
+      hpccg_waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
+      hpccg_waxpby(nrow, 1.0, r.data(), -alpha(0), Ap1.data(), r.data());  //  r - alpha.Ap -> r
 
       niters = k;
       normr = sqrt(rtrans(0));
@@ -159,8 +286,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
 
   for(int k=2; k<=max_iter && normr > tolerance; k++ )
     {
+      Halide::Buffer<double> Ap2(A->total_nnz);
       auto start_one_iter = std::chrono::high_resolution_clock::now();
-
 
 
       alpha(0) = 0.0;
@@ -169,12 +296,12 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       beta(0) = rtrans(0)/oldrtrans;
 
       waxpby(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
-      HPC_sparsemv(A, p.data(), Ap.data()); // A*p -> Ap
-      dot(NROW.raw_buffer(), p.raw_buffer(), Ap.raw_buffer(), alpha.raw_buffer()); // p*Ap -> alpha
-      
+      spmv(NROW.raw_buffer(), row_start.raw_buffer(), col_idx.raw_buffer(), A_tiramisu.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer()); // A*p -> Ap
+      dot(NROW.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer(), alpha.raw_buffer()); // p*Ap -> alpha
+
       alpha(0) = rtrans(0)/alpha(0);
-      waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
-      waxpby(nrow, 1.0, r.data(), -alpha(0), Ap.data(), r.data());  //  r - alpha.Ap -> r
+      hpccg_waxpby(nrow, 1.0, x, alpha(0), p.data(), x);// x + alpha*p -> x
+      hpccg_waxpby(nrow, 1.0, r.data(), -alpha(0), Ap2.data(), r.data());  //  r - alpha.Ap -> r
 
 
 
@@ -227,13 +354,13 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
   if (print_freq<1)  print_freq=1;
 
   // p is of length ncols, copy x to p for sparse MV operation
-  waxpby(nrow, 1.0, x, 0.0, x, p);
+  hpccg_waxpby(nrow, 1.0, x, 0.0, x, p);
 #ifdef USING_MPI
   exchange_externals(A,p);
 #endif
   HPC_sparsemv(A, p, Ap);
-  waxpby(nrow, 1.0, b, -1.0, Ap, r);
-  ddot(nrow, r, r, &rtrans);
+  hpccg_waxpby(nrow, 1.0, b, -1.0, Ap, r);
+  hpccg_ddot(nrow, r, r, &rtrans);
   normr = sqrt(rtrans);
 
   if (rank==0) cout << "Initial Residual = "<< normr << endl;
@@ -245,13 +372,13 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
     {
       auto start_one_iter = std::chrono::high_resolution_clock::now();
       if (k == 1)
-	  waxpby(nrow, 1.0, r, 0.0, r, p);
+	  hpccg_waxpby(nrow, 1.0, r, 0.0, r, p);
       else
 	{
 	  oldrtrans = rtrans;
-	  ddot (nrow, r, r, &rtrans); // 2*nrow ops
+	  hpccg_ddot (nrow, r, r, &rtrans); // 2*nrow ops
 	  double beta = rtrans/oldrtrans;
-	  waxpby (nrow, 1.0, r, beta, p, p); // 2*nrow ops
+	  hpccg_waxpby (nrow, 1.0, r, beta, p, p); // 2*nrow ops
 	}
       normr = sqrt(rtrans);
       if (rank==0 && (k%print_freq == 0 || k+1 == max_iter))
@@ -265,10 +392,10 @@ int HPCCG_ref(HPC_Sparse_Matrix * A,
 
       HPC_sparsemv(A, p, Ap); // 2*nnz ops
       double alpha = 0.0;
-      ddot(nrow, p, Ap, &alpha); // 2*nrow ops
+      hpccg_ddot(nrow, p, Ap, &alpha); // 2*nrow ops
       alpha = rtrans/alpha;
-      waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
-      waxpby(nrow, 1.0, r, -alpha, Ap, r);  // 2*nrow ops
+      hpccg_waxpby(nrow, 1.0, x, alpha, p, x);// 2*nrow ops
+      hpccg_waxpby(nrow, 1.0, r, -alpha, Ap, r);  // 2*nrow ops
       niters = k;
       auto end_one_iter = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration_one_iter = end_one_iter - start_one_iter;
