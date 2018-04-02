@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
     k.gpu_tile(x, y, x1, y1, 16, 16);
 
     Halide::Target target = Halide::get_host_target();
+    target.set_feature(Halide::Target::CUDA, true);
 
     Pipeline({f, g, h, k}).compile_to_object("build/generated_fct_fusion_ref.o", {in}, "fusion_ref", target);
 
