@@ -22,9 +22,9 @@ int main(int argc, char **argv) {
     Halide::Target target = Halide::get_host_target();
     target.set_feature(Halide::Target::CUDA, true);
 
-    Pipeline({f, g, h, k}).compile_to_object("build/generated_fct_fusion_ref.o", {in}, "fusion_ref", target);
+    Pipeline({f, g, h, k}).compile_to_object("build/generated_fct_fusiongpu_ref.o", {in}, "fusiongpu_ref", target);
 
-    Pipeline({f, g, h, k}).compile_to_lowered_stmt("build/generated_fct_fusion_ref.txt", {in}, Halide::Text, target);
+    Pipeline({f, g, h, k}).compile_to_lowered_stmt("build/generated_fct_fusiongpu_ref.txt", {in}, Halide::Text, target);
 
     return 0;
 }
