@@ -151,13 +151,15 @@ int main(int, char **) {
 
 
   std::cerr << "***TMP OUTPUT***" << std::endl;
-  int t = 0;
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      for (int k = 0; k < N; k++) {
+  for (int t = 0; t < 3; t++) {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+	for (int k = 0; k < N; k++) {
 	std::cerr << ((double*)(tmp_buff.raw_buffer()->host))[t*N*N*N + i*N*N + j*N + k] << std::endl;
+	}
       }
     }
+    std::cerr << "***" << std::endl;
   }
 
   std::cerr << "***D***" << std::endl;
@@ -167,14 +169,14 @@ int main(int, char **) {
     }
   }
   
-  std::cerr << "***U OUTPUT***" << std::endl;
+  /*  std::cerr << "***U OUTPUT***" << std::endl;
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
       for (int k = 0; k < N; k++) {
 	std::cerr << ((double*)(u.raw_buffer()->host))[i*N*N+j*N+k] << std::endl;
       }
     }
-  }
+    }*/
 
   
   return 0;
