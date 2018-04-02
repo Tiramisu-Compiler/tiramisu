@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     global::set_default_tiramisu_options();
 
 
-    tiramisu::function affine_tiramisu("warp_affine_tiramisu");
+    tiramisu::function affine_tiramisu("warp_affinegpu_tiramisu");
 
     var i0("i0"), i1("i1"), j0("j0"), j1("j1");
 
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     affine_tiramisu.gen_cuda_stmt();
     affine_tiramisu.gen_halide_stmt();
     affine_tiramisu.dump_halide_stmt();
-    affine_tiramisu.gen_halide_obj("build/generated_fct_warp_affine.o");
+    affine_tiramisu.gen_halide_obj("build/generated_fct_warp_affinegpu.o");
 
     return 0;
 }
