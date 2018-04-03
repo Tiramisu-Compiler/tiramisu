@@ -2731,7 +2731,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 			   // scheduling is supported but currently we only
 			   // accept literal constants as anything else was not
 			   // needed til now.
-			   assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
+			   //assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
 			}
 
 			if (tiramisu_buffer->has_constant_extents())
