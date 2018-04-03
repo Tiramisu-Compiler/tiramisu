@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     computation c_spmv_wrapper("[M,b0,b1]->{c_spmv_wrapper[i]: 0<=i<M}", tiramisu::expr(), false, p_float64, &cg);
 
 
-    c_spmv.add_associated_let_stmt("t", c_col_idx(var("c5")));
+    c_spmv.add_associated_let_stmt("t", c_col_idx(var("c7")));
     constant b1("b1", c_row_start(var("i") + 1), p_int32, false, &c_spmv, 0, &cg);
     constant b0("b0", c_row_start(var("i")), p_int32, false, &b1, 0, &cg);
 
@@ -99,6 +99,9 @@ int main(int argc, char **argv)
     b0.split(0, PARTITIONS);
     b1.split(0, PARTITIONS);
     c_spmv.split(0, PARTITIONS);
+    b0.split(1, B2);
+    b1.split(1, B2);
+    c_spmv.split(1, B2);
     c_spmv.tag_parallel_level(0);
 
  
@@ -121,13 +124,15 @@ int main(int argc, char **argv)
     res.tag_parallel_level(0);
 
     // Ordering
-    b0.after_low_level(w, -1);
-    b1.after_low_level(b0, 1);
-    c_spmv.after_low_level(b1,2);
 
-    res_init.after_low_level(c_spmv, -1);
+    res_init.after_low_level(w, -1);
     mul_alloc.after_low_level(res_init,1);
-    mul.after_low_level(mul_alloc,1);
+    b0.after_low_level(mul_alloc, 1);
+    b1.after_low_level(b0, 2);
+    c_spmv.after_low_level(b1,3);
+
+    
+    mul.after_low_level(c_spmv,1);
     res.after_low_level(mul, 1);
     res_global.after_low_level(res, -1);
 
