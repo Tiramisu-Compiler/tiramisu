@@ -64,6 +64,7 @@ void generate_function(std::string name)
     // Layer II
     // -------------------------------------------------------
 
+#ifdef UNOPT
     tensor_w_0_init.before(tensor_w_1_init, computation::root);
     tensor_w_1_init.before(tensor_w_2_init, computation::root);
     tensor_w_2_init.before(tensor_w_0, computation::root);
@@ -75,6 +76,19 @@ void generate_function(std::string name)
     tensor_u_update_init.before(tensor_u_update_0, computation::root);
     tensor_u_update_0.before(tensor_u_update_1, computation::root);
     tensor_u_update_1.before(tensor_u_update_2, computation::root);
+#else
+    tensor_w_0_init.before(tensor_w_1_init, k);
+    tensor_w_1_init.before(tensor_w_2_init, k);
+    tensor_w_2_init.before(tensor_w_0, computation::root);
+    tensor_w_0.before(tensor_w_1, l);
+    tensor_w_1.before(tensor_w_2, l);
+    tensor_w_2.before(tensor_z_init, computation::root);
+    tensor_z_init.before(tensor_z, computation::root);
+    tensor_z.before(tensor_u_update_init, computation::root);
+    tensor_u_update_init.before(tensor_u_update_0, computation::root);
+    tensor_u_update_0.before(tensor_u_update_1, computation::root);
+    tensor_u_update_1.before(tensor_u_update_2, computation::root);
+#endif
     
     // -------------------------------------------------------
     // Layer III
