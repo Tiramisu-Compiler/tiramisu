@@ -93,8 +93,7 @@ using std::endl;
 
 #undef DEBUG
 
-#define MAX_ITER 150
-//#define MAX_ITER 10
+#define MAX_ITER 60
 
 int main_ref(int argc, char *argv[], double **r, double &normr)
 {
@@ -359,7 +358,7 @@ int main(int argc, char *argv[])
   int nrow = main_ref(argc, argv, &r_ref, normr_ref);
   std::cout << "******************************************************************" << std::endl;
 
-  if (std::abs(normr_ref - normr_tiramisu) >= 0.0000000001)
+  if (std::abs(normr_ref - normr_tiramisu) >= 0.00000001)
   {
 	std::cerr << "Residuals of the two computations are not equal" << std::endl;
         std::cerr << "normr_ref = " << normr_ref << " and normr_tiramisu = " << normr_tiramisu << std::endl;

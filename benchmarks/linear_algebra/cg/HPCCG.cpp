@@ -222,6 +222,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
   int nrow = A->local_nrow;
   int ncol = A->local_ncol;
 
+  std::cout << "A->total_nnz = " << A->total_nnz << std::endl;
+
   Halide::Buffer<double> p(A->total_nnz); // In parallel case, A is rectangular
   Halide::Buffer<double> Ap(A->total_nnz);
   Halide::Buffer<double> rtrans(1);
