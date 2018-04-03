@@ -35,10 +35,7 @@ using namespace tiramisu;
 #define B1 8
 #define B2 16
 #define PARTITIONS (67108864/THREADS)
-#define B0s std::to_string(B0)
-#define B1s std::to_string(B1)
 
-#define EXTRA_OPTIMIZATIONS 1
 
 int main(int argc, char **argv)
 {
@@ -92,12 +89,10 @@ int main(int argc, char **argv)
     // ----------------------------------------------------------------- 
     w.split(0, PARTITIONS);
     w.tag_parallel_level(0);
-#if EXTRA_OPTIMIZATIONS
     w.split(1, B0);
     w.split(2, B1);
     w.tag_unroll_level(2);
     w.tag_vector_level(3, B1);
-#endif
 
     // spmv schedule
     // ----------------------
