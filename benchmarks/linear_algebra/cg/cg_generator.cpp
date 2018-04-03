@@ -35,6 +35,7 @@ using namespace tiramisu;
 #define THREADS 32
 #define B0 256
 #define B1 8
+#define B2 4
 #define PARTITIONS (SIZE/THREADS)
 #define B0s std::to_string(B0)
 #define B1s std::to_string(B1)
@@ -64,16 +65,29 @@ int main(int argc, char **argv)
     computation c_row_start("[M]->{c_row_start[i]: 0<=i<M}", tiramisu::expr(), false, p_int32, &cg);
     computation c_col_idx("[b0,b1]->{c_col_idx[j]: b0<=j<b1}", tiramisu::expr(), false, p_int32, &cg);
     computation c_values("[b0,b1]->{c_values[j]: b0<=j<b1}", tiramisu::expr(), false, p_float64, &cg);
-    computation c_y("[M,b0,b1]->{c_y[i,j]: 0<=i<M and b0<=j<b1}", tiramisu::expr(), true, p_float64, &cg);
+    computation c_spmv("[M,b0,b1]->{c_spmv[i,j]: 0<=i<M and b0<=j<b1}", tiramisu::expr(), true, p_float64, &cg);
+    computation c_spmv_wrapper("[M,b0,b1]->{c_spmv_wrapper[i]: 0<=i<M}", tiramisu::expr(), false, p_float64, &cg);
 
-    constant t("t", c_col_idx(var("j")), p_int32, false, &c_y, 1, &cg);
-    constant b1("b1", c_row_start(var("i") + 1), p_int32, false, &t, 0, &cg);
+
+    c_spmv.add_associated_let_stmt("t", c_col_idx(var("c5")));
+    constant b1("b1", c_row_start(var("i") + 1), p_int32, false, &c_spmv, 0, &cg);
     constant b0("b0", c_row_start(var("i")), p_int32, false, &b1, 0, &cg);
 
-    expr e_y = c_y(var("i"), var("j")) + c_values(var("j")) * w(var("t"));
-    c_y.set_expression(e_y);
+    expr e_y = c_spmv(var("i"), var("j")) + c_values(var("j")) * w(var("t"));
+    c_spmv.set_expression(e_y);
 
-    cg.set_context_set("[M,b0,b1]->{: M>0 and M%"+B0s+"=0 and b0>0 and b1>0 and b1>b0}");
+    // dot
+    computation res_alloc("[M]->{res_alloc[-10]}", tiramisu::expr(tiramisu::o_allocate, "b_res"), true, p_none, &cg);
+    computation  res_init("[M]->{ res_init[t]: 0<=t<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr((double) 0), true, p_float64, &cg);
+    computation mul_alloc("[M]->{mul_alloc[j]: 0<=j<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr(tiramisu::o_allocate, "b_mul"), true, p_float64, &cg);
+    computation       mul("[M]->{ mul[j]: 0<=j<M}", c_spmv_wrapper(j)*y(j), true, p_float64, &cg);
+    computation       res("[M]->{ res[j]: 0<=j<M}", tiramisu::expr(), true, p_float64, &cg);
+    res.set_expression(res(j) + mul(j));
+    computation res_global("[M]->{res_global[t]: 0<=t<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr(),    true, p_float64, &cg);
+    res_global.set_expression(res_global(var("t")) + res_init(var("t")));
+
+
+    cg.set_context_set("[M,b0,b1]->{: M>0 and M%"+std::to_string(B2*PARTITIONS)+"=0 and b0>0 and b1>0 and b1>b0}");
 
     // -----------------------------------------------------------------
     // Layer II
@@ -88,23 +102,46 @@ int main(int argc, char **argv)
 #endif
 
     // spmv schedule
+    // ----------------------
     b0.split(0, PARTITIONS);
     b1.split(0, PARTITIONS);
-    t.split(0, PARTITIONS);
-    c_y.split(0, PARTITIONS);
+    c_spmv.split(0, PARTITIONS);
+    c_spmv.tag_parallel_level(0);
 
-    c_y.tag_parallel_level(0);
+ 
+    // dot schedule
+    // ---------------------
 
+    // Split (prepare for parallelization)
+    mul.split(0, PARTITIONS);
+    res.split(0, PARTITIONS);
 
+    // Split (prepare for vectorization and split)
+    mul.split(1, B2);
+    res.split(1, B2);
+
+    // Vectorization and unrolling
+    mul.tag_vector_level(2, B2);
+    res.tag_unroll_level(2);
+
+    // parallelization
+    res.tag_parallel_level(0);
+
+    // Ordering
     b0.after_low_level(w, -1);
-
     b1.after_low_level(b0, 1);
-    t.after_low_level(b1,1);
-    c_y.after_low_level(t,2);
+    c_spmv.after_low_level(b1,2);
+
+    res_init.after_low_level(c_spmv, -1);
+    mul_alloc.after_low_level(res_init,1);
+    mul.after_low_level(mul_alloc,1);
+    res.after_low_level(mul, 1);
+    res_global.after_low_level(res, -1);
 
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------
+    // waxpby
     buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &cg);
     buffer b_x("b_x", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
     buffer b_y("b_y", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
@@ -119,6 +156,7 @@ int main(int argc, char **argv)
     beta.set_access("{beta[0]->b_beta[0]}");
     w.set_access("{w[j]->b_w[j]}");
 
+    // spmv
     buffer b_row_start("b_row_start", {tiramisu::expr(N)}, p_int32, a_input, &cg);
     buffer b_col_idx("b_col_idx", {tiramisu::expr(N)}, p_int32, a_input, &cg);
     buffer b_values("b_values", {tiramisu::expr((N*N))}, p_float64, a_input, &cg);
@@ -127,13 +165,27 @@ int main(int argc, char **argv)
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");
     c_values.set_access("{c_values[j]->b_values[j]}");
-    c_y.set_access("{c_y[i,j]->b_spmv[i]}");
+    c_spmv.set_access("{c_spmv[i,j]->b_spmv[i]}");
+    c_spmv_wrapper.set_access("{c_spmv_wrapper[i]->b_spmv[i]}");
+
+    // dot
+    buffer b_mul("b_mul", {tiramisu::expr((int) B2)}, p_float64, a_temporary, &cg);
+    b_mul.set_auto_allocate(false);
+    buffer b_res("b_res", {tiramisu::var("M")/tiramisu::expr((int) PARTITIONS)}, p_float64, a_temporary, &cg);
+    b_res.set_auto_allocate(false);
+    buffer b_res_global("b_res_global", {tiramisu::expr((int) 1)}, p_float64, a_output, &cg);
+
+    mul.set_access("{mul[j]->b_mul[j%"+std::to_string(B2)+"]}");
+    res_global.set_access("{res_global[j]->b_res_global[0]}");
+    res_init.set_access("{res_init[t]->b_res[t]}");
+    res.set_access("{res[j]->b_res[j/"+std::to_string(PARTITIONS)+"]}");
+
 
 
     // ------------------------------------------------------------------
     // Generate code
     // ------------------------------------------------------------------
-    cg.set_arguments({&b_SIZES, &b_alpha, &b_x, &b_beta, &b_y, &b_w, &b_row_start, &b_col_idx, &b_values, &b_spmv});
+    cg.set_arguments({&b_SIZES, &b_alpha, &b_x, &b_beta, &b_y, &b_w, &b_row_start, &b_col_idx, &b_values, &b_spmv, &b_res_global});
     cg.gen_time_space_domain();
     cg.gen_isl_ast();
     cg.gen_halide_stmt();
