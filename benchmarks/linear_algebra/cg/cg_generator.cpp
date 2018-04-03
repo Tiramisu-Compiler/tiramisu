@@ -30,17 +30,15 @@ for (int i=0; i<nrow; i++)
 
 using namespace tiramisu;
 
-#define nrow SIZE
-
 #define THREADS 32
-#define B0 256
+#define B0 64
 #define B1 8
-#define B2 4
-#define PARTITIONS (SIZE/THREADS)
+#define B2 16
+#define PARTITIONS (67108864/THREADS)
 #define B0s std::to_string(B0)
 #define B1s std::to_string(B1)
 
-#define EXTRA_OPTIMIZATIONS 0
+#define EXTRA_OPTIMIZATIONS 1
 
 int main(int argc, char **argv)
 {
@@ -87,7 +85,7 @@ int main(int argc, char **argv)
     res_global.set_expression(res_global(var("t")) + res_init(var("t")));
 
 
-    cg.set_context_set("[M,b0,b1]->{: M>0 and M%"+std::to_string(B2*PARTITIONS)+"=0 and b0>0 and b1>0 and b1>b0}");
+    cg.set_context_set("[M,b0,b1]->{: M>0 and M%"+std::to_string(PARTITIONS)+"=0 and b0>0 and b1>0 and b1>b0}");
 
     // -----------------------------------------------------------------
     // Layer II
@@ -143,11 +141,11 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------------------------------
     // waxpby
     buffer b_SIZES("b_SIZES", {tiramisu::expr(1)}, p_int32, a_input, &cg);
-    buffer b_x("b_x", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
-    buffer b_y("b_y", {tiramisu::expr(nrow)}, p_float64, a_input, &cg);
+    buffer b_x("b_x", {tiramisu::var("M")}, p_float64, a_input, &cg);
+    buffer b_y("b_y", {tiramisu::var("M")}, p_float64, a_input, &cg);
     buffer b_alpha("b_alpha", {tiramisu::expr(1)}, p_float64, a_input, &cg);
     buffer b_beta("b_beta", {tiramisu::expr(1)}, p_float64, a_input, &cg);
-    buffer b_w("b_w", {tiramisu::expr(nrow)}, p_float64, a_output, &cg);
+    buffer b_w("b_w", {tiramisu::var("M")}, p_float64, a_output, &cg);
 
     SIZES.set_access("{SIZES[0]->b_SIZES[0]}");
     x.set_access("{x[j]->b_x[j]}");
