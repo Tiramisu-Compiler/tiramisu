@@ -296,8 +296,8 @@ int HPCCG_tiramisu(HPC_Sparse_Matrix * A,
       dot (NROW.raw_buffer(), r.raw_buffer(), r.raw_buffer(), rtrans.raw_buffer()); // r*r -> rtrans
       beta(0) = rtrans(0)/oldrtrans;
 
-      cg(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer()); // r + beta*p -> p
-      spmv(NROW.raw_buffer(), row_start.raw_buffer(), col_idx.raw_buffer(), A_tiramisu.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer()); // A*p -> Ap
+      cg(NROW.raw_buffer(), a.raw_buffer(), r.raw_buffer(), beta.raw_buffer(), p.raw_buffer(), p.raw_buffer(), row_start.raw_buffer(), col_idx.raw_buffer(), A_tiramisu.raw_buffer(), Ap2.raw_buffer()); // r + beta*p -> p
+//      spmv(NROW.raw_buffer(), row_start.raw_buffer(), col_idx.raw_buffer(), A_tiramisu.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer()); // A*p -> Ap
       dot(NROW.raw_buffer(), p.raw_buffer(), Ap2.raw_buffer(), alpha.raw_buffer()); // p*Ap -> alpha
 
       alpha(0) = rtrans(0)/alpha(0);
