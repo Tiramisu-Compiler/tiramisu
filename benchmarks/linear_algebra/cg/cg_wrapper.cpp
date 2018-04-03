@@ -63,8 +63,8 @@ int main(int, char **)
     init_buffer(b_r, (double) 2);
     Halide::Buffer<double> b_p(nrow);
     init_buffer(b_p, (double) 3);
-    Halide::Buffer<double> b_p_ref(nrow);
-    init_buffer(b_p_ref, (double) 3);
+    //Halide::Buffer<double> b_p_ref(nrow);
+    //init_buffer(b_p_ref, (double) 3);
 
     Halide::Buffer<double> b_alpha(1);
     init_buffer(b_alpha, (double) alpha);
@@ -73,10 +73,11 @@ int main(int, char **)
 
     Halide::Buffer<double> b_w(nrow);
     init_buffer(b_w, (double) 0);
-    Halide::Buffer<double> b_w_ref(nrow);
-    init_buffer(b_w_ref, (double) 0);
+    //Halide::Buffer<double> b_w_ref(nrow);
+    //init_buffer(b_w_ref, (double) 0);
 
-    {
+    /*
+     {
         for (int i = 0; i < NB_TESTS; i++)
 	{
 	    init_buffer(b_p_ref, (double)1);
@@ -90,8 +91,9 @@ int main(int, char **)
 	    duration_vector_1.push_back(duration1);
 	}
     }
+    */
 
-    for (int i = 0; i < NB_TESTS; i++)
+    //for (int i = 0; i < NB_TESTS; i++)
     {
 	    init_buffer(b_p, (double)1);
 	    auto start2 = std::chrono::high_resolution_clock::now();
@@ -104,7 +106,7 @@ int main(int, char **)
 	    duration_vector_2.push_back(duration2);
     }
 
-    print_time("performance_CPU.csv", "cg",
+   /* print_time("performance_CPU.csv", "cg",
                {"Ref", "Tiramisu"},
                {median(duration_vector_1), median(duration_vector_2)});
 
@@ -121,6 +123,7 @@ int main(int, char **)
 	std::cout << "Reference " << std::endl;
 	print_buffer(b_p_ref);
     }
+    */
 
     return 0;
 }
