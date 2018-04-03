@@ -12,21 +12,6 @@
 #include <string.h>
 #include <Halide.h>
 
-/* cg.
-
-inputs:
---------
-- x[]
-- y[]
-- beta
-
-Algorithm:
------------
-// waxpby (nrow, 1.0, r, beta, p, p);
-for (int i=0; i<nrow; i++)
-	p[i] = r[i] + beta * p[i];
-
-*/
 
 using namespace tiramisu;
 
