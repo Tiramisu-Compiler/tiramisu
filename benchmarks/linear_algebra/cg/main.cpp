@@ -93,7 +93,7 @@ using std::endl;
 
 #undef DEBUG
 
-#define MAX_ITER 60
+#define MAX_ITER 150
 
 int main_ref(int argc, char *argv[], double **r, double &normr)
 {

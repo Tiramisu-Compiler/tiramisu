@@ -53,14 +53,14 @@ int main(int argc, char **argv)
     constant b1("b1", c_row_start(var("i") + 1), p_int32, false, &c_spmv, 0, &cg);
     constant b0("b0", c_row_start(var("i")), p_int32, false, &b1, 0, &cg);
 
-    expr e_y = c_spmv(var("i"), var("j")) + c_values(var("j")) * w(var("t"));
+    expr e_y = c_spmv(var("i"), var("j")) + c_values(var("j")) * w(var("t")); //(x(var("t")) + beta(0)*y(var("t")));
     c_spmv.set_expression(e_y);
 
     // dot
     computation res_alloc("[M]->{res_alloc[-10]}", tiramisu::expr(tiramisu::o_allocate, "b_res"), true, p_none, &cg);
     computation  res_init("[M]->{ res_init[t]: 0<=t<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr((double) 0), true, p_float64, &cg);
     computation mul_alloc("[M]->{mul_alloc[j]: 0<=j<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr(tiramisu::o_allocate, "b_mul"), true, p_float64, &cg);
-    computation       mul("[M]->{ mul[j]: 0<=j<M}", c_spmv_wrapper(j)*y(j), true, p_float64, &cg);
+    computation       mul("[M]->{ mul[j]: 0<=j<M}", c_spmv_wrapper(j)*w(j), true, p_float64, &cg);
     computation       res("[M]->{ res[j]: 0<=j<M}", tiramisu::expr(), true, p_float64, &cg);
     res.set_expression(res(j) + mul(j));
     computation res_global("[M]->{res_global[t]: 0<=t<(M/"+std::to_string(PARTITIONS)+")}", tiramisu::expr(),    true, p_float64, &cg);
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
     // ----------------------------------------------------------------- 
     w.split(0, PARTITIONS);
     w.tag_parallel_level(0);
-    w.split(1, B0);
+    w.split(1, B2);
     w.split(2, B1);
     w.tag_unroll_level(2);
     w.tag_vector_level(3, B1);
@@ -109,7 +109,6 @@ int main(int argc, char **argv)
     res.tag_parallel_level(0);
 
     // Ordering
-
     res_init.after_low_level(w, -1);
     mul_alloc.after_low_level(res_init,1);
     b0.after_low_level(mul_alloc, 1);
