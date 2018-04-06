@@ -22,6 +22,7 @@ using namespace tiramisu;
 void generate_function(std::string name, int size, int val0)
 {
     tiramisu::global::set_default_tiramisu_options();
+    
 
     tiramisu::function function0(name);
     int Msize = 2 * floor(size / 2);

@@ -17,6 +17,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
 {
     tiramisu::global::set_default_tiramisu_options();
 
+
     tiramisu::function function0(name);
     tiramisu::var i("i");
     tiramisu::expr e_N = tiramisu::expr((int32_t) size);

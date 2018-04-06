@@ -23,6 +23,7 @@ void generate_function(std::string name)
 {
     tiramisu::global::set_default_tiramisu_options();
 
+
     tiramisu::var i("i"), j("j"), k("k"), l("l"), m("m"), n("n"), o("o"), p("p");
 
     // -------------------------------------------------------
@@ -82,7 +83,9 @@ void generate_function(std::string name)
     C6.after(C5, tiramisu::computation::root);
     C7.after(C6, tiramisu::computation::root);
     C8.after(C7, tiramisu::computation::root);
-    S12.after(C8, tiramisu::computation::root);
+    C9.after(C8, tiramisu::computation::root);
+    C10.after(C9, tiramisu::computation::root);
+    S12.after(C10, tiramisu::computation::root);
     S14.after(S12, j);
     S16.after(S14, k);
     S18.after(S16, l);

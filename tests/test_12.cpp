@@ -17,6 +17,7 @@ void generate_function_1(std::string name, int size, int val0)
 {
     tiramisu::global::set_default_tiramisu_options();
 
+
     tiramisu::function function0(name);
     tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);

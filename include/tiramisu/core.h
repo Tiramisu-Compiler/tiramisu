@@ -22,6 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
+#include "cuda_ast.h"
 
 namespace tiramisu
 {
@@ -32,6 +33,12 @@ class buffer;
 class constant;
 class generator;
 class computation_tester;
+class send;
+class recv;
+class send_recv;
+class wait;
+class sync;
+class xfer_prop;
 
 struct HalideCodegenOutput
 {
@@ -52,6 +59,34 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     const std::map<std::string, std::vector<int32_t>> &output_buffers_size,
     tiramisu::function *func);
 
+computation *get_computation_annotated_in_a_node(isl_ast_node *node);
+
+isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx);
+void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector);
+int loop_level_into_dynamic_dimension(int level);
+int loop_level_into_static_dimension(int level);
+
+enum xfer_attr {
+    SYNC,
+    ASYNC,
+    BLOCK,
+    NONBLOCK,
+    MPI,
+    CUDA,
+    CPU2CPU,
+    CPU2GPU,
+    GPU2CPU,
+    GPU2GPU
+};
+
+struct xfer {
+    tiramisu::send *s;
+    tiramisu::recv *r;
+    tiramisu::send_recv *sr;
+};
+
+typedef std::tuple<int, tiramisu::expr, tiramisu::expr> collapse_group;
+
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
   * a set of computations (tiramisu::computation).
@@ -63,6 +98,8 @@ class function
     friend computation;
     friend constant;
     friend generator;
+    friend tiramisu::wait;
+    friend cuda_ast::generator;
 
 private:
     /**
@@ -71,6 +108,16 @@ private:
       * Names starting with _ are reserved names.
       */
     std::string name;
+
+    /**
+     * True if this requires a call to MPI_Comm_rank or something similar.
+     */
+    bool _needs_rank_call;
+
+    /**
+     * Offset the rank by this amount.
+     */
+    int rank_offset = 0;
 
     /**
       * Function arguments. These are the buffers or scalars that are
@@ -117,6 +164,17 @@ private:
       * should be vectorized with a vector length 4.
       */
     std::vector<std::tuple<std::string, int, int>> vector_dimensions;
+
+    /**
+      * A vector representing the distributed dimensions around
+      * the computations of the function.
+      * A distributed dimension is identified using the pair
+      * <computation_name, level>, for example the pair
+      * <S0, 0> indicates that the loop with level 0
+      * (i.e. the outermost loop) around the computation S0
+      * should be distributed.
+      */
+    std::vector<std::pair<std::string, int>> distributed_dimensions;
 
     /**
       * A vector representing the GPU block dimensions around
@@ -200,6 +258,14 @@ private:
       * corresponds to the leftmost dimension in the iteration space).
       */
     void add_vector_dimension(std::string computation_name, int vec_dim, int len);
+
+    /**
+      * Tag the dimension \p dim of the computation \p computation_name to
+      * be distributed.
+      * The dimension 0 represents the outermost loop level (it
+      * corresponds to the leftmost dimension in the iteration space).
+      */
+    void add_distributed_dimension(std::string computation_name, int dim);
 
     /**
       * Tag the loop level \p L of the computation
@@ -585,13 +651,29 @@ protected:
       */
     bool should_vectorize(const std::string &comp, int lev) const;
 
+    /**
+      * Return true if the computation \p comp should be distributed
+      * at the loop level \p lev.
+      */
+    bool should_distribute(const std::string &comp, int lev) const;
+
+    /**
+      * This computation requires a call to the MPI_Comm_rank function.
+      */
+    bool needs_rank_call() const;
+
+    /**
+      * Lift certain computations for distributed execution to function calls.
+      */
+    void lift_mpi_comp(tiramisu::computation *comp);
+
      /**
        * The set of all computations that have no computation scheduled before them.
        * Does not include allocation computations created using
        * allocate_and_map_buffer_automatically().
        */
      std::unordered_set<tiramisu::computation *> starting_computations;
- 
+
      /**
       * A boolean set to true if low level scheduling was used in the program.
       * If it is used, then high level scheduling commands such as .before(),
@@ -653,7 +735,7 @@ public:
 
     /**
       * \brief Compute the bounds of each computation.
-      * 
+      *
       * \details Computing the bounds of each computation means computing
       * the constraints over the iteration domains of each computation in
       * the function.
@@ -810,6 +892,8 @@ public:
       */
     void gen_halide_stmt();
 
+    void gen_cuda_stmt();
+
     /**
       * Generate an isl AST that represents the function.
       */
@@ -855,6 +939,11 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
+
+    /**
+      * Lift certain computations for distributed execution to function calls.
+      */
+    void lift_dist_comps();
 };
 
 
@@ -870,6 +959,7 @@ class buffer
     friend computation;
     friend function;
     friend generator;
+    friend cuda_ast::generator;
 
 private:
     /**
@@ -918,6 +1008,11 @@ private:
       * The type of the elements of the buffer.
       */
     tiramisu::primitive_t type;
+
+    /**
+     * The location of the buffer (host if in memory, else where on GPU).
+     */
+    cuda_ast::memory_location location;
 
 protected:
     /**
@@ -1107,6 +1202,15 @@ public:
      * Mark an array as already allocated.
      */
     void mark_as_allocated();
+
+    /* Tag the buffer as located in the GPU global memory. */
+    void tag_gpu_global();
+    /** Tag the buffer as located in the GPU register memory.
+      * The buffer needs to have a unique dimension of size 1 (i.e. needs to be a scalar).*/
+    void tag_gpu_register();
+    /* Tag the buffer as located in the GPU shared memory. */
+    void tag_gpu_shared();
+
 };
 
 /**
@@ -1136,7 +1240,12 @@ class computation
     friend generator;
     friend buffer;
     friend constant;
+    friend sync;
     friend computation_tester;
+    friend send;
+    friend recv;
+    friend tiramisu::wait;
+    friend cuda_ast::generator;
 
 private:
 
@@ -1323,6 +1432,26 @@ private:
     Halide::Internal::Stmt stmt;
 
     /**
+     * If this is a parent partition, then the partitions go in here.
+     */
+    std::vector<tiramisu::computation *> child_partitions;
+
+    /**
+     * If this is a child partition, this is the parent computation.
+     */
+    tiramisu::computation *parent_computation;
+
+    /**
+     * If true, this computation was partitioned into child partitions, so it is the parent.
+     */
+    bool _is_a_parent_partition;
+
+    /**
+     * If true, this computation is the result of partitioning a parent computation.
+     */
+    bool _is_a_child_partition;
+
+    /**
       * Time-processor domain of the computation.
       * In this representation, the logical time of execution and the
       * processor where the computation will be executed are both
@@ -1330,7 +1459,59 @@ private:
       */
     isl_set *time_processor_domain;
 
+    /**
+      * True if the computation is executed in a nonblocking or asynchronous way.
+      */
+    bool _is_nonblock_or_async;
+
+    /**
+     * True if  the rank should be dropped from index linearization.
+     */
+    bool _drop_rank_iter;
+
+    /**
+      * If the computation represents a library call, this will contain the
+      * necessary arguments to the function.
+      */
+    std::vector<tiramisu::expr> library_call_args;
+
+    /**
+      * If the computation represents a library call and requires a linear index (for either a LHS or RHS access),
+      * this indicates which argument to the function represents the linear index.
+      */
+    // @{
+    int lhs_argument_idx;
+    int rhs_argument_idx;
+    // @}
+
+    /**
+      * If the computation represents a library call and requires a wait, this indicates which argument to the function
+      * represents the linear index.
+      */
+    int wait_argument_idx;
+
+    /**
+      * If the computation represents a library call and requires a wait, this is like a regular access map, but gives
+      * an access into a special wait buffer.
+      */
+    isl_map *wait_access_map = nullptr;
+
+    /**
+      * By default, this becomes an o_access to signify that we are writing into a location. However, it can be changed
+      * to something like o_address_of to indicate that we don't want to do a store to the location, rather we just
+      * want to get a pointer to the store location.
+      */
+    // @{
+    tiramisu::op_t lhs_access_type;
+    tiramisu::op_t rhs_access_type;
+    // @}
+
     // Private class methods.
+
+    /**
+     * Set the parent computation for this computation.
+     */
+    void set_parent_computation(tiramisu::computation *parent_computation);
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -1420,6 +1601,14 @@ private:
     void create_halide_assignment();
 
     /**
+      * Returns a pair of expressions (LHS, RHS) representing the assignment performed
+      * by the computation.
+      * The LHS would represent a memory buffer access, and the RHS would represent
+      * the value of the assignment.
+      */
+    std::pair<expr, expr> create_tiramisu_assignment();
+
+    /**
       * Apply a duplication transformation from iteration space to
       * time-processor space.
       * A duplication transformation duplicates the original computation,
@@ -1436,7 +1625,7 @@ private:
       *
       */
     void create_duplication_transformation(std::string map_str);
-     
+
     /*
      * Create a new Tiramisu constant M = v*floor(N/v) and use it as
      * a separator.
@@ -1621,6 +1810,12 @@ private:
     int get_loop_levels_number();
 
     /**
+     * Gets the span of the loop level \p level (number of iterations) and returns
+     * it as a tiramisu::expr.
+     */
+    expr get_span(int level);
+
+    /**
       * Return the root of the tree of definitions of this computation.
       * The tree of definitions is the tree that emerges after adding multiple
       * definitions to the same computation. Let's take the following example.
@@ -1725,6 +1920,17 @@ private:
     bool is_let_stmt() const;
 
     /**
+      * Return true if this computation represents a call to a library function?
+      * Mainly used for distributed communication functions.
+      */
+    bool is_library_call() const;
+
+    /**
+      * Return true if the rank loop iterator should be removed from linearization.
+      */
+    bool should_drop_rank_iter() const;
+
+    /**
       * Assign a name to iteration domain dimensions that do not have a name.
       */
     void name_unnamed_iteration_domain_dimensions();
@@ -1805,6 +2011,11 @@ private:
       * get_update().
       */
     void separate(int dim, tiramisu::expr N, int v);
+
+    /**
+      * Like separate, but the precise separate points are specified in _separate_points. _max is the loop max.
+      */
+    void separate_at(var level, std::vector<tiramisu::expr> _separate_points, tiramisu::expr _max);
 
     /**
       * Separate then split the loop \p L0
@@ -1993,6 +2204,38 @@ private:
 protected:
 
     /**
+      * True if this computation represents a library call.
+      */
+    bool _is_library_call;
+
+    /**
+      * If the computation represents a library call, this is the name of the function.
+      */
+    std::string library_call_name;
+
+    /**
+      * An index expression just for the request buffer.
+      */
+    isl_ast_expr *wait_index_expr;
+
+    /**
+      * Partially collapse the iterations of a loop. The part of the loop from collapse_from_iter to collapse_until_iter
+      * is fully collapsed into a single loop, and the remainder of the loop is left as is. This results in two new operations:
+      * one in the fully collapsed loop and the other in the remainder of the loop.
+      */
+    template <typename T>
+    std::vector<T *>partial_loop_level_collapse(int level, tiramisu::expr collapse_from_iter,
+                                                tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed);
+
+    /**
+      * Partition an operation into a new set of operations based on the constraints provided. The constraints should
+      * be provided as a set of iteration domains. These constraints are intersected with the parent
+      * operation's domain (if preserve_schedule = false) or the schedule (if preserve_schedule = true)
+      */
+    template <typename T>
+    std::vector<T *> partition(std::vector<std::pair<std::string, std::string>> domains);
+
+    /**
       * Dummy constructor for derived classes.
       */
     computation();
@@ -2174,6 +2417,11 @@ protected:
     void set_schedule(std::string map_str);
     // @}
 
+    /**
+      * Collapse all the iterations of a loop into one single iteration.
+      */
+    void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
+
 public:
 
     /**
@@ -2266,6 +2514,14 @@ public:
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
 
+    virtual bool is_send() const;
+
+    virtual bool is_recv() const;
+
+    virtual bool is_send_recv() const;
+
+    virtual bool is_wait() const;
+
     /**
        * \brief Add a let statement that is associated to this computation.
        * \details The let statement will be executed before the computation
@@ -2274,7 +2530,7 @@ public:
        * accessible by this computation alone. i.e., it cannot be used
        * in any other computation.
        */
-     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
+    void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
      * \brief Add definitions of computations that have the same name as this
@@ -2317,9 +2573,9 @@ public:
      * An example of using this function is available in test_26.
      *
      */
-     void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
-                           bool schedule_this_computation, tiramisu::primitive_t t,
-                           tiramisu::function *fct);
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+				 bool schedule_this_computation, tiramisu::primitive_t t,
+				 tiramisu::function *fct);
 
     /**
      * \brief Add a predicate (condition) on the computation. The computation will be executed
@@ -2338,7 +2594,7 @@ public:
       *
       * \details This computation is placed after \p comp in the loop level \p level.
       * \p level is a loop level in this computation.
-      * 
+      *
       * The root level is computation::root.
       *
       * For example assuming we have the two computations
@@ -2503,7 +2759,7 @@ public:
     /*
      * \brief Allocate a buffer for the computation automatically.  The size of the buffer
      * is deduced automatically and a name is assigned to it automatically.
-     * 
+     *
      * \details Assuming the name of the computation is C, the name of the generated buffer
      * is _C_buffer.
      *
@@ -2751,6 +3007,11 @@ public:
     void gen_time_space_domain();
 
     /**
+      * Specify that the rank loop iterator should be removed from linearization.
+      */
+    void drop_rank_iter();
+
+    /**
      * Return the iteration domain of the computation.
      * In this representation, the order of execution of computations
      * is not specified, the computations are also not mapped to memory.
@@ -2827,9 +3088,14 @@ public:
     void interchange(int L0, int L1);
 
     /**
-     * Mark this statement as a let statement.
-     */
-   void mark_as_let_statement();
+      * Mark this statement as a let statement.
+      */
+    void mark_as_let_statement();
+
+    /**
+      * Mark this statement as a library call.
+      */
+    void mark_as_library_call();
 
    /**
       * Tag the loop level \p L to be parallelized.
@@ -3086,6 +3352,14 @@ public:
       *     void tag_vector_level(tiramisu::var L, int len);
       */
     void tag_vector_level(int L, int len);
+
+    /**
+      * Tag the loop level \p L to be distributed.
+      */
+    // @{
+    void tag_distribute_level(tiramisu::var L);
+    void tag_distribute_level(int L);
+    // @}
 
     /**
       * Tag the loop level \p L to be unrolled.
@@ -3353,6 +3627,16 @@ public:
                                   this->get_data_type());
         }
     }
+
+    operator expr();
+
+    static xfer create_xfer(std::string send_iter_domain, std::string recv_iter_domain, tiramisu::expr send_dest,
+                            tiramisu::expr recv_src, xfer_prop send_prop, xfer_prop recv_prop,
+                            tiramisu::expr send_expr, tiramisu::function *fct);
+
+    static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
+                            tiramisu::function *fct);
+
 };
 
 
@@ -3526,6 +3810,7 @@ protected:
                                                      int coeff,
                                                      const tiramisu::function *fct);
 
+
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast
       * tree.
@@ -3545,12 +3830,22 @@ protected:
         int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
         bool is_a_child_block = false);
 
+    // TODO doc
+    static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
+            const Halide::Internal::Stmt &second);
+
     /**
      * Create a Halide expression from a  Tiramisu expression.
      */
     static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
             std::vector<isl_ast_expr *> &index_expr,
             const tiramisu::expr &tiramisu_expr);
+
+    static tiramisu::expr replace_accesses(const tiramisu::function * func, std::vector<isl_ast_expr *> &index_expr,
+                                           const tiramisu::expr &tiramisu_expr);
+    static std::string get_buffer_name(const tiramisu::computation *);
+    static tiramisu::expr comp_to_buffer(tiramisu::computation * comp, std::vector<isl_ast_expr *> &ie,
+                                                    const tiramisu::expr * expr = nullptr);
 
     /**
      * Linearize a multidimensional access to a Halide buffer.
@@ -3564,6 +3859,8 @@ protected:
     static Halide::Expr linearize_access(int dims, const halide_dimension_t *shape, std::vector<tiramisu::expr> index_expr);
     static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, std::vector<tiramisu::expr> index_expr);
     static Halide::Expr linearize_access(int dims, std::vector<Halide::Expr> &strides, isl_ast_expr *index_expr);
+    static tiramisu::expr linearize_access(int dims, std::vector<tiramisu::expr> &strides, std::vector<tiramisu::expr> index_expr);
+    static tiramisu::expr linearize_access(int dims, std::vector<tiramisu::expr> &strides, isl_ast_expr *index_expr);
     //@}
 
     /**
@@ -3586,6 +3883,22 @@ protected:
                                             const tiramisu::expr &exp,
                                             std::vector<isl_map *> &accesses,
                                             bool return_buffer_accesses);
+
+    /**
+     * Traverse a tiramisu expression (\p current_exp) until an expression with the specified name is found.
+     * Replace that name with a new name. Replaces all occurrences.
+     */
+    static void _update_producer_expr_name(tiramisu::expr &current_exp, std::string name_to_replace,
+                                           std::string replace_with);
+
+public:
+
+    /**
+     * Traverse a tiramisu expression (\p current_exp) until an expression with the specified name is found.
+     * Replace that name with a new name. Replaces all occurrences.
+     */
+    static void update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
+                                          std::string replace_with);
 };
 
 /**
@@ -3640,8 +3953,302 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
+
 };
 
+// TODO Jess: add doc comments
+
+class xfer_prop {
+    friend class communicator;
+private:
+
+    std::vector<tiramisu::xfer_attr> attrs;
+
+    tiramisu::primitive_t dtype;
+
+    int xfer_prop_id;
+
+    xfer_prop();
+
+public:
+
+    xfer_prop(tiramisu::primitive_t d_type, std::initializer_list<tiramisu::xfer_attr> attrs);
+
+    xfer_prop(tiramisu::primitive_t d_type, std::initializer_list<tiramisu::xfer_attr> attrs,
+	      int xfer_prop_id);
+
+    static std::set<int> xfer_prop_ids;
+
+    static std::string attr_to_string(xfer_attr attr);
+
+    tiramisu::primitive_t get_dtype() const;
+
+    int get_xfer_prop_id() const;
+
+    bool contains_attr(tiramisu::xfer_attr attr) const;
+
+    bool contains_attrs(std::vector<tiramisu::xfer_attr> attrs) const;
+
+    void add_attr(tiramisu::xfer_attr attr);
+
+};
+
+class communicator : public computation {
+private:
+
+    std::vector<tiramisu::expr> dims;
+
+protected:
+
+    xfer_prop prop;
+
+    communicator();
+
+public:
+
+    communicator(std::string iteration_domain_str, tiramisu::expr rhs, bool schedule_this_computation,
+                 tiramisu::primitive_t data_type, tiramisu::function *fct);
+
+    communicator(std::string iteration_domain_str, tiramisu::expr rhs,
+                 bool schedule_this_computation, tiramisu::primitive_t, tiramisu::xfer_prop prop,
+                 tiramisu::function *fct);
+
+    xfer_prop get_xfer_props() const;
+
+    tiramisu::expr get_num_elements() const;
+
+    void add_dim(tiramisu::expr size);
+
+    /**
+      * Collapse a loop level.
+      */
+    std::vector<communicator *> collapse(int level, tiramisu::expr collapse_from_iter,
+                                         tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed);
+
+    /**
+      * Collapse several consecutive loop levels (must collapse from innermost towards outermost).
+      */
+    void collapse_many(std::vector<collapse_group> collapse_each);
+
+};
+
+class send : public communicator {
+private:
+
+    tiramisu::computation *producer = nullptr;
+
+    recv *matching_recv = nullptr;
+
+    tiramisu::expr msg_tag;
+
+    tiramisu::expr src;
+
+    tiramisu::expr dest;
+
+    static int next_msg_tag;
+
+public:
+    // TODO (Jess) is producer ever used?
+    send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs,
+         xfer_prop prop, bool schedule_this_computation, std::vector<expr> dims,
+         tiramisu::function *fct);
+
+    virtual bool is_send() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    tiramisu::computation *get_producer() const;
+
+    tiramisu::recv *get_matching_recv() const;
+
+    tiramisu::expr get_msg_tag() const;
+
+    tiramisu::expr get_src() const;
+
+    tiramisu::expr get_dest() const;
+
+    void set_matching_recv(tiramisu::recv *matching_recv);
+
+    void set_src(tiramisu::expr src);
+
+    void set_dest(tiramisu::expr dest);
+
+    void override_msg_tag(tiramisu::expr msg_tag);
+};
+
+class recv : public communicator {
+private:
+
+    send *matching_send = nullptr;
+
+    tiramisu::expr src;
+
+    tiramisu::expr dest;
+
+    tiramisu::expr msg_tag;
+
+public:
+
+    recv(std::string iteration_domain_str, bool schedule_this, tiramisu::xfer_prop prop,
+	 tiramisu::function *fct);
+
+    virtual bool is_recv() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    tiramisu::send *get_matching_send() const;
+
+    tiramisu::expr get_msg_tag() const;
+
+    tiramisu::expr get_src() const;
+
+    tiramisu::expr get_dest() const;
+
+    void set_matching_send(tiramisu::send *matching_send);
+
+    void set_src(tiramisu::expr src);
+
+    void set_dest(tiramisu::expr dest);
+
+    void override_msg_tag(tiramisu::expr msg_tag);
+
+};
+
+class send_recv : public communicator {
+private:
+
+    tiramisu::computation *producer;
+
+public:
+
+    send_recv(std::string iteration_domain_str, tiramisu::computation *producer,
+                  tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation,
+                  std::vector<expr> dims, tiramisu::function *fct);
+
+    virtual bool is_send_recv() const override;
+
+};
+
+class wait : public communicator {
+private:
+
+    tiramisu::expr rhs;
+
+public:
+
+    wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct);
+
+    wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop, bool schedule_this,
+         tiramisu::function *fct);
+
+    virtual bool is_wait() const override;
+
+    virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
+                                 bool schedule_this_computation, tiramisu::primitive_t t,
+                                 tiramisu::function *fct) override;
+
+    std::vector<tiramisu::computation *> get_op_to_wait_on() const;
+
+};
+
+// templated member functions
+
+template <typename T>
+std::vector<T *> tiramisu::computation::partial_loop_level_collapse(int level, tiramisu::expr collapse_from_iter,
+                                             tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed) {
+    int dyn_level = loop_level_into_dynamic_dimension(level);
+    isl_map *sched = this->get_schedule();
+    isl_map *dom_ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));
+    dom_ident = isl_map_apply_domain(isl_map_copy(this->get_schedule()), dom_ident);
+    std::string domain_str = isl_set_to_str(isl_map_domain(dom_ident));
+    std::vector<std::string> parts;
+    split_string(domain_str, "}", parts);
+    std::string dim_name = isl_map_get_dim_name(sched, isl_dim_out, dyn_level);
+    // The first new constraint is everything < collapse_until_iter
+    std::string first_cst = " and " + dim_name + " < " + (collapse_until_iter.get_expr_type() == tiramisu::e_val ?
+                                                          std::to_string(collapse_until_iter.get_int32_value()) :
+                                                          collapse_until_iter.get_name());
+    first_cst = parts[0] + first_cst + "}";
+
+
+    // The second constraint is everything >= collapse_until_iter
+    std::string second_cst = " and " + dim_name + " >= " + (collapse_until_iter.get_expr_type() == tiramisu::e_val ?
+                                                            std::to_string(collapse_until_iter.get_int32_value()) :
+                                                            collapse_until_iter.get_name());
+    second_cst = parts[0] + second_cst + "}";
+
+    isl_set *first_cst_set = isl_set_read_from_str(this->get_ctx(), first_cst.c_str());
+    isl_set *second_cst_set = isl_set_read_from_str(this->get_ctx(), second_cst.c_str());
+    isl_map *first_cst_map = isl_set_identity(first_cst_set);
+    isl_map *second_cst_map = isl_set_identity(second_cst_set);
+    std::string first_cst_name = std::string(isl_map_get_tuple_name(first_cst_map, isl_dim_in)) + "0";
+    first_cst_map = isl_map_set_tuple_name(first_cst_map, isl_dim_out, first_cst_name.c_str());
+    std::string second_cst_name = std::string(isl_map_get_tuple_name(second_cst_map, isl_dim_in)) + "1";
+    second_cst_map = isl_map_set_tuple_name(second_cst_map, isl_dim_out, second_cst_name.c_str());
+
+    std::vector<std::pair<std::string, std::string>> partition_by;
+    partition_by.push_back(std::pair<std::string, std::string>(first_cst_name, isl_map_to_str(first_cst_map)));
+    partition_by.push_back(std::pair<std::string, std::string>(second_cst_name, isl_map_to_str(second_cst_map)));
+    std::vector<T *> partitions = this->partition<T>(partition_by);
+    T *comm1 = partitions[0];
+    T *comm2 = partitions[1];
+
+    // give comm1 and comm2 the same initial schedule as their parent
+    isl_map *comm1_sched = isl_map_set_tuple_name(isl_map_copy(sched), isl_dim_in, first_cst_name.c_str());
+    comm1_sched = isl_map_set_tuple_name(comm1_sched, isl_dim_out, first_cst_name.c_str());
+    isl_map *comm2_sched = isl_map_set_tuple_name(isl_map_copy(sched), isl_dim_in, second_cst_name.c_str());
+    comm2_sched = isl_map_set_tuple_name(comm2_sched, isl_dim_out, second_cst_name.c_str());
+    comm1->set_schedule(comm1_sched);
+    comm2->set_schedule(comm2_sched);
+
+    comm1->add_dim(num_collapsed);
+    comm2->after(*comm1, level - 1);
+    comm1->predicate = this->get_predicate();
+    comm2->predicate = this->get_predicate();
+
+    if (collapse_until_iter.get_expr_type() != tiramisu::e_val) {
+        comm1->set_schedule(isl_map_add_free_var(collapse_until_iter.get_name(), comm1->get_schedule(),
+                                                 comm1->get_ctx()));
+        comm2->set_schedule(isl_map_add_free_var(collapse_until_iter.get_name(), comm2->get_schedule(),
+                                                 comm2->get_ctx()));
+    }
+
+    // Now, collapse the whole first operation
+    comm1->full_loop_level_collapse(level, collapse_from_iter);
+
+    return partitions;
+}
+
+
+template <typename T>
+std::vector<T *> tiramisu::computation::partition(std::vector<std::pair<std::string, std::string>> domains) {
+    std::vector<T *> output;
+    this->get_function()->align_schedules();
+    for (auto domain_iter = domains.begin(); domain_iter != domains.end(); domain_iter++) {
+        std::string partition_name = domain_iter->first;
+        isl_set *partition_iter_domain = isl_set_read_from_str(this->get_ctx(), (domain_iter->second).c_str());
+        partition_iter_domain = isl_set_set_tuple_name(partition_iter_domain, partition_name.c_str());
+        T *part = static_cast<T*>(this->copy());
+        part->set_iteration_domain(partition_iter_domain);
+        part->set_schedule(part->gen_identity_schedule_for_iteration_domain());
+        isl_map *sched = part->gen_identity_schedule_for_iteration_domain();
+        part->set_schedule(sched);
+        part->set_parent_computation(this);
+        part->_is_a_child_partition = true;
+        part->rename_computation(partition_name);
+        output.push_back(part);
+        this->child_partitions.push_back(part);
+    }
+
+    this->_is_a_parent_partition = true;
+    this->schedule_this_computation = false;
+
+    return output;
+}
 
 // Halide IR specific functions
 

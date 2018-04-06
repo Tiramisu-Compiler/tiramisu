@@ -23,6 +23,7 @@ using namespace tiramisu;
 void generate_function(std::string name, int size, int val0)
 {
     tiramisu::global::set_default_tiramisu_options();
+    
 
     // -------------------------------------------------------
     // Layer I

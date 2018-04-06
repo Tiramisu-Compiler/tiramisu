@@ -22,13 +22,14 @@ using namespace tiramisu;
 void generate_function(std::string name)
 {
     tiramisu::global::set_default_tiramisu_options();
+    
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
     tiramisu::function function0(name);
-    constant N("N", expr(DSIZE), global::get_loop_iterator_default_data_type(),
+    constant N("N", expr(DSIZE), global::get_loop_iterator_data_type(),
                true, NULL, 0, &function0);
     var i(p_uint16, "i");
     assert(var("i").get_data_type() == p_uint16);

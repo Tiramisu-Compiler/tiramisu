@@ -16,6 +16,7 @@ using namespace tiramisu;
 void generate_function_1(std::string name, int size, int val0, int val1)
 {
     tiramisu::global::set_default_tiramisu_options();
+
     tiramisu::global::set_auto_data_mapping(false); // No automatic data mapping.
 
     tiramisu::function function0(name);

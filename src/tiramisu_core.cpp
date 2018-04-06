@@ -19,11 +19,14 @@ namespace tiramisu
 {
 std::map<std::string, computation *> computations_list;
 bool global::auto_data_mapping;
+primitive_t global::loop_iterator_type = p_int32;
 
 // Used for the generation of new variable names.
 int id_counter = 0;
 
 const var computation::root = var("root");
+
+static int next_dim_name = 0;
 
 /**
  * Retrieve the access function of the ISL AST leaf node (which represents a
@@ -91,6 +94,7 @@ function::function(std::string name) {
         ast = NULL;
         context_set = NULL;
         use_low_level_scheduling_commands = false;
+        _needs_rank_call = false;
 
         // Allocate an ISL context.  This ISL context will be used by
         // the ISL library calls within Tiramisu.
@@ -835,6 +839,44 @@ bool function::should_vectorize(const std::string &comp, int lev) const
     return found;
 }
 
+bool function::should_distribute(const std::string &comp, int lev) const
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(!comp.empty());
+    assert(lev >= 0);
+
+    bool found = false;
+
+    DEBUG(10, tiramisu::str_dump("Checking if the computation " + comp +
+                                 " should be distributed" +
+                                 " at the loop level " + std::to_string(lev)));
+
+    for (const auto &pd : this->distributed_dimensions)
+    {
+        DEBUG(10, tiramisu::str_dump("Comparing " + comp + " to " + std::get<0>(pd)));
+        DEBUG(10, tiramisu::str_dump(std::get<0>(pd) + " is marked for distribution at level " + std::to_string(std::get<1>(pd))));
+
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+            found = true;
+    }
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                      + " be distributed.";
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return found;
+}
+
+bool tiramisu::function::needs_rank_call() const
+{
+    return _needs_rank_call;
+}
+
 void function::set_context_set(isl_set *context)
 {
     assert((context != NULL) && "Context is NULL");
@@ -1344,6 +1386,37 @@ void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::tag_distribute_level(tiramisu::var L)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L.get_name().length() > 0);
+    std::vector<int> dimensions =
+            this->get_loop_level_numbers_from_dimension_names({L.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->tag_distribute_level(L0);
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::tag_distribute_level(int L)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L >= 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    this->get_function()->add_distributed_dimension(this->get_name(), L);
+    this->get_function()->_needs_rank_call = true;
+
+    DEBUG_INDENT(-4);
+}
+
 void tiramisu::computation::tag_parallel_level(tiramisu::var L0_var)
 {
     DEBUG_FCT_NAME(3);
@@ -1565,6 +1638,149 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::separate_at(var _level, std::vector<tiramisu::expr> _separate_points, tiramisu::expr _max)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Separating the computation at level " + _level.get_name()));
+
+    DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
+    this->gen_time_space_domain();
+
+    std::vector<int> dimensions =
+            this->get_loop_level_numbers_from_dimension_names({_level.get_name()});
+    int level = dimensions[0];
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    std::vector<tiramisu::constant> separate_points;
+    for (auto p : _separate_points) {
+        separate_points.push_back(tiramisu::constant("c" + std::to_string(id_counter++), p, p.get_data_type(), true,
+                                                     NULL, 0, this->get_function()));
+    }
+    tiramisu::constant max("c" + std::to_string(id_counter++), _max, _max.get_data_type(), true, NULL, 0,
+                           this->get_function());
+
+    // We create the constraint (i < separate_point)
+    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i<middle)"));
+    std::string constraint;
+    constraint = "";
+    // get the constants
+    for (int i=0; i<isl_map_dim(this->get_schedule(), isl_dim_param); i++)
+    {
+        if (i==0) {
+            constraint += "[" + max.get_name() + ",";
+            for (auto separate_point : separate_points) {
+                constraint += separate_point.get_name() + ",";
+            }
+        }
+        constraint += isl_map_get_dim_name(this->get_schedule(), isl_dim_param, i);
+        if (i!=isl_map_dim(this->get_schedule(), isl_dim_param)-1)
+            constraint += ",";
+        else
+            constraint += "]->";
+    }
+    if (isl_map_dim(this->get_schedule(), isl_dim_param) == 0) {
+        // Need to add in these constants
+        constraint += "[" + max.get_name();
+        for (auto separate_point : separate_points) {
+            constraint += ", " +  separate_point.get_name() ;
+        }
+        constraint += "]->";
+    }
+    constraint += "{" + this->get_name() + "[0,";
+    for (int i=1; i<isl_map_dim(this->get_schedule(), isl_dim_out); i++)
+    {
+        if ((i%2==0) && (isl_map_has_dim_name(this->get_schedule(), isl_dim_out, i)==true))
+            constraint += isl_map_get_dim_name(this->get_schedule(), isl_dim_out, i);
+        else
+            constraint += "o" + std::to_string(i);
+        if (i != isl_map_dim(this->get_schedule(), isl_dim_out)-1)
+            constraint += ",";
+    }
+    constraint += "]: ";
+    std::vector<std::string> constraints;
+    // This is the first constraint
+    std::string constraint1 = constraint +
+                              this->get_dimension_name_for_loop_level(level) + " < " + separate_points[0].get_name() + "}";
+    DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint1));
+
+    // We create the constraint (i >= separate_point). This is the last constraint
+    DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=middle)"));
+    std::string constraintn = constraint +
+                              this->get_dimension_name_for_loop_level(level) + " >= " +
+                              separate_points[separate_points.size() - 1].get_name() + " and " +
+                              this->get_dimension_name_for_loop_level(level) + " < " + max.get_name() + "}";
+    DEBUG(3, tiramisu::str_dump("The constraint is:" + constraintn));
+
+
+    // create the intermediate constraints
+    for (int i = 1; i < separate_points.size(); i++) {
+        std::string cons = constraint +
+                           this->get_dimension_name_for_loop_level(level) + " >= " + separate_points[i-1].get_name() + " and ";
+        cons += this->get_dimension_name_for_loop_level(level) + " < " + separate_points[i].get_name() + "}";
+        constraints.push_back(cons);
+    }
+    constraints.push_back(constraintn);
+    //////////////////////////////////////////////////////////////////////////////
+
+    for (std::string cons : constraints) {
+        isl_set *cons_isl = isl_set_read_from_str(this->get_ctx(), cons.c_str());
+        if (isl_set_is_empty(
+                isl_map_range(isl_map_intersect_range(isl_map_copy(this->get_schedule()), cons_isl))) == false) {
+            DEBUG(3, tiramisu::str_dump("The separate computation is not empty."));
+
+            // Create the separated computation.
+            // First, create the domain of the separated computation (which is identical to
+            // the domain of the original computation). Both also have the same name.
+            // TODO: create copy functions for all the classes so that we can copy the objects
+            // we need to have this->get_expr().copy()
+            int last_update_computation = this->get_updates().size();
+
+            std::string domain_str = std::string(isl_set_to_str(this->get_iteration_domain()));
+            this->add_definitions(domain_str,
+                                  this->get_expr(),
+                                  this->should_schedule_this_computation(),
+                                  this->get_data_type(),
+                                  this->get_function());
+
+            // Set the schedule of the newly created computation (separated
+            // computation) to be equal to the schedule of the original computation.
+            isl_map *new_schedule = isl_map_copy(this->get_schedule());
+            this->get_update(last_update_computation).set_schedule(new_schedule);
+
+            // Create the access relation of the separated computation (by replacing its name).
+            if (this->get_access_relation() != NULL) {
+                DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
+                this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
+
+                DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
+                                            isl_map_to_str(
+                                                    this->get_update(last_update_computation).get_access_relation())));
+            }
+
+            this->get_update(last_update_computation).add_schedule_constraint("", cons.c_str());
+
+            DEBUG(3, tiramisu::str_dump("The separate computation:");
+                    this->get_update(last_update_computation).dump());
+        } else {
+            DEBUG(3, tiramisu::str_dump("The separate computation is empty. Thus not added."));
+        }
+    }
+
+    this->add_schedule_constraint("", constraint1.c_str());
+
+    DEBUG(3, tiramisu::str_dump("The original computation:"); this->dump());
+
+    // rename all the updates by adding '_<ctr>' to the end of the name
+    int ctr = 0;
+    for (auto comp : this->get_updates()) {
+        comp->rename_computation(comp->get_name() + "_" + std::to_string(ctr++));
+    }
+    DEBUG_INDENT(-4);
+}
+
 void tiramisu::computation::set_iteration_domain(isl_set *domain)
 {
     this->iteration_domain = domain;
@@ -1598,14 +1814,28 @@ tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr
      * multiple of w that is still smaller than N.  Add this constant to
      * the list of invariants.
      */
+    primitive_t f_type, i_type, u_type;
+    if (global::get_loop_iterator_data_type() == p_int32)
+    {
+        f_type = p_float32;
+        i_type = p_int32;
+        u_type = p_uint32;
+    }
+    else
+    {
+        f_type = p_float64;
+        i_type = p_int64;
+        u_type = p_uint64;
+    }
+
     std::string separator_name = tiramisu::generate_new_variable_name();
     tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound, tiramisu::expr(v));
-    tiramisu::expr cast_expr = tiramisu::expr(o_cast, tiramisu::p_float32, div_expr);
+    tiramisu::expr cast_expr = tiramisu::expr(o_cast, f_type, div_expr);
     tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
-    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, tiramisu::p_int32, floor_expr);
+    tiramisu::expr cast2_expr = tiramisu::expr(o_cast, i_type, floor_expr);
     tiramisu::expr separator_expr = tiramisu::expr(o_mul, tiramisu::expr(v), cast2_expr);
     tiramisu::constant *separation_param = new tiramisu::constant(
-        separator_name, separator_expr, p_uint32, true, NULL, 0, this->get_function());
+        separator_name, separator_expr, u_type, true, NULL, 0, this->get_function());
 
     DEBUG_INDENT(-4);
 
@@ -4814,10 +5044,10 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
         if (isl_val_is_zero(coeff) == isl_bool_false)
         {
             const char *name = isl_space_get_dim_name(space, isl_dim_param, i);
-            tiramisu::expr param = tiramisu::var(p_int32, std::string(name));
+            tiramisu::expr param = tiramisu::var(global::get_loop_iterator_data_type(), std::string(name));
             if (isl_val_is_one(coeff) == isl_bool_false)
             {
-                int c = isl_val_get_num_si(coeff);
+                long c = isl_val_get_num_si(coeff);
 
                 // For lower bounds, inverse the sign.
                 if (upper == false)
@@ -4826,8 +5056,8 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
                 }
 
                 param = tiramisu::expr(o_mul,
-                                       tiramisu::expr((int32_t) c),
-                                       param);
+                                       tiramisu::expr(o_cast, tiramisu::global::get_loop_iterator_data_type(),
+                                                      tiramisu::expr((int32_t) c)), param);
             }
 
             if (e.is_defined() == false)
@@ -4844,7 +5074,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
     isl_val *ct = isl_constraint_get_constant_val(cst);
     if ((isl_val_is_zero(ct) == isl_bool_false) || (e.is_defined() == false))
     {
-        int v = isl_val_get_num_si(ct);
+        long v = isl_val_get_num_si(ct);
 
         // For lower bounds, inverse the sign.
         if (upper == false)
@@ -4852,7 +5082,7 @@ tiramisu::expr extract_tiramisu_expr_from_cst(isl_constraint *cst, int dim, bool
             v = -1 * v;
         }
 
-        tiramisu::expr c = tiramisu::expr((int32_t) v);
+        tiramisu::expr c = tiramisu::expr(o_cast, global::get_loop_iterator_data_type(), tiramisu::expr((int32_t) v));
 
         if (e.is_defined() == false)
         {
@@ -5207,14 +5437,15 @@ bool computation::separateAndSplit(int L0, int v)
     int original_depth = this->compute_maximal_AST_depth();
 
     tiramisu::expr loop_upper_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, true);
+        tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
+                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true));
 
     tiramisu::expr loop_lower_bound =
-        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
-                                     L0, false);
+        tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
+                       tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, false));
 
-    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + tiramisu::expr((int32_t) 1);
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound +
+            tiramisu::expr(o_cast, global::get_loop_iterator_data_type(), tiramisu::expr((int32_t) 1));
     loop_bound = loop_bound.simplify();
 
     DEBUG(3, tiramisu::str_dump("Loop bound for the loop to be separated and split: "); loop_bound.dump(false));
@@ -5927,6 +6158,14 @@ void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim
     this->vector_dimensions.push_back(std::make_tuple(stmt_name, vec_dim, vector_length));
 }
 
+void tiramisu::function::add_distributed_dimension(std::string stmt_name, int dim)
+{
+    assert(dim >= 0);
+    assert(!stmt_name.empty());
+
+    this->distributed_dimensions.push_back({stmt_name, dim});
+}
+
 void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
 {
     assert(vec_dim >= 0);
@@ -6236,6 +6475,8 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
         return "op";
     case tiramisu::e_var:
         return "var";
+    case tiramisu::e_sync:
+        return "sync";
     default:
         tiramisu::error("Tiramisu type not supported.", true);
         return "";
@@ -6299,7 +6540,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct):
     allocated(false), argtype(argt), auto_allocate(true), dim_sizes(dim_sizes), fct(fct),
-    name(name), type(type)
+    name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
@@ -6489,6 +6730,17 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     first_definition = NULL;
     this->definitions_number = 1;
     this->definition_ID = 0;
+    this->_is_library_call = false;
+    this->_is_nonblock_or_async = false;
+    this->_drop_rank_iter = false;
+
+    this->lhs_access_type = tiramisu::o_access;
+    this->lhs_argument_idx = -1;
+    this->rhs_argument_idx = -1;
+    this->wait_argument_idx = -1;
+    this->_is_library_call = false;
+    this->wait_access_map = nullptr;
+    this->wait_index_expr = nullptr;
 
     this->schedule_this_computation = schedule_this_computation;
     this->data_type = t;
@@ -6564,6 +6816,14 @@ tiramisu::computation::computation()
     this->expression = tiramisu::expr();
 
     this->ctx = NULL;
+
+    this->lhs_access_type = tiramisu::o_access;
+    this->lhs_argument_idx = -1;
+    this->rhs_argument_idx = -1;
+    this->wait_argument_idx = -1;
+    this->_is_library_call = false;
+    this->wait_access_map = nullptr;
+    this->wait_index_expr = nullptr;
 
     this->iteration_domain = NULL;
     this->name = "";
@@ -6726,6 +6986,12 @@ const tiramisu::expr &tiramisu::computation::get_expr() const
     return expression;
 }
 
+tiramisu::computation::operator expr()
+{
+    // assert(this->is_let_stmt() && "Can only use let statements as expressions.");
+    return var(this->get_data_type(), this->get_name());
+}
+
 /**
   * Return the function where the computation is declared.
   */
@@ -6808,6 +7074,16 @@ bool tiramisu::computation::is_let_stmt() const
     DEBUG_INDENT(-4);
 
     return is_let;
+}
+
+bool tiramisu::computation::is_library_call() const
+{
+    return this->_is_library_call;
+}
+
+bool tiramisu::computation::should_drop_rank_iter() const
+{
+    return this->_drop_rank_iter;
 }
 
 /**
@@ -6923,6 +7199,11 @@ void tiramisu::computation::gen_time_space_domain()
     DEBUG(3, tiramisu::str_dump("Generated time-space domain:", isl_set_to_str(time_processor_domain)));
 
     DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::drop_rank_iter()
+{
+    this->_drop_rank_iter = true;
 }
 
 void tiramisu::computation::set_access(isl_map *access)
@@ -7113,6 +7394,26 @@ void tiramisu::computation::add_associated_let_stmt(std::string variable_name, t
     DEBUG_INDENT(-4);
 }
 
+bool tiramisu::computation::is_send() const
+{
+  return false;
+}
+
+bool tiramisu::computation::is_recv() const
+{
+  return false;
+}
+
+bool tiramisu::computation::is_send_recv() const
+{
+  return false;
+}
+
+bool tiramisu::computation::is_wait() const
+{
+  return false;
+}
+
 const std::vector<std::pair<std::string, tiramisu::expr>>
         &tiramisu::computation::get_associated_let_stmts() const
 {
@@ -7122,10 +7423,12 @@ const std::vector<std::pair<std::string, tiramisu::expr>>
 bool tiramisu::computation::has_accesses() const
 {
     if ((this->get_expr().get_op_type() == tiramisu::o_access))
-	return true;
+        return true;
     else if ((this->get_expr().get_op_type() == tiramisu::o_allocate) ||
             (this->get_expr().get_op_type() == tiramisu::o_free) ||
-	    (this->is_let_stmt()))
+            (this->get_expr().get_op_type() == tiramisu::o_memcpy) ||
+            (this->get_expr().get_expr_type() == tiramisu::e_sync) ||
+            (this->is_let_stmt()))
     {
         return false;
     }
@@ -7206,6 +7509,11 @@ void tiramisu::computation::mark_as_let_statement()
     this->is_let = true;
 }
 
+void tiramisu::computation::mark_as_library_call()
+{
+    this->_is_library_call = true;
+}
+
 /****************************************************************************
  ****************************************************************************
  ***************************** Constant class *******************************
@@ -7262,9 +7570,10 @@ tiramisu::constant::constant(
     {
         this->set_name(param_name);
         this->set_expression(param_expr);
-        func->add_invariant(*this);
         this->mark_as_let_statement();
-	this->compute_with_computation = NULL;
+        this->data_type = t;
+        func->add_invariant(*this);
+        this->compute_with_computation = NULL;
 
         DEBUG(3, tiramisu::str_dump("The constant is function wide, its name is : "));
         DEBUG(3, tiramisu::str_dump(this->get_name()));
@@ -7330,7 +7639,8 @@ void tiramisu::constant::dump(bool exhaustive) const
 
 tiramisu::constant::operator expr()
 {
-    return this->get_expr();
+    return var(this->get_data_type(), this->get_name());
+    // return this->get_expr();
 }
 
 void tiramisu::buffer::set_dim_size(int dim, int size)
@@ -7460,4 +7770,715 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::set_parent_computation(tiramisu::computation *parent_computation) {
+    this->parent_computation = parent_computation;
+}
+
+std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
+
+tiramisu::xfer_prop::xfer_prop() { }
+
+tiramisu::xfer_prop::xfer_prop(tiramisu::primitive_t dtype,
+                               std::initializer_list<tiramisu::xfer_attr> attrs)
+        : dtype(dtype), xfer_prop_id(-1) {
+    this->attrs.insert(this->attrs.begin(), attrs);
+}
+
+tiramisu::xfer_prop::xfer_prop(tiramisu::primitive_t dtype,
+                               std::initializer_list<tiramisu::xfer_attr> attrs,
+                               int comm_prop_id) : dtype(dtype), xfer_prop_id(comm_prop_id) {
+    this->attrs.insert(this->attrs.begin(), attrs);
+    if (comm_prop_id != -1) {
+        xfer_prop_ids.insert(comm_prop_id);
+    }
+    xfer_prop_ids.insert(0); // The kernel one. Just make sure it gets in there
+}
+
+tiramisu::primitive_t tiramisu::xfer_prop::get_dtype() const {
+    return this->dtype;
+}
+
+std::string tiramisu::xfer_prop::attr_to_string(tiramisu::xfer_attr attr) {
+    switch (attr) {
+        case SYNC: return "SYNC";
+        case ASYNC: return "ASYNC";
+        case MPI: return "MPI";
+        case CUDA: return "CUDA";
+        case BLOCK: return "BLOCK";
+        case NONBLOCK: return "NONBLOCK";
+        default: {
+            assert(false && "Unknown xfer_prop attr specified.");
+            return "";
+        }
+    }
+}
+
+int tiramisu::xfer_prop::get_xfer_prop_id() const {
+    return xfer_prop_id;
+}
+
+void tiramisu::xfer_prop::add_attr(tiramisu::xfer_attr attr) {
+    attrs.push_back(attr);
+}
+
+bool tiramisu::xfer_prop::contains_attr(tiramisu::xfer_attr attr) const {
+    return attrs.end() != std::find(attrs.begin(), attrs.end(), attr);
+}
+
+bool tiramisu::xfer_prop::contains_attrs(std::vector<tiramisu::xfer_attr> attrs) const {
+    for (auto attr : attrs) {
+        if (this->attrs.end() == std::find(this->attrs.begin(), this->attrs.end(), attr)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+tiramisu::communicator::communicator() { }
+
+tiramisu::communicator::communicator(std::string iteration_domain_str, tiramisu::expr e,
+                                     bool schedule_this_computation, tiramisu::primitive_t data_type,
+                                     tiramisu::xfer_prop prop, tiramisu::function *fct) :
+        computation(iteration_domain_str, e, schedule_this_computation, data_type, fct), prop(prop) {}
+
+tiramisu::communicator::communicator(std::string iteration_domain_str, tiramisu::expr e, bool schedule_this_computation,
+                                     tiramisu::primitive_t data_type, tiramisu::function *fct) :
+        computation(iteration_domain_str, e, schedule_this_computation, data_type, fct) {}
+
+void tiramisu::communicator::collapse_many(std::vector<tiramisu::collapse_group> collapse_each) {
+    for (auto c : collapse_each) {
+        this->collapse(std::get<0>(c), std::get<1>(c), -1, std::get<2>(c));
+    }
+}
+
+void tiramisu::communicator::add_dim(tiramisu::expr dim)
+{
+    this->dims.push_back(dim);
+}
+
+tiramisu::expr tiramisu::communicator::get_num_elements() const
+{
+    tiramisu::expr num = expr(1);
+    if (!dims.empty()) {
+        num = tiramisu::expr(tiramisu::o_cast, dims[0].get_data_type(), num);
+    }
+    for (std::vector<tiramisu::expr>::const_iterator iter = dims.cbegin(); iter != dims.cend(); iter++) {
+        num = *iter * num;
+    }
+    return num;
+}
+
+xfer_prop tiramisu::communicator::get_xfer_props() const
+{
+    return prop;
+}
+
+std::vector<communicator *> tiramisu::communicator::collapse(int level, tiramisu::expr collapse_from_iter,
+                                                             tiramisu::expr collapse_until_iter,
+                                                             tiramisu::expr num_collapsed)
+{
+
+    std::vector<communicator *> ret;
+    if (collapse_until_iter.get_expr_type() == tiramisu::e_val && collapse_until_iter.get_int32_value() == -1) {
+        this->add_dim(num_collapsed);
+        // Instead of fully removing the loop, we modify the collapsed loop to only have a single iteration.
+        full_loop_level_collapse(level, collapse_from_iter);
+    } else {
+        std::vector<communicator *> comms =
+                partial_loop_level_collapse<communicator>(level, collapse_from_iter, collapse_until_iter,
+                                                          num_collapsed);
+        ret.push_back(comms[0]);
+        ret.push_back(comms[1]);
+    }
+
+    return ret;
+}
+
+std::string create_send_func_name(const xfer_prop chan)
+{
+    if (chan.contains_attr(MPI)) {
+        std::string name = "tiramisu_MPI";
+        if (chan.contains_attr(SYNC) && chan.contains_attr(BLOCK)) {
+            name += "_Ssend";
+        } else if (chan.contains_attr(SYNC) && chan.contains_attr(NONBLOCK)) {
+            name += "_Issend";
+        } else if (chan.contains_attr(ASYNC) && chan.contains_attr(BLOCK)) {
+            name += "_Send";
+        } else if (chan.contains_attr(ASYNC) && chan.contains_attr(NONBLOCK)) {
+            name += "_Isend";
+        }
+        switch (chan.get_dtype()) {
+            case p_uint8:
+                name += "_uint8";
+                break;
+            case p_uint16:
+                name += "_uint16";
+                break;
+            case p_uint32:
+                name += "_uint32";
+                break;
+            case p_uint64:
+                name += "_uint64";
+                break;
+            case p_int8:
+                name += "_int8";
+                break;
+            case p_int16:
+                name += "_int16";
+                break;
+            case p_int32:
+                name += "_int32";
+                break;
+            case p_int64:
+                name += "_int64";
+                break;
+            case p_float32:
+                name += "_f32";
+                break;
+            case p_float64:
+                name += "_f64";
+                break;
+        }
+        return name;
+    } else if (chan.contains_attr(CUDA)) {
+        std::string name = "tiramisu_cudad_memcpy";
+        if (chan.contains_attr(ASYNC)) {
+            name += "_async";
+        }
+        if (chan.contains_attr(CPU2CPU)) {
+            name += "_h2h";
+        } else if (chan.contains_attr(CPU2GPU)) {
+            name += "_h2d";
+        } else if (chan.contains_attr(GPU2GPU)) {
+            name += "_d2d";
+        } else if (chan.contains_attr(GPU2CPU)) {
+            name += "_d2h";
+        } else {
+            assert(false && "Unknown CUDA transfer direction");
+        }
+
+        return name;
+    }
+    assert(false && "Communication must be either MPI or CUDA!");
+    return "";
+}
+
+int send::next_msg_tag = 0;
+
+tiramisu::send::send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs,
+                     xfer_prop prop, bool schedule_this, std::vector<expr> dims, tiramisu::function *fct) :
+        communicator(iteration_domain_str, rhs, schedule_this, prop.get_dtype(),
+                     prop, fct), producer(producer),
+        msg_tag(tiramisu::expr(next_msg_tag++))
+{
+    _is_library_call = true;
+    library_call_name = create_send_func_name(prop);
+    expr mod_rhs(tiramisu::o_address_of, rhs.get_name(), rhs.get_access(), rhs.get_data_type());
+    set_expression(mod_rhs);
+}
+
+tiramisu::expr tiramisu::send::get_msg_tag() const
+{
+    return msg_tag;
+}
+
+tiramisu::computation *tiramisu::send::get_producer() const
+{
+    return producer;
+}
+
+tiramisu::recv *tiramisu::send::get_matching_recv() const
+{
+    return matching_recv;
+}
+
+void tiramisu::send::set_matching_recv(tiramisu::recv *matching_recv)
+{
+    this->matching_recv = matching_recv;
+}
+
+bool tiramisu::send::is_send() const
+{
+    return true;
+}
+
+void tiramisu::send::add_definitions(std::string iteration_domain_str,
+                                     tiramisu::expr e,
+                                     bool schedule_this_computation, tiramisu::primitive_t t,
+                                     tiramisu::function *fct)
+{
+    tiramisu::send *new_c = new tiramisu::send(iteration_domain_str, this->producer, e, this->prop,
+                                               schedule_this_computation, {}, fct);
+    new_c->set_matching_recv(this->get_matching_recv());
+    new_c->set_src(this->get_src());
+    new_c->is_first = false;
+    new_c->first_definition = this;
+    this->updates.push_back(new_c);
+}
+
+tiramisu::expr tiramisu::send::get_src() const
+{
+    return src;
+}
+
+tiramisu::expr tiramisu::send::get_dest() const
+{
+    return dest;
+}
+
+void tiramisu::send::set_src(tiramisu::expr src)
+{
+    this->src = src;
+}
+
+void tiramisu::send::set_dest(tiramisu::expr dest)
+{
+    this->dest = dest;
+}
+
+void tiramisu::send::override_msg_tag(tiramisu::expr msg_tag)
+{
+    this->msg_tag = msg_tag;
+}
+
+std::string create_recv_func_name(const xfer_prop chan)
+{
+
+    if (chan.contains_attr(MPI)) {
+        std::string name = "tiramisu_MPI";
+        if (chan.contains_attr(BLOCK)) {
+            name += "_Recv";
+        } else if (chan.contains_attr(NONBLOCK)) {
+            name += "_Irecv";
+        }
+        switch (chan.get_dtype()) {
+            case p_uint8:
+                name += "_uint8";
+                break;
+            case p_uint16:
+                name += "_uint16";
+                break;
+            case p_uint32:
+                name += "_uint32";
+                break;
+            case p_uint64:
+                name += "_uint64";
+                break;
+            case p_int8:
+                name += "_int8";
+                break;
+            case p_int16:
+                name += "_int16";
+                break;
+            case p_int32:
+                name += "_int32";
+                break;
+            case p_int64:
+                name += "_int64";
+                break;
+            case p_float32:
+                name += "_f32";
+                break;
+            case p_float64:
+                name += "_f64";
+                break;
+        }
+        return name;
+    } else {
+        assert(false);
+        return "";
+    }
+}
+
+tiramisu::recv::recv(std::string iteration_domain_str, bool schedule_this, tiramisu::xfer_prop prop,
+                     tiramisu::function *fct) : communicator(iteration_domain_str, tiramisu::expr(),
+                                                             schedule_this, prop.get_dtype(), prop, fct)
+{
+    _is_library_call = true;
+}
+
+send * tiramisu::recv::get_matching_send() const
+{
+    return matching_send;
+}
+
+void tiramisu::recv::set_matching_send(send *matching_send)
+{
+    this->matching_send = matching_send;
+    library_call_name = create_recv_func_name(prop);
+}
+
+bool tiramisu::recv::is_recv() const
+{
+    return true;
+}
+
+tiramisu::expr tiramisu::recv::get_src() const
+{
+    return src;
+}
+
+tiramisu::expr tiramisu::recv::get_dest() const
+{
+    return dest;
+}
+
+void tiramisu::recv::set_src(tiramisu::expr src)
+{
+    this->src = src;
+}
+
+void tiramisu::recv::set_dest(tiramisu::expr dest)
+{
+    this->dest = dest;
+}
+
+void tiramisu::recv::override_msg_tag(tiramisu::expr msg_tag)
+{
+    this->msg_tag = msg_tag;
+}
+
+tiramisu::expr tiramisu::recv::get_msg_tag() const
+{
+    return this->msg_tag;
+}
+
+void tiramisu::recv::add_definitions(std::string iteration_domain_str,
+                                     tiramisu::expr e,
+                                     bool schedule_this_computation, tiramisu::primitive_t t,
+                                     tiramisu::function *fct)
+{
+    tiramisu::recv *new_c = new tiramisu::recv(iteration_domain_str, schedule_this_computation, this->prop, fct);
+    new_c->set_matching_send(this->get_matching_send());
+    new_c->set_dest(this->get_dest());
+    new_c->is_first = false;
+    new_c->first_definition = this;
+    new_c->is_let = this->is_let;
+    new_c->definition_ID = this->definitions_number;
+    this->definitions_number++;
+
+    if (new_c->get_expr().is_equal(this->get_expr()))
+    {
+        // Copy the associated let statements to the new definition.
+        new_c->associated_let_stmts = this->associated_let_stmts;
+    }
+
+    this->updates.push_back(new_c);
+}
+
+tiramisu::send_recv::send_recv(std::string iteration_domain_str, tiramisu::computation *producer,
+                               tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation,
+                               std::vector<expr> dims, tiramisu::function *fct) :
+        communicator(iteration_domain_str, rhs, schedule_this_computation, prop.get_dtype(), prop, fct),
+        producer(producer)
+{
+    _is_library_call = true;
+    library_call_name = create_send_func_name(prop);
+    if (prop.contains_attr(CPU2GPU)) {
+        expr mod_rhs(tiramisu::o_address_of, rhs.get_name(), rhs.get_access(), rhs.get_data_type());
+        set_expression(mod_rhs);
+    } else if (prop.contains_attr(GPU2CPU)) {
+        // we will modify this again later
+        expr mod_rhs(tiramisu::o_buffer, rhs.get_name(), rhs.get_access(), rhs.get_data_type());
+        set_expression(mod_rhs);
+    }
+}
+
+bool tiramisu::send_recv::is_send_recv() const
+{
+    return true;
+}
+
+tiramisu::wait::wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct)
+        : communicator(), rhs(rhs) {
+    assert(rhs.get_op_type() == tiramisu::o_access && "The RHS expression for a wait should be an access!");
+    tiramisu::computation *op = fct->get_computation_by_name(rhs.get_name())[0];
+    isl_set *dom = isl_set_copy(op->get_iteration_domain());
+    std::string new_name = std::string(isl_set_get_tuple_name(dom)) + "_wait";
+    dom = isl_set_set_tuple_name(dom, new_name.c_str());
+    init_computation(isl_set_to_str(dom), fct, rhs, true, tiramisu::p_async);
+    _is_library_call = true;
+    this->prop = prop;
+}
+
+tiramisu::wait::wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop,
+                     bool schedule_this,
+                     tiramisu::function *fct) : communicator(iteration_domain_str, rhs, schedule_this, tiramisu::p_async, fct), rhs(rhs) {
+    _is_library_call = true;
+    this->prop = prop;
+    computation *comp = fct->get_computation_by_name(rhs.get_name())[0];
+    comp->_is_nonblock_or_async = true;
+}
+
+std::vector<tiramisu::computation *> tiramisu::wait::get_op_to_wait_on() const {
+    std::string op_name = this->get_expr().get_name();
+    return this->get_function()->get_computation_by_name(op_name);
+}
+
+bool tiramisu::wait::is_wait() const
+{
+    return true;
+}
+
+void tiramisu::wait::add_definitions(std::string iteration_domain_str,
+                                     tiramisu::expr e, bool schedule_this_computation, tiramisu::primitive_t t,
+                                     tiramisu::function *fct)
+{
+    tiramisu::computation *new_c = new tiramisu::wait(iteration_domain_str, e, this->prop, schedule_this_computation,
+                                                      fct);
+    new_c->is_first = false;
+    new_c->first_definition = this;
+    this->updates.push_back(new_c);
+}
+
+void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter)
+{
+    std::string collapse_from_iter_repr = "";
+    if (global::get_loop_iterator_data_type() == p_int32) {
+        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
+                                  std::to_string(collapse_from_iter.get_int32_value()) : collapse_from_iter.get_name();
+    } else {
+        collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
+                                  std::to_string(collapse_from_iter.get_int64_value()) : collapse_from_iter.get_name();
+    }
+    isl_map *sched = this->get_schedule();
+    isl_map *sched_copy = isl_map_copy(sched);
+    int dim = loop_level_into_dynamic_dimension(level);
+    const char *_dim_name = isl_map_get_dim_name(sched, isl_dim_out, dim);
+    std::string dim_name = "";
+    if (!_dim_name) { // Since dim names are optional...
+        dim_name = "jr" + std::to_string(next_dim_name++);
+        sched = isl_map_set_dim_name(sched, isl_dim_out, dim, dim_name.c_str());
+    } else {
+        dim_name = _dim_name;
+    }
+    std::string subtract_cst =
+            dim_name + " > " + collapse_from_iter_repr; // > because you want a single iteration (iter 0)
+    isl_map *ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));
+    ident = isl_map_apply_domain(isl_map_copy(this->get_schedule()), ident);
+    assert(isl_map_n_out(ident) == isl_map_n_out(sched));
+    ident = isl_map_set_dim_name(ident, isl_dim_out, dim, dim_name.c_str());
+    isl_map *universe = isl_map_universe(isl_map_get_space(ident));
+    std::string transform_str = isl_map_to_str(universe);
+    std::vector<std::string> parts;
+    split_string(transform_str, "}", parts);
+    transform_str = parts[0] + ": " + subtract_cst + "}";
+    isl_map *transform = isl_map_read_from_str(this->get_ctx(), transform_str.c_str());
+    if (collapse_from_iter.get_expr_type() != tiramisu::e_val) { // This might be a free variable
+        transform = isl_map_add_free_var(collapse_from_iter_repr, transform, this->get_ctx());
+    }
+    sched = isl_map_subtract(sched, transform);
+    // update all the dim names because they get removed in the transform
+    assert(isl_map_n_out(sched) == isl_map_n_out(sched_copy)); // Shouldn't have added or removed any dims here...
+    this->set_schedule(sched);
+}
+
+xfer tiramisu::computation::create_xfer(std::string send_iter_domain, std::string recv_iter_domain,
+                                        tiramisu::expr send_dest, tiramisu::expr recv_src,
+                                        xfer_prop send_prop, xfer_prop recv_prop,
+                                        tiramisu::expr send_expr, tiramisu::function *fct) {
+    if (send_prop.contains_attr(MPI)) {
+        assert(recv_prop.contains_attr(MPI));
+    } else if (send_prop.contains_attr(CUDA)) {
+        assert(recv_prop.contains_attr(CUDA));
+    }
+
+    assert(send_expr.get_op_type() == tiramisu::o_access);
+    tiramisu::computation *producer = fct->get_computation_by_name(send_expr.get_name())[0];
+
+    isl_set *s_iter_domain = isl_set_read_from_str(producer->get_ctx(), send_iter_domain.c_str());
+    isl_set *r_iter_domain = isl_set_read_from_str(producer->get_ctx(), recv_iter_domain.c_str());
+    tiramisu::send *s = new tiramisu::send(isl_set_to_str(s_iter_domain), producer, send_expr, send_prop, true,
+                                           {1}, producer->get_function());
+    tiramisu::recv *r = new tiramisu::recv(isl_set_to_str(r_iter_domain), true, recv_prop, fct);
+    isl_map *send_sched = s->gen_identity_schedule_for_iteration_domain();
+    isl_map *recv_sched = r->gen_identity_schedule_for_iteration_domain();
+
+    s->set_src(expr());
+    s->set_dest(send_dest);
+    r->set_src(recv_src);
+    r->set_dest(expr());
+
+    s->set_schedule(send_sched);
+    r->set_schedule(recv_sched);
+    s->set_matching_recv(r);
+    r->set_matching_send(s);
+
+    tiramisu::xfer c;
+    c.s = s;
+    c.r = r;
+    c.sr = nullptr;
+
+    return c;
+}
+
+xfer tiramisu::computation::create_xfer(std::string iter_domain_str, xfer_prop prop, tiramisu::expr expr,
+                                        tiramisu::function *fct) {
+    assert(expr.get_op_type() == tiramisu::o_access);
+    tiramisu::computation *producer = fct->get_computation_by_name(expr.get_name())[0];
+
+    isl_set *iter_domain = isl_set_read_from_str(producer->get_ctx(), iter_domain_str.c_str());
+    tiramisu::send_recv *sr = new tiramisu::send_recv(isl_set_to_str(iter_domain), producer, expr, prop, true, {1},
+                                                      producer->get_function());
+    isl_map *sched = sr->gen_identity_schedule_for_iteration_domain();
+
+    sr->set_schedule(sched);
+
+    tiramisu::xfer c;
+    c.s = nullptr;
+    c.r = nullptr;
+    c.sr = sr;
+
+    return c;
+}
+
+void tiramisu::function::lift_dist_comps() {
+    for (std::vector<tiramisu::computation *>::iterator comp = body.begin(); comp != body.end(); comp++) {
+        if ((*comp)->is_send() || (*comp)->is_recv() || (*comp)->is_wait() || (*comp)->is_send_recv()) {
+            xfer_prop chan = static_cast<tiramisu::communicator *>(*comp)->get_xfer_props();
+            if (chan.contains_attr(MPI)) {
+                lift_mpi_comp(*comp);
+            } else if (chan.contains_attr(CUDA)) {
+                assert(false && "CUDA lifter not implemented yet");
+//                lift_cuda_comp(*comp);
+            } else {
+                assert(false);
+            }
+        }
+    }
+}
+
+void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
+    if (comp->is_send()) {
+        send *s = static_cast<send *>(comp);
+        tiramisu::expr num_elements(s->get_num_elements());
+        tiramisu::expr send_type(s->get_xfer_props().get_dtype());
+        bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK);
+        s->rhs_argument_idx = 3;
+        s->library_call_args.resize(isnonblock ? 6 : 5);
+        s->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
+        s->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_dest());
+        s->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_msg_tag());
+        s->library_call_args[4] = send_type;
+        if (isnonblock) {
+            // This additional RHS argument is to the request buffer. It is really more of a side effect.
+            s->wait_argument_idx = 5;
+        }
+    } else if (comp->is_recv()) {
+        recv *r = static_cast<recv *>(comp);
+        send *s = r->get_matching_send();
+        tiramisu::expr num_elements(r->get_num_elements());
+        tiramisu::expr recv_type(s->get_xfer_props().get_dtype());
+        bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK);
+        r->lhs_argument_idx = 3;
+        r->library_call_args.resize(isnonblock ? 6 : 5);
+        r->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
+        r->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_src());
+        r->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_msg_tag().is_defined() ?
+                                                                            r->get_msg_tag() : s->get_msg_tag());
+        r->library_call_args[4] = recv_type;
+        r->lhs_access_type = tiramisu::o_address_of;
+        if (isnonblock) {
+            // This RHS argument is to the request buffer. It is really more of a side effect.
+            r->wait_argument_idx = 5;
+        }
+    } else if (comp->is_wait()) {
+        wait *w = static_cast<wait *>(comp);
+        w->rhs_argument_idx = 0;
+        w->library_call_args.resize(1);
+        w->library_call_name = "tiramisu_MPI_Wait";
+    }
+}
+
+void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector)
+{
+    size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+        vector.push_back(token);
+        str.erase(0, pos + delimiter.length());
+    }
+    token = str.substr(0, pos);
+    vector.push_back(token);
+}
+
+isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx) {
+    isl_map *final_map = nullptr;
+
+    // first, check to see if this variable is actually a free variable. If not, then we don't need to add it.
+    int num_domain_dims = isl_map_dim(map, isl_dim_in);
+    for (int i = 0; i < num_domain_dims; i++) {
+        if (std::strcmp(isl_map_get_dim_name(map, isl_dim_in, i), free_var_name.c_str()) == 0) {
+            return map;
+        }
+    }
+    int num_range_dims = isl_map_dim(map, isl_dim_out);
+    for (int i = 0; i < num_range_dims; i++) {
+        if (std::strcmp(isl_map_get_dim_name(map, isl_dim_out, i), free_var_name.c_str()) == 0) {
+            return map;
+        }
+    }
+
+    std::string map_str = isl_map_to_str(map);
+    std::vector<std::string> parts;
+    split_string(map_str, "{", parts);
+    if (parts[0] != "") { // A free variable already exists, so add this variable to that box
+        std::vector<std::string> free_parts;
+        split_string(parts[0], "[", free_parts);
+        // remove the right bracket
+        std::vector<std::string> tmp;
+        split_string(free_parts[free_parts.size() - 1], "]", tmp);
+        free_parts.insert(free_parts.end(), tmp[0]);
+        std::string free_vars = "";
+        int ctr = 0;
+        for (auto s: free_parts) {
+            if (s == free_var_name) {
+                // The variable name was already in the box, so we don't actually need to do anything
+                return map;
+            }
+            free_vars += ctr++ == 0 ? s : "," + s;
+        }
+        free_vars += "," + free_var_name;
+        free_vars = "[" + free_vars + "]" + "{" + parts[1];
+        final_map = isl_map_read_from_str(ctx, free_vars.c_str());
+    } else {
+        std::string m = "[" + free_var_name + "]->{" + parts[1];
+        final_map = isl_map_read_from_str(ctx, m.c_str());
+    }
+    assert(final_map && "Adding free param to map resulted in a null isl_map");
+    return final_map;
+}
+
+
+expr tiramisu::computation::get_span(int level)
+{
+    this->check_dimensions_validity({level});
+    tiramisu::expr loop_upper_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, true);
+
+    tiramisu::expr loop_lower_bound =
+            tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(),
+                                         level, false);
+
+    tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound + value_cast(global::get_loop_iterator_data_type(), 1);
+    return loop_bound.simplify();
+}
+
+void tiramisu::buffer::tag_gpu_shared() {
+    location = cuda_ast::memory_location::shared;
+    set_auto_allocate(false);
+}
+
+void tiramisu::buffer::tag_gpu_global() {
+    location = cuda_ast::memory_location::global;
+}
+
+void tiramisu::buffer::tag_gpu_register() {
+    bool is_single_val = this->get_n_dims() == 1 && this->get_dim_sizes()[0].get_expr_type() == e_val && this->get_dim_sizes()[0].get_int_val() == 1;
+    assert(is_single_val && "Buffer needs to correspond to a single value to be in register");
+    location = cuda_ast::memory_location::reg;
+    set_auto_allocate(false);
+}
 }

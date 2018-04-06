@@ -1,33 +1,90 @@
 cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
+
 enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 
-execute_process(COMMAND bash ${PROJECT_DIR}/generate_config_path.sh
-                WORKING_DIRECTORY ${PROJECT_DIR})
 
 # Add CMake header files
 set(HEADER_FILES
+        include/tiramisu/cuda_ast.h
         include/tiramisu/core.h
         include/tiramisu/debug.h
         include/tiramisu/utils.h
+        include/tiramisu/type.h
         include/tiramisu/expr.h
-        include/tiramisu/core.h
+        include/tiramisu/mpi_comm.h
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide)
+set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda)
 
 
 ### CMAKE FILE INTERNALS ###
 
-FILE(STRINGS test_list TIRAMISU_TESTS)
-FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS)
-FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS)
+include(configure.cmake)
 
-include(configure_path.cmake)
+if (${USE_GPU})
+    find_package(CUDA)
+    set(GPU_ENV_EXEC "${CMAKE_COMMAND} -E env NVCC_BIN_DIR=${CUDA_TOOLKIT_ROOT_DIR}/bin/")
+endif()
+
+
+FILE(STRINGS test_list TIRAMISU_TESTS_RAW)
+FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS_RAW)
+FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS_RAW)
+
+macro(init_tags)
+    set(is_gpu false)
+endmacro()
+
+macro(parse_tags tags)
+    foreach(tag ${tags})
+        if (${tag} STREQUAL gpu)
+            set(is_gpu true)
+        else()
+            message(WARNING "Tag ${tag} not recognized")
+        endif()
+    endforeach()
+endmacro()
+
+# transforms the list of the format (program_name/program_name[tag0,tag1,..,tagn]) into a list
+# containing a list of "program_name property0 property1 property2 .. propertyn"
+# the list can contain as many tags as necessary
+# the number of properties is fixed and is in the order given below
+# current tags are : gpu.
+# current properties are : is_gpu(boolean)
+function (parse_list raw_list list_name)
+    set(result)
+    foreach(element ${raw_list})
+        init_tags()
+
+        string(REGEX MATCH "^([a-zA-Z_0-9]+)(\\[([a-zA-Z0-9_]+(,[a-zA-Z0-9_]+)*)\\])?$" the_match "${element}")
+        if(NOT ${CMAKE_MATCH_COUNT})
+            message(WARNING "Could not parse: ${element}")
+            continue()
+        elseif(${CMAKE_MATCH_COUNT} GREATER 1)
+            STRING(REPLACE "," ";" tags ${CMAKE_MATCH_3})
+            parse_tags("${tags}")
+        endif()
+        set(name ${CMAKE_MATCH_1})
+        if (${is_gpu} AND NOT "${USE_GPU}")
+            message(STATUS "skipping gpu tagged ${name} because USE_GPU is not set to true")
+        else()
+            list(APPEND result "${name} ${is_gpu}")
+        endif()
+    endforeach()
+    set("${list_name}" "${result}" PARENT_SCOPE)
+endfunction()
+
+
+parse_list("${TIRAMISU_BENCHMARKS_RAW}" TIRAMISU_BENCHMARKS)
+parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
+parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
+
+
 
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
@@ -35,23 +92,31 @@ set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 
+execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:incdirs OUTPUT_VARIABLE MPI_INCLUDE_DIRS)
+execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:link OUTPUT_VARIABLE MPI_LIB_FLAGS)
+
+string(STRIP ${MPI_INCLUDE_DIRS} MPI_INCLUDE_DIRS)
+string(REPLACE " " ";" MPI_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
+string(STRIP ${MPI_LIB_FLAGS} MPI_LIB_FLAGS)
+
 include_directories("include"
                     "${ISL_INCLUDE_DIRECTORY}"
                     "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+                    ${MPI_INCLUDE_DIRS}
                     "build")
 
 find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
-execute_process(COMMAND ${LLVM_CONFIG_BIN}llvm-config --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+execute_process(COMMAND ${LLVM_CONFIG_BIN}llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
 
 string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
 
-set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
-set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS}")
+set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg -lmpi")
+set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
 
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
@@ -72,8 +137,8 @@ function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(${name} ${LINK_FLAGS})
-    if (NOT ${result})
-        set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${result})
+    if (NOT result STREQUAL "")
+        set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${result}")
         add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
 endfunction()
@@ -82,7 +147,7 @@ function(build_halide_g name generator result)
     add_executable(${name} ${generator})
     target_link_libraries(${name} ${HalideLib})
     target_link_libraries(${name} ${LINK_FLAGS})
-    if (NOT ${result})
+    if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${result})
         add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
@@ -94,13 +159,29 @@ function(build_w name objs wrapper header)
     target_link_libraries(${name} ${LINK_FLAGS})
 endfunction()
 
+macro(set_obj inp_obj)
+   if (${is_gpu})
+       set(obj "${inp_obj};${inp_obj}_gpu.o;${inp_obj}_cpu.o")
+   else()
+       set(obj "${inp_obj}")
+   endif()
+endmacro()
 
-function(new_test id)
+function(parse_descriptor descriptor)
+    string(REPLACE " " ";" descriptor ${descriptor})
+    list(GET descriptor 0 id)
+    set(id ${id} PARENT_SCOPE)
+    list(GET descriptor 1 is_gpu)
+    set(is_gpu ${is_gpu} PARENT_SCOPE)
+endfunction()
+
+function(new_test descriptor)
+    parse_descriptor(${descriptor})
     set(generator_target test_${id}_fct_generator)
-    set(generated_obj ${PROJECT_DIR}/build/generated_fct_test_${id}.o)
+    set_obj(${PROJECT_DIR}/build/generated_fct_test_${id}.o)
     set(test_name test_${id})
-    build_g(${generator_target} tests/test_${id}.cpp ${generated_obj})
-    build_w(${test_name} "${generated_obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
+    build_g(${generator_target} tests/test_${id}.cpp "${obj}")
+    build_w(${test_name} "${obj}" tests/wrapper_test_${id}.cpp tests/wrapper_test_${id}.h)
     add_test(NAME ${id}_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target ${test_name})
     add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
@@ -118,15 +199,16 @@ endforeach()
 
 add_custom_target(benchmarks)
 
-function(new_benchmark id)
+function(new_benchmark descriptor)
+    parse_descriptor(${descriptor})
     set(tiramisu_generator_target bench_tiramisu_${id}_generator)
     set(halide_generator_target   bench_halide_${id}_generator)
-    set(generated_obj_tiramisu ${PROJECT_DIR}/build/generated_fct_${id}.o)
+    set_obj("${PROJECT_DIR}/build/generated_fct_${id}.o")
     set(generated_obj_halide   ${PROJECT_DIR}/build/generated_fct_${id}_ref.o)
     set(bench_name bench_${id})
-    build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp ${generated_obj_tiramisu})
+    build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp "${obj}")
     build_halide_g(${halide_generator_target} benchmarks/halide/${id}_ref.cpp ${generated_obj_halide})
-    build_w(${bench_name} "${generated_obj_tiramisu};${generated_obj_halide}" benchmarks/halide/wrapper_${id}.cpp benchmarks/halide/wrapper_${id}.h)
+    build_w(${bench_name} "${obj};${generated_obj_halide}" benchmarks/halide/wrapper_${id}.cpp benchmarks/halide/wrapper_${id}.h)
     add_custom_target(run_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
@@ -141,12 +223,13 @@ add_custom_command(TARGET doc COMMAND doxygen doc/Doxyfile_dev WORKING_DIRECTORY
 
 add_custom_target(tutorials)
 
-function(new_tutorial id)
+function(new_tutorial descriptor)
+    parse_descriptor(${descriptor})
     set(generator_target tutorial_${id}_fct_generator)
-    set(generated_obj ${PROJECT_DIR}/build/generated_fct_tutorial_${id}.o)
+    set_obj("${PROJECT_DIR}/build/generated_fct_tutorial_${id}.o")
     set(tutorial_name tutorial_${id})
-    build_g(${generator_target} tutorials/tutorial_${id}.cpp ${generated_obj})
-    build_w(${tutorial_name} "${generated_obj}" tutorials/wrapper_tutorial_${id}.cpp tutorials/wrapper_tutorial_${id}.h)
+    build_g(${generator_target} tutorials/tutorial_${id}.cpp "${obj}")
+    build_w(${tutorial_name} "${obj}" tutorials/wrapper_tutorial_${id}.cpp tutorials/wrapper_tutorial_${id}.h)
     add_custom_target(run_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
@@ -154,3 +237,4 @@ endfunction()
 foreach(t ${TIRAMISU_TUTORIALS})
     new_tutorial(${t})
 endforeach()
+

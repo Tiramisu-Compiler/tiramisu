@@ -16,6 +16,7 @@ using namespace tiramisu;
 void generate_function_1(std::string name, int size)
 {
     global::set_default_tiramisu_options();
+    
 
     function function0(name);
 

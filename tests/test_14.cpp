@@ -25,6 +25,7 @@ int main(int argc, char **argv)
 {
     global::set_default_tiramisu_options();
 
+
     tiramisu::function blurxy_tiramisu("blurxy_tiramisu_test");
 
     Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./images/rgb.png");
