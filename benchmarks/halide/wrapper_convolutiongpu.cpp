@@ -7,6 +7,20 @@
 #include <cstdlib>
 #include <iostream>
 
+std::chrono::duration<double, std::milli> run_halide(Halide::Buffer<uint8_t> &in, Halide::Buffer<float> &kernel, Halide::Buffer<uint8_t> &out)
+{
+    in(0, 0, 0) = in(0, 0, 0);
+    kernel(0, 0) = kernel(0, 0);
+    auto start = std::chrono::high_resolution_clock::now();
+    convolutiongpu_ref(in.raw_buffer(), kernel.raw_buffer(), out.raw_buffer());
+    halide_copy_to_host(nullptr, out.raw_buffer());
+    halide_device_free(nullptr, out.raw_buffer());
+    halide_device_free(nullptr, in.raw_buffer());
+    halide_device_free(nullptr, kernel.raw_buffer());
+    auto end = std::chrono::high_resolution_clock::now();
+    return end - start;
+}
+
 int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
@@ -27,7 +41,7 @@ int main(int, char**)
 
     // Warm up
     convolutiongpu_tiramisu(sizes.raw_buffer(), input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
-    convolutiongpu_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    run_halide(input, kernel, output2);
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -40,16 +54,19 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
+    for (auto &d: duration_vector_1)
+        std::cout << "," << d.count();
+    std::cout << std::endl;
+
     // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
-        auto start2 = std::chrono::high_resolution_clock::now();
-        convolutiongpu_ref(input.raw_buffer(), kernel.raw_buffer(),
-			output2.raw_buffer());
-        auto end2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-        duration_vector_2.push_back(duration2);
+        duration_vector_2.push_back(run_halide(input, kernel, output2));
     }
+
+    for (auto &d: duration_vector_2)
+        std::cout << "," << d.count();
+    std::cout << std::endl;
 
     print_time("performance_CPU.csv", "convolutiongpu",
                {"Tiramisu", "Halide"},

@@ -6,6 +6,8 @@ enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+
 
 # Add CMake header files
 set(HEADER_FILES

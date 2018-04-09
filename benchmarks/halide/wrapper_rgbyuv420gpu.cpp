@@ -7,6 +7,22 @@
 #include <cstdlib>
 #include <iostream>
 
+std::chrono::duration<double, std::milli> run_halide(Halide::Buffer<uint8_t> &in, Halide::Buffer<uint8_t> &y, Halide::Buffer<uint8_t> &u, Halide::Buffer<uint8_t> &v)
+{
+    in(0, 0, 0) = in(0, 0, 0);
+    auto start = std::chrono::high_resolution_clock::now();
+    rgbyuv420gpu_ref(in.raw_buffer(), y.raw_buffer(), u.raw_buffer(), v.raw_buffer());
+    halide_copy_to_host(nullptr, y.raw_buffer());
+    halide_copy_to_host(nullptr, u.raw_buffer());
+    halide_copy_to_host(nullptr, v.raw_buffer());
+    halide_device_free(nullptr, y.raw_buffer());
+    halide_device_free(nullptr, u.raw_buffer());
+    halide_device_free(nullptr, v.raw_buffer());
+    halide_device_free(nullptr, in.raw_buffer());
+    auto end = std::chrono::high_resolution_clock::now();
+    return end - start;
+}
+
 int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
@@ -29,8 +45,8 @@ int main(int, char**)
     std::cout << "u size (width, height): " << output_tiramisu_u.width() << ", " << output_tiramisu_u.height() << "\n";
     std::cout << "v size (width, height): " << output_tiramisu_v.width() << ", " << output_tiramisu_v.height() << "\n";
     // Warm up
-    rgbyuv420gpu_ref(input.raw_buffer(), output_ref_y.raw_buffer(), output_ref_u.raw_buffer(), output_ref_v.raw_buffer());
-    rgbyuv420gpu_tiramisu(size, input.raw_buffer(), output_tiramisu_y.raw_buffer(), output_tiramisu_u.raw_buffer(), output_tiramisu_v.raw_buffer());
+    rgbyuv420gpu_tiramisu(size.raw_buffer(), input.raw_buffer(), output_tiramisu_y.raw_buffer(), output_tiramisu_u.raw_buffer(), output_tiramisu_v.raw_buffer());
+    run_halide(input, output_ref_y, output_ref_u, output_ref_v);
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -45,11 +61,7 @@ int main(int, char**)
     // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
-        auto start2 = std::chrono::high_resolution_clock::now();
-        rgbyuv420gpu_ref(input.raw_buffer(), output_ref_y.raw_buffer(), output_ref_u.raw_buffer(), output_ref_v.raw_buffer());
-        auto end2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-        duration_vector_2.push_back(duration2);
+        duration_vector_2.push_back(run_halide(input, output_ref_y, output_ref_u, output_ref_v));
     }
 
     print_time("performance_CPU.csv", "rgbyuv420gpu",

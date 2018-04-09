@@ -6,6 +6,25 @@
 #include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
+#include <cuda_profiler_api.h>
+
+std::chrono::duration<double, std::milli> run_halide(Halide::Buffer<uint8_t> &in, Halide::Buffer<uint8_t> &f, Halide::Buffer<uint8_t> &g, Halide::Buffer<uint8_t> &h, Halide::Buffer<uint8_t> &k)
+{
+    in(0, 0, 0) = in(0, 0, 0);
+    auto start = std::chrono::high_resolution_clock::now();
+    fusiongpu_ref(in.raw_buffer(), f.raw_buffer(), g.raw_buffer(), h.raw_buffer(), k.raw_buffer());
+    halide_copy_to_host(nullptr, f.raw_buffer());
+    halide_copy_to_host(nullptr, g.raw_buffer());
+    halide_copy_to_host(nullptr, h.raw_buffer());
+    halide_copy_to_host(nullptr, k.raw_buffer());
+    halide_device_free(nullptr, in.raw_buffer());
+    halide_device_free(nullptr, f.raw_buffer());
+    halide_device_free(nullptr, g.raw_buffer());
+    halide_device_free(nullptr, h.raw_buffer());
+    halide_device_free(nullptr, k.raw_buffer());
+    auto end = std::chrono::high_resolution_clock::now();
+    return end - start;
+}
 
 int main(int, char**)
 {
@@ -30,8 +49,7 @@ int main(int, char**)
     fusiongpu_tiramisu(sizes.raw_buffer(), input.raw_buffer(), output_tiramisu_f.raw_buffer(),
 		    output_tiramisu_g.raw_buffer(), output_tiramisu_h.raw_buffer(),
 		    output_tiramisu_k.raw_buffer());
-    fusiongpu_ref(input.raw_buffer(), output_ref_f.raw_buffer(), output_ref_g.raw_buffer(),
-	       output_ref_h.raw_buffer(), output_ref_k.raw_buffer());
+    run_halide(input, output_ref_f, output_ref_g, output_ref_h, output_ref_k);
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -45,16 +63,19 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
+    for (auto &d: duration_vector_1)
+        std::cout << "," << d.count();
+    std::cout << std::endl;
+
     // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
-        auto start2 = std::chrono::high_resolution_clock::now();
-        fusiongpu_ref(input.raw_buffer(), output_ref_f.raw_buffer(), output_ref_g.raw_buffer(),
-		   output_ref_h.raw_buffer(), output_ref_k.raw_buffer());
-        auto end2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-        duration_vector_2.push_back(duration2);
+        duration_vector_2.push_back(run_halide(input, output_ref_f, output_ref_g, output_ref_h, output_ref_k));
     }
+
+    for (auto &d: duration_vector_2)
+        std::cout << "," << d.count();
+    std::cout << std::endl;
 
     print_time("performance_CPU.csv", "fusiongpu",
                {"Tiramisu", "Halide"},

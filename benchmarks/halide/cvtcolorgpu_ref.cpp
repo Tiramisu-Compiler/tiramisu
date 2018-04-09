@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
                                                 + in(x, y, 0) * R2Y),
                                                yuv_shift));
 
+    RGB2Gray.compute_root();
     RGB2Gray.gpu_tile(x, y, x0, y0, x1, y1, 16, 16);
 
     Halide::Target target = Halide::get_host_target();

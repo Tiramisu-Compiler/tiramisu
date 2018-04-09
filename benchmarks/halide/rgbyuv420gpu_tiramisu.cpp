@@ -39,7 +39,7 @@ int main(int argc, char **argv)
                  cast(data_type, ((66 * cast(work_type, in(i, j, 0)) + 129 * cast(work_type, in(i, j, 1)) +  25 * cast(work_type, in(i, j, 2)) + 128) % 256) +  16),
                  true, data_type, &rgbyuv420gpu};
     computation copy_r{"[N, M] -> {copy_r[i, j]: 0 <= 2 * i < N and 0 <= 2 * j < M}", cast(work_type, in(2 * i, 2 * j, 0)), true, work_type, &rgbyuv420gpu};
-    computation copy_g{"[N, M] -> {copy_g[i, j]: 0 <= 2 * i < N and 0 <= 2 * j < M}", cast(work_type, in(2 * i, 2 * j, 1)), true, data_type, &rgbyuv420gpu};
+    computation copy_g{"[N, M] -> {copy_g[i, j]: 0 <= 2 * i < N and 0 <= 2 * j < M}", in(2 * i, 2 * j, 1), true, data_type, &rgbyuv420gpu};
     computation copy_b{"[N, M] -> {copy_b[i, j]: 0 <= 2 * i < N and 0 <= 2 * j < M}", cast(work_type, in(2 * i, 2 * j, 2)), true, work_type, &rgbyuv420gpu};
     computation u{"[N, M] -> {u[i, j]: 0 <= 2 * i < N and 0 <= 2 * j < M}",
                   cast(data_type, ((-38 * copy_r(i, j) - cast(work_type, 74 * copy_g(i, j)) +  112 * copy_b(i, j) + 128) % 256) +  128),
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     buffer copy_r_gpu{"copy_r_gpu", {1}, work_type, a_temporary, &rgbyuv420gpu};
     copy_r_gpu.tag_gpu_register();
     copy_r.set_access("{copy_r[i, j] -> copy_r_gpu[0]}");
-    buffer copy_g_gpu{"copy_g_gpu", {1}, work_type, a_temporary, &rgbyuv420gpu};
+    buffer copy_g_gpu{"copy_g_gpu", {1}, data_type, a_temporary, &rgbyuv420gpu};
     copy_g_gpu.tag_gpu_register();
     copy_g.set_access("{copy_g[i, j] -> copy_g_gpu[0]}");
     buffer copy_b_gpu{"copy_b_gpu", {1}, work_type, a_temporary, &rgbyuv420gpu};

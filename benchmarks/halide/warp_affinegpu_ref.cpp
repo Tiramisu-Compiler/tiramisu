@@ -46,12 +46,12 @@ int main(int argc, char* argv[]) {
     coord_11_r = clamp(coord_11_r, 0, src_rows);
     coord_11_c = clamp(coord_11_c, 0, src_cols);
 
-    Expr A00 = in(coord_00_r, coord_00_c);
-    Expr A10 = in(coord_10_r, coord_10_c);
-    Expr A01 = in(coord_01_r, coord_01_c);
-    Expr A11 = in(coord_11_r, coord_11_c);
+    Expr A00 = cast(Float(32), in(coord_00_r, coord_00_c));
+    Expr A10 = cast(Float(32), in(coord_10_r, coord_10_c));
+    Expr A01 = cast(Float(32), in(coord_01_r, coord_01_c));
+    Expr A11 = cast(Float(32), in(coord_11_r, coord_11_c));
 
-    affine(x, y) = Halide::cast(UInt(8), mixf( mixf(A00, A10, r), mixf(A01, A11, r), c));
+    affine(x, y) = mixf( mixf(A00, A10, r), mixf(A01, A11, r), c);
 
     affine.gpu_tile(x, y, x1, y1, 16, 16);
 

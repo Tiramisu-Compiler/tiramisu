@@ -7225,6 +7225,8 @@ void tiramisu::computation::set_access(std::string access_str)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
+    DEBUG(3, tiramisu::str_dump("Setting access " + access_str + " for computation " + this->get_name()));
+
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 
     /**
@@ -7253,6 +7255,8 @@ void tiramisu::computation::set_access(std::string access_str)
             tiramisu::error("Computations that have the same name should also have the same access relation.",
                             true);
         }
+
+    assert(this->access != nullptr && "Set access failed");
 
     DEBUG_INDENT(-4);
 }

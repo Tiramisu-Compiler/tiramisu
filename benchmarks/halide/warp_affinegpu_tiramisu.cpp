@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
     computation in{"[N, M] -> {in[i, j]}", expr{}, false, data_type, &affine_tiramisu};
 
-    computation out{"[N, M] -> {out[i0, j0, i1, j1] : 0 <= i0 * " BS " + i1 < N and 0 <= i0 and 0 <= i1 < " BS " and 0 <= j0 * " BS " + j1 < M and 0 <= j0 and 0 <= j1 < " BS "}", expr(), true, data_type, &affine_tiramisu};
+    computation out{"[N, M] -> {out[i0, j0, i1, j1] : 0 <= i0 * " BS " + i1 < N and 0 <= i0 and 0 <= i1 < " BS " and 0 <= j0 * " BS " + j1 < M and 0 <= j0 and 0 <= j1 < " BS "}", expr(), true, work_type, &affine_tiramisu};
 
     auto i = i0 * expr{block_size} + i1, j = j0 * expr{block_size} + j1;
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     expr A10 = cast(p_float32, in(coord_10r, coord_10c));
     expr A11 = cast(p_float32, in(coord_11r, coord_11c));
 
-    out.set_expression(cast(data_type, mixf(mixf(A00, A01, r), mixf(A10, A11, r), c)));
+    out.set_expression(mixf(mixf(A00, A01, r), mixf(A10, A11, r), c));
 
     // Layer II & III
 
@@ -93,12 +93,12 @@ int main(int argc, char **argv)
     buffer in_gpu{"in_gpu", {M, N}, data_type, a_temporary, &affine_tiramisu};
     in.set_access("{in[i, j] -> in_gpu[j, i]}");
     in_gpu.tag_gpu_global();
-    buffer out_gpu{"out_gpu", {M, N}, data_type, a_temporary, &affine_tiramisu};
+    buffer out_gpu{"out_gpu", {M, N}, work_type, a_temporary, &affine_tiramisu};
     out.set_access("{out[i0, j0, i1, j1] -> out_gpu[j0 * " BS " + j1, i0 * " BS " + i1]}");
     out_gpu.tag_gpu_global();
 
     buffer in_host{"in_host", {M, N}, data_type, a_input, &affine_tiramisu};
-    buffer out_host{"out_host", {M, N}, data_type, a_output, &affine_tiramisu};
+    buffer out_host{"out_host", {M, N}, work_type, a_output, &affine_tiramisu};
     buffer sizes_host{"sizes_host", {2}, it_type, a_input, &affine_tiramisu};
     sizes.set_access("{sizes[i] -> sizes_host[i]}");
 

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int warp_affinegpu_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int warp_affinegpu_tiramisu(halide_buffer_t *, halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int warp_affinegpu_tiramisu_argv(void **args);
 int warp_affinegpu_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int warp_affinegpu_ref_argv(void **args);

@@ -18,7 +18,9 @@ int main(int argc, char **argv) {
     y_part.gpu_tile(x, y, x1, y1, 16, 16);
     u_part.gpu_tile(x, y, x1, y1, 16, 16);
     v_part.gpu_tile(x, y, x1, y1, 16, 16);
-    v_part.compute_at(u_part, y1);
+    y_part.compute_root();
+    u_part.compute_root();
+    v_part.compute_root();
 
     Halide::Target target = Halide::get_host_target();
     target.set_feature(Target::Feature::CUDA, true);

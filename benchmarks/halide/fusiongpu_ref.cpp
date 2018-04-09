@@ -13,11 +13,17 @@ int main(int argc, char **argv) {
     h(x, y, c) = f(x, y, c) + g(x, y, c);
     k(x, y, c) = f(x, y, c) - g(x, y, c);
 
+    f.reorder(c, x, y);
+    g.reorder(c, x, y);
+    h.reorder(c, x, y);
+    k.reorder(c, x, y);
+
     //g.compute_with(f, y);
     f.gpu_tile(x, y, x1, y1, 16, 16);
     g.gpu_tile(x, y, x1, y1, 16, 16);
     h.gpu_tile(x, y, x1, y1, 16, 16);
     k.gpu_tile(x, y, x1, y1, 16, 16);
+
 
     Halide::Target target = Halide::get_host_target();
     target.set_feature(Halide::Target::CUDA, true);

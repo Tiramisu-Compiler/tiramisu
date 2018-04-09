@@ -15,25 +15,28 @@ int main(int argc, char* argv[]) {
 
     Expr e = 0.0f;
     for (int i = 0; i < 5; ++i) {
-        e += in(x + i, y, c) * kernelX(i);
+        e += cast<float>(in(x + i, y, c))  * kernelX(i);
     }
     gaussiangpu_x(x, y, c) = e;
 
     Expr f = 0.0f;
-    for (int j = 0; j < 5; ++j) {
-        f += gaussiangpu_x(x, y + j, c) * kernelY(j);
-    }
+     for (int j = 0; j < 5; ++j) {
+         f += gaussiangpu_x(x, y + j, c) * kernelY(j);
+     }
     gaussiangpu(x, y, c) = cast<uint8_t>(f);
 
-    Var x_inner, y_inner, x_outer, y_outer, tile_index;
-//    gaussiangpu.tile(x, y, x_outer, y_outer, x_inner, y_inner, 8, 8)
-//            .fuse(x_outer, y_outer, tile_index)
-//            .compute_root();
-//            .parallel(x_outer);
-    gaussiangpu_x.compute_root();
+    // gaussiangpu_x.reorder(c, x, y);
+    gaussiangpu.reorder(c, x, y);
 
-    gaussiangpu_x.gpu_tile(x, y, x_inner, y_inner, x_outer, y_outer, 16, 16);
-    gaussiangpu.gpu_tile(x, y, x_inner, y_inner, x_outer, y_outer, 16, 16);
+     Var x_inner, y_inner, x_outer, y_outer, tile_index;
+// //    gaussiangpu.tile(x, y, x_outer, y_outer, x_inner, y_inner, 8, 8)
+// //            .fuse(x_outer, y_outer, tile_index)
+// //            .compute_root();
+// //            .parallel(x_outer);
+    // gaussiangpu_x.compute_root();
+ 
+    // gaussiangpu_x.gpu_tile(x, y, x_inner, y_inner, x_outer, y_outer, 32, 32);
+    gaussiangpu.gpu_tile(x, y, x_inner, y_inner, x_outer, y_outer, 32, 32);
 
     Halide::Target target = Halide::get_host_target();
     target.set_feature(Target::Feature::CUDA, true);
