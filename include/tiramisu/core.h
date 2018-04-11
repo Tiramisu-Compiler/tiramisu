@@ -2524,6 +2524,11 @@ public:
     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
 
     /**
+     * Don't scheduled a previously scheduled computation
+     */
+    void unschedule_this_computation();
+
+    /**
      * \brief Add definitions of computations that have the same name as this
      * computation.
      *

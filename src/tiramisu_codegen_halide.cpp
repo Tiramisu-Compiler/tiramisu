@@ -1367,7 +1367,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                     {
                         // If this is not a let stmt and it is supposed to have accesses to other computations,
                         // it should have an access function.
-                        if ((!comp->is_let_stmt()) && (!comp->is_library_call()))
+		      if ((!comp->is_let_stmt()) && (!comp->is_library_call()))
                         {
                             tiramisu::str_dump("This is computation " + comp->get_name() +"\n");
                             // TODO better error message
@@ -2155,8 +2155,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             // parallelized, vectorized or mapped to GPU.
             for (int l = 0; l < level; l++)
             {
-                if (fct.should_parallelize(computation_name, l))
-                    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "parallelize"));
+       	        if (fct.should_parallelize(computation_name, l))
+		    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "parallelize"));
                 if (fct.should_vectorize(computation_name, l))
                     tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "vectorize"));
                 if (fct.should_map_to_gpu_block(computation_name, l))
@@ -2598,6 +2598,8 @@ std::string generator::get_buffer_name(const tiramisu::computation * comp)
     isl_map *access = comp->get_access_relation_adapted_to_time_processor_domain();
     isl_space *space = isl_map_get_space(access);
     const char *buffer_name = isl_space_get_tuple_name(space, isl_dim_out);
+    std::cerr << comp->get_name() << std::endl;
+    isl_map_dump(access);
     assert(buffer_name != nullptr);
     return std::string{buffer_name};
 }
@@ -2915,7 +2917,6 @@ void computation::create_halide_assignment()
             Halide::Internal::Parameter param;
             std::vector<Halide::Expr> halide_call_args;
             halide_call_args.resize(this->library_call_args.size());
-            std::cerr << this->lhs_access_type << std::endl;
             if (this->lhs_access_type == tiramisu::o_access) {
                 if (tiramisu_buffer->get_argument_type() == tiramisu::a_output) {
                     if (tiramisu_buffer->has_constant_extents()) {
@@ -3521,7 +3522,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 // but may have different access relations.
                 tiramisu::computation *access_comp = computations_vector[0];
                 assert((access_comp != NULL) && "Accessed computation is NULL.");
-                if (tiramisu_expr.get_op_type() == p_wait_ptr) {
+                if (tiramisu_expr.get_data_type() == p_wait_ptr) {
                     // swap
                     // use operations_vector[0] instead of access_comp because we need it to be non-const
                     isl_map *orig = computations_vector[0]->get_access_relation();
@@ -3529,7 +3530,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                     computations_vector[0]->wait_access_map = orig;
                 }
                 isl_map *acc = access_comp->get_access_relation_adapted_to_time_processor_domain();
-                if (tiramisu_expr.get_op_type() == p_wait_ptr) {
+                if (tiramisu_expr.get_data_type() == p_wait_ptr) {
                     // swap back
                     isl_map *orig = computations_vector[0]->get_access_relation();
                     computations_vector[0]->set_access(computations_vector[0]->wait_access_map);
@@ -3648,6 +3649,11 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                         result = Halide::Internal::Load::make(
                                 type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
                                 param, Halide::Internal::const_true(type.lanes()));
+			if (tiramisu_expr.get_op_type() == tiramisu::o_address_of) {
+			  result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
+								Halide::Internal::Call::address_of, {result},
+								Halide::Internal::Call::Intrinsic);
+			}
                     }
                     else
                     {
