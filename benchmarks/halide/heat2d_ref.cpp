@@ -9,14 +9,18 @@ int main(int argc, char **argv) {
 
     Func heat2d("heat2d");
     Var x("x"), y("y");
+    // Multiple iterations?
 
-    RDom r(1, in.width()-2, 1, in.height()-2);
-    heat2d(x, y) = 0.0f;
-    heat2d(r.x, r.y) = alpha * in(r.x, r.y) +
-                       beta * (in(r.x+1, r.y) + in(r.x-1, r.y) + in(r.x, r.y+1) + in(r.x, r.y-1));
+        RDom r(1, in.width()-2, 1, in.height()-2);
+        heat2d(x, y) = 0.0f;
+        heat2d(r.x, r.y) = alpha * in(r.x, r.y) +
+                           beta * (in(r.x+1, r.y) + in(r.x-1, r.y) + in(r.x, r.y+1) + in(r.x, r.y-1));
 
-    heat2d.parallel(y).vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
-    heat2d.update().parallel(r.y).vectorize(r.x, 8, Halide::TailStrategy::GuardWithIf);
+	heat2d.parallel(y);//.vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
+	heat2d.update().parallel(r.y);//.vectorize(r.x, 8, Halide::TailStrategy::GuardWithIf);
+    
+    //    heat2d(x, y) = alpha * in(x, y) + beta * (in(clamp(x+1, 0, in.width()-1), y) + in(clamp(x-1, 0, in.width()-1), y) + in(x, clamp(y+1, 0, in.height()-1)) + in(x, clamp(y-1, 0, in.height()-1)));
+    //    heat2d.parallel(y).vectorize(x, 6, Halide::TailStrategy::GuardWithIf);
 
     Halide::Target target = Halide::get_host_target();
 
