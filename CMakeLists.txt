@@ -90,20 +90,17 @@ parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
 parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
 
 
-
-set(CMAKE_CXX_COMPILER "g++")
+if (${USE_MPI})
+  set(CMAKE_CXX_COMPILER "mpicxx")
+else()
+  set(CMAKE_CXX_COMPILER "g++")
+endif()
 set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 
-execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:incdirs OUTPUT_VARIABLE MPI_INCLUDE_DIRS)
-execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:link OUTPUT_VARIABLE MPI_LIB_FLAGS)
-
-string(STRIP ${MPI_INCLUDE_DIRS} MPI_INCLUDE_DIRS)
-string(REPLACE " " ";" MPI_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
-string(STRIP ${MPI_LIB_FLAGS} MPI_LIB_FLAGS)
-
+link_directories(${MPI_LIB_DIR})
 include_directories("include"
                     "${ISL_INCLUDE_DIRECTORY}"
                     "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
@@ -120,7 +117,7 @@ string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
 
-set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg -lmpi")
+set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
 set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
 
 
