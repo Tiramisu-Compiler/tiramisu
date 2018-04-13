@@ -4,17 +4,17 @@
 #include <tiramisu/utils.h>
 
 #define N_TESTS 10
-#define CHECK_CORRECTNESS true
+#define CHECK_CORRECTNESS false
 
-#define N ((int)20000)
+#define USE_MPI
+
+#define N ((int64_t)49994)
 /*percentage, ex: 10 = 100%, 1 = 10%*/
 #define CPU_SPLIT ((int)10)
 /*percentage*/
 #define GPU_SPLIT (100-CPU_SPLIT) 
-#define NUM_CPU_RANKS ((int)6)
+#define NUM_CPU_RANKS ((int)2)
 #define NUM_GPU_RANKS ((int)0)
-#define CPU_RANK_RANGES std::vector<int> cpu_rank_ranges = {0};
-#define GPU_RANK_RANGES std::vector<int> gpu_rank_ranges = {-1};
 
 #ifdef __cplusplus
 extern "C" {
