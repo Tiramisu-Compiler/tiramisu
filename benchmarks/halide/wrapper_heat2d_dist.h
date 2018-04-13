@@ -4,17 +4,17 @@
 #include <tiramisu/utils.h>
 
 #define N_TESTS 10
-#define CHECK_CORRECTNESS false
-
+#define CHECK_CORRECTNESS true
 #define USE_MPI
 
-#define N ((int64_t)49994)
+#define N ((int64_t)3842)
+#define M ((int64_t)10000)
 /*percentage, ex: 10 = 100%, 1 = 10%*/
-#define CPU_SPLIT ((int)10)
+#define CPU_SPLIT ((int64_t)10)
 /*percentage*/
 #define GPU_SPLIT (100-CPU_SPLIT) 
-#define NUM_CPU_RANKS ((int)2)
-#define NUM_GPU_RANKS ((int)0)
+#define NUM_CPU_RANKS ((int64_t)4)
+#define NUM_GPU_RANKS ((int64_t)0)
 
 #ifdef __cplusplus
 extern "C" {
