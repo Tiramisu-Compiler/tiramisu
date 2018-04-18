@@ -1476,6 +1476,11 @@ private:
     bool _drop_rank_iter;
 
     /**
+     * If _drop_rank_iter == true, this is the level to drop
+     */
+    var drop_level;
+
+    /**
       * If the computation represents a library call, this will contain the
       * necessary arguments to the function.
       */
@@ -1925,6 +1930,8 @@ private:
       * Return true if the rank loop iterator should be removed from linearization.
       */
     bool should_drop_rank_iter() const;
+
+    int get_level_to_drop();
 
     /**
       * Assign a name to iteration domain dimensions that do not have a name.
@@ -3005,7 +3012,7 @@ public:
     /**
       * Specify that the rank loop iterator should be removed from linearization.
       */
-    void drop_rank_iter();
+    void drop_rank_iter(var level);
 
     /**
       * Get the data type of the computation.

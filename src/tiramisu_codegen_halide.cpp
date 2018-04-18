@@ -145,34 +145,8 @@ isl_ast_expr *create_isl_ast_index_expression(isl_ast_build *build,
     isl_map *schedule = isl_map_from_union_map(isl_ast_build_get_schedule(build));
     DEBUG(3, tiramisu::str_dump("Schedule:", isl_map_to_str(schedule)));
 
-    /*    if (remove_level != -1) {
-        const char *name = isl_map_get_tuple_name(schedule, isl_dim_in);
-        const char *orig_dim_name = isl_map_get_dim_name(schedule, isl_dim_out, 0);
-        isl_map *orig_sched = isl_map_copy(schedule);
-        schedule = isl_map_remove_dims(schedule, isl_dim_in, 1, 1);
-        schedule = isl_map_insert_dims(schedule, isl_dim_in, 1, 1);
-        schedule = isl_map_set_tuple_name(schedule, isl_dim_in, name);
-
-        int dim_idx = loop_level_into_dynamic_dimension(remove_level) - 1; // subtract 1 b/c this includes the duplicate dim
-        std::string sched_str = isl_map_to_str(schedule);
-        std::string dim_name = "i1";//isl_map_get_dim_name(schedule, isl_dim_in, dim_idx);
-        std::string new_constraint = " and " + dim_name + " = 0 and " + orig_dim_name + " = " + dim_name + "}";
-        std::vector<std::string> parts;
-        split_string(sched_str, "}", parts);
-        sched_str = parts[0] + new_constraint;
-        schedule = isl_map_read_from_str(isl_ast_build_get_ctx(build), sched_str.c_str());
-
-        std::string sched2 = isl_map_to_str(schedule);
-        parts.clear();
-        split_string(sched2, " ", parts);
-        if (parts[parts.size() - 2] == "false" ||
-            (parts[parts.size() - 2] == "0" &&
-             parts[parts.size() - 3] == "=" &&
-             parts[parts.size() - 4] == "1")) { // This is a dead loop, probably. Super hacky
-            schedule = orig_sched;
-        }
-	}*/
     if (remove_level != -1) {
+      DEBUG(3, tiramisu::str_dump("Dropping this level from the index computation :" + std::to_string(remove_level)));
       int dim_idx = loop_level_into_dynamic_dimension(remove_level) - 1; // subtract 1 b/c this includes the duplicate dim
       std::string sched_str = isl_map_to_str(schedule);
       std::string dim_name = isl_map_get_dim_name(schedule, isl_dim_in, dim_idx);
@@ -1231,7 +1205,7 @@ std::map<std::string, isl_ast_expr *> generator::compute_iterators_map(tiramisu:
 
     DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access :",
                                 isl_map_to_str(identity)));
-    isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, identity, comp->should_drop_rank_iter() ? 0 : -1);
+    isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, identity, comp->get_level_to_drop());
     DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :",
                                 isl_ast_expr_to_str(idx_expr)));
 
@@ -1317,7 +1291,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
         }
 
         if (req_access) {
-            comp->wait_index_expr = create_isl_ast_index_expression(build, req_access, comp->should_drop_rank_iter() ? 0 : -1);
+            comp->wait_index_expr = create_isl_ast_index_expression(build, req_access, comp->get_level_to_drop());
             isl_map_free(req_access);
         }
 
@@ -1368,7 +1342,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                     {
                         DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access (isl_map *):",
                                                     isl_map_to_str(accesses[i])));
-                        isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, accesses[i], comp->should_drop_rank_iter() ? 0 : -1);
+                        isl_ast_expr *idx_expr = create_isl_ast_index_expression(build, accesses[i], comp->get_level_to_drop());
                         DEBUG(3, tiramisu::str_dump("The created isl_ast_expr expression for the index expression is :", isl_ast_expr_to_str(idx_expr)));
                         index_expressions.push_back(idx_expr);
                         isl_map_free(accesses[i]);
@@ -1679,7 +1653,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     Halide::Internal::Parameter param =
                             Halide::Internal::Parameter{h_type,
                                                         true,
-                                                        host_b->get_dim_sizes().size(),
+                                                        (int)(host_b->get_dim_sizes().size()),
                                                         host_b->get_name()};
 //                    Halide::Buffer<> halide_buffer =
 //                            Halide::Buffer<>(

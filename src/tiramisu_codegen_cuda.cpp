@@ -21,6 +21,7 @@
 #include <tiramisu/utils.h>
 
 #include <string>
+#include <array>
 #include <tiramisu/cuda_ast.h>
 #include <isl/ast_type.h>
 #include <isl/ast.h>

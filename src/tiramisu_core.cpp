@@ -7090,6 +7090,13 @@ bool tiramisu::computation::should_drop_rank_iter() const
     return this->_drop_rank_iter;
 }
 
+int tiramisu::computation::get_level_to_drop() {
+    if (!should_drop_rank_iter()) {
+        return -1;
+    }
+    return get_loop_level_number_from_dimension_name(this->drop_level.get_name());
+}
+
 /**
   * Return the name of the computation.
   */
@@ -7205,9 +7212,10 @@ void tiramisu::computation::gen_time_space_domain()
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::drop_rank_iter()
+void tiramisu::computation::drop_rank_iter(var level)
 {
     this->_drop_rank_iter = true;
+    this->drop_level = level;
 }
 
 void tiramisu::computation::set_access(isl_map *access)
