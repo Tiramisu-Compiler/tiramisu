@@ -1,4 +1,4 @@
-#include "wrapper_test_99.h"
+#include "wrapper_test_100.h"
 #include "Halide.h"
 
 #include <tiramisu/utils.h>
@@ -19,7 +19,7 @@ int main() {
         }
     }
 
-    dist_comm_only_block(buffer.raw_buffer());
+    dist_comm_only_nonblock(buffer.raw_buffer());
     compare_buffers(TEST_NAME_STR, buffer, ref);
 
     tiramisu_MPI_cleanup();

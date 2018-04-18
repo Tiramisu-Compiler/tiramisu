@@ -54,6 +54,6 @@ void generate_function_1(std::string name) {
 }
 
 int main() {
-    generate_function_1("dist_comm_only");
+    generate_function_1("dist_comm_only_block");
     return 0;
 }
