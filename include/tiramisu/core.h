@@ -3142,6 +3142,9 @@ public:
      void set_access(isl_map *access);
      // @}
 
+    void set_wait_access(std::string access_str);
+    void set_wait_access(isl_map *access);
+
      /**
        * Set the expression of the computation.
        */
@@ -3863,7 +3866,7 @@ protected:
      */
     static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
             std::vector<isl_ast_expr *> &index_expr,
-            const tiramisu::expr &tiramisu_expr);
+            const tiramisu::expr &tiramisu_expr, tiramisu::computation *comp = nullptr);
 
     static tiramisu::expr replace_accesses(const tiramisu::function * func, std::vector<isl_ast_expr *> &index_expr,
                                            const tiramisu::expr &tiramisu_expr);

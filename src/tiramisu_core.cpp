@@ -6525,6 +6525,8 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         return "float64";
     case tiramisu::p_boolean:
         return "bool";
+    case tiramisu::p_wait_ptr:
+        return "wait";
     default:
         tiramisu::error("Tiramisu type not supported.", true);
         return "";
@@ -6666,6 +6668,9 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
         break;
     case tiramisu::p_boolean:
         t = Halide::Bool();
+        break;
+    case tiramisu::p_wait_ptr:
+        t = Halide::Handle();
         break;
     default:
         tiramisu::error("Tiramisu type cannot be translated to Halide type.", true);
@@ -7216,6 +7221,14 @@ void tiramisu::computation::drop_rank_iter(var level)
 {
     this->_drop_rank_iter = true;
     this->drop_level = level;
+}
+
+void tiramisu::computation::set_wait_access(std::string access_str) {
+    set_wait_access(isl_map_read_from_str(this->get_ctx(), access_str.c_str()));
+}
+
+void tiramisu::computation::set_wait_access(isl_map *access) {
+    this->wait_access_map = access;
 }
 
 void tiramisu::computation::set_access(isl_map *access)
