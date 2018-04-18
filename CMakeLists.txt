@@ -91,21 +91,21 @@ parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
 
 
 if (${USE_MPI})
-  set(CMAKE_CXX_COMPILER "mpicxx")
+    set(CMAKE_CXX_COMPILER "mpicxx")
 else()
-  set(CMAKE_CXX_COMPILER "g++")
+    set(CMAKE_CXX_COMPILER "g++")
 endif()
-set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
 
 link_directories(${MPI_LIB_DIR})
 include_directories("include"
-                    "${ISL_INCLUDE_DIRECTORY}"
-                    "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-                    ${MPI_INCLUDE_DIRS}
-                    "build")
+        "${ISL_INCLUDE_DIRECTORY}"
+        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+        ${MPI_INCLUDE_DIRS}
+        "build")
 
 find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
@@ -118,8 +118,11 @@ string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
 
 set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
-set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
-
+if (${USE_MPI})
+    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
+else()
+    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS}")
+endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
@@ -170,11 +173,11 @@ function(build_w name objs wrapper header)
 endfunction()
 
 macro(set_obj inp_obj)
-   if (${is_gpu})
-       set(obj "${inp_obj};${inp_obj}_gpu.o;${inp_obj}_cpu.o")
-   else()
-       set(obj "${inp_obj}")
-   endif()
+    if (${is_gpu})
+        set(obj "${inp_obj};${inp_obj}_gpu.o;${inp_obj}_cpu.o")
+    else()
+        set(obj "${inp_obj}")
+    endif()
 endmacro()
 
 function(parse_descriptor descriptor)
@@ -204,7 +207,7 @@ add_test(NAME global COMMAND test_global WORKING_DIRECTORY ${PROJECT_DIR})
 set_tests_properties(global PROPERTIES DEPENDS global_build)
 
 foreach(t ${TIRAMISU_TESTS})
- new_test(${t})
+    new_test(${t})
 endforeach()
 
 add_custom_target(benchmarks)
