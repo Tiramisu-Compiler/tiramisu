@@ -5,7 +5,7 @@
 
 using namespace tiramisu;
 
-// Do a distributed reduction without any communication.
+// Do a distributed reduction without any communication. Distribute across 10 ranks.
 
 void generate_function_1(std::string name)
 {

@@ -28,6 +28,7 @@ int main(int, char **)
             }
         }
     }
+    dist_comp_only(input.raw_buffer(), output.raw_buffer());
     compare_buffers(TEST_NAME_STR, output, ref_output);
 
     tiramisu_MPI_cleanup();
