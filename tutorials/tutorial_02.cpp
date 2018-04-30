@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     // Declare the computations c_blurx and c_blury.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &blurxy);
 
-    var i("i"), j("j");
+    var i("i"), j("j"), i0("i0"), i1("i1"), j0("j0"), j1("j1");
 
     expr e1 = (c_input(i - 1, j) +
                c_input(i    , j) +
@@ -81,8 +81,8 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_blurx.tile(var("i"), var("j"), 2, 2, var("i0"), var("j0"), var("i1"), var("j1"));
-    c_blurx.tag_gpu_level(var("i0"), var("j0"));
+    c_blurx.tile(i, j, 2, 2, i0, j0, i1, j1);
+    c_blurx.tag_gpu_level(i0, j0);
     c_blury.after(c_blurx, computation::root);
 
 
