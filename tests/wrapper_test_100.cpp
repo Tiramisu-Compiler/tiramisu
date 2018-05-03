@@ -7,6 +7,7 @@
 #include <iostream>
 
 int main() {
+#ifdef WITH_MPI
     int rank = tiramisu_MPI_init();
 
     Halide::Buffer<int> buffer({100, 100});
@@ -23,5 +24,6 @@ int main() {
     compare_buffers(TEST_NAME_STR, buffer, ref);
 
     tiramisu_MPI_cleanup();
+#endif
     return 0;
 }

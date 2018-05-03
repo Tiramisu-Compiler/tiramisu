@@ -1,6 +1,7 @@
 #ifndef TIRAMISU_MPI_H
 #define TIRAMISU_MPI_H
 
+#ifdef WITH_MPI
 #include <mpi.h>
 
 int tiramisu_MPI_init();
@@ -88,5 +89,5 @@ void tiramisu_MPI_Irecv_f32(int count, int source, int tag, float *store_in, lon
 void tiramisu_MPI_Irecv_f64(int count, int source, int tag, double *store_in, long *reqs);
 
 }
-
+#endif
 #endif

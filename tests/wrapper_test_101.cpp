@@ -7,6 +7,7 @@
 #include <iostream>
 
 int main() {
+#ifdef WITH_MPI
     int rank = tiramisu_MPI_init();
 
     Halide::Buffer<int> input({100, rank == 0 ? 1000 : 100});
@@ -34,5 +35,6 @@ int main() {
     }
 
     tiramisu_MPI_cleanup();
+#endif
     return 0;
 }
