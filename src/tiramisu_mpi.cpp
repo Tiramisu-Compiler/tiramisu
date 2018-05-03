@@ -3,6 +3,8 @@
 #include <cassert>
 #include "tiramisu/mpi_comm.h"
 
+#ifdef WITH_MPI
+
 int tiramisu_MPI_init() {
     int provided = -1;
     MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
@@ -190,3 +192,5 @@ make_Irecv(f32, float, MPI_FLOAT)
 make_Irecv(f64, double, MPI_DOUBLE)
 
 }
+
+#endif

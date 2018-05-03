@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_filter2D.h"
+#include "wrapper_convolution.h"
 
 using namespace Halide;
 
@@ -7,7 +7,7 @@ int main(int argc, char* argv[]) {
     ImageParam in(UInt(8), 3, "input");
     ImageParam kernel(Float(32), 2, "kernel");
 
-    Func filter2D("filter2D");
+    Func convolution("convolution");
     Var x("x"), y("y"), c("c");
 
     Expr e = 0.0f;
@@ -17,13 +17,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    filter2D(x, y, c) = cast<uint8_t>(e);
+    convolution(x, y, c) = cast<uint8_t>(e);
 
-    filter2D.parallel(y).vectorize(x, 8).parallel(c);
+    convolution.parallel(y).vectorize(x, 8).parallel(c);
 
-    filter2D.compile_to_object("build/generated_fct_filter2D_ref.o", {in, kernel}, "filter2D_ref");
+    convolution.compile_to_object("build/generated_fct_convolution_ref.o", {in, kernel}, "convolution_ref");
 
-    filter2D.compile_to_lowered_stmt("build/generated_fct_filter2D_ref.txt", {in, kernel}, Text);
+    convolution.compile_to_lowered_stmt("build/generated_fct_convolution_ref.txt", {in, kernel}, Text);
 
     return 0;
 }

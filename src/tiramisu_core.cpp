@@ -6525,6 +6525,8 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         return "float64";
     case tiramisu::p_boolean:
         return "bool";
+    case tiramisu::p_wait_ptr:
+        return "wait";
     default:
         tiramisu::error("Tiramisu type not supported.", true);
         return "";
@@ -6666,6 +6668,9 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
         break;
     case tiramisu::p_boolean:
         t = Halide::Bool();
+        break;
+    case tiramisu::p_wait_ptr:
+        t = Halide::Handle();
         break;
     default:
         tiramisu::error("Tiramisu type cannot be translated to Halide type.", true);
@@ -6905,6 +6910,10 @@ tiramisu::computation::computation(std::string iteration_domain_str, tiramisu::e
     DEBUG_INDENT(-4);
 }
 
+  void tiramisu::computation::unschedule_this_computation() {
+    schedule_this_computation = false;
+  }
+  
 /**
   * Return true if the this computation is supposed to be scheduled
   * by Tiramisu.
@@ -7086,6 +7095,13 @@ bool tiramisu::computation::should_drop_rank_iter() const
     return this->_drop_rank_iter;
 }
 
+int tiramisu::computation::get_level_to_drop() {
+    if (!should_drop_rank_iter()) {
+        return -1;
+    }
+    return get_loop_level_number_from_dimension_name(this->drop_level.get_name());
+}
+
 /**
   * Return the name of the computation.
   */
@@ -7201,9 +7217,18 @@ void tiramisu::computation::gen_time_space_domain()
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::drop_rank_iter()
+void tiramisu::computation::drop_rank_iter(var level)
 {
     this->_drop_rank_iter = true;
+    this->drop_level = level;
+}
+
+void tiramisu::computation::set_wait_access(std::string access_str) {
+    set_wait_access(isl_map_read_from_str(this->get_ctx(), access_str.c_str()));
+}
+
+void tiramisu::computation::set_wait_access(isl_map *access) {
+    this->wait_access_map = access;
 }
 
 void tiramisu::computation::set_access(isl_map *access)
@@ -7224,6 +7249,8 @@ void tiramisu::computation::set_access(std::string access_str)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Setting access " + access_str + " for computation " + this->get_name()));
 
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 
@@ -7253,6 +7280,8 @@ void tiramisu::computation::set_access(std::string access_str)
             tiramisu::error("Computations that have the same name should also have the same access relation.",
                             true);
         }
+
+    assert(this->access != nullptr && "Set access failed");
 
     DEBUG_INDENT(-4);
 }
@@ -8355,14 +8384,13 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         tiramisu::expr send_type(s->get_xfer_props().get_dtype());
         bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK);
         s->rhs_argument_idx = 3;
-        s->library_call_args.resize(isnonblock ? 6 : 5);
+        s->library_call_args.resize(isnonblock ? 5 : 4);
         s->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
         s->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_dest());
         s->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, s->get_msg_tag());
-        s->library_call_args[4] = send_type;
         if (isnonblock) {
             // This additional RHS argument is to the request buffer. It is really more of a side effect.
-            s->wait_argument_idx = 5;
+	  s->wait_argument_idx = 4;
         }
     } else if (comp->is_recv()) {
         recv *r = static_cast<recv *>(comp);
@@ -8371,16 +8399,15 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         tiramisu::expr recv_type(s->get_xfer_props().get_dtype());
         bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK);
         r->lhs_argument_idx = 3;
-        r->library_call_args.resize(isnonblock ? 6 : 5);
+        r->library_call_args.resize(isnonblock ? 5 : 4);
         r->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
         r->library_call_args[1] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_src());
         r->library_call_args[2] = tiramisu::expr(tiramisu::o_cast, p_int32, r->get_msg_tag().is_defined() ?
                                                                             r->get_msg_tag() : s->get_msg_tag());
-        r->library_call_args[4] = recv_type;
         r->lhs_access_type = tiramisu::o_address_of;
         if (isnonblock) {
             // This RHS argument is to the request buffer. It is really more of a side effect.
-            r->wait_argument_idx = 5;
+	  r->wait_argument_idx = 4;
         }
     } else if (comp->is_wait()) {
         wait *w = static_cast<wait *>(comp);
@@ -8469,6 +8496,10 @@ expr tiramisu::computation::get_span(int level)
 void tiramisu::buffer::tag_gpu_shared() {
     location = cuda_ast::memory_location::shared;
     set_auto_allocate(false);
+}
+
+void tiramisu::buffer::tag_gpu_constant() {
+    location = cuda_ast::memory_location::constant;
 }
 
 void tiramisu::buffer::tag_gpu_global() {

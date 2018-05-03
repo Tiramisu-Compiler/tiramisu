@@ -14,7 +14,17 @@ set(HALIDE_LIB_DIRECTORY "Halide/lib")
 
 set(MKL_PREFIX "")
 
-set(MPI_PREFIX "")
+# EXAMPLE OF SETTING MPI PATHS
+#set(MPI_INCLUDE_DIR "/usr/local/Cellar/open-mpi/3.0.1/include/")
+#set(MPI_LIB_DIR "/usr/local/Cellar/open-mpi/3.0.1/lib/")
+#set(MPI_LIB_FLAGS "-lmpi")
+set(MPI_INCLUDE_DIR "")
+set(MPI_LIB_DIR "")
+set(MPI_LIB_FLAGS "")
 
 # Uncomment if you wish to use GPU
 # set(USE_GPU true)
+
+# Uncomment if you wish to use MPI
+# set(USE_MPI true)
+

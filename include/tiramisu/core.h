@@ -243,6 +243,10 @@ private:
      */
     std::vector<std::string> iterator_names;
 
+    std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> iterator_to_kernel_list;
+
+    std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
+
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
       * be parallelized.
@@ -1210,6 +1214,8 @@ public:
     void tag_gpu_register();
     /* Tag the buffer as located in the GPU shared memory. */
     void tag_gpu_shared();
+    /* Tag the buffer as located in the GPU constant memory. */
+    void tag_gpu_constant();
 
 };
 
@@ -1470,6 +1476,11 @@ private:
     bool _drop_rank_iter;
 
     /**
+     * If _drop_rank_iter == true, this is the level to drop
+     */
+    var drop_level;
+
+    /**
       * If the computation represents a library call, this will contain the
       * necessary arguments to the function.
       */
@@ -1606,7 +1617,7 @@ private:
       * The LHS would represent a memory buffer access, and the RHS would represent
       * the value of the assignment.
       */
-    std::pair<expr, expr> create_tiramisu_assignment();
+    std::pair<expr, expr> create_tiramisu_assignment(std::vector<isl_ast_expr *> &index_expr);
 
     /**
       * Apply a duplication transformation from iteration space to
@@ -1717,11 +1728,6 @@ private:
     const std::vector<std::pair<std::string, tiramisu::expr>> &get_associated_let_stmts() const;
 
     /**
-      * Get the data type of the computation.
-      */
-    tiramisu::primitive_t get_data_type() const;
-
-    /**
      * Get the name of dynamic dimension that corresponds to the
      * \p loop_level in the time-space domain.
      */
@@ -1740,11 +1746,6 @@ private:
       * computation that was defined first among all the multiple definitions.
       */
     tiramisu::computation *get_first_definition();
-
-    /**
-      * Return the Tiramisu expression associated with the computation.
-      */
-    const tiramisu::expr &get_expr() const;
 
     /**
       * Return the function where the computation is declared.
@@ -1929,6 +1930,8 @@ private:
       * Return true if the rank loop iterator should be removed from linearization.
       */
     bool should_drop_rank_iter() const;
+
+    int get_level_to_drop();
 
     /**
       * Assign a name to iteration domain dimensions that do not have a name.
@@ -2258,11 +2261,6 @@ protected:
     tiramisu::expr get_predicate();
 
     /**
-      * Return the name of the computation.
-      */
-    const std::string &get_name() const;
-
-    /**
       * Return a unique name of computation; made of the following pattern:
       * [computation name]@[computation address in memory]
       */
@@ -2531,6 +2529,11 @@ public:
        * in any other computation.
        */
     void add_associated_let_stmt(std::string access_name, tiramisu::expr e);
+
+    /**
+     * Don't scheduled a previously scheduled computation
+     */
+    void unschedule_this_computation();
 
     /**
      * \brief Add definitions of computations that have the same name as this
@@ -3009,7 +3012,17 @@ public:
     /**
       * Specify that the rank loop iterator should be removed from linearization.
       */
-    void drop_rank_iter();
+    void drop_rank_iter(var level);
+
+    /**
+      * Get the data type of the computation.
+      */
+    tiramisu::primitive_t get_data_type() const;
+
+    /**
+      * Return the Tiramisu expression associated with the computation.
+      */
+    const tiramisu::expr &get_expr() const;
 
     /**
      * Return the iteration domain of the computation.
@@ -3034,6 +3047,11 @@ public:
     {
 	    return this->get_loop_level_numbers_from_dimension_names({dim_name})[0];
     }
+
+    /**
+      * Return the name of the computation.
+      */
+    const std::string &get_name() const;
 
     /**
       * Returns a pointer to the computation scheduled immediately before this computation,
@@ -3123,6 +3141,9 @@ public:
      void set_access(std::string access_str);
      void set_access(isl_map *access);
      // @}
+
+    void set_wait_access(std::string access_str);
+    void set_wait_access(isl_map *access);
 
      /**
        * Set the expression of the computation.
@@ -3736,6 +3757,7 @@ class generator
     friend function;
     friend computation;
     friend buffer;
+    friend cuda_ast::generator;
 
 protected:
 
@@ -3825,21 +3847,26 @@ protected:
       *     should only be generated in non-child blocks so that their scope reaches
       *     the whole block.
       */
-    static Halide::Internal::Stmt halide_stmt_from_isl_node(
-        const tiramisu::function &fct, isl_ast_node *node,
-        int level, std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-        bool is_a_child_block = false);
+    static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
+                                                            int level,
+                                                            std::vector<std::pair<std::string, std::string>> &tagged_stmts,
+                                                            bool is_a_child_block,
+                                                            std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
             const Halide::Internal::Stmt &second);
+
+    static Halide::Internal::Stmt make_buffer_alloc(buffer *b, const std::vector<Halide::Expr> &extents,
+                                                    Halide::Internal::Stmt &stmt);
+    static Halide::Internal::Stmt make_buffer_free(buffer *b);
 
     /**
      * Create a Halide expression from a  Tiramisu expression.
      */
     static Halide::Expr halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
             std::vector<isl_ast_expr *> &index_expr,
-            const tiramisu::expr &tiramisu_expr);
+            const tiramisu::expr &tiramisu_expr, tiramisu::computation *comp = nullptr);
 
     static tiramisu::expr replace_accesses(const tiramisu::function * func, std::vector<isl_ast_expr *> &index_expr,
                                            const tiramisu::expr &tiramisu_expr);

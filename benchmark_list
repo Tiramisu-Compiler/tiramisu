@@ -1,5 +1,6 @@
 cvtcolor
-filter2D
+cvtcolorgpu[gpu]
+convolution
 blurxy
 gaussian
 warp_affine
@@ -9,3 +10,10 @@ rgbyuv420
 recfilter
 resize
 laplacian
+heat2dgpu[gpu]
+gaussiangpu[gpu]
+rgbyuv420gpu[gpu]
+convolutiongpu[gpu]
+warp_affinegpu[gpu]
+fusiongpu[gpu]
+heat2d_dist

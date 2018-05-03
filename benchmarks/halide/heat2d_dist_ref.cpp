@@ -24,12 +24,12 @@ int main(int argc, char **argv) {
 
     Halide::Target target = Halide::get_host_target();
 
-    heat2d.compile_to_object("build/generated_fct_heat2d_ref.o",
+    heat2d.compile_to_object("build/generated_fct_heat2d_dist_ref.o",
                              {in},
-                             "heat2d_ref",
+                             "heat2d_dist_ref",
                              target);
 
-    heat2d.compile_to_lowered_stmt("build/generated_fct_heat2d_ref.txt",
+    heat2d.compile_to_lowered_stmt("build/generated_fct_heat2d_dist_ref.txt",
                                    {in},
                                    Text,
                                    target);

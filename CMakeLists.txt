@@ -6,6 +6,8 @@ enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+
 
 # Add CMake header files
 set(HEADER_FILES
@@ -27,8 +29,11 @@ set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering 
 include(configure.cmake)
 
 if (${USE_GPU})
-    find_package(CUDA)
+    find_package(CUDA REQUIRED)
     set(GPU_ENV_EXEC "${CMAKE_COMMAND} -E env NVCC_BIN_DIR=${CUDA_TOOLKIT_ROOT_DIR}/bin/")
+    add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
+    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES})
+    target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
 endif()
 
 
@@ -85,25 +90,28 @@ parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
 parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
 
 
+if (${USE_MPI})
+    set(CMAKE_CXX_COMPILER "mpicxx")
+else()
+    set(CMAKE_CXX_COMPILER "g++")
+endif()
 
-set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_CXX_FLAGS "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+if (${USE_MPI})
+    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")# -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")# -fvisibility=hidden")
+else()
+    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
+endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
-
-execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:incdirs OUTPUT_VARIABLE MPI_INCLUDE_DIRS)
-execute_process(COMMAND ${MPICXX_BIN}mpicxx -showme:link OUTPUT_VARIABLE MPI_LIB_FLAGS)
-
-string(STRIP ${MPI_INCLUDE_DIRS} MPI_INCLUDE_DIRS)
-string(REPLACE " " ";" MPI_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
-string(STRIP ${MPI_LIB_FLAGS} MPI_LIB_FLAGS)
-
+link_directories(${MPI_LIB_DIR})
 include_directories("include"
-                    "${ISL_INCLUDE_DIRECTORY}"
-                    "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-                    ${MPI_INCLUDE_DIRS}
-                    "build")
+        "${ISL_INCLUDE_DIRECTORY}"
+        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+        ${MPI_INCLUDE_DIRS}
+        "build")
 
 find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
@@ -115,9 +123,12 @@ string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
 
-set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg -lmpi")
-set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
-
+set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
+if (${USE_MPI})
+    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
+else()
+    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS}")
+endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
@@ -133,13 +144,20 @@ add_library(tiramisu SHARED ${T_CODE})
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
 
+function(link_tags name)
+    if (${is_gpu})
+        target_link_libraries(${name} cuda_wrapper)
+    endif()
+endfunction()
+
 function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(${name} ${LINK_FLAGS})
+    link_tags(${name})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${result}")
-        add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR} DEPENDS ${name})
     endif()
 endfunction()
 
@@ -149,7 +167,7 @@ function(build_halide_g name generator result)
     target_link_libraries(${name} ${LINK_FLAGS})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${result})
-        add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_command(OUTPUT ${result} COMMAND ${name} WORKING_DIRECTORY ${PROJECT_DIR} DEPENDS ${NAME})
     endif()
 endfunction()
 
@@ -157,14 +175,15 @@ function(build_w name objs wrapper header)
     add_executable(${name} ${wrapper} ${objs} ${header})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(${name} ${LINK_FLAGS})
+    link_tags(${name})
 endfunction()
 
 macro(set_obj inp_obj)
-   if (${is_gpu})
-       set(obj "${inp_obj};${inp_obj}_gpu.o;${inp_obj}_cpu.o")
-   else()
-       set(obj "${inp_obj}")
-   endif()
+    if (${is_gpu})
+        set(obj "${inp_obj};${inp_obj}_gpu.o;${inp_obj}_cpu.o")
+    else()
+        set(obj "${inp_obj}")
+    endif()
 endmacro()
 
 function(parse_descriptor descriptor)
@@ -194,7 +213,7 @@ add_test(NAME global COMMAND test_global WORKING_DIRECTORY ${PROJECT_DIR})
 set_tests_properties(global PROPERTIES DEPENDS global_build)
 
 foreach(t ${TIRAMISU_TESTS})
- new_test(${t})
+    new_test(${t})
 endforeach()
 
 add_custom_target(benchmarks)

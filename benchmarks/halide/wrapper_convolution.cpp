@@ -1,4 +1,4 @@
-#include "wrapper_filter2D.h"
+#include "wrapper_convolution.h"
 #include "../benchmarks.h"
 
 #include "Halide.h"
@@ -23,14 +23,14 @@ int main(int, char**)
     Halide::Buffer<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
     // Warm up
-    filter2D_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
-    filter2D_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    convolution_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
+    convolution_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        filter2D_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
+        convolution_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
 			output1.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -41,22 +41,22 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
         auto start2 = std::chrono::high_resolution_clock::now();
-        filter2D_ref(input.raw_buffer(), kernel.raw_buffer(),
+        convolution_ref(input.raw_buffer(), kernel.raw_buffer(),
 			output2.raw_buffer());
         auto end2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);
     }
 
-    print_time("performance_CPU.csv", "filter2D",
+    print_time("performance_CPU.csv", "convolution",
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    Halide::Tools::save_image(output1, "./build/filter2D_tiramisu.png");
-    Halide::Tools::save_image(output2, "./build/filter2D_ref.png");
+    Halide::Tools::save_image(output1, "./build/convolution_tiramisu.png");
+    Halide::Tools::save_image(output2, "./build/convolution_ref.png");
 
     if (CHECK_CORRECTNESS)
-        compare_buffers("filter2D",  output1, output2);
+        compare_buffers("convolution",  output1, output2);
 
     return 0;
 }
