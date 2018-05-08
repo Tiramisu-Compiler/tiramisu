@@ -85,7 +85,10 @@ struct xfer {
     tiramisu::send_recv *sr;
 };
 
-typedef std::tuple<int, tiramisu::expr, tiramisu::expr> collapse_group;
+/**
+ * Loop level, loop start, loop end, number of elements to collapse
+ */
+typedef std::tuple<int, tiramisu::expr, tiramisu::expr, tiramisu::expr> collapse_group;
 
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
@@ -4187,6 +4190,7 @@ public:
 template <typename T>
 std::vector<T *> tiramisu::computation::partial_loop_level_collapse(int level, tiramisu::expr collapse_from_iter,
                                              tiramisu::expr collapse_until_iter, tiramisu::expr num_collapsed) {
+    assert(false && "FIX ME");
     int dyn_level = loop_level_into_dynamic_dimension(level);
     isl_map *sched = this->get_schedule();
     isl_map *dom_ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));

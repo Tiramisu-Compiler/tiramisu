@@ -7876,7 +7876,7 @@ tiramisu::communicator::communicator(std::string iteration_domain_str, tiramisu:
 
 void tiramisu::communicator::collapse_many(std::vector<tiramisu::collapse_group> collapse_each) {
     for (auto c : collapse_each) {
-        this->collapse(std::get<0>(c), std::get<1>(c), -1, std::get<2>(c));
+        this->collapse(std::get<0>(c), std::get<1>(c), std::get<2>(c), std::get<3>(c));
     }
 }
 
