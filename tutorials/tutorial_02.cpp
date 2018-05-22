@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     // Set the schedule of each computation.
     c_blurx.tile(i, j, 2, 2, i0, j0, i1, j1);
-    c_blurx.tag_parallel_level(i0, j0);
+    c_blurx.tag_parallel_level(i0);
     c_blury.after(c_blurx, computation::root);
 
 
