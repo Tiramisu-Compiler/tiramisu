@@ -55,11 +55,12 @@ int main(int argc, char **argv)
     constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &blurxy);
     constant p1("M", expr((int32_t) SIZE1), p_int32, true, NULL, 0, &blurxy);
 
-    // Declare the computations c_blurx and c_blury.
+    // Declare a wrapper around the input.
     computation c_input("[N]->{c_input[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &blurxy);
 
     var i("i"), j("j"), i0("i0"), i1("i1"), j0("j0"), j1("j1");
 
+    // Declare the computations c_blurx and c_blury.
     expr e1 = (c_input(i - 1, j) +
                c_input(i    , j) +
                c_input(i + 1, j)) / ((uint8_t) 3);
