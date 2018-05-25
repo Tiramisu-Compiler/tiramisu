@@ -7799,10 +7799,6 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::set_parent_computation(tiramisu::computation *parent_computation) {
-    this->parent_computation = parent_computation;
-}
-
 std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
 
 tiramisu::xfer_prop::xfer_prop() { }
@@ -7913,11 +7909,7 @@ std::vector<communicator *> tiramisu::communicator::collapse(int level, tiramisu
         // Instead of fully removing the loop, we modify the collapsed loop to only have a single iteration.
         full_loop_level_collapse(level, collapse_from_iter);
     } else {
-        std::vector<communicator *> comms =
-                partial_loop_level_collapse<communicator>(level, collapse_from_iter, collapse_until_iter,
-                                                          num_collapsed);
-        ret.push_back(comms[0]);
-        ret.push_back(comms[1]);
+        assert(false && "Get rid of this block");
     }
 
     return ret;
