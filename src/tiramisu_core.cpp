@@ -7959,6 +7959,10 @@ std::string create_send_func_name(const xfer_prop chan)
             case p_float64:
                 name += "_f64";
                 break;
+            default: {
+                error("Channel not allowed", 27);
+                break;
+            }
         }
         return name;
     } else if (chan.contains_attr(CUDA)) {
@@ -8103,6 +8107,8 @@ std::string create_recv_func_name(const xfer_prop chan)
             case p_float64:
                 name += "_f64";
                 break;
+            default:
+                error("Channel type not allowed.", 27);
         }
         return name;
     } else {
@@ -8190,8 +8196,7 @@ void tiramisu::recv::add_definitions(std::string iteration_domain_str,
 tiramisu::send_recv::send_recv(std::string iteration_domain_str, tiramisu::computation *producer,
                                tiramisu::expr rhs, xfer_prop prop, bool schedule_this_computation,
                                std::vector<expr> dims, tiramisu::function *fct) :
-        communicator(iteration_domain_str, rhs, schedule_this_computation, prop.get_dtype(), prop, fct),
-        producer(producer)
+        communicator(iteration_domain_str, rhs, schedule_this_computation, prop.get_dtype(), prop, fct)
 {
     _is_library_call = true;
     library_call_name = create_send_func_name(prop);
@@ -8254,7 +8259,7 @@ void tiramisu::wait::add_definitions(std::string iteration_domain_str,
 
 void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter)
 {
-    std::string collapse_from_iter_repr = "";
+    std::string collapse_from_iter_repr;
     if (global::get_loop_iterator_data_type() == p_int32) {
         collapse_from_iter_repr = collapse_from_iter.get_expr_type() == tiramisu::e_val ?
                                   std::to_string(collapse_from_iter.get_int32_value()) : collapse_from_iter.get_name();
@@ -8263,10 +8268,9 @@ void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr c
                                   std::to_string(collapse_from_iter.get_int64_value()) : collapse_from_iter.get_name();
     }
     isl_map *sched = this->get_schedule();
-    isl_map *sched_copy = isl_map_copy(sched);
     int dim = loop_level_into_dynamic_dimension(level);
     const char *_dim_name = isl_map_get_dim_name(sched, isl_dim_out, dim);
-    std::string dim_name = "";
+    std::string dim_name;
     if (!_dim_name) { // Since dim names are optional...
         dim_name = "jr" + std::to_string(next_dim_name++);
         sched = isl_map_set_dim_name(sched, isl_dim_out, dim, dim_name.c_str());
@@ -8277,7 +8281,6 @@ void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr c
             dim_name + " > " + collapse_from_iter_repr; // > because you want a single iteration (iter 0)
     isl_map *ident = isl_set_identity(isl_set_copy(this->get_iteration_domain()));
     ident = isl_map_apply_domain(isl_map_copy(this->get_schedule()), ident);
-    assert(isl_map_n_out(ident) == isl_map_n_out(sched));
     ident = isl_map_set_dim_name(ident, isl_dim_out, dim, dim_name.c_str());
     isl_map *universe = isl_map_universe(isl_map_get_space(ident));
     std::string transform_str = isl_map_to_str(universe);
@@ -8289,8 +8292,6 @@ void tiramisu::computation::full_loop_level_collapse(int level, tiramisu::expr c
         transform = isl_map_add_free_var(collapse_from_iter_repr, transform, this->get_ctx());
     }
     sched = isl_map_subtract(sched, transform);
-    // update all the dim names because they get removed in the transform
-    assert(isl_map_n_out(sched) == isl_map_n_out(sched_copy)); // Shouldn't have added or removed any dims here...
     this->set_schedule(sched);
 }
 

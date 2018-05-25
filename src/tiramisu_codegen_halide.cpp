@@ -3055,7 +3055,6 @@ void computation::create_halide_assignment()
                                                                        wait_strides_vector, this->wait_index_expr);
                 }
                 // Finally, index into the buffer
-                Halide::Type wait_type = halide_type_from_tiramisu_type(p_wait_ptr);
                 Halide::Expr result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                           wait_tiramisu_buffer->get_name() + ".buffer");
                 result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),

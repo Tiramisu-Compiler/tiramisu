@@ -4112,10 +4112,6 @@ public:
 };
 
 class send_recv : public communicator {
-private:
-
-    tiramisu::computation *producer;
-
 public:
 
     send_recv(std::string iteration_domain_str, tiramisu::computation *producer,

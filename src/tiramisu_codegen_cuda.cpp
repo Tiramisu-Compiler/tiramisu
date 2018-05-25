@@ -425,11 +425,11 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                                                                 operands}};
                         }
                     }
-
                 }
             }
+            default:
+                assert(false);
         }
-        assert(false);
     }
 
     cuda_ast::buffer_ptr tiramisu::cuda_ast::generator::get_buffer(const std::string &name) {
@@ -839,21 +839,24 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                                                                                                             arguments) {}
 
     cuda_ast::for_loop::for_loop(statement_ptr initialization, cuda_ast::statement_ptr condition,
-                                 cuda_ast::statement_ptr incrementer, statement_ptr body) : initial_value(
-            initialization),
+                                 cuda_ast::statement_ptr incrementer, statement_ptr body) : statement(p_none),
+                                                                                            initial_value(
+                                                                                                    initialization),
                                                                                             condition(condition),
                                                                                             incrementer(incrementer),
-                                                                                            body(body),
-                                                                                            statement(p_none) {}
+                                                                                            body(body) {}
 
     cuda_ast::block::block() : statement(p_none) {}
 
+    cuda_ast::block::~block() = default;
+
     cuda_ast::if_condition::if_condition(cuda_ast::statement_ptr condition, statement_ptr then_body,
-                                         statement_ptr else_body) : condition(condition), then_body(then_body),
-                                                                    else_body(else_body), statement(p_none), has_else(true) {}
+                                         statement_ptr else_body) : statement(p_none), condition(condition),
+                                                                    then_body(then_body), has_else(true),
+                                                                    else_body(else_body) {}
     cuda_ast::if_condition::if_condition(cuda_ast::statement_ptr condition, statement_ptr then_body)
-                                                                  : condition(condition), then_body(then_body),
-                                                                    statement(p_none), has_else(false) {}
+                                                                  : statement(p_none), condition(condition),
+                                                                    then_body(then_body), has_else(false) {}
 
 
     void cuda_ast::block::add_statement(statement_ptr stmt) {

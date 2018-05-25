@@ -216,7 +216,7 @@ public:
     cast(primitive_t type, statement_ptr stmt);
     void print(std::stringstream &ss, const std::string &base) override ;
     statement_ptr replace_iterators(std::unordered_map<std::string, gpu_iterator> & iterators) override;
-    virtual std::unordered_set<std::string> extract_scalars();
+    std::unordered_set<std::string> extract_scalars() override;
 
 };
 
@@ -230,6 +230,9 @@ public:
 
 public:
     block();
+
+    virtual ~block();
+
     void add_statement(statement_ptr stmt);
 
 };
@@ -281,7 +284,7 @@ public:
     void print(std::stringstream &ss, const std::string &base) override;
     void print_declaration(std::stringstream &ss, const std::string &base) override;
     statement_ptr replace_iterators(std::unordered_map<std::string, gpu_iterator> & iterators) override;
-    virtual std::unordered_set<std::string> extract_scalars();
+    std::unordered_set<std::string> extract_scalars() override;
 };
     typedef std::shared_ptr<scalar> scalar_ptr;
 
@@ -370,7 +373,7 @@ public:
     void print(std::stringstream &ss, const std::string &base) override;
     std::pair<statement_ptr, statement_ptr> extract_min_cap() override;
     statement_ptr replace_iterators(std::unordered_map<std::string, gpu_iterator> & iterators) override;
-    virtual std::unordered_set<std::string> extract_scalars();
+    std::unordered_set<std::string> extract_scalars() override;
 
 private:
     std::string name;
@@ -416,7 +419,7 @@ public:
 public:
     void print(std::stringstream &ss, const std::string &base) override;
     statement_ptr replace_iterators(std::unordered_map<std::string, gpu_iterator> & iterators) override;
-    virtual std::unordered_set<std::string> extract_scalars();
+    std::unordered_set<std::string> extract_scalars() override;
 
 private:
     buffer_ptr accessed;
@@ -429,7 +432,7 @@ class op : public statement
 protected:
     op(primitive_t type, const std::vector<statement_ptr> & operands);
     std::vector<statement_ptr> m_operands;
-    virtual std::unordered_set<std::string> extract_scalars();
+    std::unordered_set<std::string> extract_scalars() override;
 
 };
 
