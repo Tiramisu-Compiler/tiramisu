@@ -8512,4 +8512,14 @@ void tiramisu::buffer::tag_gpu_register() {
     location = cuda_ast::memory_location::reg;
     set_auto_allocate(false);
 }
+
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &buffer_vec, const std::string obj_filename) {
+    this->set_arguments(buffer_vec);
+    this->lift_dist_comps();
+    this->gen_time_space_domain();
+    this->gen_isl_ast();
+    this->gen_halide_stmt();
+    this->gen_halide_obj(obj_filename);
+}
+
 }

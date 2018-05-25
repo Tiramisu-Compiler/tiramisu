@@ -26,7 +26,7 @@ void generate_function_1(std::string name) {
     constant NINE("NINE", 9, p_int32, true, NULL, 0, &function0);
     xfer sr2 = computation::create_xfer("[NINE]->{send2[q,x,y]: NINE<=q<10 and 0<=x<100 and 0<=y<100}",
                                        "[ONE]->{recv2[q,x,y]: 0<=q<ONE and 0<=x<100 and 0<=y<100}",
-                                       0, 9, xfer_prop(p_int32, {MPI, BLOCK, SYNC}),
+                                        0, 9, xfer_prop(p_int32, {MPI, BLOCK, SYNC}),
                                        xfer_prop(p_int32, {MPI, BLOCK, SYNC}), input(x,y), &function0);
     sr.s->tag_distribute_level(q);
     sr.r->tag_distribute_level(q);
@@ -44,12 +44,7 @@ void generate_function_1(std::string name) {
     sr.r->set_access("{recv[q,x,y]->buff[0,y]}");
     sr2.r->set_access("{recv2[q,x,y]->buff[0,y]}");
 
-    function0.set_arguments({&buff});
-    function0.lift_dist_comps();
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_test_99.o");
+    function0.codegen({&buff}, "build/generated_fct_test_99.o");
 
 }
 

@@ -42,12 +42,7 @@ void generate_function_1(std::string name)
     S0_init.set_access("{S0_init[x,y]->buff_output[x,y]}");
     S0.set_access("{S0[i,x,y]->buff_output[x,y]}");
 
-    function0.set_arguments({&buff_input, &buff_output});
-    function0.lift_dist_comps();
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_test_98.o");
+    function0.codegen({&buff_input, &buff_output}, "build/generated_fct_test_98.o");
 }
 
 

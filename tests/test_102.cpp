@@ -73,12 +73,7 @@ void generate_function_1(std::string name)
     fan_out.r->set_access("{fan_out_r[q,x,y]->buff_input[x,y]}");
     fan_in.r->set_access("{fan_in_r[p,q,x,y]->buff_output[q*100+x,y]}");
 
-    function0.set_arguments({&buff_input, &buff_output});
-    function0.lift_dist_comps();
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_test_102.o");
+    function0.codegen({&buff_input, &buff_output}, "build/generated_fct_test_102.o");
 }
 
 

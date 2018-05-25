@@ -674,6 +674,11 @@ protected:
       */
     void lift_mpi_comp(tiramisu::computation *comp);
 
+    /**
+      * Lift certain computations for distributed execution to function calls.
+      */
+    void lift_dist_comps();
+
      /**
        * The set of all computations that have no computation scheduled before them.
        * Does not include allocation computations created using
@@ -927,6 +932,12 @@ public:
     void set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec);
 
     /**
+     * Wrapper for all the functions required to run code generation of a
+     * tiramisu program.
+     */
+    void codegen(const std::vector<tiramisu::buffer *> &buffer_vec, const std::string obj_filename);
+
+    /**
      * \brief Set the context of the function.
      * \details A context is an ISL set that represents constraints over the
      * parameters of the functions (a parameter is an invariant variable for
@@ -947,10 +958,6 @@ public:
       */
     void set_context_set(isl_set *context);
 
-    /**
-      * Lift certain computations for distributed execution to function calls.
-      */
-    void lift_dist_comps();
 };
 
 
