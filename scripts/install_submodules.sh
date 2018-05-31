@@ -16,8 +16,6 @@ set -e
 # cloned a submodule before but not completed it, meaning some of the files are missing. Make sure to delete the .git
 # folder in that submodule directory to force the clone to happen again.
 
-
-
 echo ${PROJECT_SRC_DIR}
 echo ${LLVM_CONFIG_BIN_DIR}
 
@@ -36,6 +34,7 @@ echo_and_run_cmd "./autogen.sh"
 echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
 echo_and_run_cmd "make -j"
 echo_and_run_cmd "make install"
+echo "Done installing isl"
 
 # Get halide installed
 echo "#### Installing Halide ####"
@@ -45,3 +44,5 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"
 echo_and_run_cmd "make -j"
+
+echo "Done installing Halide"
