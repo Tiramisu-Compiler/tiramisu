@@ -5,6 +5,9 @@ if (${NEEDS_CONFIG})
     message(WARNING "Please make sure to configure configure.cmake, and then comment out the second line.")
 endif()
 
+# directory containing llvm-config executable
+# example of setting LLVM_CONFIG_BIN
+# set(LLVM_CONFIG_BIN "/Users/je23693/Documents/external-code/llvm3.7/build/bin")
 set(LLVM_CONFIG_BIN "")
 
 set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
@@ -14,17 +17,17 @@ set(HALIDE_LIB_DIRECTORY "Halide/lib")
 
 set(MKL_PREFIX "")
 
-# EXAMPLE OF SETTING MPI PATHS
-#set(MPI_INCLUDE_DIR "/usr/local/Cellar/open-mpi/3.0.1/include/")
-#set(MPI_LIB_DIR "/usr/local/Cellar/open-mpi/3.0.1/lib/")
-#set(MPI_LIB_FLAGS "-lmpi")
-set(MPI_INCLUDE_DIR "")
-set(MPI_LIB_DIR "")
-set(MPI_LIB_FLAGS "")
-
 # Uncomment if you wish to use GPU
 # set(USE_GPU true)
 
 # Uncomment if you wish to use MPI
 # set(USE_MPI true)
 
+# If USE_MPI==true, you need to set these paths
+# example of setting MPI paths
+#set(MPI_INCLUDE_DIR "/usr/local/Cellar/open-mpi/3.0.1/include/")
+#set(MPI_LIB_DIR "/usr/local/Cellar/open-mpi/3.0.1/lib/")
+#set(MPI_LIB_FLAGS "-lmpi")
+set(MPI_INCLUDE_DIR "")
+set(MPI_LIB_DIR "")
+set(MPI_LIB_FLAGS "")

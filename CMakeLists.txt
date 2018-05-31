@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
-
 enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
@@ -89,39 +88,56 @@ parse_list("${TIRAMISU_BENCHMARKS_RAW}" TIRAMISU_BENCHMARKS)
 parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
 parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
 
+# Check that MPI variables are set correctly if we need it
+if (${USE_MPI})
+    if (MPI_INCLUDE_DIR STREQUAL "")
+        message(FATAL_ERROR "USE_MPI==true but MPI_INCLUDE_DIR is empty.")
+    elseif (MPI_LIB_DIR STREQUAL "")
+        message(FATAL_ERROR "USE_MPI==true but MPI_LIB_DIR is empty.")
+    elseif (MPI_LIB_FLAGS STREQUAL "")
+        message(FATAL_ERROR "USE_MPI==true but MPI_LIB_FLAGS is empty.")
+    endif()
+endif()
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "mpicxx")
+    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
+    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
+    link_directories(${MPI_LIB_DIR})
+    include_directories("include"
+            "${ISL_INCLUDE_DIRECTORY}"
+            "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+            ${MPI_INCLUDE_DIRS}
+            "build")
 else()
     set(CMAKE_CXX_COMPILER "g++")
-endif()
-
-if (${USE_MPI})
-    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")# -fvisibility=hidden")
-    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")# -fvisibility=hidden")
-else()
     set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
-    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")# -fvisibility=hidden")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")
+    include_directories("include"
+            "${ISL_INCLUDE_DIRECTORY}"
+            "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+            "build")
 endif()
 
-link_directories(${MPI_LIB_DIR})
-include_directories("include"
-        "${ISL_INCLUDE_DIRECTORY}"
-        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-        ${MPI_INCLUDE_DIRS}
-        "build")
 
 find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
-execute_process(COMMAND ${LLVM_CONFIG_BIN}llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+
+# figure out the LLVM version. <= 3.7.1 (what is the actual cutoff? 3.8?) doesn't have the --ignore-libllvm flag
+execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
+string(STRIP ${LLVM_VERSION} LLVM_VERSION)
+if (${LLVM_VERSION} VERSION_GREATER 3.7.1)
+    execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+else ()
+    execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+endif()
 
 string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
-
 
 set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
 if (${USE_MPI})
