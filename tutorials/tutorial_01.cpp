@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     // (2) a tiramisu expression: this is the expression that will be computed
     // by the computation.
     // (3) the function in which the computation will be declared.
-    computation S0("[N]->{S0[i,j]: 0<=i<10 and 0<=j<10}", e3, true, p_uint8, &function0);
+    computation S0("{S0[i,j]: 0<=i<10 and 0<=j<10}", e3, true, p_uint8, &function0);
 
     // Dump the iteration domain of the function.
     function0.dump_iteration_domain();
