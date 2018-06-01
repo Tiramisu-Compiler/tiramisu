@@ -19,7 +19,6 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
-    global::set_loop_iterator_default_data_type(p_int32);
 
     tiramisu::function heat2d_tiramisu("heat2d_tiramisu");
 
