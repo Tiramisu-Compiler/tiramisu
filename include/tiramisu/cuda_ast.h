@@ -23,6 +23,7 @@
 #define FN_CALL2(op, x, n) case op: return tiramisu::cuda_ast::op_data_t{false, (n), (x)};
 #define FN_CALL_TYPED2(op, x, n, T) case op: return tiramisu::cuda_ast::op_data_t{false, (n), (x), (T)};
 
+#include <isl/id.h>
 #include <tiramisu/type.h>
 #include <string>
 #include <vector>
