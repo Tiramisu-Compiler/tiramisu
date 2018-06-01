@@ -40,7 +40,6 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
-    global::set_loop_iterator_type(p_int32);
 
 
     // -------------------------------------------------------
