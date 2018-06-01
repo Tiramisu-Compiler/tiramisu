@@ -3461,7 +3461,10 @@ void computation::set_loop_level_names(std::vector<std::string> names)
 
     assert(names.size() > 0);
 
-    for (int i = 0; i < this->get_loop_levels_number(); i++)
+    DEBUG(3, tiramisu::str_dump("Number of loop levels: " + std::to_string(this->get_loop_levels_number())));
+    DEBUG(3, tiramisu::str_dump("Number of names to be set: " + std::to_string(names.size())));
+
+    for (int i = 0; i < names.size(); i++)
     {
 	if (isl_map_has_dim_name(this->get_schedule(), isl_dim_out, loop_level_into_dynamic_dimension(i)) == isl_bool_true)
 	{
