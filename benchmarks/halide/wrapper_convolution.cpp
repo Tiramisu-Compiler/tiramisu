@@ -12,7 +12,7 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./utils/images/rgb.png");
 
     Halide::Buffer<float> kernel(3, 3);
     kernel(0,0) = 0; kernel(0,1) = 1.0f/5; kernel(0,2) = 0;
