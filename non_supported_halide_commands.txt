@@ -1,8 +1,0 @@
-rename
-in
-bound
-specialize
-stride
-memoization
-prefetch
-assert (not sure if this is necessary)

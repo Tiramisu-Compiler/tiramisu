@@ -50,7 +50,6 @@ Parallel for (int i = 0; i < 10; i++)
 int main(int argc, char **argv)
 {
     global::set_default_tiramisu_options();
-    global::set_loop_iterator_type(p_int32);
 
     function function0("function0");
 

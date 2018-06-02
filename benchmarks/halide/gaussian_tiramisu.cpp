@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include <Halide.h>
-#include "halide_image_io.h"
+//#include "halide_image_io.h"
 
 
 using namespace tiramisu;
@@ -19,7 +19,6 @@ int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
-    global::set_loop_iterator_default_data_type(p_int32);
 
     tiramisu::function gaussian_tiramisu("gaussian_tiramisu");
 
