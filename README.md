@@ -121,7 +121,7 @@ Please follow the following instructions only if installation using the short ve
 
 ##### Compiling ISL
 
-Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.  To install them on Ubuntu use the following commands:
+Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.  Make sure also that the GMP library is installed (https://gmplib.org/).  To install them on Ubuntu use the following commands:
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
