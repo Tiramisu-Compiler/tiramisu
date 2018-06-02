@@ -4,7 +4,7 @@ project(tiramisu)
 enable_testing()
 
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
-
+set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
 
@@ -99,26 +99,21 @@ if (${USE_MPI})
     endif()
 endif()
 
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "mpicxx")
-    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
-    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti -DWITH_MPI")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
     link_directories(${MPI_LIB_DIR})
     include_directories("include"
             "${ISL_INCLUDE_DIRECTORY}"
             "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
             ${MPI_INCLUDE_DIRS}
             "build")
-else()
+else ()
     set(CMAKE_CXX_COMPILER "g++")
-    set(CMAKE_CXX_FLAGS "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O3 -std=c++11 -Wall -Wno-sign-compare -fno-rtti")
-    set(CMAKE_CXX_FLAGS_RELEASE "-std=c++11 -O3 -Wall -Wno-sign-compare -fno-rtti")
-    include_directories("include"
-            "${ISL_INCLUDE_DIRECTORY}"
-            "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-            "build")
 endif()
 
 
