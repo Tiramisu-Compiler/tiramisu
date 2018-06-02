@@ -127,13 +127,13 @@ find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
 
-# figure out the LLVM version. <= 3.7.1 (what is the actual cutoff? 3.8?) doesn't have the --ignore-libllvm flag
+# Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
 string(STRIP ${LLVM_VERSION} LLVM_VERSION)
-if (${LLVM_VERSION} VERSION_GREATER 3.7.1)
+if (${LLVM_VERSION} VERSION_GREATER 5.0)
     execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
 else ()
-    execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+    message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
 endif()
 
 string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
