@@ -1,7 +1,6 @@
 #!/bin/bash
 
 PROJECT_SRC_DIR=$1
-LLVM_CONFIG_BIN_DIR=$2
 
 set -e
 . ${PROJECT_SRC_DIR}/scripts/functions.sh
@@ -17,7 +16,6 @@ set -e
 # folder in that submodule directory to force the clone to happen again.
 
 echo ${PROJECT_SRC_DIR}
-echo ${LLVM_CONFIG_BIN_DIR}
 
 echo "#### Cloning submodules ####"
 
@@ -38,8 +36,6 @@ echo "Done installing isl"
 
 # Get halide installed
 echo "#### Installing Halide ####"
-echo_and_run_cmd "export CLANG=${LLVM_CONFIG_BIN_DIR}/clang"
-echo_and_run_cmd "export LLVM_CONFIG=${LLVM_CONFIG_BIN_DIR}/llvm-config"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"

@@ -17,30 +17,36 @@ Compiling Tiramisu
 ----------------------
 #### Prerequisites
 
-- autoconf and libtool.  To install them on Ubuntu you can use the following commands:
+1) autoconf and libtool.  To install them on Ubuntu you can use the following commands:
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
 
-- LLVM-3.9 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+2) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
-- CMake 3.5 or greater. Instructions on installing CMake can be found on
+3) CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
+  
+4) libpng and libjpeg
 
 #### Building
-- Get Tiramisu
+1) Get Tiramisu
 
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
-
+<!---
 - In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM build folder that contains
 
         llvm-config
 
   An example is provided in the file.
+--->
 
+2) Get and install the submodules ISL and Halide
 
+        ./scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+<!---
 - Compile the dependencies then compile Tiramisu
 
         ./get_and_install_isl.sh
@@ -48,6 +54,22 @@ Compiling Tiramisu
         mkdir build/
         cd build/
         cmake ../
+        make -j tiramisu
+--->
+3) Configure the tiramisu build 
+
+        cp configure.cmake.template configure.cmake
+
+    - Edit the `configure.cmake` file, NOT the template version.    
+    - At a minimum, `LLVM_CONFIG_BIN` must be set. 
+    - To use the GPU backend, set `USE_GPU` to `true`.
+    - To use the distributed backend, set `USE_MPI` to `true`.
+
+4) Build the main tiramisu library
+
+        mkdir build
+        cd build
+        cmake ..
         make -j tiramisu
 
 #### Run Tutorials
