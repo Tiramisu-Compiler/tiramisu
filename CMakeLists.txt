@@ -42,12 +42,15 @@ FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS_RAW)
 
 macro(init_tags)
     set(is_gpu false)
+    set(is_mpi false)
 endmacro()
 
 macro(parse_tags tags)
     foreach(tag ${tags})
         if (${tag} STREQUAL gpu)
             set(is_gpu true)
+        elseif (${tag} STREQUAL mpi)
+            set(is_mpi true)
         else()
             message(WARNING "Tag ${tag} not recognized")
         endif()
@@ -58,13 +61,12 @@ endmacro()
 # containing a list of "program_name property0 property1 property2 .. propertyn"
 # the list can contain as many tags as necessary
 # the number of properties is fixed and is in the order given below
-# current tags are : gpu.
-# current properties are : is_gpu(boolean)
+# current tags are : gpu, mpi.
+# current properties are : is_gpu(boolean), is_mpi(boolean)
 function (parse_list raw_list list_name)
     set(result)
     foreach(element ${raw_list})
         init_tags()
-
         string(REGEX MATCH "^([a-zA-Z_0-9]+)(\\[([a-zA-Z0-9_]+(,[a-zA-Z0-9_]+)*)\\])?$" the_match "${element}")
         if(NOT ${CMAKE_MATCH_COUNT})
             message(WARNING "Could not parse: ${element}")
@@ -74,10 +76,17 @@ function (parse_list raw_list list_name)
             parse_tags("${tags}")
         endif()
         set(name ${CMAKE_MATCH_1})
+        # Check if we need to use the GPU
         if (${is_gpu} AND NOT "${USE_GPU}")
             message(STATUS "skipping gpu tagged ${name} because USE_GPU is not set to true")
-        else()
+        elseif (${is_gpu} AND "${USE_GPU}")
             list(APPEND result "${name} ${is_gpu}")
+        elseif (${is_mpi} AND NOT "${USE_MPI}")
+            message(STATUS "skipping mpi tagged ${name} because USE_MPI is not set to true")
+        elseif (${is_mpi} AND "${USE_MPI}")
+            list(APPEND result "${name} ${is_mpi}")
+        else ()
+            list(APPEND result "${name} ${is_gpu} ${is_mpi}")
         endif()
     endforeach()
     set("${list_name}" "${result}" PARENT_SCOPE)
@@ -102,16 +111,16 @@ endif()
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+include_directories("include"
+        "${ISL_INCLUDE_DIRECTORY}"
+        "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
+        "build")
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "mpicxx")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
     link_directories(${MPI_LIB_DIR})
-    include_directories("include"
-            "${ISL_INCLUDE_DIRECTORY}"
-            "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
-            ${MPI_INCLUDE_DIRS}
-            "build")
+    include_directories(${MPI_INCLUDE_DIRS})
 else ()
     set(CMAKE_CXX_COMPILER "g++")
 endif()
@@ -203,6 +212,8 @@ function(parse_descriptor descriptor)
     set(id ${id} PARENT_SCOPE)
     list(GET descriptor 1 is_gpu)
     set(is_gpu ${is_gpu} PARENT_SCOPE)
+    list(GET descriptor 1 is_mpi)
+    set(is_mpi ${is_mpi} PARENT_SCOPE)
 endfunction()
 
 function(new_test descriptor)
@@ -217,12 +228,10 @@ function(new_test descriptor)
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
 
-
 build_g(test_global tests/test_global.cpp "")
 add_test(NAME global_build COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target test_global)
 add_test(NAME global COMMAND test_global WORKING_DIRECTORY ${PROJECT_DIR})
 set_tests_properties(global PROPERTIES DEPENDS global_build)
-
 foreach(t ${TIRAMISU_TESTS})
     new_test(${t})
 endforeach()
