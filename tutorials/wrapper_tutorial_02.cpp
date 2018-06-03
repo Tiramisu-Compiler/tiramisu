@@ -9,7 +9,7 @@
 
 int main(int, char **)
 {
-    Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./utils/images/rgb.png");
     Halide::Buffer<uint8_t> output_buf(image.extent(0), image.extent(1));
 
     // The blurxy takes a halide_buffer_t * as argument, when "image"

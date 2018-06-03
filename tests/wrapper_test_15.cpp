@@ -12,7 +12,7 @@ int main(int, char**)
 
     std::vector<Duration> duration_vector;
 
-    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./utils/images/rgb.png");
     Halide::Buffer<uint8_t> output(input.width()-8, input.height()-8, input.channels());
 
     auto start = std::chrono::high_resolution_clock::now();

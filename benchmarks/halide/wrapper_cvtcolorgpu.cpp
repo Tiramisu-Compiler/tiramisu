@@ -24,7 +24,7 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./images/rgb.png");
+    Halide::Buffer<uint8_t> input = Halide::Tools::load_image("./utils/images/rgb.png");
 
     Halide::Buffer<int32_t> SIZES_b(2);
     SIZES_b(0) = input.extent(0);

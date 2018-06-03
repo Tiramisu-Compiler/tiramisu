@@ -36,9 +36,9 @@ if (${USE_GPU})
 endif()
 
 
-FILE(STRINGS test_list TIRAMISU_TESTS_RAW)
-FILE(STRINGS benchmark_list TIRAMISU_BENCHMARKS_RAW)
-FILE(STRINGS tutorial_list TIRAMISU_TUTORIALS_RAW)
+FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
+FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
+FILE(STRINGS tutorials/tutorial_list.txt TIRAMISU_TUTORIALS_RAW)
 
 macro(init_tags)
     set(is_gpu false)
