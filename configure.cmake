@@ -2,7 +2,7 @@ set(CMAKE_BUILD_TYPE RELEASE)
 # directory containing llvm-config executable
 # example of setting LLVM_CONFIG_BIN
 # set(LLVM_CONFIG_BIN "/Users/je23693/Documents/external-code/llvm5.0/build/bin")
-set(LLVM_CONFIG_BIN "/Users/je23693/Documents/external-code/llvm5.0/build/bin")
+set(LLVM_CONFIG_BIN "")
 
 set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
 set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/")
