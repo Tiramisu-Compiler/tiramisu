@@ -16,19 +16,28 @@ Current code generators:
 Compiling Tiramisu
 ----------------------
 #### Prerequisites
+###### Required
 
 1) autoconf and libtool.  To install them on Ubuntu you can use the following commands:
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
 
-2) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
-
-3) CMake 3.5 or greater. Instructions on installing CMake can be found on
+2) CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
+
+3) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
   
-4) libpng and libjpeg
+4) GMP library (required by ISL): https://gmplib.org/
+
+###### Optional
+1) If you want to run Halide benchmarks/tests: libpng and libjpeg
+
+2) If you want to run BLAS benchmarks: Intel MKL
+
+3) If you want to generate documentation: Doxygen
+
 
 #### Building
 1) Get Tiramisu
@@ -58,10 +67,9 @@ Compiling Tiramisu
 --->
 3) Configure the tiramisu build 
 
-        cp configure.cmake.template configure.cmake
-
-    - Edit the `configure.cmake` file, NOT the template version.    
-    - At a minimum, `LLVM_CONFIG_BIN` must be set. 
+    - Edit the `configure.cmake` file.
+    - At a minimum, `LLVM_CONFIG_BIN` must be set.
+    - Set any other variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
     - To use the GPU backend, set `USE_GPU` to `true`.
     - To use the distributed backend, set `USE_MPI` to `true`.
 
@@ -223,7 +231,7 @@ Tutorials
 - [tutorial 08](tutorials/tutorial_08.cpp): update example.
 - [tutorial 09](tutorials/tutorial_09.cpp): complicate reduction/update example.
 
-More examples can be found in the [tests](tests/) folder. Please check [list_of_tests.txt](tests/list_of_tests.txt) for a full list of examples for each Tiramisu feature.
+More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
 
 Adding new tests
 -------------------
