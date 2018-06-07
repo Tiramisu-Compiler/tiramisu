@@ -45,7 +45,7 @@ Compiling Tiramisu
 
 2) Get and install the submodules ISL and Halide
 
-        ./scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
 <!---
 - Compile the dependencies then compile Tiramisu
 
