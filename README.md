@@ -16,19 +16,28 @@ Current code generators:
 Compiling Tiramisu
 ----------------------
 #### Prerequisites
+###### Required
 
 1) autoconf and libtool.  To install them on Ubuntu you can use the following commands:
 
         sudo apt-get install autoconf
         sudo apt-get install libtool
 
-2) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
-
-3) CMake 3.5 or greater. Instructions on installing CMake can be found on
+2) CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
+
+3) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
   
-4) libpng and libjpeg
+4) GMP library (required by ISL): https://gmplib.org/
+
+###### Optional
+1) If you want to run Halide benchmarks/tests: libpng and libjpeg
+
+2) If you want to run BLAS benchmarks: Intel MKL
+
+3) If you want to generate documentation: Doxygen
+
 
 #### Building
 1) Get Tiramisu
