@@ -25,9 +25,6 @@ Compiling Tiramisu
 
 2) CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
-
-3) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
   
 ###### Optional
 1) If you want to run Halide benchmarks/tests: libpng and libjpeg
@@ -144,6 +141,12 @@ To build documentation (doxygen required)
 
 Build Troubleshooting
 ----------------------------
+
+##### Prerequisites
+
+1) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
+
 
 Please follow the following instructions only if installation using the short version does not work.
 
