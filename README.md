@@ -58,10 +58,9 @@ Compiling Tiramisu
 --->
 3) Configure the tiramisu build 
 
-        cp configure.cmake.template configure.cmake
-
-    - Edit the `configure.cmake` file, NOT the template version.    
-    - At a minimum, `LLVM_CONFIG_BIN` must be set. 
+    - Edit the `configure.cmake` file.
+    - At a minimum, `LLVM_CONFIG_BIN` must be set.
+    - Set any other variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
     - To use the GPU backend, set `USE_GPU` to `true`.
     - To use the distributed backend, set `USE_MPI` to `true`.
 
