@@ -29,8 +29,6 @@ Compiling Tiramisu
 3) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
   check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
   
-4) GMP library (required by ISL): https://gmplib.org/
-
 ###### Optional
 1) If you want to run Halide benchmarks/tests: libpng and libjpeg
 
