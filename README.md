@@ -231,7 +231,7 @@ Tutorials
 - [tutorial 08](tutorials/tutorial_08.cpp): update example.
 - [tutorial 09](tutorials/tutorial_09.cpp): complicate reduction/update example.
 
-More examples can be found in the [tests](tests/) folder. Please check [list_of_tests.txt](tests/list_of_tests.txt) for a full list of examples for each Tiramisu feature.
+More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
 
 Adding new tests
 -------------------
