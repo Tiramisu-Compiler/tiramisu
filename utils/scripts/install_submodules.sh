@@ -3,7 +3,7 @@
 PROJECT_SRC_DIR=$1
 
 set -e
-. ${PROJECT_SRC_DIR}/scripts/functions.sh
+. ${PROJECT_SRC_DIR}/utils/scripts/functions.sh
 
 # Install ISL into 3rdParty and Halide into the root of the tiramisu directory
 
