@@ -1,6 +1,13 @@
 #!/bin/bash
 
+if [ "$#" -ne 1 ]; then
+	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
+	exit 1
+fi
+
 PROJECT_SRC_DIR=$1
+CMAKE=${PROJECT_SRC_DIR}/../cmake-3.9.0_prefix/bin/cmake
+CORES=4
 
 set -e
 . ${PROJECT_SRC_DIR}/utils/scripts/functions.sh
@@ -22,7 +29,8 @@ echo "#### Cloning submodules ####"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
 echo_and_run_cmd "git submodule update --init --remote --recursive"
 
-# Get isl installed
+
+# Get ISL installed
 echo "#### Installing isl ####"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
 if [ ! -d "build" ]; then
@@ -30,15 +38,43 @@ if [ ! -d "build" ]; then
 fi
 echo_and_run_cmd "./autogen.sh"
 echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
-echo_and_run_cmd "make -j"
+echo_and_run_cmd "make -j $CORES"
 echo_and_run_cmd "make install"
 echo "Done installing isl"
 
+
+
+
+# Get LLVM installed
+echo "#### Installing LLVM ####"
+echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/llvm"
+if [ ! -d "build" ]; then
+    echo_and_run_cmd "mkdir build/"
+fi
+if [ ! -d "prefix" ]; then
+    echo_and_run_cmd "mkdir prefix/"
+fi
+echo_and_run_cmd "cd build"
+echo_and_run_cmd "$CMAKE -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/ -DLLVM_EXTERNAL_CLANG_SOURCE_DIR=${PROJECT_SRC_DIR}/3rdParty/clang"
+echo_and_run_cmd "make -j $CORES"
+echo_and_run_cmd "make install"
+
+
+
+# Set LLVM_CONFIG and CLANG env variables
+export CLANG=${PROJECT_SRC_DIR}/3rdParty/llvm//build/bin/clang
+export LLVM_CONFIG=${PROJECT_SRC_DIR}/3rdParty/llvm//build/bin/llvm-config
+
+
+
 # Get halide installed
 echo "#### Installing Halide ####"
-echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/Halide"
+echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"
-echo_and_run_cmd "make -j"
+echo_and_run_cmd "make -j $CORES"
 
+
+
+cd ${PROJECT_SRC_DIR}
 echo "Done installing Halide"

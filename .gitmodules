@@ -1,7 +1,20 @@
 [submodule "Halide"]
-	path = Halide
-	url = git@github.com:jrayzero/Halide.git
+	path = 3rdParty/Halide
+	url = https://github.com/jrayzero/Halide.git
 	branch = tiramisu_64_bit
 [submodule "3rdParty/isl"]
 	path = 3rdParty/isl
-	url = git://repo.or.cz/isl.git
+	url = http://repo.or.cz/isl.git
+[submodule "3rdParty/llvm"]
+	path = 3rdParty/llvm
+	url = https://git.llvm.org/git/llvm.git/
+	branch = release_50
+[submodule "3rdParty/llvm/tools/clang"]
+	path = 3rdParty/llvm/tools/clang
+	url = https://git.llvm.org/git/clang.git/
+	branch = release_50
+
+[submodule "3rdParty/clang"]
+	path = 3rdParty/clang
+	url = https://git.llvm.org/git/clang.git/
+	branch = release_50

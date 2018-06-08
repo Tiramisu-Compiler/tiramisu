@@ -42,15 +42,16 @@ Compiling Tiramisu
 
         git clone https://github.com/rbaghdadi/tiramisu.git
         cd tiramisu
-<!---
-- In configure_paths.sh, set the variable LLVM_CONFIG_BIN to point to the LLVM build folder that contains
 
-        llvm-config
+2) Configure the tiramisu build 
 
-  An example is provided in the file.
---->
+    - Edit the `configure.cmake` file.
+    - At a minimum, `LLVM_CONFIG_BIN` must be set.
+    - Set any other variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
+    - To use the GPU backend, set `USE_GPU` to `true`.
+    - To use the distributed backend, set `USE_MPI` to `true`.
 
-2) Get and install the submodules ISL and Halide
+3) Get and install the submodules ISL and Halide
 
         ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
 <!---
@@ -63,13 +64,6 @@ Compiling Tiramisu
         cmake ../
         make -j tiramisu
 --->
-3) Configure the tiramisu build 
-
-    - Edit the `configure.cmake` file.
-    - At a minimum, `LLVM_CONFIG_BIN` must be set.
-    - Set any other variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
-    - To use the GPU backend, set `USE_GPU` to `true`.
-    - To use the distributed backend, set `USE_MPI` to `true`.
 
 4) Build the main tiramisu library
 
