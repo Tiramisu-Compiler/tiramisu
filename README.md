@@ -1,4 +1,4 @@
-Tiramisu Optimization Framework
+Tiramisu Compiler
 ----------------------------------
 Tiramisu is a code optimization and code generation framework.  The user can integrate Tiramisu in his compiler to perform advanced loop nest optimization and target multiple architectures using Tiramisu.  The user can express his code in the Tiramisu intermediate representation (Tiramisu IR), he can use the Tiramisu API to perform different optimizations and finaly he can generate the IR of his compiler of generate directly highly optimized code (LLVM, Vivado HLS, ...) targeting multicore, GPUs or FPGAs.
 
@@ -9,8 +9,9 @@ Current optimizations include:
 
 Current code generators:
 - Multicore CPUs.
-- GPU backend.
-- Vivado HLS.
+- GPUs.
+- Distributed machines (MPI).
+- FPGA (Vivado HLS).
 
 
 Compiling Tiramisu
@@ -25,9 +26,6 @@ Compiling Tiramisu
 
 2) CMake 3.5 or greater. Instructions on installing CMake can be found on
   the project's [website] (https://cmake.org/install/).
-
-3) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
   
 ###### Optional
 1) If you want to run Halide benchmarks/tests: libpng and libjpeg
@@ -138,6 +136,12 @@ To build documentation (doxygen required)
 
 Build Troubleshooting
 ----------------------------
+
+##### Prerequisites
+
+1) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
+
 
 Please follow the following instructions only if installation using the short version does not work.
 
