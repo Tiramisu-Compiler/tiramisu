@@ -45,8 +45,7 @@ Compiling Tiramisu
 
         ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
 
-3) Optional: Configure the tiramisu build 
-   Do this step only if you need to generate MPI or GPU code, or if you want to run the BLAS benchmarks (and compare with the Intel MKL library).
+3) Optional: Configure the tiramisu build.  Do this step only if you need to generate MPI or GPU code, or if you want to run the BLAS benchmarks (and compare with the Intel MKL library).
 
     - Edit the `configure.cmake` file.
     - Set any variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
