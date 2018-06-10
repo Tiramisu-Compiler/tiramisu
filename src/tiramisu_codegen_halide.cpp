@@ -16,10 +16,10 @@
 
 #include <string>
 #include "../include/tiramisu/expr.h"
-#include "../Halide/src/Expr.h"
-#include "../Halide/src/Parameter.h"
+#include "../3rdParty/Halide/src/Expr.h"
+#include "../3rdParty/Halide/src/Parameter.h"
 #include "../include/tiramisu/debug.h"
-#include "../Halide/src/IR.h"
+#include "../3rdParty/Halide/src/IR.h"
 #include "../include/tiramisu/core.h"
 
 namespace tiramisu
