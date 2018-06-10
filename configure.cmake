@@ -24,7 +24,7 @@ set(MKL_PREFIX "")
 
 # LLVM_CONFIG_BIN: Directory containing llvm-config executable. Example:
 # set(LLVM_CONFIG_BIN "/Users/je23693/Documents/external-code/llvm5.0/build/bin")
-set(LLVM_CONFIG_BIN ${CMAKE_SOURCE_DIR}/"3rdParty/llvm/prefix/bin/")
+set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/")
 
 # ISL paths
 set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
