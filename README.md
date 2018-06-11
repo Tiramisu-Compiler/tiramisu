@@ -1,4 +1,4 @@
-## Building Tiramisu (Short)
+## Building Tiramisu (Short Version)
 
 This section provides a short version of how to build Tiramisu.  A more detailed version is provided below.
 
