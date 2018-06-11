@@ -201,10 +201,3 @@ Tutorials
 - [tutorial 09](tutorials/tutorial_09.cpp): complicate reduction/update example.
 
 More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
-
-Adding new tests
--------------------
-
-- To create a new test, run `./new_test.sh <test_name>`. This will show you the new test number,
-and create mock files for you to fill. If the test number is N, it will create tests/test_N.cpp,
-tests/wrapper_test_N.cpp, and tests/wrapper_test_N.h, unless they already exist.
