@@ -1,6 +1,6 @@
 ## Building Tiramisu (Short)
 
-This section provides a short version about how to build Tiramisu.  A more version is below.
+This section provides a short version of how to build Tiramisu.  A more detailed version is provided below.
 
 #### Prerequisites
 ###### Required
