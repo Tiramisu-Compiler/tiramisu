@@ -1,6 +1,6 @@
-Building Tiramisu
+## Building Tiramisu
 ---------------------------------
-## Prerequisites
+#### Prerequisites
 ###### Required
 1) autoconf and libtool.
 2) CMake: version 3.5 or greater. [Installation instructions](https://cmake.org/install/).
@@ -11,7 +11,7 @@ Building Tiramisu
 3) Doxygen: to generate documentation.
 
 
-## Building
+#### Building
 1) Get Tiramisu
 
         git clone https://github.com/Tiramisu-Compiler/tiramisu.git
@@ -34,6 +34,8 @@ Building Tiramisu
         cmake ..
         make -j tiramisu
 
+
+## Tutorials, Tests and Documentation
 #### Run Tutorials
 
 To run all the tutorials, assuming you are in the build/ directory
@@ -64,11 +66,12 @@ This will compile and run the code generator and then the wrapper.
 
 To view the output of a test pass the `--verbose` option to `ctest`.
 
-To add a new test, add two files in tests/. test_XX.cpp should contain
-the actual Tiramisu generator code while wrapper_test_XX.cpp should contain
-wrapper code that initializes the input data, calls the generated function,
+To add a new test, add two files in `tests/`.  Assuming `XX` is the number
+of the test that you want to add, `test_XX.cpp` should contain
+the actual Tiramisu generator code while `wrapper_test_XX.cpp` should contain
+wrapper code.  Wrapper code initializes the input data, calls the generated function,
 and compares its output with a reference output.  You should then add the
-number of the test XX in the file test_list.
+test number `XX` in the file `tests/test_list.txt`.
 
 #### Run Benchmarks
 
@@ -88,7 +91,7 @@ This will rebuild tiramisu, rebuild all the stage of code generation and run
 the benchmark.
 
 To add a given benchmark to the build system, add its name in the file
-benchmark_list.
+`benchmarks/benchmark_list.txt`.
 
 #### Build Documentation
 
@@ -98,10 +101,9 @@ To build documentation (doxygen required)
 
 
 
-Building Tiramisu (Long Version)
----------------------------------
+## Building Tiramisu (Long Version)
 #### Prerequisites
-###### Required
+###### Required Packages
 
 1) autoconf and libtool.
         
@@ -118,54 +120,24 @@ Building Tiramisu (Long Version)
 
         # On MacOS
         sudo brew install cmake
-  
-###### Optional
-1) If you want to run Halide benchmarks/tests: libpng and libjpeg
-
-2) If you want to run BLAS benchmarks: Intel MKL
-
-3) If you want to generate documentation: Doxygen
 
 
-#### Building
-1) Get Tiramisu
 
-        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
-        cd tiramisu
+###### Optional Packages
+1) libpng and libjpeg: to run Halide benchmarks/tests.
+2) Intel MKL BLAS: to run BLAS benchmarks.
+3) Doxygen: to generate documentation.
 
-2) Get and install the submodules ISL and Halide
+The following requirements are supposed to be installed automatically by calling the script `./utils/scripts/install_submodules.sh`. If that script does not work for any reason, you can install the library manually.
 
-        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
-
-3) Optional: Configure the tiramisu build.  Do this step only if you need to generate MPI or GPU code, or if you want to run the BLAS benchmarks (and compare with the Intel MKL library).
-
-    - Edit the `configure.cmake` file.
-    - Set any variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
-    - To use the GPU backend, set `USE_GPU` to `true`.
-    - To use the distributed backend, set `USE_MPI` to `true`.
-
-4) Build the main tiramisu library
-
-        mkdir build
-        cd build
-        cmake ..
-        make -j tiramisu
+3) LLVM-5.0 or greater (required by the [Halide](https://github.com/halide/Halide) framework,
+  check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
 
 
-##### Prerequisites
-
-1) LLVM-5.0 or greater (required by the [Halide] (https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README] (https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
-
-
-Please follow the following instructions only if installation using the short version does not work.
 
 ##### Compiling ISL
 
-Install the [ISL] (http://repo.or.cz/w/isl.git) Library.  Check the ISL [README] (http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.  Make sure also that the GMP library is installed (https://gmplib.org/).  To install them on Ubuntu use the following commands:
-
-        sudo apt-get install autoconf
-        sudo apt-get install libtool
+Install the [ISL](http://repo.or.cz/w/isl.git) Library.  Check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.
 
 To install ISL
 
@@ -177,7 +149,7 @@ To install ISL
         make -j
         make install
 
-After installing ISL, you need to update the following paths in the Makefile to point to the ISL prefix (include and lib directories)
+After installing ISL, you need to update the following paths in the configure.cmake to point to the ISL prefix (include and lib directories)
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
