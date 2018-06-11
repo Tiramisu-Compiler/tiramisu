@@ -1,5 +1,4 @@
 ## Building Tiramisu
----------------------------------
 #### Prerequisites
 ###### Required
 1) autoconf and libtool.
