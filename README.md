@@ -1,4 +1,7 @@
-## Building Tiramisu
+## Building Tiramisu (Short)
+
+This section provides a short version about how to build Tiramisu.  A more version is below.
+
 #### Prerequisites
 ###### Required
 1) Autoconf and libtool.
@@ -32,6 +35,109 @@
         cd build
         cmake ..
         make -j tiramisu
+
+
+## Building Tiramisu (Long Version)
+#### Prerequisites
+###### Required
+
+1) autoconf and libtool.
+        
+        # On Ubuntu
+        sudo apt-get install autoconf libtool
+        
+        # On MacOS
+        sudo brew install autoconf libtool
+
+2) CMake: version 3.5 or greater.
+  
+        # On Ubuntu
+        sudo apt-get install cmake
+
+        # On MacOS
+        sudo brew install cmake
+
+
+###### Optional Packages
+1) libpng and libjpeg: to run Halide benchmarks/tests.
+
+        # On Ubuntu
+        sudo apt-get install libpng-dev libjpeg-dev
+        
+        # On MacOS
+        sudo brew install libpng libjpeg
+
+2) Intel MKL library: to run BLAS benchmarks.
+
+        # Download and installe it from (Linear Algebra and Deep Neural Network are required)
+        https://software.intel.com/mkl
+
+3) Doxygen: to generate documentation.
+
+        # On Ubuntu
+        sudo apt-get install doxygen
+
+        # On MacOs
+        sudo brew install doxygen
+
+Tiramisu relies on ISL, Halide and LLVM.  These packages are supposed to be installed automatically by calling the script `./utils/scripts/install_submodules.sh`. If the script fails, you can still install them manually as follows.
+
+
+##### Building ISL
+
+Install the [ISL](http://repo.or.cz/w/isl.git) Library.  Check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.
+
+To install ISL
+
+        cd 3rdParty/isl
+        git submodule update --init --remote --recursive
+        mkdir build/
+        ./autogen.sh
+        ./configure --prefix=$PWD/build/ --with-int=imath
+        make -j
+        make install
+
+After installing ISL, you need to update the following paths in the configure.cmake to point to the ISL prefix (include and lib directories)
+
+    ISL_INCLUDE_DIRECTORY: path to the ISL include directory
+    ISL_LIB_DIRECTORY: path to the ISL library (lib/)
+
+###### Building LLVM
+
+LLVM-5.0 or greater (required by the [Halide](https://github.com/halide/Halide) framework,
+check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
+
+
+##### Building Halide
+
+You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in the file configure_paths.sh. If you installed LLVM from source, this path is usually set as follows
+
+    LLVM_CONFIG_BIN=<path to llvm>/build/bin/
+    
+If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config
+
+To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
+
+    git submodule update --init --remote
+    cd Halide
+    git checkout tiramisu
+    make -j
+
+Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve and compile Halide.
+
+You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
+
+##### Building Tiramisu
+
+To build Tiramisu
+
+    cmake CMakeLists.txt
+    make -j tiramisu
+
+You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
+
 
 
 ## Tutorials, Tests and Documentation
@@ -97,91 +203,6 @@ To add a given benchmark to the build system, add its name in the file
 To build documentation (doxygen required)
 
     make doc
-
-
-
-## Building Tiramisu (Long Version)
-#### Prerequisites
-###### Required Packages
-
-1) autoconf and libtool.
-        
-        # On Ubuntu
-        sudo apt-get install autoconf libtool
-        
-        # On MacOS
-        sudo brew install autoconf libtool
-
-2) CMake: version 3.5 or greater.
-  
-        # On Ubuntu
-        sudo apt-get install cmake
-
-        # On MacOS
-        sudo brew install cmake
-
-
-
-###### Optional Packages
-1) libpng and libjpeg: to run Halide benchmarks/tests.
-2) Intel MKL BLAS: to run BLAS benchmarks.
-3) Doxygen: to generate documentation.
-
-The following requirements are supposed to be installed automatically by calling the script `./utils/scripts/install_submodules.sh`. If that script does not work for any reason, you can install the library manually.
-
-3) LLVM-5.0 or greater (required by the [Halide](https://github.com/halide/Halide) framework,
-  check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
-
-
-
-##### Compiling ISL
-
-Install the [ISL](http://repo.or.cz/w/isl.git) Library.  Check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.
-
-To install ISL
-
-        cd 3rdParty/isl
-        git submodule update --init --remote --recursive
-        mkdir build/
-        ./autogen.sh
-        ./configure --prefix=$PWD/build/ --with-int=imath
-        make -j
-        make install
-
-After installing ISL, you need to update the following paths in the configure.cmake to point to the ISL prefix (include and lib directories)
-
-    ISL_INCLUDE_DIRECTORY: path to the ISL include directory
-    ISL_LIB_DIRECTORY: path to the ISL library (lib/)
-
-##### Compiling Halide
-
-You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in the file configure_paths.sh. If you installed LLVM from source, this path is usually set as follows
-
-    LLVM_CONFIG_BIN=<path to llvm>/build/bin/
-    
-If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config
-
-To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
-
-    git submodule update --init --remote
-    cd Halide
-    git checkout tiramisu
-    make -j
-
-Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve and compile Halide.
-
-You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
-
-##### Building Tiramisu
-
-To build Tiramisu
-
-    cmake CMakeLists.txt
-    make -j tiramisu
-
-You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
-
-    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
 
 
 How To Use Tiramisu
