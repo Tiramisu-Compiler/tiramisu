@@ -1,11 +1,11 @@
 ## Building Tiramisu
 #### Prerequisites
 ###### Required
-1) autoconf and libtool.
+1) Autoconf and libtool.
 2) CMake: version 3.5 or greater. [Installation instructions](https://cmake.org/install/).
   
 ###### Optional
-1) libpng and libjpeg: to run Halide benchmarks/tests.
+1) Libpng and libjpeg: to run Halide benchmarks/tests.
 2) Intel MKL BLAS: to run BLAS benchmarks.
 3) Doxygen: to generate documentation.
 
