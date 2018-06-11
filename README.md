@@ -1,19 +1,3 @@
-Tiramisu Compiler
-----------------------------------
-Tiramisu is a code optimization and code generation framework.  The user can integrate Tiramisu in his compiler to perform advanced loop nest optimization and target multiple architectures using Tiramisu.  The user can express his code in the Tiramisu intermediate representation (Tiramisu IR), he can use the Tiramisu API to perform different optimizations and finaly he can generate the IR of his compiler of generate directly highly optimized code (LLVM, Vivado HLS, ...) targeting multicore, GPUs or FPGAs.
-
-Current optimizations include:
-- Loop nest transformations: loop tiling, loop fusion/distribution, loop spliting, loop interchange, loop shifting, loop unrolling, ...
-- Affine data mappings: storage reordering, modulo storage (storage folding), ...
-- For shared memory systems: loop parallelization, loop vectorization, ...
-
-Current code generators:
-- Multicore CPUs.
-- GPUs.
-- Distributed machines (MPI).
-- FPGA (Vivado HLS).
-
-
 Compiling Tiramisu
 ----------------------
 #### Prerequisites
