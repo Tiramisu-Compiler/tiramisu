@@ -1,40 +1,32 @@
-Compiling Tiramisu
-----------------------
-#### Prerequisites
+Building Tiramisu (short version)
+---------------------------------
+## Prerequisites
 ###### Required
-
-1) autoconf and libtool.  To install them on Ubuntu you can use the following commands:
-
-        sudo apt-get install autoconf
-        sudo apt-get install libtool
-
-2) CMake 3.5 or greater. Instructions on installing CMake can be found on
-  the project's [website] (https://cmake.org/install/).
+1) autoconf and libtool.
+2) CMake: version 3.5 or greater. [Installation instructions](https://cmake.org/install/).
   
 ###### Optional
-1) If you want to run Halide benchmarks/tests: libpng and libjpeg
-
-2) If you want to run BLAS benchmarks: Intel MKL
-
-3) If you want to generate documentation: Doxygen
+1) libpng and libjpeg: to run Halide benchmarks/tests.
+2) Intel MKL BLAS: to run BLAS benchmarks.
+3) Doxygen: to generate documentation.
 
 
-#### Building
+## Building
 1) Get Tiramisu
 
         git clone https://github.com/Tiramisu-Compiler/tiramisu.git
         cd tiramisu
 
-2) Get and install the submodules ISL and Halide
+2) Get and install submodules (ISL, LLVM and Halide)
 
         ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
 
-3) Optional: Configure the tiramisu build.  Do this step only if you need to generate MPI or GPU code, or if you want to run the BLAS benchmarks (and compare with the Intel MKL library).
+3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.
 
-    - Edit the `configure.cmake` file.
-    - Set any variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
     - To use the GPU backend, set `USE_GPU` to `true`.
-    - To use the distributed backend, set `USE_MPI` to `true`.
+    - To use the distributed backend, set `USE_MPI` to `true` and, if the MPI library needed, set the variables MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if the MPI library is not installed. 
+    - Set MKL_PREFIX if you want to run the benchmarks, ...).
+
 
 4) Build the main tiramisu library
 
@@ -107,8 +99,59 @@ To build documentation (doxygen required)
 
 
 
-Build Troubleshooting
-----------------------------
+Building Tiramisu (Long Version)
+---------------------------------
+#### Prerequisites
+###### Required
+
+1) autoconf and libtool.
+        
+        # On Ubuntu
+        sudo apt-get install autoconf libtool
+        
+        # On MacOS
+        sudo brew install autoconf libtool
+
+2) CMake: version 3.5 or greater.
+  
+        # On Ubuntu
+        sudo apt-get install cmake
+
+        # On MacOS
+        sudo brew install cmake
+  
+###### Optional
+1) If you want to run Halide benchmarks/tests: libpng and libjpeg
+
+2) If you want to run BLAS benchmarks: Intel MKL
+
+3) If you want to generate documentation: Doxygen
+
+
+#### Building
+1) Get Tiramisu
+
+        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+        cd tiramisu
+
+2) Get and install the submodules ISL and Halide
+
+        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+
+3) Optional: Configure the tiramisu build.  Do this step only if you need to generate MPI or GPU code, or if you want to run the BLAS benchmarks (and compare with the Intel MKL library).
+
+    - Edit the `configure.cmake` file.
+    - Set any variable that you need (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS if you want to use MPI; MKL_PREFIX if you want to run the benchmarks, ...).
+    - To use the GPU backend, set `USE_GPU` to `true`.
+    - To use the distributed backend, set `USE_MPI` to `true`.
+
+4) Build the main tiramisu library
+
+        mkdir build
+        cd build
+        cmake ..
+        make -j tiramisu
+
 
 ##### Prerequisites
 
