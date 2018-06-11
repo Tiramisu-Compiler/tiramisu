@@ -38,7 +38,7 @@ Compiling Tiramisu
 #### Building
 1) Get Tiramisu
 
-        git clone https://github.com/rbaghdadi/tiramisu.git
+        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
         cd tiramisu
 
 2) Get and install the submodules ISL and Halide
