@@ -11,7 +11,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
 3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
-4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks and tests.
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
 5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
 
@@ -89,7 +89,7 @@ For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the mi
         sudo brew install doxygen
 
 
-4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks and tests.
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
 
         # On Ubuntu
         sudo apt-get install libpng-dev libjpeg-dev
