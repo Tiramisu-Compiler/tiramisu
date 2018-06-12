@@ -1,3 +1,6 @@
+## Overview
+Tiramisu is a compiler for expressing fast, portable and composable data parallel computations.  The user can express algorithms using a simple C++ API to automatically generate highly optimized code.  Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.  Supported backends include: multicore X86, ARM CPUs, Nvidia GPUs, Xilinx FPGA, distributed machines (MPI), and adding new architectures is easy.
+
 ## Building Tiramisu
 
 This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
