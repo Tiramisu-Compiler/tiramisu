@@ -31,7 +31,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
     - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
     - Set MKL_PREFIX to run the BLAS benchmarks.
 
-4) Build the main tiramisu library
+4) Build the main Tiramisu library
 
         mkdir build
         cd build
