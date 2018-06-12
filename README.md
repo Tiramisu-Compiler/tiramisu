@@ -4,8 +4,8 @@ This section provides a short version of how to build Tiramisu.  A more detailed
 
 #### Prerequisites
 ###### Required
-1) Autoconf and libtool.
-2) CMake: version 3.5 or greater. [Installation instructions](https://cmake.org/install/).
+1) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+2) [CMake](https://cmake.org/): version 3.5 or greater.
   
 ###### Optional
 1) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks/tests.
@@ -41,7 +41,7 @@ This section provides a short version of how to build Tiramisu.  A more detailed
 ## Building Tiramisu (Long Version)
 #### Prerequisites
 
-For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the missing packages ([How to install Homebrew](https://docs.brew.sh/Installation)).
+For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the missing packages ([how to install Homebrew](https://docs.brew.sh/Installation)).
 
 ###### Required
 
