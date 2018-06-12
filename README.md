@@ -1,6 +1,6 @@
 ## Building Tiramisu (Short Version)
 
-This section provides a short version description of how to build Tiramisu.  A more detailed description is provided below.  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
+This section provides a short description of how to build Tiramisu.  A more detailed description is provided below.  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
 
 #### Prerequisites
 ###### Required
