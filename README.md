@@ -42,7 +42,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 ## Building Tiramisu (Long Version)
 #### Prerequisites
 
-For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the missing packages ([how to install Homebrew](https://docs.brew.sh/Installation)).
+For MacOs, we provide instructions on how to install the missing packages using [Homebrew](https://brew.sh/) but you can install these packages using any other way.  If you do not have Homebrew, you can install it as described [here](https://docs.brew.sh/Installation).
 
 ###### Required
 
