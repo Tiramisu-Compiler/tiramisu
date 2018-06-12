@@ -104,8 +104,7 @@ After installing ISL, you need to update the following paths in the configure.cm
 
 ###### Building LLVM
 
-LLVM-5.0 or greater (required by the [Halide](https://github.com/halide/Halide) framework,
-check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it).
+LLVM-5.0 or greater: required by the Halide framework. Check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it.
 
 
 ##### Building Halide
