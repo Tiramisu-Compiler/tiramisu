@@ -69,7 +69,7 @@ This section provides a short version of how to build Tiramisu.  A more detailed
 
 2) Intel MKL library: to run BLAS benchmarks.
 
-        # Download and installe it from (Linear Algebra and Deep Neural Network are required)
+        # Download and install Intel MKL (Linear Algebra and Deep Neural Network packages)
         https://software.intel.com/mkl
 
 3) Doxygen: to generate documentation.
