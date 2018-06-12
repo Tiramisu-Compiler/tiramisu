@@ -1,3 +1,44 @@
+## Building Tiramisu (Short Version)
+
+This section provides a short description of how to build Tiramisu.  A more detailed description is provided below.  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
+
+#### Prerequisites
+###### Required
+1) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+2) [CMake](https://cmake.org/): version 3.5 or greater.
+  
+###### Optional
+1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
+2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
+3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
+5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+
+
+#### Building
+1) Get Tiramisu
+
+        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+        cd tiramisu
+
+2) Get and install Tiramisu submodules (ISL, LLVM and Halide)
+
+        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+
+3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
+
+    - To use the GPU backend, set `USE_GPU` to `true`.  If the CUDA library is not found automatically while building Tiramisu, the user will be prompt to provide the path to the CUDA library.
+    - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
+    - Set MKL_PREFIX to run the BLAS benchmarks.
+
+4) Build the main Tiramisu library
+
+        mkdir build
+        cd build
+        cmake ..
+        make -j tiramisu
+
+
 ## Building Tiramisu (Long Version)
 #### Prerequisites
 
