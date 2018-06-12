@@ -6,7 +6,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 PROJECT_SRC_DIR=$1
-CMAKE=${PROJECT_SRC_DIR}/../cmake-3.9.0_prefix/bin/cmake
+CMAKE=cmake
 CORES=4
 
 set -e
