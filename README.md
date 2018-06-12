@@ -46,7 +46,7 @@ For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the mi
 
 ###### Required
 
-1) autoconf and libtool.
+1) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
         
         # On Ubuntu
         sudo apt-get install autoconf libtool
@@ -54,7 +54,7 @@ For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the mi
         # On MacOS
         sudo brew install autoconf libtool
 
-2) CMake: version 3.5 or greater.
+2) [CMake](https://cmake.org/): version 3.5 or greater.
   
         # On Ubuntu
         sudo apt-get install cmake
