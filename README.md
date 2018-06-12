@@ -97,7 +97,7 @@ To install ISL
         make -j
         make install
 
-After installing ISL, you need to update the following paths in the configure.cmake to point to the ISL prefix (include and lib directories)
+After installing ISL, you need to update the following paths in `configure.cmake` to point to the ISL prefix (include and lib directories)
 
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
@@ -109,11 +109,11 @@ LLVM-5.0 or greater: required by the Halide framework. Check the section "Acquir
 
 ##### Building Halide
 
-You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in the file configure_paths.sh. If you installed LLVM from source, this path is usually set as follows
+You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in `configure.cmake`. If you installed LLVM from source, this path is usually set as follows
 
     LLVM_CONFIG_BIN=<path to llvm>/build/bin/
     
-If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config
+If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config.
 
 To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
 
@@ -121,8 +121,6 @@ To get the Halide submodule and compile it run the following commands (in the Ti
     cd Halide
     git checkout tiramisu
     make -j
-
-Otherwise, you can use the script retrieve_and_compile_halide.sh to retrieve and compile Halide.
 
 You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
 
@@ -133,8 +131,12 @@ To build Tiramisu
     cmake CMakeLists.txt
     make -j tiramisu
 
-You need to add the Halide library path to your system library path (DYLD_LIBRARY_PATH on Mac OS).
+You need to add the Halide library path to your system library path.
 
+    # On Ubuntu
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
+
+    # On MacOs
     export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
 
 
@@ -231,6 +233,6 @@ Tutorials
 - [tutorial 05](tutorials/tutorial_05.cpp): simple sequence of computations.
 - [tutorial 06](tutorials/tutorial_06.cpp): reduction example.
 - [tutorial 08](tutorials/tutorial_08.cpp): update example.
-- [tutorial 09](tutorials/tutorial_09.cpp): complicate reduction/update example.
+- [tutorial 09](tutorials/tutorial_09.cpp): complicated reduction/update example.
 
 More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
