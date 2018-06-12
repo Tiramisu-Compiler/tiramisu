@@ -99,7 +99,7 @@ For MacOs, we provide instructions on how to install the missing packages using 
 
 5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
-        # Download and install Intel MKL (Linear Algebra and Deep Neural Network packages)
+        # Download and install Intel MKL from:
         https://software.intel.com/mkl
 
 
