@@ -28,7 +28,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.
 
     - To use the GPU backend, set `USE_GPU` to `true`.  If the CUDA library is not found automatically, set the following variables: .... (TODO Malek).
-    - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
+    - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables as described in comments in `configure.cmake`: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
     - Set MKL_PREFIX to run the BLAS benchmarks.
 
 4) Build the main tiramisu library
