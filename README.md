@@ -8,11 +8,12 @@ This section provides a short version description of how to build Tiramisu.  A m
 2) [CMake](https://cmake.org/): version 3.5 or greater.
   
 ###### Optional
-1) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks/tests.
-2) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
+2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
 3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
-4) [OpenMPI](https://www.open-mpi.org/): to run generated distributed code (MPI).
-5) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run generate CUDA code.
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks/tests.
+5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+
 
 #### Building
 1) Get Tiramisu
@@ -63,28 +64,7 @@ For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the mi
 
 
 ###### Optional Packages
-1) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks/tests.
-
-        # On Ubuntu
-        sudo apt-get install libpng-dev libjpeg-dev
-        
-        # On MacOS
-        sudo brew install libpng libjpeg
-
-2) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
-
-        # Download and install Intel MKL (Linear Algebra and Deep Neural Network packages)
-        https://software.intel.com/mkl
-
-3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
-
-        # On Ubuntu
-        sudo apt-get install doxygen
-
-        # On MacOs
-        sudo brew install doxygen
-
-4) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run generated distributed code (MPI).
+1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 
         # On Ubuntu
         sudo apt-get install openmpi-bin openmpi-common libopenmpi-dev libopenmpi-dbg
@@ -94,10 +74,34 @@ For MacOs, we use [Homebrew](https://brew.sh/) to describe how to install the mi
         sudo brew install open-mpi
         sudo brew install openssh
 
-5) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run generate CUDA code.
+2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
 
         # Downalod and install the CUDA toolkit
         https://developer.nvidia.com/cuda-toolkit
+
+
+3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
+
+        # On Ubuntu
+        sudo apt-get install doxygen
+
+        # On MacOs
+        sudo brew install doxygen
+
+
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks/tests.
+
+        # On Ubuntu
+        sudo apt-get install libpng-dev libjpeg-dev
+        
+        # On MacOS
+        sudo brew install libpng libjpeg
+
+5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+
+        # Download and install Intel MKL (Linear Algebra and Deep Neural Network packages)
+        https://software.intel.com/mkl
+
 
 Tiramisu relies on ISL, Halide and LLVM.  These packages are supposed to be installed automatically by calling the script `./utils/scripts/install_submodules.sh`. If the script fails, you can still install them manually as follows.
 
