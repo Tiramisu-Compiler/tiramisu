@@ -103,14 +103,12 @@ For MacOs, we provide instructions on how to install the missing packages using 
         https://software.intel.com/mkl
 
 
-Tiramisu relies on ISL, Halide and LLVM.  These packages are supposed to be installed automatically by calling the script `./utils/scripts/install_submodules.sh`. If the script fails, you can still install them manually as follows.
+Tiramisu requires the following packages to be installed: ISL, Halide and LLVM.  The user is supposed to install them by running the script `./utils/scripts/install_submodules.sh`.  If the script fails, the user can still install them manually as described below.
 
 
 ##### Building ISL
 
-Install the [ISL](http://repo.or.cz/w/isl.git) Library.  Check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/README) for details.  Make sure that autoconf and libtool are installed on your system before building ISL.
-
-To install ISL
+Install the [ISL](http://repo.or.cz/w/isl.git) Library as follows
 
         cd 3rdParty/isl
         git submodule update --init --remote --recursive
@@ -125,18 +123,20 @@ After installing ISL, you need to update the following paths in `configure.cmake
     ISL_INCLUDE_DIRECTORY: path to the ISL include directory
     ISL_LIB_DIRECTORY: path to the ISL library (lib/)
 
+If the above fails, check the ISL [README](http://repo.or.cz/isl.git/blob/HEAD:/README) file for details on how you should install it in general.  Make sure that autoconf and libtool are installed on your system before building ISL.
+
 ###### Building LLVM
 
-LLVM-5.0 or greater: required by the Halide framework. Check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM and install it.
+LLVM-5.0 or greater: required by the Halide framework. Check the section "Acquiring LLVM" in the Halide [README](https://github.com/halide/Halide/blob/master/README.md) for details on how to get LLVM, build and install it.
 
 
 ##### Building Halide
 
-You need first to set the variable LLVM_CONFIG_BIN to point to the folder that contains llvm-config in the installed LLVM.  You can set this variable in `configure.cmake`. If you installed LLVM from source, this path is usually set as follows
+You need first to set the variable `LLVM_CONFIG_BIN` to point to the folder that contains `llvm-config` in the installed LLVM.  You can set this variable in `configure.cmake`. If you installed LLVM from source in a directory called `build/`, the path is usually set as follows
 
     LLVM_CONFIG_BIN=<path to llvm>/build/bin/
-    
-If you installed LLVM from the distribution packages, you need to find where it was installed and make LLVM_CONFIG_BIN point to the folder that contains llvm-config.
+
+If you installed LLVM from the distribution packages, you need to find where it was installed and make `LLVM_CONFIG_BIN` point to the folder that contains `llvm-config`.
 
 To get the Halide submodule and compile it run the following commands (in the Tiramisu root directory)
 
@@ -149,19 +149,20 @@ You may get an access rights error from git when running trying to retrieve Hali
 
 ##### Building Tiramisu
 
-To build Tiramisu
+To build Tiramisu, assuming you are in the Tiramisu root directory
 
-    cmake CMakeLists.txt
-    make -j tiramisu
+        mkdir build
+        cd build
+        cmake ..
+        make -j tiramisu
 
 You need to add the Halide library path to your system library path.
 
     # On Ubuntu
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/3rdParty/Halide/lib/
 
     # On MacOs
-    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/Halide/lib/
-
+    export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:<TIRAMISU_ROOT_DIRECTORY>/3rdParty/Halide/lib/
 
 
 ## Tutorials, Tests and Documentation
