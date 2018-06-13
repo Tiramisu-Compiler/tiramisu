@@ -74,7 +74,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
 
 
-## Trying Tutorials, Tests and Documentation
+## Tutorials, Tests and Documentation
 #### Run Tutorials
 
 To run all the tutorials, assuming you are in the build/ directory
