@@ -5,15 +5,7 @@ For MacOs, we provide instructions on how to install the missing packages using 
 
 ###### Required
 
-1) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
-        
-        # On Ubuntu
-        sudo apt-get install autoconf libtool
-        
-        # On MacOS
-        sudo brew install autoconf libtool
-
-2) [CMake](https://cmake.org/): version 3.5 or greater.
+1) [CMake](https://cmake.org/): version 3.5 or greater.
   
         # On Ubuntu
         sudo apt-get install cmake
@@ -67,12 +59,10 @@ Tiramisu requires the following packages to be installed: ISL, Halide and LLVM. 
 
 ##### Building ISL
 
-Install the [ISL](http://repo.or.cz/w/isl.git) Library as follows
+Install the [ISL](http://isl.gforge.inria.fr/) Library as follows
 
         cd 3rdParty/isl
-        git submodule update --init --remote --recursive
         mkdir build/
-        ./autogen.sh
         ./configure --prefix=$PWD/build/ --with-int=imath
         make -j
         make install
