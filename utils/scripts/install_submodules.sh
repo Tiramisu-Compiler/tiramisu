@@ -7,7 +7,7 @@ fi
 
 PROJECT_SRC_DIR=$1
 CMAKE=cmake
-CORES=4
+CORES=8
 
 set -e
 . ${PROJECT_SRC_DIR}/utils/scripts/functions.sh
@@ -36,7 +36,6 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
 if [ ! -d "build" ]; then
     echo_and_run_cmd "mkdir build/"
 fi
-echo_and_run_cmd "./autogen.sh"
 echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
 echo_and_run_cmd "make -j $CORES"
 echo_and_run_cmd "make install"
