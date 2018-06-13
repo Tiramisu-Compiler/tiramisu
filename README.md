@@ -1,11 +1,61 @@
-## Getting Started
+## Overview
+Tiramisu is a compiler for expressing fast, portable and composable data parallel computations. The user can express algorithms using a simple C++ API and can automatically generate highly optimized code. Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.
 
-- [INSTALL](INSTALL.md) Tiramisu.
+The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations. It can also target (1) multicore X86 CPUs, (2) ARM CPUs, (3) Nvidia GPUs, (4) Xilinx FPGAs (Vivado HLS) and (5) distributed machines (using MPI) and is designed to enable easy integration of code generators for new architectures.
+
+## Example
+
+
+## Building Tiramisu
+
+This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
+
+#### Prerequisites
+###### Required
+1) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+2) [CMake](https://cmake.org/): version 3.5 or greater.
+  
+###### Optional
+1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
+2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
+3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
+4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
+5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+
+
+#### Building
+1) Get Tiramisu
+
+        git clone https://github.com/Tiramisu-Compiler/tiramisu.git
+        cd tiramisu
+
+2) Get and install Tiramisu submodules (ISL, LLVM and Halide)
+
+        ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+
+3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
+
+    - To use the GPU backend, set `USE_GPU` to `true`.  If the CUDA library is not found automatically while building Tiramisu, the user will be prompt to provide the path to the CUDA library.
+    - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
+    - Set MKL_PREFIX to run the BLAS benchmarks.
+
+4) Build the main Tiramisu library
+
+        mkdir build
+        cd build
+        cmake ..
+        make -j tiramisu
+
+
+## Getting Started
 - Read the [Tutorials](tutorials/README.md).
 - Read the [Tiramisu Paper](https://arxiv.org/abs/1804.10694).
+- Subscribe to Tiramisu [mailing list](https://lists.csail.mit.edu/mailman/listinfo/tiramisu).
+- Compiler internal [documentation](TODO).
 
 
-## Tutorials, Tests and Documentation
+
+## Trying Tutorials, Tests and Documentation
 #### Run Tutorials
 
 To run all the tutorials, assuming you are in the build/ directory
@@ -68,24 +118,3 @@ To add a given benchmark to the build system, add its name in the file
 To build documentation (doxygen required)
 
     make doc
-
-
-How To Use Tiramisu
-----------------------
-Tiramisu provides few classes to enable users to represent their program:
-- The `tiramisu::computation` class: a computation is composed of an expression and an iteration space but is not associated with any memory location.
-- The `tiramisu::function` class: a function is composed of multiple computations and a vector of arguments (functions arguments).
-- The `tiramisu::buffer`: a class to represent memory buffers.
-
-In general, in order to use Tiramisu to optimize, all what a user needs to do is the following:
-- Represent the program that needs to be optimized
-    - Instantiate a `tiramisu::function`,
-    - Instantiate a set of `tiramisu::computation` objects for each function,
-- Provide the list of optimizations (memory mapping and schedule)
-    - Provide the mapping of each `tiramisu::computation` to memory (i.e. where each computation should be stored in memory),
-    - Provide the schedule of each `tiramisu::computation` (a list of loop nest transformations and optimizations such as tiling, parallelization, vectorization, fusion, ...),
-- Generate code
-    - Generate an AST (Abstract Syntax Tree),
-    - Generate target code (an object file),
-
-
