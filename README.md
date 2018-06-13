@@ -5,6 +5,25 @@ The Tiramisu compiler is based on the polyhedral model thus it can express a lar
 
 ## Example
 
+The user can write `Tiramisu expressions` within a C++ code as follows.
+
+```cpp
+// C++ code with a Tiramisu expression.
+#include "tiramisu.h"
+
+void foo(int N, int array_a[N], int array_b[N], int array_c[N])
+{
+    tiramisu::init();
+
+    tiramisu::in A(int32_t, {N}, array_a), B(int32_t, {N}, array_b);
+    tiramisu::out C(int32_t, {N}, array_c);
+    
+    tiramisu::var i;
+    C(i) = A(i) + B(i);
+    
+    tiramisu::eval("CPU");
+}
+```
 
 ## Building Tiramisu
 
