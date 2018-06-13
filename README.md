@@ -70,7 +70,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 - Read the [Tutorials](tutorials/README.md).
 - Read the [Tiramisu Paper](https://arxiv.org/abs/1804.10694).
 - Subscribe to Tiramisu [mailing list](https://lists.csail.mit.edu/mailman/listinfo/tiramisu).
-- Compiler internal [documentation](TODO).
+- Read the compiler [internal documentation](TODO) (if you want to contribute to the compiler).
 
 
 
