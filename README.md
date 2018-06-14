@@ -15,13 +15,12 @@ void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
     tiramisu::init();
 
-    tiramisu::in A(int32_t, {N}, array_a), B(int32_t, {N}, array_b);
-    tiramisu::out C(int32_t, {N}, array_c);
-    
-    tiramisu::var i;
+    tiramisu::comp A(array_a), B(array_b), C(array_c);
+    tiramisu::iter i;
+
     C(i) = A(i) + B(i);
     
-    tiramisu::eval("CPU");
+    tiramisu::compile();
 }
 ```
 
