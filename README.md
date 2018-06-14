@@ -1,7 +1,7 @@
 ## Overview
 Tiramisu is a compiler for expressing fast, portable and composable data parallel computations. The user can express algorithms using a simple C++ API and can automatically generate highly optimized code. Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.
 
-The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations. It can also target (1) multicore X86 CPUs, (2) ARM CPUs, (3) Nvidia GPUs, (4) Xilinx FPGAs (Vivado HLS) and (5) distributed machines (using MPI) and is designed to enable easy integration of code generators for new architectures.
+The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations.  It can also target (1) multicore X86 CPUs, (2) Nvidia GPUs, (3) Xilinx FPGAs (Vivado HLS) and (4) distributed machines (using MPI) and is designed to enable easy integration of code generators for new architectures.
 
 ## Example
 
@@ -61,7 +61,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
 
 ## Getting Started
-- Download the [binaries](https://github.com/Tiramisu-Compiler/tiramisu/releases) or build Tiramisu from [sources](https://github.com/Tiramisu-Compiler/tiramisu/).
+- Build [Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu/).
 - Read the [Tutorials](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/tutorials/README.md).
 - Read the [Tiramisu Paper](https://arxiv.org/abs/1804.10694).
 - Subscribe to Tiramisu [mailing list](https://lists.csail.mit.edu/mailman/listinfo/tiramisu).
