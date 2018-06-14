@@ -62,11 +62,11 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
 
 ## Getting Started
-- Read the [Tutorials](tutorials/README.md).
+- Download the [binaries](https://github.com/Tiramisu-Compiler/tiramisu/releases) or build Tiramisu from [sources](https://github.com/Tiramisu-Compiler/tiramisu/).
+- Read the [Tutorials](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/tutorials/README.md).
 - Read the [Tiramisu Paper](https://arxiv.org/abs/1804.10694).
 - Subscribe to Tiramisu [mailing list](https://lists.csail.mit.edu/mailman/listinfo/tiramisu).
 - Read the compiler [internal documentation](https://tiramisu-compiler.github.io/doc/) (if you want to contribute to the compiler).
-
 
 
 ## Run Tests
