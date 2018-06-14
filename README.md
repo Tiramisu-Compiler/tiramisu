@@ -36,9 +36,8 @@ This section provides a short description of how to build Tiramisu.  A more deta
 ###### Optional
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
-3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
-4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
-5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+3) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
+4) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
 
 #### Building
@@ -69,24 +68,11 @@ This section provides a short description of how to build Tiramisu.  A more deta
 - Read the [Tutorials](tutorials/README.md).
 - Read the [Tiramisu Paper](https://arxiv.org/abs/1804.10694).
 - Subscribe to Tiramisu [mailing list](https://lists.csail.mit.edu/mailman/listinfo/tiramisu).
-- Read the compiler [internal documentation](TODO) (if you want to contribute to the compiler).
+- Read the compiler [internal documentation](https://tiramisu-compiler.github.io/doc/) (if you want to contribute to the compiler).
 
 
 
-## Tutorials, Tests and Documentation
-#### Run Tutorials
-
-To run all the tutorials, assuming you are in the build/ directory
-
-    make tutorials
-    
-To run only one tutorial (tutorial_01 for example)
-
-    make run_tutorial_01
-    
-This will compile and run the code generator and then the wrapper.
-
-#### Run Tests
+## Run Tests
 
 To run all the tests, assuming you are in the build/ directory
 
