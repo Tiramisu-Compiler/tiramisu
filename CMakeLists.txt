@@ -256,9 +256,8 @@ foreach(b ${TIRAMISU_BENCHMARKS})
     new_benchmark(${b})
 endforeach()
 
-add_custom_target(doc DEPENDS ${PROJECT_DIR}/doc/Doxyfile ${PROJECT_DIR}/doc/Doxyfile_user ${PROJECT_DIR}/doc/Doxyfile_dev)
-add_custom_command(TARGET doc COMMAND doxygen doc/Doxyfile_user WORKING_DIRECTORY ${PROJECT_DIR})
-add_custom_command(TARGET doc COMMAND doxygen doc/Doxyfile_dev WORKING_DIRECTORY ${PROJECT_DIR})
+add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
+add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
 
 add_custom_target(tutorials)
 
