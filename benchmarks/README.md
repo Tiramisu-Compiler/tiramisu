@@ -1,4 +1,6 @@
-## Prerequisites
+## Setup
+
+#### Prerequisites
 1) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
 
         # On Ubuntu
@@ -12,6 +14,9 @@
         # Download and install Intel MKL from:
         https://software.intel.com/mkl
 
+
+#### Configuration
+Edit the file `configure.cmake` to set the variable MKL_PREFIX to point to the Intel MKL library.  An example of how this variable should be set is available in `configure.cmake`.
 
 
 ## Run Benchmarks
