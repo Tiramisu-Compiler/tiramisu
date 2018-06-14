@@ -89,29 +89,3 @@ To run only one test (test_01 for example)
 This will compile and run the code generator and then the wrapper.
 
 To view the output of a test pass the `--verbose` option to `ctest`.
-
-#### Run Benchmarks
-
-To run all the benchmarks, assuming you are in the build/ directory
-
-    make benchmarks
-
-To run only one benchmark (cvtcolor for example)
-
-    make run_benchmark_cvtcolor
-
-If you want to force the rebuild of a given benchmark, add -B option.
-
-    make -B run_benchmark_cvtcolor
-
-This will rebuild tiramisu, rebuild all the stage of code generation and run
-the benchmark.
-
-To add a given benchmark to the build system, add its name in the file
-`benchmarks/benchmark_list.txt`.
-
-#### Build Documentation
-
-To build documentation (doxygen required)
-
-    make doc
