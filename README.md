@@ -36,8 +36,6 @@ This section provides a short description of how to build Tiramisu.  A more deta
 ###### Optional
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
-3) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
-4) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
 
 #### Building
