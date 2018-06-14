@@ -31,16 +31,7 @@ For MacOs, we provide instructions on how to install the missing packages using 
         https://developer.nvidia.com/cuda-toolkit
 
 
-3) [Doxygen](http://www.stack.nl/~dimitri/doxygen/): to generate documentation.
-
-        # On Ubuntu
-        sudo apt-get install doxygen
-
-        # On MacOs
-        sudo brew install doxygen
-
-
-4) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
+3) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
 
         # On Ubuntu
         sudo apt-get install libpng-dev libjpeg-dev
@@ -48,7 +39,7 @@ For MacOs, we provide instructions on how to install the missing packages using 
         # On MacOS
         sudo brew install libpng libjpeg
 
-5) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
+4) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
         # Download and install Intel MKL from:
         https://software.intel.com/mkl
