@@ -4,8 +4,7 @@
 This page has two tutorials: one for Tiramisu users and the other one for new Tiramisu compiler developers (useful for adding new features, optimizations and backends).
 
 #### Tutorials for Tiramisu Users
-
-
+- To be added soon.
 
 #### Tutorials for Tiramisu Developpers
 
