@@ -34,8 +34,8 @@ This section provides a short description of how to build Tiramisu.  A more deta
 1) [CMake](https://cmake.org/): version 3.5 or greater.
   
 ###### Optional
-1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
-2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): to run the generated CUDA code.
+1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): if you want to generate and run distributed code (MPI).
+2) [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit): if you want to generate and run CUDA code.
 
 
 #### Building
