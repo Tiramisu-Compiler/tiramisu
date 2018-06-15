@@ -38,7 +38,9 @@ endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
-FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_TUTORIALS_RAW)
+FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
+FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
+
 
 macro(init_tags)
     set(is_gpu false)
@@ -95,7 +97,9 @@ endfunction()
 
 parse_list("${TIRAMISU_BENCHMARKS_RAW}" TIRAMISU_BENCHMARKS)
 parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
-parse_list("${TIRAMISU_TUTORIALS_RAW}" TIRAMISU_TUTORIALS)
+parse_list("${TIRAMISU_DEVELOPERS_TUTORIALS_RAW}" TIRAMISU_DEVELOPERS_TUTORIALS)
+parse_list("${TIRAMISU_USERS_TUTORIALS_RAW}" TIRAMISU_USERS_TUTORIALS)
+
 
 # Check that MPI variables are set correctly if we need it
 if (${USE_MPI})
@@ -273,7 +277,11 @@ function(new_tutorial descriptor type)
     add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
 
-foreach(t ${TIRAMISU_TUTORIALS})
+foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
     new_tutorial(${t} "developers")
+endforeach()
+
+foreach(t ${TIRAMISU_USERS_TUTORIALS})
+    new_tutorial(${t} "users")
 endforeach()
 
