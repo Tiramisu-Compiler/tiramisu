@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
     function0.dump_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_tutorial_10.o");
+    function0.gen_halide_obj("build/generated_fct_developers_tutorial_10.o");
 
     return 0;
 }
