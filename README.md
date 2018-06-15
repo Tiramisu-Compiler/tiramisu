@@ -1,4 +1,5 @@
-<img src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt="drawing" width="200px"/>
+
+<img src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt="tiramisu logo" class="center" width="64px"/>
 
 
 ## Overview
