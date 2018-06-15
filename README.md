@@ -3,9 +3,9 @@
 </p>
 
 <p align="center"> 
-    <i><h2>Tiramisu</h2></i> 
-</br>
-<i>A compiler for expressing fast, portable and composable data parallel computations</i> 
+    <b>Tiramisu</b>
+    </br>
+    <i>A compiler for expressing fast, portable and composable data parallel computations</i> 
 </p>
 
 
