@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     spmv.gen_time_space_domain();
     spmv.gen_isl_ast();
     spmv.gen_halide_stmt();
-    spmv.gen_halide_obj("build/generated_fct_tutorial_04.o");
+    spmv.gen_halide_obj("build/generated_fct_developers_tutorial_04.o");
 
     // Some debugging
     spmv.dump_halide_stmt();
