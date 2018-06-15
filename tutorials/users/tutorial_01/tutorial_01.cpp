@@ -1,4 +1,4 @@
-#include <tiramisu/tiramisu.h>
+//#include <tiramisu/tiramisu.h>
 
 /**
     Goal
@@ -17,6 +17,8 @@
 
 int main(int argc, char **argv)
 {
+
+#if 0
     // Let us assume that we have a C++ code that has an array buf.
     // We want to write a Tiramisu expression that assigns 0 to this array.
     int buf[100];
@@ -38,6 +40,7 @@ int main(int argc, char **argv)
 
     // Compile and run the Tiramisu expression.
     tiramisu::run();
+#endif
 
     return 0;
 }
