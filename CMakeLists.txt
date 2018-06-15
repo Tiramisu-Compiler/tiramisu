@@ -174,6 +174,13 @@ function(link_tags name)
     endif()
 endfunction()
 
+function(build_e name generator)
+    add_executable(${name} ${generator} ${HEADER_FILES})
+    target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
+    target_link_libraries(${name} ${LINK_FLAGS})
+    link_tags(${name})
+endfunction()
+
 function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
@@ -265,23 +272,33 @@ add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORK
 
 add_custom_target(tutorials)
 
-# type: either "developers" or "users"
-function(new_tutorial descriptor type)
+function(new_developers_tutorial descriptor)
     parse_descriptor(${descriptor})
-    set(generator_target ${type}_tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_${type}_tutorial_${id}.o")
+    set(generator_target developers_tutorial_${id}_fct_generator)
+    set_obj("${PROJECT_DIR}/build/generated_fct_developers_tutorial_${id}.o")
     set(tutorial_name tutorial_${id})
-    build_g(${generator_target} tutorials/${type}/tutorial_${id}/tutorial_${id}.cpp "${obj}")
-    build_w(${tutorial_name} "${obj}" tutorials/${type}/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/${type}/tutorial_${id}/wrapper_tutorial_${id}.h)
-    add_custom_target(run_${type}_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    build_g(${generator_target} tutorials/developers/tutorial_${id}/tutorial_${id}.cpp "${obj}")
+    build_w(${tutorial_name} "${obj}" tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/developers/tutorial_${id}/wrapper_tutorial_${id}.h)
+    add_custom_target(run_developers_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
 
+function(new_users_tutorial descriptor)
+    parse_descriptor(${descriptor})
+    set(generator_target users_tutorial_${id}_fct_generator)
+    set_obj("${PROJECT_DIR}/build/generated_fct_users_tutorial_${id}.o")
+    set(tutorial_name tutorial_${id})
+    build_e(${generator_target} tutorials/users/tutorial_${id}/tutorial_${id}.cpp)
+    add_custom_target(run_users_tutorial_${id} COMMAND ${generator_target} WORKING_DIRECTORY ${PROJECT_DIR})
+    add_custom_command(TARGET tutorials COMMAND ${generator_target} WORKING_DIRECTORY ${PROJECT_DIR})
+endfunction()
+
+
 foreach(t ${TIRAMISU_DEVELOPERS_TUTORIALS})
-    new_tutorial(${t} "developers")
+    new_developers_tutorial(${t})
 endforeach()
 
 foreach(t ${TIRAMISU_USERS_TUTORIALS})
-    new_tutorial(${t} "users")
+    new_users_tutorial(${t})
 endforeach()
 
