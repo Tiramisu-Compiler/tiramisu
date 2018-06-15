@@ -102,6 +102,6 @@ int main(int argc, char **argv) {
     c_blurx.set_access("{c_blurx[i,j]->b_blurx[i+1,j+1]}");
     c_blury.set_access("{c_blury[i,j]->b_blury[i+1,j+1]}");
 
-    blurxy.codegen({&b_input, &b_blury}, "build/generated_fct_tutorial_11.o");
+    blurxy.codegen({&b_input, &b_blury}, "build/generated_fct_developers_tutorial_11.o");
 
 }
