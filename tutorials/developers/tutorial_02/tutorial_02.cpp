@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     blurxy.gen_time_space_domain();
     blurxy.gen_isl_ast();
     blurxy.gen_halide_stmt();
-    blurxy.gen_halide_obj("build/generated_fct_tutorial_02.o");
+    blurxy.gen_halide_obj("build/generated_fct_developers_tutorial_02.o");
 
     // Some debugging
     blurxy.dump_iteration_domain();
