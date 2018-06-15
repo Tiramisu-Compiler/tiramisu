@@ -4,7 +4,11 @@
 This page has two tutorials: one for Tiramisu users and the other one for new Tiramisu compiler developers (useful for adding new features, optimizations and backends).
 
 #### Tutorials for Tiramisu Users
-- To be added soon.
+If you want to learn how to write Tiramisu code, this is the right tutorial
+for you.
+
+- [users_tutorial_01](tutorials/users/tutorial_01/tutorial_01.cpp): Tiramisu hello world (assign 0 to an array).
+
 
 #### Tutorials for Tiramisu Developpers
 
