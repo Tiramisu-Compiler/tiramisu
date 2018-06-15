@@ -1,7 +1,7 @@
 ## Tutorials
 --------------
 
-This page has two types of tutorials: Tutorials that target all Tiramisu users and tutorials that target only compiler developers (those who will adding new features to the Tiramisu compiler, new optimizations, backends, ...).
+This page has two types of tutorials: Tutorials written for all Tiramisu users and tutorials written only for compiler developers (those who will adding new features to the Tiramisu compiler, new optimizations, backends, ...).
 
 #### Tutorials for Tiramisu Users
 If you want to learn how to write Tiramisu code, this is the right tutorial
