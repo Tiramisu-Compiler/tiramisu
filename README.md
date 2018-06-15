@@ -1,4 +1,5 @@
-![Tiramisu logo](https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png =64x64)
+<img src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt="drawing" width="200px"/>
+
 
 ## Overview
 Tiramisu is a compiler for expressing fast, portable and composable data parallel computations. The user can express algorithms using a simple C++ API and can automatically generate highly optimized code. Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.
