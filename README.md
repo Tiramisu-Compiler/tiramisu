@@ -3,8 +3,7 @@
 </p>
 
 <p align="center"> 
-    <font size="7"><b>Tiramisu</b></font>
-    <center> <h1>heading 1</h1> </center>
+    <font size="1"><b>Tiramisu</b></font>
 </p>
 
 <p align="center"> 
