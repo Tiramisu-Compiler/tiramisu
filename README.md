@@ -49,7 +49,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
         git clone https://github.com/Tiramisu-Compiler/tiramisu.git
         cd tiramisu
 
-2) Get and install Tiramisu submodules (ISL, LLVM and Halide).  This step might take few hours.
+2) Get and install Tiramisu submodules (ISL, LLVM and Halide).  This step may take between few minutes to few hours (downloading and compiling LLVM is time consuming).
 
         ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
 
