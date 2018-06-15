@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     sequence.dump_trimmed_time_processor_domain();
     sequence.gen_isl_ast();
     sequence.gen_halide_stmt();
-    sequence.gen_halide_obj("build/generated_fct_tutorial_05.o");
+    sequence.gen_halide_obj("build/generated_fct_developers_tutorial_05.o");
 
     // Some debugging
     sequence.dump(true);
