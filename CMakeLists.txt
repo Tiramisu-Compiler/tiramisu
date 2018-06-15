@@ -38,7 +38,7 @@ endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
-FILE(STRINGS tutorials/tutorial_list.txt TIRAMISU_TUTORIALS_RAW)
+FILE(STRINGS tutorials/developer_tutorial_list.txt TIRAMISU_TUTORIALS_RAW)
 
 macro(init_tags)
     set(is_gpu false)
@@ -261,18 +261,19 @@ add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORK
 
 add_custom_target(tutorials)
 
-function(new_tutorial descriptor)
+# type: either "developers" or "users"
+function(new_tutorial descriptor type)
     parse_descriptor(${descriptor})
-    set(generator_target tutorial_${id}_fct_generator)
-    set_obj("${PROJECT_DIR}/build/generated_fct_tutorial_${id}.o")
+    set(generator_target ${type}_tutorial_${id}_fct_generator)
+    set_obj("${PROJECT_DIR}/build/generated_fct_${type}_tutorial_${id}.o")
     set(tutorial_name tutorial_${id})
-    build_g(${generator_target} tutorials/tutorial_${id}/tutorial_${id}.cpp "${obj}")
-    build_w(${tutorial_name} "${obj}" tutorials/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/tutorial_${id}/wrapper_tutorial_${id}.h)
-    add_custom_target(run_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    build_g(${generator_target} tutorials/${type}/tutorial_${id}/tutorial_${id}.cpp "${obj}")
+    build_w(${tutorial_name} "${obj}" tutorials/${type}/tutorial_${id}/wrapper_tutorial_${id}.cpp tutorials/${type}/tutorial_${id}/wrapper_tutorial_${id}.h)
+    add_custom_target(run_${type}_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
 endfunction()
 
 foreach(t ${TIRAMISU_TUTORIALS})
-    new_tutorial(${t})
+    new_tutorial(${t} "developers")
 endforeach()
 
