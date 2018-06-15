@@ -26,7 +26,7 @@ of Tiramisu.
 
 More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
 
-#### Run Tutorials
+## Run Tutorials
 
 To run all the tutorials, assuming you are in the build/ directory
 
