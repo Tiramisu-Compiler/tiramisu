@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     matmul.gen_time_space_domain();
     matmul.gen_isl_ast();
     matmul.gen_halide_stmt();
-    matmul.gen_halide_obj("build/generated_fct_tutorial_03.o");
+    matmul.gen_halide_obj("build/generated_fct_developers_tutorial_03.o");
 
     // Some debugging
     matmul.dump_iteration_domain();
