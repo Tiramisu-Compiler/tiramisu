@@ -1,5 +1,5 @@
 <p align="center"> 
-<img width=12% src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt=“Tiramisu” />
+<img width=12% src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent_with_text.png" alt=“Tiramisu” />
 </p>
 
 <p align="center"> 
