@@ -1,9 +1,11 @@
 <p align="center"> 
-<img width=30% src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt=“Tiramisu” />
+<img width=15% src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent.png" alt=“Tiramisu” />
 </p>
 
 <p align="center"> 
-<i>Tiramisu: a compiler for expressing fast, portable and composable data parallel computations</i> 
+<i>Tiramisu</i> 
+</br>
+<i>A compiler for expressing fast, portable and composable data parallel computations</i> 
 </p>
 
 
