@@ -1,14 +1,14 @@
 ## Tutorials
 --------------
 
-This page has two tutorials: one for Tiramisu users and the other one for new Tiramisu compiler developers (useful for adding new features, optimizations and backends).
+This page has two types of tutorials: Tutorials that target all Tiramisu users and tutorials that target only compiler developers (those who will adding new features to the Tiramisu compiler, new optimizations, backends, ...).
 
 #### Tutorials for Tiramisu Users
 - To be added soon.
 
-#### Tutorials for Tiramisu Developpers
+#### Tutorials for Tiramisu Developpers (Low Level Tiramisu API)
 
-If you want to contribute to the Tiramisu compiler itself (add new
+If you want to contribute to the Tiramisu compiler (add new
 optimizations, new backend, improve the front-end, ...), the following
 tutorials will help you learn more about the internal representation
 of Tiramisu.
