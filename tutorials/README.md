@@ -29,9 +29,13 @@ To run all the tutorials, assuming you are in the build/ directory
 
     make tutorials
     
-To run only one tutorial (tutorial_01 for example)
+To run only one tutorial from the user tutorials (users/tutorial_01 for example)
 
-    make run_tutorial_01
+    make run_users_tutorial_01
+
+and
+
+    make run_developers_tutorial_01
     
 This will compile and run the code generator and then the wrapper.
 
