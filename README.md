@@ -3,7 +3,7 @@
 </p>
 
 <p align="center"> 
-    <big><b>Tiramisu</b></big>
+    <font size="4"><b>Tiramisu</b></font>
 </p>
 <p align="center"> 
     <i>A compiler for expressing fast, portable and composable data parallel computations</i> 
