@@ -9,7 +9,7 @@ for you.
 - [users_tutorial_01](users/tutorial_01/tutorial_01.cpp): Tiramisu hello world (assign 0 to an array).
 
 
-## Tutorials for Tiramisu Developpers (Low Level Tiramisu API)
+## Tutorials for Tiramisu Developers (Low Level Tiramisu API)
 
 If you want to contribute to the Tiramisu compiler (add new
 optimizations, new backend, improve the front-end, ...), the following
