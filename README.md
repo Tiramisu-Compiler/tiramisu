@@ -2,11 +2,6 @@
 <img width=12% src="https://raw.githubusercontent.com/Tiramisu-Compiler/tiramisu-compiler.github.io/master/logos/tiramisu_logo_transparent_with_text.png" alt=“Tiramisu” />
 </p>
 
-<p align="center"> 
-    <font size="1"><b>Tiramisu</b></font>
-</p>
-
-
 </br>
 
 ## Overview
