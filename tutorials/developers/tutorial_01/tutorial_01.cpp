@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     function0.dump_halide_stmt();
 
     // Generate an object file from the function.
-    function0.gen_halide_obj("build/generated_fct_tutorial_01.o");
+    function0.gen_halide_obj("build/generated_fct_developers_tutorial_01.o");
 
     return 0;
 }
