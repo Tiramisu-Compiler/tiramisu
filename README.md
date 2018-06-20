@@ -21,12 +21,17 @@ void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
     tiramisu::init();
 
-    tiramisu::comp A(array_a), B(array_b), C(array_c);
+    // Declare an iterator and the inputs
     tiramisu::iter i;
+    tiramisu::in A(i), B(i);
 
-    C(i) = A(i) + B(i);
-    
-    tiramisu::run();
+    // The Tiramisu expression
+    tiramisu::comp C(i) = A(i) + B(i);
+
+    // Realize, compile and run the expression
+    C.realize(int, {N});
+    C.compile({(A, array_a), (B, array_b), (C, array_c)});
+    C.run();
 }
 ```
 
