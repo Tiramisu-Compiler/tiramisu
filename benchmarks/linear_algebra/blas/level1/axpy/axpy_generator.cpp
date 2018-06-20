@@ -42,24 +42,24 @@ void generate_function(std::string name, int size)
     // -------------------------------------------------------
 
 #if TIRAMISU_XLARGE
-    result.vectorize(0, 512);
+    result.vectorize(i, 512);
     result.get_update(0).tag_parallel_level(0);
 #elif TIRAMISU_LARGE
-    result.vectorize(0, 512);
+    result.vectorize(i, 512);
     result.get_update(0).tag_parallel_level(0);
 #elif TIRAMISU_MEDIUM
-    result.vectorize(0, 256);
+    result.vectorize(i, 256);
 #elif TIRAMISU_SMALL
-    result.vectorize(0, 16);
+    result.vectorize(i, 16);
 #endif
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
-    tiramisu::buffer buf_a("buf_a", 1, {1}, tiramisu::p_float32, NULL, a_input, &function0);
-    tiramisu::buffer buf_x("buf_x", 1, {10}, tiramisu::p_float32, NULL, a_input, &function0);
-    tiramisu::buffer buf_y("buf_y", 1, {10}, tiramisu::p_float32, NULL, a_output, &function0);
+    tiramisu::buffer buf_a("buf_a", {1}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_x("buf_x", {10}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_y("buf_y", {10}, tiramisu::p_float32, a_output, &function0);
 
     a.set_access("{a[0]->buf_a[0]}");
     x.set_access("[N]->{x[i]->buf_x[i]: 0<=i<N}");
