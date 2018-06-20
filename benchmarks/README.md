@@ -1,13 +1,13 @@
 ## Setup
 
 #### Prerequisites
-1) [Libpng](http://www.libpng.org/pub/png/libpng.html) and [libjpeg](http://libjpeg.sourceforge.net/): to run Halide benchmarks.
+1) [Libpng](http://www.libpng.org/pub/png/libpng.html): to run Halide benchmarks.
 
         # On Ubuntu
-        sudo apt-get install libpng-dev libjpeg-dev
+        sudo apt-get install libpng-dev
         
         # On MacOS
-        sudo brew install libpng libjpeg
+        sudo brew install libpng
 
 2) [Intel MKL](https://software.intel.com/mkl): to run BLAS and DNN benchmarks.
 
