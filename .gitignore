@@ -58,5 +58,4 @@ src/*.pyc
 3rdParty/isl/pip_test.sh
 3rdParty/isl/stamp-h1
 configure_path.cmake
-configure_paths.sh
 configure.cmake
