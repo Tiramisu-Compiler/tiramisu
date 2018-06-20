@@ -14,6 +14,7 @@ src/*.pyc
 3rdParty/isl/codegen_test.sh
 3rdParty/isl/flow_test.sh
 3rdParty/imath_wrap/.dirstamp
+3rdParty/isl/configure
 3rdParty/isl/isl_codegen
 3rdParty/isl/isl_flow
 3rdParty/isl/isl_flow_cmp
