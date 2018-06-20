@@ -33,7 +33,6 @@ For MacOs, we provide instructions on how to install the missing packages using 
 
 Tiramisu requires the following packages to be installed: ISL, Halide and LLVM.  The user is supposed to install them by running the script `./utils/scripts/install_submodules.sh`.  If the script fails, the user can still install them manually as described below.
 
-
 ##### Building ISL
 
 Install the [ISL](http://isl.gforge.inria.fr/) Library as follows
@@ -72,6 +71,8 @@ To get the Halide submodule and compile it run the following commands (in the Ti
     make -j
 
 You may get an access rights error from git when running trying to retrieve Halide. To solve this error, be sure to have your machine's ssh key added to your github account, the steps to do so could be found [HERE](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/).
+
+Halide requires also libdl and libpthread. Both libraries should be available on every Linux and MacOs system and do not installation usually but you might need to install them if you get an error such as "-ldl not found" or "-lpthread not found".
 
 ##### Building Tiramisu
 
