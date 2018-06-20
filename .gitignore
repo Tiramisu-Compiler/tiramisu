@@ -11,11 +11,7 @@ tags
 .idea/*
 src/*.pyc
 3rdParty/isl/*
-3rdParty/isl/*.o
-3rdParty/isl/*.lo
-3rdParty/isl/imath_wrap/*.o
-3rdParty/isl/imath_wrap/*.lo
-3rdParty/isl/.deps/
-3rdParty/isl/.libs/
+3rdParty/llvm/*
+3rdParty/llvm
 configure_path.cmake
 configure.cmake
