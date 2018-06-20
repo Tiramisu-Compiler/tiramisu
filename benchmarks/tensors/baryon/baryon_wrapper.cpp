@@ -5,7 +5,6 @@
 
 #include "baryon_wrapper.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
