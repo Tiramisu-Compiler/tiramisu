@@ -80,7 +80,7 @@ int main(int, char **)
 	    duration_vector_2.push_back(duration2);
     }
 
-    print_time("performance_CPU.csv", "sgemm",
+    print_time("performance_CPU.csv", "dot",
                {"Ref", "Tiramisu"},
                {median(duration_vector_1), median(duration_vector_2)});
 
