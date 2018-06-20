@@ -13,14 +13,6 @@ For MacOs, we provide instructions on how to install the missing packages using 
         # On MacOS
         sudo brew install cmake
 
-2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
-        
-        # On Ubuntu
-        sudo apt-get install autoconf libtool
-        
-        # On MacOS
-        sudo brew install autoconf libtool
-
 ###### Optional Packages
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 
