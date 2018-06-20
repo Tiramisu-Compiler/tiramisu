@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include "benchmarks.h"
-#include <omp.h>
+//#include <omp.h>
 
 #define DATATYPE double
 
@@ -18,7 +18,7 @@ int waxpby_ref(const int n,
   	       double * const w)
 {
 
-  #pragma omp parallel for
+  //#pragma omp parallel for
   for (int i=0; i<n; i++)
 	w[i] = alpha * x[i] + beta * y[i];
 
