@@ -112,7 +112,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -147,7 +147,7 @@ endif()
 string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
 
-set(LINK_FLAGS "-lgmp -ldl -lpthread -lz -ljpeg")
+set(LINK_FLAGS "-ldl -lpthread")
 if (${USE_MPI})
     set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
 else()
