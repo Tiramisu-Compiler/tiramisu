@@ -2,18 +2,20 @@
 
 #set -x
 
-LANKA=1
+LANKA=0
 
 if [ $LANKA -eq 0 ]; then
 	TIRAMISU_ROOT=/Users/b/Documents/src/MIT/tiramisu/
 	MKL_FLAGS="-lcblas"
 	MKL_LIB_PATH_SUFFIX=
 	LANKA_OPTIONS=
+	USE_PERF=0
 else
 	TIRAMISU_ROOT=/data/scratch/baghdadi/tiramisu/
 	MKL_FLAGS="-lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -ldl -lm"
 	MKL_LIB_PATH_SUFFIX=intel64/
-	LANKA_OPTIONS="-DMKL_ILP64 -m64" 
+	LANKA_OPTIONS="-DMKL_ILP64 -m64 -fopenmp"
+	USE_PERF=1
 fi
 
 if [ $# -eq 0 ]; then
@@ -36,9 +38,9 @@ fi
 
 KERNEL_FOLDER=$1
 KERNEL=$2
-source ${TIRAMISU_ROOT}/configure_paths.sh
+source ${TIRAMISU_ROOT}/benchmarks/configure_paths.sh
 
-CXXFLAGS="-std=c++11 -O3 -fopenmp"
+CXXFLAGS="-std=c++11 -O3"
 
 # Compile options
 # - Make g++ dump generated assembly
@@ -84,8 +86,14 @@ echo "Compiling ${KERNEL} wrapper"
 g++ ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o ${LIBRARIES} -o ${KERNEL}_wrapper
 #&>> log
 echo "Running ${KERNEL} wrapper"
-for ((i=0; i<1; i++)); do
-	RUN_REF=1 RUN_TIRAMISU=1 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} perf stat -e cycles,instructions,cache-misses,L1-icache-load-misses,LLC-load-misses,dTLB-load-misses,cpu-migrations,context-switches,bus-cycles,cache-references,minor-faults ./${KERNEL}_wrapper
-done
+if [ $LANKA -eq 0 ]; then
+    for ((i=0; i<1; i++)); do
+		RUN_REF=1 RUN_TIRAMISU=1 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ./${KERNEL}_wrapper
+    done
+else
+    for ((i=0; i<1; i++)); do
+		RUN_REF=1 RUN_TIRAMISU=1 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} perf stat -e cycles,instructions,cache-misses,L1-icache-load-misses,LLC-load-misses,dTLB-load-misses,cpu-migrations,context-switches,bus-cycles,cache-references,minor-faults ./${KERNEL}_wrapper
+    done
+fi
 
 cd -
