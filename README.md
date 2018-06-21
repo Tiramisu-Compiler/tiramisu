@@ -20,17 +20,21 @@ The user can write `Tiramisu expressions` within a C++ code as follows.
 
 void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
+
     tiramisu::init();
 
     // Declare an iterator and inputs
-    tiramisu::iter i;
-    tiramisu::in A(i), B(i);
+    tiramisu::iter i, j;
+    tiramisu::in A(i,j), B(i,j);
 
     // Declare the Tiramisu expression (algorithm)
-    tiramisu::comp C(i) = A(i) + B(i);
+    tiramisu::comp C(i,j) = A(i,j) + B(i,j);
+    
+    // Specify optimizations
+    C.parallelize(i).vectorize(j, 4);
 
     // Realize, compile and run the expression
-    C.realize(int, {N});
+    C.realize(tiramisu::int32_t, {N});
     C.compile({(A, array_a), (B, array_b), (C, array_c)});
     C.run();
 }
