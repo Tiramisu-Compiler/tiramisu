@@ -68,23 +68,14 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = simplify(s, false);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after simplification:\n", s)));
 
-    DEBUG(3, tiramisu::str_dump("Injecting prefetches...\n"));
+/*    DEBUG(3, tiramisu::str_dump("Injecting prefetches...\n"));
     s = inject_prefetch(s, env);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after injecting prefetches:\n", s)));
-
-    DEBUG(3, tiramisu::str_dump("Dynamically skipping stages...\n"));
-    s = skip_stages(s, order);
-    DEBUG(3, tiramisu::str_dump("Lowering after dynamically skipping stages:\n", s)));
-
+*/
     DEBUG(3, tiramisu::str_dump("Destructuring tuple-valued realizations...\n"));
     s = split_tuples(s, env);
-    DEBUG(3, tiramisu::str_dump("Lowering after destructuring tuple-valued realizations:\n", s));
+    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after destructuring tuple-valued realizations:\n", s)));
     DEBUG(3, tiramisu::str_dump("\n\n"));
-
-    DEBUG(3, tiramisu::str_dump("Performing storage flattening...\n"));
-    s = storage_flattening(s, outputs, env, t);
-    DEBUG(4, tiramisu::str_dump("Lowering after storage flattening:\n", s)));
-    DEBUG(4, tiramisu::str_dump("\n\n"));
 
     // TODO(tiramisu): This pass is important to figure out all the buffer symbols.
     // Maybe we should put it somewhere else instead of here.
@@ -166,11 +157,6 @@ Module lower_halide_pipeline(const string &pipeline_name,
         s = fuzz_float_stores(s);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after fuzzing floating point stores:\n", s)));
     }
-
-    DEBUG(3, tiramisu::str_dump("Bounding small allocations...\n"));
-    s = bound_small_allocations(s);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after bounding small allocations:\n", s)));
-    DEBUG(3, tiramisu::str_dump("\n\n"));
 
     DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
     s = common_subexpression_elimination(s);
