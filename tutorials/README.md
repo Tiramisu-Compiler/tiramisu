@@ -6,7 +6,7 @@ This page has two types of tutorials: Tutorials written for all Tiramisu users a
 If you want to learn how to write Tiramisu code, this is the right tutorial
 for you.
 
-- [Users tutorial 01](users/tutorial_01/tutorial_01.cpp): Tiramisu hello world (assign 0 to an array).
+- User level tutorial will be provided soon.
 
 
 ## Tutorials for Tiramisu Developers (Low Level Tiramisu API)

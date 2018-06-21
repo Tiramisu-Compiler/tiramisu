@@ -5,11 +5,12 @@
 </br>
 
 ## Overview
-Tiramisu is a compiler for expressing fast, portable and composable data parallel computations. The user can express algorithms using a simple C++ API and can automatically generate highly optimized code. Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.
 
-The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations.  It can also target (1) multicore X86 CPUs, (2) Nvidia GPUs, (3) Xilinx FPGAs (Vivado HLS) and (4) distributed machines (using MPI) and is designed to enable easy integration of code generators for new architectures.
+Tiramisu is a compiler for expressing fast, portable and composable data parallel computations.  It provides a simple C++ API for expressing algorithms (`Tiramisu expressions`) and how these algorithms should be optimized by the compiler.  Tiramisu can be used in areas such as linear and tensor algebra, deep learning, image processing, stencil computations and machine learning.
 
-## Example
+The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations.  Currently it targets (1) multicore X86 CPUs, (2) Nvidia GPUs, (3) Xilinx FPGAs (Vivado HLS) and (4) distributed machines (using MPI).  It is designed to enable easy integration of code generators for new architectures.
+
+### Example
 
 The user can write `Tiramisu expressions` within a C++ code as follows.
 
@@ -19,17 +20,21 @@ The user can write `Tiramisu expressions` within a C++ code as follows.
 
 void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
+
     tiramisu::init();
 
-    // Declare an iterator and the inputs
-    tiramisu::iter i;
-    tiramisu::in A(i), B(i);
+    // Declare an iterator and inputs
+    tiramisu::iter i, j;
+    tiramisu::in A(i,j), B(i,j);
 
-    // The Tiramisu expression
-    tiramisu::comp C(i) = A(i) + B(i);
+    // Declare the Tiramisu expression (algorithm)
+    tiramisu::comp C(i,j) = A(i,j) + B(i,j);
+    
+    // Specify optimizations
+    C.parallelize(i).vectorize(j, 4);
 
     // Realize, compile and run the expression
-    C.realize(int, {N});
+    C.realize(tiramisu::int32_t, {N});
     C.compile({(A, array_a), (B, array_b), (C, array_c)});
     C.run();
 }
