@@ -96,4 +96,7 @@ else
     done
 fi
 
+
+rm ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}.o.h
+
 cd -
