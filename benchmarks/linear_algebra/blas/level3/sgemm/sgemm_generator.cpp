@@ -1,10 +1,3 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
