@@ -1,8 +1,22 @@
-//
-// Created by Ray, Jessica - 0552 - MITLL on 6/4/18.
-//
+#ifndef TIRAMISU_WRAPPER_TUTORIAL_12_H
+#define TIRAMISU_WRAPPER_TUTORIAL_12_H
 
-#ifndef TIRAMISU_WRAPPER_TUTORIAL_11_H
-#define TIRAMISU_WRAPPER_TUTORIAL_11_H
+#include <tiramisu/utils.h>
 
-#endif //TIRAMISU_WRAPPER_TUTORIAL_11_H
+#define NUM_ROWS 1280
+#define NUM_COLS 768
+#define NUM_NODES 4
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int blurxy(halide_buffer_t *_p0_buffer, halide_buffer_t *_p1_buffer);
+int blurxy_argv(void **args);
+
+extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+#endif //TIRAMISU_WRAPPER_TUTORIAL_12_H
