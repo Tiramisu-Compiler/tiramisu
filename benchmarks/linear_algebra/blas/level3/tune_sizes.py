@@ -3,6 +3,9 @@
 import os
 import sys
 
+SCHEDULE_FILE="linear_algebra/blas/level3/sgemm/SCHEDULE.h"
+COMPILATION_COMMAND="./compile_and_run_benchmarks.sh linear_algebra/blas/level3/sgemm/ sgemm"
+
 for B0 in [32,64,128]:
     for B1 in [64,128]:
 	for B2 in [32,64]:
