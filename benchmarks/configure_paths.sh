@@ -1,4 +1,4 @@
-LANKA=1
+LANKA=0
 
 if [ $LANKA -eq 0 ]; then
 	MKL_FLAGS="-lcblas"

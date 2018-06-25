@@ -17,7 +17,7 @@ elif [ "${TIRAMISU_MEDIUM}" = "1" ]; then
 elif [ "${TIRAMISU_SMALL}" = "1" ]; then
     DEFINED_SIZE="-DTIRAMISU_SMALL"
 else
-    DEFINED_SIZE="-DTIRAMISU_XLARGE"
+    DEFINED_SIZE="-DTIRAMISU_LARGE"
 fi
 
 KERNEL_FOLDER=$1
@@ -73,7 +73,7 @@ echo "Compiling ${KERNEL} wrapper"
 g++ ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o ${LIBRARIES} -o ${KERNEL}_wrapper
 #&>> log
 echo "Running ${KERNEL} wrapper"
-if [ $LANKA -eq 0 ]; then
+if [ ${USE_PERF} -eq 0 ]; then
     for ((i=0; i<1; i++)); do
 		RUN_REF=1 RUN_TIRAMISU=1 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ./${KERNEL}_wrapper
     done
