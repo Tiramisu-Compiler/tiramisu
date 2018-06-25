@@ -2,22 +2,6 @@
 
 #set -x
 
-LANKA=0
-
-if [ $LANKA -eq 0 ]; then
-	TIRAMISU_ROOT=/Users/b/Documents/src/MIT/tiramisu/
-	MKL_FLAGS="-lcblas"
-	MKL_LIB_PATH_SUFFIX=
-	LANKA_OPTIONS=
-	USE_PERF=0
-else
-	TIRAMISU_ROOT=/data/scratch/baghdadi/tiramisu/
-	MKL_FLAGS="-lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -ldl -lm"
-	MKL_LIB_PATH_SUFFIX=intel64/
-	LANKA_OPTIONS="-DMKL_ILP64 -m64 -fopenmp"
-	USE_PERF=1
-fi
-
 if [ $# -eq 0 ]; then
       echo "Usage: TIRAMISU_SMALL=1 script.sh <KERNEL_FOLDER> <KERNEL_NAME_WITHOUT_EXTENSION>"
       echo "Example: script.sh level1/axpy axpy"
@@ -38,7 +22,7 @@ fi
 
 KERNEL_FOLDER=$1
 KERNEL=$2
-source ${TIRAMISU_ROOT}/benchmarks/configure_paths.sh
+source configure_paths.sh
 
 CXXFLAGS="-std=c++11 -O3"
 
@@ -56,9 +40,9 @@ CXXFLAGS="-std=c++11 -O3"
 #   to set the number of threads to use by OpenMP.
 
 
-INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${TIRAMISU_ROOT}/${HALIDE_SOURCE_DIRECTORY}/include/ -I${TIRAMISU_ROOT}/${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
+INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${HALIDE_SOURCE_DIRECTORY}/include/ -I${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
 LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread"
-LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} -L${TIRAMISU_ROOT}/$HALIDE_LIB_DIRECTORY -L${TIRAMISU_ROOT}/${ISL_LIB_DIRECTORY} -L${TIRAMISU_ROOT}/build/"
+LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} -L$HALIDE_LIB_DIRECTORY -L${ISL_LIB_DIRECTORY} -L${TIRAMISU_ROOT}/build/"
 
 echo "Compiling ${KERNEL}"
 
