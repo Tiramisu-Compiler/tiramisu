@@ -16,4 +16,3 @@ rgbyuv420gpu[gpu]
 convolutiongpu[gpu]
 warp_affinegpu[gpu]
 fusiongpu[gpu]
-heat2d_dist
