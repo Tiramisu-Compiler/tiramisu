@@ -15,3 +15,4 @@ src/*.pyc
 3rdParty/llvm
 configure_path.cmake
 configure.cmake
+3rdParty/isl/configure
