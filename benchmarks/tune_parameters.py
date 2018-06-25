@@ -14,7 +14,7 @@ for B0 in [32,64,128]:
 		    for L3_B2 in [2,4,8,16]:
 			for U1 in [32,64,128]:
 				try:
-					file = open("sgemm/SCHEDULE.h","w") 
+					file = open(SCHEDULE_FILE,"w") 
 					file.write("#define B0 " + str(B0) + "\n")
 					file.write("#define B1 " + str(B1) + "\n")
 					file.write("#define B2 " + str(B2) + "\n")
@@ -28,7 +28,7 @@ for B0 in [32,64,128]:
 					sizes += "U1 = " + str(U1)
 					os.system("")
 					os.system("echo " + sizes)
-					os.system("./compile_and_run_benchmarks.sh sgemm")
+					os.system(COMPILATION_COMMAND)
 					os.system("echo ------------------------------------------------------- ")
 				except KeyboardInterrupt:
 					print "Ctrl-c pressed ..."
