@@ -175,7 +175,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = remove_dead_allocations(s);
     s = remove_trivial_for_loops(s);
     s = simplify(s);
-    s = loop_invariant_code_motion(s);
+    // s = loop_invariant_code_motion(s);
     std::cout << "Lowering after final simplification:\n" << s << "\n";
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
