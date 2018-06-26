@@ -6,13 +6,13 @@ import sys
 SCHEDULE_FILE="linear_algebra/blas/level3/sgemm/SCHEDULE.h"
 COMPILATION_COMMAND="./compile_and_run_benchmarks.sh linear_algebra/blas/level3/sgemm/ sgemm"
 
-for B0 in [32,64,128]:
-    for B1 in [64,128]:
+for B0 in [32,64]: #128
+    for B1 in [32,64]: #128
 	for B2 in [32,64]:
 	    for L3_B0 in [2,4,8,16]:
 		for L3_B1 in [2,4,8,16]:
 		    for L3_B2 in [2,4,8,16]:
-			for U1 in [32,64,128]:
+			for U1 in [16,32,64]: #128
 				try:
 					file = open(SCHEDULE_FILE,"w") 
 					file.write("#define B0 " + str(B0) + "\n")
