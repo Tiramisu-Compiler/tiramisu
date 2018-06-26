@@ -1,5 +1,6 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
+#include "wrapper_test_98.h"
 
 #include <Halide.h>
 
@@ -14,11 +15,11 @@ void generate_function_1(std::string name)
 
     tiramisu::function function0(std::move(name));
 
-    var k("k"), x("x"), x1("x1"), x2("x2"), y("y");
+    var x("x"), x1("x1"), x2("x2"), y("y");
     computation input("{input[x,y]: 0<=x<1000 and 0<=y<100}", expr(), false, p_int32 , &function0);
     computation S0_init("{S0_init[x,y]: 0<=x<1000 and 0<=y<100}", input(x,y), true, p_int32, &function0);
-    // Reduce over 10 iterations.
-    computation S0("{S0[i,x,y]: 0<=i<10 and 0<=x<1000 and 0<=y<100}", S0_init(x,y) * 2, true, p_int32 , &function0);
+    // Reduce over REDUC_ITERS iterations.
+    computation S0("{S0[iter,x,y]: 0<=iter<" + std::to_string(REDUC_ITERS) + " and 0<=x<1000 and 0<=y<100}", S0_init(x,y) * 2, true, p_int32 , &function0);
 
     input.split(x, 100, x1, x2);
     S0_init.split(x, 100, x1, x2);
@@ -40,7 +41,7 @@ void generate_function_1(std::string name)
 
     input.set_access("{input[x,y]->buff_input[x,y]}");
     S0_init.set_access("{S0_init[x,y]->buff_output[x,y]}");
-    S0.set_access("{S0[i,x,y]->buff_output[x,y]}");
+    S0.set_access("{S0[r,x,y]->buff_output[x,y]}");
 
     function0.codegen({&buff_input, &buff_output}, "build/generated_fct_test_98.o");
 }
