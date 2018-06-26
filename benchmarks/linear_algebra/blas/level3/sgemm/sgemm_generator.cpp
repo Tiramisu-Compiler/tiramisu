@@ -40,10 +40,9 @@ void generate_function(std::string name)
 #define AUTO_SCHEDULE 0
 #define INNER_SPLIT 1
 
-#if AUTO_SCHEDULE
-	#include "SCHEDULE.h"
-	#define L3_TILING 1
-#else
+/**
+  Best parameters:
+  - Lanka:
 	#define B0 64
 	#define B1 (SIZE_IS_MULTIPLE_OF_TILE?64:32)
 	#define B2 32
@@ -53,6 +52,33 @@ void generate_function(std::string name)
 	#define L3_B2 32
 
 	#define U1 64
+    - MacBookPro
+	#define B0 64
+	#define B1 (SIZE_IS_MULTIPLE_OF_TILE?32:32)
+	#define B2 32
+
+	#define L3_B0 2
+	#define L3_B1 4
+	#define L3_B2 4
+
+	#define U1 32
+
+  */
+
+
+#if AUTO_SCHEDULE
+	#include "SCHEDULE.h"
+	#define L3_TILING 1
+#else
+	#define B0 64
+	#define B1 (SIZE_IS_MULTIPLE_OF_TILE?32:32)
+	#define B2 32
+
+	#define L3_B0 2
+	#define L3_B1 4
+	#define L3_B2 4
+
+	#define U1 32
 
 	#define L3_TILING (SIZE_IS_MULTIPLE_OF_TILE?1:0)
 #endif
