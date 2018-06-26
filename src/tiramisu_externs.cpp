@@ -1,4 +1,4 @@
-#include "tiramisu/tiramisu_externs.h"
+#include "tiramisu/externs.h"
 
 extern "C" {
 
