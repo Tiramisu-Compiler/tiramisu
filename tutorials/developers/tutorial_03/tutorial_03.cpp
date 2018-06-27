@@ -10,7 +10,6 @@
 
 #include <string.h>
 #include <Halide.h>
-#include "halide_image_io.h"
 
 /* Halide code for matrix multiplication.
 Func matmul(Input A, Input B, Output C) {

@@ -10,7 +10,6 @@
 
 #include <string.h>
 #include <Halide.h>
-#include "halide_image_io.h"
 
 /* Sequence of computations.
 
