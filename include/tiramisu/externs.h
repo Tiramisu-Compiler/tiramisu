@@ -17,6 +17,10 @@ float *tiramisu_address_of_float32(halide_buffer_t *buffer, unsigned long index)
 
 double *tiramisu_address_of_float64(halide_buffer_t *buffer, unsigned long index);
 
+#ifdef WITH_MPI
+void *tiramisu_address_of_wait(halide_buffer_t *buffer, unsigned long index);
+#endif
+
 }
 
 #endif //TIRAMISU_EXTERNS_H
