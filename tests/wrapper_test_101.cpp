@@ -31,7 +31,6 @@ int main() {
                 }
             }
         }
-        std::cerr << ref_output(0,100) << " " << output(0,100) << std::endl;
         compare_buffers(TEST_NAME_STR, output, ref_output);
     }
 

@@ -56,9 +56,9 @@ void generate_function_1(std::string name)
     fan_in.s->before(*fan_in.r, computation::root);
 
     buffer buff_input("buff_input", {tiramisu::expr(o_select, var("rank") == 0, 1000, 100), 100},
-                      p_int32 , a_input, &function0);
+                      p_int32, a_input, &function0);
     buffer buff_output("buff_output", {tiramisu::expr(o_select, var("rank") == 0, 1000, 100), 100},
-                       p_int32 , a_output, &function0);
+                       p_int32, a_output, &function0);
 
     input.set_access("{input[x,y]->buff_input[x,y]}");
     S0_init.set_access("{S0_init[x,y]->buff_output[x,y]}");
