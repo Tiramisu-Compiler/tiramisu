@@ -25,11 +25,11 @@ void generate_function_1(std::string name)
                                             q, 0, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                             xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                             input(q * 100 + x, y), &function0);
-    xfer fan_in = computation::create_xfer("{fan_in_s[q,x,y]: 1<=q<10 and 0<=x<10 and 0<=y<100}",
+    xfer fan_in = computation::create_xfer("{fan_in_s[q,x,y]: 1<=q<10 and 0<=x<100 and 0<=y<100}",
                                            "[ONE]->{fan_in_r[p,q,x,y]: 0<=p<ONE and 1<=q<10 and 0<=x<100 and 0<=y<100}",
                                            0, q, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                            xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
-                                           input(x, y), &function0);
+                                           S0(0, x, y), &function0);
 
 
     input.split(x, 100, x1, x2);
