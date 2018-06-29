@@ -35,6 +35,10 @@ int main(int argc, char **argv) {
     constant COLS("COLS", _COLS, p_int32, true, NULL, 0, &cvtcolor);
     var r("r"), c("c"), rr("rr"), rrr("rrr");
 
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+
     // The computations are defined across the entire compute space, not just what a single rank (i.e. node) computes.
     // Define a wrapper around the input
     computation input("[ROWS,COLS]->{input[r,c,chan]: 0<=r<ROWS and 0<=c<COLS and 0<=chan<3}", expr(), false, p_uint32, &cvtcolor);
@@ -44,20 +48,28 @@ int main(int argc, char **argv) {
     expr shift = (convert + ((uint32_t)1 << (uint32_t)13)) >> (uint32_t)13;
     computation rgb2gray("[ROWS,COLS]->{rgb2gray[r,c]: 0<=r<ROWS and 0<=c<COLS}", shift, true, p_uint32, &cvtcolor);
 
-    // Split the computations across the rows so that we can assign the same number of rows to each node
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+
+    // Prepare the computations for distributing by splitting to create an outer loop over the 
+    // number of nodes
     input.split(r, _ROWS/10, rr, rrr);
     rgb2gray.split(r, _ROWS/10, rr, rrr);
 
-    // Distribute the computation across the new outer loop, which has extent 10 due to the previous split commands
+    // Tag the outer loop level over the number of nodes so that it is distributed. Internally,
+    // this creates a new Var called "rank"
     input.tag_distribute_level(rr);
     rgb2gray.tag_distribute_level(rr);
 
-    // Now, indicate that we want indices for each computation to be computed relative to the data on the individual node, not the
-    // global set of data (as each node only contains a part of the data). This command will remove the specified iteration
-    // variable from index computations.
+    // Tell the code generator to not include the "rank" var when computing linearized indices (where the rank var is the tagged loop)
     input.drop_rank_iter(rr);
     rgb2gray.drop_rank_iter(rr);
     
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+
     // Create buffers for each node (the sizes should be relative to each node, so input is NUM_ROWS/10 x COLS x 3 and output is NUM_ROWS/10 X COLS)
     buffer input_buff("input_buff", {_ROWS/10, _COLS, 3}, p_uint32, a_input, &cvtcolor);
     buffer output_buff("output_buff", {_ROWS/10, _COLS}, p_uint32, a_output, &cvtcolor);

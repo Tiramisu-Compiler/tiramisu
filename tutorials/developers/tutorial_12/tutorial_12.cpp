@@ -63,11 +63,6 @@ int main(int argc, char **argv) {
     // c_input[i+2,j], c_blurx[i,j], c_blurx[i,j+1], c_blurx[i,j+2]} instead of {c_input[i-1,j], c_input[i,j], 
     // c_input[i+1,j], c_blurx[i,j-1], c_blurx[i,j], c_blurx[i,j+1]}
 
-    /*
-     * Declare a function blurxy.
-     * Declare two arguments (tiramisu buffers) for the function: b_input and b_blury
-     * Declare an invariant for the function.
-     */
     function blurxy("blurxy");
 
     constant ROWS("ROWS", expr((int32_t) _ROWS), p_int32, true, nullptr, 0, &blurxy);
@@ -101,7 +96,7 @@ int main(int argc, char **argv) {
     c_blurx.tag_distribute_level(i0);
     c_blury.tag_distribute_level(i0);
 
-    // Tell the code generator to not include the "rank" var when computing linearized indices.
+    // Tell the code generator to not include the "rank" var when computing linearized indices (where the rank var is the tagged loop)
     c_input.drop_rank_iter(i0);
     c_blurx.drop_rank_iter(i0);
     c_blury.drop_rank_iter(i0);
