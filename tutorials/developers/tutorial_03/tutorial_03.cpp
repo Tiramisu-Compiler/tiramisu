@@ -85,9 +85,9 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_A("b_A", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_B("b_B", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_C("b_C", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_output, &matmul);
+    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
 
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");

@@ -113,17 +113,17 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
 #if 1
-    buffer buf0("buf0", {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, a_temporary, &function0);
+    buffer buf0("buf0", {expr(10), expr(10)}, p_uint8, a_temporary, &function0);
     S0.set_access("{S0[i,j]->buf0[i,j]}");
 #elif 0
-    buffer buf0("buf0", {tiramisu::expr(1)}, p_uint8, a_temporary, &function0);
+    buffer buf0("buf0", {expr(1)}, p_uint8, a_temporary, &function0);
     S0.set_access("{S0[i,j]->buf0[0]}");
 #elif 0
-    buffer buf0("buf0", {tiramisu::expr(2)}, p_uint8, a_temporary, &function0);
+    buffer buf0("buf0", {expr(2)}, p_uint8, a_temporary, &function0);
     S0.set_access("{S0[i,j]->buf0[j%2]}");
 #endif
 
-    buffer buf1("buf1", {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, a_output, &function0);
+    buffer buf1("buf1", {expr(10), expr(10)}, p_uint8, a_output, &function0);
     S1.set_access("{S1[i,j]->buf1[i,j]}");
 
     // -------------------------------------------------------

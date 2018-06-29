@@ -92,9 +92,9 @@ int main(int argc, char **argv) {
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_input("b_input", {tiramisu::expr(NUM_ROWS/NUM_NODES) + 2, tiramisu::expr(NUM_COLS) + 2}, p_uint8, a_input, &blurxy);
-    buffer b_blurx("b_blurx", {tiramisu::expr(NUM_ROWS/NUM_NODES) + 2, tiramisu::expr(NUM_COLS) + 2}, p_uint8, a_temporary, &blurxy);
-    buffer b_blury("b_blury", {tiramisu::expr(NUM_ROWS/NUM_NODES) + 2, tiramisu::expr(NUM_COLS) + 2}, p_uint8, a_output, &blurxy);
+    buffer b_input("b_input", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_input, &blurxy);
+    buffer b_blurx("b_blurx", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_temporary, &blurxy);
+    buffer b_blury("b_blury", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_output, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i+1,j+1]}");

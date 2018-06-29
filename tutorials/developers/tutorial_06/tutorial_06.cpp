@@ -47,7 +47,7 @@ using namespace tiramisu;
 
 void generate_function(std::string name, int size, int val0)
 {
-    tiramisu::global::set_default_tiramisu_options();
+    global::set_default_tiramisu_options();
 
 
 
@@ -57,11 +57,11 @@ void generate_function(std::string name, int size, int val0)
 
 
 
-    tiramisu::function function0(name);
-    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::var i = tiramisu::var("i");
-    tiramisu::computation input("[N]->{input[i]}", tiramisu::expr(), false, p_uint8, &function0);
-    tiramisu::computation result("[N]->{result[0]}", tiramisu::expr(input(0)), true, p_uint8, &function0);
+    function function0(name);
+    constant N("N", expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    var i = var("i");
+    computation input("[N]->{input[i]}", expr(), false, p_uint8, &function0);
+    computation result("[N]->{result[0]}", expr(input(0)), true, p_uint8, &function0);
     result.add_definitions("[N]->{result[i]: 1<=i<N}", (result(i - 1) + input(i)), true, p_uint8, &function0);
 
 
@@ -82,8 +82,8 @@ void generate_function(std::string name, int size, int val0)
 
 
 
-    tiramisu::buffer input_buffer("input_buffer", {size}, tiramisu::p_uint8, a_input, &function0);
-    tiramisu::buffer result_scalar("result_scalar", {1}, tiramisu::p_uint8, a_output, &function0);
+    buffer input_buffer("input_buffer", {size}, p_uint8, a_input, &function0);
+    buffer result_scalar("result_scalar", {1}, p_uint8, a_output, &function0);
     input.set_access("[N]->{input[i]->input_buffer[i]}");
     result.set_access("[N]->{result[i]->result_scalar[0]}");
     result.get_update(1).set_access("[N]->{result[i]->result_scalar[0]}");
