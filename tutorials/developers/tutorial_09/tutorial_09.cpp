@@ -22,7 +22,7 @@ using namespace tiramisu;
  *
  * for y = 0 to 19
  *   for x = 0 to 9
- *     f(x, y) = 1
+ *     f(y, x) = 1
  *
  * for y = 0 to 19
  *   g(y) = 0

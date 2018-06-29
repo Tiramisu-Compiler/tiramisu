@@ -27,7 +27,7 @@ for (int i = 0; i < 10; i++)
     buf0[i, j] = 3;
 for (int i = 0; i < 10; i++)
   for (int j = 1; j < 10; j++)
-    buf1[i, j] = buf0[i,j-1);
+    buf1[i, j] = buf0[i, j - 1];
 
 Output 1
 
@@ -35,7 +35,7 @@ Parallel for (int i = 0; i < 10; i++)
   for (int j = 0; j < 10; j++)
     buf0[i, j] = 3;
   for (int j = 1; j < 10; j++)
-    buf1[i, j] = buf0[i,j-1];
+    buf1[i, j] = buf0[i, j - 1];
 
 Output 2
 
@@ -43,7 +43,7 @@ Parallel for (int i = 0; i < 10; i++)
   for (int j = 0; j < 10; j++)
     buf0[i, j] = 3;
     if (j < 9)
-        buf1[i, j+1] = buf0[i,j];
+        buf1[i, j + 1] = buf0[i,j];
 
 */
 

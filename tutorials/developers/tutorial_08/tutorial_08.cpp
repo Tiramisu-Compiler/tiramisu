@@ -20,13 +20,13 @@ using namespace tiramisu;
  *
  * We want to represent the following program
  *
- * for i = 1 to N
+ * for i = 0 to N
  *      C[i] = 10
  *
- * for i = 1 to N
+ * for i = 0 to N
  *      C[i] = C[i] + 10
  *
- * for i to N
+ * for i = 0 to N
  *      out[i] = C[i] + 1
  *
  * In order to implement this program, we create the following

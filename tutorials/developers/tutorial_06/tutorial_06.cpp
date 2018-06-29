@@ -29,7 +29,7 @@ using namespace tiramisu;
  *
  * In order to implement this program, we create the following two
  * computations
- * {result[0]       }: 0
+ * {result[0]       }: input(0)
  * {result[i]: 0<i<N}: result(i-1) + input(i)
  *
  * The final result will be in result(N-1).
