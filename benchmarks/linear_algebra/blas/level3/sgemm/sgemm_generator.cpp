@@ -1,10 +1,3 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
@@ -128,7 +121,7 @@ void generate_function(std::string name)
     reduced_AB_0_p1.tile(0,1, B0,B1);
     reduced_AB_0_p2.tile(0,1, B0,B1);
 
-#if 0 //PACK_ARRAY
+#if PACK_ARRAY
     packed_B.tile(0,1, B1,B2);
     packed_B_p0.tile(0,1, B1,B2);
     packed_B_p1.tile(0,1, B1,B2);
@@ -161,7 +154,7 @@ void generate_function(std::string name)
     reduced_AB_0_p1.tile(0,1, L3_B0, L3_B1);
     reduced_AB_0_p2.tile(0,1, L3_B0, L3_B1);
 
-    #if 0 //PACK_ARRAY
+    #if PACK_ARRAY
     packed_B.tile(0,1, L3_B1,L3_B2);
     packed_B_p0.tile(0,1, L3_B1,L3_B2);
     packed_B_p1.tile(0,1, L3_B1,L3_B2);
@@ -217,7 +210,7 @@ void generate_function(std::string name)
 #if INNER_SPLIT
 if (U1 < B1)
 {
-    #if 0 //PACK_ARRAY
+    #if PACK_ARRAY
     packed_B_p1.split(lev0+lev1+4, U1);
     #endif
 
@@ -248,7 +241,7 @@ if (U1 < B1)
     // ----------------------------------------------------------------------------------------------------------------
     // Unrolling
     // ----------------------------------------------------------------------------------------------------------------
-#if 0 //PACK_ARRAY
+#if PACK_ARRAY
     packed_B_p1.tag_unroll_level(lev0+lev1+4);
 #endif
     reduced_AB_0.tag_unroll_level(lev0+lev1+split_AB_0+2);

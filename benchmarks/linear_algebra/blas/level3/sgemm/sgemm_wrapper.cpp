@@ -28,7 +28,7 @@ int main(int, char **)
     bool run_mkl = false;
     bool run_tiramisu = false;
 
-    const char* env_mkl = std::getenv("RUN_MKL");
+    const char* env_mkl = std::getenv("RUN_REF");
     if ((env_mkl != NULL) && (env_mkl[0] == '1'))
 	run_mkl = true;
     const char* env_tira = std::getenv("RUN_TIRAMISU");

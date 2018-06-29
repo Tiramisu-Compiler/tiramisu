@@ -1,6 +1,5 @@
 #include "Halide.h"
 #include "wrapper_tutorial_03.h"
-#include "halide_image_io.h"
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>

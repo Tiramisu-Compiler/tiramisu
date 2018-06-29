@@ -132,11 +132,4 @@ int main(int argc, char **argv)
  *   identifier of that object are identical (for example buf0, "buf0").
  *   This is not required but highly recommended as it simplifies reading
  *   tiramisu code and prevents errors.
- * -
- *
- * Current limitations:
- *  - Note that the type of the invariant N is "int32_t".  This is important
- *    because this invariant is used later as a loop bound and the
- *    type of the bound and the iterator should be the same for correct code
- *    generation. This implies that the invariant should be of type "int32_t".
  */
