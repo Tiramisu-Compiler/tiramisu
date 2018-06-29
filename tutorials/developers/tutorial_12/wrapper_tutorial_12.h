@@ -3,9 +3,8 @@
 
 #include <tiramisu/utils.h>
 
-#define NUM_ROWS 1280
-#define NUM_COLS 768
-#define NUM_NODES 4
+#define _ROWS 100
+#define _COLS 10
 
 #ifdef __cplusplus
 extern "C" {
