@@ -6511,7 +6511,7 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
     case tiramisu::p_int16:
         return "int16";
     case tiramisu::p_uint32:
-        return "uin32";
+        return "uint32";
     case tiramisu::p_int32:
         return "int32";
     case tiramisu::p_uint64:
