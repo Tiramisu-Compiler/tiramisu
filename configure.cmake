@@ -12,9 +12,11 @@ set(CMAKE_BUILD_TYPE RELEASE)
 # set(MPI_INCLUDE_DIR "/usr/local/Cellar/open-mpi/3.0.1/include/")
 # set(MPI_LIB_DIR "/usr/local/Cellar/open-mpi/3.0.1/lib/")
 # set(MPI_LIB_FLAGS "-lmpi")
+# set(MPI_NODES "node1,node2")
 set(MPI_INCLUDE_DIR "")
 set(MPI_LIB_DIR "")
 set(MPI_LIB_FLAGS "")
+set(MPI_NODES "")
 
 # Intel MKL library path. The specified folder should contain the folders
 # include and lib.

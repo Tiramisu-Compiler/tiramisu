@@ -26,11 +26,11 @@ void generate_function_1(std::string name)
                                             q, 0, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                             xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                             input(q * 100 + x, y), &function0);
-    xfer fan_in = computation::create_xfer("{fan_in_s[q,x,y]: 1<=q<10 and 0<=x<10 and 0<=y<100}",
+    xfer fan_in = computation::create_xfer("{fan_in_s[q,x,y]: 1<=q<10 and 0<=x<100 and 0<=y<100}",
                                            "[ONE]->{fan_in_r[p,q,x,y]: 0<=p<ONE and 1<=q<10 and 0<=x<100 and 0<=y<100}",
                                            0, q, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
                                            xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
-                                           input(x, y), &function0);
+                                           S0(0, x, y), &function0);
 
 
     input.split(x, 100, x1, x2);
@@ -63,9 +63,9 @@ void generate_function_1(std::string name)
     fan_in.s->before(*fan_in.r, computation::root);
 
     buffer buff_input("buff_input", {tiramisu::expr(o_select, var("rank") == 0, 1000, 100), 100},
-                      p_int32 , a_input, &function0);
+                      p_int32, a_input, &function0);
     buffer buff_output("buff_output", {tiramisu::expr(o_select, var("rank") == 0, 1000, 100), 100},
-                       p_int32 , a_output, &function0);
+                       p_int32, a_output, &function0);
 
     input.set_access("{input[x,y]->buff_input[x,y]}");
     S0_init.set_access("{S0_init[x,y]->buff_output[x,y]}");

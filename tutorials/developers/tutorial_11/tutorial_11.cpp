@@ -1,107 +1,85 @@
-// This tutorial does a simple distributed blur, assuming the data starts distributed across nodes.
-// Data is distributed by chunks of contiguous rows, for example with 12 rows and 3 nodes, we would distribute as so:
-// |--------------------------|
-// |         Rows 0-3         | ==> Node 0
-// |--------------------------|
-// |         Rows 4-7         | ==> Node 1
-// |--------------------------|
-// |         Rows 8-11        | ==> Node 2
-// |--------------------------|
-//
-//
-// For simplicity, assume that NUM_ROWS % NUM_NODES == 0
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
 
 #include <Halide.h>
-#include "../include/tiramisu/core.h"
+
+#include "wrapper_tutorial_11.h"
+
+/*
+ * This tutorial shows how to perform a distributed cvtcolor computation.
+ * cvtcolor converts an RGB image into gray scale.
+ * We assume that the data starts distributed by contiguous rows, so no communication is needed.
+ * We hardcode this example to distribute across 10 different ranks (i.e. 10 unique processes). The user defines how
+ * to map these ranks to physical machines using the configure.cmake file.
+ * The cvtcolor computation is as follows:
+
+for (int r = 0; r < ROWS; r++) {
+  for (int c = 0; c < COLS; c++) {
+  gray(r, c) = ((rgb(r, c, 0) * 4899 + rgb(r, c, 1) * 9617 + rgb(r, c, 2) * 1868) + 
+               (1 << 13)) >> 13;
+  }
+}
+
+ */
 
 using namespace tiramisu;
 
-#define NUM_ROWS 1280
-#define NUM_COLS 768
-#define NUM_NODES 5
-
 int main(int argc, char **argv) {
-
-    static_assert(NUM_ROWS % NUM_NODES == 0, "Rows should be dividable by the number of nodes.");
-
+    // Set default tiramisu options.
     global::set_default_tiramisu_options();
+
+    tiramisu::function cvtcolor("cvtcolor");
+
+    // Define some constants and variables
+    constant ROWS("ROWS", _ROWS, p_int32, true, NULL, 0, &cvtcolor);
+    constant COLS("COLS", _COLS, p_int32, true, NULL, 0, &cvtcolor);
+    var r("r"), c("c"), rr("rr"), rrr("rrr");
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
-    /*
-     * Declare a function blurxy.
-     * Declare two arguments (tiramisu buffers) for the function: b_input and b_blury
-     * Declare an invariant for the function.
-     */
-    function blurxy("blurxy");
+    // The computations are defined across the entire compute space, not just what a single rank (i.e. node) computes.
+    // Define a wrapper around the input
+    computation input("[ROWS,COLS]->{input[r,c,chan]: 0<=r<ROWS and 0<=c<COLS and 0<=chan<3}", expr(), false, p_uint32, &cvtcolor);
 
-    constant p0("N", expr((int32_t) NUM_ROWS), p_int32, true, nullptr, 0, &blurxy);
-    constant p1("M", expr((int32_t) NUM_COLS), p_int32, true, nullptr, 0, &blurxy);
-    constant p2("NODES", expr((int32_t) NUM_NODES), p_int32, true, nullptr, 0, &blurxy);
-
-    // Declare a wrapper around the input.
-    computation c_input("[N,M]->{c_input[i,j]: 0<=i<N and 0<=j<M}", expr(), false, p_uint8, &blurxy);
-
-    var i("i"), j("j"), i0("i0"), i1("i1"), j0("j0"), j1("j1");
-
-    // Declare the computations c_blurx and c_blury.
-    expr e1 = (c_input(i - 1, j) +
-               c_input(i    , j) +
-               c_input(i + 1, j)) / ((uint8_t) 3);
-
-    computation c_blurx("[N,M]->{c_blurx[i,j]: 0<=i<N and 0<=j<M}", e1, true, p_uint8, &blurxy);
-
-    expr e2 = (c_blurx(i, j - 1) +
-               c_blurx(i, j) +
-               c_blurx(i, j + 1)) / ((uint8_t) 3);
-
-    computation c_blury("[N,M]->{c_blury[i,j]: 0<=i<N and 0<=j<M}", e2, true, p_uint8, &blurxy);
+    // Define the cvt color computation.
+    expr convert = input(r, c, 0) * (uint32_t)4899 + input(r, c, 1) * (uint32_t)9617 + input(r, c, 2) * (uint32_t)1868;
+    expr shift = (convert + ((uint32_t)1 << (uint32_t)13)) >> (uint32_t)13;
+    computation rgb2gray("[ROWS,COLS]->{rgb2gray[r,c]: 0<=r<ROWS and 0<=c<COLS}", shift, true, p_uint32, &cvtcolor);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    c_input.split(i, NUM_ROWS/NUM_NODES, i0, i1);
-    c_blurx.split(i, NUM_ROWS/NUM_NODES, i0, i1);
-    c_blury.split(i, NUM_ROWS/NUM_NODES, i0, i1);
+    // Prepare the computations for distributing by splitting to create an outer loop over the 
+    // number of nodes
+    input.split(r, _ROWS/10, rr, rrr);
+    rgb2gray.split(r, _ROWS/10, rr, rrr);
 
-    c_input.tag_distribute_level(i0);
-    c_blurx.tag_distribute_level(i0);
-    c_blury.tag_distribute_level(i0);
-    c_input.drop_rank_iter(i0);
-    c_blurx.drop_rank_iter(i0);
-    c_blury.drop_rank_iter(i0);
+    // Tag the outer loop level over the number of nodes so that it is distributed. Internally,
+    // this creates a new Var called "rank"
+    input.tag_distribute_level(rr);
+    rgb2gray.tag_distribute_level(rr);
 
-    var p("p"), q("q");
-    xfer border_comm = computation::create_xfer("[NODES,N,M]->{border_send[p,i,j]: 0<=p<NODES-1 and 0<=i<1 and 0<=j<M}",
-                                                "[NODES,N,M]->{border_recv[q,i,j]: 1<=q<NODES and 0<=i<1 and 0<=j<M}",
-                                                p+1, q-1, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
-                                                xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
-                                                c_input((NUM_ROWS - 1)/NUM_NODES * NUM_COLS, j), &blurxy);
-
-    border_comm.s->tag_distribute_level(p);
-    border_comm.r->tag_distribute_level(q);
-
-    border_comm.s->before(*border_comm.r, computation::root);
-    border_comm.r->before(c_blurx, computation::root);
-    c_blurx.before(c_blury, i0);
-
+    // Tell the code generator to not include the "rank" var when computing linearized indices (where the rank var is the tagged loop)
+    input.drop_rank_iter(rr);
+    rgb2gray.drop_rank_iter(rr);
+    
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_input("b_input", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_input, &blurxy);
-    buffer b_blurx("b_blurx", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_temporary, &blurxy);
-    buffer b_blury("b_blury", {expr(NUM_ROWS/NUM_NODES) + 2, expr(NUM_COLS) + 2}, p_uint8, a_output, &blurxy);
+    // Create buffers for each node (the sizes should be relative to each node, so input is NUM_ROWS/10 x COLS x 3 and output is NUM_ROWS/10 X COLS)
+    buffer input_buff("input_buff", {_ROWS/10, _COLS, 3}, p_uint32, a_input, &cvtcolor);
+    buffer output_buff("output_buff", {_ROWS/10, _COLS}, p_uint32, a_output, &cvtcolor);
 
-    // Map the computations to a buffer.
-    c_input.set_access("{c_input[i,j]->b_input[i+1,j+1]}");
-    border_comm.r->set_access("{border_recv[q,i,j]->b_input[i,j]}");
-    c_blurx.set_access("{c_blurx[i,j]->b_blurx[i+1,j+1]}");
-    c_blury.set_access("{c_blury[i,j]->b_blury[i+1,j+1]}");
+    // Define the mapping to the buffers (also relative to each node)
+    input.set_access("{input[r,c,chan]->input_buff[r%" + std::to_string(_ROWS/10) + ",c,chan]}");
+    rgb2gray.set_access("{rgb2gray[r,c]->output_buff[r%" + std::to_string(_ROWS/10) + ",c]}");
 
-    blurxy.codegen({&b_input, &b_blury}, "build/generated_fct_developers_tutorial_11.o");
-
+    cvtcolor.codegen({&input_buff, &output_buff}, "build/generated_fct_developers_tutorial_11.o");
+    
+    return 0;
 }
+
