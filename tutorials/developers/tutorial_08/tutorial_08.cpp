@@ -20,13 +20,13 @@ using namespace tiramisu;
  *
  * We want to represent the following program
  *
- * for i = 1 to N
+ * for i = 0 to N
  *      C[i] = 10
  *
- * for i = 1 to N
+ * for i = 0 to N
  *      C[i] = C[i] + 10
  *
- * for i to N
+ * for i = 0 to N
  *      out[i] = C[i] + 1
  *
  * In order to implement this program, we create the following
@@ -40,7 +40,7 @@ using namespace tiramisu;
 
 void generate_function(std::string name, int size, int val0)
 {
-    tiramisu::global::set_default_tiramisu_options();
+    global::set_default_tiramisu_options();
 
 
     // -------------------------------------------------------
@@ -48,15 +48,15 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    tiramisu::function function0(name);
-    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    function function0(name);
+    constant N("N", expr((int32_t) size), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::var i = tiramisu::var("i");
-    tiramisu::var j = tiramisu::var("j");
+    var i = var("i");
+    var j = var("j");
 
-    tiramisu::computation C("[N]->{C[0,i]: 0<=i<N}", tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
-    C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0, i) + tiramisu::expr((uint8_t) 10), true, p_uint8, &function0);
-    tiramisu::computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + tiramisu::expr((uint8_t) 1), true, p_uint8, &function0);
+    computation C("[N]->{C[0,i]: 0<=i<N}", expr((uint8_t) 10), true, p_uint8, &function0);
+    C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0, i) + expr((uint8_t) 10), true, p_uint8, &function0);
+    computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + expr((uint8_t) 1), true, p_uint8, &function0);
 
 
     // -------------------------------------------------------
@@ -73,8 +73,8 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
 
 
-    tiramisu::buffer C_buff("C_buff", {size}, tiramisu::p_uint8, a_temporary, &function0);
-    tiramisu::buffer out_buff("out_buff", {size}, tiramisu::p_uint8, a_output, &function0);
+    buffer C_buff("C_buff", {size}, p_uint8, a_temporary, &function0);
+    buffer out_buff("out_buff", {size}, p_uint8, a_output, &function0);
     // Important: note that the access relations of the two computation C and C2 are identical.
     // The Tiramisu code generator assumes that the access relations of computations that have the same
     // name are identical.  In this case, the two relations are equal to "{C[j,i]->C_buff[i]}".
