@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     var k = var("k");
 
     // Declare a computation c_C
-    computation c_C("[N]->{c_C[i,j,0]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
+    computation c_C("[N]->{c_C[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
 
     c_C.add_definitions("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(),
                         true, p_uint8, &matmul);
@@ -85,9 +85,9 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_A("b_A", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_B("b_B", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_C("b_C", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE0)}, p_uint8, a_output, &matmul);
+    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
+    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
 
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");

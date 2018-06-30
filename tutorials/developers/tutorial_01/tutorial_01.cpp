@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", {tiramisu::expr(10), tiramisu::expr(10)}, p_uint8, a_output,
+    buffer buf0("buf0", {expr(10), expr(10)}, p_uint8, a_output,
                 &function0);
 
     // Map the computations to a buffer (i.e. where each computation
