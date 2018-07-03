@@ -1,10 +1,10 @@
 set(CMAKE_BUILD_TYPE RELEASE)
 
-# Uncomment if you wish to use GPU
-# set(USE_GPU true)
+# Set to TRUE if you wish to use GPU
+set(USE_GPU FALSE)
 
-# Uncomment if you wish to use MPI
-# set(USE_MPI true)
+# Set to TRUE if you wish to use MPI
+set(USE_MPI FALSE)
 
 # Set to TRUE if you wish to use libpng tutorials and benchmarks
 set(USE_LIBPNG FALSE)
