@@ -153,25 +153,29 @@ endif()
 find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
-execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
-
 # Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
 string(STRIP ${LLVM_VERSION} LLVM_VERSION)
 if (${LLVM_VERSION} VERSION_GREATER 5.0)
     execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+    string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 else ()
     message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
 endif()
 
-string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
-string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
+set(LINK_FLAGS "-ldl -lpthread ${LLVM_FLAGS}")
 
-set(LINK_FLAGS "-ldl -lpthread")
-if (${USE_MPI})
-    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS} ${MPI_LIB_FLAGS}")
-else()
-    set(LINK_FLAGS "${LINK_FLAGS} ${LLVM_FLAGS} ${LIBPNG_FLAGS}")
+if(${USE_MPI})
+    set(LINK_FLAGS "${LINK_FLAGS} ${MPI_LIB_FLAGS}")
+endif()
+
+if(${USE_LIBPNG})
+    execute_process(COMMAND libpng-config --I_opts OUTPUT_VARIABLE LIBPNG_INCLUDE_OPTIONS)
+    string(STRIP ${LIBPNG_INCLUDE_OPTIONS} LIBPNG_INCLUDE_OPTIONS)
+    add_compile_options("${LIBPNG_INCLUDE_OPTIONS}")
+    execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
+    string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
+    set(LINK_FLAGS "${LINK_FLAGS} ${LIBPNG_FLAGS}")
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)
