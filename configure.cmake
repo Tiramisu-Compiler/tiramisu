@@ -6,6 +6,9 @@ set(CMAKE_BUILD_TYPE RELEASE)
 # Uncomment if you wish to use MPI
 # set(USE_MPI true)
 
+# Set to TRUE if you wish to use libpng tutorials and benchmarks
+set(USE_LIBPNG FALSE)
+
 # If USE_MPI is true, you need to set MPI paths
 # (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS)
 # Examples:
