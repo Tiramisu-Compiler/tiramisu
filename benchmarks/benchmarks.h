@@ -14,6 +14,10 @@
 #define PRINT_OUTPUT 0 
 #define SIZE_IS_MULTIPLE_OF_TILE 1
 
+
+#define BARYON_N 16
+#define BARYON_P 1
+
 // Data size
 #if TIRAMISU_XLARGE
 
