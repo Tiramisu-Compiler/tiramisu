@@ -13,6 +13,14 @@ For MacOs, we provide instructions on how to install the missing packages using 
         # On MacOS
         sudo brew install cmake
 
+2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
+
+        # On Ubuntu
+        sudo apt-get install autoconf libtool
+
+        # On MacOS
+        sudo brew install autoconf libtool
+
 ###### Optional Packages
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): to run the generated distributed code (MPI).
 
@@ -30,7 +38,7 @@ For MacOs, we provide instructions on how to install the missing packages using 
         https://developer.nvidia.com/cuda-toolkit
 
 
-Tiramisu requires the following packages to be installed: ISL, Halide and LLVM.  The user is supposed to install them by running the script `./utils/scripts/install_submodules.sh`.  If the script fails, the user can still install them manually as described below.
+Tiramisu requires the following packages to be installed: ISL, Halide and LLVM.  The user is supposed to install them by running the script `./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_PATH>`.  If the script fails, the user can still install them manually as described below.
 
 ##### Building ISL
 

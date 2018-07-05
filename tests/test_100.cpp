@@ -5,7 +5,7 @@
 
 using namespace tiramisu;
 
-// Do just communication for distributed. Distribute across 10 ranks. All blocking/synchronous.
+// Do just communication for distributed. Distribute across 10 ranks. All non-blocking/asynchronous.
 // Overwrite each rank's first row with the received data
 
 void generate_function_1(std::string name) {
@@ -19,15 +19,15 @@ void generate_function_1(std::string name) {
     xfer sr = computation::create_xfer("{send[q,x,y]: 0<=q<9 and 0<=x<100 and 0<=y<100}",
                                        "{recv[q,x,y]: 1<=q<10 and 0<=x<100 and 0<=y<100}",
                                        q+1, q-1, xfer_prop(p_int32, {MPI, NONBLOCK, ASYNC}),
-                                       xfer_prop(p_int32, {MPI, NONBLOCK, ASYNC}), input(x,y), &function0);
+                                       xfer_prop(p_int32, {MPI, BLOCK, ASYNC}), input(x,y), &function0);
 
     // Use a constant so it doesn't remove this loop
     constant ONE("ONE", 1, p_int32, true, NULL, 0, &function0);
     constant NINE("NINE", 9, p_int32, true, NULL, 0, &function0);
     xfer sr2 = computation::create_xfer("[NINE]->{send2[q,x,y]: NINE<=q<10 and 0<=x<100 and 0<=y<100}",
                                         "[ONE]->{recv2[q,x,y]: 0<=q<ONE and 0<=x<100 and 0<=y<100}",
-                                        0, 9, xfer_prop(p_int32, {MPI, NONBLOCK, ASYNC}),
-                                        xfer_prop(p_int32, {MPI, NONBLOCK, ASYNC}), input(x,y), &function0);
+                                        0, 9, xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
+                                        xfer_prop(p_int32, {MPI, BLOCK, ASYNC}), input(x,y), &function0);
 
     tiramisu::wait wait_send(sr.s->operator()(0,x,y), xfer_prop(p_wait_ptr, {MPI}), &function0);
     tiramisu::wait wait_recv(sr.r->operator()(0,x,y), xfer_prop(p_wait_ptr, {MPI}), &function0);
@@ -52,10 +52,10 @@ void generate_function_1(std::string name) {
     wait_send2.before(wait_recv2, computation::root);
 
     buffer buff("buff", {100, 100}, p_int32 , a_output, &function0);
-    buffer buff_wait_send("buff_wait_send", {100, 100}, p_wait_ptr , a_temporary, &function0);
-    buffer buff_wait_recv("buff_wait_recv", {100, 100}, p_wait_ptr , a_temporary, &function0);
-    buffer buff_wait_send2("buff_wait_send2", {100, 100}, p_wait_ptr , a_temporary, &function0);
-    buffer buff_wait_recv2("buff_wait_recv2", {100, 100}, p_wait_ptr , a_temporary, &function0);
+    buffer buff_wait_send("buff_wait_send", {100, 100}, p_wait_ptr, a_temporary, &function0);
+    buffer buff_wait_recv("buff_wait_recv", {100, 100}, p_wait_ptr, a_temporary, &function0);
+    buffer buff_wait_send2("buff_wait_send2", {100, 100}, p_wait_ptr, a_temporary, &function0);
+    buffer buff_wait_recv2("buff_wait_recv2", {100, 100}, p_wait_ptr, a_temporary, &function0);
 
     input.set_access("{input[x,y]->buff[x,y]}");
     // Overwrite the first row
@@ -68,7 +68,6 @@ void generate_function_1(std::string name) {
     sr2.r->set_wait_access("{recv2[q,x,y]->buff_wait_recv2[x,y]}");
 
     function0.codegen({&buff}, "build/generated_fct_test_100.o");
-
 }
 
 int main() {

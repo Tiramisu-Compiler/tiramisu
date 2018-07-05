@@ -6511,7 +6511,7 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
     case tiramisu::p_int16:
         return "int16";
     case tiramisu::p_uint32:
-        return "uin32";
+        return "uint32";
     case tiramisu::p_int32:
         return "int32";
     case tiramisu::p_uint64:
@@ -8359,11 +8359,8 @@ void tiramisu::function::lift_dist_comps() {
             xfer_prop chan = static_cast<tiramisu::communicator *>(*comp)->get_xfer_props();
             if (chan.contains_attr(MPI)) {
                 lift_mpi_comp(*comp);
-            } else if (chan.contains_attr(CUDA)) {
-                assert(false && "CUDA lifter not implemented yet");
-//                lift_cuda_comp(*comp);
             } else {
-                assert(false);
+                tiramisu::error("Can only lift MPI library calls", 0);
             }
         }
     }
@@ -8375,6 +8372,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         tiramisu::expr num_elements(s->get_num_elements());
         tiramisu::expr send_type(s->get_xfer_props().get_dtype());
         bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK);
+        // Determine the appropriate number of function args and set ones that we can already know
         s->rhs_argument_idx = 3;
         s->library_call_args.resize(isnonblock ? 5 : 4);
         s->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
@@ -8390,6 +8388,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         tiramisu::expr num_elements(r->get_num_elements());
         tiramisu::expr recv_type(s->get_xfer_props().get_dtype());
         bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK);
+        // Determine the appropriate number of function args and set ones that we can already know
         r->lhs_argument_idx = 3;
         r->library_call_args.resize(isnonblock ? 5 : 4);
         r->library_call_args[0] = tiramisu::expr(tiramisu::o_cast, p_int32, num_elements);
@@ -8403,6 +8402,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         }
     } else if (comp->is_wait()) {
         wait *w = static_cast<wait *>(comp);
+        // Determine the appropriate number of function args and set ones that we can already know
         w->rhs_argument_idx = 0;
         w->library_call_args.resize(1);
         w->library_call_name = "tiramisu_MPI_Wait";

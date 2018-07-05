@@ -89,11 +89,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
 
-    buffer b_row_start("b_row_start", {tiramisu::expr(SIZE0)}, p_uint8, a_input, &spmv);
-    buffer b_col_idx("b_col_idx", {tiramisu::expr(SIZE0)}, p_uint8, a_input, &spmv);
-    buffer b_values("b_values", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
-    buffer b_x("b_x", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
-    buffer b_y("b_y", {tiramisu::expr(SIZE0 * SIZE0)}, p_uint8, a_output, &spmv);
+    buffer b_row_start("b_row_start", {expr(SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_col_idx("b_col_idx", {expr(SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_values("b_values", {expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_x("b_x", {expr(SIZE0 * SIZE0)}, p_uint8, a_input, &spmv);
+    buffer b_y("b_y", {expr(SIZE0 * SIZE0)}, p_uint8, a_output, &spmv);
 
     c_row_start.set_access("{c_row_start[i]->b_row_start[i]}");
     c_col_idx.set_access("{c_col_idx[j]->b_col_idx[j]}");

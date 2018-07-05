@@ -14,7 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int dist_comm_only_nonblock(halide_buffer_t *);
+  int dist_comm_only_nonblock(halide_buffer_t *);
 int dist_comm_only_nonblock_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

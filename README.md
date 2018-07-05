@@ -43,6 +43,8 @@ This section provides a short description of how to build Tiramisu.  A more deta
 #### Prerequisites
 ###### Required
 1) [CMake](https://cmake.org/): version 3.5 or greater.
+
+2) [Autoconf](https://www.gnu.org/software/autoconf/) and [libtool](https://www.gnu.org/software/libtool/).
   
 ###### Optional
 1) [OpenMPI](https://www.open-mpi.org/) and [OpenSSh](https://www.openssh.com/): if you want to generate and run distributed code (MPI).

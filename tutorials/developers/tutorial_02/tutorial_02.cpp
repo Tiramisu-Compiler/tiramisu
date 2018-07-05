@@ -88,9 +88,9 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_input("b_input", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_input, &blurxy);
-    buffer b_blury("b_blury", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_output, &blurxy);
-    buffer b_blurx("b_blurx", {tiramisu::expr(SIZE0), tiramisu::expr(SIZE1)}, p_uint8, a_temporary, &blurxy);
+    buffer b_input("b_input", {expr(SIZE0), expr(SIZE1)}, p_uint8, a_input, &blurxy);
+    buffer b_blury("b_blury", {expr(SIZE0), expr(SIZE1)}, p_uint8, a_output, &blurxy);
+    buffer b_blurx("b_blurx", {expr(SIZE0), expr(SIZE1)}, p_uint8, a_temporary, &blurxy);
 
     // Map the computations to a buffer.
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
@@ -120,3 +120,10 @@ int main(int argc, char **argv)
 
     return 0;
 }
+/**
+ * Current limitations:
+ * - Note that the type of the invariants N and M are "int32_t". This is
+ *   important because these invariants are used later as loop bounds and the
+ *   type of the bounds and the iterators should be the same for correct code
+ *   generation. This implies that the invariants should be of type "int32_t".
+ */

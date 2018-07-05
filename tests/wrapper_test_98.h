@@ -4,7 +4,7 @@
 // Define these values for each new test
 #define TEST_NAME_STR       "Distributed reduction without computation"
 #define TEST_NUMBER_STR     "98"
-
+#define REDUC_ITERS 20
 // --------------------------------------------------------
 // No need to modify anything in the following ------------
 // --------------------------------------------------------

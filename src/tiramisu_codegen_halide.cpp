@@ -2794,20 +2794,13 @@ void computation::create_halide_assignment()
     }
     else {
         DEBUG(3, tiramisu::str_dump("This is not a let statement."));
-        // Transform some indices for library calls for distributed code
-        if (this->is_send()) {
-            this->library_call_args[1] = replace_original_indices_with_transformed_indices(this->library_call_args[1],
-                                                                                           this->get_iterators_map());
-            this->library_call_args[2] = replace_original_indices_with_transformed_indices(this->library_call_args[2],
-                                                                                           this->get_iterators_map());
-        } else if (this->is_recv()) {
-            this->library_call_args[1] = replace_original_indices_with_transformed_indices(this->library_call_args[1],
-                                                                                           this->get_iterators_map());
-            this->library_call_args[2] = replace_original_indices_with_transformed_indices(this->library_call_args[2],
+        if (this->is_send() || this->is_recv()) {
+          // This is the iterator, but it is still in the user's form. Transform it.
+          this->library_call_args[1] = replace_original_indices_with_transformed_indices(this->library_call_args[1],
                                                                                            this->get_iterators_map());
         }
-        // The first block in this if statement is the original code from before the distributed code was added.
-        // So any changes can probably be made to just that part.
+        // The majority of code generation for computations will fall into this first if statement as they are not library calls. This is the original code
+        // Some library calls take the usual lhs as an actual argument however, so we may need to compute it anyway for some library calls 
         if (!this->is_library_call() || this->lhs_argument_idx != -1) { // This has an LHS to compute.
             const char *buffer_name =
                     isl_space_get_tuple_name(
@@ -2891,7 +2884,7 @@ void computation::create_halide_assignment()
             Halide::Internal::Parameter param;
             std::vector<Halide::Expr> halide_call_args;
             halide_call_args.resize(this->library_call_args.size());
-            if (this->lhs_access_type == tiramisu::o_access) {
+            if (this->lhs_access_type == tiramisu::o_access) { // The majority of computations have this access type for the left hand side
                 if (tiramisu_buffer->get_argument_type() == tiramisu::a_output) {
                     if (tiramisu_buffer->has_constant_extents()) {
                         Halide::Buffer<> buffer =
@@ -2946,9 +2939,8 @@ void computation::create_halide_assignment()
                         index, param, Halide::Internal::const_true(type.lanes()));
 
                 DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
-            } else if (this->lhs_access_type == tiramisu::o_address_of ||
-                       this->lhs_access_type == tiramisu::o_lin_index ||
-                       this->lhs_access_type == tiramisu::o_buffer) {
+            } else if (this->is_library_call()) {
+              // We need to make sure to process all of the other arguments for this library call
                 for (int i = 0; i < this->library_call_args.size(); i++) {
                     if (i != this->rhs_argument_idx && i != this->lhs_argument_idx &&
                         i != this->wait_argument_idx) {
@@ -2961,12 +2953,14 @@ void computation::create_halide_assignment()
                     }
                 }
                 if (this->lhs_argument_idx != -1) {
-                    // The LHS is a parameter of the function call. We need to take the address of buffer at lhs_index
+                    // The LHS is a parameter of the library call. We need to take the address of buffer at lhs_index as we assume that all 
+                    // library calls requiring the LHS buffer also take the index into that buffer as either a separate argument (o_lin_index)
+                    // or as an address_of into the buffer
                     Halide::Expr result;
                     Halide::Expr result2;
-                    if (this->lhs_access_type == tiramisu::o_lin_index) {
+                    if (this->lhs_access_type == tiramisu::o_lin_index) { // pass in the index directly
                         result = index;
-                    } else  {
+                    } else { // pass in LHS index and buffer into address_of extern function
                         result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                   tiramisu_buffer->get_name() + ".buffer");
                         result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
@@ -2976,14 +2970,14 @@ void computation::create_halide_assignment()
                                                               Halide::Internal::Call::Extern);
                     }
                     halide_call_args[lhs_argument_idx] = result;
-                }
-                // Process the RHS side if this library call needs it
-                if (this->rhs_argument_idx != -1) {
+                } // else we don't care about the LHS 
+                if (this->rhs_argument_idx != -1) { // THis library call also requires a RHS buffer and index, so process that
                     if (this->get_expr().get_op_type() == tiramisu::o_buffer) {
-                        // in this case, we assume the last call arg gets the linear index and the rhs_argument_idx gets the buffer
-                        expr old = this->get_expr();
+                      // TODO(Jess): Can we remove this assumption?? It will probably require adding yet another special index type (such as rhs_argument_index_index)
+                        // In this case, we make a (correct for now) assumption that the last call arg gets the linear index and the rhs_argument_idx gets the buffer
+                        expr old = this->get_expr(); 
                         expr mod_rhs(tiramisu::o_address,
-                                     this->get_expr().get_name());//, this->get_expr().get_access(), this->get_expr().get_data_type());
+                                     this->get_expr().get_name());
                         this->expression = mod_rhs;
                         assert(this->get_expr().get_op_type() != o_buffer);
                         halide_call_args[rhs_argument_idx] = // the buffer
@@ -3010,11 +3004,11 @@ void computation::create_halide_assignment()
             } else {
                 assert(false && "Unsupported LHS operation type.");
             }
-            // defines writing into the wait buffer when a transfer is initiated
+            // Defines writing into the wait buffer when a transfer is initiated (for nonblocking operations)
             if (this->wait_argument_idx != -1) {
+                tiramisu::error("Nonblocking not currently supported", 0);
                 assert((this->is_recv() || this->is_send_recv()) && "This should be a recv or one-sided operation.");
                 assert(this->wait_access_map && "A wait access map must be provided.");
-                //                if (static_cast<communicator *>(this)->get_channel().contains_attr(MPI)) {
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
                 // First, find the request buffer.
                 const auto &wait_buffer_entry = this->fct->get_buffers().find(
@@ -3067,12 +3061,12 @@ void computation::create_halide_assignment()
                 halide_call_args[wait_argument_idx] = result;
             }
             if (this->is_library_call()) {
-                // Now, create the function call and evaluate it. This becomes the Halide stmt
+                // Now, create the library call and evaluate it. This becomes the Halide stmt.
                 this->stmt = Halide::Internal::Evaluate::make(make_comm_call(Halide::Bool(), this->library_call_name,
                                                                              halide_call_args));
             }
             delete[] shape;
-        } else { // no LHS
+        } else { // No LHS to compute. Only valid for library calls. Regular computations do require a LHS access.
             assert(this->is_library_call() &&
                    "Only library calls and let statements are allowed to not have a LHS access function!");
             std::vector<Halide::Expr> halide_call_args;
@@ -3091,6 +3085,7 @@ void computation::create_halide_assignment()
                                                                                                this->get_expr(), this);
             }
             if (this->wait_argument_idx != -1) {
+                tiramisu::error("Nonblocking not currently supported", 0);
                 assert(this->is_send() && "This should be a send operation.");
                 assert(this->wait_access_map && "A request access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
@@ -3129,6 +3124,7 @@ void computation::create_halide_assignment()
                 // which is either a send or a receive
                 halide_call_args[wait_argument_idx] = result;
             }
+            // Create the library call (assumed to be a communication call for right now)
             this->stmt = Halide::Internal::Evaluate::make(make_comm_call(Halide::Bool(), this->library_call_name,
                                                                          halide_call_args));
 
