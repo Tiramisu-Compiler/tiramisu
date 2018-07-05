@@ -81,20 +81,15 @@ void generate_function(std::string name, int size)
     Res2_update_0.set_expression(Res2_update_0(x0, x1, x2) + /* exp(i(x0*px+x1*py+x2*pz)) */ Res1_update_0(x0, x1, x2, KMAX));
 
     // -------------------------------------------------------
-    // Layer II
-    // -------------------------------------------------------
-
-    Res0.after(Res2, tiramisu::computation::root);
-    Res1.after(Res0, x2);
-    Res1_update_0.after(Res1, x2);
-    Res2_update_0.after(Res1_update_0, x2);
-
-    // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
     tiramisu::buffer buf_res0("buf_res0", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_temporary, &function0);
+    buf_res0.set_auto_allocate(false);
+    tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res0, x2);
     tiramisu::buffer buf_res1("buf_res1", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_temporary, &function0);
+    buf_res1.set_auto_allocate(false);
+    tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res0, x2);
     tiramisu::buffer buf_res2("buf_res2", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_output, &function0);
     // S(c1, x0, x1, x2, t, a1, x’0)
     tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), N_CONST, N_CONST, N_CONST, tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P)}, tiramisu::p_float32, a_input, &function0);
@@ -108,6 +103,18 @@ void generate_function(std::string name, int size)
     Res2_update_0.set_access("{Res2_update_0[x0,x1,x2]->buf_res2[0]}");
     S.set_access("{S[c1,x0,x1,x2,t,a1,xp0]->buf_S[c1,x0,x1,x2,t,a1,xp0]}");
     wp.set_access("{wp[c1,c2,c3,b0,b1,b2,k]->buf_wp[c1,c2,c3,b0,b1,b2,k]}");
+
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+
+    alloc_res0->after(Res2, tiramisu::computation::root);
+    alloc_res1->after(*alloc_res0, x2);
+    Res0.after(*alloc_res1, x2);
+    Res1.after(Res0, x2);
+    Res1_update_0.after(Res1, x2);
+    Res2_update_0.after(Res1_update_0, x2);
+
 
     // -------------------------------------------------------
     // Code Generation
