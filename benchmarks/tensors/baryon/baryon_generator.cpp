@@ -44,6 +44,7 @@ void generate_function(std::string name, int size)
     // -------------------------------------------------------
 
     tiramisu::function function0(name);
+
     tiramisu::constant N_CONST("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::constant c1("c1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant c2("c2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
