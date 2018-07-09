@@ -5,22 +5,32 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 10
+
+#define NN 8 
+#define MM 16
+#define Val 225
 
 int main(int, char **)
 {
-    Halide::Buffer<uint8_t> image = Halide::Tools::load_image("./utils/images/rgb.png");
-    Halide::Buffer<uint8_t> output_buf(image.extent(0), image.extent(1));
+    
+    Halide::Buffer<uint8_t> input(NN,MM);
+    init_buffer(input, (uint8_t)Val);
+    
+    // Uncomment the following two lines if you want to view the input table
+     std::cout << "Array (before Blurxy)" << std::endl;
+     print_buffer(input); 
+
+    Halide::Buffer<uint8_t> output_buf(NN,MM);
 
     // The blurxy takes a halide_buffer_t * as argument, when "image"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
-    blurxy(image.raw_buffer(), output_buf.raw_buffer());
 
-    // TODO(psuriana): not sure why we have to copy the output to image, then
-    // write it to file, as opposed to write the output to file directly.
-    copy_buffer(output_buf, image);
-    Halide::Tools::save_image(image, "./build/tutorial_02.png");
+    blurxy(input.raw_buffer(), output_buf.raw_buffer());
+
+    // Uncomment the following two lines if you want to view the output table
+     std::cout << "Array (after Blurxy)" << std::endl;
+     print_buffer(output_buf); 
 
     return 0;
 }
