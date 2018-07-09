@@ -22,7 +22,7 @@ int main(int, char **)
 
     Halide::Buffer<uint8_t> output_buf(NN,MM);
 
-    // The blurxy takes a halide_buffer_t * as argument, when "image"
+    // The blurxy takes a halide_buffer_t * as argument, when "input"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
 
