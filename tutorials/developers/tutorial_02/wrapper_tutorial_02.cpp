@@ -10,10 +10,12 @@
 #define MM 16
 #define Val 225
 
+
 int main(int, char **)
 {
     
     Halide::Buffer<uint8_t> input(NN,MM);
+
     init_buffer(input, (uint8_t)Val);
     
     // Uncomment the following two lines if you want to view the input table
@@ -22,7 +24,7 @@ int main(int, char **)
 
     Halide::Buffer<uint8_t> output_buf(NN,MM);
 
-    // The blurxy takes a halide_buffer_t * as argument, when "image"
+    // The blurxy takes a halide_buffer_t * as argument, when "input"
     // is passed, its buffer is actually extracted and passed
     // to the function (c++ operator overloading).
 
