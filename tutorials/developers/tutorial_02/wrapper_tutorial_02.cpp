@@ -6,15 +6,17 @@
 #include <iostream>
 
 
-#define NN 12 
-#define MM 1420
-#define Value 225
+#define NN 8 
+#define MM 16
+#define Val 225
+
 
 int main(int, char **)
 {
     
     Halide::Buffer<uint8_t> input(NN,MM);
-    init_buffer(input, (uint8_t)Value);
+
+    init_buffer(input, (uint8_t)Val);
     
     // Uncomment the following two lines if you want to view the input table
     // std::cout << "Array (before Blurxy)" << std::endl;
