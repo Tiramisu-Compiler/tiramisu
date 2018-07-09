@@ -17,8 +17,8 @@ int main(int, char **)
     init_buffer(input, (uint8_t)Val);
     
     // Uncomment the following two lines if you want to view the input table
-     std::cout << "Array (before Blurxy)" << std::endl;
-     print_buffer(input); 
+    // std::cout << "Array (before Blurxy)" << std::endl;
+    // print_buffer(input); 
 
     Halide::Buffer<uint8_t> output_buf(NN,MM);
 
@@ -29,8 +29,8 @@ int main(int, char **)
     blurxy(input.raw_buffer(), output_buf.raw_buffer());
 
     // Uncomment the following two lines if you want to view the output table
-     std::cout << "Array (after Blurxy)" << std::endl;
-     print_buffer(output_buf); 
+    // std::cout << "Array (after Blurxy)" << std::endl;
+    // print_buffer(output_buf); 
 
     return 0;
 }
