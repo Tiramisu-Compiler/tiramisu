@@ -16,8 +16,7 @@
 
 
 #### Configuration
-Edit the file `configure.cmake` to set the variable MKL_PREFIX to point to the Intel MKL library.  An example of how this variable should be set is available in `configure.cmake`.
-The variable USE_LIBPNG also need to be set to TRUE in order to be able to use libpng.
+Edit the file `configure.cmake` to set the variable USE_LIBPNG to TRUE and variable MKL_PREFIX to point to the Intel MKL library.  An example of how the MKL_PREFIX variable should be set is available in `configure.cmake`.
 
 ## Run Benchmarks
 
