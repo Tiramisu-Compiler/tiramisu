@@ -28,8 +28,8 @@ Func blurxy(Func input, Func blur_y) {
   }
 */
 
-#define SIZE0 1280
-#define SIZE1 768
+#define SIZE0 8
+#define SIZE1 16
 
 using namespace tiramisu;
 
