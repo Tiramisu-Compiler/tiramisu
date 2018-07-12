@@ -28,7 +28,7 @@ int main(int, char **)
 
     // Uncomment the following two lines if you want to view the output table
     // std::cout << "Array (after tut_02)" << std::endl;
-    // print_buffer(output_buf); 
+    // print_buffer(output); 
 
     Halide::Buffer<uint8_t> expected(MM, NN);
     for (int i = 0; i < NN; i++) {
