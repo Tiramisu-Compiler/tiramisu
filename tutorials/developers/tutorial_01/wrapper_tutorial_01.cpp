@@ -4,12 +4,11 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 10
-#define MM 10
-
 int main(int, char **)
 {
-    Halide::Buffer<int32_t> output(NN, MM);
+    int N = 10;
+
+    Halide::Buffer<int32_t> output(N);
     init_buffer(output, (int32_t)9);
 
     std::cout << "Array (after initialization)" << std::endl;
@@ -20,7 +19,7 @@ int main(int, char **)
     std::cout << "Array after the Halide pipeline" << std::endl;
     print_buffer(output);
 
-    Halide::Buffer<int32_t> expected(NN, MM);
+    Halide::Buffer<int32_t> expected(N);
     init_buffer(expected, (int32_t)7);
 
     compare_buffers("tutorial_01", output, expected);

@@ -18,8 +18,7 @@ using namespace tiramisu;
   equivalent to the following
 
   for (int i = 0; i < 10; i++)
-    for (int j = 0; j < 10; j++)
-      buf0[i, j] = 3 + 4;
+      buf0[i] = 3 + 4;
 */
 
 int main(int argc, char **argv)
@@ -40,7 +39,7 @@ int main(int argc, char **argv)
 
     // Declare an expression that will be associated to the
     // computations.  This expression sums 3 and 4.
-    expr e3 = expr(3) + expr(4);
+    expr e = expr(3) + expr(4);
 
     // Declare a computation within function0.
     // To declare a computation, you need to provide:
@@ -52,7 +51,7 @@ int main(int argc, char **argv)
     // (2) a tiramisu expression: this is the expression that will be computed
     // by the computation.
     // (3) the function in which the computation will be declared.
-    computation S0("{S0[i,j]: 0<=i<10 and 0<=j<10}", e3, true, p_uint8, &function0);
+    computation S0("{S0[i]: 0<=i<10}", e, true, p_uint8, &function0);
 
     // Dump the iteration domain of the function.
     function0.dump_iteration_domain();
@@ -64,10 +63,8 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Set the schedule of each computation.
-    // The identity schedule means that the program order is not modified
-    // (i.e. no optimization is applied).
-    S0.tile(var("i"), var("j"), 2, 2, var("i0"), var("j0"), var("i1"), var("j1"));
-    S0.tag_parallel_level(var("i0"));
+    // Here we are parallelizing the loop.
+    S0.tag_parallel_level(var("i"));
 
     // Dump the schedule.
     function0.dump_schedule();
@@ -84,7 +81,7 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", {expr(10), expr(10)}, p_uint8, a_output,
+    buffer buf0("buf0", {expr(10)}, p_uint8, a_output,
                 &function0);
 
     // Map the computations to a buffer (i.e. where each computation
@@ -92,7 +89,7 @@ int main(int argc, char **argv)
     // This mapping will be updated automatically when the schedule
     // is applied. To disable automatic data mapping updates use
     // global::set_auto_data_mapping(false).
-    S0.set_access("{S0[i,j]->buf0[i,j]}");
+    S0.set_access("{S0[i]->buf0[i]}");
 
 
 
