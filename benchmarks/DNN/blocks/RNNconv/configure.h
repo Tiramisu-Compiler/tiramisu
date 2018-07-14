@@ -5,6 +5,9 @@
 #define MEDIUM_DATA_SET	0
 #define SMALL_DATA_SET	0
 
+#define NB_LAYERS 20
+#define NB_TIME_STEPS 20
+
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
