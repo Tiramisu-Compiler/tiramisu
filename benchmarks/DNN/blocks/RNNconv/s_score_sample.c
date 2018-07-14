@@ -120,8 +120,8 @@ static dnnError_t simple_net(int want_groups_conv) {
     for (int i=0; i<NB_TESTS; i++)
     {
 	start = clock();
-	for (int l = 0; l <= 10; l++) // 10 layers
-	    for (int t = 0; t <= 500; t++) // 500 time steps
+	for (int l = 0; l <= NB_LAYERS; l++) // layers
+	    for (int t = 0; t <= NB_TIME_STEPS; t++) // time steps
 		CHECK_ERR( dnnExecute_F32(conv1, (void*)resConv1), err );
 	end = clock();
 	double time_taken = ((double) (end - start)/CLOCKS_PER_SEC)*1000;
