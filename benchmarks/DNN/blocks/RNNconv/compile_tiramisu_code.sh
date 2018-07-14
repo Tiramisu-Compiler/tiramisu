@@ -6,8 +6,6 @@ if [ $# -eq 0 ]; then
       exit
 fi
 
-source ../../configure_paths.sh
-
 s=$1
 b=${s%.*}
 
