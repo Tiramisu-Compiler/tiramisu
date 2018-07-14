@@ -41,7 +41,9 @@ int main(int, char**)
     for (int i=0; i<NB_TESTS; i++)
     {
 	auto start1 = std::chrono::high_resolution_clock::now();
-	conv_halide(input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer());
+	for (int l = 0; l < NB_LAYERS; l++)
+	    for (int t = 0; t < NB_TIME_STEPS; t++)
+		conv_halide(input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer());
 	auto end1 = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double,std::milli> duration = end1 - start1;
 	duration_vector_1.push_back(duration);
