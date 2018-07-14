@@ -16,8 +16,14 @@ int main(int argc, char **argv)
     Func f_conv("conv");
     RDom r(0, K, 0, K, 0, FIn);
 
+#if 0
+    RDom l(0, 20, 0, 500);
+    f_conv(l.x, l.y, x, y, z, n) = bias(z);
+    f_conv(l.x, l.y, x, y, z, n) = f_conv(l.x - 1, l.y - 1, x, y, z, n) + filter(r.x, r.y, r.z, z) * input(x + r.x, y + r.y, r.z, n);
+#else
     f_conv(x, y, z, n) = bias(z);
     f_conv(x, y, z, n) += filter(r.x, r.y, r.z, z) * input(x + r.x, y + r.y, r.z, n);
+#endif
 
     /* THE SCHEDULE */
     if (SCHEDULE_CPU)
