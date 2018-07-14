@@ -14,7 +14,7 @@ int main(int, char **)
     std::cout << "Array (after initialization)" << std::endl;
     print_buffer(output);
 
-    function0(output.raw_buffer());
+    tut_01(output.raw_buffer());
 
     std::cout << "Array after the Halide pipeline" << std::endl;
     print_buffer(output);
