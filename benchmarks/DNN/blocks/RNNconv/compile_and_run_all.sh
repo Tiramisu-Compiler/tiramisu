@@ -1,6 +1,6 @@
 #set -x
 
-source ../../configure_paths.sh
+source ../../../configure_paths.sh
 
 export HalideSrc=${TIRAMISU_ROOT}/3rdParty/Halide/
 
