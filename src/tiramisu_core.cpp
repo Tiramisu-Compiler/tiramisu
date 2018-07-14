@@ -2385,6 +2385,8 @@ void computation::apply_transformation_on_schedule(std::string map_str)
     DEBUG(3, tiramisu::str_dump("Schedule after transformation : "));
     DEBUG(3, tiramisu::str_dump(isl_map_to_str(this->get_schedule())));
 
+    this->name_unnamed_time_space_dimensions();
+
     DEBUG_INDENT(-4);
 }
 
