@@ -6,12 +6,12 @@
 /**
   * Debugging level.
   */
-#define DEBUG_LEVEL 3
+#define DEBUG_LEVEL 0
 
 /**
   * Set to 1 to enable debugging and 0 to disable debugging.
   */
-#define ENABLE_DEBUG true
+#define ENABLE_DEBUG false
 
 namespace tiramisu
 {
