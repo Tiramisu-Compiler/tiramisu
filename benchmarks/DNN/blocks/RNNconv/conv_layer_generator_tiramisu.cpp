@@ -33,6 +33,8 @@ int main(int argc, char **argv)
     // FOut: parameters[3]
     // BATCH_SIZE: parameters[4]
     tiramisu::computation parameters("{parameters[i]: 0<=i<=4}", tiramisu::expr(), false, p_int32, &conv_fct);
+    tiramisu::constant C_L("C_L", NB_LAYERS, p_int32, true, NULL, 0, &conv_fct);
+    tiramisu::constant C_T("C_T", NB_TIME_STEPS, p_int32, true, NULL, 0, &conv_fct);
     tiramisu::constant C_N("C_N", parameters(0), p_int32, true, NULL, 0, &conv_fct);
     tiramisu::constant C_K("C_K", K, p_int32, true, NULL, 0, &conv_fct);
     tiramisu::constant C_FIn("C_FIn", parameters(2), p_int32, true, NULL, 0, &conv_fct);
@@ -45,159 +47,75 @@ int main(int argc, char **argv)
     tiramisu::computation filter("[C_K, C_FIn, C_FOut]->{filter[z, r_z, r_y, r_x]: 0<=z<C_FOut and 0<=r_x<C_K and 0<=r_y<C_K and 0<=r_z<C_FIn}", tiramisu::expr(), false, tiramisu::p_float32, &conv_fct);
     tiramisu::computation input("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{input[n, z, y, x]: 0<=x<C_N+C_K and 0<=y<C_N+C_K and 0<=z<C_FIn and 0<=n<C_BATCH_SIZE}", tiramisu::expr(), false, tiramisu::p_float32, &conv_fct);
 
-    tiramisu::computation conv_init("[C_N, C_K, C_FOut, C_FIn, C_BATCH_SIZE]->{conv_init[n, z, y, x]: 0<=x<C_N and 0<=y<C_N and 0<=z<C_FOut and 0<=n<C_BATCH_SIZE}", bias(z), true, tiramisu::p_float32, &conv_fct);
+    tiramisu::computation conv_init("[C_L, C_T, C_N, C_K, C_FOut, C_FIn, C_BATCH_SIZE]->{conv_init[l, t, n, z, y, x]: 0<=l<C_L and 0<=t<C_T and 0<=x<C_N and 0<=y<C_N and 0<=z<C_FOut and 0<=n<C_BATCH_SIZE}", bias(z), true, tiramisu::p_float32, &conv_fct);
 
-    tiramisu::expr c = conv_init(n, z, y, x) + filter(z, r_z, r_y, r_x) * input(n, r_z, y + r_y, x + r_x);
-    tiramisu::computation conv("[C_N, C_K, C_FOut, C_FIn, C_BATCH_SIZE]->{conv[n, z, y, x, r_z, r_y, r_x]: 0<=x<C_N and 0<=y<C_N and 0<=z<C_FOut and 0<=n<C_BATCH_SIZE and 0<=r_x<C_K and 0<=r_y<C_K and 0<=r_z<C_FIn}", c, true, tiramisu::p_float32, &conv_fct);
+    tiramisu::expr c = conv_init(0, 0, n, z, y, x) + filter(z, r_z, r_y, r_x) * input(n, r_z, y + r_y, x + r_x);
+    tiramisu::computation conv("[C_L, C_T, C_N, C_K, C_FOut, C_FIn, C_BATCH_SIZE]->{conv[l, t, n, z, y, x, r_z, r_y, r_x]: 0<=l<C_L and 0<=t<C_T and 0<=x<C_N and 0<=y<C_N and 0<=z<C_FOut and 0<=n<C_BATCH_SIZE and 0<=r_x<C_K and 0<=r_y<C_K and 0<=r_z<C_FIn}", c, true, tiramisu::p_float32, &conv_fct);
 
     conv_fct.add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
 
     // Layer II
     if (LARGE_DATA_SET)
     {
-	if (0) {
-		int vec_len = 32;
-		int y_block = 32;
-		int o_block = 4;
-
-		conv_init.tag_parallel_level(0);
-		conv_init.split(3, vec_len);
-		conv_init.tag_vector_level(4, vec_len);
-
-		conv.after(conv_init, 1);
-
-		conv.interchange(3, 4);
-		// conv_init.tile(1, 2, 32, 32);
-		// conv.tile(1, 2, 32, 32);
-
-		// conv.split(1, o_block);
-		conv.split(2, y_block);
-		conv.split(5, vec_len);
-		conv.tag_vector_level(6, vec_len);
-		conv.tag_unroll_level(7);
-		conv.tag_unroll_level(8);
-	}
-	if (0) {
-	    int vec_len = 32;
-	    int y_block = 32;
-	    int o_block = 4;
-
-	    conv_init.tag_parallel_level(0);
-	    conv.after(conv_init, 2);
-
-	    // 0, 1,   2,   3,   4,   5,     6,
-	    // n, z,   y,   x, r_z, r_y,   r_x,
-	    conv.interchange(3, 4);
-	    // n, z,   y  r_z,   x, r_y,   r_x,
-
-	    conv.split(1, o_block);
-	    conv_init.split(1, o_block);
-
-	    conv.split(3, y_block);
-	    conv.split(6, vec_len);
-	    conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(9);
-
-	    conv_init.split(4, vec_len);
-	    conv_init.tag_vector_level(5, vec_len);
-	}
-	if (1)
-	{
             int vec_len = 32;
             int y_block = 32;
             int o_block = 4;
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+	    conv_init.apply_transformation_on_schedule("{conv_init[0, 0, l, 0, t, 0, n, 0, z, 0, y, 0, x, 0]->conv_init[0, 0, l+t, 0, t, 0, n, 0, z, 0, y, 0, x, 0]}");
+	    conv.apply_transformation_on_schedule("{conv[0, 0, l, 0, t, 0, n, 0, z, 0, y, 0, x, 0, r_z, 0, r_y, 0, r_x, 0]->conv[0, 0, l+t, 0, t, 0, n, 0, z, 0, y, 0, x, 0, r_z, 0, r_y, 0, r_x, 0]}");
+//##            conv_init.tag_parallel_level(0+2);
+            conv_init.tag_parallel_level(0+1);
+
+            conv.after(conv_init, 2+2);
 
             // 0, 1,   2,   3,   4,   5,     6,
             // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
+            conv.interchange(3+2, 4+2);
             // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
+            conv.interchange(3+2, 2+2);
            // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
+            conv.split(1+2, o_block);
+            conv_init.split(1+2, o_block);
             // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(8);
-	    conv.tag_unroll_level(9);
+            conv.split(3+2, y_block);
+            conv.split(6+2, vec_len);
+            conv.tag_vector_level(7+2, vec_len);
+	    conv.tag_unroll_level(8+2);
+	    conv.tag_unroll_level(9+2);
 
             // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
-	}
+            conv_init.split(4+2, vec_len);
+            conv_init.tag_vector_level(5+2, vec_len);
     }
     else if (MEDIUM_DATA_SET)
     {
-	if (0) // Replicate of Halide's schedule. But Halide = 18ms and Tiramisu=54ms, so there is a problem in Tiramisu code generator.
-	{
 	    int vec_len = 32;
-	    int y_block = 32;
-	    int o_block = 4;
-
-	    conv_init.tag_parallel_level(0);
-	    conv.after(conv_init, tiramisu::computation::root_dimension);
-
-	    // 0, 1,   2,   3,   4,   5,     6,
-	    // n, z,   y,   x, r_z, r_y,   r_x,
-	    conv.interchange(3, 4);
-	    // n, z,   y, (r_z,   x), r_y,   r_x,
-	    conv.interchange(3, 2);
-	    // n, z, (r_z,   y),   x, r_y,   r_x,
-
-	    conv.split(1, o_block);
-	    // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
-
-	    conv.split(4, y_block);
-	    // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-
-	    conv.interchange(2, 3);
-	    // n, z, (r_z, z_t), y, y_t, x, r_y,   r_x,
-
-	    conv.interchange(3, 4);
-	    // n, z, r_z, (y, z_t), y_t, x, r_y,   r_x,
-
-	    conv.split(6, vec_len); 
-	    conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(8);
-	    conv.tag_unroll_level(9);
-
-	    conv_init.split(3, vec_len);
-	    conv_init.tag_vector_level(4, vec_len);
-	}
-	if (1)
-	{
-            int vec_len = 32;
             int y_block = 32;
             int o_block = 4;
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+            conv_init.tag_parallel_level(0+2);
+            conv.after(conv_init, 2+2);
 
             // 0, 1,   2,   3,   4,   5,     6,
             // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
+            conv.interchange(3+2, 4+2);
             // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
+            conv.interchange(3+2, 2+2);
            // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
+            conv.split(1+2, o_block);
+            conv_init.split(1+2, o_block);
             // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
+            conv.split(3+2, y_block);
+            conv.split(6+2, vec_len);
+            conv.tag_vector_level(7+2, vec_len);
 
             // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
-	}
+            conv_init.split(4+2, vec_len);
+            conv_init.tag_vector_level(5+2, vec_len);
     }
     else if (SMALL_DATA_SET)
     {
@@ -205,27 +123,27 @@ int main(int argc, char **argv)
             int y_block = 8;
             int o_block = 4;
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+            conv_init.tag_parallel_level(0+2);
+            conv.after(conv_init, 2+2);
 
             // 0, 1,   2,   3,   4,   5,     6,
             // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
+            conv.interchange(3+2, 4+2);
             // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
+            conv.interchange(3+2, 2+2);
            // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
+            conv.split(1+2, o_block);
+            conv_init.split(1+2, o_block);
             // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
+            conv.split(3+2, y_block);
+            conv.split(6+2, vec_len);
+            conv.tag_vector_level(7+2, vec_len);
 
             // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
+            conv_init.split(4+2, vec_len);
+            conv_init.tag_vector_level(5+2, vec_len);
     }
 
     // Layer III
@@ -236,8 +154,8 @@ int main(int argc, char **argv)
     tiramisu::buffer bias_buf("bias_buf", {tiramisu::expr(FIn)}, tiramisu::p_float32, tiramisu::a_input, &conv_fct);
 
 
-    conv_init.set_access("{conv_init[n, z, y, x]->conv_buf[n, z, y, x]}");
-    conv.set_access("{conv[n, z, y, x, r_x, r_y, r_z]->conv_buf[n, z, y, x]}");
+    conv_init.set_access("{conv_init[l, t, n, z, y, x]->conv_buf[n, z, y, x]}");
+    conv.set_access("{conv[l, t, n, z, y, x, r_x, r_y, r_z]->conv_buf[n, z, y, x]}");
     parameters.set_access("{parameters[i]->parameters_buf[i]}");
     input.set_access("{input[n, z, y, x]->input_buf[n, z, y, x]}");
     bias.set_access("{bias[z]->bias_buf[z]}");
