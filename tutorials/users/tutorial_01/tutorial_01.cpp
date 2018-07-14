@@ -29,9 +29,7 @@ int main(int argc, char **argv)
     // Layer I
     // -------------------------------------------------------
 
-    // Declare an expression that will be associated to the
-    // computations.  This expression sums 3 and 4.
-    expr e = expr(3) + expr(4);
+    var i("i");
 
     // Declare a computation within tut_01.
     // To declare a computation, you need to provide:
@@ -43,11 +41,7 @@ int main(int argc, char **argv)
     // (2) a tiramisu expression: this is the expression that will be computed
     // by the computation.
     // (3) the function in which the computation will be declared.
-    computation S0("{S0[i]: 0<=i<10}", e, true, p_uint8, &tut_01);
-
-    // Dump the iteration domain of the function.
-    tut_01.dump_iteration_domain();
-
+    computation S0("{S0[i]: 0<=i<10}", expr(3) + expr(4), true, p_uint8, &tut_01);
 
 
     // -------------------------------------------------------
@@ -56,11 +50,7 @@ int main(int argc, char **argv)
 
     // Set the schedule of each computation.
     // Here we are parallelizing the loop.
-    S0.tag_parallel_level(var("i"));
-
-    // Dump the schedule.
-    tut_01.dump_schedule();
-
+    S0.tag_parallel_level(i);
 
 
     // -------------------------------------------------------
@@ -73,8 +63,7 @@ int main(int argc, char **argv)
     // by the caller, in contrast to buffers of type a_temporary which are
     // allocated automatically by the Tiramisu runtime within the callee
     // and should not be passed as arguments to the function).
-    buffer buf0("buf0", {expr(10)}, p_uint8, a_output,
-                &tut_01);
+    buffer buf0("buf0", {expr(10)}, p_uint8, a_output, &tut_01);
 
     // Map the computations to a buffer (i.e. where each computation
     // should be stored in the buffer).
@@ -82,7 +71,6 @@ int main(int argc, char **argv)
     // is applied. To disable automatic data mapping updates use
     // global::set_auto_data_mapping(false).
     S0.set_access("{S0[i]->buf0[i]}");
-
 
 
     // -------------------------------------------------------
@@ -93,7 +81,6 @@ int main(int argc, char **argv)
     // to be passed to the code generator:
     //	    - The arguments (buffers) t passed to the generated function.
     //	    - The name of the object file to be generated.
-    // In the next tutorial we will see how a Tiramisu program can compiled.
     tut_01.codegen({&buf0}, "build/generated_fct_users_tutorial_01.o");
 
     return 0;
