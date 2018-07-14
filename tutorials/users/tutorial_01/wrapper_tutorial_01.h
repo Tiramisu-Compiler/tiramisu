@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int function0(halide_buffer_t *_p0_buffer);
+int tut_01(halide_buffer_t *_p0_buffer);
 
 #ifdef __cplusplus
 }  // extern "C"
