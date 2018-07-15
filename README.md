@@ -8,19 +8,19 @@ The Tiramisu compiler is based on the polyhedral model thus it can express a lar
 
 ### Example
 
-The user can write `Tiramisu expressions` within a C++ code as follows.
+The following is an example of a Tiramisu program specified using the C++ API.
 
 ```cpp
 // C++ code with a Tiramisu expression.
-#include "tiramisu.h"
+#include "tiramisu/tiramisu.h"
 
 void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
+    // Specify the name of the function that you want to create.
+    tiramisu::init("foo");
 
-    tiramisu::init();
-
-    // Declare an iterator and inputs
-    tiramisu::iter i, j;
+    // Declare two iterator variables (i and j) and two inputs (A and B)
+    tiramisu::var i("i"), j("j");
     tiramisu::in A(i,j), B(i,j);
 
     // Declare the Tiramisu expression (algorithm)
@@ -29,10 +29,9 @@ void foo(int N, int array_a[N], int array_b[N], int array_c[N])
     // Specify optimizations
     C.parallelize(i).vectorize(j, 4);
 
-    // Realize, compile and run the expression
+    // Realize and compile the Tiramisu expression
     C.realize(tiramisu::int32_t, {N});
-    C.compile({(A, array_a), (B, array_b), (C, array_c)});
-    C.run();
+    C.codegen({(A, array_a), (B, array_b), (C, array_c)}, "generated_code.o");
 }
 ```
 
