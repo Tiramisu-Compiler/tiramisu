@@ -7,7 +7,7 @@ Tiramisu is a compiler for expressing fast, portable and composable data paralle
 The Tiramisu compiler is based on the polyhedral model thus it can express a large set of loop optimizations and data layout transformations.  Currently it targets (1) multicore X86 CPUs, (2) Nvidia GPUs, (3) Xilinx FPGAs (Vivado HLS) and (4) distributed machines (using MPI).  It is designed to enable easy integration of code generators for new architectures.
 
 ### Example
-
+ 
 The following is an example of a Tiramisu program specified using the C++ API.
 
 ```cpp
