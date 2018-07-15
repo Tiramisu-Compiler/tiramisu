@@ -67,6 +67,16 @@ isl_map *add_eq_to_schedule_map(int dim0, int in_dim_coefficient, int out_dim_co
 isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coefficient,
                                   int out_dim_coefficient, int const_conefficient, isl_map *sched);
 
+/**
+  * Initialize the Tiramisu compiler and set Tiramisu options to default
+  * values.
+  */
+void init()
+{
+    // Set default tiramisu options.
+    global::set_default_tiramisu_options();
+}
+
 
 /**
   * Add a buffer to the function.
