@@ -318,9 +318,8 @@ function(new_developers_tutorial descriptor)
         # configure the options so files are copied on the fly as necessary. 
         find_program(MPI_RUN_COMMAND NAMES mpirun)         
         add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_RUN_COMMAND} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} -bynode --preload-files-dest-dir /tmp/ --preload-files build/libtiramisu.so,3rdParty/isl/.libs/libisl.so.19 --preload-binary build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
     endif()
-
+    add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
 endfunction()
 
 function(new_users_tutorial descriptor)
@@ -338,8 +337,8 @@ function(new_users_tutorial descriptor)
         # configure the options so files are copied on the fly as necessary. 
         find_program(MPI_RUN_COMMAND NAMES mpirun)         
         add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_RUN_COMMAND} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} -bynode --preload-files-dest-dir /tmp/ --preload-files build/libtiramisu.so,3rdParty/isl/.libs/libisl.so.19 --preload-binary build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_dependencies(run_users_tutorial_${id} ${tutorial_name})
     endif()
+    add_dependencies(run_users_tutorial_${id} ${tutorial_name})
 endfunction()
 
 
