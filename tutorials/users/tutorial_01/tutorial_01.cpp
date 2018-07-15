@@ -1,5 +1,5 @@
 /**
-  The goal of this tutorial is to implement in Tiramisu a code that is
+  The goal of this tutorial is to implement, in Tiramisu, a code that is
   equivalent to the following
 
   for (int i = 0; i < 10; i++)
