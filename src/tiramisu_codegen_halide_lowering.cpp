@@ -38,7 +38,11 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // the sliding window and storage folding passes.
     map<string, Function> env;
 
-    std::cout << "Lower halide pipeline...\n" << s << "\n";
+    if (ENABLE_DEBUG)
+    {
+    	std::cout << "Lower halide pipeline...\n" << s << "\n";
+	std::flush(std::cout);
+    }
 
     DEBUG(3, tiramisu::str_dump("Performing sliding window optimization...\n"));
     s = sliding_window(s, env);
@@ -176,7 +180,11 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = remove_trivial_for_loops(s);
     s = simplify(s);
     // s = loop_invariant_code_motion(s);
-    std::cout << "Lowering after final simplification:\n" << s << "\n";
+    if (ENABLE_DEBUG)
+    {
+    	std::cout << "Lowering after final simplification:\n" << s << "\n";
+	std::flush(std::cout);
+    }
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
     s = inject_hexagon_rpc(s, t, result_module);
