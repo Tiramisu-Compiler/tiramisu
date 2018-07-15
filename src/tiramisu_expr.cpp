@@ -131,7 +131,7 @@ tiramisu::var::var(tiramisu::primitive_t type, std::string name, bool save)
         if (save)
         {
             var::declared_vars.insert(std::make_pair(name, *this));
-            DEBUG(3, std::cout << "Saved variable " << this->name << " of type " << str_from_tiramisu_type_primitive(this->dtype));
+            DEBUG(10, std::cout << "Saved variable " << this->name << " of type " << str_from_tiramisu_type_primitive(this->dtype));
         }
     }
 }

@@ -4142,10 +4142,8 @@ tiramisu::computation *computation::duplicate(std::string domain_constraints_set
     tiramisu::computation *new_c = this->copy();
     new_c->set_schedule(isl_map_copy(new_sched));
 
-    DEBUG(3, tiramisu::str_dump("The schedule of the original computation: "));
-    isl_map_dump(this->get_schedule());
-    DEBUG(3, tiramisu::str_dump("The schedule of the duplicate: "));
-    isl_map_dump(new_c->get_schedule());
+    DEBUG(3, tiramisu::str_dump("The schedule of the original computation: "); isl_map_dump(this->get_schedule()));
+    DEBUG(3, tiramisu::str_dump("The schedule of the duplicate: "); isl_map_dump(new_c->get_schedule()));
 
     DEBUG_INDENT(-4);
 
