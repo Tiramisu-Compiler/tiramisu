@@ -4,11 +4,28 @@
 
   for (int i = 0; i < 10; i++)
       buf0[i] = 3 + 4;
-*/
 
-// Every Tiramisu program needs to include the header tiramisu/tiramisu.h.
-// This header declares all the necessary classes for creating Tiramisu objects
-// and running the Tiramisu compiler to generate code.
+  Every Tiramisu program needs to include the header file tiramisu/tiramisu.h
+  which defines classes for declaring and compiling Tiramisu expressions.
+
+  Tiramisu is a code generator, therefore the goal of a Tiramisu program is to
+  generate code.  The generated code is supposed to be called from another
+  program (the user program).
+
+  A Tiramisu program is structures as follows:
+	- It starts with a call to initialize the Tiramisu compiler.  The name of the
+	function to be generated is specified during this initialization.
+	- The user then declares the algorithm: Tiramisu expressions.
+	- The user then specifies how the algorithm should be optimized
+	using scheduling and data mapping commands.
+	- The user then calls the codegen() function which generates code.
+	It compiles the Tiramisu program, generates the optimized program
+	in an object file.
+
+  The user can then call the function declared in the generated object file
+  from any place in his program.
+
+*/
 #include <tiramisu/tiramisu.h>
 
 using namespace tiramisu;
@@ -16,7 +33,7 @@ using namespace tiramisu;
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+    tiramisu::init();
 
     // Declare a function called "tut_01".
     // A function in tiramisu is the equivalent of a function in C.
