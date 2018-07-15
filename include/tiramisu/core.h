@@ -2564,7 +2564,8 @@ public:
       * \details This computation is placed after \p comp in the loop level \p level.
       * \p level is a loop level in this computation.
       *
-      * The root level is computation::root.
+      * The root level is computation::root.  The global variable
+      * computation::root is equivalent to var("root").
       *
       * For example assuming we have the two computations
       *
