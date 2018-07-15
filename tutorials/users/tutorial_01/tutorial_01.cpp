@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 
     // Set the schedule of each computation.
     // Here we are parallelizing the loop.
-    S0.tag_parallel_level(i);
+    S0.parallelize(i);
 
 
     // -------------------------------------------------------
