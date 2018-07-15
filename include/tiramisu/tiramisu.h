@@ -2,6 +2,7 @@
 #define _H_TIRAMISU_TIRAMISU_
 
 #include <tiramisu/core.h>
+#include <tiramisu/debug.h>
 
 #endif
 
