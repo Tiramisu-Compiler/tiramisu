@@ -25,18 +25,13 @@
   The user can then call the function declared in the generated object file
   from any place in his program.
   
-  How to compile ?
-  
-  You can use the makefile to compile the tutorial or you can do it manually.
+  How to compile ? You can use the makefile to compile the tutorial or you can do it manually.
   
   cd build/
   make run_developers_tutorial_01
   
-  This will compile and run the tutorial.
-  
-  Detailed compilation process (without makefile) are explained below at the end of this tutorial.
-
- *
+  This will compile and run the tutorial.  Detailed compilation process (without makefile) are
+  explained below at the end of this tutorial.
  */
 
 #include <tiramisu/tiramisu.h>
