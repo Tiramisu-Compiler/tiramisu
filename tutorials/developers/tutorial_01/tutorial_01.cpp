@@ -25,18 +25,13 @@
   The user can then call the function declared in the generated object file
   from any place in his program.
   
-  How to compile ?
-  
-  You can use the makefile to compile the tutorial or you can do it manually.
+  How to compile ? You can use the makefile to compile the tutorial or you can do it manually.
   
   cd build/
   make run_developers_tutorial_01
   
-  This will compile and run the tutorial.
-  
-  Detailed compilation process (without makefile) are explained below at the end of this tutorial.
-
- *
+  This will compile and run the tutorial.  Detailed compilation process (without makefile) are
+  explained below at the end of this tutorial.
  */
 
 #include <tiramisu/tiramisu.h>
@@ -101,14 +96,6 @@ int main(int argc, char **argv)
     // This means specifying where each computation S0(i) should be
     // stored exactly in the buffer buf0.
     S0.store_in(&buf0);
-
-    // Another way to specify the data mapping is use an ISL mapping, by calling
-    // 		S0.set_access("{S0[i]->buf0[i]}");
-    // This mapping indicates that S0[i] should be stored in the buffer location buf0[i].
-    // Tiramisu uses the ISL syntax to represent sets and maps.  The ISL syntax
-    // is described in http://barvinok.gforge.inria.fr/barvinok.pdf (Section
-    // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
-    // relations).
 
     // -------------------------------------------------------
     // Code Generation

@@ -99,9 +99,16 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
+ 
 #if 1
     buffer buf0("buf0", {expr(10), expr(10)}, p_uint8, a_temporary, &function0);
+ 
+    // The following mapping indicates that S0[i,j] should be stored in the buffer location buf0[i,j].
+    // Tiramisu uses the ISL syntax to represent sets and maps.  The ISL syntax
+    // is described in http://barvinok.gforge.inria.fr/barvinok.pdf (Section
+    // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
+    // relations).
+
     S0.set_access("{S0[i,j]->buf0[i,j]}");
 #elif 0
     buffer buf0("buf0", {expr(1)}, p_uint8, a_temporary, &function0);
