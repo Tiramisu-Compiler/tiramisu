@@ -1,5 +1,3 @@
-#include <tiramisu/tiramisu.h>
-
 /**
   The goal of this tutorial is to implement in Tiramisu a code that is
   equivalent to the following
@@ -8,6 +6,8 @@
     for (int j = 0; j < 20; j++)
       output[i, j] = input[i, j] + i + 2;
 */
+
+#include <tiramisu/tiramisu.h>
 
 #define NN 10
 #define MM 20
@@ -20,7 +20,6 @@ int main(int argc, char **argv)
     global::set_default_tiramisu_options();
 
 
-
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
@@ -28,6 +27,7 @@ int main(int argc, char **argv)
     // Declare the function tut_02.
     function tut_02("tut_02");
 
+    // Declare the constants N and M.
     constant N_const("N", expr((int32_t) NN), p_int32, true, NULL, 0, &tut_02);
     constant M_const("M", expr((int32_t) MM), p_int32, true, NULL, 0, &tut_02);
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     computation input("[N, M]->{input[i,j]: 0<=i<N and 0<=j<M}", expr(), false, p_uint8, &tut_02);
 
     // Declare expression and output computation.
-    expr e = input(i, j) + cast(p_uint8, i)+ (uint8_t)4;
+    expr e = input(i, j) + cast(p_uint8, i) + (uint8_t)4;
     computation output("[N, M]->{output[i,j]: 0<=i<N and 0<=j<M}", e, true, p_uint8, &tut_02);
 
 
