@@ -1,19 +1,16 @@
-#include <tiramisu/tiramisu.h>
+/* Matrix multiplication.
 
-/* Halide code for matrix multiplication.
-Func matmul(Input A, Input B, Output C) {
-    Halide::Func A, B, C;
-    Halide::Var x, y;
-
-    Halide::RDom r(0, N);
-    C(x,y) = C(x,y) + A(x,r) * B(r,y);
-
-    C.realize(N, N);
+    for i = 0 .. N
+        for j = 0 .. N
+            C[i,j] = 0;
+            for k = 0 .. N
+                C[i,j] = C[i,j] + A[i,k] * B[k,j];
 }
 */
 
-#define SIZE0 1000
+#include <tiramisu/tiramisu.h>
 
+#define SIZE0 1000
 using namespace tiramisu;
 
 int main(int argc, char **argv)
@@ -27,30 +24,23 @@ int main(int argc, char **argv)
 
     /*
      * Declare a function matmul.
-     * Declare two arguments (tiramisu buffers) for the function: b_A and b_B
-     * Declare an invariant for the function.
      */
     function matmul("matmul");
 
     constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &matmul);
 
-    // Declare a computation c_A that represents a binding to the buffer b_A
+    // Declare computations that represents the input buffer (b_A and b_B)
     computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-    // Declare a computation c_B that represents a binding to the buffer b_B
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
 
     // Indices
-    var i = var("i");
-    var j = var("j");
-    var k = var("k");
+    var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), var("i1"), var("j1");
 
-    // Declare a computation c_C
-    computation c_C("[N]->{c_C[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
-
-    c_C.add_definitions("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(),
-                        true, p_uint8, &matmul);
+    // Declare a computation to initialize the reduction c[i,j]
+    computation C_init("[N]->{c_C[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
+    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
     expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
-    c_C.get_update(1).set_expression(e1);
+    c_C.set_expression(e1);
 
     // -------------------------------------------------------
     // Layer II
@@ -59,10 +49,10 @@ int main(int argc, char **argv)
     // Set the schedule of each computation.
     // The identity schedule means that the program order is not modified
     // (i.e. no optimization is applied).
-    c_C.get_update(1).after(c_C, var("j"));
-    c_C.tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
-    c_C.get_update(1).tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
-    c_C.get_update(1).tag_parallel_level(var("i0"));
+    C_init.tile(i, j, 32, 32, i0, j0, i1, j1);
+    c_C.after(C_init, j);
+    c_C.tile(i, j, 32, 32, i0, j0, i1, j1);
+    c_C.tag_parallel_level(i0);
 
     // -------------------------------------------------------
     // Layer III
@@ -75,8 +65,8 @@ int main(int argc, char **argv)
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");
     c_B.set_access("{c_B[i,j]->b_B[i,j]}");
+    C_init.set_access("{c_C[i,j,k]->b_C[i,j]}");
     c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
-    c_C.get_update(1).set_access("{c_C[i,j,k]->b_C[i,j]}");
 
     // -------------------------------------------------------
     // Code Generation
