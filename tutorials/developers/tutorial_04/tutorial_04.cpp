@@ -59,11 +59,9 @@ int main(int argc, char **argv)
     expr e_y = c_y(var("i")) + c_values(var("j")) * c_x(var("t"));
     c_y.set_expression(e_y);
 
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-
 
     b0.set_low_level_schedule("[M]->{b0[i]->b0[0,0,i,0,0,0]: 0<=i<M}");
     b1.set_low_level_schedule("[M]->{b1[i]->b1[0,0,i,1,0,0]: 0<=i<M}");
@@ -71,11 +69,9 @@ int main(int argc, char **argv)
     c_y.set_low_level_schedule("[M,b0,b1]->{c_y[i,j]->c_y[0,0,i,2,j1,1,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and b0<=j<(b1/4) and b1%4=0 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1; c_y[i,j]->c_y[0,0,i,2,j1,0,j2,1]: j1= floor(j/4) and j2 = (j%4) and 0<=i<M and (b1/4)<=j<b1 and b1>b0 and b1>1 and b0>=1 and b1>=b0+1;}");
     c_y.tag_parallel_level(var("i"));
 
-
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
 
     buffer b_row_start("b_row_start", {expr(SIZE0)}, p_uint8, a_input, &spmv);
     buffer b_col_idx("b_col_idx", {expr(SIZE0)}, p_uint8, a_input, &spmv);
@@ -89,20 +85,10 @@ int main(int argc, char **argv)
     c_x.set_access("{c_x[j]->b_x[j]}");
     c_y.set_access("{c_y[i,j]->b_y[i]}");
 
-
     // -------------------------------------------------------
     // Code Generator
     // -------------------------------------------------------
-
-
-    spmv.set_arguments({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y});
-    spmv.gen_time_space_domain();
-    spmv.gen_isl_ast();
-    spmv.gen_halide_stmt();
-    spmv.gen_halide_obj("build/generated_fct_developers_tutorial_04.o");
-
-    // Some debugging
-    spmv.dump_halide_stmt();
+    spmv.codegen({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y}, "build/generated_fct_developers_tutorial_04.o");
 
     return 0;
 }
