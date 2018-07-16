@@ -1,4 +1,4 @@
-#include "wrapper_tutorial_06.h"
+#include "wrapper_tutorial_065.h"
 
 #include "Halide.h"
 #include <tiramisu/utils.h>
@@ -38,7 +38,7 @@ int main(int, char **)
     print_buffer(output_buf0);
     print_buffer(reference_buf0);
 
-    compare_buffers("tutorial_06 (reduction)", output_buf0, reference_buf0);
+    compare_buffers("tutorial_05 (reduction)", output_buf0, reference_buf0);
 
     return 0;
 }
