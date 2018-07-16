@@ -2354,7 +2354,6 @@ protected:
       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
       * \endcode
-
       *
       * The first dimension called "redundancy ID" is only meaningful if the
       * computation is redundant. i.e., some parts of the computation are
@@ -2841,27 +2840,61 @@ public:
        * Bind this computation to a buffer.  i.e., create a one-to-one data
        * mapping between the computation and the buffer.
        *
-       * In Tiramisu, a tiramisu computation cannot directly consume values
-       * from buffers.  Buffers should first be wrapped in computations.
+       * Let us assume that we have a computation C:
        *
-       * For example, a Tiramisu function receives a buffer b0 as input.
-       * Let's assume that this function has a computation C0 that adds
-       * 1 to the elements of the buffer.  The user cannot use b0 directly
-       * in C0.  He should first declare a computation that wraps b0 and then
-       * use that computation.
+       * \code
+       * {C[i]: 0<=i<N}
+       * \endcode
        *
-       * // the wrapper computation. Wrapper computation have empty expressions
-       * // attached to them.
-       * {wb0[i]: 0<=i<N}: expr()
+       * and that we want to store each C(i) in bufC[i]. Then we
+       * can use bind_to() to indicate that as follows:
        *
-       * // Declare the computation C0 that uses the wrapper wb0
-       * {C0[i]: 0<=i<N}: wb0(i) + 1
+       * \code
+       * C.bind_to(bufC)
+       * \endcode
        *
-       * // Bind the wrapper wb0 to the buffer b0.  This binding means that
-       * // each element wb0[i] correspond to an element b0[i] in the buffer.
-       * wb0.bind_to(b0)
+       * This is equivalent to calling
+       *
+       * \code
+       * C.set_access("{C[i]->bufC[i]}");
+       * \endcode
+       *
+       * If \p iterators is specified, the \p iterators are used to specify how the
+       * computation is mapped to the buffer.
+       * If the dimensions of this computation are in0, in1, ..., inn and if
+       * \p iterators are equal to im0, im1, ..., imm then the computation is
+       * mapped as follows
+       *
+       * \code
+       * C[in0, in1, ..., inn]->bufC[im0, im1, ..., imm].
+       * \endcode
+       *
+       * i.e., the computation C[in0, in1, ..., inn] is stored in bufC[im0,
+       * im1, ..., imm].  This is equivalent to calling
+       *
+       * \code
+       * C.set_access("{C[in0, in1, ..., inn]->bufC[im0, im1, ..., imm]}");
+       * \endcode
+       *
+       * Assuming we have have computation D(i,j) that has the following
+       * iteration domain:
+       *
+       * \code
+       * {D[i,j]: 0<=i<N and 0<=j<N}
+       * \endcode
+       *
+       * and assuming we have a buffer bufD.
+       *
+       * The bind_to() function can be used to implement many type of data mappings:
+       *    - Map a computation to a scalar: D.bind_to(bufD, {}).
+       *      This is equivalent to D.set_access("{D[i,j]->bufD[0]}")
+       *    - Store a 2 dimensional computation into a 1-dimensional
+       *    buffer: D.bind_to(i);
        */
+     // @{
      void bind_to(buffer *buff);
+     void bind_to(buffer *buff, std::vector<var> iterators);
+     // }@
 
     /**
       * This function assumes that \p consumer consumes values produced by
