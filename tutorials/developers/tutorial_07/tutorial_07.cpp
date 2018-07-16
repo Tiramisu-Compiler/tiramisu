@@ -24,7 +24,7 @@
  */
 
 #include <tiramisu/tiramisu.h>
-#include "wrapper_tutorial_09.h"
+#include "wrapper_tutorial_07.h"
 
 using namespace tiramisu;
 
@@ -68,7 +68,7 @@ void generate_function(std::string name, int size, int val0)
     // Code Generation
     // -------------------------------------------------------
 
-    function0.codegen({&g_buff}, "build/generated_fct_developers_tutorial_09.o");
+    function0.codegen({&g_buff}, "build/generated_fct_developers_tutorial_07.o");
 }
 
 int main(int argc, char **argv)
