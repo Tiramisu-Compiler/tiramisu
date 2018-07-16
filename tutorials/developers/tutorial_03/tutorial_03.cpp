@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
 
     // Indices
-    var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), var("i1"), var("j1");
+    var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
 
     // Declare a computation to initialize the reduction c[i,j]
     computation C_init("[N]->{c_C[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
