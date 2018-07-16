@@ -17,7 +17,7 @@ using namespace tiramisu;
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+    tiramisu::init();
 
 
     // -------------------------------------------------------
