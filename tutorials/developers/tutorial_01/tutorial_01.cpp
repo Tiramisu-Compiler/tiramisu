@@ -88,16 +88,15 @@ int main(int argc, char **argv)
     // Map the computation S0 to the buffer buf0.
     // This means specifying where each computation S0(i) should be
     // stored exactly in the buffer buf0.
-    // The data mapping is specified using an ISL map.  The mapping
-    // used in this example indicates that S0[i] should be stored in the
-    // buffer location buf0[i].
+    S0.bind_to(buf0);
+
+    // Another way to specify the data mapping is use an ISL mapping, by calling
+    // 		S0.set_access("{S0[i]->buf0[i]}");
+    // This mapping indicates that S0[i] should be stored in the buffer location buf0[i].
     // Tiramisu uses the ISL syntax to represent sets and maps.  The ISL syntax
     // is described in http://barvinok.gforge.inria.fr/barvinok.pdf (Section
     // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
     // relations).
-    S0.set_access("{S0[i]->buf0[i]}");
-
-
 
     // -------------------------------------------------------
     // Code Generation
