@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
 
     // Declare a computation to initialize the reduction c[i,j]
-    computation C_init("[N]->{c_C[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
+    computation C_init("[N]->{C_init[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
     computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
     expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
     c_C.set_expression(e1);
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     // Map the computations to a buffer.
     c_A.set_access("{c_A[i,j]->b_A[i,j]}");
     c_B.set_access("{c_B[i,j]->b_B[i,j]}");
-    C_init.set_access("{c_C[i,j,k]->b_C[i,j]}");
+    C_init.set_access("{C_init[i,j,k]->b_C[i,j]}");
     c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
 
     // -------------------------------------------------------
