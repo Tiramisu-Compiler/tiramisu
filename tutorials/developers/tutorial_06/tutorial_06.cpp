@@ -1,16 +1,4 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
-
+#include <tiramisu/tiramisu.h>
 #include "wrapper_tutorial_06.h"
 
 using namespace tiramisu;
@@ -47,15 +35,12 @@ using namespace tiramisu;
 
 void generate_function(std::string name, int size, int val0)
 {
-    global::set_default_tiramisu_options();
-
-
+    // Set default tiramisu options.
+    tiramisu::init();
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-
-
 
     function function0(name);
     constant N("N", expr((int32_t) size), p_int32, true, NULL, 0, &function0);
