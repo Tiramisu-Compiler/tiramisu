@@ -1,12 +1,7 @@
-#include <tiramisu/tiramisu.h>
-
-using namespace tiramisu;
-
 /*
 
  This tutorial shows an example of code and then shows
  different schedules for that code.
-
 
 Input
 
@@ -34,6 +29,10 @@ Parallel for (int i = 0; i < 10; i++)
         buf1[i, j + 1] = buf0[i,j];
 
 */
+
+#include <tiramisu/tiramisu.h>
+
+using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
@@ -119,13 +118,7 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    function0.set_arguments({&buf1});
-    function0.gen_time_space_domain();
-    function0.dump_time_processor_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.dump_halide_stmt();
-    function0.gen_halide_obj("build/generated_fct_developers_tutorial_10.o");
+    function0.codegen({&buf1}, "build/generated_fct_developers_tutorial_10.o");
 
     return 0;
 }
