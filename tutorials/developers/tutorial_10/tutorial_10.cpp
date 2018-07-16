@@ -1,16 +1,4 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
-#include "../include/tiramisu/core.h"
+#include <tiramisu/tiramisu.h>
 
 using namespace tiramisu;
 
@@ -49,7 +37,8 @@ Parallel for (int i = 0; i < 10; i++)
 
 int main(int argc, char **argv)
 {
-    global::set_default_tiramisu_options();
+    // Set default tiramisu options.
+    tiramisu::init();
 
     function function0("function0");
 
