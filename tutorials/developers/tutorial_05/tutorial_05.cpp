@@ -1,15 +1,4 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
+#include <tiramisu/tiramisu.h>
 
 /* Sequence of computations.
 
@@ -28,8 +17,7 @@ using namespace tiramisu;
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
-    global::set_default_tiramisu_options();
-
+    tiramisu::init();
 
     // -------------------------------------------------------
     // Layer I
