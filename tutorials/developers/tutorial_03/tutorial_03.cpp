@@ -75,5 +75,8 @@ int main(int argc, char **argv)
 
     sequence.codegen({&b0, &b1, &b2, &b3}, "build/generated_fct_developers_tutorial_03.o");
 
+    // Dump the generated Halide statement (just for debugging).
+    sequence.dump_halide_stmt();
+
     return 0;
 }
