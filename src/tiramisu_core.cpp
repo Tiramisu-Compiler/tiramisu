@@ -7484,8 +7484,7 @@ void tiramisu::computation::set_expression(const tiramisu::expr &e)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The original expression is: "));
-    e.dump(false);
+    DEBUG_NO_NEWLINE(3, tiramisu::str_dump("The original expression is: "); e.dump(false));
     DEBUG(3, tiramisu::str_dump(""));
 
     DEBUG(3, tiramisu::str_dump("Traversing the expression to replace non-affine accesses by a constant definition."));
