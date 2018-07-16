@@ -6,8 +6,7 @@ This page has two types of tutorials: Tutorials written for all Tiramisu users a
 If you want to learn how to write Tiramisu code, this is the right tutorial
 for you.
 
-- [Users tutorial 01](users/tutorial_01/tutorial_01.cpp): A simple example of how to use the high level Tiramisu API (a simple loop with an assignment).
-
+- To be added soon (the user level API is actively under development now). 
 
 ## Tutorials for Tiramisu Developers (Low Level Tiramisu API)
 
