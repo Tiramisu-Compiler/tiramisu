@@ -1,5 +1,5 @@
-#ifndef HALIDE__build___generated_lib_tutorial_05_o_h
-#define HALIDE__build___generated_lib_tutorial_05_o_h
+#ifndef HALIDE__build___generated_lib_tutorial_04_o_h
+#define HALIDE__build___generated_lib_tutorial_04_o_h
 
 #include <tiramisu/utils.h>
 

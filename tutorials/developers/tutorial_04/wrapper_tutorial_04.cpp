@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_tutorial_05.h"
+#include "wrapper_tutorial_04.h"
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
@@ -29,10 +29,10 @@ int main(int, char **)
     Halide::Buffer<uint8_t> expected_b3(NN);
     init_buffer(expected_b3, (uint8_t)1);
 
-    compare_buffers("tutorial_05_b0", b0, expected_b0);
-    compare_buffers("tutorial_05_b1", b1, expected_b1);
-    compare_buffers("tutorial_05_b2", b2, expected_b2);
-    compare_buffers("tutorial_05_b3", b3, expected_b3);
+    compare_buffers("tutorial_04_b0", b0, expected_b0);
+    compare_buffers("tutorial_04_b1", b1, expected_b1);
+    compare_buffers("tutorial_04_b2", b2, expected_b2);
+    compare_buffers("tutorial_04_b3", b3, expected_b3);
 
     return 0;
 }
