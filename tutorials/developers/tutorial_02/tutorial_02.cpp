@@ -94,11 +94,7 @@ int main(int argc, char **argv)
     tut_02.codegen({&b_input, &b_output}, "build/generated_fct_developers_tutorial_02.o");
 
     // Some debugging
-    tut_02.dump_iteration_domain();
     tut_02.dump_halide_stmt();
-
-    // Dump all the fields of the tut_02 class (useful for debugging).
-    tut_02.dump(true);
 
     return 0;
 }
