@@ -1,8 +1,3 @@
-#include <tiramisu/tiramisu.h>
-#include "wrapper_tutorial_06.h"
-
-using namespace tiramisu;
-
 /**
  * Test reductions.
  *
@@ -33,6 +28,11 @@ using namespace tiramisu;
  *
  */
 
+#include <tiramisu/tiramisu.h>
+#include "wrapper_tutorial_06.h"
+
+using namespace tiramisu;
+
 void generate_function(std::string name, int size, int val0)
 {
     // Set default tiramisu options.
@@ -49,23 +49,15 @@ void generate_function(std::string name, int size, int val0)
     computation result("[N]->{result[0]}", expr(input(0)), true, p_uint8, &function0);
     result.add_definitions("[N]->{result[i]: 1<=i<N}", (result(i - 1) + input(i)), true, p_uint8, &function0);
 
-
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-
-
     result.get_update(1).after(result, computation::root);
-
-
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
-
 
     buffer input_buffer("input_buffer", {size}, p_uint8, a_input, &function0);
     buffer result_scalar("result_scalar", {1}, p_uint8, a_output, &function0);
@@ -73,20 +65,11 @@ void generate_function(std::string name, int size, int val0)
     result.set_access("[N]->{result[i]->result_scalar[0]}");
     result.get_update(1).set_access("[N]->{result[i]->result_scalar[0]}");
 
-
-
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
-
-
-    function0.set_arguments({&input_buffer, &result_scalar});
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_c_code();
-    function0.gen_halide_obj("build/generated_fct_developers_tutorial_06.o");
+    function0.codegen({&input_buffer, &result_scalar}, "build/generated_fct_developers_tutorial_06.o");
 }
 
 int main(int argc, char **argv)
