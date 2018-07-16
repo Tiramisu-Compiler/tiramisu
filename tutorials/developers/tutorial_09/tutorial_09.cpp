@@ -44,15 +44,15 @@ void generate_function(std::string name, int size, int val0)
     var rx = var("rx");
 
     computation f("{f[y,x]: 0<=y<19 and 0<=x<9}", expr((uint8_t) 1), true, p_uint8, &function0);
-    computation g("{g[y,-1]: 0<=y<19}",           expr((uint8_t) 0), true, p_uint8, &function0);
-    g.add_definitions("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
+    computation g_0("{g_0[y,-1]: 0<=y<19}",           expr((uint8_t) 0), true, p_uint8, &function0);
+    computation g_1("{g_1[y,rx]: 0<=y<19 and 0<=rx<9}", g_0(y,rx-1) + f(y,rx), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    g.after(f, computation::root);
-    g.get_update(1).after(g, computation::root);
+    g_0.after(f, computation::root);
+    g_1.after(g_0, computation::root);
 
     // -------------------------------------------------------
     // Layer III
@@ -60,12 +60,9 @@ void generate_function(std::string name, int size, int val0)
 
     buffer f_buff("f_buff", {19,size}, p_uint8, a_temporary, &function0);
     buffer g_buff("g_buff", {size}, p_uint8, a_output, &function0);
-    // Important: note that the access relations of the two computation C and C2 are identical.
-    // The Tiramisu code generator assumes that the access relations of computations that have the same
-    // name are identical.  In this case, the two relations are equal to "{C[j,i]->C_buff[i]}".
     f.set_access("{f[y,x]->f_buff[y,x]}");
-    g.set_access("{g[y,rx]->g_buff[y]}");
-    g.get_update(1).set_access("{g[y,rx]->g_buff[y]}");
+    g_0.set_access("{g_0[y,rx]->g_buff[y]}");
+    g_1.set_access("{g_1[y,rx]->g_buff[y]}");
 
     // -------------------------------------------------------
     // Code Generation
