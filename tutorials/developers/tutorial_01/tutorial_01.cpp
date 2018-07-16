@@ -34,7 +34,7 @@ using namespace tiramisu;
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+    tiramisu::init();
 
     // Declare a function called "function0".
     // A function in tiramisu is the equivalent of a function in C.
@@ -46,10 +46,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I: provide the algorithm.
     // -------------------------------------------------------
-
-    // Declare an expression that will be associated to the
-    // computations.  This expression sums 3 and 4.
-    expr e = expr(3) + expr(4);
 
     // Declare a computation within function0.
     // To declare a computation, you need to provide:
@@ -68,7 +64,7 @@ int main(int argc, char **argv)
     // The best way to learn about the constructor of computations is to
     // check the documentation of the computation class in
     // https://tiramisu-compiler.github.io/doc
-    computation S0("{S0[i]: 0<=i<10}", e, true, p_uint8, &function0);
+    computation S0("{S0[i]: 0<=i<10}", expr(3) + expr(4), true, p_uint8, &function0);
 
     // ------------------------------------------------------------
     // Layer II: specify how to schedule (optimize) the algorithm.
@@ -107,33 +103,23 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    // Set buf0 as an argument to the function.
-    // The buffer buf0 is supposed to be allocated  by the user (caller)
-    // and passed to the generated function "function0".
-    // Any buffer of type a_output or a_input are supposed to be allocated
-    // by the caller, in contrast to buffers of type a_temporary which are
-    // allocated automatically by the Tiramisu runtime within the callee
-    // and should not be passed as arguments to the function).
-    function0.set_arguments({&buf0});
-
-    // Generate the time-processor domain of the computation.
-    function0.gen_time_space_domain();
-
-    // Generate an AST (abstract Syntax Tree)
-    function0.gen_isl_ast();
-
-    // Generate Halide statement for the function.
-    function0.gen_halide_stmt();
-
-    // Generate an object file from the function.
-    function0.gen_halide_obj("build/generated_fct_developers_tutorial_01.o");
+    // Generate code and compile it to an object file.  Two arguments need
+    // to be passed to the code generator:
+    //	    - The arguments (buffers) t passed to the generated function.
+    //	      In this example, the buffer buf0 is set as an argument to the function.
+    //	      The buffer buf0 is supposed to be allocated  by the user (caller)
+    //	      and passed to the generated function "function0".
+    //	      Any buffer of type a_output or a_input are supposed to be allocated
+    //	      by the caller, in contrast to buffers of type a_temporary which are
+    //	      allocated automatically by the Tiramisu runtime within the callee
+    //	      and should not be passed as arguments to the function).
+    //	    - The name of the object file to be generated.
+    function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01");
 
     return 0;
 }
 
 /**
- * Remarques
- * ----------
  * - Note that the name used during the construction of a tiramisu object and the
  *   identifier of that object are identical (for example buf0, "buf0").
  *   This is not required but highly recommended as it simplifies reading
