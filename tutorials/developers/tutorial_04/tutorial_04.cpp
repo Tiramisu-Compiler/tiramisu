@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Set the arguments to blurxy
-    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_03.o");
+    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04.o");
 
     return 0;
 }
