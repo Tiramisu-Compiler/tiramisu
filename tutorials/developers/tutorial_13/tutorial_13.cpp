@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generator
     // -------------------------------------------------------
-    spmv.codegen({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y}, "build/generated_fct_developers_tutorial_04.o");
+    spmv.codegen({&b_row_start, &b_col_idx, &b_values, &b_x, &b_y}, "build/generated_fct_developers_tutorial_13.o");
 
     return 0;
 }
