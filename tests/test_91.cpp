@@ -90,7 +90,7 @@ void generate_function(std::string name, int val0)
     tiramisu::buffer	     f_b("f_b", {tiramisu::var("N"), tiramisu::var("N")}, tiramisu::p_uint8, a_temporary, &function0);
     tiramisu::buffer	     g_b("g_b", {tiramisu::var("N"), tiramisu::var("N")}, tiramisu::p_uint8, a_output, &function0);
 
-    SIZEs_computation.bind_to(&SIZEs_buffer);
+    SIZEs_computation.store_in(&SIZEs_buffer);
     f.set_access("{f[i,j,k]->f_b[j,k]}");
     g.set_access("{g[i,j]->g_b[i,j]}");
     f_1.set_access("{f_1[i,j,k0,k1]->f_b[k0,k1]}");

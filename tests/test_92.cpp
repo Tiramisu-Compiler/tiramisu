@@ -58,7 +58,7 @@ void generate_function(std::string name, int val0)
 
     f.after((*allocation), tiramisu::var("i"));
 
-    SIZEs_computation.bind_to(&SIZEs_buffer);
+    SIZEs_computation.store_in(&SIZEs_buffer);
     f.set_access("{f[i,j]->f_b[i]}");
     g.set_access("{g[i,j]->g_b[i]}");
 

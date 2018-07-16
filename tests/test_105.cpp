@@ -18,7 +18,7 @@ void gen(std::string name, int size, int val0, int val1)
     S0.tag_parallel_level(i0);
 
     tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
-    S0.bind_to(&buf0);
+    S0.store_in(&buf0);
 
     function0.codegen({&buf0}, "build/generated_fct_test_105.o");
 }

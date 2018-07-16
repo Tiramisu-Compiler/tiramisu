@@ -1922,7 +1922,7 @@ tiramisu::computation *computation::store_at(tiramisu::computation &comp,
     this->automatically_allocated_buffer = buff;
 
     tiramisu::computation *allocation = buff->allocate_at(comp, L0);
-    this->bind_to(buff);
+    this->store_in(buff);
     if (comp.get_predecessor() != NULL)
 	allocation->between(
 		*(comp.get_predecessor()),
@@ -3112,7 +3112,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
         this->get_function()->starting_computations.erase(allocation);
     }
 
-    this->bind_to(buff);
+    this->store_in(buff);
 
     DEBUG_INDENT(-4);
 }
@@ -7519,7 +7519,7 @@ void tiramisu::computation::set_name(const std::string &n)
   * i.e. create a one-to-one data mapping between the computation
   * the buffer.
   */
-void tiramisu::computation::bind_to(buffer *buff)
+void tiramisu::computation::store_in(buffer *buff)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -7541,7 +7541,7 @@ void tiramisu::computation::bind_to(buffer *buff)
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::bind_to(buffer *buff, std::vector<tiramisu::var> iterators)
+void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::var> iterators)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);

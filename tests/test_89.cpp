@@ -55,9 +55,9 @@ void generate_function(std::string name, int val0)
     tiramisu::buffer	     S0_b("S0_b", {tiramisu::var("N"), tiramisu::var("N")}, tiramisu::p_uint8, a_temporary, &function0);
     tiramisu::buffer	     S1_b("S1_b", {tiramisu::var("N"), tiramisu::var("N")}, tiramisu::p_uint8, a_output, &function0);
 
-    SIZEs_computation.bind_to(&SIZEs_buffer);
-    S0.bind_to(&S0_b);
-    S1.bind_to(&S1_b);
+    SIZEs_computation.store_in(&SIZEs_buffer);
+    S0.store_in(&S0_b);
+    S1.store_in(&S1_b);
 
     // -------------------------------------------------------
     // Code Generation

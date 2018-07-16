@@ -50,9 +50,9 @@ void generate_function(std::string name, int val0)
     tiramisu::buffer N_buffer("N_buffer", {2}, tiramisu::p_int32, a_input, &function0);
     tiramisu::buffer S0_b("S0_b", {tiramisu::var("N1"), tiramisu::var("N2")}, tiramisu::p_uint8, a_temporary, &function0);
     tiramisu::buffer S1_b("S1_b", {tiramisu::var("N1"), tiramisu::var("N2")}, tiramisu::p_uint8, a_output, &function0);
-    N_buffer_wrapper.bind_to(&N_buffer);
-    S0.bind_to(&S0_b);
-    S1.bind_to(&S1_b);
+    N_buffer_wrapper.store_in(&N_buffer);
+    S0.store_in(&S0_b);
+    S1.store_in(&S1_b);
 
     // -------------------------------------------------------
     // Code Generation

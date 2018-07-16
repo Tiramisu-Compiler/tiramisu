@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
     tiramisu::computation SIZES("{SIZES[i]: 0<=i<=1}", tiramisu::expr(), false, p_int32, &gaussian_tiramisu);
     tiramisu::buffer SIZES_b("SIZES_b", {tiramisu::expr(5)}, tiramisu::p_int32, tiramisu::a_input, &gaussian_tiramisu);
-    SIZES.bind_to(&SIZES_b);
+    SIZES.store_in(&SIZES_b);
     tiramisu::constant SIZE0("SIZE0", SIZES(0), p_int32, true, NULL, 0, &gaussian_tiramisu);
     tiramisu::constant SIZE1("SIZE1", SIZES(1), p_int32, true, NULL, 0, &gaussian_tiramisu);
     tiramisu::constant SIZE2("SIZE2", SIZES(2), p_int32, true, NULL, 0, &gaussian_tiramisu);

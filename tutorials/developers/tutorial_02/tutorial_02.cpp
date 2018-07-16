@@ -83,8 +83,8 @@ int main(int argc, char **argv)
     // The following call indicates that each computation input[i,j]
     // is stored in the buffer element b_input[i,j] (one-to-one mapping).
     // This is the most common mapping to memory.
-    input.bind_to(&b_input);
-    output.bind_to(&b_output);
+    input.store_in(&b_input);
+    output.store_in(&b_output);
 
     // -------------------------------------------------------
     // Code Generation

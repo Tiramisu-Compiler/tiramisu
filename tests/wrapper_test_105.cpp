@@ -15,7 +15,7 @@ int main(int, char **)
     init_buffer(output_buf, (uint8_t)13);
 
     func(output_buf.raw_buffer());
-    compare_buffers("bind_to", output_buf, reference_buf);
+    compare_buffers("store_in", output_buf, reference_buf);
 
     return 0;
 }

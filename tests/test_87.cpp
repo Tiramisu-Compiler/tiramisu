@@ -46,11 +46,11 @@ void generate_function(std::string name, int val0)
     // -------------------------------------------------------
 
     tiramisu::buffer N_input_b("N_input_b", {1}, tiramisu::p_int32, a_input, &function0);
-    N_input.bind_to(&N_input_b);
+    N_input.store_in(&N_input_b);
     tiramisu::buffer S0_b("S0_b", {N_input(0), N_input(0)}, tiramisu::p_uint8, a_temporary, &function0);
-    S0.bind_to(&S0_b);
+    S0.store_in(&S0_b);
     tiramisu::buffer S1_b("S1_b", {tiramisu::var("N"), tiramisu::var("N")}, tiramisu::p_uint8, a_output, &function0);
-    S1.bind_to(&S1_b);
+    S1.store_in(&S1_b);
 
     // -------------------------------------------------------
     // Code Generation

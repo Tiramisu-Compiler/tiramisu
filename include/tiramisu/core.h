@@ -752,7 +752,7 @@ public:
      *    Assuming the name of the computation is C, the name of the generated buffer
      *    is _C_buffer.
      *  - Map the computation to the allocated buffer (one-to-one mapping).
-     *    For more details about one-to-one mapping, see computation::bind_to.
+     *    For more details about one-to-one mapping, see computation::store_in.
      */
     void allocate_and_map_buffers_automatically();
 
@@ -2847,10 +2847,10 @@ public:
        * \endcode
        *
        * and that we want to store each C(i) in bufC[i]. Then we
-       * can use bind_to() to indicate that as follows:
+       * can use store_in() to indicate that as follows:
        *
        * \code
-       * C.bind_to(bufC)
+       * C.store_in(bufC)
        * \endcode
        *
        * This is equivalent to calling
@@ -2885,15 +2885,15 @@ public:
        *
        * and assuming we have a buffer bufD.
        *
-       * The bind_to() function can be used to implement many type of data mappings:
-       *    - Map a computation to a scalar: D.bind_to(bufD, {}).
+       * The store_in() function can be used to implement many type of data mappings:
+       *    - Map a computation to a scalar: D.store_in(bufD, {}).
        *      This is equivalent to D.set_access("{D[i,j]->bufD[0]}")
        *    - Store a 2 dimensional computation into a 1-dimensional
-       *    buffer: D.bind_to(i);
+       *    buffer: D.store_in(i);
        */
      // @{
-     void bind_to(buffer *buff);
-     void bind_to(buffer *buff, std::vector<var> iterators);
+     void store_in(buffer *buff);
+     void store_in(buffer *buff, std::vector<var> iterators);
      // }@
 
     /**

@@ -16,7 +16,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .allocate_and_map_buffers_automatically: test_50
 - .between: test_58, 59
 - .before(): test_27
-- .bind_to(): 105, 106, 107, 108, 109
+- .store_in(): 105, 106, 107, 108, 109
 -  codegen(): 104
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27
