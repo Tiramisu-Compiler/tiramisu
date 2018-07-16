@@ -6,6 +6,11 @@
             C[i,j] = 0;
             for k = 0 .. N
                 C[i,j] = C[i,j] + A[i,k] * B[k,j];
+     
+     To run this tutorial
+     
+     cd build/
+     make run_developers_tutorial_04
 
 */
 
@@ -89,6 +94,9 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04.o");
+    
+    // Dump the generated Halide statement (just for debugging).
+    matmul.dump_halide_stmt();
 
     return 0;
 }
