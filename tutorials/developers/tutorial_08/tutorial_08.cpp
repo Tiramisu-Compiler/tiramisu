@@ -41,16 +41,16 @@ void generate_function(std::string name, int size, int val0)
     var i = var("i");
     var j = var("j");
 
-    computation C("[N]->{C[0,i]: 0<=i<N}", expr((uint8_t) 10), true, p_uint8, &function0);
-    C.add_definitions("[N]->{C[1,i]: 0<=i<N}", C(0, i) + expr((uint8_t) 10), true, p_uint8, &function0);
-    computation out("[N]->{out[i]: 0<=i<N}", C(1, i) + expr((uint8_t) 1), true, p_uint8, &function0);
+    computation C_0("[N]->{C_0[0,i]: 0<=i<N}", expr((uint8_t) 10), true, p_uint8, &function0);
+    computation C_1("[N]->{C_1[1,i]: 0<=i<N}", C_0(0, i) + expr((uint8_t) 10), true, p_uint8, &function0);
+    computation out("[N]->{out[i]: 0<=i<N}", C_1(1, i) + expr((uint8_t) 1), true, p_uint8, &function0);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    C.get_update(1).after(C, computation::root);
-    out.after(C.get_update(1), computation::root);
+    C_1.after(C_0, computation::root);
+    out.after(C_1, computation::root);
 
     // -------------------------------------------------------
     // Layer III
@@ -58,11 +58,8 @@ void generate_function(std::string name, int size, int val0)
 
     buffer C_buff("C_buff", {size}, p_uint8, a_temporary, &function0);
     buffer out_buff("out_buff", {size}, p_uint8, a_output, &function0);
-    // Important: note that the access relations of the two computation C and C2 are identical.
-    // The Tiramisu code generator assumes that the access relations of computations that have the same
-    // name are identical.  In this case, the two relations are equal to "{C[j,i]->C_buff[i]}".
-    C.set_access("{C[j,i]->C_buff[i]}");
-    C.get_update(1).set_access("{C[j,i]->C_buff[i]}");
+    C_0.set_access("{C_0[j,i]->C_buff[i]}");
+    C_1.set_access("{C_1[j,i]->C_buff[i]}");
     out.set_access("{out[i]->out_buff[i]}");
 
     // -------------------------------------------------------
