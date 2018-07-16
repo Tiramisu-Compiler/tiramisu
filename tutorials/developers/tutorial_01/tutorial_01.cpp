@@ -131,12 +131,8 @@ int main(int argc, char **argv)
 }
 
 /**
- * - Note that the name used during the construction of a tiramisu object and the
- *   identifier of that object are identical (for example buf0, "buf0").
- *   This is not required but highly recommended as it simplifies reading
- *   tiramisu code and prevents errors.
- *
- * If you want to compile the tutorial manuall, you can follow the following steps.
+
+  If you want to compile the tutorial manuall, you can follow the following steps.
   
   Assuming that the variable TIRAMISU_ROOT contains the path to the root directory of Tiramisu
   and that Tiramisu and it dependences are built using the default paths.
