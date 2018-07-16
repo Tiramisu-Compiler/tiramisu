@@ -63,10 +63,12 @@ int main(int argc, char **argv)
     buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
 
     // Map the computations to a buffer.
-    c_A.set_access("{c_A[i,j]->b_A[i,j]}");
-    c_B.set_access("{c_B[i,j]->b_B[i,j]}");
-    C_init.set_access("{C_init[i,j,k]->b_C[i,j]}");
-    c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
+    c_A.bind_to(&b_A);
+    c_B.bind_to(&b_B);
+    // Store C_init[i,j,k] in b_C[i,j]
+    C_init.bind_to(b_C, {i,j});
+    // Store c_C[i,j,k] in b_C[i,j]
+    c_C.bind_to(b_C, {i,j});
 
     // -------------------------------------------------------
     // Code Generation
