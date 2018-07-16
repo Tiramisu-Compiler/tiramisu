@@ -7541,6 +7541,49 @@ void tiramisu::computation::bind_to(buffer *buff)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::bind_to(buffer *buff, std::vector<tiramisu::var> iterators)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(buff != NULL);
+
+    std::string map_str = "{" + this->get_name() + "[";
+    std::vector<std::string> iter_names =
+	this->get_iteration_domain_dimension_names();
+    for (int i = 0; i < iter_names.size(); i++)
+    {
+	map_str += iter_names[i];
+	if (i < iter_names.size() - 1)
+	    map_str += ",";
+    }
+    map_str += "] -> " + buff->get_name() + "[";
+
+    if (iterators.size() == 0)
+	map_str += "0";
+    else
+	for (int i = 0; i < iterators.size(); i++)
+	{
+	    map_str += iterators[i].get_name();
+	    if (i < iterators.size() - 1)
+		map_str += ", ";
+	}
+    map_str += "]}";
+
+    assert(map_str.size() != 0);
+
+    isl_map *map = isl_map_read_from_str(this->get_ctx(), map_str.c_str());
+    assert(map != NULL);
+
+    DEBUG(3, tiramisu::str_dump("Binding. The following access function is set: ",
+                                isl_map_to_str(map)));
+
+    this->set_access(isl_map_to_str(map));
+
+    isl_map_free(map);
+
+    DEBUG_INDENT(-4);
+}
 void tiramisu::computation::mark_as_let_statement()
 {
     this->is_let = true;
