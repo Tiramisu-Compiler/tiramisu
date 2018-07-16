@@ -24,6 +24,39 @@
 
   The user can then call the function declared in the generated object file
   from any place in his program.
+  
+  How to compile ?
+  
+  You can use the makefile to compile the tutorial or you can do it manually.
+  
+  cd build/
+  make run_developers_tutorial_01
+  
+  This will compile and run the tutorial.
+  
+  If you want to compile the tutorial manuall, you can follow the following steps.
+  
+  Assuming that the variable TIRAMISU_ROOT contains the path to the root directory of Tiramisu
+  and that Tiramisu and it dependences are built using the default paths.
+  
+  First we need to compile the generator (it requires the header files and libraries of Halide, ISL and Tiramisu which all
+  should be built automatically if you follow the default installation process).
+  
+  g++ -std=c++11 -fno-rtti -DHALIDE_NO_JPEG -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/include -I${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/ -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o developers_tutorial_01_fct_generator  -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/tutorial_01.cpp  
+  
+  Run the generator to generate the object file.
+  
+  ./developers_tutorial_01_fct_generator
+  
+  This generator generates the file generated_fct_developers_tutorial_01.o
+  You can compile the wrapper code (code that uses the generated code) and link it to the generated object file.
+  
+  g++ -std=c++11 -fno-rtti -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/Halide/include -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o wrapper_tutorial_01  -ltiramisu -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/wrapper_tutorial_01.cpp  generated_fct_developers_tutorial_01.o
+  
+  To run the program.
+  
+  ./wrapper_tutorial_01
+  
  *
  */
 
@@ -113,7 +146,7 @@ int main(int argc, char **argv)
     //	      allocated automatically by the Tiramisu runtime within the callee
     //	      and should not be passed as arguments to the function).
     //	    - The name of the object file to be generated.
-    function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
+    function0.codegen({&buf0}, "generated_fct_developers_tutorial_01.o");
 
     return 0;
 }
