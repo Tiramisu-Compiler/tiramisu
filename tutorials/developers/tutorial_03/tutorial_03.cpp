@@ -1,4 +1,6 @@
-/* Sequence of four computations.
+/*
+
+This example defines the following sequence of computations.
 
 for (i = 0; i < M; i++)
   S0(i) = 4;
@@ -6,6 +8,9 @@ for (i = 0; i < M; i++)
   for (j = 0; j < N; j++)
     S2(i, j) = 2;
   S3(i) = 1;
+ 
+ The goal of this tutorial is to show how one can indicate
+ the order of computations in Tiramisu.
 */
 
 #include <tiramisu/tiramisu.h>
