@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     // Map the computation S0 to the buffer buf0.
     // This means specifying where each computation S0(i) should be
     // stored exactly in the buffer buf0.
-    S0.bind_to(buf0);
+    S0.bind_to(&buf0);
 
     // Another way to specify the data mapping is use an ISL mapping, by calling
     // 		S0.set_access("{S0[i]->buf0[i]}");
