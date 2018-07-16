@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     //	      allocated automatically by the Tiramisu runtime within the callee
     //	      and should not be passed as arguments to the function).
     //	    - The name of the object file to be generated.
-    function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01");
+    function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
 
     return 0;
 }
