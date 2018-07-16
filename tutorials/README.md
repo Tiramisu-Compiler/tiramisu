@@ -8,7 +8,7 @@ for you.
 
 - To be added soon (the user level API is actively under development now). 
 
-## Tutorials for Tiramisu Developers (Low Level Tiramisu API)
+## Tutorials for Tiramisu Compiler Developers (Low Level Tiramisu API)
 
 If you want to contribute to the Tiramisu compiler (add new
 optimizations, new backend, improve the front-end, ...), the following
