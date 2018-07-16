@@ -16,12 +16,15 @@ test number `XX` in the file `tests/test_list.txt`.
 - .allocate_and_map_buffers_automatically: test_50
 - .between: test_58, 59
 - .before(): test_27
+- .bind_to(): 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116
+-  codegen(): 104, 105
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27
 - Dynamic buffer size (buffer size unknown at compile time): test_87, 88, 92
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
 - .get_last_update(): test_68
+- tiramisu::init(): 103
 - let statement: test_04
 - lerp(): test_55
 - low level separation: test_73
