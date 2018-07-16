@@ -1,4 +1,4 @@
-/* Sequence of computations.
+/* Sequence of four computations.
 
 for (i = 0; i < M; i++)
   S0(i) = 4;
@@ -23,12 +23,13 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     function sequence("sequence");
-    expr e_M = expr((int32_t) SIZE0);
-    constant M("M", e_M, p_int32, true, NULL, 0, &sequence);
+
+    constant M("M", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &sequence);
+  
+    // Declare the four computations: c0, c1, c2 and c3.
     computation c0("[M]->{c0[i]: 0<=i<M}", expr((uint8_t) 4), true, p_uint8, &sequence);
     computation c1("[M]->{c1[i]: 0<=i<M}", expr((uint8_t) 3), true, p_uint8, &sequence);
-    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", expr((uint8_t) 2), true, p_uint8,
-                   &sequence);
+    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", expr((uint8_t) 2), true, p_uint8, &sequence);
     computation c3("[M]->{c3[i]: 0<=i<M}", expr((uint8_t) 1), true, p_uint8, &sequence);
 
     // -------------------------------------------------------
@@ -36,6 +37,15 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     var i("i");
+  
+    // By default computations are unordered in Tiramisu. The user has to specify
+    // the order exlplicitely (automatic ordering is being developed and will be
+    // available soon).
+    //
+    // The following calls define the order between the computations c3, c2, c1 and c0.
+    // c1 is set to be after c0 in the loop level i.  That is, both have the same outer loops
+    // up to the loop level i (they share i also) but starting from i, all the
+    // computations c1 are ordered after the computations c0.
     c1.after(c0, i);
     c2.after(c1, i);
     c3.after(c2, i);
