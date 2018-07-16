@@ -1,8 +1,4 @@
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <Halide.h>
-
+#include <tiramisu/tiramisu.h>
 #include "wrapper_tutorial_11.h"
 
 /*
@@ -24,9 +20,10 @@ for (int r = 0; r < ROWS; r++) {
 
 using namespace tiramisu;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+    tiramisu::init();
 
     tiramisu::function cvtcolor("cvtcolor");
 
