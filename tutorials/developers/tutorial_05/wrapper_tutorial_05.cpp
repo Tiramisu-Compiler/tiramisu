@@ -1,4 +1,4 @@
-#include "wrapper_tutorial_065.h"
+#include "wrapper_tutorial_05.h"
 
 #include "Halide.h"
 #include <tiramisu/utils.h>
