@@ -1,19 +1,6 @@
 # Tutorials
 
-This page has two types of tutorials: Tutorials written for all Tiramisu users and tutorials written only for compiler developers (those who will adding new features to the Tiramisu compiler, new optimizations, backends, ...).
-
-## Tutorials for Tiramisu Users
-If you want to learn how to write Tiramisu code, this is the right tutorial
-for you.
-
-- To be added soon (the user level API is actively under development now). 
-
-## Tutorials for Tiramisu Compiler Developers (Low Level Tiramisu API)
-
-If you want to contribute to the Tiramisu compiler (add new
-optimizations, new backend, improve the front-end, ...), the following
-tutorials will help you learn more about the internal representation
-of Tiramisu.
+These tutorials are about the low level Tiramisu API.  Other tutorials that present the high level API are being prepared and will be published soon.  The low level API is verbose but allows full control over code generation and is supposed to be used mainly only by the compiler developers (but this is the only API that we provide for the moment).
 
 - [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): a simple example of how to use the low level Tiramisu API (a simple assignment).
 - [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): another simple example (2D loop).
