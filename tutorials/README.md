@@ -17,11 +17,12 @@ of Tiramisu.
 
 - [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): a simple example of how to use the low level Tiramisu API (a simple assignment).
 - [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): another simple example (2D loop).
-- [Developers tutorial 03](developers/tutorial_03/tutorial_03.cpp): matrix multiplication using the low level Tiramisu API.
-- [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): simple sequence of computations using the low level Tiramisu API.
-- [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): reduction example using the low level Tiramisu API.
-- [Developers tutorial 08](developers/tutorial_08/tutorial_08.cpp): update example using the low level Tiramisu API.
-- [Developers tutorial 09](developers/tutorial_09/tutorial_09.cpp): complicated reduction/update example using the low level Tiramisu API.
+- [Developers tutorial 03](developers/tutorial_03/tutorial_03.cpp): a matrix multiplication example.
+- [Developers tutorial 04](developers/tutorial_04/tutorial_04.cpp): two matrix multiplications fused together.
+- [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): a simple sequence of computations.
+- [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): an example of a reduction operation.
+- [Developers tutorial 08](developers/tutorial_08/tutorial_08.cpp): an example of an update operation.
+- [Developers tutorial 09](developers/tutorial_09/tutorial_09.cpp): a complicated example of reduction and an update.
 
 More examples can be found in the [tests](tests/) folder. Please check [test_descriptions.txt](tests/test_descriptions.txt) for a full list of examples for each Tiramisu feature.
 
