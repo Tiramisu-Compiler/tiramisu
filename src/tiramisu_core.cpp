@@ -2115,13 +2115,10 @@ void computation::dump_iteration_domain() const
 
 void function::dump_halide_stmt() const
 {
-    if (ENABLE_DEBUG)
-    {
         tiramisu::str_dump("\n\n");
         tiramisu::str_dump("\nGenerated Halide Low Level IR:\n");
         std::cout << this->get_halide_stmt();
         tiramisu::str_dump("\n\n\n\n");
-    }
 }
 
 void function::dump_trimmed_time_processor_domain() const
