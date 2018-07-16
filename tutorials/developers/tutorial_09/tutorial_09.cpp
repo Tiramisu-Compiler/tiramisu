@@ -1,8 +1,3 @@
-#include <tiramisu/tiramisu.h>
-#include "wrapper_tutorial_09.h"
-
-using namespace tiramisu;
-
 /**
  * A more complicated reduction.
  *
@@ -28,6 +23,11 @@ using namespace tiramisu;
  *
  */
 
+#include <tiramisu/tiramisu.h>
+#include "wrapper_tutorial_09.h"
+
+using namespace tiramisu;
+
 void generate_function(std::string name, int size, int val0)
 {
     // Set default tiramisu options.
@@ -36,7 +36,6 @@ void generate_function(std::string name, int size, int val0)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-
 
     function function0(name);
 
@@ -48,20 +47,16 @@ void generate_function(std::string name, int size, int val0)
     computation g("{g[y,-1]: 0<=y<19}",           expr((uint8_t) 0), true, p_uint8, &function0);
     g.add_definitions("{g[y,rx]: 0<=y<19 and 0<=rx<9}", g(y,rx-1) + f(y,rx), true, p_uint8, &function0);
 
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-
     g.after(f, computation::root);
     g.get_update(1).after(g, computation::root);
-
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
 
     buffer f_buff("f_buff", {19,size}, p_uint8, a_temporary, &function0);
     buffer g_buff("g_buff", {size}, p_uint8, a_output, &function0);
@@ -72,19 +67,11 @@ void generate_function(std::string name, int size, int val0)
     g.set_access("{g[y,rx]->g_buff[y]}");
     g.get_update(1).set_access("{g[y,rx]->g_buff[y]}");
 
-
-
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
-
-    function0.set_arguments({&g_buff});
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_c_code();
-    function0.gen_halide_obj("build/generated_fct_developers_tutorial_09.o");
+    function0.codegen({&g_buff}, "build/generated_fct_developers_tutorial_09.o");
 }
 
 int main(int argc, char **argv)
