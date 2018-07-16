@@ -713,27 +713,31 @@ public:
       * \brief Add a set of constraints to the context of the program.
       *
       * \details This command is useful for providing constraints over the constants
-      * used within a tiramisu function.  This call intersects the set \p new_context
-      * (input) with the context of the function.
+      * used within a tiramisu function.
+      * The context of a function is represented as an ISL set that represents
+      * constraints over the parameters of the function (a parameter of a
+      * function is a constant used in that function).
       *
-      * The context of a function is an ISL set that represents constraints over
-      * the parameters of the functions.  A parameter of a function is a constant
-      * used in that function.
-      *
-      * An example of a context set is the following:
-      *          "[N,M]->{: M>0 and N>0}"
+      * For example, if the constants M and N are known to be positive, it is beneficial
+      * to provide such an information to the Tiramisu compiler as follows:
+      *	    f.add_context_constraints("[N,M]->{: M>0 and N>0}");
       * This context set indicates that the two parameters N and M
-      * are strictly positive.
+      * are strictly positive in the function f.
       *
       * \p new_context should have the same space as the context set.
+      * This call intersects the set \p new_context
+      * (input) with the context of the function.
       */
     void add_context_constraints(const std::string &new_context);
 
     /**
-      * This functions applies to the schedule of each computation
+      * \brief Align the schedules of all the computations of this
+      * function.
+      *
+      * This method applies to the schedule of each computation
       * in the function.  It makes the dimensions of the ranges of
       * all the schedules equal.  This is done by adding dimensions
-      * equal to 0 to the range of schedules.
+      * equal to 0 to the range of each schedule.
       * This function is called automatically when gen_isl_ast()
       * or gen_time_processor_domain() are called.
       */
@@ -2106,12 +2110,14 @@ private:
 
     /**
       * Identical to
+      * \code
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1);
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
       *			      tiramisu::var L2, tiramisu::var L3);
       *    void tag_gpu_level(tiramisu::var L0, tiramisu::var L1,
       * 		      tiramisu::var L2, tiramisu::var L3,
       *			      tiramisu::var L4, tiramisu::var L5);
+      * \endcode
       * The outermost loop level is 0.
       */
     // @{
@@ -2249,12 +2255,15 @@ protected:
      * In the following example, C is defined multiple times whereas
      * D is defined only once.
      *
+     * \code
+     *
      * C(0) = 0
      *
      * C(i) = C(i-1) + 1
      *
      * D(i) = C(i) + 1
      *
+     * \endcode
      */
     bool has_multiple_definitions();
 
@@ -2304,6 +2313,7 @@ protected:
       * level.
       * For example, the computations c0 and c1 in the following loop nest
       *
+      * \code
       * for (i=0; i<N: i++)
       *   for (j=0; j<N; j++)
       *   {
@@ -2311,15 +2321,21 @@ protected:
       *     c1;
       *   }
       *
+      * \endcode
+      *
       * have the following representations in the iteration domain
       *
+      * \code
       * {c0[i,j]: 0<=i<N and 0<=j<N}
       * {c1[i,j]: 0<=i<N and 0<=j<N}
+      * \endcode
       *
       * and the following representation in the time-space domain
       *
+      * \code
       * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      * \endcode
       *
       * The first dimension (dimension 0) in the time-space
       * domain (the leftmost dimension) is the redundancy ID
@@ -2334,8 +2350,11 @@ protected:
       * To transform the previous iteration domain to the
       * time-space domain, the following schedule should be used:
       *
+      * \code
       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
       * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+      * \endcode
+
       *
       * The first dimension called "redundancy ID" is only meaningful if the
       * computation is redundant. i.e., some parts of the computation are
@@ -2374,9 +2393,11 @@ protected:
       * The schedule of c0 in this case would be three maps that map c0[i,j] to
       * the three different redundant computations in the time-processor domain:
       *
+      * \code
       * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
       *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
       *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+      * \endcode
       *
       * The function set_schedule() overrides any other schedule set by the high level
       * scheduling functions.  Currently the user has to choose between using the high
@@ -2655,6 +2676,7 @@ public:
       *
       * The corresponding code is
       *
+      * \code
       *     for (i=0; i<N; i++)
       *     {
       *         for (j=0; j<N; j++)
@@ -2662,6 +2684,7 @@ public:
       *         for (j=0; j<N; j++)
       *             S1;
       *     }
+      * \endcode
       */
     void after(computation &comp, int level);
 
@@ -2682,6 +2705,7 @@ public:
       *
       * The corresponding code is
       *
+      * \code
       *     for (i=0; i<N; i++)
       *     {
       *         for (j=0; j<N; j++)
@@ -2689,29 +2713,34 @@ public:
       *         for (j=0; j<N; j++)
       *             S1;
       *     }
+      * \endcode
       *
       * S1.after_low_level(S0,1)
       *
       * means: S1 is after S0 at the loop level 1 (which is j) and would yield
       * the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *   {
       *     S0;
       *     S1;
       *   }
+      * \endcode
       *
       * S1.after_low_level(S0, computation::root_dimension)
       * means S1 is after S0 at the main program level and would yield
       * the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S0;
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S1;
+      * \endcode
       *
       * To specify that this computation is after \p comp in multiple levels,
       * the user can provide those levels in the \p levels vector.
@@ -2920,6 +2949,7 @@ public:
       * Without fusion, these computations would be equivalent
       * to the following loops nests
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S0;
@@ -2931,15 +2961,19 @@ public:
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *     S2;
+      * \endcode
       *
       * To fuse them, one should call
       *
+      * \code
       * S2.fuse_after(j, S1);
       * S1.fuse_after(j, S0);
+      * \endcode
       *
       * This would result in fusing S2 with S0 and S1 at loop level j.
       * S2 will be scheduled for execution after S0 and S1.  The resulting code would look like
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<N; j++)
       *   {
@@ -2947,14 +2981,18 @@ public:
       *     S1;
       *     S2;
       *   }
+      * \endcode
       *
       * Calling
       *
+      * \code
       * S2.fuse_after(i, S1);
       * S1.fuse_after(i, S0);
+      * \endcode
       *
       * would result in the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       * {
       *   for (j=0; j<N; j++)
@@ -2964,6 +3002,7 @@ public:
       *   for (j=0; j<N; j++)
       *     S2;
       * }
+      * \endcode
       *
       */
     template<typename... Args> void fuse_after(tiramisu::var lev, computation &comp)
@@ -3169,22 +3208,28 @@ public:
        * level.
        * For example, the computations c0 and c1 in the following loop nest
        *
+       * \code
        * for (i=0; i<N: i++)
        *   for (j=0; j<N; j++)
        *   {
        *     c0;
        *     c1;
        *   }
+       * \endcode
        *
        * have the following representations in the iteration domain
        *
+       * \code
        * {c0[i,j]: 0<=i<N and 0<=j<N}
        * {c1[i,j]: 0<=i<N and 0<=j<N}
+       * \endcode
        *
        * and the following representation in the time-space domain
        *
+       * \code
        * {c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
        * {c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+       * \endcode
        *
        * The first dimension (dimension 0) in the time-space
        * domain (the leftmost dimension) is the redundancy ID
@@ -3199,8 +3244,10 @@ public:
        * To transform the previous iteration domain to the
        * time-space domain, the following schedule should be used:
        *
+       * \code
        * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N}
        * {c1[i,j]->c1[0,0,i,0,j,1]: 0<=i<N and 0<=j<N}
+       * \endcode
        *
        * The first dimension called "redundancy ID" is only meaningful if the
        * computation is redundant. i.e., some parts of the computation are
@@ -3239,9 +3286,11 @@ public:
        * The schedule of c0 in this case would be three maps that map c0[i,j] to
        * the three different redundant computations in the time-processor domain:
        *
+       * \code
        * {c0[i,j]->c0[0,0,i,0,j,0]: 0<=i<N and 0<=j<N;
        *  c0[i,j]->c0[1,0,i,0,j,0]: 0<=i<N and 0<=j<N;
        *  c0[i,j]->c0[2,0,i,0,j,0]: 0<=i<N and 0<=j<N}
+       * \endcode
        *
        * The function set_schedule() overrides any other schedule set by the high level
        * scheduling functions.  Currently the user has to choose between using the high
@@ -3426,9 +3475,11 @@ public:
       * Let us assume the following loop (a loop represents and iteration
       * domain)
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<23; j++)
       *     S0;
+      * \endcode
       *
       * To unroll the j loop with an unrolling factor of 4, one should call
       *
@@ -3437,20 +3488,24 @@ public:
       * The loop (iteration domain) is first separated into the following
       * two loops
       *
+      * \code
       * for (int i=0; i<20; i++)
       *   S0;
       *
       * for (int i=20; i<23; i++)
       *   S0;
+      * \endcode
       *
       * The full loop is then split by 4
       *
+      * \code
       * for (int i1=0; i1<20/4; i1++)
       *   for (int i2=0; i2<4; i2++)
       *      S0;
       *
       * for (int i=20; i<23; i++)
       *   S0;
+      * \endcode
       *
       * the i2 loop is then tagged to be unrolled.
       *
@@ -3485,9 +3540,11 @@ public:
       * Let us assume the following loop (a loop represents and iteration
       * domain)
       *
+      * \code
       * for (i=0; i<N; i++)
       *   for (j=0; j<23; j++)
       *     S0;
+      * \endcode
       *
       * To vectorize the j loop with a vector length 4, one should call
       *
@@ -3496,20 +3553,24 @@ public:
       * The loop (iteration domain) is first separated into the following
       * two loops
       *
+      * \code
       * for (int i=0; i<20; i++)
       *   S0;
       *
       * for (int i=20; i<23; i++)
       *   S0;
+      * \endcode
       *
       * The full loop is then split by 4
       *
+      * \code
       * for (int i1=0; i1<20/4; i1++)
       *   for (int i2=0; i2<4; i2++)
       *      S0;
       *
       * for (int i=20; i<23; i++)
       *   S0;
+      * \endcode
       *
       * the i2 loop is then tagged to be vectorized.
       *
@@ -3554,22 +3615,26 @@ public:
       * - c0.after(c1, computation::root_dimension) would create a schedule
       * that generates the following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *     for (j=0; j<N; j++)
       *         c1;
       * for (i=0; i<N; i++)
       *     for (j=0; j<N; j++)
       *         c0;
+      * \endcode
       *
       * - c0.after(c1, 0) would create a schedule that generates the
       * following code
       *
+      * \code
       * for (i=0; i<N; i++) {
       *     for (j=0; j<N; j++)
       *         c1;
       *     for (j=0; j<N; j++)
       *         c0;
       * }
+      * \endcode
       *
       * This means that c0 is after c1 starting from loop level 0,
       * (before the loop level 0, c0 and c1 have the same order).
@@ -3577,11 +3642,13 @@ public:
       * - c0.after(c1, 1) would create a schedule that generates the
       * following code
       *
+      * \code
       * for (i=0; i<N; i++)
       *     for (j=0; j<N; j++) {
       *         c1;
       *         c0;
       *     }
+      * \endcode
       *
       * This means that c0 is after c1 starting from loop level 1,
       * (before the loop level 1, c0 and c1 have the same order).
