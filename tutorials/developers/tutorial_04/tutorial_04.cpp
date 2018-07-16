@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     // Code Generator
     // -------------------------------------------------------
 
-    sequence.codegen({&b0, &b1, &b2, &b3}, "build/generated_fct_developers_tutorial_05.o");
+    sequence.codegen({&b0, &b1, &b2, &b3}, "build/generated_fct_developers_tutorial_04.o");
 
     return 0;
 }
