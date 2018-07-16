@@ -15,8 +15,8 @@ optimizations, new backend, improve the front-end, ...), the following
 tutorials will help you learn more about the internal representation
 of Tiramisu.
 
-- [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): A simple example of how to use the low level Tiramisu API (a simple assignment).
-- [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): blurxy using the low level Tiramisu API.
+- [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): a simple example of how to use the low level Tiramisu API (a simple assignment).
+- [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): another simple example (2D loop).
 - [Developers tutorial 03](developers/tutorial_03/tutorial_03.cpp): matrix multiplication using the low level Tiramisu API.
 - [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): simple sequence of computations using the low level Tiramisu API.
 - [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): reduction example using the low level Tiramisu API.
