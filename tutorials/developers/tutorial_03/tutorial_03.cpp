@@ -66,9 +66,9 @@ int main(int argc, char **argv)
     c_A.bind_to(&b_A);
     c_B.bind_to(&b_B);
     // Store C_init[i,j,k] in b_C[i,j]
-    C_init.bind_to(b_C, {i,j});
+    C_init.bind_to(&b_C, {i,j});
     // Store c_C[i,j,k] in b_C[i,j]
-    c_C.bind_to(b_C, {i,j});
+    c_C.bind_to(&b_C, {i,j});
 
     // -------------------------------------------------------
     // Code Generation
