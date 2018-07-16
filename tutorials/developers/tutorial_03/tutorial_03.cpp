@@ -1,15 +1,4 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
+#include <tiramisu/tiramisu.h>
 
 /* Halide code for matrix multiplication.
 Func matmul(Input A, Input B, Output C) {
@@ -63,8 +52,6 @@ int main(int argc, char **argv)
     expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
     c_C.get_update(1).set_expression(e1);
 
-
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -76,8 +63,6 @@ int main(int argc, char **argv)
     c_C.tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
     c_C.get_update(1).tile(var("i"), var("j"), 32, 32, var("i0"), var("j0"), var("i1"), var("j1"));
     c_C.get_update(1).tag_parallel_level(var("i0"));
-
-
 
     // -------------------------------------------------------
     // Layer III
@@ -93,26 +78,12 @@ int main(int argc, char **argv)
     c_C.set_access("{c_C[i,j,k]->b_C[i,j]}");
     c_C.get_update(1).set_access("{c_C[i,j,k]->b_C[i,j]}");
 
-
-
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
     // Set the arguments to blurxy
-    matmul.set_arguments({&b_A, &b_B, &b_C});
-    // Generate code
-    matmul.gen_time_space_domain();
-    matmul.gen_isl_ast();
-    matmul.gen_halide_stmt();
-    matmul.gen_halide_obj("build/generated_fct_developers_tutorial_03.o");
-
-    // Some debugging
-    matmul.dump_iteration_domain();
-    matmul.dump_halide_stmt();
-
-    // Dump all the fields of the blurxy class.
-    matmul.dump(true);
+    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_03.o");
 
     return 0;
 }
