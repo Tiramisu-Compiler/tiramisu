@@ -4,39 +4,35 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 1000
+#define NN 10
 
 int main(int, char **)
 {
-    Halide::Buffer<uint8_t> A_buf(NN, NN);
-    Halide::Buffer<uint8_t> B_buf(NN, NN);
-    // Initialize matrices with pseudorandom values:
-    for (int i = 0; i < NN; i++) {
-        for (int j = 0; j < NN; j++) {
-            A_buf(j, i) = (i + 3) * (j + 1);
-            B_buf(j, i) = (i + 1) * j + 2;
-        }
-    }
+    // Outputs
+    Halide::Buffer<uint8_t> b0(NN);
+    init_buffer(b0, (uint8_t)99);
+    Halide::Buffer<uint8_t> b1(NN);
+    init_buffer(b1, (uint8_t)99);
+    Halide::Buffer<uint8_t> b2(NN, NN);
+    init_buffer(b2, (uint8_t)99);
+    Halide::Buffer<uint8_t> b3(NN);
+    init_buffer(b3, (uint8_t)99);
 
-    // Output
-    Halide::Buffer<uint8_t> C1_buf(NN, NN);
+    sequence(b0.raw_buffer(), b1.raw_buffer(), b2.raw_buffer(), b3.raw_buffer());
 
-    matmul(A_buf.raw_buffer(), B_buf.raw_buffer(), C1_buf.raw_buffer());
+    Halide::Buffer<uint8_t> expected_b0(NN);
+    init_buffer(expected_b0, (uint8_t)4);
+    Halide::Buffer<uint8_t> expected_b1(NN);
+    init_buffer(expected_b1, (uint8_t)3);
+    Halide::Buffer<uint8_t> expected_b2(NN, NN);
+    init_buffer(expected_b2, (uint8_t)2);
+    Halide::Buffer<uint8_t> expected_b3(NN);
+    init_buffer(expected_b3, (uint8_t)1);
 
-    // Reference matrix multiplication
-    Halide::Buffer<uint8_t> C2_buf(NN, NN);
-    init_buffer(C2_buf, (uint8_t)0);
-
-    for (int i = 0; i < NN; i++) {
-        for (int j = 0; j < NN; j++) {
-            for (int k = 0; k < NN; k++) {
-                // Note that indices are flipped (see tutorial 2)
-                C2_buf(j, i) += A_buf(k, i) * B_buf(j, k);
-            }
-        }
-    }
-
-    compare_buffers("matmul", C1_buf, C2_buf);
+    compare_buffers("tutorial_03_b0", b0, expected_b0);
+    compare_buffers("tutorial_03_b1", b1, expected_b1);
+    compare_buffers("tutorial_03_b2", b2, expected_b2);
+    compare_buffers("tutorial_03_b3", b3, expected_b3);
 
     return 0;
 }

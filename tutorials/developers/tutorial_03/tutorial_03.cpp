@@ -1,16 +1,16 @@
-/* Matrix multiplication.
+/* Sequence of computations.
 
-    for i = 0 .. N
-        for j = 0 .. N
-            C[i,j] = 0;
-            for k = 0 .. N
-                C[i,j] = C[i,j] + A[i,k] * B[k,j];
-}
+for (i = 0; i < M; i++)
+  S0(i) = 4;
+  S1(i) = 3;
+  for (j = 0; j < N; j++)
+    S2(i, j) = 2;
+  S3(i) = 1;
 */
 
 #include <tiramisu/tiramisu.h>
+#define SIZE0 10
 
-#define SIZE0 1000
 using namespace tiramisu;
 
 int main(int argc, char **argv)
@@ -22,60 +22,43 @@ int main(int argc, char **argv)
     // Layer I
     // -------------------------------------------------------
 
-    /*
-     * Declare a function matmul.
-     */
-    function matmul("matmul");
-
-    constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &matmul);
-
-    // Declare computations that represents the input buffer (b_A and b_B)
-    computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-    computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-
-    // Indices
-    var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
-
-    // Declare a computation to initialize the reduction c[i,j]
-    computation C_init("[N]->{C_init[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
-    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
-    expr e1 = c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j);
-    c_C.set_expression(e1);
+    function sequence("sequence");
+    expr e_M = expr((int32_t) SIZE0);
+    constant M("M", e_M, p_int32, true, NULL, 0, &sequence);
+    computation c0("[M]->{c0[i]: 0<=i<M}", expr((uint8_t) 4), true, p_uint8, &sequence);
+    computation c1("[M]->{c1[i]: 0<=i<M}", expr((uint8_t) 3), true, p_uint8, &sequence);
+    computation c2("[M]->{c2[i,j]: 0<=i<M and 0<=j<M}", expr((uint8_t) 2), true, p_uint8,
+                   &sequence);
+    computation c3("[M]->{c3[i]: 0<=i<M}", expr((uint8_t) 1), true, p_uint8, &sequence);
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    // Set the schedule of each computation.
-    // The identity schedule means that the program order is not modified
-    // (i.e. no optimization is applied).
-    C_init.tile(i, j, 32, 32, i0, j0, i1, j1);
-    c_C.after(C_init, j);
-    c_C.tile(i, j, 32, 32, i0, j0, i1, j1);
-    c_C.tag_parallel_level(i0);
+    var i("i");
+    c1.after(c0, i);
+    c2.after(c1, i);
+    c3.after(c2, i);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
-    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
+    buffer b0("b0", {expr(SIZE0)}, p_uint8, a_output, &sequence);
+    buffer b1("b1", {expr(SIZE0)}, p_uint8, a_output, &sequence);
+    buffer b2("b2", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &sequence);
+    buffer b3("b3", {expr(SIZE0)}, p_uint8, a_output, &sequence);
 
-    // Map the computations to a buffer.
-    c_A.store_in(&b_A);
-    c_B.store_in(&b_B);
-    // Store C_init[i,j,k] in b_C[i,j]
-    C_init.store_in(&b_C, {i,j});
-    // Store c_C[i,j,k] in b_C[i,j]
-    c_C.store_in(&b_C, {i,j});
+    c0.store_in(&b0);
+    c1.store_in(&b1);
+    c2.store_in(&b2);
+    c3.store_in(&b3);
 
     // -------------------------------------------------------
-    // Code Generation
+    // Code Generator
     // -------------------------------------------------------
 
-    // Set the arguments to blurxy
-    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_03.o");
+    sequence.codegen({&b0, &b1, &b2, &b3}, "build/generated_fct_developers_tutorial_03.o");
 
     return 0;
 }
