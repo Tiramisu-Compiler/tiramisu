@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     // Set default tiramisu options.
     tiramisu::init();
 
-
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
@@ -41,8 +40,6 @@ int main(int argc, char **argv)
     expr e = input(i, j) + cast(p_uint8, i) + (uint8_t)4;
     computation output("[N, M]->{output[i,j]: 0<=i<N and 0<=j<M}", e, true, p_uint8, &tut_02);
 
-
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -51,8 +48,6 @@ int main(int argc, char **argv)
     var i0("i0"), i1("i1"), j0("j0"), j1("j1");
     output.tile(i, j, 2, 2, i0, j0, i1, j1);
     output.tag_parallel_level(i0);
-
-
 
     // -------------------------------------------------------
     // Layer III
@@ -65,29 +60,23 @@ int main(int argc, char **argv)
     input.set_access("{input[i,j]->b_input[i,j]}");
     output.set_access("{output[i,j]->b_output[i,j]}");
 
-
-
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
     // Set the arguments to tut_02
-    tut_02.set_arguments({&b_input, &b_output});
-    // Generate code
-    tut_02.gen_time_space_domain();
-    tut_02.gen_isl_ast();
-    tut_02.gen_halide_stmt();
-    tut_02.gen_halide_obj("build/generated_fct_developers_tutorial_02.o");
+    tut_02.codegen({&b_input, &b_output}, "build/generated_fct_developers_tutorial_02.o");
 
     // Some debugging
     tut_02.dump_iteration_domain();
     tut_02.dump_halide_stmt();
 
-    // Dump all the fields of the tut_02 class.
+    // Dump all the fields of the tut_02 class (useful for debugging).
     tut_02.dump(true);
 
     return 0;
 }
+
 /**
  * Current limitations:
  * - Note that the type of the invariants N and M are "int32_t". This is
