@@ -33,8 +33,6 @@ namespace tiramisu {
     tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,
                                                                      std::map<std::string, isl_ast_expr *> iterators_map);
 namespace cuda_ast {
-    // TODO expose as an option
-    const std::string arch = "sm_70";
 
 const tiramisu::cuda_ast::op_data_t tiramisu_operation_description(tiramisu::op_t op) {
     switch (op) {
@@ -1692,10 +1690,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         stringstream command;
         command << global::get_nvcc_bin_dir() << "nvcc";
-        // Specify the device architecture
-        command << " -arch=" << arch;
-        // Say that this is actually cuda code
-        command << " -Xptxas -O3";
         // Say that this is actually cuda code
         command << " -x cu";
         // Create a .o file
@@ -1728,8 +1722,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         stringstream command;
         command << global::get_nvcc_bin_dir() << "nvcc";
-        // Specify the device architecture
-        command << " -arch=" << arch;
         // Link device object code
         command << " -dlink";
         // Specify input file name
