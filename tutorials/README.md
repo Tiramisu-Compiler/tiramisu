@@ -1,6 +1,6 @@
 # Tutorials
 
-These tutorials are about the low level Tiramisu API.  Other tutorials that present the high level API are being prepared and will be published soon.  The low level API is verbose but allows full control over code generation and is supposed to be used mainly only by the compiler developers (but this is the only API that we provide for the moment).
+These tutorials are about the low level Tiramisu API.  Other tutorials that present the high level API are being prepared and will be published soon.  The low level API is verbose but allows full control over code generation and is supposed to be used mainly by the compiler developers, not the final users (but this is the only API that we provide for the moment).
 
 - [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): a simple example of how to use the low level Tiramisu API (a simple assignment).
 - [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): another simple example (2D loop).
