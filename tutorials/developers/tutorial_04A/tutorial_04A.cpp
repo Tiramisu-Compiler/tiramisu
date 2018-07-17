@@ -10,7 +10,7 @@
      To run this tutorial
      
      cd build/
-     make run_developers_tutorial_04
+     make run_developers_tutorial_04A
 
 */
 
