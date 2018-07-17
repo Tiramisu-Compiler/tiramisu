@@ -114,6 +114,9 @@ int main(int argc, char **argv)
     //	    - The name of the object file to be generated.
     function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
 
+    // Dump the generated Halide statement (just for debugging).
+    function0.dump_halide_stmt();
+
     return 0;
 }
 
