@@ -19,4 +19,5 @@ echo_and_run_cmd "cp -r doc/* ${WEBSITE_DIR}/doc/"
 echo_and_run_cmd "cd ${WEBSITE_DIR}"
 echo_and_run_cmd "git add doc"
 echo_and_run_cmd "git commit -m \"update\""
-
+echo_and_run_cmd "git pull"
+echo_and_run_cmd "git push"
