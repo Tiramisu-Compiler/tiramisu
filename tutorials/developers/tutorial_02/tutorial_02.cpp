@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    // Declare input and output buffers/
+    // Declare input and output buffers.
     buffer b_input("b_input", {expr(NN), expr(MM)}, p_uint8, a_input, &tut_02);
     buffer b_output("b_output", {expr(NN), expr(MM)}, p_uint8, a_output, &tut_02);
 
