@@ -1680,6 +1680,16 @@ public:
     var(tiramisu::primitive_t type, std::string name) : var(type, name, true) {}
 
     /**
+      * lower bound when the variable is used as an iterator.
+      */
+    expr lower;
+
+    /**
+      * upper bound when the variable is used as an iterator.
+      */
+    expr upper;
+
+    /**
      * Construct an expression that represents an untyped variable.
      * For example to declare the variable "t", use
      * tiramisu::var("t");
@@ -1693,6 +1703,29 @@ public:
      *
      */
     var(std::string name) : var(name, true) {}
+
+    /**
+     * Construct a loop iterator that have \p name as a name.
+     * \p lower and \p upper are expressions that represent the lower and upper
+     * bounds of this iterator.  For example, the iterator i in the following C
+     * for loop
+     *
+     * \code
+     *	    for (i = 0; i < 10; i++)
+     * \endcode
+     *
+     * can be declared as
+     *
+     * \code
+     * var i("i", expr(0), expr(10));
+     * \endcode
+     *
+     * If a variable with the same name has previously been declared, this
+     * object will have the same type (i.e. it will be equal to the other variable object).
+     *
+     */
+    var(std::string name, expr lower, expr upper) : var(name, true) {}
+
 
     /* Construct an expression that represents an untyped variable.
      * The name of the variable is generated automatically.
