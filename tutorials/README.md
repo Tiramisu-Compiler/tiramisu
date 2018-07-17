@@ -5,7 +5,8 @@ These tutorials are about the low level Tiramisu API.  Other tutorials that pres
 - [Developers tutorial 01](developers/tutorial_01/tutorial_01.cpp): a simple example of how to use the low level Tiramisu API (a simple assignment).
 - [Developers tutorial 02](developers/tutorial_02/tutorial_02.cpp): another simple example (2D loop).
 - [Developers tutorial 03](developers/tutorial_03/tutorial_03.cpp): a simple sequence of computations.
-- [Developers tutorial 04](developers/tutorial_04/tutorial_04.cpp): a matrix multiplication example.
+- [Developers tutorial 04A](developers/tutorial_04A/tutorial_04A.cpp): a matrix multiplication example.
+- [Developers tutorial 04B](developers/tutorial_04B/tutorial_04B.cpp): an example of two successive matrix multiplications.
 - [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): an example of a reduction operation.
 - [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): an example of an update operation.
 - [Developers tutorial 07](developers/tutorial_07/tutorial_07.cpp): a complicated example of reduction and an update.
