@@ -63,10 +63,10 @@ int main(int argc, char **argv)
     // Parallelize the outermost loop level i0
     c_C.parallelize(i0);
 
-    // Indicate that c_C is after C_init at the loop level j (this means,
-    // they share the two outermost loops i and j and starting from j c_C
+    // Indicate that c_C is after C_init at the loop level j0 (this means,
+    // they share the two outermost loops i0 and j0 and starting from j0 c_C
     // is ordered after C_init).
-    c_C.after(C_init, j);
+    c_C.after(C_init, j0);
 
 
     // -------------------------------------------------------
