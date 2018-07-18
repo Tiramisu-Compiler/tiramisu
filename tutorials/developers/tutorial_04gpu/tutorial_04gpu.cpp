@@ -65,9 +65,6 @@ int main(int argc, char **argv)
     // Declare host-gpu transfer computations.
     computation copy_A_to_device("{copy_A_to_device[0]}", memcpy(b_A, b_A_gpu), true, p_none, &matmul);
     computation copy_B_to_device("{copy_B_to_device[0]}", memcpy(b_B, b_B_gpu), true, p_none, &matmul);
-    computation copy_C_to_device("{copy_C_to_device[0]}", memcpy(b_C, b_C_gpu), true, p_none, &matmul);
-    computation copy_A_to_host("{copy_A_to_host[0]}", memcpy(b_A_gpu, b_A), true, p_none, &matmul);
-    computation copy_B_to_host("{copy_B_to_host[0]}", memcpy(b_B_gpu, b_B), true, p_none, &matmul);
     computation copy_C_to_host("{copy_C_to_host[0]}", memcpy(b_C_gpu, b_C), true, p_none, &matmul);
 
     // -------------------------------------------------------
@@ -75,16 +72,12 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Scheduling commands
-    // TODO: optimizations
     copy_B_to_device.after(copy_A_to_device, computation::root);
-    copy_C_to_device.after(copy_B_to_device, computation::root);
-    C_init.after(copy_C_to_device, computation::root);
+    C_init.after(copy_B_to_device, computation::root);
     c_C.after(C_init, computation::root);
-    copy_A_to_host.after(c_C, computation::root);
-    copy_B_to_host.after(copy_A_to_host, computation::root);
-    copy_C_to_host.after(copy_B_to_host, computation::root);
+    copy_C_to_host.after(c_C, computation::root);
 
-    // TODO: Optimizations
+    // A simple tiling.
     C_init.gpu_tile(i, j, 16, 16);
     c_C.gpu_tile(i, j, 16, 16);
 
