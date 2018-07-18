@@ -1672,24 +1672,13 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return exec_result{true, pclose(file), out.str(), err.str()};
     }
 
-    void cuda_ast::compiler::assert_nvcc()
-    {
-        // TODO check version
-        auto result = exec(global::get_nvcc_bin_dir() + "nvcc -V");
-        if (result.fail())
-            tiramisu::error("Could not find nvcc. Please make sure it's in the path or set the environment variable "
-                            NVCC_BIN_DIR_ENV_VAR " to the directory containing nvcc (including the final directory separator).", true);
-
-    }
-
     bool cuda_ast::compiler::compile_cpu_obj(const std::string &filename, const std::string &obj_name) const {
         using namespace std;
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
-        assert_nvcc();
 
         stringstream command;
-        command << global::get_nvcc_bin_dir() << "nvcc";
+        command << NVCC_PATH;
         // Say that this is actually cuda code
         command << " -x cu";
         // Create a .o file
@@ -1718,10 +1707,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         using namespace std;
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
-        assert_nvcc();
 
         stringstream command;
-        command << global::get_nvcc_bin_dir() << "nvcc";
+        command << NVCC_PATH;
         // Link device object code
         command << " -dlink";
         // Specify input file name

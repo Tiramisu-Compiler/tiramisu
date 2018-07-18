@@ -30,7 +30,7 @@ include(configure.cmake)
 
 if (${USE_GPU})
     find_package(CUDA REQUIRED)
-    set(GPU_ENV_EXEC "${CMAKE_COMMAND} -E env NVCC_BIN_DIR=${CUDA_TOOLKIT_ROOT_DIR}/bin/")
+    add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
     add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
     target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES})
     target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
