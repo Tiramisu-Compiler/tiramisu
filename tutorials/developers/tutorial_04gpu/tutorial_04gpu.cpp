@@ -107,12 +107,8 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    matmul.set_arguments({&b_A, &b_B, &b_C});
-    matmul.gen_time_space_domain();
-    matmul.gen_isl_ast();
-    matmul.gen_cuda_stmt();
-    matmul.gen_halide_stmt();
-    matmul.gen_halide_obj("build/generated_fct_developers_tutorial_04gpu.o");
+    // Generate object files. Last argument triggers cuda compilation.
+    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04gpu.o", true);
     
     // Dump the generated Halide statement (just for debugging).
     matmul.dump_halide_stmt();
