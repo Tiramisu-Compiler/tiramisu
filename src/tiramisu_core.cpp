@@ -8554,11 +8554,14 @@ void tiramisu::buffer::tag_gpu_register() {
     set_auto_allocate(false);
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &buffer_vec, const std::string obj_filename) {
-    this->set_arguments(buffer_vec);
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
+    this->set_arguments(arguments);
     this->lift_dist_comps();
     this->gen_time_space_domain();
     this->gen_isl_ast();
+    if (gen_cuda_stmt) {
+      this->gen_cuda_stmt();
+    }
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
 }
