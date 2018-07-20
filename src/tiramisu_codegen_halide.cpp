@@ -488,7 +488,7 @@ isl_constraint *generator::get_constraint_for_access(int access_dimension,
         }
         else
         {
-            tiramisu::error ("Currently only Add and Sub operations for accesses are supported.", true);
+            tiramisu::error ("Currently only Add, Sub, Minus, and Mul operations for accesses are supported for now.", true);
         }
     }
 
