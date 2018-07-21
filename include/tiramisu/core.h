@@ -1112,7 +1112,10 @@ public:
       * Possible types are declared in tiramisu::primitive_t (type.h).
       *
       * \p fct is a pointer to a Tiramisu function where the buffer is
-      * declared or used.
+      * declared or used.  If this
+      * argument is not provided, the implicit Tiramisu function is used
+      * (i.e., the function created during Tiramisu initialization).
+
       *
       * \p is_argument indicates whether the buffer is passed to the
       * function as an argument.  All the buffers passed as arguments
@@ -1129,7 +1132,8 @@ public:
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type,
-           tiramisu::argument_t argt, tiramisu::function *fct);
+           tiramisu::argument_t argt, tiramisu::function *fct =
+	   global::get_implicit_function());
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -3884,18 +3888,20 @@ public:
       * 0 represents the first loop level and 1 represents the second
       * loop level, ...
       *
-      * \p func is the function in which the constant is defined.
+      * \p func is the function in which the constant is defined. If this
+      * argument is not provided, the implicit Tiramisu function is used
+      * (i.e., the function created during Tiramisu initialization).
       */
     constant(std::string param_name, const tiramisu::expr &param_expr,
              tiramisu::primitive_t t,
              bool function_wide,
              tiramisu::computation *with_computation,
              int at_loop_level,
-             tiramisu::function *func);
+             tiramisu::function *func = global::get_implicit_function());
 
     constant(std::string param_name, const tiramisu::expr &param_expr,
              tiramisu::primitive_t t,
-             tiramisu::function *func);
+             tiramisu::function *func = global::get_implicit_function());
 
     /**
       * Get the computation with whom this constant is computed.
