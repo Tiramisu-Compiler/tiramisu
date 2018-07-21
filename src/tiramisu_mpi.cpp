@@ -60,11 +60,11 @@ void tiramisu_MPI_Recv_##suffix(int count, int source, int tag, \
 
 #define make_Irecv(suffix, c_datatype, mpi_datatype) \
 void tiramisu_MPI_Irecv_##suffix(int count, int source, int tag, \
-				    c_datatype *store_in, long *reqs) \
-{									\
+                                 c_datatype *store_in, long *reqs) \
+{ \
     ((MPI_Request**)reqs)[0] = (MPI_Request*)malloc(sizeof(MPI_Request)); \
     check_MPI_error(MPI_Irecv(store_in, count, mpi_datatype, source, tag, MPI_COMM_WORLD, \
-                              ((MPI_Request**)reqs)[0]));		\
+                              ((MPI_Request**)reqs)[0])); \
 }
 
 inline void check_MPI_error(int ret_val) 

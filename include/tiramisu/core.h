@@ -953,7 +953,7 @@ public:
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &buffer_vec, const std::string obj_filename);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
 
     /**
      * \brief Set the context of the function.

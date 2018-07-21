@@ -40,8 +40,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     if (ENABLE_DEBUG)
     {
-    	std::cout << "Lower halide pipeline...\n" << s << "\n";
-	std::flush(std::cout);
+        std::cout << "Lower halide pipeline...\n" << s << "\n";
+        std::flush(std::cout);
     }
 
     DEBUG(3, tiramisu::str_dump("Performing sliding window optimization...\n"));
@@ -182,8 +182,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // s = loop_invariant_code_motion(s);
     if (ENABLE_DEBUG)
     {
-    	std::cout << "Lowering after final simplification:\n" << s << "\n";
-	std::flush(std::cout);
+        std::cout << "Lowering after final simplification:\n" << s << "\n";
+        std::flush(std::cout);
     }
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));

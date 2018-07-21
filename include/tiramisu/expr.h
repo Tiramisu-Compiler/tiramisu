@@ -21,9 +21,6 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/type.h>
 
-#define NVCC_BIN_DIR_ENV_VAR "NVCC_BIN_DIR"
-
-
 namespace tiramisu
 {
 class computation;
@@ -59,11 +56,6 @@ private:
      */
     static primitive_t loop_iterator_type;
 
-    /**
-     * Location of the NVCC executable.
-     */
-    static std::string nvcc_bin_dir;
-
 public:
     /**
       * If this option is set to true, Tiramisu automatically
@@ -94,10 +86,6 @@ public:
     {
         global::loop_iterator_type = p_int32;
         set_auto_data_mapping(true);
-
-        auto location = std::getenv(NVCC_BIN_DIR_ENV_VAR);
-        if (location)
-            nvcc_bin_dir = location;
     }
 
     static void set_loop_iterator_type(primitive_t t) {
@@ -107,11 +95,6 @@ public:
     static primitive_t get_loop_iterator_data_type()
     {
         return global::loop_iterator_type;
-    }
-
-    static const std::string & get_nvcc_bin_dir()
-    {
-        return global::nvcc_bin_dir;
     }
 
     global()

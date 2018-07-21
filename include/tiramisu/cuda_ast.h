@@ -5,6 +5,10 @@
 #ifndef TIRAMISU_CUDA_AST_H
 #define TIRAMISU_CUDA_AST_H
 
+#ifndef NVCC_PATH
+#define NVCC_PATH "nvcc"
+#endif
+
 #define UNARY(op, x) {op, op_data_t{true, 1, (x)}}
 #define UNARY_TYPED(op, x, T) {op, op_data_t{true, 2, (x), (T)}}
 #define BINARY(op, x) {op, op_data_t{true, 2, (x)}}
@@ -715,7 +719,6 @@ namespace {
         bool compile_cpu_obj(const std::string &filename, const std::string &obj_name) const;
         bool compile_gpu_obj(const std::string &obj_name) const;
         static exec_result exec(const std::string &cmd);
-        static void assert_nvcc();
 
     public:
         std::string get_cpu_obj(const std::string &obj_name) const;

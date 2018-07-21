@@ -3772,8 +3772,9 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     m.compile(Halide::Outputs().object(obj_file_name));
     m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
 
-    if (nvcc_compiler)
+    if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);
+    }
 }
 
 void tiramisu::generator::update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
