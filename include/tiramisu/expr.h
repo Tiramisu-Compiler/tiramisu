@@ -23,6 +23,7 @@
 
 namespace tiramisu
 {
+class function;
 class computation;
 
 std::string generate_new_variable_name();
@@ -56,7 +57,45 @@ private:
      */
     static primitive_t loop_iterator_type;
 
+    /**
+      * When Tiramisu is initialized, an implicit Tiramisu
+      * function is created.  All the computations and buffers
+      * created later are added by deafult to this function unless
+      * the user indicates otherwise using the Tiramisu API (by providing
+      * a different function as input to the API).
+      */
+    static function *implicit_fct;
+
 public:
+
+    /**
+      * Return the implicit function created during Tiramisu initialization.
+      *
+      * When Tiramisu is initialized, an implicit Tiramisu
+      * function is created.  All the computations and buffers
+      * created later are added by deafult to this function unless
+      * the user indicates otherwise using the Tiramisu API (by using the low
+      * level Tiramisu API and by providing a different function as input to the API).
+      */
+    static function *get_implicit_function()
+    {
+	    return global::implicit_fct;
+    }
+
+    /**
+      * Return the implicit function created during Tiramisu initialization.
+      *
+      * When Tiramisu is initialized, an implicit Tiramisu
+      * function is created.  All the computations and buffers
+      * created later are added by deafult to this function unless
+      * the user indicates otherwise using the Tiramisu API (by using the low
+      * level Tiramisu API and by providing a different function as input to the API).
+      */
+    static void set_implicit_function(function *fct)
+    {
+	global::implicit_fct = fct;
+    }
+
     /**
       * If this option is set to true, Tiramisu automatically
       * modifies the computation data mapping whenever a new
