@@ -2533,6 +2533,9 @@ public:
 
         tiramisu::function *fct = global::get_implicit_function();
 
+	if (fct == NULL)
+	    tiramisu::error("An implicit function has to be created by providing a function name to init(NAME). Otherwise the low level API has to be called", true);
+
 	const std::vector<std::string> inv = fct->get_invariant_names();
 
 	std::string iteration_space_str = "";
