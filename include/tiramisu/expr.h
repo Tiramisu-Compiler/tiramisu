@@ -1680,12 +1680,12 @@ public:
     var(tiramisu::primitive_t type, std::string name) : var(type, name, true) {}
 
     /**
-      * lower bound when the variable is used as an iterator.
+      * lower loop bound when the variable is used as an iterator.
       */
     expr lower;
 
     /**
-      * upper bound when the variable is used as an iterator.
+      * upper loop bound when the variable is used as an iterator.
       */
     expr upper;
 
@@ -1724,8 +1724,11 @@ public:
      * object will have the same type (i.e. it will be equal to the other variable object).
      *
      */
-    var(std::string name, expr lower, expr upper) : var(name, true) {}
-
+    var(std::string name, expr lower_bound, expr upper_bound) : var(name, true)
+    {
+	lower = lower_bound;
+	upper = upper_bound;
+    }
 
     /* Construct an expression that represents an untyped variable.
      * The name of the variable is generated automatically.

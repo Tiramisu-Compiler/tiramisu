@@ -1151,6 +1151,12 @@ std::string generate_new_variable_name()
     return "t" + std::to_string(id_counter++);
 }
 
+std::string generate_new_computation_name()
+{
+    return "C" + std::to_string(id_counter++);
+}
+
+
 void computation::tag_gpu_level(tiramisu::var L0_var, tiramisu::var L1_var)
 {
     DEBUG_FCT_NAME(3);
@@ -6916,9 +6922,9 @@ tiramisu::computation::computation(std::string iteration_domain_str, tiramisu::e
     DEBUG_INDENT(-4);
 }
 
-  void tiramisu::computation::unschedule_this_computation() {
+void tiramisu::computation::unschedule_this_computation() {
     schedule_this_computation = false;
-  }
+}
   
 /**
   * Return true if the this computation is supposed to be scheduled
@@ -8561,6 +8567,17 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &buffer_v
     this->gen_isl_ast();
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
+}
+
+const std::vector<std::string> tiramisu::function::get_invariant_names() const
+{
+	const std::vector<tiramisu::constant> inv = this->get_invariants();
+	std::vector<std::string> inv_str;
+
+	for (int i = 0; i < inv.size(); i++)
+		inv_str.push_back(inv[i].get_name());
+
+	return inv_str;
 }
 
 }

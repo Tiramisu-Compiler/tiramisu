@@ -61,6 +61,8 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
 
 computation *get_computation_annotated_in_a_node(isl_ast_node *node);
 
+std::string generate_new_computation_name();
+
 isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx);
 void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector);
 int loop_level_into_dynamic_dimension(int level);
@@ -519,8 +521,13 @@ protected:
        * (symbolic constants or variables that are invariant to the
        * function i.e. do not change their value during the execution
        * of the function).
+       *
+       * get_invariant_names() returns the names of the variants.
        */
+     //@{
      const std::vector<tiramisu::constant> &get_invariants() const;
+     const std::vector<std::string> get_invariant_names() const;
+     //@}
 
      /**
        * Return an ISL AST that represents this function.
@@ -2505,6 +2512,68 @@ public:
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
 
+   template<typename... Args> computation(tiramisu::expr e, tiramisu::function *fct, Args... iterators)
+   {
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
+        std::vector<tiramisu::var> iterator_variables{std::forward<Args>(iterators)...};
+        if (iterator_variables.size() < 1)
+	{
+		tiramisu::error("At least one iterator needs to be used when declaring a computation.", true);
+	}
+
+	const std::vector<std::string> inv = fct->get_invariant_names();
+
+	std::string iteration_space_str = "";
+
+	if (inv.size() > 0)
+		iteration_space_str = "[";
+
+	for (int i = 0; i < inv.size(); i++)
+	{
+		iteration_space_str += inv[i];
+		if (i < inv.size() - 1)
+			iteration_space_str += ", ";
+	}
+
+	if (inv.size() > 0)
+		iteration_space_str += "]->";
+
+  	std::string comp_name = generate_new_computation_name();
+
+        DEBUG(3, tiramisu::str_dump("Creating computation " + comp_name));
+
+        iteration_space_str += "{" + comp_name + "[";
+	for (int i = 0; i < iterator_variables.size(); i++)
+	{
+		var iter = iterator_variables[i];
+		iteration_space_str += iter.get_name();
+		if (i < iterator_variables.size() - 1)
+			iteration_space_str += ", ";
+	}
+
+	iteration_space_str += "]: ";
+
+	for (int i = 0; i < iterator_variables.size(); i++)
+	{
+		var iter = iterator_variables[i];
+		iteration_space_str += iter.lower.to_str() + "<=" + iter.get_name() + "<" + iter.upper.to_str();
+
+		if (i < iterator_variables.size() - 1)
+			iteration_space_str += " and ";
+	}
+
+	iteration_space_str += "}";
+
+	DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+	init_computation(iteration_space_str, fct, e, true, e.get_data_type());
+	is_let = false;
+
+	DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+   }
+
     virtual bool is_send() const;
 
     virtual bool is_recv() const;
@@ -3038,7 +3107,7 @@ public:
       * \endcode
       *
       */
-    template<typename... Args> void fuse_after(tiramisu::var lev, computation &comp)
+    void fuse_after(tiramisu::var lev, computation &comp)
     {
 	assert(lev.get_name().size() > 0);
 
