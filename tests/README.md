@@ -24,7 +24,8 @@ test number `XX` in the file `tests/test_list.txt`.
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
 - .get_last_update(): test_68
-- tiramisu::init(): 103
+- ISL-free API: 110, 111, 112, 113
+- tiramisu::init(): 103, 114
 - let statement: test_04
 - lerp(): test_55
 - low level separation: test_73
