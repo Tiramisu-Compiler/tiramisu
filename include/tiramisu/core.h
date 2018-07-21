@@ -102,6 +102,12 @@ typedef std::tuple<int, tiramisu::expr, tiramisu::expr, tiramisu::expr> collapse
 void init(std::string name);
 
 /**
+  * Initialize the Tiramisu compiler and set Tiramisu options to default
+  * values.
+  */
+void init();
+
+/**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
   * a set of computations (tiramisu::computation).
   */
