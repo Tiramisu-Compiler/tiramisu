@@ -70,6 +70,8 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
                                   int out_dim_coefficient, int const_conefficient, isl_map *sched);
 
 
+//********************************************************
+
 void init(std::string fct_name)
 {
     tiramisu::function *fct = new tiramisu::function::function(fct_name);
@@ -86,6 +88,13 @@ void init()
     global::set_default_tiramisu_options();
 }
 
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+{
+	function *fct = global::get_implicit_function();
+	fct->codegen(arguments, obj_filename, gen_cuda_stmt);
+}
+
+//********************************************************
 
 /**
   * Add a buffer to the function.
