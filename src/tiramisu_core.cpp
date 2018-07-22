@@ -74,7 +74,7 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
 
 void init(std::string fct_name)
 {
-    tiramisu::function *fct = new tiramisu::function::function(fct_name);
+    function *fct = new function(fct_name);
     global::set_implicit_function(fct);
 
     // Do all the rest of the initialization.
@@ -969,6 +969,14 @@ void function::gen_halide_obj(const std::string &obj_file_name) const
     gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
 }
 // @}
+
+/*void tiramisu::compututationn::operator=(tiramisu::expr e)
+{
+	assert(e.is_defined());
+
+	this->set_expression(e);
+	this->data_type = e.get_data_type();
+}*/
 
 
 void tiramisu::computation::rename_computation(std::string new_name)
