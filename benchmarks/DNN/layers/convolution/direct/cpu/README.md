@@ -3,11 +3,11 @@ The files in this folder are organized as follows:
 * General
   - clean.sh : remove some useless files.
   - compile_and_run_all.sh : compile all the codes and run them.
-  - configure.h: defines size of input matrices.
+  - configure.h: define size of input matrices.
 
 * Halide
   - conv_layer_generator.cpp: Halide code generator (we use it because we want to compare with halide).
-  - compile_halide_code.sh : compile
+  - compile_halide_code.sh : compile Halide code.
 
 * Tiramisu
   - conv_layer_generator_tiramisu.cpp: Tiramisu code generator.
