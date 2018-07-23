@@ -3226,10 +3226,19 @@ public:
       * \p L0 and \p L1 should be two consecutive loop levels
       * (i.e., \p L0 = \p L1 + 1) and they should satisfy
       * \p L0 > \p L1.
+      *
+      * \p L0_outer, \p L1_outer, \p L0_inner, \p L1_inner
+      * are the names of the new dimensions created after tiling.
       */
     // @{
     void gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY);
+    void gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY,
+                  tiramisu::var L0_outer, tiramisu::var L1_outer,
+                  tiramisu::var L0_inner, tiramisu::var L1_inner);
     void gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, int sizeX, int sizeY, int sizeZ);
+    void gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, int sizeX, int sizeY, int sizeZ,
+                  tiramisu::var L0_outer, tiramisu::var L1_outer, tiramisu::var L2_outer,
+                  tiramisu::var L0_inner, tiramisu::var L1_inner, tiramisu::var L2_inner);
     // @}
 
     /**

@@ -3419,6 +3419,14 @@ void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, int sizeX
     this->tag_gpu_thread_level(L0 + 2, L1 + 2);
 }
 
+void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY,
+                           tiramisu::var L0_outer, tiramisu::var L1_outer,
+                           tiramisu::var L0_inner, tiramisu::var L1_inner)
+{
+    this->tile(L0, L1, sizeX, sizeY, L0_outer, L1_outer, L0_inner, L1_inner);
+    this->tag_gpu_level(L0_outer, L1_outer, L0_inner, L1_inner);
+}
+
 void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var, int sizeX, int sizeY, int sizeZ)
 {
     assert(L0_var.get_name().length() > 0);
@@ -3447,6 +3455,15 @@ void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu:
     this->tile(L0, L1, L2, sizeX, sizeY, sizeZ);
     this->tag_gpu_block_level(L0, L1, L2);
     this->tag_gpu_thread_level(L0 + 3, L1 + 3, L2 + 3);
+}
+
+void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
+                           int sizeX, int sizeY, int sizeZ,
+                           tiramisu::var L0_outer, tiramisu::var L1_outer, tiramisu::var L2_outer,
+                           tiramisu::var L0_inner, tiramisu::var L1_inner, tiramisu::var L2_inner)
+{
+    this->tile(L0, L1, L2, sizeX, sizeY, sizeZ, L0_outer, L1_outer, L2_outer, L0_inner, L1_inner, L2_inner);
+    this->tag_gpu_level(L0_outer, L1_outer, L2_outer, L0_inner, L1_inner, L2_inner);
 }
 
 void computation::assert_names_not_assigned(
