@@ -11,7 +11,7 @@ void gen(std::string name, int size, int val0, int val1)
     tiramisu::var i("i", 0, N), j("j", 0, N);
     tiramisu::var i0("i0"), j0("j0"), i1("i1"), j1("j1");
 
-    tiramisu::computation S0(i, j) = tiramisu::expr((uint8_t) (val0 + val1));
+    tiramisu::computation S0({i, j}, tiramisu::expr((uint8_t) (val0 + val1)));
 
     S0.tile(i, j, 2, 2, i0, j0, i1, j1);
     S0.tag_parallel_level(i0);
