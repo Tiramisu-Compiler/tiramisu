@@ -2543,11 +2543,6 @@ public:
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
 
-        if (iterator_variables.size() < 1)
-	{
-		tiramisu::error("At least one iterator needs to be used when declaring a computation.", true);
-	}
-
         tiramisu::function *fct = global::get_implicit_function();
 
 	if (fct == NULL)
@@ -2575,15 +2570,21 @@ public:
         DEBUG(3, tiramisu::str_dump("Creating computation " + comp_name));
 
         iteration_space_str += "{" + comp_name + "[";
-	for (int i = 0; i < iterator_variables.size(); i++)
-	{
+	if (iterator_variables.size() == 0)
+	    iteration_space_str += "0";
+	else
+	    for (int i = 0; i < iterator_variables.size(); i++)
+	    {
 		var iter = iterator_variables[i];
 		iteration_space_str += iter.get_name();
 		if (i < iterator_variables.size() - 1)
 			iteration_space_str += ", ";
-	}
+	    }
 
-	iteration_space_str += "]: ";
+	iteration_space_str += "] ";
+
+	if (iterator_variables.size() != 0)
+	   iteration_space_str += ": ";
 
 	for (int i = 0; i < iterator_variables.size(); i++)
 	{
