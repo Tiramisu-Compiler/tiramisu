@@ -2538,12 +2538,11 @@ public:
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
 
-   template<typename... Args> computation(tiramisu::expr e, Args... iterators)
+   computation(std::vector<var> iterator_variables, tiramisu::expr e)
    {
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
 
-        std::vector<tiramisu::var> iterator_variables{std::forward<Args>(iterators)...};
         if (iterator_variables.size() < 1)
 	{
 		tiramisu::error("At least one iterator needs to be used when declaring a computation.", true);
