@@ -11,13 +11,20 @@ INCLUDES = -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -
 LIBRARIES = -ltiramisu -lHalide -ldl -lpthread -lz -lm -lcudart -lcublas -lcuda -lrt
 LIBRARIES_DIR = -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/ -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -L${CUDA_ROOT}/lib64
 
+# TODO: Setting testN higher values (e.g. 100) makes tiramisu faster!?
 run: wrapper
-	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ./wrapper
+	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ./wrapper 10 0
 
-wrapper: fct.o wrapper.cpp
+nvprof: wrapper
+	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ${CUDA_ROOT}/bin/nvprof --print-gpu-trace ./wrapper 1 0
+
+correctness: wrapper
+	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ./wrapper 0 1
+
+wrapper: fct.o wrapper.cpp configuration.h
 	${CXX} ${CXXFLAGS} ${INCLUDES} wrapper.cpp ${TIRAMISU_ROOT}/src/tiramisu_cuda_wrappers.cpp fct.o fct.o_cpu.o fct.o_gpu.o ${TIRAMISU_LIBRARY} ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper
 
-generator: generator.cpp
+generator: generator.cpp configuration.h
 	${CXX} ${CXXFLAGS} ${INCLUDES} generator.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o generator
 
 fct.o: generator
