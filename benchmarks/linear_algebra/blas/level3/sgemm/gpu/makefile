@@ -11,9 +11,11 @@ INCLUDES = -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -
 LIBRARIES = -ltiramisu -lHalide -ldl -lpthread -lz -lm -lcudart -lcublas -lcuda -lrt
 LIBRARIES_DIR = -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/ -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -L${CUDA_ROOT}/lib64
 
+RUNN ?= 100
+
 # TODO: Setting testN higher values (e.g. 100) makes tiramisu faster!?
 run: wrapper
-	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ./wrapper 10 0
+	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ./wrapper ${RUNN} 0
 
 nvprof: wrapper
 	LD_LIBRARY_PATH=${CUDA_ROOT}/lib64 ${CUDA_ROOT}/bin/nvprof --print-gpu-trace ./wrapper 1 0
