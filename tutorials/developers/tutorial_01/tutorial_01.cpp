@@ -40,49 +40,34 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default tiramisu options.
-    tiramisu::init();
-
-    // Declare a function called "function0".
+    // Initialize the tiramisu compiler and declare a function called "function0".
     // A function in tiramisu is the equivalent of a function in C.
     // It can have input and output arguments (buffers).  These arguments
     // are declared later in the tutorial.
-    function function0("function0");
-
+    tiramisu::init("function0");
 
     // -------------------------------------------------------
     // Layer I: provide the algorithm.
     // -------------------------------------------------------
 
-    // Declare a computation within function0.
-    // To declare a computation, you need to provide:
-    // (1) an ISL set representing the iteration space of the computation.
-    // Tiramisu uses the ISL syntax to represent sets and maps.  The ISL syntax
-    // is described in http://barvinok.gforge.inria.fr/barvinok.pdf (Section
-    // 1.2.1 for sets and iteration domains, and 1.2.2 for maps and access
-    // relations),
-    // (2) a tiramisu expression: this is the expression that will be computed
-    // by the computation.
-    // (3) the type of the computation which is an unsigned char in this case (p_uint8).
-    // (4) a boolean that indicates whether this computation should be
-    // scheduled or not (more about this in the next tutorials).
-    // (5) the function in which the computation will be declared.
-    //
-    // The best way to learn about the constructor of computations is to
-    // check the documentation of the computation class in
-    // https://tiramisu-compiler.github.io/doc
-    computation S0("{S0[i]: 0<=i<10}", expr(3) + expr(4), true, p_uint8, &function0);
+    // Declare an iterator. The range of this iterator is [0, 10[
+    // i.e., 0<=i<10
+    var i("i", 0, 10);
+
+    // Declare a computation that adds 3 and 4.
+    // The iteration space of this computation is 0<=i<10, i.e., it is inside a
+    // loop that i as an iterator.
+    // It is equivalent to the following C code
+    // for (i = 0; i < 10; i++)
+    //	    S0(i) = 3 + 4;
+    computation S0({i}, expr(3) + expr(4));
 
     // ------------------------------------------------------------
     // Layer II: specify how to schedule (optimize) the algorithm.
     // ------------------------------------------------------------
 
-    // Declare an iterator variable.
-    var i("i");
-
     // Set the loop level i (i.e., the loop level that uses i as iterator).
     S0.parallelize(i);
-
 
     // -------------------------------------------------------
     // Layer III: allocate buffers and specify how computations
