@@ -27,10 +27,19 @@ int main(int argc, char *argv[])
     float *B = (float*) malloc(K * N * sizeof(float));
     float *C = (float*) malloc(M * N * sizeof(float));
 
+    // Transposed copies for cublas
+    float *A_T = (float*) malloc(M * K * sizeof(float));
+    float *B_T = (float*) malloc(K * N * sizeof(float));
+    float *C_T = (float*) malloc(M * N * sizeof(float));
+
     // Initialize matrices with random values:
     for (int i = 0; i < M * K; i++) A[i] = std::rand() % 100;
     for (int i = 0; i < K * N; i++) B[i] = std::rand() % 100;
     for (int i = 0; i < M * N; i++) C[i] = std::rand() % 100;
+    // Transpose
+    for (int i = 0; i < M; i++) for (int j = 0; j < K; j++) A_T[i + j * M] = A[i * K + j];
+    for (int i = 0; i < K; i++) for (int j = 0; j < N; j++) B_T[i + j * K] = B[i * N + j];
+    for (int i = 0; i < M; i++) for (int j = 0; j < N; j++) C_T[i + j * M] = C[i * N + j];
 
     std::cout << "Buffers initialized" << std::endl << std::flush;
 
@@ -54,13 +63,13 @@ int main(int argc, char *argv[])
     if (check_correctness) {
         // Reference matrix multiplication
 
+        t1 = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 // Note that indices are flipped (see tutorial 2)
                 C2_buf(j, i) = C[i * N + j] * beta;
             }
         }
-        t1 = std::chrono::high_resolution_clock::now();
         for (int k = 0; k < K; k++) {
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
@@ -75,6 +84,8 @@ int main(int argc, char *argv[])
 
         compare_buffers("matmul", C_buf, C2_buf);
     }
+
+    // GPU Multiplication
 
     t1 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < testN; i++) {
@@ -100,16 +111,16 @@ int main(int argc, char *argv[])
         cudaMalloc((void**)&d_B, K * N * sizeof(*A));
         cudaMalloc((void**)&d_C, M * N * sizeof(*A));
 
-        cublasSetMatrix(M, K, sizeof(*A), A, M, d_A, M);
-        cublasSetMatrix(K, N, sizeof(*B), B, K, d_B, K);
-        cublasSetMatrix(M, N, sizeof(*C), C, M, d_C, M);
+        cublasSetMatrix(M, K, sizeof(*A), A_T, M, d_A, M);
+        cublasSetMatrix(K, N, sizeof(*B), B_T, K, d_B, K);
+        cublasSetMatrix(M, N, sizeof(*C), C_T, M, d_C, M);
 
         float alpha_var = alpha;
         float beta_var = beta;
 
         cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, M, N, K, &alpha_var, d_A, M, d_B, K, &beta_var, d_C, M);
 
-        cublasGetMatrix(M, N, sizeof(*C), d_C, M, C, M);
+        cublasGetMatrix(M, N, sizeof(*C), d_C, M, C_T, M);
 
         cudaFree(d_A);
         cudaFree(d_B);
@@ -122,6 +133,34 @@ int main(int argc, char *argv[])
               << (std::chrono::duration<double,std::milli>(t2 - t1) / testN).count() << "ms" << std::endl << std::flush;
 
     cublasDestroy(handle);
+
+    bool check_cublas_difference = false;
+    if (check_cublas_difference) {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                if (C2_buf(j, i) != C_T[i + j * M]) {
+                    std::cout << i << " " << j << " " << C[i * N + j] << " " << C2_buf(j, i) << std::endl;
+                }
+            }
+        }
+    }
+
+    bool print_matrices = false;
+    if (print_matrices) {
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                std::cout << C2_buf(i, j) << " ";
+            }
+            std::cout << std::endl;
+        }
+
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                std::cout << C_T[i + j * M] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
 
     free(A);
     free(B);
