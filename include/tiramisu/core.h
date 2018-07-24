@@ -3913,6 +3913,15 @@ public:
              tiramisu::function *func = global::get_implicit_function());
 
     /**
+      * Create a constant.
+      * \p param_name is the name of the constant.
+      * \p param_expr is the expression that defines the value of the constant.
+      * The constant is defined at the entry of the function and is visible to all
+      * the computations.
+      */
+    constant(std::string param_name, const tiramisu::expr &param_expr);
+
+    /**
       * Get the computation with whom this constant is computed.
       */
     tiramisu::computation *get_computation_with_whom_this_is_computed()

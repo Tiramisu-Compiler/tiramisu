@@ -7673,6 +7673,10 @@ tiramisu::constant::constant(
     DEBUG_INDENT(-4);
 }
 
+tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param_expr)
+	:tiramisu::constant(param_name, param_expr, param_expr.get_data_type(), true, NULL, 0, global::get_implicit_function())
+{
+}
 
 tiramisu::constant::constant(
     std::string param_name, const tiramisu::expr &param_expr,
