@@ -7,7 +7,7 @@
 - [Developers tutorial 04B](developers/tutorial_04B/tutorial_04B.cpp): an example of two successive matrix multiplications.
 - [Developers tutorial 04gpu](developers/tutorial_04gpu/tutorial_04gpu.cpp): an example of a matrix multiplication mapped to GPU.
 
-The following tutorials are written using the low level Tiramisu API (most users do not need to learn the low level API).
+The rest of the tutorials is written using the low level Tiramisu API (most users do not need to learn the low level API).
 
 - [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): an example of a reduction operation.
 - [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): an example of an update operation.
