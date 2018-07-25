@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
     constant p0("N", expr((int32_t) SIZE0));
 
-    var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0),
+    var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
     // Declare computations that represents the input buffers (b_A and b_B)
     input c_A({i,j}, p_uint8);
