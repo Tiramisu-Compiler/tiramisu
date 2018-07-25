@@ -149,6 +149,7 @@ public:
   */
 class expr
 {
+    friend class input;
     friend class var;
     friend class sync;
     friend class computation;

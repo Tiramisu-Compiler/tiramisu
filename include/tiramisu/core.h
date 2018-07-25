@@ -27,6 +27,7 @@
 namespace tiramisu
 {
 
+class input;
 class function;
 class computation;
 class buffer;
@@ -1296,6 +1297,7 @@ public:
   */
 class computation
 {
+    friend input;
     friend function;
     friend generator;
     friend buffer;
@@ -2678,7 +2680,6 @@ public:
 	{
 		this->data_type = t;
 		this->expression.dtype = t;
-		this->unschedule_this_computation();
 	}
 
     virtual bool is_send() const;
@@ -3917,6 +3918,48 @@ public:
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
 
+};
+
+class input: public computation
+{
+
+public:
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the input.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      *
+      * Usually, this constructor is used to declare a computation that
+      * represents an input.
+      *
+      * For example, if we have two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and we have the following computation declaration
+      *
+      * \code
+      * input A({i,j}, p_uint8);
+      * \endcode
+      *
+      * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
+      * are of type uint8.
+      */
+    input(std::vector<var> iterator_variables, primitive_t t):
+	    computation(iterator_variables, expr())
+	{
+		this->data_type = t;
+		this->expression.dtype = t;
+		this->unschedule_this_computation();
+	}
 };
 
 
