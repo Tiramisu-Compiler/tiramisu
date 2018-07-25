@@ -24,49 +24,45 @@
 #include <tiramisu/tiramisu.h>
 
 #define SIZE0 1000
+
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default tiramisu options.
-    tiramisu::init();
+    tiramisu::init("matmul");
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
-    /*
-     * Declare a function matmul.
-     */
-    function matmul("matmul");
+    constant p0("N", expr((int32_t) SIZE0));
 
-    constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &matmul);
+    var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0),
 
     // Declare computations that represents the input buffers (b_A and b_B)
-    computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-    computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-    computation c_D("[N]->{c_D[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-
-    // Declare loop iterators
-    var i("i"), j("j"), k("k"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
+    input c_A({i,j}, p_uint8);
+    input c_B({i,j}, p_uint8);
+    input c_D({i,j}, p_uint8);
 
     // Declare a computation to initialize the reduction c[i,j] and e[i,j]
-    computation C_init("[N]->{C_init[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
-    computation E_init("[N]->{E_init[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
+    computation C_init({i,j}, expr((uint8_t) 0));
+    computation E_init({i,j}, expr((uint8_t) 0));
     
     // Declare the first reduction.
-    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
+    computation c_C({i,j,k}, p_uint8);
     // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
     c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
 
     // Declare the second reduction.
-    computation c_E("[N]->{c_E[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
+    computation c_E({i,j,k}, p_uint8);
     c_E.set_expression(c_E(i, j, k - 1) + c_A(i, k) * c_D(k, j));
-
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
+
+    // Declare loop iterators
+    var i0("i0"), j0("j0"), i1("i1"), j1("j1");
 
     // Tile all the computations: C_init, c_C, E_init, c_E
     // This tiles the loop levels i and j and produces the loop levels by a 32x32 tile.
@@ -92,11 +88,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Declare the buffers.
-    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
-    buffer b_D("b_D", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_E("b_E", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
+    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
+    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
+    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output);
+    buffer b_D("b_D", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
+    buffer b_E("b_E", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output);
 
 
     // Map the computations to a buffer.
@@ -116,10 +112,7 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    matmul.codegen({&b_A, &b_B, &b_C, &b_D, &b_E}, "build/generated_fct_developers_tutorial_04B.o");
-    
-    // Dump the generated Halide statement (just for debugging).
-    matmul.dump_halide_stmt();
+    tiramisu::codegen({&b_A, &b_B, &b_C, &b_D, &b_E}, "build/generated_fct_developers_tutorial_04B.o");
 
     /** Generated code
 
