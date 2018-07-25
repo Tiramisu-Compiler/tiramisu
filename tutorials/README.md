@@ -5,6 +5,7 @@
 - [Developers tutorial 03](developers/tutorial_03/tutorial_03.cpp): a simple sequence of computations.
 - [Developers tutorial 04A](developers/tutorial_04A/tutorial_04A.cpp): a matrix multiplication example.
 - [Developers tutorial 04B](developers/tutorial_04B/tutorial_04B.cpp): an example of two successive matrix multiplications.
+- [Developers tutorial 04gpu](developers/tutorial_04gpu/tutorial_04gpu.cpp): an example of a matrix multiplication mapped to GPU.
 - [Developers tutorial 05](developers/tutorial_05/tutorial_05.cpp): an example of a reduction operation.
 - [Developers tutorial 06](developers/tutorial_06/tutorial_06.cpp): an example of an update operation.
 - [Developers tutorial 07](developers/tutorial_07/tutorial_07.cpp): a complicated example of reduction and an update.
