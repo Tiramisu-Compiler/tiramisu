@@ -1,11 +1,5 @@
 /* 
-    This tutorial shows how to write a simple matrix multiplication in gpu (C = A * B)
-
-    for i = 0 .. N
-        for j = 0 .. N
-            C[i,j] = 0;
-            for k = 0 .. N
-                C[i,j] = C[i,j] + A[i,k] * B[k,j];
+    This tutorial shows how to write a simple matrix multiplication for gpu.
      
      To run this tutorial
      
@@ -22,7 +16,6 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default tiramisu options.
     tiramisu::init("matmul");
 
     // -------------------------------------------------------
@@ -32,7 +25,7 @@ int main(int argc, char **argv)
     constant p0("N", expr((int32_t) SIZE0));
 
     // Declare loop iterators
-    var i("i", 0, N), j("j", 0, N), k("k", 0, N);
+    var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
     // Declare cpu buffers.
     buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
