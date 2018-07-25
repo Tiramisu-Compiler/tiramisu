@@ -6669,7 +6669,10 @@ void tiramisu::buffer::dump(bool exhaustive) const
 
         std::cout << "Dimension sizes: ";
         for (const auto &size : dim_sizes)
+	{
             size.dump(false);
+            std::cout << "    ";
+	}
         std::cout << std::endl;
 
         std::cout << "Elements type: "
