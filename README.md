@@ -13,6 +13,7 @@ The following is an example of a Tiramisu program specified using the C++ API.
 ```cpp
 // C++ code with a Tiramisu expression.
 #include "tiramisu/tiramisu.h"
+using namespace tiramisu;
 
 void foo(int N, int array_a[N], int array_b[N], int array_c[N])
 {
