@@ -15,7 +15,7 @@ The following is an example of a Tiramisu program specified using the C++ API.
 #include "tiramisu/tiramisu.h"
 using namespace tiramisu;
 
-void foo(int N, int array_a[N], int array_b[N], int array_c[N])
+void generate_code()
 {
     // Specify the name of the function that you want to create.
     tiramisu::init("foo");
