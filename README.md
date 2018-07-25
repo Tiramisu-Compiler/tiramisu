@@ -23,7 +23,10 @@ void generate_code()
     // Declare two iterator variables (i and j) such that 0<=i<100 and 0<=j<100.
     tiramisu::var i("i", 0, 100), j("j", 0, 100);
 
-    // Declare the Tiramisu expression (algorithm)
+    // Declare a Tiramisu expression (algorithm) that is equivalent to the following C code
+    // for (i=0; i<100; i++)
+    //   for (j=0; j<100; j++)
+    //     C(i,j) = 0;
     tiramisu::computation C({i,j}, 0);
     
     // Specify optimizations
