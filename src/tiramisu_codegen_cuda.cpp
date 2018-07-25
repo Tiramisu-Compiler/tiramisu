@@ -1559,11 +1559,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name)
     {
         auto it = this->gpu_iterators.find(name);
-        std::cout << "iterators" << std::endl;
-        for (auto &i: gpu_iterators)
-        {
-            std::cout << i.first << " " << name << std::endl;
-        }
         if (it != this->gpu_iterators.end())
         {
             return statement_ptr {new cuda_ast::gpu_iterator_read{it->second}};
