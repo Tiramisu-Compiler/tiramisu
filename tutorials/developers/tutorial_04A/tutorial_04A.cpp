@@ -33,14 +33,14 @@ int main(int argc, char **argv)
     var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
     // Declare computations that represents the input buffers (b_A and b_B)
-    computation c_A({i, j}, p_uint8);
-    computation c_B({i, j}, p_uint8);
+    input c_A({i, j}, p_uint8);
+    input c_B({i, j}, p_uint8);
 
     // Declare a computation to initialize the reduction c[i,j]
     computation C_init({i,j}, expr((uint8_t) 0));
     
     // Declare the reduction operation.
-    computation c_C({i,j,k}, expr());
+    computation c_C({i,j,k}, p_uint8);
     // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
     c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
 
