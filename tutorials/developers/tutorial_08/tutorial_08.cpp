@@ -114,3 +114,11 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+/**
+ * Current limitations:
+ * - Note that the type of the invariants N and M are "int32_t". This is
+ *   important because these invariants are used later as loop bounds and the
+ *   type of the bounds and the iterators should be the same for correct code
+ *   generation. This implies that the invariants should be of type "int32_t".
+ */
