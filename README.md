@@ -33,7 +33,7 @@ void generate_code()
     C.parallelize(i);
     C.vectorize(j, 4);
     
-    buffer b_C("b_C", {100, 100}, p_uint8, a_output);
+    buffer b_C("b_C", {100, 100}, p_int32, a_output);
     C.store_in(&b_C);
 
     // Generate code
