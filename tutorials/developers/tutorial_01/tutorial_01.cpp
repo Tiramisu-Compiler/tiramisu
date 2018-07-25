@@ -5,12 +5,8 @@
   for (int i = 0; i < 10; i++)
       buf0[i] = 3 + 4;
 
-  Every Tiramisu program needs to include the header file tiramisu/tiramisu.h
-  which defines classes for declaring and compiling Tiramisu expressions.
-
   Tiramisu is a code generator, therefore the goal of a Tiramisu program is to
-  generate code.  The generated code is supposed to be called from another
-  program (the user program).
+  generate code that is supposed to be called from another program (the user program).
 
   A Tiramisu program is structures as follows:
 	- It starts with a call to initialize the Tiramisu compiler.  The name of the
@@ -19,21 +15,22 @@
 	- The user then specifies how the algorithm should be optimized
 	using scheduling and data mapping commands.
 	- The user then calls the codegen() function which generates code.
-	It compiles the Tiramisu program, generates the optimized program
-	in an object file.
+	This call compiles the Tiramisu program and generates an object file.
+	The user can call the function compiled in the object file
+  	from any place in his program.
 
-  The user can then call the function declared in the generated object file
-  from any place in his program.
-  
   How to compile ? You can use the makefile to compile the tutorial or you can do it manually.
-  
+  To compile and run the tutorials using the makefile use:
+
   cd build/
   make run_developers_tutorial_01
-  
-  This will compile and run the tutorial.  Detailed compilation process (without makefile) are
-  explained below at the end of this tutorial.
+
+  Detailed compilation process (without makefile) are explained below at the end of this tutorial.
  */
 
+
+// Every Tiramisu program needs to include the header file tiramisu/tiramisu.h
+// which defines classes for declaring and compiling Tiramisu expressions.
 #include <tiramisu/tiramisu.h>
 
 using namespace tiramisu;
@@ -54,19 +51,20 @@ int main(int argc, char **argv)
     // i.e., 0<=i<10
     var i("i", 0, 10);
 
-    // Declare a computation that adds 3 and 4.
-    // The iteration space of this computation is 0<=i<10, i.e., it is inside a
-    // loop that i as an iterator.
-    // It is equivalent to the following C code
+    // Declare a computation that adds 3 and 4.  This computation is done
+    // within a loop that has i as iterator.
+    computation S0({i}, expr(3) + expr(4));
+    // Since the iterator i is declared to be 0<=i<10 (i.e., the iteration space of S0 is 0<=i<10),
+    // the previous declaration of S0 is equivalent to the following C code
     // for (i = 0; i < 10; i++)
     //	    S0(i) = 3 + 4;
-    computation S0({i}, expr(3) + expr(4));
+
 
     // ------------------------------------------------------------
-    // Layer II: specify how to schedule (optimize) the algorithm.
+    // Layer II: specify how the algorithm is optimized.
     // ------------------------------------------------------------
 
-    // Set the loop level i (i.e., the loop level that uses i as iterator).
+    // Parallelize the loop level i
     S0.parallelize(i);
 
     // -------------------------------------------------------
@@ -74,8 +72,13 @@ int main(int argc, char **argv)
     // should be stored in these buffers.
     // -------------------------------------------------------
 
-    // Create a buffer buf0.
+    // Create a buffer called "buf0".
     buffer buf0("buf0", {expr(10)}, p_uint8, a_output, &function0);
+    // The second argument to the constructor is a vector that represents the
+    // sizes of the buffer dimensions. In this example, the vector has only one
+    // element (which is expr(10))
+
+
 
     // Map the computation S0 to the buffer buf0.
     // This means specifying where each computation S0(i) should be
