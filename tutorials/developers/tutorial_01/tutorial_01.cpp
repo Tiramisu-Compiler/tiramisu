@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
     // Declare a computation that adds 3 and 4.  This computation is done
     // within a loop that has i as iterator.
-    computation S0({i}, expr(3) + expr(4));
+    computation S0({i}, 3 + 4);
     // Since the iterator i is declared to be 0<=i<10 (i.e., the iteration space of S0 is 0<=i<10),
     // the previous declaration of S0 is equivalent to the following C code
     // for (i = 0; i < 10; i++)
@@ -73,32 +73,38 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Create a buffer called "buf0".
-    buffer buf0("buf0", {expr(10)}, p_uint8, a_output, &function0);
+    buffer buf0("buf0", {10}, p_uint8, a_output);
     // The second argument to the constructor is a vector that represents the
-    // sizes of the buffer dimensions. In this example, the vector has only one
-    // element (which is expr(10))
+    // size of the buffer dimensions.  In this example, the vector has only one
+    // element (which is expr(10)), therefore the buffer only has one dimension
+    // of size 10.
+    // The third argument is the type of the buffer elements (uint8).
+    // The fourth argument indicates whether the buffer is in input or an output buffer.
+    // Othr types are a_input (for input buffers) and a_temporary (for temporary buffers
+    // allocated and freed within the function).
+    // For more details about the constructor of buffers please refer to the
+    // documentation https://tiramisu-compiler.github.io/doc/classtiramisu_1_1buffer.html
+    // In general, all the API of Tiramisu is documented in https://tiramisu-compiler.github.io/doc/
 
 
 
-    // Map the computation S0 to the buffer buf0.
-    // This means specifying where each computation S0(i) should be
-    // stored exactly in the buffer buf0.
+    // Store the computation S0 to the buffer buf0.
+    // That is, store the computation S0(i) in buf0[i].
     S0.store_in(&buf0);
 
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
-    // Generate code and compile it to an object file.  Two arguments need
+    // Compile code and store it in an object file.  Two arguments need
     // to be passed to the code generator:
-    //	    - The arguments (buffers) t passed to the generated function.
-    //	      In this example, the buffer buf0 is set as an argument to the function.
-    //	      The buffer buf0 is supposed to be allocated  by the user (caller)
-    //	      and passed to the generated function "function0".
+    //	    - The arguments (buffers) passed to the generated function.
+    //	      The buffer buf0 is supposed to be allocated by the user (caller)
+    //	      and is supposed to be passed to the generated function "function0".
     //	      Any buffer of type a_output or a_input are supposed to be allocated
-    //	      by the caller, in contrast to buffers of type a_temporary which are
-    //	      allocated automatically by the Tiramisu runtime within the callee
-    //	      and should not be passed as arguments to the function).
+    //	      by the user (caller), in contrast to buffers of type a_temporary which are
+    //	      allocated automatically by Tiramisu and should not be passed as arguments
+    // 	      to the function).
     //	    - The name of the object file to be generated.
     function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
 
