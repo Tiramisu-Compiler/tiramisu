@@ -2538,6 +2538,45 @@ public:
                 bool schedule_this_computation, tiramisu::primitive_t t,
                 tiramisu::function *fct);
 
+    /**
+      * \brief Constructor for computations.
+      *
+      * \details
+      *
+      * \p iterator_variables is a vector that represents the loop iterators
+      * around the computation. 
+      *
+      * \p e is the expression computed by the computation.
+      *
+      * For example, if we have two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and we have the following computation declaration
+      *
+      * \code
+      * computation S({i,j}, 4);
+      * \endcode
+      *
+      * This is equivalent to writing the following C code
+      *
+      * \code
+      * for (i=0; i<20; i++)
+      *   for (j=0; j<30; j++)
+      *      S(i,j) = 4;
+      * \endcode
+      *
+      * More precisely, the vector {i, j} specifies the iteration domain of
+      * the computation S0. In this case, 0<=i<20 and 0<=j<30.
+      *
+      * It is possible to declare the computation without specifying the expression.
+      * The expression can be specified later using computation::set_expression().
+      * An example of setting the expression after declaring the computation
+      * is presented in tests/test_04.cpp.
+      *
+      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e)
    {
         DEBUG_FCT_NAME(3);
@@ -2603,7 +2642,44 @@ public:
 	is_let = false;
 
 	DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
-   }
+    }
+
+    /**
+      * \brief Constructor for computations.
+      *
+      * \details
+      *
+      * \p iterator_variables is a vector that represents the loop iterators
+      * around the computation. 
+      *
+      * \p t is the type of the computation, i.e. the type of the expression
+      * computed by the computation. Example of types include (p_uint8,
+      * p_uint16, p_uint32, ...).
+      *
+      * Usually, this constructor is used to declare buffer wrappers.
+      *
+      * For example, if we have two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and we have the following computation declaration
+      *
+      * \code
+      * computation S({i,j}, p_uint8);
+      * \endcode
+      *
+      * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
+      * are of type uint8.
+      */
+    computation(std::vector<var> iterator_variables, primitive_t t):
+	    computation(iterator_variables, expr())
+	{
+		this->data_type = t;
+		this->expression.dtype = t;
+		this->unschedule_this_computation();
+	}
 
     virtual bool is_send() const;
 
