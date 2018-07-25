@@ -79,7 +79,7 @@ public:
       */
     static function *get_implicit_function()
     {
-	    return global::implicit_fct;
+        return global::implicit_fct;
     }
 
     /**
@@ -93,7 +93,7 @@ public:
       */
     static void set_implicit_function(function *fct)
     {
-	global::implicit_fct = fct;
+        global::implicit_fct = fct;
     }
 
     /**
@@ -1152,18 +1152,18 @@ public:
       **/
     bool is_constant() const
     {
-	if (this->get_expr_type() == tiramisu::e_val)
-		return true;
-	else
-		return false;
+        if (this->get_expr_type() == tiramisu::e_val)
+            return true;
+        else
+            return false;
     }
 
     bool is_unbounded() const
     {
         if (this->get_name() == "_unbounded")
-	    return true;
-	else
-	    return false;
+            return true;
+        else
+            return false;
     }
 
     /**
@@ -1180,101 +1180,101 @@ public:
                     switch (this->get_op_type())
                     {
                     case tiramisu::o_logical_and:
-			return *this;
+                        return *this;
                     case tiramisu::o_logical_or:
-			return *this;
+                        return *this;
                     case tiramisu::o_max:
-			return *this;
+                        return *this;
                     case tiramisu::o_min:
-			return *this;
+                        return *this;
                     case tiramisu::o_minus:
-			return *this;
+                        return *this;
                     case tiramisu::o_add:
                         this->get_operand(0).simplify();
                         this->get_operand(1).simplify();
-			if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
-			    if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
-			        return expr(this->get_operand(0).get_int_val() + this->get_operand(1).get_int_val());
+                        if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
+                            if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
+                                return expr(this->get_operand(0).get_int_val() + this->get_operand(1).get_int_val());
                     case tiramisu::o_sub:
                         this->get_operand(0).simplify();
                         this->get_operand(1).simplify();
-			if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
-			    if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
-			        return expr(this->get_operand(0).get_int_val() - this->get_operand(1).get_int_val());
+                        if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
+                            if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
+                                return expr(this->get_operand(0).get_int_val() - this->get_operand(1).get_int_val());
                     case tiramisu::o_mul:
                         this->get_operand(0).simplify();
                         this->get_operand(1).simplify();
-			if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
-			    if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
-			        return expr(this->get_operand(0).get_int_val() * this->get_operand(1).get_int_val());
+                        if ((this->get_operand(0).get_expr_type() == tiramisu::e_val) && (this->get_operand(1).get_expr_type() == tiramisu::e_val))
+                            if ((this->get_operand(0).get_data_type() == tiramisu::p_int32))
+                                return expr(this->get_operand(0).get_int_val() * this->get_operand(1).get_int_val());
                     case tiramisu::o_div:
-			return *this;
+                        return *this;
                     case tiramisu::o_mod:
                         return *this;
                     case tiramisu::o_select:
-			return *this;
+                        return *this;
                     case tiramisu::o_cond:
-			return *this;
+                        return *this;
                     case tiramisu::o_lerp:
-			return *this;
+                        return *this;
                     case tiramisu::o_le:
-			return *this;
+                        return *this;
                     case tiramisu::o_lt:
-			return *this;
+                        return *this;
                     case tiramisu::o_ge:
                         return *this; 
                     case tiramisu::o_gt:
-			return *this;
+                        return *this;
                     case tiramisu::o_logical_not:
-			return *this;
+                        return *this;
                     case tiramisu::o_eq:
-			return *this;
+                        return *this;
                     case tiramisu::o_ne:
-			return *this;
+                        return *this;
                     case tiramisu::o_right_shift:
-			return *this;
+                        return *this;
                     case tiramisu::o_left_shift:
-			return *this;
+                        return *this;
                     case tiramisu::o_floor:
-			return *this;
+                        return *this;
                     case tiramisu::o_sin:
-			return *this;
+                        return *this;
                     case tiramisu::o_cos:
-			return *this;
+                        return *this;
                     case tiramisu::o_tan:
-			return *this;
+                        return *this;
                     case tiramisu::o_atan:
-			return *this;
+                        return *this;
                     case tiramisu::o_acos:
-			return *this;
+                        return *this;
                     case tiramisu::o_asin:
-			return *this;
+                        return *this;
                     case tiramisu::o_abs:
-			return *this;
+                        return *this;
                     case tiramisu::o_sqrt:
-			return *this;
+                        return *this;
                     case tiramisu::o_expo:
-			return *this;
+                        return *this;
                     case tiramisu::o_log:
-			return *this;
+                        return *this;
                     case tiramisu::o_ceil:
-			return *this;
+                        return *this;
                     case tiramisu::o_round:
-			return *this;
+                        return *this;
                     case tiramisu::o_trunc:
-			return *this;
+                        return *this;
                     case tiramisu::o_cast:
-			return *this;
+                        return *this;
                     case tiramisu::o_access:
-			return *this;
+                        return *this;
                     case tiramisu::o_call:
-			return *this;
+                        return *this;
                     case tiramisu::o_address:
-			return *this;
+                        return *this;
                     case tiramisu::o_allocate:
-			return *this;
+                        return *this;
                     case tiramisu::o_free:
-			return *this;
+                        return *this;
                     default:
                         tiramisu::error("Simplifying an unsupported tiramisu expression.", 1);
                     }
@@ -1282,18 +1282,18 @@ public:
                 }
                 case (tiramisu::e_val):
                 {
-	            return *this;
+                    return *this;
                 }
                 case (tiramisu::e_var):
                 {
-		    return *this;
+                    return *this;
                 }
                 default:
                     tiramisu::error("Expression type not supported.", true);
             }
         }
 
-	return *this;
+        return *this;
     }
 
     std::string to_str() const
@@ -1353,11 +1353,11 @@ public:
                     case tiramisu::o_div:
                         str +=  "(" + this->get_operand(0).to_str();
                         str +=  ")/";
-			if (this->get_operand(1).etype != tiramisu::e_val)
-			    str += "(";
-			str += this->get_operand(1).to_str();
-			if (this->get_operand(1).etype != tiramisu::e_val)
-			    str +=  ")";
+                        if (this->get_operand(1).etype != tiramisu::e_val)
+                            str += "(";
+                        str += this->get_operand(1).to_str();
+                        if (this->get_operand(1).etype != tiramisu::e_val)
+                            str +=  ")";
                         break;
                     case tiramisu::o_mod:
                         str +=  "(" + this->get_operand(0).to_str();
@@ -1375,8 +1375,8 @@ public:
                         str +=  ", " + this->get_operand(2).to_str();
                         str +=  ")";
                         break;
-		    case tiramisu::o_cond:
-			str +=  "if(" + this->get_operand(0).to_str();
+                    case tiramisu::o_cond:
+                        str +=  "if(" + this->get_operand(0).to_str();
                         str +=  "):(" + this->get_operand(1).to_str();
                         str +=  ")";
                         break;
@@ -1632,14 +1632,13 @@ public:
       */
     static expr unbounded()
     {
-	    tiramisu::expr e;
-	    e.name = "_unbounded";
-	    e.etype = tiramisu::e_val;
-            e._operator = tiramisu::o_none;
-            e.defined = true;
-
-            e.dtype = tiramisu::p_none;
-	    return e;
+        tiramisu::expr e;
+        e.name = "_unbounded";
+        e.etype = tiramisu::e_val;
+        e._operator = tiramisu::o_none;
+        e.defined = true;
+        e.dtype = tiramisu::p_none;
+        return e;
     }
 };
 
@@ -1734,7 +1733,7 @@ public:
      * for loop
      *
      * \code
-     *	    for (i = 0; i < 10; i++)
+     *     for (i = 0; i < 10; i++)
      * \endcode
      *
      * can be declared as
@@ -1749,8 +1748,8 @@ public:
      */
     var(std::string name, expr lower_bound, expr upper_bound) : var(name, true)
     {
-	lower = lower_bound;
-	upper = upper_bound;
+        lower = lower_bound;
+        upper = upper_bound;
     }
 
     /* Construct an expression that represents an untyped variable.
