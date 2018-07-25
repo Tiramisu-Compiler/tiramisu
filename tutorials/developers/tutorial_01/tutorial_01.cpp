@@ -106,10 +106,7 @@ int main(int argc, char **argv)
     //	      allocated automatically by Tiramisu and should not be passed as arguments
     // 	      to the function).
     //	    - The name of the object file to be generated.
-    function0.codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
-
-    // Dump the generated Halide statement (just for debugging).
-    function0.dump_halide_stmt();
+    tiramisu::codegen({&buf0}, "build/generated_fct_developers_tutorial_01.o");
 
     return 0;
 }
