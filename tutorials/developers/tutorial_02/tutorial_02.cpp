@@ -4,7 +4,7 @@
 
   for (int i = 0; i < 10; i++)
     for (int j = 0; j < 20; j++)
-      output[i, j] = A[i, j] + i + 2;
+      output[i, j] = A[i, j] + i + 4;
 */
 
 #include <tiramisu/tiramisu.h>
@@ -23,11 +23,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Declare two constants N and M. These constants will be used as loop bounds.
-    constant N_const("N", NN);
-    constant M_const("M", MM);
+    constant N("N", NN);
+    constant M("M", MM);
 
     // Declare iterator variables.
-    var i("i", 0, N_const), j("j", 0, M_const);
+    var i("i", 0, N), j("j", 0, M);
 
     // Declare an input.  The input is declared by providing iterators
     // (that define the size of the buffer) and the type of the buffer elements.
