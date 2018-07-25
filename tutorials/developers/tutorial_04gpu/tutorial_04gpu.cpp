@@ -17,55 +17,52 @@
 #include <tiramisu/tiramisu.h>
 
 #define SIZE0 1000
+
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
-    tiramisu::init();
+    tiramisu::init("matmul");
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
 
-    /*
-     * Declare a function matmul.
-     */
-    function matmul("matmul");
-
-    constant p0("N", expr((int32_t) SIZE0), p_int32, true, NULL, 0, &matmul);
+    constant p0("N", expr((int32_t) SIZE0));
 
     // Declare loop iterators
-    var i("i"), j("j"), k("k");
+    var i("i", 0, N), j("j", 0, N), k("k", 0, N);
 
     // Declare cpu buffers.
-    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input, &matmul);
-    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output, &matmul);
+    buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
+    buffer b_B("b_B", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
+    buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output);
     // Declare gpu buffers.
-    buffer b_A_gpu("b_A_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary, &matmul);
-    buffer b_B_gpu("b_B_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary, &matmul);
-    buffer b_C_gpu("b_C_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary, &matmul);
+    buffer b_A_gpu("b_A_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary);
+    buffer b_B_gpu("b_B_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary);
+    buffer b_C_gpu("b_C_gpu", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_temporary);
+    // Tag the GPU buffers to be stored in global memory.
     b_A_gpu.tag_gpu_global();
     b_B_gpu.tag_gpu_global();
     b_C_gpu.tag_gpu_global();
 
-    // Declare computations that represents the input buffers (b_A and b_B)
-    computation c_A("[N]->{c_A[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
-    computation c_B("[N]->{c_B[i,j]: 0<=i<N and 0<=j<N}", expr(), false, p_uint8, &matmul);
+    // Declare inputs (b_A and b_B)
+    input c_A({i,j}, p_uint8);
+    input c_B({i,j}, p_uint8);
 
     // Declare a computation to initialize the reduction c[i,j]
-    computation C_init("[N]->{C_init[i,j,-1]: 0<=i<N and 0<=j<N}", expr((uint8_t) 0), true, p_uint8, &matmul);
+    computation C_init({i,j}, expr((uint8_t) 0));
     
     // Declare the reduction operation.
-    computation c_C("[N]->{c_C[i,j,k]: 0<=i<N and 0<=j<N and 0<=k<N}", expr(), true, p_uint8, &matmul);
+    computation c_C({i,j,k}, p_uint8);
     // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
     c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
 
     // Declare host-gpu transfer computations.
-    computation copy_A_to_device("{copy_A_to_device[0]}", memcpy(b_A, b_A_gpu), true, p_none, &matmul);
-    computation copy_B_to_device("{copy_B_to_device[0]}", memcpy(b_B, b_B_gpu), true, p_none, &matmul);
-    computation copy_C_to_host("{copy_C_to_host[0]}", memcpy(b_C_gpu, b_C), true, p_none, &matmul);
+    computation copy_A_to_device({}, memcpy(b_A, b_A_gpu));
+    computation copy_B_to_device({}, memcpy(b_B, b_B_gpu));
+    computation copy_C_to_host({}, memcpy(b_C_gpu, b_C));
 
     // -------------------------------------------------------
     // Layer II
@@ -101,10 +98,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Generate object files. Last argument triggers cuda compilation.
-    matmul.codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04gpu.o", true);
-    
-    // Dump the generated Halide statement (just for debugging).
-    matmul.dump_halide_stmt();
+    tiramisu::codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04gpu.o", true);
 
     return 0;
 }
