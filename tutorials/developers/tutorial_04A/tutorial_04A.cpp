@@ -41,9 +41,11 @@ int main(int argc, char **argv)
     
     // Declare the reduction operation.
     computation c_C({i,j,k}, expr());
+    // Since the previous declaration does not specify the type of c_C, we have to indicate it explicitly.
+    c_C.set_data_type(p_uint8);
     // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
     c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
-    
+
     // In this example, c_C does not read the value of C_init, but later
     // we indicate that C_init and c_C both are stored in the same buffer,
     // therefore c_C will read values written by C_init.
