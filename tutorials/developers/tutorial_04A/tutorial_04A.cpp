@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     // Declare a computation to initialize the reduction c[i,j]
     computation C_init({i,j}, expr((uint8_t) 0));
     
-    // Declare the reduction operation.
+    // Declare the reduction operation.  Do not provide any expression during declaration.
     computation c_C({i,j,k}, p_uint8);
     // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
     c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
