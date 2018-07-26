@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     // Layer I
     // -------------------------------------------------------
 
-    // Declare the function tut_02.
+    // Declare the function tut_08.
     function tut_08("tut_08");
 
     // Declare two constants N and M. These constants will be used as loop bounds.
@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     //    - The name of the constant is "N".
     //    - The value of the constant is expr((int32_t) NN).
     //    - The constant is of type int32.
-    //    - The constant is declared in the beginning of the function tut_02 (i.e.,
+    //    - The constant is declared in the beginning of the function tut_08 (i.e.,
     //      its scope is the whole function).
     //    - The next two arguments (NULL and 0) are unused here.
     //    - The last argument is the function in which this constant is declared.
@@ -42,6 +42,17 @@ int main(int argc, char **argv)
     // Declare iterator variables.
     var i("i"), j("j");
  
+    // Declare a wrapper around the input.
+    // In Tiramisu, if a function reads an input buffer (or writes to it), that buffer
+    // cannot be accessed directly, but should first be wrapped in a dummy computation.
+    // This is mainly because computations in Tiramisu do not access memory directly,
+    // since the algorithm is supposed to be expressed independently of how data is stored.
+    // Therefor all algorithms (computations) access other computations.  The actual data
+    // layout is only specified later in Layer III.
+    // A wrapper is usually declared with an empty expression and is not supposed to be scheduled
+    // (check the documentation of the computation constructor for more details).
+    computation in("[N, M]->{in[i,j]: 0<=i<N and 0<=j<M}", expr(), false, p_uint8, &tut_08);
+
     // Declare expression and output computation.
     // To declare a computation, you need to provide:
     // (1) an ISL set representing the iteration space of the computation.
@@ -59,19 +70,8 @@ int main(int argc, char **argv)
     // The best way to learn about the constructor of computations is to
     // check the documentation of the computation class in
     // https://tiramisu-compiler.github.io/doc
-    expr e = input(i, j) + cast(p_uint8, i) + (uint8_t)4;
+    expr e = in(i, j) + cast(p_uint8, i) + (uint8_t)4;
     computation output("[N, M]->{output[i,j]: 0<=i<N and 0<=j<M}", e, true, p_uint8, &tut_08);
-
-    // Declare a wrapper around the input.
-    // In Tiramisu, if a function reads an input buffer (or writes to it), that buffer
-    // cannot be accessed directly, but should first be wrapped in a dummy computation.
-    // This is mainly because computations in Tiramisu do not access memory directly,
-    // since the algorithm is supposed to be expressed independently of how data is stored.
-    // Therefor all algorithms (computations) access other computations.  The actual data
-    // layout is only specified later in Layer III.
-    // A wrapper is usually declared with an empty expression and is not supposed to be scheduled
-    // (check the documentation of the computation constructor for more details).
-    computation input("[N, M]->{input[i,j]: 0<=i<N and 0<=j<M}", expr(), false, p_uint8, &tut_08);
 
     // -------------------------------------------------------
     // Layer II
@@ -99,8 +99,8 @@ int main(int argc, char **argv)
     // The following call indicates that each computation input[i,j]
     // is stored in the buffer element b_input[i,j] (one-to-one mapping).
     // This is the most common mapping to memory.
-    input.set_access("{input[i,j]->b_input[i,j]}");
-    output.store_in("{output[i,j]->b_output[i,j]}");
+    in.set_access("{in[i,j]->b_input[i,j]}");
+    output.set_access("{output[i,j]->b_output[i,j]}");
 
     // -------------------------------------------------------
     // Code Generation

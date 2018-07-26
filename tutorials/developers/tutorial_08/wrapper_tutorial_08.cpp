@@ -19,15 +19,15 @@ int main(int, char **)
     init_buffer(input, (uint8_t)3);
     
     // Uncomment the following two lines if you want to view the input table
-    // std::cout << "Array (before tut_02)" << std::endl;
+    // std::cout << "Array (before tut_08)" << std::endl;
     // print_buffer(input); 
 
     Halide::Buffer<uint8_t> output(MM, NN);
 
-    tut_02(input.raw_buffer(), output.raw_buffer());
+    tut_08(input.raw_buffer(), output.raw_buffer());
 
     // Uncomment the following two lines if you want to view the output table
-    // std::cout << "Array (after tut_02)" << std::endl;
+    // std::cout << "Array (after tut_08)" << std::endl;
     // print_buffer(output); 
 
     Halide::Buffer<uint8_t> expected(MM, NN);
