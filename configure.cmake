@@ -1,4 +1,4 @@
-set(CMAKE_BUILD_TYPE RELEASE)
+set(CMAKE_BUILD_TYPE DEBUG)
 
 # Set to TRUE if you wish to use GPU
 set(USE_GPU FALSE)
