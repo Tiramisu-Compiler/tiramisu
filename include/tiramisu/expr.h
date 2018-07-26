@@ -349,7 +349,7 @@ public:
         }
         else
         {
-            tiramisu::error("Type of operator is not o_access, o_call, o_address_of, o_buffer, or o_lin_index.", true);
+            ERROR("Type of operator is not o_access, o_call, o_address_of, o_buffer, or o_lin_index.", true);
         }
 
         this->name = name;
@@ -623,7 +623,7 @@ public:
         }
         else
         {
-            tiramisu::error("Calling get_int_val() on a non integer expression.", true);
+            ERROR("Calling get_int_val() on a non integer expression.", true);
         }
 
         return result;
@@ -645,7 +645,7 @@ public:
         }
         else
         {
-            tiramisu::error("Calling get_double_val() on a non double expression.", true);
+            ERROR("Calling get_double_val() on a non double expression.", true);
         }
 
         return result;
@@ -1136,7 +1136,7 @@ public:
                         std::cout << "Sync object" << std::endl;
                         break;
                     default:
-                        tiramisu::error("Expression type not supported.", true);
+                        ERROR("Expression type not supported.", true);
                     }
                 }
             }
@@ -1276,7 +1276,7 @@ public:
                     case tiramisu::o_free:
                         return *this;
                     default:
-                        tiramisu::error("Simplifying an unsupported tiramisu expression.", 1);
+                        ERROR("Simplifying an unsupported tiramisu expression.", 1);
                     }
                     break;
                 }
@@ -1289,7 +1289,7 @@ public:
                     return *this;
                 }
                 default:
-                    tiramisu::error("Expression type not supported.", true);
+                    ERROR("Expression type not supported.", true);
             }
         }
 
@@ -1527,7 +1527,7 @@ public:
                         str +=  "free(" + this->get_name() + ")";
                         break;
                     default:
-                        tiramisu::error("Dumping an unsupported tiramisu expression.", 1);
+                        ERROR("Dumping an unsupported tiramisu expression.", 1);
                     }
                     break;
                 }
@@ -1586,7 +1586,7 @@ public:
                     break;
                 }
                 default:
-                    tiramisu::error("Expression type not supported.", true);
+                    ERROR("Expression type not supported.", true);
                 }
             }
 

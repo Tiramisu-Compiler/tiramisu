@@ -270,7 +270,7 @@ bool access_has_id(const tiramisu::expr &exp)
                          access_has_id(exp.get_operand(2));
                 break;
             default:
-                tiramisu::error("Checking an unsupported tiramisu expression for whether it has an ID.", 1);
+                ERROR("Checking an unsupported tiramisu expression for whether it has an ID.", 1);
         }
     }
 
@@ -363,7 +363,7 @@ bool access_is_affine(const tiramisu::expr &exp)
                 }
                 break;
             default:
-                tiramisu::error("Unsupported tiramisu expression passed to access_is_affine().", 1);
+                ERROR("Unsupported tiramisu expression passed to access_is_affine().", 1);
         }
     }
 
@@ -488,7 +488,7 @@ isl_constraint *generator::get_constraint_for_access(int access_dimension,
         }
         else
         {
-            tiramisu::error ("Currently only Add, Sub, Minus, and Mul operations for accesses are supported for now.", true);
+            ERROR("Currently only Add, Sub, Minus, and Mul operations for accesses are supported for now.", true);
         }
     }
 
@@ -748,7 +748,7 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
                 // They do not have any access.
                 break;
             default:
-                tiramisu::error("Extracting access function from an unsupported tiramisu expression.", 1);
+                ERROR("Extracting access function from an unsupported tiramisu expression.", 1);
         }
     }
 
@@ -884,7 +884,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
                 output_expr = exp;
                 break;
             default:
-                tiramisu::error("Unsupported tiramisu expression passed to traverse_expr_and_replace_non_affine_accesses().",
+                ERROR("Unsupported tiramisu expression passed to traverse_expr_and_replace_non_affine_accesses().",
                                 1);
         }
     }
@@ -976,7 +976,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
                 break;
             case isl_ast_op_and_then:
                 result = tiramisu::expr(tiramisu::o_logical_and, op0, op1);
-                tiramisu::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
+                ERROR("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
                                 0);
                 break;
             case isl_ast_op_or:
@@ -984,7 +984,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
                 break;
             case isl_ast_op_or_else:
                 result = tiramisu::expr(tiramisu::o_logical_or, op0, op1);
-                tiramisu::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
+                ERROR("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
                                 0);
                 break;
             case isl_ast_op_max:
@@ -1041,7 +1041,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
                 tiramisu::str_dump("Transforming the following expression",
                                    (const char *)isl_ast_expr_to_C_str(isl_expr));
                 tiramisu::str_dump("\n");
-                tiramisu::error("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
+                ERROR("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
         }
     }
     else
@@ -1049,7 +1049,7 @@ tiramisu::expr tiramisu_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
         tiramisu::str_dump("Transforming the following expression",
                            (const char *)isl_ast_expr_to_C_str(isl_expr));
         tiramisu::str_dump("\n");
-        tiramisu::error("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
+        ERROR("Translating an unsupported ISL expression into a Tiramisu expression.", 1);
     }
 
     DEBUG_INDENT(-4);
@@ -1175,7 +1175,7 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
                 output_expr = exp;
                 break;
             default:
-                tiramisu::error("Unsupported tiramisu expression passed to replace_original_indices_with_transformed_indices().", 1);
+                ERROR("Unsupported tiramisu expression passed to replace_original_indices_with_transformed_indices().", 1);
         }
     }
 
@@ -1356,7 +1356,7 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
                         {
                             tiramisu::str_dump("This is computation " + comp->get_name() +"\n");
                             // TODO better error message
-                            tiramisu::error("An access function should be provided for computation " + comp->get_name() + "'s #" + std::to_string(i) + " access before generating code.", true);
+                            ERROR("An access function should be provided for computation " + comp->get_name() + "'s #" + std::to_string(i) + " access before generating code.", true);
                         }
                     }
                 }
@@ -1444,7 +1444,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                 break;
             case isl_ast_op_and_then:
                 result = Halide::Internal::And::make(op0, op1);
-                tiramisu::error("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
+                ERROR("isl_ast_op_and_then operator found in the AST. This operator is not well supported.",
                                 0);
                 break;
             case isl_ast_op_or:
@@ -1452,7 +1452,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                 break;
             case isl_ast_op_or_else:
                 result = Halide::Internal::Or::make(op0, op1);
-                tiramisu::error("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
+                ERROR("isl_ast_op_or_then operator found in the AST. This operator is not well supported.",
                                 0);
                 break;
             case isl_ast_op_max:
@@ -1508,7 +1508,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                 tiramisu::str_dump("Transforming the following expression",
                                    (const char *)isl_ast_expr_to_C_str(isl_expr));
                 tiramisu::str_dump("\n");
-                tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
+                ERROR("Translating an unsupported ISL expression in a Halide expression.", 1);
         }
     }
     else
@@ -1516,7 +1516,7 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
         tiramisu::str_dump("Transforming the following expression",
                            (const char *)isl_ast_expr_to_C_str(isl_expr));
         tiramisu::str_dump("\n");
-        tiramisu::error("Translating an unsupported ISL expression in a Halide expression.", 1);
+        ERROR("Translating an unsupported ISL expression in a Halide expression.", 1);
     }
 
     return result;
@@ -1863,7 +1863,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
             isl_val *inc_val = isl_ast_expr_get_val(inc);
             if (!isl_val_is_one(inc_val)) {
-                tiramisu::error("The increment in one of the loops is not +1."
+                ERROR("The increment in one of the loops is not +1."
                                         "This is not supported by Halide", 1);
             }
             isl_val_free(inc_val);
@@ -1891,7 +1891,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         isl_ast_expr_get_op_arg(cond, 1),
                         isl_ast_expr_from_val(one));
             } else {
-                tiramisu::error("The for loop upper bound is not an isl_est_expr of type le or lt", 1);
+                ERROR("The for loop upper bound is not an isl_est_expr of type le or lt", 1);
             }
             assert(cond_upper_bound_isl_format != NULL);
             DEBUG(3, tiramisu::str_dump("Creating for loop init expression."));
@@ -2106,7 +2106,9 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
              (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_free)))
         {
             if (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_allocate)
-                tiramisu::error("Allocate node should not appear as a user ISL AST node. It should only appear with block construction (because of its scope).", true);
+            {
+                ERROR("Allocate node should not appear as a user ISL AST node. It should only appear with block construction (because of its scope).", true);
+            }
             else
             {
                 tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
@@ -3006,7 +3008,7 @@ void computation::create_halide_assignment()
             }
             // Defines writing into the wait buffer when a transfer is initiated (for nonblocking operations)
             if (this->wait_argument_idx != -1) {
-                tiramisu::error("Nonblocking not currently supported", 0);
+                ERROR("Nonblocking not currently supported", 0);
                 assert((this->is_recv() || this->is_send_recv()) && "This should be a recv or one-sided operation.");
                 assert(this->wait_access_map && "A wait access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
@@ -3085,7 +3087,7 @@ void computation::create_halide_assignment()
                                                                                                this->get_expr(), this);
             }
             if (this->wait_argument_idx != -1) {
-                tiramisu::error("Nonblocking not currently supported", 0);
+                ERROR("Nonblocking not currently supported", 0);
                 assert(this->is_send() && "This should be a send operation.");
                 assert(this->wait_access_map && "A request access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
@@ -3374,7 +3376,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 DEBUG(10, tiramisu::str_dump("op type: lerp"));
                 break;
             case tiramisu::o_cond:
-                tiramisu::error("Code generation for o_cond is not supported yet.", true);
+                ERROR("Code generation for o_cond is not supported yet.", true);
                 break;
             case tiramisu::o_le:
                 result = Halide::Internal::LE::make(op0, op1, true);
@@ -3428,7 +3430,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 }
                 else
                 {
-                    tiramisu::error("Unsupported operation.", true);
+                    ERROR("Unsupported operation.", true);
                 }
 
                 assert(access_comp_name != NULL);
@@ -3705,11 +3707,11 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
             }
             case tiramisu::o_allocate:
             case tiramisu::o_free:
-                tiramisu::error("An expression of type o_allocate or o_free "
+                ERROR("An expression of type o_allocate or o_free "
                                         "should not be passed to this function", true);
                 break;
             default:
-                tiramisu::error("Translating an unsupported ISL expression into a Halide expression.", 1);
+                ERROR("Translating an unsupported ISL expression into a Halide expression.", 1);
         }
     }
     else if (tiramisu_expr.get_expr_type() == tiramisu::e_var)
@@ -3724,7 +3726,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
     {
         tiramisu::str_dump("tiramisu type of expr: ",
                            str_from_tiramisu_type_expr(tiramisu_expr.get_expr_type()).c_str());
-        tiramisu::error("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
+        ERROR("\nTranslating an unsupported ISL expression in a Halide expression.", 1);
     }
 
     if (result.defined())
@@ -3878,7 +3880,7 @@ void tiramisu::generator::_update_producer_expr_name(tiramisu::expr &current_exp
                 // They do not have any access.
                 break;
             default:
-                tiramisu::error("Replacing expression name for an unsupported tiramisu expression.", 1);
+                ERROR("Replacing expression name for an unsupported tiramisu expression.", 1);
         }
     }
 

@@ -35,15 +35,4 @@ void print_indentation()
     }
 }
 
-void error(const std::string &str, bool exit_program)
-{
-    std::cerr << "Error in " << __FILE__ << ":"
-              << __LINE__ << " - " << str << std::endl;
-
-    if (exit_program)
-    {
-        exit(1);
-    }
-}
-
 }
