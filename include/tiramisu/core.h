@@ -1629,6 +1629,14 @@ private:
     std::vector<isl_set *> compute_needed_and_produced(computation &consumer, int L,
                                                        std::vector<std::string> &param_names);
 
+
+    /**
+      * Take a list of iterators as input and construct the iteration
+      * domain that iterates over those iterators.
+      * The iteration domain is a string in ISL format.
+      */
+    std::string construct_iteration_domain(std::vector<var> iterator_variables);
+
     /**
       * Create a copy of this computation.
       */
@@ -2579,72 +2587,10 @@ public:
       * is presented in tests/test_04.cpp.
       *
       */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e)
-   {
-        DEBUG_FCT_NAME(3);
-        DEBUG_INDENT(4);
-
-        tiramisu::function *fct = global::get_implicit_function();
-
-	if (fct == NULL)
-	    tiramisu::error("An implicit function has to be created by providing a function name to init(NAME). Otherwise the low level API has to be called", true);
-
-	const std::vector<std::string> inv = fct->get_invariant_names();
-
-	std::string iteration_space_str = "";
-
-	if (inv.size() > 0)
-		iteration_space_str = "[";
-
-	for (int i = 0; i < inv.size(); i++)
-	{
-		iteration_space_str += inv[i];
-		if (i < inv.size() - 1)
-			iteration_space_str += ", ";
-	}
-
-	if (inv.size() > 0)
-		iteration_space_str += "]->";
-
-  	std::string comp_name = generate_new_computation_name();
-
-        DEBUG(3, tiramisu::str_dump("Creating computation " + comp_name));
-
-        iteration_space_str += "{" + comp_name + "[";
-	if (iterator_variables.size() == 0)
-	    iteration_space_str += "0";
-	else
-	    for (int i = 0; i < iterator_variables.size(); i++)
-	    {
-		var iter = iterator_variables[i];
-		iteration_space_str += iter.get_name();
-		if (i < iterator_variables.size() - 1)
-			iteration_space_str += ", ";
-	    }
-
-	iteration_space_str += "] ";
-
-	if (iterator_variables.size() != 0)
-	   iteration_space_str += ": ";
-
-	for (int i = 0; i < iterator_variables.size(); i++)
-	{
-		var iter = iterator_variables[i];
-		iteration_space_str += iter.lower.to_str() + "<=" + iter.get_name() + "<" + iter.upper.to_str();
-
-		if (i < iterator_variables.size() - 1)
-			iteration_space_str += " and ";
-	}
-
-	iteration_space_str += "}";
-
-	DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
-
-	init_computation(iteration_space_str, fct, e, true, e.get_data_type());
-	is_let = false;
-
-	DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
-    }
+   //@{
+   computation(std::vector<var> iterator_variables, tiramisu::expr e);
+   computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+   //@}
 
     /**
       * \brief Constructor for computations.
@@ -3954,11 +3900,10 @@ public:
       * are of type uint8.
       */
     input(std::vector<var> iterator_variables, primitive_t t):
-	    computation(iterator_variables, expr())
+	    computation(iterator_variables, expr(), false)
 	{
 		this->data_type = t;
 		this->expression.dtype = t;
-		this->unschedule_this_computation();
 	}
 };
 

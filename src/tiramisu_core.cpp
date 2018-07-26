@@ -3165,6 +3165,7 @@ void tiramisu::computation::after(computation &comp, tiramisu::var level)
 
     DEBUG_INDENT(-4);
 }
+
 void tiramisu::computation::after(computation &comp, int level)
 {
     DEBUG_FCT_NAME(3);
@@ -3267,8 +3268,14 @@ bool function::is_sched_graph_tree_dfs(computation * comp,
 
 bool function::is_sched_graph_tree()
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     if (this->starting_computations.size() != 1)
+    {
+        DEBUG_INDENT(-4);
         return false;
+    }
 
     // Contains all nodes that have been visited
     std::unordered_set<computation *> visited;
@@ -3276,9 +3283,13 @@ bool function::is_sched_graph_tree()
     for (auto &comp: this->starting_computations)
     {
         if (!is_sched_graph_tree_dfs(comp, visited))
+	{
+            DEBUG_INDENT(-4);
             return false;
+	}
     }
 
+    DEBUG_INDENT(-4);
     return true;
 }
 
@@ -3299,6 +3310,8 @@ void function::gen_ordering_schedules()
 
     if(this->is_sched_graph_tree())
     {
+	DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): true."));
+
         std::priority_queue<int> level_to_check;
         std::unordered_map<int, std::deque<computation *>> level_queue;
 
@@ -3339,6 +3352,12 @@ void function::gen_ordering_schedules()
             }
         }
     }
+    else
+    {
+	DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+    }
+
+    DEBUG_INDENT(-4);
 }
 
 void computation::before(computation &comp, tiramisu::var dim)
@@ -6073,11 +6092,16 @@ void tiramisu::function::add_invariant(tiramisu::constant invar)
 
 void tiramisu::function::add_computation(computation *cpt)
 {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
     assert(cpt != NULL);
 
     this->body.push_back(cpt);
     if (cpt->should_schedule_this_computation())
         this->starting_computations.insert(cpt);
+
+    DEBUG_INDENT(-4);
 }
 
 void tiramisu::function::dump(bool exhaustive) const
@@ -7674,6 +7698,97 @@ tiramisu::constant::constant(
     DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The computation representing the assignment:"); this->dump(true));
 
     DEBUG_INDENT(-4);
+}
+
+tiramisu::computation::computation(std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation)
+{
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
+	DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
+
+	std::string iteration_space_str = construct_iteration_domain(iterator_variables);
+
+	DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+	init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, e.get_data_type());
+	is_let = false;
+
+	DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+}
+
+tiramisu::computation::computation(std::vector<var> iterator_variables, tiramisu::expr e)
+{
+        DEBUG_FCT_NAME(3);
+        DEBUG_INDENT(4);
+
+	std::string iteration_space_str = construct_iteration_domain(iterator_variables);
+
+	DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+	init_computation(iteration_space_str, global::get_implicit_function(), e, true, e.get_data_type());
+	is_let = false;
+
+	DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+}
+
+std::string tiramisu::computation::construct_iteration_domain(std::vector<var> iterator_variables)
+{
+	tiramisu::function *fct = global::get_implicit_function();
+
+	if (fct == NULL)
+	    tiramisu::error("An implicit function has to be created by providing a function name to init(NAME). Otherwise the low level API has to be called", true);
+
+	const std::vector<std::string> inv = fct->get_invariant_names();
+
+	std::string iteration_space_str = "";
+
+	if (inv.size() > 0)
+		iteration_space_str = "[";
+
+	for (int i = 0; i < inv.size(); i++)
+	{
+		iteration_space_str += inv[i];
+		if (i < inv.size() - 1)
+			iteration_space_str += ", ";
+	}
+
+	if (inv.size() > 0)
+		iteration_space_str += "]->";
+
+	std::string comp_name = generate_new_computation_name();
+
+        DEBUG(3, tiramisu::str_dump("Creating computation " + comp_name));
+
+        iteration_space_str += "{" + comp_name + "[";
+	if (iterator_variables.size() == 0)
+	    iteration_space_str += "0";
+	else
+	    for (int i = 0; i < iterator_variables.size(); i++)
+	    {
+		var iter = iterator_variables[i];
+		iteration_space_str += iter.get_name();
+		if (i < iterator_variables.size() - 1)
+			iteration_space_str += ", ";
+	    }
+
+	iteration_space_str += "] ";
+
+	if (iterator_variables.size() != 0)
+	   iteration_space_str += ": ";
+
+	for (int i = 0; i < iterator_variables.size(); i++)
+	{
+		var iter = iterator_variables[i];
+		iteration_space_str += iter.lower.to_str() + "<=" + iter.get_name() + "<" + iter.upper.to_str();
+
+		if (i < iterator_variables.size() - 1)
+			iteration_space_str += " and ";
+	}
+
+	iteration_space_str += "}";
+
+	return iteration_space_str;
 }
 
 tiramisu::constant::constant(std::string param_name, const tiramisu::expr &param_expr)
