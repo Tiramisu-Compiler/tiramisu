@@ -48,13 +48,13 @@ inline void print_buffer(const Halide::Buffer<T> &buf)
         {
             for (int x = 0; x < buf.width(); x++)
             {
-            	if (std::is_same<T, uint8_t>::value)
-            		std::cout << (int)buf(x, y, z);
-            	else
-	                std::cout << buf(x, y, z);
+                if (std::is_same<T, uint8_t>::value)
+                    std::cout << (int)buf(x, y, z);
+                else
+                    std::cout << buf(x, y, z);
 
                 if (x != buf.width() - 1)
-                	std::cout << ", ";
+                    std::cout << ", ";
             }
             std::cout << "\n";
         }
@@ -70,8 +70,8 @@ inline void copy_buffer(const Halide::Buffer<T> &from, Halide::Buffer<T> &to)
         (from.height() > to.height()) || (from.width() > to.width()))
     {
         tiramisu::error("'from' has bigger dimension size than 'to'. 'from' size: " +
-        				std::to_string(from.dimensions()) + ", 'to' size: " +
-        				std::to_string(to.dimensions()) + "\n", true);
+                        std::to_string(from.dimensions()) + ", 'to' size: " +
+                        std::to_string(to.dimensions()) + "\n", true);
     }
 
     for (int z = 0; z < from.channels(); z++)
@@ -88,10 +88,10 @@ inline void copy_buffer(const Halide::Buffer<T> &from, Halide::Buffer<T> &to)
 
 template<typename T>
 inline void compare_buffers_approximately(const std::string &test, const Halide::Buffer<T> &result,
-							const Halide::Buffer<T> &expected)
+                                          const Halide::Buffer<T> &expected)
 {
     if ((result.dimensions() != expected.dimensions()) ||
-    	(result.channels() != expected.channels()) ||
+        (result.channels() != expected.channels()) ||
         (result.height() != expected.height()) ||
         (result.width() != expected.width()))
     {
@@ -104,8 +104,8 @@ inline void compare_buffers_approximately(const std::string &test, const Halide:
                 if (result(x, y, z) - expected(x, y, z) > 0.1) {
                     tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
                                     ", " + std::to_string(y) + ", " + std::to_string(z) + "), expected: " +
-                    				std::to_string(expected(x, y, z)) + ", got: " +
-                    				std::to_string(result(x, y, z)) + ".\033[0m\n", false);
+                                    std::to_string(expected(x, y, z)) + ", got: " +
+                                    std::to_string(result(x, y, z)) + ".\033[0m\n", false);
                     return;
                 }
             }
@@ -116,26 +116,26 @@ inline void compare_buffers_approximately(const std::string &test, const Halide:
 
 template<typename T>
 inline void compare_4D_buffers(const std::string &test, const Halide::Buffer<T> &result,
-							const Halide::Buffer<T> &expected, int box)
+                              const Halide::Buffer<T> &expected, int box)
 {
     for (int n = 0; n < result.extent(3); n++) {
         for (int z = 0; z < result.extent(2); z++) {
             for (int y = 0; y < result.extent(1)-box; y++) {
                 for (int x = 0; x < result.extent(0)-box; x++) {
 #if 0
- 		    std::cout << "Comparing " << result(x, y, z, n) << " and "
-			      << expected(x, y, z, n) << " at position " <<
-			         "(" + std::to_string(x) + "/" + std::to_string(result.extent(0)-box) + ", " + std::to_string(y) + "/" + std::to_string(result.extent(1)-box) +
-			         ", " + std::to_string(z) + "/" + std::to_string(result.extent(2)) + ", " + std::to_string(n) + "/" + std::to_string(result.extent(3)) + ")"
-			      << std::endl;
+                    std::cout << "Comparing " << result(x, y, z, n) << " and "
+                        << expected(x, y, z, n) << " at position " <<
+                        "(" + std::to_string(x) + "/" + std::to_string(result.extent(0)-box) + ", " + std::to_string(y) + "/" + std::to_string(result.extent(1)-box) +
+                        ", " + std::to_string(z) + "/" + std::to_string(result.extent(2)) + ", " + std::to_string(n) + "/" + std::to_string(result.extent(3)) + ")"
+                        << std::endl;
 #endif
-		    if (result(x, y, z, n) != expected(x, y, z, n)) {
-			tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
-                                    ", " + std::to_string(y) + ", " + std::to_string(z) + ", " + std::to_string(n)+ "), expected: " +
-                                    std::to_string(expected(x, y, z, n)) + ", got: " +
-                                    std::to_string(result(x, y, z, n)) + ".\033[0m\n", false);
+                    if (result(x, y, z, n) != expected(x, y, z, n)) {
+                        tiramisu::error("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
+                                        ", " + std::to_string(y) + ", " + std::to_string(z) + ", " + std::to_string(n)+ "), expected: " +
+                                        std::to_string(expected(x, y, z, n)) + ", got: " +
+                                        std::to_string(result(x, y, z, n)) + ".\033[0m\n", false);
                          return;
-		    }
+                    }
                 }
             }
         }
@@ -145,10 +145,10 @@ inline void compare_4D_buffers(const std::string &test, const Halide::Buffer<T> 
 
 template<typename T>
 inline void compare_buffers(const std::string &test, const Halide::Buffer<T> &result,
-							const Halide::Buffer<T> &expected)
+                            const Halide::Buffer<T> &expected)
 {
 /*    if ((result.dimensions() != expected.dimensions()) ||
-    	(result.channels() != expected.channels()) ||
+        (result.channels() != expected.channels()) ||
         (result.height() != expected.height()) ||
         (result.width() != expected.width()))
     {
@@ -208,12 +208,12 @@ class tiramisu_timer
 
     void start()
     {
-	start_timing = std::chrono::system_clock::now();
+        start_timing = std::chrono::system_clock::now();
     }
 
     void stop()
     {
-	end_timing = std::chrono::system_clock::now();
+        end_timing = std::chrono::system_clock::now();
     }
 
     void print(std::string bench_name)
