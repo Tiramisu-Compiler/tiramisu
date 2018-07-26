@@ -2553,15 +2553,33 @@ public:
       *
       * \details
       *
+      * Same as \ref tiramisu::computation::computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e)
+      * except that is has the following additional argument:
+      *
+      * \p schedule_this_computation indicates whether this computation should to
+      * be scheduled.
+      */
+   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
+   /**
+     * \overload
+     */
+   computation(std::vector<var> iterator_variables, tiramisu::expr e);
+
+    /**
+      * \brief Constructor for computations.
+      *
+      * \details
+      *
+      * Declare a computation.  A computation in Tiramisu is the equivalent of a
+      * a statement surrounded by a loop nest in C (an example is provided later).
+      *
       * \p name is the name of the computation.
       *
       * \p iterator_variables is a vector that represents the loop iterators
       * around the computation. 
       *
       * \p e is the expression computed by the computation.
-      *
-      * \p schedule_this_computation indicates whether this computation has to
-      * be scheduled.
       *
       * For example, if we have two iterator variables
       *
@@ -2572,7 +2590,7 @@ public:
       * and we have the following computation declaration
       *
       * \code
-      * computation S({i,j}, 4);
+      * computation S("S", {i,j}, 4);
       * \endcode
       *
       * This is equivalent to writing the following C code
@@ -2589,19 +2607,10 @@ public:
       * It is possible to declare the computation without specifying the expression.
       * The expression can be specified later using computation::set_expression().
       * An example of setting the expression after declaring the computation
-      * is presented in tests/test_04.cpp.
+      * is presented in tutorial 04.  Usually this is needed for writing
+      * reductions.
       *
       */
-   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
-
-   /**
-     * \overload
-     */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e);
-
-   /**
-     * \overload
-     */
    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
 
    /**
