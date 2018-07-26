@@ -22,10 +22,10 @@ int main(int argc, char **argv)
     // Layer I
     // -------------------------------------------------------
 
-    constant p0("N", expr((int32_t) SIZE0));
+    constant N("N", SIZE0);
 
     // Declare loop iterators
-    var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
+    var i("i", 0, N), j("j", 0, N), k("k", 0, N);
 
     // Declare cpu buffers.
     buffer b_A("b_A", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_input);
@@ -40,17 +40,17 @@ int main(int argc, char **argv)
     b_B_gpu.tag_gpu_global();
     b_C_gpu.tag_gpu_global();
 
-    // Declare inputs (b_A and b_B)
-    input c_A({i,j}, p_uint8);
-    input c_B({i,j}, p_uint8);
+    // Declare inputs.
+    input A("A", {i,j}, p_uint8);
+    input B("B", {i,j}, p_uint8);
 
-    // Declare a computation to initialize the reduction c[i,j]
-    computation C_init({i,j}, expr((uint8_t) 0));
-    
+    // Declare a computation to initialize the reduction.
+    computation C_init("C_init", {i,j}, expr((uint8_t) 0));
+
     // Declare the reduction operation.
-    computation c_C({i,j,k}, p_uint8);
-    // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
-    c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
+    computation C("C", {i,j,k}, p_uint8);
+    // Note that the previous computation has an empty expression (because we can only use C in an expression after its declaration)
+    C.set_expression(C(i, j, k - 1) + A(i, k) * B(k, j));
 
     // Declare host-gpu transfer computations.
     computation copy_A_to_device({}, memcpy(b_A, b_A_gpu));
@@ -64,26 +64,26 @@ int main(int argc, char **argv)
     // Scheduling commands
     copy_B_to_device.after(copy_A_to_device, computation::root);
     C_init.after(copy_B_to_device, computation::root);
-    c_C.after(C_init, computation::root);
-    copy_C_to_host.after(c_C, computation::root);
+    C.after(C_init, computation::root);
+    copy_C_to_host.after(C, computation::root);
 
     // A simple tiling.
     C_init.gpu_tile(i, j, 16, 16);
-    c_C.gpu_tile(i, j, 16, 16);
+    C.gpu_tile(i, j, 16, 16);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
     // Map the computations to a buffer.
-    c_A.store_in(&b_A_gpu);
-    c_B.store_in(&b_B_gpu);
+    A.store_in(&b_A_gpu);
+    B.store_in(&b_B_gpu);
 
     // Store C_init[i,j,k] in b_C[i,j]
     C_init.store_in(&b_C_gpu, {i,j});
-    // Store c_C[i,j,k] in b_C[i,j]
-    c_C.store_in(&b_C_gpu, {i,j});
-    // Note that both of the computations C_init and c_C store their
+    // Store C[i,j,k] in b_C[i,j]
+    C.store_in(&b_C_gpu, {i,j});
+    // Note that both of the computations C_init and C store their
     // results in the buffer b_C.
 
     // -------------------------------------------------------
