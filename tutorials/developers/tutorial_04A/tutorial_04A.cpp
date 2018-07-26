@@ -68,8 +68,7 @@ int main(int argc, char **argv)
     // Indicate that c_C is after C_init at the loop level j0 (this means,
     // they share the two outermost loops i0 and j0 and starting from j0 c_C
     // is ordered after C_init).
-    c_C.after(C_init, j0);
-
+    c_C.after(C_init, j1);
 
     // -------------------------------------------------------
     // Layer III
