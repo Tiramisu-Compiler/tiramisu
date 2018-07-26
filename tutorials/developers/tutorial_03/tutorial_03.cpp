@@ -32,10 +32,10 @@ int main(int argc, char **argv)
     var i("i", 0, M),  j("j", 0, M);
   
     // Declare the four computations: c0, c1, c2 and c3.
-    computation c0({i}, expr((uint8_t) 4));
-    computation c1({i}, expr((uint8_t) 3));
-    computation c2({i,j}, expr((uint8_t) 2));
-    computation c3({i}, expr((uint8_t) 1));
+    computation c0("c0", {i}, expr((uint8_t) 4));
+    computation c1("c1", {i}, expr((uint8_t) 3));
+    computation c2("c2", {i,j}, expr((uint8_t) 2));
+    computation c3("c3", {i}, expr((uint8_t) 1));
 
     // -------------------------------------------------------
     // Layer II
