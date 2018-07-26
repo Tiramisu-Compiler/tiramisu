@@ -3039,7 +3039,7 @@ public:
        */
      // @{
      void store_in(buffer *buff);
-     void store_in(buffer *buff, std::vector<var> iterators);
+     void store_in(buffer *buff, std::vector<expr> iterators);
      // }@
 
     /**

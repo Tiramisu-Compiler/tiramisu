@@ -97,13 +97,13 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    c_A.set_access("{c_A[i,j,k0] -> b_A_gpu[i,k0 * " BLOCK_STR " + j % " BLOCK_STR "]}");
-    c_B.set_access("{c_B[i,j,k0] -> b_B_gpu[k0 * " BLOCK_STR " + i % " BLOCK_STR ",j]}");
-    c_A_tile.set_access("{c_A_tile[i, j] -> b_A_gpu_tile[i % " BLOCK_STR ", j % " BLOCK_STR "]}");
-    c_A_tile_init.set_access("{c_A_tile_init[i, j, k0] -> b_A_gpu_tile[i % " BLOCK_STR ", j % " BLOCK_STR "]}");
+    c_A.store_in(&b_A_gpu, {i, k0 * BLOCK + j % BLOCK});
+    c_B.store_in(&b_B_gpu, {k0 * BLOCK + i % BLOCK, j});
+    c_A_tile.store_in(&b_A_gpu_tile, {i % BLOCK, j % BLOCK});
+    c_A_tile_init.store_in(&b_A_gpu_tile, {i % BLOCK, j % BLOCK});
     // Note the transpose
-    c_B_tile.set_access("{c_B_tile[i, j] -> b_B_gpu_tile[j % " BLOCK_STR ", i % " BLOCK_STR "]}");
-    c_B_tile_init.set_access("{c_B_tile_init[i, j, k0] -> b_B_gpu_tile[j % " BLOCK_STR ", i % " BLOCK_STR "]}");
+    c_B_tile.store_in(&b_B_gpu_tile, {j % BLOCK, i % BLOCK});
+    c_B_tile_init.store_in(&b_B_gpu_tile, {j % BLOCK, i % BLOCK});
 
     c_acc_init.store_in(&b_acc, {});
     c_acc.store_in(&b_acc, {});
