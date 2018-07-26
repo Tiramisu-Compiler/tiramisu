@@ -1092,11 +1092,15 @@ protected:
 
 public:
     /**
-      * Create a tiramisu buffer.
+      * \brief Create a tiramisu buffer.
       *
+      * \details
+      *
+      * A Tiramisu buffer is equivalent to an array in C.
+      * 
       * Buffers have two use cases:
-      * - used to store the results of computations, and
-      * - used to represent input arguments to functions.
+      * - Used to store the results of computations, and
+      * - Used to represent input arguments to functions.
       *
       * \p name is the name of the buffer.
       *
@@ -1109,31 +1113,21 @@ public:
       *
       * \p type is the type of the elements of the buffer.
       * It must be a primitive type (i.e. p_uint8, p_uint16, ...).
-      * Possible types are declared in tiramisu::primitive_t (type.h).
+      * Possible types are declared in \ref tiramisu::primitive_t
+      * (in type.h).
       *
       * \p fct is a pointer to a Tiramisu function where the buffer is
-      * declared or used.  If this
-      * argument is not provided, the implicit Tiramisu function is used
-      * (i.e., the function created during Tiramisu initialization).
-
-      *
-      * \p is_argument indicates whether the buffer is passed to the
-      * function as an argument.  All the buffers passed as arguments
-      * to the function should be allocated by the user outside the
-      * function.  Buffers that are not passed to the function as
-      * arguments are allocated automatically at the beginning of
-      * the function and deallocated at the end of the function.
-      * They are called temporary buffers (of type a_temporary).
-      * Temporary buffers cannot be used outside the function
-      * in which they were allocated.
+      * declared or used.  If this argument is not provided (which is
+      * the common case), the function that was created automatically
+      * during Tiramisu initialization will be used (we call that
+      * function the "implicit function").
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
-           tiramisu::primitive_t type,
-           tiramisu::argument_t argt, tiramisu::function *fct =
-               global::get_implicit_function());
+           tiramisu::primitive_t type, tiramisu::argument_t argt,
+	   tiramisu::function *fct = global::get_implicit_function());
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
