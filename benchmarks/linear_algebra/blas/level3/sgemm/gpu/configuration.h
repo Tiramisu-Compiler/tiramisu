@@ -2,7 +2,6 @@
 #define DATA_PTYPE p_float32
 
 #define BLOCK 8
-#define BLOCK_STR "8"
 
 // Dimensions need to be multiples of blocksize
 #define M 1024

@@ -7630,7 +7630,7 @@ void tiramisu::computation::store_in(buffer *buff)
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::var> iterators)
+void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::expr> iterators)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -7653,13 +7653,15 @@ void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::var> it
     else
         for (int i = 0; i < iterators.size(); i++)
         {
-            map_str += iterators[i].get_name();
+            map_str += iterators[i].to_str();
             if (i < iterators.size() - 1)
             map_str += ", ";
         }
     map_str += "]}";
 
     assert(map_str.size() != 0);
+
+    DEBUG(3, tiramisu::str_dump("Parsing following access statement: ", map_str.c_str()));
 
     isl_map *map = isl_map_read_from_str(this->get_ctx(), map_str.c_str());
     assert(map != NULL);
