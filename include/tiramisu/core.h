@@ -3930,7 +3930,7 @@ public:
       * \overload
       */
     input(std::vector<var> iterator_variables, primitive_t t):
-	    input(generate_new_computation_name(), iterator_variables, expr(), false)
+	    input(generate_new_computation_name(), iterator_variables, t)
     {
     }
 
