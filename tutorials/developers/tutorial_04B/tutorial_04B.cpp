@@ -39,23 +39,23 @@ int main(int argc, char **argv)
 
     var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
-    // Declare computations that represents the input buffers (b_A and b_B)
-    input c_A({i,j}, p_uint8);
-    input c_B({i,j}, p_uint8);
-    input c_D({i,j}, p_uint8);
+    // Declare computations that represents the input buffers.
+    input A("A", {i,j}, p_uint8);
+    input B("B", {i,j}, p_uint8);
+    input D("D", {i,j}, p_uint8);
 
-    // Declare a computation to initialize the reduction c[i,j] and e[i,j]
-    computation C_init({i,j}, expr((uint8_t) 0));
-    computation E_init({i,j}, expr((uint8_t) 0));
+    // Declare a computation to initialize the reductions.
+    computation C_init("C_init", {i,j}, expr((uint8_t) 0));
+    computation E_init("E_init", {i,j}, expr((uint8_t) 0));
     
     // Declare the first reduction.  Do not provide any expression during declaration.
-    computation c_C({i,j,k}, p_uint8);
-    // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
-    c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
+    computation C("C", {i,j,k}, p_uint8);
+    // Note that the previous computation has an empty expression (because we can only use C in an expression after its declaration)
+    C.set_expression(C(i, j, k - 1) + A(i, k) * B(k, j));
 
     // Declare the second reduction.  Do not provide any expression during declaration.
-    computation c_E({i,j,k}, p_uint8);
-    c_E.set_expression(c_E(i, j, k - 1) + c_A(i, k) * c_D(k, j));
+    computation E("E", {i,j,k}, p_uint8);
+    E.set_expression(E(i, j, k - 1) + A(i, k) * D(k, j));
 
     // -------------------------------------------------------
     // Layer II
@@ -64,23 +64,23 @@ int main(int argc, char **argv)
     // Declare loop iterators
     var i0("i0"), j0("j0"), i1("i1"), j1("j1");
 
-    // Tile all the computations: C_init, c_C, E_init, c_E
+    // Tile all the computations: C_init, C, E_init, E
     // This tiles the loop levels i and j and produces the loop levels by a 32x32 tile.
     // i0, j0, i1 and j1 where i0 is the outermost loop level and j1 is the innermost.
     C_init.tile(i, j, 32, 32, i0, j0, i1, j1);
-    c_C.tile(i, j, 32, 32, i0, j0, i1, j1);
+    C.tile(i, j, 32, 32, i0, j0, i1, j1);
     E_init.tile(i, j, 32, 32, i0, j0, i1, j1);
-    c_E.tile(i, j, 32, 32, i0, j0, i1, j1);
+    E.tile(i, j, 32, 32, i0, j0, i1, j1);
 
     // Parallelize the outermost loop level i0. By parallelizing this loop all
     // the other computations are parallelized too because they all share the
     // same outer loop i0.
-    c_C.parallelize(i0);
+    C.parallelize(i0);
 
-    // Specify the order between c_C, c_E, C_init and E_init.
+    // Specify the order between C, E, C_init and E_init.
     E_init.after(C_init, j1);
-    c_C.after(E_init, j1);
-    c_E.after(c_C, j1);
+    C.after(E_init, j1);
+    E.after(C, j1);
 
 
     // -------------------------------------------------------
@@ -96,17 +96,17 @@ int main(int argc, char **argv)
 
 
     // Map the computations to a buffer.
-    c_A.store_in(&b_A);
-    c_B.store_in(&b_B);
-    c_D.store_in(&b_D);
+    A.store_in(&b_A);
+    B.store_in(&b_B);
+    D.store_in(&b_D);
 
     // Store C_init[i,j,k] in b_C[i,j] and E_init[i,j,k] in b_E[i,j]
     C_init.store_in(&b_C, {i,j});
     E_init.store_in(&b_E, {i,j});
 
-    // Store c_C[i,j,k] in b_C[i,j] and c_E[i,j,k] in b_E[i,j]
-    c_C.store_in(&b_C, {i,j});
-    c_E.store_in(&b_E, {i,j});
+    // Store C[i,j,k] in b_C[i,j] and E[i,j,k] in b_E[i,j]
+    C.store_in(&b_C, {i,j});
+    E.store_in(&b_E, {i,j});
 
     // -------------------------------------------------------
     // Code Generation
