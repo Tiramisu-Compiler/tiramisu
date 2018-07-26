@@ -3893,6 +3893,8 @@ public:
       *
       * \details
       *
+      * \p name is the name of the input.
+      *
       * \p iterator_variables is a vector that represents the dimensions of
       * the input.
       *
@@ -3917,12 +3919,21 @@ public:
       * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
       * are of type uint8.
       */
-    input(std::vector<var> iterator_variables, primitive_t t):
-	    computation(iterator_variables, expr(), false)
+    input(std::string name, std::vector<var> iterator_variables, primitive_t t):
+	    computation(name, iterator_variables, expr(), false)
     {
         this->data_type = t;
         this->expression.dtype = t;
     }
+
+    /**
+      * \overload
+      */
+    input(std::vector<var> iterator_variables, primitive_t t):
+	    computation(generate_new_computation_name(), iterator_variables, expr(), false)
+    {
+    }
+
 };
 
 
