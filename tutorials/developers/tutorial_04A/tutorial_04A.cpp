@@ -32,21 +32,22 @@ int main(int argc, char **argv)
 
     var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
-    // Declare computations that represents the input buffers (b_A and b_B)
-    input c_A({i, j}, p_uint8);
-    input c_B({i, j}, p_uint8);
+    // Declare computations that represents the input buffers.  The actual
+    // input buffers will be declared later.
+    input A("A", {i, j}, p_uint8);
+    input B("B", {i, j}, p_uint8);
 
-    // Declare a computation to initialize the reduction c[i,j]
-    computation C_init({i,j}, expr((uint8_t) 0));
+    // Declare a computation to initialize the reduction.
+    computation C_init("C_init", {i,j}, expr((uint8_t) 0));
     
     // Declare the reduction operation.  Do not provide any expression during declaration.
-    computation c_C({i,j,k}, p_uint8);
-    // Note that the previous computation has an empty expression (because we can only use c_C in an expression after its declaration)
-    c_C.set_expression(c_C(i, j, k - 1) + c_A(i, k) * c_B(k, j));
+    computation C("C", {i,j,k}, p_uint8);
+    // Note that the previous computation has an empty expression (because we can only use C in an expression after its declaration)
+    C.set_expression(C(i, j, k - 1) + A(i, k) * B(k, j));
 
-    // In this example, c_C does not read the value of C_init, but later
-    // we indicate that C_init and c_C both are stored in the same buffer,
-    // therefore c_C will read values written by C_init.
+    // In this example, C does not read the value of C_init, but later
+    // we indicate that C_init and C both are stored in the same buffer,
+    // therefore C will read values written by C_init.
     // We are working on adding an operator for reduction to perform reduction
     // in a straight forward way.
 
@@ -54,21 +55,21 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-    // Tile both computations: C_init and c_C
+    // Tile both computations: C_init and C
     // This tiles the loop levels i and j and produces the loop levels by a 32x32 tile.
     // i0, j0, i1 and j1 where i0 is the outermost loop level and j1 is the innermost.
 
     var i0("i0"), j0("j0"), i1("i1"), j1("j1");
     C_init.tile(i, j, 32, 32, i0, j0, i1, j1);
-    c_C.tile(i, j, 32, 32, i0, j0, i1, j1);
+    C.tile(i, j, 32, 32, i0, j0, i1, j1);
 
     // Parallelize the outermost loop level i0
-    c_C.parallelize(i0);
+    C.parallelize(i0);
 
-    // Indicate that c_C is after C_init at the loop level j0 (this means,
-    // they share the two outermost loops i0 and j0 and starting from j0 c_C
+    // Indicate that C is after C_init at the loop level j0 (this means,
+    // they share the two outermost loops i0 and j0 and starting from j0 C
     // is ordered after C_init).
-    c_C.after(C_init, j1);
+    C.after(C_init, j1);
 
     // -------------------------------------------------------
     // Layer III
@@ -80,14 +81,14 @@ int main(int argc, char **argv)
     buffer b_C("b_C", {expr(SIZE0), expr(SIZE0)}, p_uint8, a_output);
 
     // Map the computations to a buffer.
-    c_A.store_in(&b_A);
-    c_B.store_in(&b_B);
+    A.store_in(&b_A);
+    B.store_in(&b_B);
 
     // Store C_init[i,j,k] in b_C[i,j]
     C_init.store_in(&b_C, {i,j});
     // Store c_C[i,j,k] in b_C[i,j]
-    c_C.store_in(&b_C, {i,j});
-    // Note that both of the computations C_init and c_C store their
+    C.store_in(&b_C, {i,j});
+    // Note that both of the computations C_init and C store their
     // results in the buffer b_C.
 
     // -------------------------------------------------------
