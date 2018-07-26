@@ -110,12 +110,14 @@ void init(std::string name);
 void init();
 
 /**
-  * Generate code. 
+  * \brief Generate code. 
   *
-  * This function generates an object file that declares the generated Tiramisu function.
+  * \details
+  *
+  * This function generates the declared function and computations in an object file.
   * \p obj_filename is the relative path of the object file to be generated.
   * If \p gen_cuda_stmt is set to true, CUDA code is generated instead of code
-  * targeting CPU (Halide IR then LLVM IR).
+  * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
 
