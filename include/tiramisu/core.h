@@ -3327,7 +3327,7 @@ public:
    /**
       * Tag the loop level \p L to be parallelized.
       *
-      * This function is equivalent to the function tag_parallel_level().
+      * This function is equivalent to the function \ref tiramisu::computation::tag_parallel_level() .
       * There is no difference between the two.
       *
       */
