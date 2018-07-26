@@ -1,11 +1,14 @@
 #!/bin/bash
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -eq 0 ]; then
+    PROJECT_SRC_DIR=$PWD
+elif [ "$#" -eq 1 ]; then
+    PROJECT_SRC_DIR=$1
+else
 	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
 	exit 1
 fi
 
-PROJECT_SRC_DIR=$1
 CMAKE=cmake
 CORES=8
 
