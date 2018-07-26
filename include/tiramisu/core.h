@@ -1631,11 +1631,12 @@ private:
 
 
     /**
-      * Take a list of iterators as input and construct the iteration
-      * domain that iterates over those iterators.
+      * Take a list of iterators and a name as input and construct the iteration
+      * domain that iterates over those iterators.  The name of the statement
+      * of the iteration domain is \p name.
       * The iteration domain is a string in ISL format.
       */
-    std::string construct_iteration_domain(std::vector<var> iterator_variables);
+    std::string construct_iteration_domain(std::string name, std::vector<var> iterator_variables);
 
     /**
       * Create a copy of this computation.
@@ -2553,10 +2554,15 @@ public:
       *
       * \details
       *
+      * \p name is the name of the computation.
+      *
       * \p iterator_variables is a vector that represents the loop iterators
       * around the computation. 
       *
       * \p e is the expression computed by the computation.
+      *
+      * \p schedule_this_computation indicates whether this computation has to
+      * be scheduled.
       *
       * For example, if we have two iterator variables
       *
@@ -2587,10 +2593,22 @@ public:
       * is presented in tests/test_04.cpp.
       *
       */
-   //@{
+   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
+   /**
+     * \overload
+     */
    computation(std::vector<var> iterator_variables, tiramisu::expr e);
+
+   /**
+     * \overload
+     */
+   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
+
+   /**
+     * \overload
+     */
    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
-   //@}
 
     /**
       * \brief Constructor for computations.
