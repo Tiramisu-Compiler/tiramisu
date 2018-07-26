@@ -3006,8 +3006,9 @@ public:
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
 
     /**
-       * Bind this computation to a buffer.  i.e., create a one-to-one data
-       * mapping between the computation and the buffer.
+       * \brief Store this computation in \p buff
+       *
+       * \details
        *
        * Let us assume that we have a computation C:
        *
@@ -3019,14 +3020,11 @@ public:
        * can use store_in() to indicate that as follows:
        *
        * \code
-       * C.store_in(bufC)
+       * C.store_in(&bufC)
        * \endcode
        *
-       * This is equivalent to calling
-       *
-       * \code
-       * C.set_access("{C[i]->bufC[i]}");
-       * \endcode
+       * This mans that each computation C(i) will be stored
+       * in the buffer location bufC[i].
        *
        * If \p iterators is specified, the \p iterators are used to specify how the
        * computation is mapped to the buffer.
@@ -3039,11 +3037,10 @@ public:
        * \endcode
        *
        * i.e., the computation C[in0, in1, ..., inn] is stored in bufC[im0,
-       * im1, ..., imm].  This is equivalent to calling
+       * im1, ..., imm].
        *
-       * \code
-       * C.set_access("{C[in0, in1, ..., inn]->bufC[im0, im1, ..., imm]}");
-       * \endcode
+       * This can be used to store the data in many ways (reordering the
+       * storage, storing into modulo buffers, ...).
        *
        * Assuming we have have computation D(i,j) that has the following
        * iteration domain:
@@ -3054,11 +3051,18 @@ public:
        *
        * and assuming we have a buffer bufD.
        *
-       * The store_in() function can be used to implement many type of data mappings:
-       *    - Map a computation to a scalar: D.store_in(bufD, {}).
-       *      This is equivalent to D.set_access("{D[i,j]->bufD[0]}")
+       * The store_in() function can be used to implement many types of data mappings:
+       *    - Store the computation D to a scalar: D.store_in(&bufD, {}).
+       *      This mans that D(i) will be stored in bufD[0] (which represents a
+       *      scalar).
        *    - Store a 2 dimensional computation into a 1-dimensional
-       *    buffer: D.store_in(i);
+       *    buffer: D.store_in(&bufD, {i});
+       *    - Change the order of storage.
+       *    D.store_in(&bufD, {j, i}) will store D(i,j) in bufD(j,i).
+       *    - Store the computation in a circular buffer (modulo storage).
+       *    D.store_in(&bufD, {i%4, j%4});
+       *    This will store D(i,j) in bufD[i%4, j%4].  Assuming the buffer
+       *    bufD is a 4x4 buffer.
        */
      // @{
      void store_in(buffer *buff);
