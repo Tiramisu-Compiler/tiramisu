@@ -2611,12 +2611,7 @@ public:
    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
     /**
-      * \brief Constructor for computations.
-      *
-      * \details
-      *
-      * \p iterator_variables is a vector that represents the loop iterators
-      * around the computation. 
+      * \overload
       *
       * \p t is the type of the computation, i.e. the type of the expression
       * computed by the computation. Example of types include (p_uint8,
@@ -2633,13 +2628,23 @@ public:
       * and we have the following computation declaration
       *
       * \code
-      * computation S({i,j}, p_uint8);
+      * computation S("S", {i,j}, p_uint8);
       * \endcode
       *
       * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
       * are of type uint8.
       */
-    computation(std::vector<var> iterator_variables, primitive_t t):
+    computation(std::string name, std::vector<var> iterator_variables, primitive_t t):
+            computation(name, iterator_variables, expr())
+    {
+        this->data_type = t;
+        this->expression.dtype = t;
+    }
+
+    /**
+      * \overload
+      */
+     computation(std::vector<var> iterator_variables, primitive_t t):
             computation(iterator_variables, expr())
     {
         this->data_type = t;
