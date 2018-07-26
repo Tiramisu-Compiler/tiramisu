@@ -4040,11 +4040,16 @@ public:
              tiramisu::function *func = global::get_implicit_function());
 
     /**
-      * Create a constant.
+      * \brief Create a constant.
+      *
+      * \details
+      *
+      * Define a constant (scalar) at the entry of the function and make it visible to all
+      * the computations.
+      *
       * \p param_name is the name of the constant.
       * \p param_expr is the expression that defines the value of the constant.
-      * The constant is defined at the entry of the function and is visible to all
-      * the computations.
+      *
       */
     constant(std::string param_name, const tiramisu::expr &param_expr);
 
