@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
     constant M("M", expr((int32_t) SIZE0));
   
-      var i("i", 0, M),  j("j", 0, M);
+    var i("i", 0, M),  j("j", 0, M);
   
     // Declare the four computations: c0, c1, c2 and c3.
     computation c0({i}, expr((uint8_t) 4));
