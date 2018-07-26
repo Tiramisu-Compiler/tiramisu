@@ -3927,32 +3927,38 @@ public:
       *
       * \details
       *
+      * Declare an input.
+      *
       * \p name is the name of the input.
       *
       * \p iterator_variables is a vector that represents the dimensions of
-      * the input.
+      * the input.  It is used to define the size of the input.
       *
       * \p t is the type of the input elements.
       * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
       *
-      * Usually, this constructor is used to declare a computation that
-      * represents an input.
+      * Example:
       *
-      * For example, if we have two iterator variables
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type uint8.  We can first declare two iterator variables
       *
       * \code
       * var i("i", 0, 20), j("j", 0, 30);
       * \endcode
       *
-      * and we have the following computation declaration
+      * and then we can declare the following input
       *
       * \code
-      * input A({i,j}, p_uint8);
+      * input A("A", {i,j}, p_uint8);
       * \endcode
       *
-      * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
-      * are of type uint8.
-      */
+      * Later in the code (in Layer III), we need to actually declare
+      * the buffer and map this input to that buffer.
+      *
+      * An example is provided in tutorial 02.
+      * 
+     */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
 	    computation(name, iterator_variables, expr(), false)
     {
