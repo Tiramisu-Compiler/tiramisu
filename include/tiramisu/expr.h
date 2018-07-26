@@ -1686,16 +1686,6 @@ private:
       */
     var(tiramisu::primitive_t type, std::string name, bool save);
 
-public:
-    /**
-      * Construct an expression that represents a variable.
-      * \p type is the type of the variable and \p name is its name.
-      * If a variable with the same name has previously been declared,
-      * but with a different type, this constructor will fail.
-      * That way two variables with the same name are necessarily equal.
-      */
-    var(tiramisu::primitive_t type, std::string name) : var(type, name, true) {}
-
     /**
       * lower loop bound when the variable is used as an iterator.
       */
@@ -1706,6 +1696,17 @@ public:
       */
     expr upper;
 
+public:
+    /**
+      * Construct an expression that represents a variable.
+      *
+      * \p type is the type of the variable and \p name is its name.
+      * If a variable with the same name has previously been declared,
+      * but with a different type, this constructor will fail.
+      * That way two variables with the same name are necessarily equal.
+      */
+    var(tiramisu::primitive_t type, std::string name) : var(type, name, true) {}
+
     /**
      * Construct an expression that represents an untyped variable.
      * For example to declare the variable "t", use
@@ -1713,18 +1714,14 @@ public:
      * If a variable with the same name has previously been declared, this
      * object will have the same type (i.e. it will be equal to the other variable object).
      *
-     * To declare an expression that represents the reference of a buffer
-     * one can declare a variable as follows
-     *
-     * tiramisu::expr(o_address, "buf0");
-     *
      */
     var(std::string name) : var(name, true) {}
 
     /**
-     * Construct a loop iterator that have \p name as a name.
+     * Construct a loop iterator that has \p name as a name.
+     *
      * \p lower and \p upper are expressions that represent the lower and upper
-     * bounds of this iterator.  For example, the iterator i in the following C
+     * bounds of this iterator.  For example, the iterator i in the following
      * for loop
      *
      * \code
@@ -1736,9 +1733,6 @@ public:
      * \code
      * var i("i", expr(0), expr(10));
      * \endcode
-     *
-     * If a variable with the same name has previously been declared, this
-     * object will have the same type (i.e. it will be equal to the other variable object).
      *
      */
     var(std::string name, expr lower_bound, expr upper_bound) : var(name, true)
