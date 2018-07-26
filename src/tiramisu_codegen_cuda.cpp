@@ -1690,7 +1690,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         auto result = exec(command.str());
 
         if (result.fail())
-            tiramisu::error("Failed to compile the CPU object for the GPU code.", false);
+        {
+            ERROR("Failed to compile the CPU object for the GPU code.", false);
+        }
 
         DEBUG_INDENT(-4);
 
@@ -1717,7 +1719,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         auto result = exec(command.str());
 
         if (result.fail())
-            tiramisu::error("Failed to compile the GPU object for the GPU code.", false);
+        {
+            ERROR("Failed to compile the GPU object for the GPU code.", false);
+        }
 
         DEBUG_INDENT(-4);
 
@@ -1736,7 +1740,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         if (!getenv("CUDA_NO_OVERWRITE")) {
             code_file.open(filename, fstream::out | fstream::trunc);
             if (code_file.fail()) {
-                tiramisu::error("Failed to open file " + filename + " for writing. Cannot compile GPU code.", false);
+                ERROR("Failed to open file " + filename + " for writing. Cannot compile GPU code.", false);
                 return false;
             }
             DEBUG(3, cout << "Opened file " << filename << " for writing.");
@@ -1744,7 +1748,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             code_file << code;
             code_file.flush();
             if (code_file.fail()) {
-                tiramisu::error("Failed to write to file " + filename + ". Cannot compile GPU code.", false);
+                ERROR("Failed to write to file " + filename + ". Cannot compile GPU code.", false);
                 return false;
             }
         }

@@ -71,7 +71,7 @@ tiramisu::primitive_t halide_type_to_tiramisu_type(Type type)
         }
         else
         {
-            tiramisu::error("Floats other than 32 and 64 bits are not suppored in Tiramisu.", true);
+            ERROR("Floats other than 32 and 64 bits are not suppored in Tiramisu.", true);
         }
     }
     else if (type.is_bool())
@@ -80,7 +80,7 @@ tiramisu::primitive_t halide_type_to_tiramisu_type(Type type)
     }
     else
     {
-        tiramisu::error("Halide type cannot be translated to Tiramisu type.", true);
+        ERROR("Halide type cannot be translated to Tiramisu type.", true);
     }
     return tiramisu::p_none;
 }
@@ -117,7 +117,7 @@ private:
 
     void error() const
     {
-        tiramisu::error("Can't convert to tiramisu expr.", true);
+        ERROR("Can't convert to tiramisu expr.", true);
     }
 
     void push_loop_dim(const For *op)

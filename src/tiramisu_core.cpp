@@ -3493,12 +3493,16 @@ void computation::assert_names_not_assigned(
         int d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_out,
                                          dim.c_str());
         if (d >= 0)
-            tiramisu::error("Dimension " + dim + " is already in use.", true);
+        {
+            ERROR("Dimension " + dim + " is already in use.", true);
+        }
 
         d = isl_map_find_dim_by_name(this->get_schedule(), isl_dim_in,
                                      dim.c_str());
         if (d >= 0)
-            tiramisu::error("Dimension " + dim + " is already in use.", true);
+        {
+            ERROR("Dimension " + dim + " is already in use.", true);
+        }
     }
 }
 
@@ -3517,7 +3521,7 @@ void computation::check_dimensions_validity(std::vector<int> dimensions)
             isl_space_dim(isl_map_get_space(this->get_schedule()),
                           isl_dim_out))
         {
-            tiramisu::error("The dynamic dimension " +
+            ERROR("The dynamic dimension " +
                             std::to_string(loop_level_into_dynamic_dimension(dim)) +
                             " is not less than the number of dimensions of the "
                             "time-space domain " +
@@ -3655,7 +3659,9 @@ std::vector<int> computation::get_loop_level_numbers_from_dimension_names(
                                          isl_map_to_str(this->get_schedule())));
 
             if (d < 0)
-                tiramisu::error("Dimension " + dim + " not found.", true);
+            {
+                ERROR("Dimension " + dim + " not found.", true);
+            }
 
             DEBUG(10, tiramisu::str_dump("Corresponding loop level is " +
                                          std::to_string(dynamic_dimension_into_loop_level(d))));
@@ -3729,8 +3735,10 @@ std::vector<std::string> computation::get_iteration_domain_dimension_names()
             result.push_back(std::string(isl_set_get_dim_name(iter,
                                                               isl_dim_set, i)));
         else
-            tiramisu::error("All iteration domain dimensions must have "
+        {
+            ERROR("All iteration domain dimensions must have "
                             "a name.", true);
+        }
     }
 
     assert(result.size() == this->get_iteration_domain_dimensions_number());
@@ -5224,7 +5232,7 @@ int compute_recursively_max_AST_depth(isl_ast_node *node)
     }
     else
     {
-        tiramisu::error("Found an unsupported ISL AST node while computing the maximal AST depth.", true);
+        ERROR("Found an unsupported ISL AST node while computing the maximal AST depth.", true);
     }
 
     DEBUG(3, tiramisu::str_dump("Current depth = " + std::to_string(result)));
@@ -5259,7 +5267,9 @@ tiramisu::expr utility::extract_bound_expression(isl_ast_node *node, int dim, bo
     DEBUG(3, tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
 
     if (isl_ast_node_get_type(node) == isl_ast_node_block)
-        tiramisu::error("Currently Tiramisu does not support extracting bounds from blocks.", true);
+    {
+        ERROR("Currently Tiramisu does not support extracting bounds from blocks.", true);
+    }
     else if (isl_ast_node_get_type(node) == isl_ast_node_for)
     {
         DEBUG(3, tiramisu::str_dump("Extracting bounds from a for loop."));
@@ -5311,7 +5321,9 @@ tiramisu::expr utility::extract_bound_expression(isl_ast_node *node, int dim, bo
         assert(result.is_defined());
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_user)
-        tiramisu::error("Cannot extract bounds from a isl_ast_user node.", true);
+    {
+        ERROR("Cannot extract bounds from a isl_ast_user node.", true);
+    }
     else if (isl_ast_node_get_type(node) == isl_ast_node_if)
     {
         DEBUG(3, tiramisu::str_dump("If conditional."));
@@ -5324,7 +5336,7 @@ tiramisu::expr utility::extract_bound_expression(isl_ast_node *node, int dim, bo
         {
             // else_bound = utility::extract_bound_expression(isl_ast_node_if_get_else(node), dim, upper);
             // result = tiramisu::expr(tiramisu::o_s, cond_bound, then_bound, else_bound);
-            tiramisu::error("If Then Else is unsupported in bound extraction.", true);
+            ERROR("If Then Else is unsupported in bound extraction.", true);
         }
         else
             result = then_bound; //tiramisu::expr(tiramisu::o_cond, cond_bound, then_bound);
@@ -5803,7 +5815,7 @@ std::string tiramisu::function::get_gpu_thread_iterator(const std::string &comp,
             }
             else
             {
-                tiramisu::error("Level not mapped to GPU.", true);
+                ERROR("Level not mapped to GPU.", true);
             }
 
             std::string str = "Dimension " + std::to_string(lev0) +
@@ -5848,7 +5860,7 @@ std::string tiramisu::function::get_gpu_block_iterator(const std::string &comp, 
             }
             else
             {
-                tiramisu::error("Level not mapped to GPU.", true);
+                ERROR("Level not mapped to GPU.", true);
             }
 
             std::string str = "Dimension " + std::to_string(lev0) +
@@ -6208,7 +6220,7 @@ Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t
 
     if (type == tiramisu::a_temporary)
     {
-        tiramisu::error("Buffer type \"temporary\" can't be translated to Halide.\n", true);
+        ERROR("Buffer type \"temporary\" can't be translated to Halide.\n", true);
     }
 
     if (type == tiramisu::a_input)
@@ -6529,7 +6541,7 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
     case tiramisu::o_trunc:
         return "trunc";
     default:
-        tiramisu::error("Tiramisu op not supported.", true);
+        ERROR("Tiramisu op not supported.", true);
         return "";
     }
 }
@@ -6557,7 +6569,7 @@ std::string str_from_tiramisu_type_expr(tiramisu::expr_t type)
     case tiramisu::e_sync:
         return "sync";
     default:
-        tiramisu::error("Tiramisu type not supported.", true);
+        ERROR("Tiramisu type not supported.", true);
         return "";
     }
 }
@@ -6573,7 +6585,7 @@ std::string str_from_tiramisu_type_argument(tiramisu::argument_t type)
     case tiramisu::a_temporary:
         return "temporary";
     default:
-        tiramisu::error("Tiramisu type not supported.", true);
+        ERROR("Tiramisu type not supported.", true);
         return "";
     }
 }
@@ -6607,7 +6619,7 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
     case tiramisu::p_wait_ptr:
         return "wait";
     default:
-        tiramisu::error("Tiramisu type not supported.", true);
+        ERROR("Tiramisu type not supported.", true);
         return "";
     }
 }
@@ -6755,7 +6767,7 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
         t = Halide::Handle();
         break;
     default:
-        tiramisu::error("Tiramisu type cannot be translated to Halide type.", true);
+        ERROR("Tiramisu type cannot be translated to Halide type.", true);
     }
     return t;
 }
@@ -6871,14 +6883,18 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     if (same_name_computations.size() > 1)
     {
         if (isl_set_plain_is_universe(this->get_iteration_domain()))
-            tiramisu::error("Computations defined multiple times should"
+        {
+            ERROR("Computations defined multiple times should"
                             " have bounds on their iteration domain", true);
+        }
 
         for (auto c : same_name_computations)
         {
             if (isl_set_plain_is_universe(c->get_iteration_domain()))
-                tiramisu::error("Computations defined multiple times should"
+            {
+                ERROR("Computations defined multiple times should"
                                 " have bounds on their iteration domain", true);
+            }
         }
     }
 
@@ -7359,7 +7375,7 @@ void tiramisu::computation::set_access(std::string access_str)
     for (auto c : computations)
         if (isl_map_is_equal(this->get_access_relation(), c->get_access_relation()) == isl_bool_false)
         {
-            tiramisu::error("Computations that have the same name should also have the same access relation.",
+            ERROR("Computations that have the same name should also have the same access relation.",
                             true);
         }
 
@@ -7744,7 +7760,9 @@ std::string tiramisu::computation::construct_iteration_domain(std::string name, 
 	tiramisu::function *fct = global::get_implicit_function();
 
 	if (fct == NULL)
-	    tiramisu::error("An implicit function has to be created by providing a function name to init(NAME). Otherwise the low level API has to be called", true);
+    {
+	    ERROR("An implicit function has to be created by providing a function name to init(NAME). Otherwise the low level API has to be called", true);
+    }
 
 	const std::vector<std::string> inv = fct->get_invariant_names();
 
@@ -8186,7 +8204,7 @@ std::string create_send_func_name(const xfer_prop chan)
                 name += "_f64";
                 break;
             default: {
-                error("Channel not allowed", 27);
+                ERROR("Channel not allowed", 27);
                 break;
             }
         }
@@ -8334,7 +8352,7 @@ std::string create_recv_func_name(const xfer_prop chan)
                 name += "_f64";
                 break;
             default:
-                error("Channel type not allowed.", 27);
+                ERROR("Channel type not allowed.", 27);
         }
         return name;
     } else {
@@ -8587,7 +8605,7 @@ void tiramisu::function::lift_dist_comps() {
             if (chan.contains_attr(MPI)) {
                 lift_mpi_comp(*comp);
             } else {
-                tiramisu::error("Can only lift MPI library calls", 0);
+                ERROR("Can only lift MPI library calls", 0);
             }
         }
     }

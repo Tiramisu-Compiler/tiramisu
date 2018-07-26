@@ -21,8 +21,6 @@ void str_dump(const std::string &str, const char *str2);
 void str_dump(const char *str, const char *str2);
 void print_indentation();
 
-void error(const std::string &str, bool exit);
-
 extern int tiramisu_indentation;
 
 } // namespace tiramisu
@@ -86,5 +84,14 @@ extern int tiramisu_indentation;
   * Useful to indent the text printed by IF_DEBUG.
   */
 #define DEBUG_INDENT(x) {tiramisu::tiramisu_indentation = tiramisu::tiramisu_indentation + x;}
+
+#define ERROR(message, exit_program) {                      \
+    std::cerr << "Error in " << __FILE__ << ":"             \
+              << __LINE__ << " - " << message << std::endl; \
+    if (exit_program)                                       \
+    {                                                       \
+        exit(1);                                            \
+    }                                                       \
+}
 
 #endif
