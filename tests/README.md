@@ -25,7 +25,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .fuse_after(): test_13, 29, 30, 31
 - .get_last_update(): test_68
 - High level API: 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
-    127
+    127, 128
 - ISL-free API: 110, 111, 112, 113
 - tiramisu::init(): 103, 114, 115, 116
 - let statement: test_04
