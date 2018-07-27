@@ -348,3 +348,7 @@ foreach(t ${TIRAMISU_USERS_TUTORIALS})
     new_users_tutorial(${t})
 endforeach()
 
+# TODO(akkas): Add a systematic way to add subdirectories
+if (${USE_GPU})
+    add_subdirectory(benchmarks/linear_algebra/blas/level3/sgemm/gpu)
+endif()

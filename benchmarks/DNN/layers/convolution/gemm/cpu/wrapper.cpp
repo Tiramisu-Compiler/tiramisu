@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "gemm_conv_wrapper.h"
+#include "wrapper.h"
 
 int main(int, char **)
 {
