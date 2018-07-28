@@ -331,7 +331,7 @@ if (U1 < B1)
     function0.gen_time_space_domain();
     function0.gen_isl_ast();
     function0.gen_halide_stmt();
-    function0.gen_halide_obj("gemm_conv_fct.o");
+    function0.gen_halide_obj("fct.o");
 }
 
 int main(int argc, char **argv)

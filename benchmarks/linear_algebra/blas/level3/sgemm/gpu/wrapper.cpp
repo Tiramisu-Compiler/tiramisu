@@ -20,6 +20,11 @@ int main(int argc, char *argv[])
         check_correctness = atoi(argv[2]);
     }
 
+    std::cout << std::endl << "----------" << std::endl;
+    std::cout << "Running GPU GEMM benchmark: testN: " << testN
+              << ", check correctness: " << check_correctness
+              << ", (M,N,K): (" << M << "," << N << "," << K << ")" << std::endl;
+
     auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = t1;
     
@@ -165,6 +170,8 @@ int main(int argc, char *argv[])
     free(A);
     free(B);
     free(C);
+
+    std::cout << "----------" << std::endl << std::endl;
 
     return 0;
 }
