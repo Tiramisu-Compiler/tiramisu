@@ -19,7 +19,7 @@ echo "	.Compiling conv_layer_generator.cpp (one halide convolution)"
 echo "	.Compiling conv_layer_generator_tiramisu.cpp (one tiramisu convolution)"
 ./compile_tiramisu_code.sh conv_layer_generator_tiramisu.cpp
 echo "	.Running conv_layer_generator (generator for one-halide-convolution)"
-./conv_layer_generator
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ ./conv_layer_generator
 echo "	.Running conv_layer_generator_tiramisu (generator for one-tiramisu-convolution)"
 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/ ./conv_layer_generator_tiramisu
 
