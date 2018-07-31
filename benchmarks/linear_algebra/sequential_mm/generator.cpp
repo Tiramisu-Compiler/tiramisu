@@ -64,13 +64,13 @@ int main(int argc, char **argv)
 
     // Scheduling commands
 
-    copy_B_to_device.after(copy_A_to_device, computation::root);
-    copy_C_to_device.after(copy_B_to_device, computation::root);
-    c_T1_init.after(copy_C_to_device, computation::root);
-    c_T1.after(c_T1_init, k1);
-    c_O_init.after(c_T1, computation::root);
-    c_O.after(c_O_init, l1);
-    copy_O_to_host.after(c_O, computation::root);
+    copy_A_to_device.then(copy_B_to_device, computation::root)
+                    .then(copy_C_to_device, computation::root)
+                    .then(c_T1_init, computation::root)
+                    .then(c_T1, k1)
+                    .then(c_O_init, computation::root)
+                    .then(c_O, l1)
+                    .then(copy_O_to_host, computation::root);
 
     // -------------------------------------------------------
     // Layer III
