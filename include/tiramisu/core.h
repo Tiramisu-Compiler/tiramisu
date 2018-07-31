@@ -3636,6 +3636,31 @@ public:
     void tag_unroll_level(int L);
 
     /**
+      * \brief Schedule this computation to run before the computation \p next_computation
+      * at the loop level \p L and return \p next_computation.
+      *
+      * \details Notes
+      *     - This method is a simple wrapper around computation::after to help schedule
+      *       chaining as in:
+      *       \code
+      *       C1.then(C2, j)
+      *         .then(C3, computation::root)
+      *         .then(C4, i)
+      *         .then(C5, j);
+      *       \endcode
+      *     - The loop level \p L is a loop level of this computation.
+      *     - Use computation::root to indicate the root dimension
+      *       (i.e. the outermost time-space dimension).
+      *     - Calling this method with the same computations overwrites the level if it is
+      *     higher.
+      *     - A computation being scheduled after another computation at level L means it is
+      *     scheduled after that computation at all levels lower than L.
+      */
+    // @{
+    computation &then(computation &next_computation, tiramisu::var L);
+    // @}
+
+    /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
       * \p L0 and \p L1 should be two consecutive loop levels.

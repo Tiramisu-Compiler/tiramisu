@@ -78,20 +78,19 @@ int main(int argc, char **argv)
     c_acc_init.gpu_tile(i, j, BLOCK, BLOCK, i0, j0, i1, j1);
     c_acc.gpu_tile(i, j, BLOCK, BLOCK, i0, j0, i1, j1);
 
-    copy_B_to_device.after(copy_A_to_device, computation::root);
-    copy_C_to_device.after(copy_B_to_device, computation::root);
-    c_A_tile_dec.after(copy_C_to_device, computation::root);
-    c_B_tile_dec.after(c_A_tile_dec, j1);
-    c_acc_dec.after(c_B_tile_dec, j1);
-    c_acc_init.after(c_acc_dec, j1);
-    c_A_tile_init.after(c_acc_init, j1);
-    c_B_tile_init.after(c_A_tile_init, k0);
-    sync1.after(c_B_tile_init, k0);
-    c_acc.after(sync1, k0);
-    sync2.after(c_acc, k0);
-    c_C.after(sync2, j1);
-    copy_C_to_host.after(c_C, computation::root);
-
+    copy_A_to_device.then(copy_B_to_device, computation::root)
+                    .then(copy_C_to_device, computation::root)
+                    .then(c_A_tile_dec, computation::root)
+                    .then(c_B_tile_dec, j1)
+                    .then(c_acc_dec, j1)
+                    .then(c_acc_init, j1)
+                    .then(c_A_tile_init, j1)
+                    .then(c_B_tile_init, k0)
+                    .then(sync1, k0)
+                    .then(c_acc, k0)
+                    .then(sync2, k0)
+                    .then(c_C, j1)
+                    .then(copy_C_to_host, computation::root);
 
     // -------------------------------------------------------
     // Layer III
