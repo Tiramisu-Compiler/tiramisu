@@ -21,13 +21,13 @@ void generate_code()
     tiramisu::init("foo");
 
     // Declare two iterator variables (i and j) such that 0<=i<100 and 0<=j<100.
-    tiramisu::var i("i", 0, 100), j("j", 0, 100);
+    var i("i", 0, 100), j("j", 0, 100);
 
     // Declare a Tiramisu expression (algorithm) that is equivalent to the following C code
     // for (i=0; i<100; i++)
     //   for (j=0; j<100; j++)
     //     C(i,j) = 0;
-    tiramisu::computation C({i,j}, 0);
+    computation C({i,j}, 0);
     
     // Specify optimizations
     C.parallelize(i);
@@ -68,8 +68,8 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
 3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
 
-    - To use the GPU backend, set `USE_GPU` to `true`. Requires CUDA library to be installed on the system.
-    - To use the distributed backend, set `USE_MPI` to `true`.  If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
+    - To use the GPU backend, set `USE_GPU` to `TRUE`. If the CUDA library is not found automatically while building Tiramisu, the user will be prompt to provide the path to the CUDA library.
+    - To use the distributed backend, set `USE_MPI` to `TRUE`. If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
 
 4) Build the main Tiramisu library
 
