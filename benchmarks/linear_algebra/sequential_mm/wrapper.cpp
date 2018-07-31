@@ -18,8 +18,9 @@ int main(int argc, char *argv[])
     }
 
     std::cout << std::endl << "----------" << std::endl;
-    std::cout << "Running GPU GEMM benchmark: testN: " << testN
-              << ", check correctness: " << check_correctness << std::endl;
+    std::cout << "Running sequential MM benchmark: testN: " << testN
+              << ", check correctness: " << check_correctness
+              << ", N: " << N << std::endl;
 
     auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = t1;
@@ -29,9 +30,9 @@ int main(int argc, char *argv[])
     float *C = (float*) malloc(N * N * sizeof(float));
 
     // Initialize matrices with random values:
-    for (int i = 0; i < N * N; i++) A[i] = std::rand() % 100;
-    for (int i = 0; i < N * N; i++) B[i] = std::rand() % 100;
-    for (int i = 0; i < N * N; i++) C[i] = std::rand() % 100;
+    for (int i = 0; i < N * N; i++) A[i] = std::rand() % 10;
+    for (int i = 0; i < N * N; i++) B[i] = std::rand() % 10;
+    for (int i = 0; i < N * N; i++) C[i] = std::rand() % 10;
 
     std::cout << "Buffers initialized" << std::endl << std::flush;
 
@@ -48,6 +49,8 @@ int main(int argc, char *argv[])
 
     if (check_correctness) {
         // Reference matrix multiplication
+
+        std::cout << "Running CPU multiplication.." << std::endl;
 
         Halide::Buffer<DATA_TYPE> O_val_buf(N, N);
         Halide::Buffer<DATA_TYPE> T_val_buf(N, N);
