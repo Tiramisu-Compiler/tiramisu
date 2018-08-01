@@ -378,7 +378,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     case o_allocate:
                     {
                         auto buffer = get_buffer(tiramisu_expr.get_name());
-                        if (buffer->get_location() == memory_location::shared || buffer->get_location() == memory_location::reg)
+                        if (buffer->get_location() == memory_location::shared
+                                || buffer->get_location() == memory_location::local
+                                || buffer->get_location() == memory_location::reg)
                             return statement_ptr {new cuda_ast::declaration{buffer}};
                         else
                             return statement_ptr {new cuda_ast::allocate{buffer}};
@@ -576,7 +578,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             {
                 this->gpu_local.insert(comp->get_expr().get_name());
                 auto buffer = get_buffer(comp->get_expr().get_name());
-                if (buffer->get_location() == memory_location::shared || buffer->get_location() == memory_location::reg)
+                if (buffer->get_location() == memory_location::shared
+                        || buffer->get_location() == memory_location::local
+                        || buffer->get_location() == memory_location::reg)
                     return statement_ptr {new cuda_ast::declaration{buffer}};
                 else
                     return statement_ptr {new cuda_ast::allocate{buffer}};
@@ -1297,9 +1301,13 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     void cuda_ast::kernel::add_used_scalar(scalar_ptr scalar) {
         used_constants[scalar->get_name()] = scalar;
     }
+
     void cuda_ast::kernel::add_used_buffer(buffer_ptr buffer) {
-        if (buffer->get_location() != memory_location::shared && buffer->get_location() != memory_location::constant)
+        if (buffer->get_location() != memory_location::shared
+                && buffer->get_location() != memory_location::local
+                && buffer->get_location() != memory_location::constant) {
             used_buffers[buffer->get_name()] = buffer;
+        }
     }
 
     cuda_ast::host_function::host_function(primitive_t type, std::string name, const std::vector<abstract_identifier_ptr> &arguments, statement_ptr body) :
