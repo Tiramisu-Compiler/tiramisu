@@ -8757,6 +8757,11 @@ void tiramisu::buffer::tag_gpu_global() {
     location = cuda_ast::memory_location::global;
 }
 
+void tiramisu::buffer::tag_gpu_local() {
+    location = cuda_ast::memory_location::local;
+    set_auto_allocate(false);
+}
+
 void tiramisu::buffer::tag_gpu_register() {
     bool is_single_val = this->get_n_dims() == 1 && this->get_dim_sizes()[0].get_expr_type() == e_val && this->get_dim_sizes()[0].get_int_val() == 1;
     assert(is_single_val && "Buffer needs to correspond to a single value to be in register");

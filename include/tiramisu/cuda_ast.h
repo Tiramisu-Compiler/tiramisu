@@ -179,6 +179,7 @@ enum class memory_location
     host,
     global,
     shared,
+    local,
     constant,
     reg,
 };

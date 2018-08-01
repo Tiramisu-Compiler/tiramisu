@@ -1285,6 +1285,8 @@ public:
     void tag_gpu_register();
     /* Tag the buffer as located in the GPU shared memory. */
     void tag_gpu_shared();
+    /* Tag the buffer as located in the GPU local thread memory. */
+    void tag_gpu_local();
     /* Tag the buffer as located in the GPU constant memory. */
     void tag_gpu_constant();
 
