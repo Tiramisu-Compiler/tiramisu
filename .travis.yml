@@ -1,0 +1,8 @@
+install:
+  - ./utils/scripts/install_submodules.sh $TRAVIS_BUILD_DIR
+
+script:
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make -j tiramisu
