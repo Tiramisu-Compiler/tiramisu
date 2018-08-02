@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 1000
+#define NN 100
 
 int main(int, char **)
 {
