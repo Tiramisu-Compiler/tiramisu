@@ -158,7 +158,11 @@ find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 # Require LLVM 5.0 or greater to keep in line with Halide
+message(${LLVM_CONFIG_BIN})
+execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config OUTPUT_VARIABLE LLVM_VERSION)
+message(${LLVM_VERSION})
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
+message(${LLVM_VERSION})
 string(STRIP ${LLVM_VERSION} LLVM_VERSION)
 if (${LLVM_VERSION} VERSION_GREATER 5.0)
     execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
