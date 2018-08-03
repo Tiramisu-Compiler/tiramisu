@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -e 0 ]; then
 	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
 	exit 1
 fi
@@ -8,6 +8,13 @@ fi
 PROJECT_SRC_DIR=$1
 CMAKE=cmake
 CORES=8
+# For Travis build we skip LLVM installation and use a custom binary.
+# Second argument specifies the custom path of the LLVM bin dir.
+if [ "$2" = "" ]; then
+    LLVM_BIN_DIR=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin
+else
+    LLVM_BIN_DIR="$2"
+fi
 
 set -e
 . ${PROJECT_SRC_DIR}/utils/scripts/functions.sh
@@ -62,8 +69,8 @@ echo_and_run_cmd "make install"
 
 
 # Set LLVM_CONFIG and CLANG env variables
-export CLANG=${PROJECT_SRC_DIR}/3rdParty/llvm//build/bin/clang
-export LLVM_CONFIG=${PROJECT_SRC_DIR}/3rdParty/llvm//build/bin/llvm-config
+export CLANG=${LLVM_BIN_DIR}/clang
+export LLVM_CONFIG=${LLVM_BIN_DIR}/llvm-config
 
 
 
