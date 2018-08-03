@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$#" -e 0 ]; then
+if [ "$#" -eq 0 ]; then
 	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
 	exit 1
 fi
