@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     buffer b_B_gpu("b_B_gpu", {N, N}, DATA_PTYPE, a_temporary);
     buffer b_C_gpu("b_C_gpu", {N, N}, DATA_PTYPE, a_temporary);
     buffer b_O_gpu("b_O_gpu", {N, N}, DATA_PTYPE, a_temporary);
+    // Temporary buffer to store AxB
     buffer b_T1_gpu("b_T1_gpu", {N, N}, DATA_PTYPE, a_temporary);
     b_A_gpu.tag_gpu_global();
     b_B_gpu.tag_gpu_global();
