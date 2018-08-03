@@ -1,6 +1,10 @@
 language: cpp
 
 install:
+  - sudo apt-get -y --force-yes install g++-4.8 gcc-4.8 libedit-dev
+  # Make gcc4.8 the default gcc version
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 20
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 20
   - wget http://llvm.org/releases/5.0.0/clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
   - tar xvf clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
   - mv clang+llvm-5.0.0-x86_64-linux-gnu-debian8 llvm
@@ -12,4 +16,3 @@ script:
   - cd build
   - cmake ..
   - make -j tiramisu
-
