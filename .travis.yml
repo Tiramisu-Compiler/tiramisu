@@ -4,7 +4,7 @@ install:
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
   - sudo apt-get update
   - sudo apt-get install gcc-4.9
-  - sudo apt-get upgrade libstdc++6
+  # - sudo apt-get upgrade libstdc++6
   - wget http://llvm.org/releases/5.0.0/clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
   - tar xvf clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
   - mv clang+llvm-5.0.0-x86_64-linux-gnu-debian8 llvm
