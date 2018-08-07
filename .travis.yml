@@ -1,0 +1,22 @@
+language: cpp
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libstdc++-4.9-dev
+
+install:
+  - wget http://llvm.org/releases/5.0.0/clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
+  - tar xvf clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
+  - mv clang+llvm-5.0.0-x86_64-linux-gnu-debian8 llvm
+  - ./utils/scripts/install_submodules.sh $TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/llvm/bin
+  - printf "\nset (LLVM_CONFIG_BIN \${CMAKE_SOURCE_DIR}/llvm/bin)" >> configure.cmake
+
+script:
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make -j tiramisu
+  # - make test

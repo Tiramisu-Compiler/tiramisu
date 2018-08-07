@@ -41,15 +41,16 @@ int main(int argc, char **argv)
     b_C_gpu.tag_gpu_global();
 
     // Declare inputs.
-    input A("A", {i,j}, p_uint8);
-    input B("B", {i,j}, p_uint8);
+    input A("A", {i, j}, p_uint8);
+    input B("B", {i, j}, p_uint8);
 
     // Declare a computation to initialize the reduction.
-    computation C_init("C_init", {i,j}, expr((uint8_t) 0));
+    computation C_init("C_init", {i, j}, expr((uint8_t) 0));
 
     // Declare the reduction operation.
     computation C("C", {i,j,k}, p_uint8);
-    // Note that the previous computation has an empty expression (because we can only use C in an expression after its declaration)
+    // Note that the previous computation has an empty expression,
+    // because we can only use C in an expression after its declaration.
     C.set_expression(C(i, j, k - 1) + A(i, k) * B(k, j));
 
     // Declare host-gpu transfer computations.
@@ -61,15 +62,15 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-    // Scheduling commands
-    copy_B_to_device.after(copy_A_to_device, computation::root);
-    C_init.after(copy_B_to_device, computation::root);
-    C.after(C_init, computation::root);
-    copy_C_to_host.after(C, computation::root);
-
     // A simple tiling.
     C_init.gpu_tile(i, j, 16, 16);
     C.gpu_tile(i, j, 16, 16);
+
+    // Scheduling commands
+    copy_A_to_device.then(copy_B_to_device, computation::root)
+                    .then(C_init, computation::root)
+                    .then(C, computation::root)
+                    .then(copy_C_to_host, computation::root);
 
     // -------------------------------------------------------
     // Layer III
@@ -79,8 +80,8 @@ int main(int argc, char **argv)
     A.store_in(&b_A_gpu);
     B.store_in(&b_B_gpu);
 
-    // Store C_init[i,j,k] in b_C[i,j]
-    C_init.store_in(&b_C_gpu, {i,j});
+    // Store C_init[i,j] in b_C[i,j]
+    C_init.store_in(&b_C_gpu);
     // Store C[i,j,k] in b_C[i,j]
     C.store_in(&b_C_gpu, {i,j});
     // Note that both of the computations C_init and C store their
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    // Generate object files. Last argument triggers cuda compilation.
+    // Generate object files. The last argument triggers cuda compilation.
     tiramisu::codegen({&b_A, &b_B, &b_C}, "build/generated_fct_developers_tutorial_04gpu.o", true);
 
     return 0;

@@ -160,12 +160,12 @@ find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 # Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
 string(STRIP ${LLVM_VERSION} LLVM_VERSION)
-if (${LLVM_VERSION} VERSION_GREATER 5.0)
-    execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
-    string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
-else ()
+if (${LLVM_VERSION} VERSION_LESS 5.0)
     message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
 endif()
+
+execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
+string(STRIP ${LLVM_FLAGS} LLVM_FLAGS)
 
 set(LINK_FLAGS "-ldl -lpthread ${LLVM_FLAGS}")
 
