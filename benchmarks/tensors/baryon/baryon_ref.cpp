@@ -59,7 +59,7 @@ extern "C" {
 void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P],
 			float wp[BARYON_N][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P])
 {
-  int c1 = 0, c2 = 0, c3 = 0, t = 0, a1 = 0, a2 = 0, a3 = 0, xp0 = 0, b0 = 0, b1 = 0, b2 = 0;
+  const int c1 = 0, c2 = 0, c3 = 0, t = 0, a1 = 0, a2 = 0, a3 = 0, xp0 = 0, b0 = 0, b1 = 0, b2 = 0;
 
   Res2[0] = 0;
   float Res0;
@@ -82,4 +82,30 @@ void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N
 
          Res2[0] = Res2[0] + Res1;
        }
+}
+
+void init_buffers(float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P],
+			float wp[BARYON_N][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P], float val)
+{
+  for (int xp0 = 0; xp0 < BARYON_P; xp0++)
+    for (int a3 = 0; a3 < BARYON_P; a3++)
+      for (int t = 0; t < BARYON_P; t++)
+        for (int i1 = 0; i1 < BARYON_N; i1++)
+          for (int i2 = 0; i2 < BARYON_N; i2++)
+            for (int i3 = 0; i3 < BARYON_N; i3++)
+	      for (int c = 0; c < BARYON_P; c++)
+	      {
+		S[xp0][a3][t][i1][i2][i3][c] = val;
+	      }
+
+  for (int k = 0; k < BARYON_N; k++)
+    for (int b2 = 0; b2 < BARYON_P; b2++)
+      for (int b1 = 0; b1 < BARYON_P; b1++)
+        for (int b0 = 0; b0 < BARYON_P; b0++)
+          for (int c3 = 0; c3 < BARYON_N; c3++)
+            for (int c2 = 0; c2 < BARYON_P; c2++)
+	      for (int c1 = 0; c1 < BARYON_P; c1++)
+	      {
+                wp[k][b2][b1][b0][c3][c2][c1] = val;
+	      }
 }
