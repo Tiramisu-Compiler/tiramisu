@@ -7719,6 +7719,7 @@ tiramisu::constant::constant(
     this->set_name(param_name);
     this->set_expression(param_expr);
     this->mark_as_let_statement();
+    func->add_invariant(*this);
     this->compute_with_computation = NULL;
     DEBUG(3, tiramisu::str_dump("The constant is function wide, but it is scheduled.  Its name is : "));
     DEBUG(3, tiramisu::str_dump(this->get_name()));
@@ -7816,13 +7817,22 @@ std::string tiramisu::computation::construct_iteration_domain(std::string name, 
 	if (iterator_variables.size() != 0)
 	   iteration_space_str += ": ";
 
+	bool insert_and = false;
 	for (int i = 0; i < iterator_variables.size(); i++)
 	{
 		var iter = iterator_variables[i];
-		iteration_space_str += iter.lower.to_str() + "<=" + iter.get_name() + "<" + iter.upper.to_str();
 
-		if (i < iterator_variables.size() - 1)
-			iteration_space_str += " and ";
+    		if ((insert_and == true && (iter.lower.is_defined() || iter.upper.is_defined())))
+		{
+		    iteration_space_str += " and ";
+		    insert_and = false;
+		}
+
+		if (iter.lower.is_defined() || iter.upper.is_defined())
+		{
+		    iteration_space_str += iter.lower.to_str() + "<=" + iter.get_name() + "<" + iter.upper.to_str();
+		    insert_and = true;
+		}
 	}
 
 	iteration_space_str += "}";
