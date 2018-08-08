@@ -29,10 +29,6 @@ using namespace tiramisu;
 
          Res2 += exp(i(i3*px+i2*py+i1*pz)) * Res1;
        }
-
- - Questions:
- -------------
- - what is the size of the dimensions of S[] ?
  */
 
 void generate_function(std::string name, int size)
