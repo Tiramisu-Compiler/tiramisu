@@ -14,35 +14,6 @@ extern "C" {
 }  // extern "C"
 #endif
 
-#if 0
-void ref(Halide::Buffer<float> &Res2, Halide::Buffer<float> &S, Halide::Buffer<float> &wp)
-{
-  int c1 = 0, c2 = 0, c3 = 0, t = 0, a1 = 0, a2 = 0, a3 = 0, xp0 = 0, b0 = 0, b1 = 0, b2 = 0;
-
-  Res2(0) = 0;
-  Halide::Buffer<float> Res0(1, "Res0");
-  Halide::Buffer<float> Res1(1, "Res1");
-
-  for (int i3 = 0; i3 < BARYON_N; i3++)
-    for (int i2 = 0; i2 < BARYON_N; i2++)
-      for (int i1 = 0; i1 < BARYON_N; i1++)
-       {
-         Res0(0) = S(xp0, a1, t, i1, i2, i3, c1) * S(xp0, a2, t, i1, i2, i3, c2) * S(xp0, a3, t, i1, i2, i3, c3)
-                  +S(xp0, a1, t, i1, i2, i3, c2) * S(xp0, a2, t, i1, i2, i3, c3) * S(xp0, a3, t, i1, i2, i3, c1)
-                  +S(xp0, a1, t, i1, i2, i3, c3) * S(xp0, a2, t, i1, i2, i3, c1) * S(xp0, a3, t, i1, i2, i3, c2)
-                  -S(xp0, a1, t, i1, i2, i3, c2) * S(xp0, a2, t, i1, i2, i3, c1) * S(xp0, a3, t, i1, i2, i3, c3)
-                  -S(xp0, a1, t, i1, i2, i3, c3) * S(xp0, a2, t, i1, i2, i3, c2) * S(xp0, a3, t, i1, i2, i3, c1)
-                  -S(xp0, a1, t, i1, i2, i3, c1) * S(xp0, a2, t, i1, i2, i3, c3) * S(xp0, a3, t, i1, i2, i3, c2);
-
-         Res1(0) = 0;
-         for (int k = 1; k <= BARYON_N; k++)
-           Res1(0) = Res1(0) + wp(k, b2, b1, b0, c3, c2, c1) * Res0(0);
-
-         Res2(0) = Res2(0) + Res1(0);
-       }
-}
-#endif
-
 #include "baryon_ref.cpp"
 
 int main(int, char **)
