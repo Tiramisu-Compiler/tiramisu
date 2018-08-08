@@ -36,11 +36,6 @@ extern "C" {
 	  }
  */
 
-    // Halide::Buffer<float> buf_res2(1, "buf_res2");
-    // Halide::Buffer<float> buf_res2_ref(1, "buf_res2_ref");
-    // Halide::Buffer<float> buf_S(BARYON_P, BARYON_P, BARYON_P, BARYON_N, BARYON_N, BARYON_N, BARYON_P, "buf_S");
-    // Halide::Buffer<float> buf_wp(BARYON_N, BARYON_P, BARYON_P, BARYON_P, BARYON_P, BARYON_P, BARYON_P, "buf_wp");
-
 void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P],
 			float wp[BARYON_N][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P])
 {
