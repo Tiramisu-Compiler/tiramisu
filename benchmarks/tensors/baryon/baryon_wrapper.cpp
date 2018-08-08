@@ -33,8 +33,9 @@ int main(int, char **)
     {
     	    init_buffer(buf_res2_ref, (float)0);
 	    auto start2 = std::chrono::high_resolution_clock::now();
-	    ref((float *) buf_res2_ref.raw_buffer()->host, (float (*)[BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P]) buf_S.raw_buffer()->host,
-			    				   (float (*)[BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P]) buf_wp.raw_buffer()->host);
+	    ref((float *) buf_res2_ref.raw_buffer()->host,
+		(float (*)[BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P]) buf_S.raw_buffer()->host,
+		(float (*)[BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P]) buf_wp.raw_buffer()->host);
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
