@@ -10,27 +10,10 @@
 
 using namespace tiramisu;
 
-/**
- * Res2 = 0
-   For i3 in 0 to BARYON_N
-     For i2 in 0 to BARYON_N
-       For i1 in 0 to BARYON_N
-       {
-          Res0 = S(c1, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
-                +S(c2, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
-                +S(c3, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
-                -S(c2, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
-                -S(c3, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
-                -S(c1, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
-
-         Res1 = 0
-         For k = 1 to N(B(b0, b1, b2))
-           Res1 += w’(c1, c2, c3, b0, b1, b2, k) * Res0;
-
-         Res2 += exp(i(i3*px+i2*py+i1*pz)) * Res1;
-       }
+/*
+ * The goal is to generate code that implements the reference.
+ * baryon_ref.cpp
  */
-
 void generate_function(std::string name, int size)
 {
     tiramisu::global::set_default_tiramisu_options();
