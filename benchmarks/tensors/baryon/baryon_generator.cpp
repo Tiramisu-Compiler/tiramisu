@@ -12,22 +12,22 @@ using namespace tiramisu;
 
 /**
  * Res2 = 0
-   For x0 in 0 to BARYON_N
-     For x1 in 0 to BARYON_N
-       For x2 in 0 to BARYON_N
+   For i3 in 0 to BARYON_N
+     For i2 in 0 to BARYON_N
+       For i1 in 0 to BARYON_N
        {
-          Res0 = S(c1, x0, x1, x2, t, a1, x’0)*S(c2, x0, x1, x2, t, a2, x’0)*S(c3, x0, x1, x2, t, a3, x’0)
-                +S(c2, x0, x1, x2, t, a1, x’0)*S(c3, x0, x1, x2, t, a2, x’0)*S(c1, x0, x1, x2, t, a3, x’0)
-                +S(c3, x0, x1, x2, t, a1, x’0)*S(c1, x0, x1, x2, t, a2, x’0)*S(c2, x0, x1, x2, t, a3, x’0)
-                -S(c2, x0, x1, x2, t, a1, x’0)*S(c1, x0, x1, x2, t, a2, x’0)*S(c3, x0, x1, x2, t, a3, x’0)
-                -S(c3, x0, x1, x2, t, a1, x’0)*S(c2, x0, x1, x2, t, a2, x’0)*S(c1, x0, x1, x2, t, a3, x’0)
-                -S(c1, x0, x1, x2, t, a1, x’0)*S(c3, x0, x1, x2, t, a2, x’0)*S(c2, x0, x1, x2, t, a3, x’0)
+          Res0 = S(c1, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
+                +S(c2, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
+                +S(c3, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
+                -S(c2, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
+                -S(c3, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
+                -S(c1, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
 
          Res1 = 0
          For k = 1 to N(B(b0, b1, b2))
            Res1 += w’(c1, c2, c3, b0, b1, b2, k) * Res0;
 
-         Res2 += exp(i(x0*px+x1*py+x2*pz)) * Res1;
+         Res2 += exp(i(i3*px+i2*py+i1*pz)) * Res1;
        }
 
  - Questions:
@@ -59,26 +59,26 @@ void generate_function(std::string name, int size)
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::var x0("x0"), x1("x1"), x2("x2"), k("k");
+    tiramisu::var i3("i3"), i2("i2"), i1("i1"), k("k");
     tiramisu::computation S("{S[i0, i1, i2, i3, i4, i5, i6]}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation wp("{wp[c1, c2, c3, b1, b2, b3, k]}", tiramisu::expr(), false, p_float32, &function0);
 
-    tiramisu::computation Res0("[N]->{Res0[x0, x1, x2]: 0<=x0<N and 0<=x1<N and 0<=x2<N}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res0("[N]->{Res0[i3, i2, i1]: 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
     Res0.set_expression(
-		  S(c1, x0, x1, x2, t, a1, xp0) * S(c2, x0, x1, x2, t, a2, xp0) * S(c3, x0, x1, x2, t, a3, xp0)
-                + S(c2, x0, x1, x2, t, a1, xp0) * S(c3, x0, x1, x2, t, a2, xp0) * S(c1, x0, x1, x2, t, a3, xp0)
-                + S(c3, x0, x1, x2, t, a1, xp0) * S(c1, x0, x1, x2, t, a2, xp0) * S(c2, x0, x1, x2, t, a3, xp0)
-                - S(c2, x0, x1, x2, t, a1, xp0) * S(c1, x0, x1, x2, t, a2, xp0) * S(c3, x0, x1, x2, t, a3, xp0)
-                - S(c3, x0, x1, x2, t, a1, xp0) * S(c2, x0, x1, x2, t, a2, xp0) * S(c1, x0, x1, x2, t, a3, xp0)
-                - S(c1, x0, x1, x2, t, a1, xp0) * S(c3, x0, x1, x2, t, a2, xp0) * S(c2, x0, x1, x2, t, a3, xp0)
+		  S(c1, i3, i2, i1, t, a1, xp0) * S(c2, i3, i2, i1, t, a2, xp0) * S(c3, i3, i2, i1, t, a3, xp0)
+                + S(c2, i3, i2, i1, t, a1, xp0) * S(c3, i3, i2, i1, t, a2, xp0) * S(c1, i3, i2, i1, t, a3, xp0)
+                + S(c3, i3, i2, i1, t, a1, xp0) * S(c1, i3, i2, i1, t, a2, xp0) * S(c2, i3, i2, i1, t, a3, xp0)
+                - S(c2, i3, i2, i1, t, a1, xp0) * S(c1, i3, i2, i1, t, a2, xp0) * S(c3, i3, i2, i1, t, a3, xp0)
+                - S(c3, i3, i2, i1, t, a1, xp0) * S(c2, i3, i2, i1, t, a2, xp0) * S(c1, i3, i2, i1, t, a3, xp0)
+                - S(c1, i3, i2, i1, t, a1, xp0) * S(c3, i3, i2, i1, t, a2, xp0) * S(c2, i3, i2, i1, t, a3, xp0)
 	    );
-    tiramisu::computation Res1("[N]->{Res1[x0, x1, x2, k]: 0<=x0<N and 0<=x1<N and 0<=x2<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res1_update_0("[N, KMAX]->{Res1_update_0[x0, x1, x2, k]: 0<=x0<N and 0<=x1<N and 0<=x2<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
-    Res1_update_0.set_expression(Res1(x0, x1, x2, k-1) + wp(c1, c2, c3, b0, b1, b2, k) * Res0(x0, x1, x2));
+    tiramisu::computation Res1("[N]->{Res1[i3, i2, i1, k]: 0<=i3<N and 0<=i2<N and 0<=i1<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
+    tiramisu::computation Res1_update_0("[N, KMAX]->{Res1_update_0[i3, i2, i1, k]: 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
+    Res1_update_0.set_expression(Res1(i3, i2, i1, k-1) + wp(c1, c2, c3, b0, b1, b2, k) * Res0(i3, i2, i1));
 
     tiramisu::computation Res2("[N]->{Res2[0]}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res2_update_0("[N]->{Res2_update_0[x0, x1, x2]: 0<=x0<N and 0<=x1<N and 0<=x2<N}", tiramisu::expr(), true, p_float32, &function0);
-    Res2_update_0.set_expression(Res2_update_0(x0, x1, x2) + /* exp(i(x0*px+x1*py+x2*pz)) */ Res1_update_0(x0, x1, x2, KMAX));
+    tiramisu::computation Res2_update_0("[N]->{Res2_update_0[i3, i2, i1]: 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
+    Res2_update_0.set_expression(Res2_update_0(i3, i2, i1) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1_update_0(i3, i2, i1, KMAX));
 
     // -------------------------------------------------------
     // Layer III
@@ -86,22 +86,22 @@ void generate_function(std::string name, int size)
 
     tiramisu::buffer buf_res0("buf_res0", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_temporary, &function0);
     buf_res0.set_auto_allocate(false);
-    tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res0, x2);
+    tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res0, i1);
     tiramisu::buffer buf_res1("buf_res1", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_temporary, &function0);
     buf_res1.set_auto_allocate(false);
-    tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res0, x2);
+    tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res0, i1);
     tiramisu::buffer buf_res2("buf_res2", {tiramisu::expr((int32_t) 1)}, tiramisu::p_float32, a_output, &function0);
-    // S(c1, x0, x1, x2, t, a1, x’0)
+    // S(c1, i3, i2, i1, t, a1, x’0)
     tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), N_CONST, N_CONST, N_CONST, tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P)}, tiramisu::p_float32, a_input, &function0);
     // wp(c1, c2, c3, b0, b1, b2, k)
     tiramisu::buffer buf_wp("buf_wp", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), KMAX}, tiramisu::p_float32, a_input, &function0);
 
-    Res0.set_access("{Res0[x0,x1,x2]->buf_res0[0]}");
-    Res1.set_access("{Res1[x0,x1,x2,k]->buf_res1[0]}");
-    Res1_update_0.set_access("{Res1_update_0[x0,x1,x2,k]->buf_res1[0]}");
+    Res0.set_access("{Res0[i3,i2,i1]->buf_res0[0]}");
+    Res1.set_access("{Res1[i3,i2,i1,k]->buf_res1[0]}");
+    Res1_update_0.set_access("{Res1_update_0[i3,i2,i1,k]->buf_res1[0]}");
     Res2.set_access("{Res2[0]->buf_res2[0]}");
-    Res2_update_0.set_access("{Res2_update_0[x0,x1,x2]->buf_res2[0]}");
-    S.set_access("{S[c1,x0,x1,x2,t,a1,xp0]->buf_S[c1,x0,x1,x2,t,a1,xp0]}");
+    Res2_update_0.set_access("{Res2_update_0[i3,i2,i1]->buf_res2[0]}");
+    S.set_access("{S[c1,i3,i2,i1,t,a1,xp0]->buf_S[c1,i3,i2,i1,t,a1,xp0]}");
     wp.set_access("{wp[c1,c2,c3,b0,b1,b2,k]->buf_wp[c1,c2,c3,b0,b1,b2,k]}");
 
     // -------------------------------------------------------
@@ -109,11 +109,11 @@ void generate_function(std::string name, int size)
     // -------------------------------------------------------
 
     alloc_res0->after(Res2, tiramisu::computation::root);
-    alloc_res1->after(*alloc_res0, x2);
-    Res0.after(*alloc_res1, x2);
-    Res1.after(Res0, x2);
-    Res1_update_0.after(Res1, x2);
-    Res2_update_0.after(Res1_update_0, x2);
+    alloc_res1->after(*alloc_res0, i1);
+    Res0.after(*alloc_res1, i1);
+    Res1.after(Res0, i1);
+    Res1_update_0.after(Res1, i1);
+    Res2_update_0.after(Res1_update_0, i1);
 
 
     // -------------------------------------------------------
