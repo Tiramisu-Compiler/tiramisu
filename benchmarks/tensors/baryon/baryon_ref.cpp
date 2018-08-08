@@ -35,6 +35,27 @@ extern "C" {
 	  }
  */
 
+/**
+ * Res2 = 0
+   For i3 in 0 to BARYON_N
+     For i2 in 0 to BARYON_N
+       For i1 in 0 to BARYON_N
+       {
+          Res0 = S(c1, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
+                +S(c2, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
+                +S(c3, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
+                -S(c2, i3, i2, i1, t, a1, x’0)*S(c1, i3, i2, i1, t, a2, x’0)*S(c3, i3, i2, i1, t, a3, x’0)
+                -S(c3, i3, i2, i1, t, a1, x’0)*S(c2, i3, i2, i1, t, a2, x’0)*S(c1, i3, i2, i1, t, a3, x’0)
+                -S(c1, i3, i2, i1, t, a1, x’0)*S(c3, i3, i2, i1, t, a2, x’0)*S(c2, i3, i2, i1, t, a3, x’0)
+
+         Res1 = 0
+         For k = 1 to N(B(b0, b1, b2))
+           Res1 += w’(c1, c2, c3, b0, b1, b2, k) * Res0;
+
+         Res2 += exp(i(i3*px+i2*py+i1*pz)) * Res1;
+       }
+ */
+
 void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P],
 			float wp[BARYON_N][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P])
 {
@@ -44,9 +65,9 @@ void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N
   float Res0;
   float Res1;
 
-  for (int i3 = 0; i3 < BARYON_N; i3++)
+  for (int i1 = 0; i1 < BARYON_N; i1++)
     for (int i2 = 0; i2 < BARYON_N; i2++)
-      for (int i1 = 0; i1 < BARYON_N; i1++)
+      for (int i3 = 0; i3 < BARYON_N; i3++)
        {
          Res0    =  S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c3]
                   + S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c1]
