@@ -11,7 +11,6 @@ extern "C" {
 }  // extern "C"
 #endif
 
-
 /*
  * Code extracted from Baryon official repo.
  
@@ -49,12 +48,12 @@ void ref(float Res2[1], float S[BARYON_P][BARYON_P][BARYON_P][BARYON_N][BARYON_N
     for (int i2 = 0; i2 < BARYON_N; i2++)
       for (int i1 = 0; i1 < BARYON_N; i1++)
        {
-         Res0    = S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c3]
-                  +S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c1]
-                  +S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c2]
-                  -S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c3]
-                  -S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c1]
-                  -S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c2];
+         Res0    =  S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c3]
+                  + S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c1]
+                  + S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c2]
+                  - S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c3]
+                  - S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c1]
+                  - S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c2];
 
          Res1 = 0;
          for (int k = 1; k <= BARYON_N; k++)
