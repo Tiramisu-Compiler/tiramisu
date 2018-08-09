@@ -21,7 +21,7 @@ set(HEADER_FILES
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS expr core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 
 ### CMAKE FILE INTERNALS ###
