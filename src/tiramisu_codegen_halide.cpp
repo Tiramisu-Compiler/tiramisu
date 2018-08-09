@@ -25,11 +25,31 @@
 namespace tiramisu
 {
 
-Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
 std::string generate_new_variable_name();
 Halide::Expr make_comm_call(Halide::Type type, std::string func_name, std::vector<Halide::Expr> args);
 Halide::Expr halide_expr_from_tiramisu_type(tiramisu::primitive_t ptype);
 
+Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type)
+{
+    Halide::Argument::Kind res;
+
+    if (type == tiramisu::a_temporary)
+    {
+        ERROR("Buffer type \"temporary\" can't be translated to Halide.\n", true);
+    }
+
+    if (type == tiramisu::a_input)
+    {
+        res = Halide::Argument::InputBuffer;
+    }
+    else
+    {
+        assert(type == tiramisu::a_output);
+        res = Halide::Argument::OutputBuffer;
+    }
+
+    return res;
+}
 
 std::vector<computation *> function::get_computation_by_name(std::string name) const
 {
