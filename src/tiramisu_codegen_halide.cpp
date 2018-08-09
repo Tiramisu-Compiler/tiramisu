@@ -1200,8 +1200,6 @@ std::map<std::string, isl_ast_expr *> generator::compute_iterators_map(tiramisu:
     isl_set *dom = isl_set_copy(comp->get_iteration_domain());
     isl_map *identity = isl_set_identity(isl_set_copy(dom));
     isl_map *schedule = isl_map_copy(comp->get_trimmed_union_of_schedules()); //isl_map_copy(isl_map_from_union_map(isl_ast_build_get_schedule(build)));
-    isl_map_dump(identity);
-    isl_map_dump(schedule);
     identity = isl_map_apply_domain(identity, schedule);
 
     DEBUG(3, tiramisu::str_dump("Creating an isl_ast_index_expression for the access :",
