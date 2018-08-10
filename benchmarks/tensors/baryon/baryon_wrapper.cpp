@@ -26,8 +26,7 @@ int main(int, char **)
     Halide::Buffer<float> buf_S(BARYON_P, BARYON_P, BARYON_P, BARYON_N, BARYON_N, BARYON_N, BARYON_P, "buf_S");
     Halide::Buffer<float> buf_wp(BARYON_N, BARYON_P, BARYON_P, BARYON_P, BARYON_P, BARYON_P, BARYON_P, "buf_wp");
 
-    init_buffer(buf_S, (float)1);
-    init_buffer(buf_wp, (float)1);
+    init_buffers((float (*)[BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P]) buf_S.raw_buffer()->host, (float (*)[BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P][BARYON_P]) buf_wp.raw_buffer()->host, (float)5);
 
     for (int i = 0; i < NB_TESTS; i++)
     {
@@ -50,6 +49,12 @@ int main(int, char **)
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
     }
+
+    std::cout << std::endl << "Reference buffer : ";
+    print_buffer(buf_res2_ref);
+
+    std::cout << "Tiramisu buffer : ";
+    print_buffer(buf_res2);
 
     compare_buffers("benchmark_" + std::string(TEST_NAME_STR), buf_res2, buf_res2_ref);
 
