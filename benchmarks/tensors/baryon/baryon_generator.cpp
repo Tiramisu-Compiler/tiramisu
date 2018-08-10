@@ -25,9 +25,9 @@ void generate_function(std::string name, int size)
     tiramisu::function function0(name);
 
     tiramisu::constant N_CONST("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant c1("c1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant c2("c2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant c3("c3", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant d1("d1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant d2("d2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant d3("d3", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant t("t", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant a1("a1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant a2("a2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
@@ -39,25 +39,27 @@ void generate_function(std::string name, int size)
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
 
     tiramisu::var i3("i3"), i2("i2"), i1("i1"), k("k");
-    tiramisu::computation S("{S[i0, i1, i2, i3, i4, i5, i6]}", tiramisu::expr(), false, p_float32, &function0);
+    tiramisu::computation S("{S[p0, i3, i2, i1, p4, p5, p6]}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation wp("{wp[c1, c2, c3, b1, b2, b3, k]}", tiramisu::expr(), false, p_float32, &function0);
 
     tiramisu::computation Res0("[N]->{Res0[i3, i2, i1]: 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
     Res0.set_expression(
-		  S(c1, i3, i2, i1, t, a1, xp0) * S(c2, i3, i2, i1, t, a2, xp0) * S(c3, i3, i2, i1, t, a3, xp0)
-                + S(c2, i3, i2, i1, t, a1, xp0) * S(c3, i3, i2, i1, t, a2, xp0) * S(c1, i3, i2, i1, t, a3, xp0)
-                + S(c3, i3, i2, i1, t, a1, xp0) * S(c1, i3, i2, i1, t, a2, xp0) * S(c2, i3, i2, i1, t, a3, xp0)
-                - S(c2, i3, i2, i1, t, a1, xp0) * S(c1, i3, i2, i1, t, a2, xp0) * S(c3, i3, i2, i1, t, a3, xp0)
-                - S(c3, i3, i2, i1, t, a1, xp0) * S(c2, i3, i2, i1, t, a2, xp0) * S(c1, i3, i2, i1, t, a3, xp0)
-                - S(c1, i3, i2, i1, t, a1, xp0) * S(c3, i3, i2, i1, t, a2, xp0) * S(c2, i3, i2, i1, t, a3, xp0)
+		  S(d1, i3, i2, i1, t, a1, xp0) * S(d2, i3, i2, i1, t, a2, xp0) * S(d3, i3, i2, i1, t, a3, xp0)
+                + S(d2, i3, i2, i1, t, a1, xp0) * S(d3, i3, i2, i1, t, a2, xp0) * S(d1, i3, i2, i1, t, a3, xp0)
+                + S(d3, i3, i2, i1, t, a1, xp0) * S(d1, i3, i2, i1, t, a2, xp0) * S(d2, i3, i2, i1, t, a3, xp0)
+                - S(d2, i3, i2, i1, t, a1, xp0) * S(d1, i3, i2, i1, t, a2, xp0) * S(d3, i3, i2, i1, t, a3, xp0)
+                - S(d3, i3, i2, i1, t, a1, xp0) * S(d2, i3, i2, i1, t, a2, xp0) * S(d1, i3, i2, i1, t, a3, xp0)
+                - S(d1, i3, i2, i1, t, a1, xp0) * S(d3, i3, i2, i1, t, a2, xp0) * S(d2, i3, i2, i1, t, a3, xp0)
 	    );
     tiramisu::computation Res1("[N]->{Res1[i3, i2, i1, k]: 0<=i3<N and 0<=i2<N and 0<=i1<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
     tiramisu::computation Res1_update_0("[N, KMAX]->{Res1_update_0[i3, i2, i1, k]: 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
-    Res1_update_0.set_expression(Res1(i3, i2, i1, k-1) + wp(c1, c2, c3, b0, b1, b2, k) * Res0(i3, i2, i1));
+    Res1_update_0.set_expression(Res1(i3, i2, i1, k-1) + wp(d1, d2, d3, b0, b1, b2, k) * Res0(i3, i2, i1));
 
     tiramisu::computation Res2("[N]->{Res2[0]}", tiramisu::expr((float) 0), true, p_float32, &function0);
     tiramisu::computation Res2_update_0("[N]->{Res2_update_0[i3, i2, i1]: 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
     Res2_update_0.set_expression(Res2_update_0(i3, i2, i1) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1_update_0(i3, i2, i1, KMAX));
+
+    function0.add_context_constraints("[N, M, K]->{:N=16}");
 
     // -------------------------------------------------------
     // Layer III
@@ -93,7 +95,6 @@ void generate_function(std::string name, int size)
     Res1.after(Res0, i1);
     Res1_update_0.after(Res1, i1);
     Res2_update_0.after(Res1_update_0, i1);
-
 
     // -------------------------------------------------------
     // Code Generation
