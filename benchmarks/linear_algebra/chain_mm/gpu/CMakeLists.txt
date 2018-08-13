@@ -1,4 +1,4 @@
-set(benchmark_name benchmark_chain_mm)
+set(benchmark_name benchmark_chain_mm_gpu)
 set(generator_name ${benchmark_name}_generator)
 set(wrapper_name ${benchmark_name}_wrapper)
 set(object_files fct.o fct.o_cpu.o fct.o_gpu.o)
