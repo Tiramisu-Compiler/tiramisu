@@ -136,7 +136,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti -DHALIDE_NO_JPEG")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -180,6 +180,12 @@ if(${USE_LIBPNG})
     execute_process(COMMAND libpng-config --ldflags OUTPUT_VARIABLE LIBPNG_FLAGS)
     string(STRIP ${LIBPNG_FLAGS} LIBPNG_FLAGS)
     set(LINK_FLAGS "${LINK_FLAGS} ${LIBPNG_FLAGS}")
+endif()
+
+if(${USE_LIBJPEG})
+    set(LINK_FLAGS "${LINK_FLAGS} -ljpeg")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_DIR}/build)

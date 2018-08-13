@@ -6,8 +6,11 @@ set(USE_GPU FALSE)
 # Set to TRUE if you wish to use MPI
 set(USE_MPI FALSE)
 
-# Set to TRUE if you wish to use libpng tutorials and benchmarks
+# Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
 set(USE_LIBPNG FALSE)
+
+# Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
+set(USE_LIBJPEG FALSE)
 
 # If USE_MPI is true, you need to set MPI paths
 # (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS)
