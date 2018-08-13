@@ -4768,6 +4768,7 @@ void computation::split(int L0, int sizeX)
     std::string inDim0_str;
 
     std::string outDim0_str = generate_new_variable_name();
+    std::string static_dim_str = generate_new_variable_name();
     std::string outDim1_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
@@ -4829,12 +4830,15 @@ void computation::split(int L0, int sizeX)
         }
         else
         {
-            map = map + outDim0_str + ", 0, " + outDim1_str;
+            map = map + outDim0_str + ", " + static_dim_str + ", " + outDim1_str;
             isl_id *id0 = isl_id_alloc(this->get_ctx(),
                                        outDim0_str.c_str(), NULL);
+            isl_id *id2 = isl_id_alloc(this->get_ctx(),
+                                       static_dim_str.c_str(), NULL);
             isl_id *id1 = isl_id_alloc(this->get_ctx(),
                                        outDim1_str.c_str(), NULL);
             dimensions.push_back(id0);
+            dimensions.push_back(id2);
             dimensions.push_back(id1);
         }
 
@@ -4847,7 +4851,7 @@ void computation::split(int L0, int sizeX)
     map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
           outDim0_str + " = floor(" + inDim0_str + "/" +
           std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
-          inDim0_str + "%" + std::to_string(sizeX) + ")}";
+          inDim0_str + "%" + std::to_string(sizeX) + ") and " + static_dim_str + " = 0}";
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 
