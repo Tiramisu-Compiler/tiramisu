@@ -77,28 +77,41 @@ int main(int argc, char **argv)
     tiramisu::var affine_s0_x_inner("affine_s0_x_inner");
     tiramisu::var affine_s0_y("affine_s0_y");
 
+    affine_tiramisu.add_context_constraints("[affine_s0_x_loop_min, affine_s0_x_loop_extent]->{:affine_s0_x_loop_extent%8=0 and affine_s0_x_loop_min=0}");
+
     // Add schedules.
-    t57.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t58.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t59.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t60.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t61.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t62.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t63.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
-    t64.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
+
+    t57.split(affine_s0_x, 8);
+    t58.split(affine_s0_x, 8);
+    t59.split(affine_s0_x, 8);
+    t60.split(affine_s0_x, 8);
+    t61.split(affine_s0_x, 8);
+    t62.split(affine_s0_x, 8);
+    t63.split(affine_s0_x, 8);
+    t64.split(affine_s0_x, 8);
+    affine_s0.split(affine_s0_x, 8);
+
+
+    t57.tag_vector_level(2, 8);
+    t58.tag_vector_level(2, 8);
+    t59.tag_vector_level(2, 8);
+    t60.tag_vector_level(2, 8);
+    t61.tag_vector_level(2, 8);
+    t62.tag_vector_level(2, 8);
+    t63.tag_vector_level(2, 8);
+    t64.tag_vector_level(2, 8);
+    affine_s0.tag_vector_level(2, 8);
     affine_s0.tag_parallel_level(affine_s0_y);
 
-    affine_s0.vectorize(affine_s0_x, 8, affine_s0_x_outer, affine_s0_x_inner);
 
-
-    t58.after(t57, affine_s0_x_inner);
-    t59.after(t58, affine_s0_x_inner);
-    t60.after(t59, affine_s0_x_inner);
-    t61.after(t60, affine_s0_x_inner);
-    t62.after(t61, affine_s0_x_inner);
-    t63.after(t62, affine_s0_x_inner);
-    t64.after(t63, affine_s0_x_inner);
-    affine_s0.after(t64, affine_s0_x_inner);
+    t58.after(t57, 2);
+    t59.after(t58, 2);
+    t60.after(t59, 2);
+    t61.after(t60, 2);
+    t62.after(t61, 2);
+    t63.after(t62, 2);
+    t64.after(t63, 2);
+    affine_s0.after(t64, 2);
 
     affine_tiramisu.set_arguments({&buff_input, &buff_affine});
     affine_tiramisu.gen_time_space_domain();
