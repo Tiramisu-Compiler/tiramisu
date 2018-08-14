@@ -14,8 +14,8 @@ source ./configure.sh
 
 CXXFLAGS="-O3"
 INCLUDES="-I${OPENBLAS_DIR} -I${HALIDE_PREFIX}/include/ -I${TIRAMISU_ROOT}/benchmarks/ -I${TIRAMISU_ROOT}/include/ -I${OPENMP_DIR}/include/libiomp/ -I${BENCHMARK_ROOT}/software/polybench/ -I${BENCHMARK_ROOT}/software/pencil/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/tools/"
-LIBRARIES="${OpenBLAS_FLAGS} -lHalide -lz -lpthread -ltiramisu -lpng -ljpeg"
-LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/"
+LIBRARIES="${OpenBLAS_FLAGS} -lHalide -lz -lpthread -ltiramisu -lpng -ljpeg -l${OPENMP_LIB}"
+LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/ -L${OPENMP_DIR}"
 TILE_TUNING=0
 
 if [ "${TIRAMISU_XLARGE}" = "1" ]; then
@@ -56,10 +56,11 @@ compile_tilable_sgemms()
 	    TILE_D3=128
 	fi
 
-	$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
-	$CC -c $CXXFLAGS ${INCLUDES} $KERNEL.ppcg.c -o $KERNEL
+#$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	$CC -c $CXXFLAGS ${INCLUDES} -fopenmp $KERNEL.ppcg.c -o $KERNEL
 	$CC -c $CXXFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
 	g++ -std=c++11 -fno-rtti $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+
 	echo "Running PENCIL-$KERNEL"
 	./wrapper_${KERNEL}
 
