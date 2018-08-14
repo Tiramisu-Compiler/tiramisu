@@ -88,7 +88,8 @@ echo_and_run_cmd "git pull"
 if [ "${USE_LIBJPEG}" = "0" ]; then
     echo_and_run_cmd "make CXXFLAGS=\"-DHALIDE_NO_JPEG\" -j $CORES"
 else
-   echo_and_run_cmd "make -j $CORES"
+    echo_and_run_cmd "make clean"
+    echo_and_run_cmd "make -j $CORES"
 fi
 
 
