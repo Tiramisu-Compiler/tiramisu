@@ -1,0 +1,69 @@
+gemm.ab  -- original Alpha program
+gemm.cs  -- script for generating C codes
+
+tiled-ikj   -- C code for   tiled execution of gemm using ikj loop order
+untiled-ikj -- C code for untiled execution of gemm using ikj loop order
+
+There are multiple versions for both tiled/untiled code:
+  - sequential: Lexicograhic sequential execution (of the tiles) 
+  - openmp: OpenMP parallel execution (wave-front for tiled)
+  - openmp-concurent-start: OpenMP parallel execution of tiles with concurrent start
+
+Our code generator for parametric tiling currently assumes that there are
+dependences crossing all tiling hyper-planes, and uses 45 degree wave-front.
+Gemm is a special case where some dimensions are completely independent, and
+does not require wave-front execution. The concurrent-start version is a manual
+fix to this that can be easily implemented.
+
+Each version includes the following:
+ - gemm.c: main code that implements gemm with the given strategy. The kernel
+   function has the following signature:
+ gemm(long P, long Q, long R, double* alpha, double* beta, double* A, double* B, double* C)
+or with three additional arugments for tiled version:
+ gemm(long P, long Q, long R, long ts1, long ts2, long ts3, double* alpha, double* beta, double* A, double* B, double* C)
+
+where
+  - P, Q, R are problem size parameters
+  - ts1, ts2, ts3 are tile sizes (corresponding to i,k,j dimensions)
+  - alpha and beta are pointers to constants
+  - A is a PxQ matrix
+  - B is a QxR matrix
+  - C is a PxR matrix
+  - all matrices are allocated in a contiguous region.
+
+ - gemm_verify.c: baseline code generator (demand-driven execution) to test for
+   correctness. Note that this verification code uses O(N^3) and should not be
+   used for large problem sizes,
+ - gemm_wrapper.c: wrapper code that initializes arrays and calls the main
+   kernels. It also performs the test against the verify code depending on the
+   compile-time flags.
+
+You may use the kernel function in gemm.c from other code or use the wrapper
+for your experiments. The wrapper have a few options (all based on preprocessor macros):
+ - the default wrapper behavior is to initialize the inputs randomly and report
+   the execution time of the kernel
+ - use CHECKING to supply the input values through stdin. When this options is
+   on, the code will also dump the output values. If you want to specify the
+   input but are not interested in the output dump, you can comment out the print
+   statements.
+ - use VERIFY to test against the verify code.
+
+There are some additional manual fixes after code generation from AlphaZ.
+ - AlphaZ code gen has a bug for inout variables (in-place update of C) and
+   redundantly generates code for allocating variables that are inout. We
+   applied a manual fix for this bug by removing the redundant mallocs and
+   updating the function signature accordingly.
+ - We rely on icc for vectorization, but sometimes icc needs pragmas to
+   explicitly override its decision for vectorization. We have added pragmas
+   for vectorizable loops, but this is currently not automatically generated.
+
+It is also important to note that our code uses O(N^2) local memory (N for
+sequential) because of the ikj order. You need some local memory to factorize
+the multiplication with alpha.
+
+We also don't optimize for special cases (such as alpha=1 and beta=0).
+
+
+
+
+

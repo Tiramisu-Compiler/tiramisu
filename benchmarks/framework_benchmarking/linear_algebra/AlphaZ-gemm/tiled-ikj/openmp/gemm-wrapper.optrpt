@@ -1,0 +1,7 @@
+Intel(R) Advisor can now assist with vectorization and show optimization
+  report messages with your source code.
+See "https://software.intel.com/en-us/intel-advisor-xe" for details.
+
+Intel(R) C Intel(R) 64 Compiler for applications running on Intel(R) 64, Version 17.0.2.174 Build 20170213
+
+Compiler options: -I/usr/include/malloc/ -o gemm.check -xHost -ipo -qopenmp -O3 -std=c99 -qopt-report=5 -qopt-report-phase=vec -lm -DCHECKING

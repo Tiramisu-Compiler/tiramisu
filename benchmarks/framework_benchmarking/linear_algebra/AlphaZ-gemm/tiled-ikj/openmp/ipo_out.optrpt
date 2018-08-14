@@ -1,0 +1,357 @@
+Intel(R) Advisor can now assist with vectorization and show optimization
+  report messages with your source code.
+See "https://software.intel.com/en-us/intel-advisor-xe" for details.
+
+Intel(R) C Intel(R) 64 Compiler for applications running on Intel(R) 64, Version 17.0.2.174 Build 20170213
+
+Compiler options: -I/usr/include/malloc/ -o gemm.check -xHost -ipo -qopenmp -O3 -std=c99 -qopt-report=5 -qopt-report-phase=vec -lm -DCHECKING
+
+Begin optimization report for: main(int, char **)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at gemm-wrapper.c(250,3)
+   remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(254,7) ]
+   remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(254,7) ]
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:printf(const char *__restrict__, ...) (254:7) and call:scanf(const char *__restrict__, ...) (254:7)
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:scanf(const char *__restrict__, ...) (254:7) and call:printf(const char *__restrict__, ...) (254:7)
+
+   LOOP BEGIN at gemm-wrapper.c(252,5)
+      remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(254,7) ]
+      remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(254,7) ]
+      remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   LOOP END
+LOOP END
+
+LOOP BEGIN at gemm-wrapper.c(274,3)
+   remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(278,7) ]
+   remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(278,7) ]
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:printf(const char *__restrict__, ...) (278:7) and call:scanf(const char *__restrict__, ...) (278:7)
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:scanf(const char *__restrict__, ...) (278:7) and call:printf(const char *__restrict__, ...) (278:7)
+
+   LOOP BEGIN at gemm-wrapper.c(276,5)
+      remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(278,7) ]
+      remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(278,7) ]
+      remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   LOOP END
+LOOP END
+
+LOOP BEGIN at gemm-wrapper.c(310,3)
+   remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(314,7) ]
+   remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(314,7) ]
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:printf(const char *__restrict__, ...) (314:7) and call:scanf(const char *__restrict__, ...) (314:7)
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:scanf(const char *__restrict__, ...) (314:7) and call:printf(const char *__restrict__, ...) (314:7)
+
+   LOOP BEGIN at gemm-wrapper.c(312,5)
+      remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(314,7) ]
+      remark #15382: vectorization support: call to function scanf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(314,7) ]
+      remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   LOOP END
+LOOP END
+
+LOOP BEGIN at gemm.c(168,6) inlined into gemm-wrapper.c(328,2)
+   remark #15521: loop was not vectorized: loop control variable was not identified. Explicitly compute the iteration count before executing the loop or try using canonical loop form from OpenMP specification
+LOOP END
+
+LOOP BEGIN at gemm.c(280,6) inlined into gemm-wrapper.c(328,2)
+   remark #15521: loop was not vectorized: loop control variable was not identified. Explicitly compute the iteration count before executing the loop or try using canonical loop form from OpenMP specification
+LOOP END
+
+LOOP BEGIN at gemm-wrapper.c(377,4)
+   remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(381,8) ]
+   remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(381,8) ]
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:printf(const char *__restrict__, ...) (381:8) and call:printf(const char *__restrict__, ...) (381:8)
+   remark #15346: vector dependence: assumed OUTPUT dependence between call:printf(const char *__restrict__, ...) (381:8) and call:printf(const char *__restrict__, ...) (381:8)
+
+   LOOP BEGIN at gemm-wrapper.c(379,6)
+      remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(381,8) ]
+      remark #15382: vectorization support: call to function printf(const char *__restrict__, ...) cannot be vectorized   [ gemm-wrapper.c(381,8) ]
+      remark #15344: loop was not vectorized: vector dependence prevents vectorization
+   LOOP END
+LOOP END
+
+LOOP BEGIN at gemm.c(170,8) inlined into gemm-wrapper.c(328,2)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at gemm.c(171,8) inlined into gemm-wrapper.c(328,2)
+      remark #15542: loop was not vectorized: inner loop was already vectorized
+
+      LOOP BEGIN at gemm.c(173,10) inlined into gemm-wrapper.c(328,2)
+         remark #15542: loop was not vectorized: inner loop was already vectorized
+
+         LOOP BEGIN at gemm.c(181,15) inlined into gemm-wrapper.c(328,2)
+            remark #15542: loop was not vectorized: inner loop was already vectorized
+
+            LOOP BEGIN at gemm.c(183,17) inlined into gemm-wrapper.c(328,2)
+               remark #15542: loop was not vectorized: inner loop was already vectorized
+
+               LOOP BEGIN at gemm.c(187,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(189,21) ]
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(189,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(189,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15309: vectorization support: normalized vectorization overhead 0.909
+                  remark #15300: LOOP WAS VECTORIZED
+                  remark #15450: unmasked unaligned unit stride loads: 2 
+                  remark #15451: unmasked unaligned unit stride stores: 1 
+                  remark #15475: --- begin vector cost summary ---
+                  remark #15476: scalar cost: 22 
+                  remark #15477: vector cost: 2.750 
+                  remark #15478: estimated potential speedup: 7.900 
+                  remark #15488: --- end vector cost summary ---
+               LOOP END
+
+               LOOP BEGIN at gemm.c(187,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+                  remark #15313: remainder loop was not vectorized: unsupported data type
+               LOOP END
+            LOOP END
+         LOOP END
+
+         LOOP BEGIN at gemm.c(194,15) inlined into gemm-wrapper.c(328,2)
+            remark #15542: loop was not vectorized: inner loop was already vectorized
+
+            LOOP BEGIN at gemm.c(196,17) inlined into gemm-wrapper.c(328,2)
+               remark #15542: loop was not vectorized: inner loop was already vectorized
+
+               LOOP BEGIN at gemm.c(200,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(202,21) ]
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(202,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(202,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15309: vectorization support: normalized vectorization overhead 0.909
+                  remark #15300: LOOP WAS VECTORIZED
+                  remark #15450: unmasked unaligned unit stride loads: 2 
+                  remark #15451: unmasked unaligned unit stride stores: 1 
+                  remark #15475: --- begin vector cost summary ---
+                  remark #15476: scalar cost: 22 
+                  remark #15477: vector cost: 2.750 
+                  remark #15478: estimated potential speedup: 7.900 
+                  remark #15488: --- end vector cost summary ---
+               LOOP END
+
+               LOOP BEGIN at gemm.c(200,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+                  remark #15313: remainder loop was not vectorized: unsupported data type
+               LOOP END
+            LOOP END
+         LOOP END
+
+         LOOP BEGIN at gemm.c(209,15) inlined into gemm-wrapper.c(328,2)
+            remark #15542: loop was not vectorized: inner loop was already vectorized
+
+            LOOP BEGIN at gemm.c(211,17) inlined into gemm-wrapper.c(328,2)
+               remark #15542: loop was not vectorized: inner loop was already vectorized
+
+               LOOP BEGIN at gemm.c(213,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(215,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(215,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15399: vectorization support: unroll factor set to 4
+                  remark #15309: vectorization support: normalized vectorization overhead 0.219
+                  remark #15300: LOOP WAS VECTORIZED
+                  remark #15450: unmasked unaligned unit stride loads: 1 
+                  remark #15451: unmasked unaligned unit stride stores: 1 
+                  remark #15475: --- begin vector cost summary ---
+                  remark #15476: scalar cost: 11 
+                  remark #15477: vector cost: 2.000 
+                  remark #15478: estimated potential speedup: 4.610 
+                  remark #15488: --- end vector cost summary ---
+               LOOP END
+
+               LOOP BEGIN at gemm.c(213,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(215,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(215,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15309: vectorization support: normalized vectorization overhead 2.125
+                  remark #15301: REMAINDER LOOP WAS VECTORIZED
+               LOOP END
+
+               LOOP BEGIN at gemm.c(213,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+               LOOP END
+            LOOP END
+
+            LOOP BEGIN at gemm.c(218,17) inlined into gemm-wrapper.c(328,2)
+               remark #15542: loop was not vectorized: inner loop was already vectorized
+
+               LOOP BEGIN at gemm.c(222,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(224,21) ]
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(224,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(224,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15309: vectorization support: normalized vectorization overhead 0.909
+                  remark #15300: LOOP WAS VECTORIZED
+                  remark #15450: unmasked unaligned unit stride loads: 2 
+                  remark #15451: unmasked unaligned unit stride stores: 1 
+                  remark #15475: --- begin vector cost summary ---
+                  remark #15476: scalar cost: 22 
+                  remark #15477: vector cost: 2.750 
+                  remark #15478: estimated potential speedup: 7.900 
+                  remark #15488: --- end vector cost summary ---
+               LOOP END
+
+               LOOP BEGIN at gemm.c(222,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+                  remark #15313: remainder loop was not vectorized: unsupported data type
+               LOOP END
+            LOOP END
+
+            LOOP BEGIN at gemm.c(227,17) inlined into gemm-wrapper.c(328,2)
+               remark #15344: loop was not vectorized: vector dependence prevents vectorization
+               remark #15346: vector dependence: assumed FLOW dependence between Acc (231:21) and Acc (232:21)
+               remark #15346: vector dependence: assumed ANTI dependence between Acc (232:21) and Acc (231:21)
+
+               LOOP BEGIN at gemm.c(229,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15344: loop was not vectorized: vector dependence prevents vectorization
+                  remark #15346: vector dependence: assumed FLOW dependence between Acc (231:21) and Acc (232:21)
+                  remark #15346: vector dependence: assumed ANTI dependence between Acc (232:21) and Acc (231:21)
+               LOOP END
+
+               LOOP BEGIN at gemm.c(229,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder>
+               LOOP END
+            LOOP END
+         LOOP END
+      LOOP END
+   LOOP END
+LOOP END
+
+LOOP BEGIN at gemm.c(282,8) inlined into gemm-wrapper.c(328,2)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at gemm.c(283,8) inlined into gemm-wrapper.c(328,2)
+      remark #15542: loop was not vectorized: inner loop was already vectorized
+
+      LOOP BEGIN at gemm.c(285,10) inlined into gemm-wrapper.c(328,2)
+         remark #15542: loop was not vectorized: inner loop was already vectorized
+
+         LOOP BEGIN at gemm.c(293,15) inlined into gemm-wrapper.c(328,2)
+            remark #15542: loop was not vectorized: inner loop was already vectorized
+
+            LOOP BEGIN at gemm.c(295,17) inlined into gemm-wrapper.c(328,2)
+            <Distributed chunk1>
+               remark #15344: loop was not vectorized: vector dependence prevents vectorization
+               remark #15346: vector dependence: assumed FLOW dependence between Acc (299:21) and Acc (300:21)
+               remark #15346: vector dependence: assumed ANTI dependence between Acc (300:21) and Acc (299:21)
+
+               LOOP BEGIN at gemm.c(297,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15344: loop was not vectorized: vector dependence prevents vectorization
+                  remark #15346: vector dependence: assumed FLOW dependence between Acc (299:21) and Acc (300:21)
+                  remark #15346: vector dependence: assumed ANTI dependence between Acc (300:21) and Acc (299:21)
+               LOOP END
+
+               LOOP BEGIN at gemm.c(297,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder>
+               LOOP END
+            LOOP END
+
+            LOOP BEGIN at gemm.c(295,17) inlined into gemm-wrapper.c(328,2)
+            <Distributed chunk2>
+               remark #15305: vectorization support: vector length 8
+               remark #15399: vectorization support: unroll factor set to 2
+               remark #15309: vectorization support: normalized vectorization overhead 2.500
+               remark #15301: PARTIAL LOOP WAS VECTORIZED
+               remark #15475: --- begin vector cost summary ---
+               remark #15476: scalar cost: 1 
+               remark #15477: vector cost: 0.620 
+               remark #15478: estimated potential speedup: 1.380 
+               remark #15488: --- end vector cost summary ---
+            LOOP END
+
+            LOOP BEGIN at gemm.c(295,17) inlined into gemm-wrapper.c(328,2)
+            <Remainder loop for vectorization, Distributed chunk2>
+            LOOP END
+         LOOP END
+
+         LOOP BEGIN at gemm.c(305,15) inlined into gemm-wrapper.c(328,2)
+            remark #15344: loop was not vectorized: vector dependence prevents vectorization
+            remark #15346: vector dependence: assumed FLOW dependence between Acc (311:21) and Acc (312:21)
+            remark #15346: vector dependence: assumed ANTI dependence between Acc (312:21) and Acc (311:21)
+
+            LOOP BEGIN at gemm.c(307,17) inlined into gemm-wrapper.c(328,2)
+               remark #15344: loop was not vectorized: vector dependence prevents vectorization
+               remark #15346: vector dependence: assumed FLOW dependence between Acc (311:21) and Acc (312:21)
+               remark #15346: vector dependence: assumed ANTI dependence between Acc (312:21) and Acc (311:21)
+
+               LOOP BEGIN at gemm.c(309,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15344: loop was not vectorized: vector dependence prevents vectorization
+                  remark #15346: vector dependence: assumed FLOW dependence between Acc (311:21) and Acc (312:21)
+                  remark #15346: vector dependence: assumed ANTI dependence between Acc (312:21) and Acc (311:21)
+               LOOP END
+
+               LOOP BEGIN at gemm.c(309,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder>
+               LOOP END
+            LOOP END
+         LOOP END
+
+         LOOP BEGIN at gemm.c(319,15) inlined into gemm-wrapper.c(328,2)
+            remark #15542: loop was not vectorized: inner loop was already vectorized
+
+            LOOP BEGIN at gemm.c(321,17) inlined into gemm-wrapper.c(328,2)
+               remark #15542: loop was not vectorized: inner loop was already vectorized
+
+               LOOP BEGIN at gemm.c(323,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(325,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(325,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15399: vectorization support: unroll factor set to 4
+                  remark #15309: vectorization support: normalized vectorization overhead 0.219
+                  remark #15300: LOOP WAS VECTORIZED
+                  remark #15450: unmasked unaligned unit stride loads: 1 
+                  remark #15451: unmasked unaligned unit stride stores: 1 
+                  remark #15475: --- begin vector cost summary ---
+                  remark #15476: scalar cost: 11 
+                  remark #15477: vector cost: 2.000 
+                  remark #15478: estimated potential speedup: 4.610 
+                  remark #15488: --- end vector cost summary ---
+               LOOP END
+
+               LOOP BEGIN at gemm.c(323,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+                  remark #15389: vectorization support: reference Acc has unaligned access   [ gemm.c(325,21) ]
+                  remark #15389: vectorization support: reference B has unaligned access   [ gemm.c(325,21) ]
+                  remark #15381: vectorization support: unaligned access used inside loop body
+                  remark #15305: vectorization support: vector length 4
+                  remark #15309: vectorization support: normalized vectorization overhead 2.125
+                  remark #15301: REMAINDER LOOP WAS VECTORIZED
+               LOOP END
+
+               LOOP BEGIN at gemm.c(323,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder loop for vectorization>
+               LOOP END
+            LOOP END
+
+            LOOP BEGIN at gemm.c(328,17) inlined into gemm-wrapper.c(328,2)
+               remark #15344: loop was not vectorized: vector dependence prevents vectorization
+               remark #15346: vector dependence: assumed FLOW dependence between Acc (332:21) and Acc (333:21)
+               remark #15346: vector dependence: assumed ANTI dependence between Acc (333:21) and Acc (332:21)
+
+               LOOP BEGIN at gemm.c(330,19) inlined into gemm-wrapper.c(328,2)
+                  remark #15344: loop was not vectorized: vector dependence prevents vectorization
+                  remark #15346: vector dependence: assumed FLOW dependence between Acc (332:21) and Acc (333:21)
+                  remark #15346: vector dependence: assumed ANTI dependence between Acc (333:21) and Acc (332:21)
+               LOOP END
+
+               LOOP BEGIN at gemm.c(330,19) inlined into gemm-wrapper.c(328,2)
+               <Remainder>
+               LOOP END
+            LOOP END
+         LOOP END
+      LOOP END
+   LOOP END
+LOOP END
+===========================================================================

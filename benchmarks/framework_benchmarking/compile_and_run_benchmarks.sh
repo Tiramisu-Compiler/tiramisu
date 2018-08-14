@@ -1,0 +1,187 @@
+#!/bin/bash
+
+set -x
+
+if [ $# -eq 0 ]; then
+      echo "Usage: TIRAMISU_SMALL=1 script.sh <KERNEL_FOLDER> <KERNEL_NAME_WITHOUT_EXTENSION>"
+      echo "Example: script.sh level1/axpy axpy"
+      exit
+fi
+
+KERNEL_FOLDER=$1
+KERNEL=$2
+source ./configure.sh
+
+CXXFLAGS="-O3"
+INCLUDES="-I${OPENBLAS_DIR} -I${HALIDE_PREFIX}/include/ -I${TIRAMISU_ROOT}/benchmarks/ -I${TIRAMISU_ROOT}/include/ -I${OPENMP_DIR}/include/libiomp/ -I${BENCHMARK_ROOT}/software/polybench/ -I${BENCHMARK_ROOT}/software/pencil/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/tools/"
+LIBRARIES="${OpenBLAS_FLAGS} -lHalide -lz -lpthread -ltiramisu -lpng -ljpeg"
+LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/"
+TILE_TUNING=0
+
+if [ "${TIRAMISU_XLARGE}" = "1" ]; then
+    DEFINED_SIZE="-DTIRAMISU_XLARGE"
+elif [ "${TIRAMISU_LARGE}" = "1" ]; then
+    DEFINED_SIZE="-DTIRAMISU_LARGE"
+elif [ "${TIRAMISU_MEDIUM}" = "1" ]; then
+    DEFINED_SIZE="-DTIRAMISU_MEDIUM"
+elif [ "${TIRAMISU_SMALL}" = "1" ]; then
+    DEFINED_SIZE="-DTIRAMISU_SMALL"
+else
+    DEFINED_SIZE="-DTIRAMISU_LARGE"
+fi
+
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/
+export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/
+
+# Parameters: tile size for dimension 1, tile size for dimension 2 and tile size for dimension 3.
+compile_tilable_sgemms()
+{
+    if [ ${TILE_TUNING} -ne 0 ]; then
+        TILE_D1=$1
+	TILE_D2=$2
+        TILE_D3=$3
+    fi
+
+    #################################################################
+    #################### Compile PENCIL ########################
+
+    if [ ${RUN_PENCIL} -ne 0 ]; then
+	echo "Compiling with PENCIL"
+	cd ${KERNEL_FOLDER}
+
+	# Tuned tile sizes for Macbook Pro
+	if [ ${TILE_TUNING} -eq 0 ]; then
+	    TILE_D1=32
+	    TILE_D2=64
+	    TILE_D3=128
+	fi
+
+	$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	$CC -c $CXXFLAGS ${INCLUDES} $KERNEL.ppcg.c -o $KERNEL
+	$CC -c $CXXFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
+	g++ -std=c++11 -fno-rtti $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+	echo "Running PENCIL-$KERNEL"
+	./wrapper_${KERNEL}
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Compile AlpahZ Gemm ########################
+
+    if [ ${RUN_ALPHAZ} -ne 0 ]; then
+	echo "Compiling AlphaZ-gemm"
+	cd AlphaZ-gemm/
+	./make.sh
+	echo "Running AlphaZ-gemm"
+
+	# Matrix size
+	p1=1024
+	p2=1024
+	p3=1024
+
+	# Tuned tile sizes for Macbook Pro
+	if [ ${TILE_TUNING} -eq 0 ]; then
+	    TILE_D1=128
+	    TILE_D2=32
+	    TILE_D3=128
+	fi
+
+	# parameters for macboopro 1024 1024 1024 32 32 64
+	find . -name "gemm"; find . -name "gemm" -exec {} $p1 $p2 $p3 ${TILE_D1} ${TILE_D2} ${TILE_D3} \;
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Compile with Pluto ########################
+
+    if [ ${RUN_PLUTO} -ne 0 ]; then
+	echo "Compiling gemm with PLUTO"
+	cd ${KERNEL_FOLDER}
+
+	$PLUTO ${PLUTO_OPTS} $KERNEL.c
+	$CC $CXXFLAGS ${INCLUDES} wrapper_${KERNEL}.cpp $KERNEL.pluto.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o $KERNEL
+	echo "Running PLUTO generated code"
+	./$KERNEL
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Compile with Polly #########################
+
+    if [ ${RUN_POLLY} -ne 0 ]; then
+	echo "Compiling gemm with POLLY"
+	cd ${KERNEL_FOLDER}
+
+	$POLLY ${POLLY_OPTS} $CXXFLAGS ${INCLUDES} wrapper_${KERNEL}.cpp $KERNEL.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o ${KERNEL}
+	echo "Running POLLY generated code"
+	./${KERNEL}
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Generate Halide Gemm ########################
+
+    if [ ${RUN_HALIDE} -ne 0 ]; then
+	cd ${TIRAMISU_ROOT}/3rdParty/Halide/apps/linear_algebra/
+	make -j halide_l3_benchmark_sgemm
+	cp bin/build/halide_sgemm_notrans.o ${BENCHMARK_ROOT}/OpenBLAS-Halide-gemm/generated_sgemm_halide.o
+	cp bin/build/halide_sgemm_notrans.h ${BENCHMARK_ROOT}/OpenBLAS-Halide-gemm/generated_sgemm_halide.h
+	cp bin/build/halide_sgemm_notrans.stmt ${BENCHMARK_ROOT}/OpenBLAS-Halide-gemm/generated_sgemm_halide.stmt
+	cd -
+
+	cd OpenBLAS-Halide-gemm/
+
+       g++ sgemm.manual.halide.cpp $CXXFLAGS ${INCLUDES} ${LIBRARIES_DIR} ${LIBRARIES} -o sgemm.manual.halide -std=c++11 -fno-rtti 
+       HL_DEBUG_CODEGEN=1 LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/ ./sgemm.manual.halide
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Compile OpenBLAS Gemm and Halide wrapper ###
+
+    if [ ${RUN_OpenBLAS} -ne 0 ]; then
+        g++ -std=c++11 -fno-rtti $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} sgemm_wrapper.cpp ${LIBRARIES_DIR} ${LIBRARIES} ${LIBRARIES} -o sgemm_wrapper
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/ DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/ ./sgemm_wrapper
+    fi
+
+    cd ${BENCHMARK_ROOT}
+}
+
+
+if [ ${TILE_TUNING} -ne 0 ]; then
+    for D1 in 16 32 64 128
+    do
+	for D2 in 16 32 64 128
+	do
+	    for D3 in 16 32 64 128
+	    do
+		echo "-----------------------------"
+		echo "Trying tile size $D1,$D2,$D3"
+		compile_tilable_sgemms $D1 $D2 $D3
+	    done
+	done
+    done
+else
+    compile_tilable_sgemms 64 64 64
+fi
+
