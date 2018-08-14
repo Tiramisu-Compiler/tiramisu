@@ -20,27 +20,27 @@ int main(int argc, char *argv[])
     std::cout << std::endl << "----------" << std::endl;
     std::cout << "Running sequential MM benchmark: testN: " << testN
               << ", check correctness: " << check_correctness
-              << ", N: " << N << std::endl;
+              << ", size: (" << S0 << ", " << S1 << ", " << S2 << ", " << S3 << ")" << std::endl;
 
     auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = t1;
     
-    float *A = (float*) malloc(N * N * sizeof(float));
-    float *B = (float*) malloc(N * N * sizeof(float));
-    float *C = (float*) malloc(N * N * sizeof(float));
+    float *A = (float*) malloc(S0 * S1 * sizeof(float));
+    float *B = (float*) malloc(S1 * S2 * sizeof(float));
+    float *C = (float*) malloc(S2 * S3 * sizeof(float));
 
     // Initialize matrices with random values:
-    for (int i = 0; i < N * N; i++) A[i] = std::rand() % 10;
-    for (int i = 0; i < N * N; i++) B[i] = std::rand() % 10;
-    for (int i = 0; i < N * N; i++) C[i] = std::rand() % 10;
+    for (int i = 0; i < S0 * S1; i++) A[i] = std::rand() % 10;
+    for (int i = 0; i < S1 * S2; i++) B[i] = std::rand() % 10;
+    for (int i = 0; i < S2 * S3; i++) C[i] = std::rand() % 10;
 
     std::cout << "Buffers initialized" << std::endl << std::flush;
 
     // Note that indices are flipped (see tutorial 2)
-    Halide::Buffer<DATA_TYPE> A_buf(A, {N, N});
-    Halide::Buffer<DATA_TYPE> B_buf(B, {N, N});
-    Halide::Buffer<DATA_TYPE> C_buf(C, {N, N});
-    Halide::Buffer<DATA_TYPE> O_buf(N, N);
+    Halide::Buffer<DATA_TYPE> A_buf(A, {S1, S0});
+    Halide::Buffer<DATA_TYPE> B_buf(B, {S2, S1});
+    Halide::Buffer<DATA_TYPE> C_buf(C, {S3, S2});
+    Halide::Buffer<DATA_TYPE> O_buf(S3, S0);
 
     // Make a dummy call to set up GPU (initalization takes time)
     matmul(A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer(), O_buf.raw_buffer());
@@ -52,29 +52,34 @@ int main(int argc, char *argv[])
 
         std::cout << "Running CPU multiplication.." << std::endl;
 
-        Halide::Buffer<DATA_TYPE> O_val_buf(N, N);
-        Halide::Buffer<DATA_TYPE> T_val_buf(N, N);
+        Halide::Buffer<DATA_TYPE> O_val_buf(S3, S0);
+        Halide::Buffer<DATA_TYPE> T_val_buf(S2, S0);
         t1 = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
+        for (int i = 0; i < S0; i++) {
+            for (int k = 0; k < S2; k++) {
                 // Note that indices are flipped (see tutorial 2)
-                O_val_buf(j, i) = 0;
-                T_val_buf(j, i) = 0;
+                T_val_buf(k, i) = 0;
             }
         }
-        for (int k = 0; k < N; k++) {
-            for (int i = 0; i < N; i++) {
-                for (int j = 0; j < N; j++) {
+        for (int i = 0; i < S0; i++) {
+            for (int l = 0; l < S3; l++) {
+                // Note that indices are flipped (see tutorial 2)
+                O_val_buf(l, i) = 0;
+            }
+        }
+        for (int j = 0; j < S1; j++) {
+            for (int i = 0; i < S0; i++) {
+                for (int k = 0; k < S2; k++) {
                     // Note that indices are flipped (see tutorial 2)
-                    T_val_buf(j, i) += A_buf(k, i) * B_buf(j, k);
+                    T_val_buf(k, i) += A_buf(j, i) * B_buf(k, j);
                 }
             }
         }
-        for (int k = 0; k < N; k++) {
-            for (int i = 0; i < N; i++) {
-                for (int j = 0; j < N; j++) {
+        for (int k = 0; k < S2; k++) {
+            for (int i = 0; i < S0; i++) {
+                for (int l = 0; l < S3; l++) {
                     // Note that indices are flipped (see tutorial 2)
-                    O_val_buf(j, i) += T_val_buf(k, i) * C_buf(j, k);
+                    O_val_buf(l, i) += T_val_buf(k, i) * C_buf(l, k);
                 }
             }
         }
