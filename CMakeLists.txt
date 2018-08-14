@@ -359,3 +359,7 @@ if (${USE_GPU})
     add_subdirectory(benchmarks/linear_algebra/blas/level3/sgemm/gpu)
     add_subdirectory(benchmarks/linear_algebra/chain_mm/gpu)
 endif()
+add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
+add_subdirectory(benchmarks/DNN/blocks/conv2)
+
+
