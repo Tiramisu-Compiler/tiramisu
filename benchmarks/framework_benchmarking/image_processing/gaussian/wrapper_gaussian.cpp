@@ -35,7 +35,6 @@ int main(int, char**)
     std::cout << "input.extent(1): " << input.extent(1) << std::endl; // Cols
     std::cout << "input.extent(2): " << input.extent(2) << std::endl; // Colors
 
-
     //Warm up
     pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
 		    kernelX.extent(0), (float *) kernelX.raw_buffer()->host,
