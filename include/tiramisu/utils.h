@@ -88,7 +88,7 @@ inline void copy_buffer(const Halide::Buffer<T> &from, Halide::Buffer<T> &to)
 
 template<typename T>
 inline void compare_buffers_approximately(const std::string &test, const Halide::Buffer<T> &result,
-                                          const Halide::Buffer<T> &expected)
+                                          const Halide::Buffer<T> &expected, float threshold)
 {
     if ((result.dimensions() != expected.dimensions()) ||
         (result.channels() != expected.channels()) ||
@@ -101,7 +101,7 @@ inline void compare_buffers_approximately(const std::string &test, const Halide:
     for (int z = 0; z < result.channels(); z++) {
         for (int y = 0; y < result.height(); y++) {
             for (int x = 0; x < result.width(); x++) {
-                if (result(x, y, z) - expected(x, y, z) > 0.1) {
+                if ((float) (result(x, y, z) - expected(x, y, z)) > threshold) {
                     ERROR("\033[1;31mTest " + test + " failed. At (" + std::to_string(x) +
                                     ", " + std::to_string(y) + ", " + std::to_string(z) + "), expected: " +
                                     std::to_string(expected(x, y, z)) + ", got: " +
@@ -112,6 +112,13 @@ inline void compare_buffers_approximately(const std::string &test, const Halide:
         }
     }
     tiramisu::str_dump("\033[1;32mTest " + test + " succeeded.\033[0m\n");
+}
+
+template<typename T>
+inline void compare_buffers_approximately(const std::string &test, const Halide::Buffer<T> &result,
+                                          const Halide::Buffer<T> &expected)
+{
+    compare_buffers_approximately(test, result, expected, 0.1);
 }
 
 template<typename T>
