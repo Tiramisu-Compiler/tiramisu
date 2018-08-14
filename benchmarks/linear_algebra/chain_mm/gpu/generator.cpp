@@ -13,21 +13,21 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Declare loop iterators
-    var i("i", 0, N), j("j", 0, N), k("k", 0, N), l("l", 0, N);
+    var i("i", 0, S0), j("j", 0, S1), k("k", 0, S2), l("l", 0, S3);
     var i0("i0"), k0("k0"), l0("l0"), i1("i1"), k1("k1"), l1("l1");
 
     // declare cpu buffers.
-    buffer b_A("b_A", {N, N}, DATA_PTYPE, a_input);
-    buffer b_B("b_B", {N, N}, DATA_PTYPE, a_input);
-    buffer b_C("b_C", {N, N}, DATA_PTYPE, a_input);
-    buffer b_O("b_O", {N, N}, DATA_PTYPE, a_output);
+    buffer b_A("b_A", {S0, S1}, DATA_PTYPE, a_input);
+    buffer b_B("b_B", {S1, S2}, DATA_PTYPE, a_input);
+    buffer b_C("b_C", {S2, S3}, DATA_PTYPE, a_input);
+    buffer b_O("b_O", {S0, S3}, DATA_PTYPE, a_output);
     // Declare gpu buffers.
-    buffer b_A_gpu("b_A_gpu", {N, N}, DATA_PTYPE, a_temporary);
-    buffer b_B_gpu("b_B_gpu", {N, N}, DATA_PTYPE, a_temporary);
-    buffer b_C_gpu("b_C_gpu", {N, N}, DATA_PTYPE, a_temporary);
-    buffer b_O_gpu("b_O_gpu", {N, N}, DATA_PTYPE, a_temporary);
+    buffer b_A_gpu("b_A_gpu", {S0, S1}, DATA_PTYPE, a_temporary);
+    buffer b_B_gpu("b_B_gpu", {S1, S2}, DATA_PTYPE, a_temporary);
+    buffer b_C_gpu("b_C_gpu", {S2, S3}, DATA_PTYPE, a_temporary);
+    buffer b_O_gpu("b_O_gpu", {S0, S3}, DATA_PTYPE, a_temporary);
     // Temporary buffer to store AxB
-    buffer b_T1_gpu("b_T1_gpu", {N, N}, DATA_PTYPE, a_temporary);
+    buffer b_T1_gpu("b_T1_gpu", {S0, S2}, DATA_PTYPE, a_temporary);
     b_A_gpu.tag_gpu_global();
     b_B_gpu.tag_gpu_global();
     b_C_gpu.tag_gpu_global();
