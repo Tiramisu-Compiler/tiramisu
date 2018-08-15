@@ -4,19 +4,19 @@ using namespace Halide;
 
 int main(int argc, char* argv[])
 {
-    ImageParam Img(UInt(8), 3, "input");
+    ImageParam Img(UInt(8), 3, "Img");
     Func R("R"), Out("Out"), Img2("Img2");
     Var i("i"), j("j"), c("c");
 
     Img2(c, j, i) = BoundaryConditions::constant_exterior(Img, cast<uint8_t>(0))(c, j, i);
 
     /* Ring blur filter. */
-    R(c, j, i) = (Img2(c, j, i)   + Img2(c, j+1, i)   + Img2(c, j+2, i)+
-		  Img2(c, j, i+1)                     + Img2(c, j+2, i+1)+
-		  Img2(c, j, i+2) + Img2(c, j+1, i+2) + Img2(c, j+2, i+2))/8;
+    R(i, j, c) = (Img2(i,   j, c) + Img2(i,   j+1, c) + Img2(i,   j+2, c)+
+		  Img2(i+1, j, c)                     + Img2(i+1, j+2, c)+
+		  Img2(i+2, j, c) + Img2(i+2, j+1, c) + Img2(i+2, j+2, c))/8;
 
     /* Robert's edge detection filter. */
-    Out(c, j, i) = (R(c, j+1, i+1)-R(c, j, i+2)) + (R(c, j+1, i+2)-R(c, j, i+1));
+    Out(i, j, c) = (R(i+1, j+1, c)-R(i+2, j, c)) + (R(i+2, j+1, c)-R(i+1, j, c));
 
     R.compute_root();
     Out.compute_root();
