@@ -15,9 +15,9 @@ int main(int argc, char* argv[])
     // Layer I
 
     /* Ring blur filter. */
-    computation R("R", {c, j, i}, (Img(c, j, i)   + Img(c, j-1, i)   + Img(c, j+2, i)+
+    computation R("R", {c, j, i}, (Img(c, j, i)   + Img(c, j+1, i)   + Img(c, j+2, i)+
 				   Img(c, j, i+1)                    + Img(c, j+2, i+1)+
-				   Img(c, j, i+2) + Img(c, j-1, i+2) + Img(c, j+2, i+2))/((uint8_t) 8));
+				   Img(c, j, i+2) + Img(c, j+1, i+2) + Img(c, j+2, i+2))/((uint8_t) 8));
 
     /* Robert's edge detection filter. */
     computation Out("Out", {c, j, i}, (R(c, j+1, i+1)-R(c, j, i+2)) + (R(c, j+1, i+2)-R(c, j, i+1)));
