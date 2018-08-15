@@ -18,8 +18,8 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
     Halide::Buffer<uint8_t> Img(N, M, 3);
-    Halide::Buffer<uint8_t> output1(N-8, M-8, 3);
-    Halide::Buffer<uint8_t> output2(N-8, M-8, 3);
+    Halide::Buffer<uint8_t> output1(N-2, M-2, 3);
+    Halide::Buffer<uint8_t> output2(N-4, M-4, 3);
 
     init_buffer(Img, (uint8_t) 0);
     init_buffer(output1, (uint8_t) 0);
@@ -53,8 +53,8 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-    //print_buffer(output1);
-    //print_buffer(output2);
+//    print_buffer(output1);
+//    print_buffer(output2);
 
     if (CHECK_CORRECTNESS)
 	compare_buffers("Edge",  output1, output2);

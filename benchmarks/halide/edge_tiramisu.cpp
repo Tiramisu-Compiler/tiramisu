@@ -15,12 +15,12 @@ int main(int argc, char* argv[])
     // Layer I
 
     /* Ring blur filter. */
-    computation R("R", {i, j, c}, (Img(i,   j, c) + Img(i,   j-1, c) + Img(i,   j+2, c)+
-				   Img(i+1, j, c)                    + Img(i+1, j+2, c)+
-				   Img(i+2, j, c) + Img(i+2, j-1, c) + Img(i+2, j+2, c))/((uint8_t) 8));
+    computation R("R", {c, j, i}, (Img(c, j, i)   + Img(c, j-1, i)   + Img(c, j+2, i)+
+				   Img(c, j, i+1)                    + Img(c, j+2, i+1)+
+				   Img(c, j, i+2) + Img(c, j-1, i+2) + Img(c, j+2, i+2))/((uint8_t) 8));
 
     /* Robert's edge detection filter. */
-    computation Out("Out", {i, j, c}, (R(i+1, j+1, c)-R(i+2, j, c)) + (R(i+2, j+1, c)-R(i+1, j, c)));
+    computation Out("Out", {c, j, i}, (R(c, j+1, i+1)-R(c, j, i+2)) + (R(c, j+1, i+2)-R(c, j, i+1)));
 
     // Layer II
     Out.after(R, computation::root);

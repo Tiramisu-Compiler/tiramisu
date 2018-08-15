@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
     Func R("R"), Out("Out"), Img2("Img2");
     Var i("i"), j("j"), c("c");
 
-    Img2(c, j, i) = BoundaryConditions::constant_exterior(Img, cast<uint8_t>(0))(c, j, i);
+    Img2(i, j, c) = Img(i, j, c); 
 
     /* Ring blur filter. */
     R(i, j, c) = (Img2(i,   j, c) + Img2(i,   j+1, c) + Img2(i,   j+2, c)+
