@@ -53,9 +53,8 @@ int main(int, char**)
                {"Tiramisu", "Halide"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-//    print_buffer(output1);
-//    print_buffer(output2);
-
+    // We do not compare because the array Img and output2 are of different
+    // sizes. Since output2 has -2 on the size of each of its dimensions.
 //    if (CHECK_CORRECTNESS)
 //	compare_buffers("Edge",  Img, output2);
 
