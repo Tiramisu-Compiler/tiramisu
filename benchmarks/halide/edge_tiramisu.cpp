@@ -28,13 +28,12 @@ int main(int argc, char* argv[])
     // Layer III
     buffer b_Img("Img", {NN, MM, 3}, p_uint8, a_input);
     buffer   b_R("R",   {NN, MM, 3}, p_uint8, a_temporary);
-    buffer b_Out("Out", {NN, MM, 3}, p_uint8, a_output);
 
     Img.store_in(&b_Img);
     R.store_in(&b_R);
-    Out.store_in(&b_Out);
+    Out.store_in(&b_Img);
 
-    tiramisu::codegen({&b_Img, &b_Out}, "build/generated_fct_edge.o");
+    tiramisu::codegen({&b_Img}, "build/generated_fct_edge.o");
 
   return 0;
 }
