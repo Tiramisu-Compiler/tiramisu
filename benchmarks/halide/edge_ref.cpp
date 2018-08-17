@@ -18,10 +18,6 @@ int main(int argc, char* argv[])
     Out(i, j, c) = (R(i+1, j+1, c)-R(i+2, j, c)) + (R(i+2, j+1, c)-R(i+1, j, c));
 
     R.compute_root();
-    R.tile(i,j, i1, j1, i2, j2, 32, 32);
-    Out.tile(i,j, i1, j1, i2, j2, 32, 32);
-    R.parallel(i1);
-    Out.parallel(i1);
     Out.compute_root();
 
     Out.compile_to_object("build/generated_fct_edge_ref.o", {Img}, "edge_ref");
