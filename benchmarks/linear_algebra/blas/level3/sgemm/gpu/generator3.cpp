@@ -22,15 +22,15 @@ int main(int argc, char **argv)
 
     // Declare cpu buffers.
     buffer b_A("b_A", {M, K}, DATA_PTYPE, a_input);
-    buffer b_B("b_B", {N, K}, DATA_PTYPE, a_input);
+    buffer b_B("b_B", {K, N}, DATA_PTYPE, a_input);
     buffer b_C("b_C", {M, N}, DATA_PTYPE, a_output);
     // Declare gpu buffers.
     buffer b_A_glb("b_A_glb", {M, K}, DATA_PTYPE, a_temporary);
-    buffer b_B_glb("b_B_glb", {N, K}, DATA_PTYPE, a_temporary);
+    buffer b_B_glb("b_B_glb", {K, N}, DATA_PTYPE, a_temporary);
     buffer b_C_glb("b_C_glb", {M, N}, DATA_PTYPE, a_temporary);
-    buffer b_A_shr("b_A_shr", {BLOCK, BLOCK * R_BLOCK_I}, DATA_PTYPE, a_temporary);
     // "+ 1" to reduce shared memory bank conflicts
-    buffer b_B_shr("b_B_shr", {BLOCK, BLOCK * R_BLOCK_J + 1}, DATA_PTYPE, a_temporary);
+    buffer b_A_shr("b_A_shr", {BLOCK, BLOCK * R_BLOCK_I + 1}, DATA_PTYPE, a_temporary);
+    buffer b_B_shr("b_B_shr", {BLOCK, BLOCK * R_BLOCK_J}, DATA_PTYPE, a_temporary);
     buffer b_A_reg("b_A_reg", {1}, DATA_PTYPE, a_temporary);
     buffer b_B_reg("b_B_reg", {R_BLOCK_J}, DATA_PTYPE, a_temporary);
     buffer b_acc("b_acc", {R_BLOCK_I, R_BLOCK_J}, DATA_PTYPE, a_temporary);
@@ -132,8 +132,10 @@ int main(int argc, char **argv)
     c_A_glb_to_shr.store_in(&b_A_shr, {j0 % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr.store_in(&b_A_shr, {k % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr_to_reg.store_in(&b_A_reg, {0});
-    c_B_glb.store_in(&b_B_glb, {j0 * R_BLOCK_J + j1, k0 * BLOCK + i0 % BLOCK,});
-    c_B_glb_to_shr.store_in(&b_B_shr, {i0 % BLOCK, j0 % BLOCK * R_BLOCK_J + j1});
+    // Note that we use a transposed mapping to assure memory coalescing
+    // This requires R_BLOCK_J to be equal to BLOCK
+    c_B_glb.store_in(&b_B_glb, {k0 * BLOCK + j1, j0 * R_BLOCK_J + i0 % BLOCK});
+    c_B_glb_to_shr.store_in(&b_B_shr, {j1, j0 % BLOCK * R_BLOCK_J + i0 % BLOCK});
     c_B_shr.store_in(&b_B_shr, {k % BLOCK, j0 % BLOCK * R_BLOCK_J + j1});
     c_B_shr_to_reg.store_in(&b_B_reg, {j1});
     c_A.store_in(&b_A_reg, {i % R_BLOCK_I});
