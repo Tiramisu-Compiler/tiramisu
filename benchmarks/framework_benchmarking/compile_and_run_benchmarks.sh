@@ -56,7 +56,7 @@ compile_tilable_sgemms()
 	    TILE_D3=128
 	fi
 
-#$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
 	$CC -c $CXXFLAGS ${INCLUDES} -fopenmp $KERNEL.ppcg.c -o $KERNEL
 	$CC -c $CXXFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
 	g++ -std=c++11 -fno-rtti $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
