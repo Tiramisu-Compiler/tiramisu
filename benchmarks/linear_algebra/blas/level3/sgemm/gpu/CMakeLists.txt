@@ -3,7 +3,7 @@ set(generator_name ${benchmark_name}_generator)
 set(wrapper_name ${benchmark_name}_wrapper)
 set(object_files fct.o fct.o_cpu.o fct.o_gpu.o)
 
-add_executable(${generator_name} generator.cpp)
+add_executable(${generator_name} generator3.cpp)
 target_link_libraries(${generator_name} tiramisu ${HalideLib} ${ISLLib} ${LINK_FLAGS} cuda_wrapper)
 add_custom_command(OUTPUT ${object_files} COMMAND ${generator_name} DEPENDS ${generator_name})
 
