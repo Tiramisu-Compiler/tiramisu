@@ -23,10 +23,10 @@ int main(int argc, char* argv[])
     computation Out("Out", {c, j, i}, (R(c, j+1, i+1)-R(c, j, i+2)) + (R(c, j+1, i+2)-R(c, j, i+1)));
 
     // Layer II
-    R.parallelize(c);
-    Out.parallelize(c);
-    R.tile(j, i, 32, 32);
-    Out.tile(j, i, 32, 32);
+//    R.parallelize(c);
+//    Out.parallelize(c);
+//    R.tile(j, i, 32, 32);
+//    Out.tile(j, i, 32, 32);
     Out.after(R, computation::root);
 
     // Layer III
