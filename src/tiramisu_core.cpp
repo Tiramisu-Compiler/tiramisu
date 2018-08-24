@@ -2959,7 +2959,7 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1,
 
     this->tile(dimensions[0], dimensions[1], sizeX, sizeY);
 
-    // Replace the original dimension name with two new dimension names
+    // Replace the original dimension name with new dimension names
     this->update_names(original_loop_level_names, {L0_outer.get_name(), L1_outer.get_name(), L0_inner.get_name(), L1_inner.get_name()}, dimensions[0], 2);
 
     DEBUG_INDENT(-4);
