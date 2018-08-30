@@ -41,7 +41,7 @@ int main() {
     float alpha = 3;
     float beta = 2;
     // Warm up
-    for (int i = 0; i< 10; i++) {
+    for (int i = 0; i < 10; i++) {
         sgemm(A, B, C, alpha, beta);
     }
     int testN = 100;
