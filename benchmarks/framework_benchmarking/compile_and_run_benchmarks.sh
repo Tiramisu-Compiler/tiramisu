@@ -12,9 +12,12 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source ./configure.sh
 
-CXXFLAGS="-O3"
+LLVM_SYS_FLAGS="-lz -lpthread"
+#`${TIRAMISU_ROOT}/3rdParty/llvm/build/bin/llvm-config --ignore-libllvm --system-libs`
+CXXFLAGS="-O3 $CXXFLAGS"
+CFLAGS="-O3 --std=c99"
 INCLUDES="-I${OPENBLAS_DIR} -I${HALIDE_PREFIX}/include/ -I${TIRAMISU_ROOT}/benchmarks/ -I${TIRAMISU_ROOT}/include/ -I${OPENMP_DIR}/include/libiomp/ -I${BENCHMARK_ROOT}/software/polybench/ -I${BENCHMARK_ROOT}/software/pencil/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/tools/"
-LIBRARIES="${OpenBLAS_FLAGS} -lHalide -lz -lpthread -ltiramisu -lpng -ljpeg -l${OPENMP_LIB}"
+LIBRARIES="${OpenBLAS_FLAGS} -ltiramisu -lHalide ${LLVM_SYS_FLAGS} -lpng -ljpeg ${OPENMP_LIB}"
 LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/ -L${OPENMP_DIR}"
 TILE_TUNING=0
 
@@ -57,9 +60,9 @@ compile_tilable_sgemms()
 	fi
 
 	$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
-	$CC -c $CXXFLAGS ${INCLUDES} -fopenmp $KERNEL.ppcg.c -o $KERNEL
-	$CC -c $CXXFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
-	g++ -std=c++11 -fno-rtti $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+	$CC -c $CFLAGS ${INCLUDES} -fopenmp $KERNEL.ppcg.c -o $KERNEL
+	$CC -c $CFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
+	g++ -fPIC -fno-rtti -std=c++11 $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
 
 	echo "Running PENCIL-$KERNEL"
 	./wrapper_${KERNEL}
