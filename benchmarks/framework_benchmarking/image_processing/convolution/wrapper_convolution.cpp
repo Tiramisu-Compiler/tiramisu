@@ -62,7 +62,7 @@ int main(int, char**)
 		    (uint8_t *) temp.raw_buffer()->host);
 
     // Tiramisu
-    for (int i=0; i<1; i++)
+    for (int i=0; i<10; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
         pencil_convolution(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,

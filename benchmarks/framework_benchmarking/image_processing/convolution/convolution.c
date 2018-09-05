@@ -9,12 +9,12 @@
 static void convolution( const int rows
                     , const int cols
                     , const int step
-                    , const uint8_t src[static const restrict rows][step][3]
+                    , const unsigned char src[rows][step][3]
                     , const int kernelX_length
-                    , const float kernelX[static const restrict kernelX_length]
+                    , const float kernelX[kernelX_length]
                     , const int kernelY_length
-                    , const float kernelY[static const restrict kernelY_length]
-                    , uint8_t conv[static const restrict rows][step][3]
+                    , const float kernelY[kernelY_length]
+                    , uint8_t conv[rows][step][3]
 		    , uint8_t temp[rows][step][3]
                     )
 {
