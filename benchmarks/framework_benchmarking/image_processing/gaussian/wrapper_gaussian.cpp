@@ -6,6 +6,25 @@
 #include <cstdlib>
 #include <iostream>
 
+double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+{
+    double median;
+    size_t size = scores.size();
+
+    std::sort(scores.begin(), scores.end());
+
+    if (size % 2 == 0)
+    {
+        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+    }
+    else
+    {
+        median = scores[size / 2].count();
+    }
+
+    return median;
+}
+
 int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
@@ -43,7 +62,7 @@ int main(int, char**)
 		    (uint8_t *) temp.raw_buffer()->host);
 
     // Tiramisu
-    for (int i=0; i<10; i++)
+    for (int i=0; i<1; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
         pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
