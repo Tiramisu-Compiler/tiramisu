@@ -18,9 +18,15 @@ else
 	export OPENMP_DIR=.
 	export OPENBLAS_DIR=.
 	export OpenBLAS_FLAGS=""
+	export CUDA_HOME=/usr/local/cuda/
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${CUDA_HOME}/lib64
+	export PATH=$PATH:${CUDA_HOME}/bin
+	export NVCC=${CUDA_HOME}/bin/nvcc
+	export JPEG=/data/scratch/baghdadi/libs/jpeg_prefix/
 fi
 
-PPCG=${BENCHMARK_ROOT}/software/ppcg/ppcg
+PPCG_DIR=${BENCHMARK_ROOT}/software/ppcg/
+PPCG=${PPCG_DIR}/ppcg
 HALIDE_PREFIX=${TIRAMISU_ROOT}/3rdParty/Halide
 PLUTO=/Users/b/Documents/src-not-saved/pluto-0.11.4/polycc
 PLUTO_OPTS="--tile --parallel"
@@ -28,7 +34,8 @@ POLLY="/Volumes/ALL/extra/polly/llvm_build/bin/clang"
 POLLY_OPTS="-mllvm -polly -mllvm -polly-vectorizer=stripmine -mllvm -polly-parallel"
 
 RUN_PLUTO=0
-RUN_PENCIL=1
+RUN_PENCIL=0
+RUN_PENCIL_GPU=1
 RUN_ALPHAZ=0
 RUN_OpenBLAS=0
 RUN_HALIDE=0

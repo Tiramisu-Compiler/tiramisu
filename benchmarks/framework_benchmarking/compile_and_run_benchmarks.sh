@@ -16,9 +16,10 @@ LLVM_SYS_FLAGS="-lz -lpthread"
 #`${TIRAMISU_ROOT}/3rdParty/llvm/build/bin/llvm-config --ignore-libllvm --system-libs`
 CXXFLAGS="-O3 $CXXFLAGS"
 CFLAGS="-O3 --std=c99"
-INCLUDES="-I${OPENBLAS_DIR} -I${HALIDE_PREFIX}/include/ -I${TIRAMISU_ROOT}/benchmarks/ -I${TIRAMISU_ROOT}/include/ -I${OPENMP_DIR}/include/libiomp/ -I${BENCHMARK_ROOT}/software/polybench/ -I${BENCHMARK_ROOT}/software/pencil/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/tools/"
+NVCCFLAGS="-O3 -Wno-deprecated-gpu-targets"
+INCLUDES="-I${OPENBLAS_DIR} -I${HALIDE_PREFIX}/include/ -I${TIRAMISU_ROOT}/benchmarks/ -I${TIRAMISU_ROOT}/include/ -I${OPENMP_DIR}/include/libiomp/ -I${BENCHMARK_ROOT}/software/polybench/ -I${BENCHMARK_ROOT}/software/pencil/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/tools/ -I${CUDA_HOME}/include/ -I${PPCG_DIR}/ -I${JPEG}/include/"
 LIBRARIES="${OpenBLAS_FLAGS} -ltiramisu -lHalide ${LLVM_SYS_FLAGS} -lpng -ljpeg ${OPENMP_LIB}"
-LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/ -L${OPENMP_DIR}"
+LIBRARIES_DIR="-L${HALIDE_PREFIX}/lib/ -L${OPENBLAS_DIR} -L${TIRAMISU_ROOT}/build/ -L${OPENMP_DIR} -L${CUDA_HOME}/lib64/ -L${JPEG}/lib/"
 TILE_TUNING=0
 
 if [ "${TIRAMISU_XLARGE}" = "1" ]; then
@@ -33,7 +34,7 @@ else
     DEFINED_SIZE="-DTIRAMISU_LARGE"
 fi
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/:${JPEG}/lib/
 export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_PREFIX}:${OPENBLAS_DIR}:${TIRAMISU_ROOT}/build/
 
 # Parameters: tile size for dimension 1, tile size for dimension 2 and tile size for dimension 3.
@@ -73,6 +74,40 @@ compile_tilable_sgemms()
 
 	cd ${BENCHMARK_ROOT}
     fi
+
+    #################################################################
+    #################### Compile PENCIL GPU ########################
+
+    if [ ${RUN_PENCIL_GPU} -ne 0 ]; then
+	echo "Compiling with PENCIL GPU"
+	cd ${KERNEL_FOLDER}
+
+	# Tuned tile sizes for Macbook Pro
+	if [ ${TILE_TUNING} -eq 0 ]; then
+	    TILE_D1=32
+	    TILE_D2=64
+	    TILE_D3=128
+	fi
+
+	$PPCG ${INCLUDES} --target=opencl --opencl-embed-kernel-code --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+#	g++ -c $CFLAGS ${INCLUDES} ${KERNEL}_kernel.cl -o ${KERNEL}
+#	g++ -std=c99 -c $CFLAGS ${INCLUDES} ${PPCG_DIR}/ocl_utilities.c -lOpenCL -o ocl_utilities
+	gcc -c $CFLAGS ${INCLUDES} ${KERNEL}_host.c -o ${KERNEL}_host
+	gcc -c $CFLAGS ${INCLUDES} ${PPCG_DIR}/ocl_utilities.c -lOpenCL -o ocl_utilities
+	g++ -c $CFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
+	g++ -fPIC -fno-rtti -std=c++11 $CXXFLAGS ${INCLUDES} ${KERNEL}_host polybench ocl_utilities wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -lOpenCL -o wrapper_${KERNEL}
+	#$NVCC -std=c++11 $NVCCFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+
+	echo "Running PENCIL-$KERNEL"
+	./wrapper_${KERNEL}
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
 
     #################################################################
     #################################################################
