@@ -1,6 +1,6 @@
 #include "cvtColor.h"
-#include <pencil.h>
 #include <assert.h>
+#include <stdint.h>
 
 //#if !__PENCIL__
 #include <stdlib.h>
@@ -15,6 +15,7 @@ enum
     B2Y        = 1868,
 };
 
+#ifdef __PENCIL_HEADER__
 static void cvtColor( const int rows
                     , const int cols
                     , const int step
@@ -24,13 +25,26 @@ static void cvtColor( const int rows
                     , const int kernelY_length
                     , const float kernelY[kernelY_length]
                     , uint8_t conv[rows][step]
-		    , uint8_t temp[rows][step][3]
+                    , uint8_t temp[rows][step][3]
                     )
+#else
+static void cvtColor( const int rows
+                    , const int cols
+                    , const int step
+                    , const unsigned char *src
+                    , const int kernelX_length
+                    , const float *kernelX
+                    , const int kernelY_length
+                    , const float *kernelY
+                    , uint8_t *conv
+                    , uint8_t *temp
+                    )
+#endif
 {
 #pragma scop
         for ( int q = 0; q < rows; q++ )
             for ( int w = 0; w < cols; w++ )
-		 conv[q][w] = CV_DESCALE( (src[q][w][2] * B2Y + src[q][w][1] * G2Y + src[q][w][0] * R2Y ), yuv_shift );
+                conv[q][w] = CV_DESCALE( (src[q][w][2] * B2Y + src[q][w][1] * G2Y + src[q][w][0] * R2Y ), yuv_shift );
 #pragma endscop
 }
 
@@ -46,10 +60,10 @@ void pencil_cvtColor( const int rows
 		    , uint8_t temp[]
                     )
 {
-    cvtColor( rows, cols, step, (const uint8_t(*)[step])src
+    cvtColor( rows, cols, step, src
             , kernelX_length, kernelX
             , kernelY_length, kernelY
-            , (uint8_t(*)[step])conv
+            , conv
 	    , temp
             );
 }

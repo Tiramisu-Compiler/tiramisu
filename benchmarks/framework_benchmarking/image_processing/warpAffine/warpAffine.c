@@ -1,13 +1,20 @@
 #include "warpAffine.h"
 //#include <pencil.h>
 
-float mixf(float x, float y, float a) { return x + (x-y) * a; }
-int clamp(int x, int minval, int maxval) { if (x < minval) return minval; if (x > maxval) return maxval; return x; }
+#define mixf(x, y, a) ((x) + ((x) - (y)) * (a))
+#define clamp(x, minval, maxval) ((x) < (minval) ? (minval) : (x) > (maxval) ? (maxval) : (x))
 
+#ifdef __PENCIL_HEADER__
 static void affine( const int src_rows, const int src_cols, const int src_step, const float src[static const restrict src_rows][src_step][3]
                   , const int dst_rows, const int dst_cols, const int dst_step,       float dst[static const restrict dst_rows][dst_step][3]
                   , const float a00, const float a01, const float a10, const float a11, const float b00, const float b10
                   )
+#else
+static void affine( const int src_rows, const int src_cols, const int src_step, const float *src
+                  , const int dst_rows, const int dst_cols, const int dst_step,       float *dst
+                  , const float a00, const float a01, const float a10, const float a11, const float b00, const float b10
+                  )
+#endif
 {
 #pragma scop
     __pencil_assume(src_rows >  0);
@@ -69,8 +76,8 @@ void pencil_affine_linear( const int src_rows, const int src_cols, const int src
                          , const float a00, const float a01, const float a10, const float a11, const float b00, const float b10
                          )
 {
-    affine( src_rows, src_cols, src_step, (const float(*)[src_step][3])src
-          , dst_rows, dst_cols, dst_step, (      float(*)[dst_step][3])dst
+    affine( src_rows, src_cols, src_step, src
+          , dst_rows, dst_cols, dst_step, dst
           , a00, a01, a10, a11, b00, b10
           );
 }

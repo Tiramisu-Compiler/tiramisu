@@ -6,9 +6,9 @@ void pencil_convolution( const int rows
                     , const int step
                     , const unsigned char src[]
                     , const int kernelX_length
-                    , const float kernelX[]
+                    , float kernelX[]
                     , const int kernelY_length
-                    , const float kernelY[]
+                    , float kernelY[]
                     , unsigned char conv[]
                     , unsigned char temp[]
                     );
