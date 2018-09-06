@@ -72,18 +72,19 @@ static void gaussian( const int rows
             dev_temp = clCreateBuffer(context, CL_MEM_READ_WRITE, ppcg_max(sizeof(unsigned char), (rows) * (step) * (3) * sizeof(unsigned char)), NULL, &err);
             openclCheckReturn(err);
           }
-          
-          if (step >= 1)
-            openclCheckReturn(clEnqueueWriteBuffer(queue, dev_conv, CL_TRUE, 0, (rows) * (step) * (3) * sizeof(unsigned char), conv, 0, NULL, NULL));
+       
+          clock_t begin_data_1 = clock();
+  
           if (kernelX_length >= 1)
             openclCheckReturn(clEnqueueWriteBuffer(queue, dev_kernelX, CL_TRUE, 0, (kernelX_length) * sizeof(float), kernelX, 0, NULL, NULL));
           if (kernelY_length >= 1)
             openclCheckReturn(clEnqueueWriteBuffer(queue, dev_kernelY, CL_TRUE, 0, (kernelY_length) * sizeof(float), kernelY, 0, NULL, NULL));
           if (step >= 1 && kernelX_length >= 1)
             openclCheckReturn(clEnqueueWriteBuffer(queue, dev_src, CL_TRUE, 0, (rows) * (step) * (3) * sizeof(unsigned char), src, 0, NULL, NULL));
-          if (step >= 1)
-            openclCheckReturn(clEnqueueWriteBuffer(queue, dev_temp, CL_TRUE, 0, (rows) * (step) * (3) * sizeof(unsigned char), temp, 0, NULL, NULL));
-          {
+
+	  clock_t end_data_1 = clock();
+
+
             size_t global_work_size[3] = {(ppcg_min(256, (rows + 31) / 32)) * 32, (1) * 3, 4};
             size_t block_size[3] = {32, 3, 4};
             cl_kernel kernel0 = clCreateKernel(program, "kernel0", &err);
@@ -100,17 +101,20 @@ static void gaussian( const int rows
             openclCheckReturn(clSetKernelArg(kernel0, 8, sizeof(kernelX_length), &kernelX_length));
             openclCheckReturn(clSetKernelArg(kernel0, 9, sizeof(cols), &cols));
             openclCheckReturn(clEnqueueNDRangeKernel(queue, kernel0, 3, NULL, global_work_size, block_size, 0, NULL, NULL));
-            openclCheckReturn(clReleaseKernel(kernel0));
+            openclCheckReturn(clReleaseKernel(kernel0));	    
 	    clock_t end = clock();
 	    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	    printf("new time : %f \n", time_spent);
+	    printf("Clock time : %f \n", time_spent);
             clFinish(queue);
-          }
-          
+
+ 	  clock_t begin_data_2 = clock();
           if (step >= 1) {
             openclCheckReturn(clEnqueueReadBuffer(queue, dev_conv, CL_TRUE, 0, (rows) * (step) * (3) * sizeof(unsigned char), conv, 0, NULL, NULL));
-            openclCheckReturn(clEnqueueReadBuffer(queue, dev_temp, CL_TRUE, 0, (rows) * (step) * (3) * sizeof(unsigned char), temp, 0, NULL, NULL));
           }
+          clock_t end_data_2 = clock();
+          double time_spent_data = ((double)(end_data_1 - begin_data_1) / CLOCKS_PER_SEC) +  ((double)(end_data_2 - begin_data_2) / CLOCKS_PER_SEC);
+          printf("Clock copy time : %f \n", time_spent_data);
+
           openclCheckReturn(clReleaseMemObject(dev_conv));
           openclCheckReturn(clReleaseMemObject(dev_kernelX));
           openclCheckReturn(clReleaseMemObject(dev_kernelY));
