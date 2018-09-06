@@ -19,57 +19,36 @@ static void gaussian( const int rows
                     )
 {
 #pragma scop
-    __pencil_assume(rows         >  0);
-    __pencil_assume(cols         >  0);
-    __pencil_assume(step         >= cols);
-    __pencil_assume(kernelX_length >  0);
-    __pencil_assume(kernelX_length <= 64);
-    __pencil_assume(kernelY_length >  0);
-    __pencil_assume(kernelY_length <= 64);
-    
-    __pencil_kill(conv);
-    {
-        #pragma pencil independent
         for ( int q = 0; q < rows; q++ )
         {
-            #pragma pencil independent
             for ( int w = 0; w < cols; w++ )
             {
 		for (int cc = 0; cc < 3; cc++)
 		{
 		    float prod1 = 0.;
-		    #pragma pencil independent reduction (+: prod1);
 		    for ( int r = 0; r < kernelX_length; r++ )
 		    {
-			int row1 = q;
-			int col1 = clamp(w + r - kernelX_length / 2, 0, cols-1);
-			prod1 += src[row1][col1][cc] * kernelX[r];
+			prod1 += src[q][w][cc] * kernelX[r];
 		    }
 		    temp[q][w][cc] = prod1;
 		}
             }
         }
-        #pragma pencil independent
         for ( int q = 0; q < rows; q++ )
         {
-            #pragma pencil independent
             for ( int w = 0; w < cols; w++ )
             {
 		for (int cc = 0; cc < 3; cc++)
 		{
 		    float prod2 = 0.;
-		    #pragma pencil independent reduction (+: prod2);
 		    for ( int e = 0; e < kernelY_length; e++ )
 		    {
-			int row2 = clamp(q + e - kernelY_length / 2, 0, rows-1);
-			int col2 = w;
-			prod2 += temp[row2][col2][cc] * kernelY[e];
+			prod2 += temp[q][w][cc] * kernelY[e];
 		    }
 		    conv[q][w][cc] = prod2;
 		}
             }
         }
-    }
 #pragma endscop
 }
 
