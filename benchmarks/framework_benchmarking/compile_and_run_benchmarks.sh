@@ -60,7 +60,9 @@ compile_tilable_sgemms()
 	    TILE_D3=128
 	fi
 
-	$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	if [ ${COMPILE_WITH_PENCIL} -ne 0 ]; then
+		$PPCG ${INCLUDES} --target=c --openmp --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	fi
 	$CC -c $CFLAGS ${INCLUDES} -fopenmp $KERNEL.ppcg.c -o $KERNEL
 	$CC -c $CFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
 	g++ -fPIC -fno-rtti -std=c++11 $CXXFLAGS ${INCLUDES} $KERNEL polybench wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
@@ -89,7 +91,10 @@ compile_tilable_sgemms()
 	    TILE_D3=128
 	fi
 
-	$PPCG ${INCLUDES} --target=opencl --opencl-embed-kernel-code --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	if [ ${COMPILE_WITH_PENCIL} -ne 0 ]; then
+		$PPCG ${INCLUDES} --target=opencl --opencl-embed-kernel-code --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+	fi
+
 	gcc -c $CFLAGS ${INCLUDES} ${KERNEL}_host.c -o ${KERNEL}_host
 	gcc -c $CFLAGS ${INCLUDES} ${PPCG_DIR}/ocl_utilities.c -lOpenCL -o ocl_utilities
 	g++ -c $CFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
