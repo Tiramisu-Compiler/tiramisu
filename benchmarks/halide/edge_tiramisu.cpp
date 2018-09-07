@@ -9,22 +9,25 @@ int main(int argc, char* argv[])
 {
     tiramisu::init("edge_tiramisu");
 
-    var i("i", 0, NN-2), j("j", 0, MM-2), c("c", 0, 3);
+    var i("i", 0, NN-2), j("j", 0, MM-2), c("c", 0, 3), i1("i1"), j1("j1"), i2("i2"), j2("j2");
     input Img("Img", {c, j, i}, p_uint8);
 
     // Layer I
 
     /* Ring blur filter. */
-    computation R("R", {c, j, i}, (Img(c, j, i)   + Img(c, j+1, i)   + Img(c, j+2, i)+
-				   Img(c, j, i+1)                    + Img(c, j+2, i+1)+
-				   Img(c, j, i+2) + Img(c, j+1, i+2) + Img(c, j+2, i+2))/((uint8_t) 8));
+    computation R("R", {i, j, c}, (Img(i,   j, c) + Img(i,   j+1, c) + Img(i,   j+2, c)+
+				   Img(i+1, j, c)                    + Img(i+1, j+2, c)+
+				   Img(i+2, j, c) + Img(i+2, j+1, c) + Img(i+2, j+2, c))/((uint8_t) 8));
 
     /* Robert's edge detection filter. */
-    computation Out("Out", {c, j, i}, (R(c, j+1, i+1)-R(c, j, i+2)) + (R(c, j+1, i+2)-R(c, j, i+1)));
+    computation Out("Out", {i, j, c}, (R(i+1, j+1, c)-R(i+2, j, c)) + (R(i+2, j+1, c)-R(i+1, j, c)));
 
     // Layer II
     Out.after(R, computation::root);
-//    R.tile(i,j, 64, 64, i1, j1, i2, j2)
+    R.tile(i, j, 64, 64, i1, j1, i2, j2);
+    R.tag_parallel_level(i1);
+    Out.tag_parallel_level(i);
+
 //    R.vectorize(j2, 64);
 //    Out.split(i, 64);
 
