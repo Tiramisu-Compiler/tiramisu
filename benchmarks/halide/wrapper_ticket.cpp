@@ -16,8 +16,8 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<uint8_t> output1(N);
-    Halide::Buffer<int> output2(N);
+    Halide::Buffer<uint8_t> output1(N, N);
+    Halide::Buffer<int> output2(N, N);
 
     init_buffer(output1, (uint8_t) 0);
     init_buffer(output2, (int) 0);
