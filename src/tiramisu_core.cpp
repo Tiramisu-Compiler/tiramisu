@@ -2709,8 +2709,6 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(this->get_iteration_domain() != NULL);
     this->check_dimensions_validity({L0, L1});
 
-//    this->separateAndSplit(L0, sizeX);
-//    this->separateAndSplit(L1 + 1, sizeY);
     this->split(L0, sizeX);
     this->split(L1 + 1, sizeY);
 
@@ -2959,7 +2957,7 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1,
 
     this->tile(dimensions[0], dimensions[1], sizeX, sizeY);
 
-    // Replace the original dimension name with two new dimension names
+    // Replace the original dimension name with new dimension names
     this->update_names(original_loop_level_names, {L0_outer.get_name(), L1_outer.get_name(), L0_inner.get_name(), L1_inner.get_name()}, dimensions[0], 2);
 
     DEBUG_INDENT(-4);

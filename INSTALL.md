@@ -1,4 +1,7 @@
 ## Building Tiramisu (Long Version)
+
+Tiramisu has been well tested on Linux Ubuntu (14.04) and MacOS (10.12), if you find any problem installing Tiramisu please consider using one of these systems.
+
 #### Prerequisites
 
 For MacOs, we provide instructions on how to install the missing packages using [Homebrew](https://brew.sh/) but you can install these packages using any other way.  If you do not have Homebrew, you can install it as described [here](https://docs.brew.sh/Installation).

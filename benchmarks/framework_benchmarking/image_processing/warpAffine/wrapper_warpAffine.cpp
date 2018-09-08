@@ -2,10 +2,28 @@
 
 #include "Halide.h"
 #include "halide_image_io.h"
-#include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
 #include <stdlib.h>
+
+double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+{
+    double median;
+    size_t size = scores.size();
+
+    std::sort(scores.begin(), scores.end());
+
+    if (size % 2 == 0)
+    {
+        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+    }
+    else
+    {
+        median = scores[size / 2].count();
+    }
+
+    return median;
+}
 
 float random(float a, float b)
 {

@@ -1,4 +1,4 @@
-#include "gaussian.h"
+#include "fusion.h"
 
 #include "Halide.h"
 #include "halide_image_io.h"
@@ -47,6 +47,8 @@ int main(int, char**)
 
     Halide::Buffer<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
     Halide::Buffer<uint8_t> temp(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> temp2(input.width(), input.height(), input.channels());
+    Halide::Buffer<uint8_t> temp3(input.width(), input.height(), input.channels());
     Halide::Buffer<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
 
     std::cout << "Dimensions : " << std::endl;
@@ -55,22 +57,27 @@ int main(int, char**)
     std::cout << "input.extent(2): " << input.extent(2) << std::endl; // Colors
 
     //Warm up
-    pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
+    pencil_fusion(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
 		    kernelX.extent(0), (float *) kernelX.raw_buffer()->host,
 		    kernelY.extent(0), (float *) kernelY.raw_buffer()->host,
 		    (uint8_t *) output1.raw_buffer()->host,
-		    (uint8_t *) temp.raw_buffer()->host);
+		    (uint8_t *) temp.raw_buffer()->host,
+		    (uint8_t *) temp2.raw_buffer()->host,
+		    (uint8_t *) temp3.raw_buffer()->host
+		    );
 
     // Tiramisu
     for (int i=0; i<10; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
+        pencil_fusion(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
    		        kernelX.extent(0), (float *) kernelX.raw_buffer()->host,
 		        kernelY.extent(0), (float *) kernelY.raw_buffer()->host,
 		        (uint8_t *) output1.raw_buffer()->host,
-			(uint8_t *) temp.raw_buffer()->host);
-
+			(uint8_t *) temp.raw_buffer()->host,
+		        (uint8_t *) temp2.raw_buffer()->host,
+		        (uint8_t *) temp3.raw_buffer()->host
+		     );
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);

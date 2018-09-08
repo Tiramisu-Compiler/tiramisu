@@ -1,4 +1,4 @@
-#include "gaussian.h"
+#include "cvtColor.h"
 
 #include "Halide.h"
 #include "halide_image_io.h"
@@ -55,7 +55,7 @@ int main(int, char**)
     std::cout << "input.extent(2): " << input.extent(2) << std::endl; // Colors
 
     //Warm up
-    pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
+    pencil_cvtColor(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
 		    kernelX.extent(0), (float *) kernelX.raw_buffer()->host,
 		    kernelY.extent(0), (float *) kernelY.raw_buffer()->host,
 		    (uint8_t *) output1.raw_buffer()->host,
@@ -65,7 +65,7 @@ int main(int, char**)
     for (int i=0; i<10; i++)
     {
         auto start1 = std::chrono::high_resolution_clock::now();
-        pencil_gaussian(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
+        pencil_cvtColor(input.extent(0), input.extent(1), 1, (uint8_t *) input.raw_buffer()->host,
    		        kernelX.extent(0), (float *) kernelX.raw_buffer()->host,
 		        kernelY.extent(0), (float *) kernelY.raw_buffer()->host,
 		        (uint8_t *) output1.raw_buffer()->host,
