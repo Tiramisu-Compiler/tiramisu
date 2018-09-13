@@ -92,15 +92,23 @@ compile_tilable_sgemms()
 	fi
 
 	if [ ${COMPILE_WITH_PENCIL} -ne 0 ]; then
-		$PPCG ${INCLUDES} -D__PENCIL_HEADER__ --target=cuda --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+		$PPCG ${INCLUDES} --target=cuda --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
 	fi
 
-	${NVCC} -c ${KERNEL}_host.cu -o ${KERNEL}_host.o
-	${NVCC} -c ${KERNEL}_kernel.cu -o ${KERNEL}_kernel.o
-	${NVCC} -std=c++11 ${INCLUDES} ${KERNEL}_host.o ${KERNEL}_kernel.o wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+	${NVCC} --std=c++11 -c ${KERNEL}_host.cu -o ${KERNEL}_host.o
+	${NVCC} --std=c++11 -c ${KERNEL}_kernel.cu -o ${KERNEL}_kernel.o
+    if [ -z ${PROFILE_CUDA} ]; then
+        ${NVCC} -std=c++11 ${INCLUDES} ${KERNEL}_host.o ${KERNEL}_kernel.o wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+    else
+        ${NVCC} -std=c++11 -D__PROFILE_CUDA__ ${INCLUDES} ${KERNEL}_host.o ${KERNEL}_kernel.o wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+    fi
 
-	echo "Running PENCIL-$KERNEL"
-	./wrapper_${KERNEL}
+	echo "Running PENCIL GPU-$KERNEL"
+    if [ -z ${PROFILE_CUDA} ]; then
+        ./wrapper_${KERNEL}
+    else
+        ${CUDA_HOME}/bin/nvprof --print-gpu-trace ./wrapper_${KERNEL}
+    fi
 
 	if [ $? -ne 0 ]; then
 		exit
