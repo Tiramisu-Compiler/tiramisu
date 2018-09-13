@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     tiramisu::expr e = value_cast(work_type, 0);
     for (int k = 0; k < 5; k++)
         e = e + cast(work_type, gpu_input(i + k, j, c)) * kernel_x(k);
-    computation gaussian_x{"[NB, MB, C] -> {gaussian_x[i, j, c]: 0 <= i < NB and 0 <= j < " EXTRA_J " and 0 <= c < C}", e, false, work_type, &gaussian_tiramisu};
+    computation gaussian_x{"[NB, MB, C] -> {gaussian_x[i, j, c]: 0 <= i < NB and 0 <= j < MB and 0 <= c < C}", e, false, work_type, &gaussian_tiramisu};
     gaussian_x.set_inline();
 
     e = value_cast(work_type, 0);
