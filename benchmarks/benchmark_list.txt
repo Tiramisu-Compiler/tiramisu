@@ -12,6 +12,7 @@ recfilter
 resize
 laplacian
 edge
+edgegpu[gpu]
 heat2dgpu[gpu]
 gaussiangpu[gpu]
 rgbyuv420gpu[gpu]
