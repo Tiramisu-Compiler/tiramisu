@@ -1,17 +1,19 @@
+#ifndef BENCH_CVT_COLOR_H_
+#define BENCH_CVT_COLOR_H_
+
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-void pencil_cvtColor( const int rows
-                    , const int cols
-                    , const int step
-                    , const unsigned char src[]
-                    , const int kernelX_length
-                    , const float kernelX[]
-                    , const int kernelY_length
-                    , const float kernelY[]
-                    , unsigned char conv[]
-                    , unsigned char temp[]
-                    );
+void pencil_cvtColor(const int rows,
+                     const int cols,
+                     const int src_step,
+                     const int dst_step,
+                     const uint8_t src[],
+                     uint8_t dst[]);
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
+
+#endif  // BENCH_CVT_COLOR_H_
