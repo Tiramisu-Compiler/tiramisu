@@ -12,16 +12,14 @@ set(USE_LIBPNG FALSE)
 # Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
 set(USE_LIBJPEG FALSE)
 
-# If USE_MPI is true, you need to set MPI paths
-# (MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS)
+# If USE_MPI is true, you need to the MPI_BUILD_DIR and MPI_NODES path
+# Note: This assumes you are using your own installed version of MPI. If your system already
+# has a version of openmpi installed, you will have to read the docs to see what the appropriate
+# way of launching mpi jobs is. For our testing, we use mpirun.
 # Examples:
-# set(MPI_INCLUDE_DIR "/usr/local/Cellar/open-mpi/3.0.1/include/")
-# set(MPI_LIB_DIR "/usr/local/Cellar/open-mpi/3.0.1/lib/")
-# set(MPI_LIB_FLAGS "-lmpi")
-# set(MPI_NODES "node1,node2")
-set(MPI_INCLUDE_DIR "")
-set(MPI_LIB_DIR "")
-set(MPI_LIB_FLAGS "")
+#set(MPI_BUILD_DIR "/data/scratch/jray/Repositories/tiramisu/3rdParty/openmpi-3.1.2/build/")
+#set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka06,lanka12,lanka13,lanka14,lanka15")
+set(MPI_BUILD_DIR "")
 set(MPI_NODES "")
 
 # Intel MKL library path. The specified folder should contain the folders
