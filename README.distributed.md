@@ -69,6 +69,18 @@ your local machine, and the tests are short, it shouldn't be a problem.
 - Set `USE_MPI` to `TRUE`.
 - Set `MPI_BUILD_DIR` to the location of the directory you built OpenMPI in. This path will be prepended in CMake
 to find the bin, include, and lib directories (for example `${MPI_BUILD_DIR}/bin`)
-TODO fix this line - Set `MPI_NODES` to be just be the following:
+- Set `MPI_NODES` to be just be the following:
 
      `set(MPI_NODES "localhost")`
+
+#### 2. Build and Run tiramisu
+- Build tiramisu as usual
+
+    `$ mkdir build && cd build`
+    
+    `$ cmake ..`
+    
+    `$ make tiramisu`
+    
+- Do the normal `$ make test` to run the full test suite, or just use `$ ctest -R <test_#>` to run a single test. You should be able to successfully
+run the MPI tests.
