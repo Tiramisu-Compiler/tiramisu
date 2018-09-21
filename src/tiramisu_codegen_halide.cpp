@@ -3763,6 +3763,8 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
 {
     // TODO(tiramisu): For GPU schedule, we need to set the features, e.g.
     // Halide::Target::OpenCL, etc.
+    // Note: "make test" fails on Travis machines when AVX2 is used.
+    //       Disable travis tests in .travis.yml if you switch to AVX2.
     std::vector<Halide::Target::Feature> features =
             {
                     Halide::Target::AVX, Halide::Target::SSE41,// Halide::Target::OpenCL,
