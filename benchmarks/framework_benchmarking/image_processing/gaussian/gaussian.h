@@ -1,17 +1,16 @@
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-void pencil_gaussian( const int rows
-                    , const int cols
-                    , const int step
-                    , const unsigned char src[]
-                    , const int kernelX_length
-                    , const float kernelX[]
-                    , const int kernelY_length
-                    , const float kernelY[]
-                    , unsigned char conv[]
-                    , unsigned char temp[]
-                    );
+void pencil_gaussian(const int rows,
+                     const int cols,
+                     const int step,
+                     uint8_t src[],
+                     float kernelX[],
+                     float kernelY[],
+                     uint8_t temp[],
+                     uint8_t conv[]);
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
