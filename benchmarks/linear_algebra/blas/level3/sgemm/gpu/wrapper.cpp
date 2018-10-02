@@ -20,12 +20,15 @@ int main(int argc, char *argv[])
     }
     if (argc > 2) {
         check_correctness = atoi(argv[2]);
+        if (check_correctness) {
+            testN = 0;
+        }
     }
 
     std::cout << std::endl << "----------" << std::endl;
-    std::cout << "Running GPU GEMM (TMM) benchmark: testN: " << testN
+    std::cout << "Running GPU GEMM benchmark: testN: " << testN
               << ", check correctness: " << check_correctness
-              << ", (M,N,K): (" << M << "," << N << "," << K << ")" << std::endl;
+              << ", (M,N,K) = (" << M << "," << N << "," << K << ")" << std::endl;
 
     float *A = (float*) malloc(M * K * sizeof(float));
     float *B = (float*) malloc(K * N * sizeof(float));
@@ -43,15 +46,18 @@ int main(int argc, char *argv[])
     Halide::Buffer<DATA_TYPE> B_buf(B, {N, K});
     Halide::Buffer<DATA_TYPE> C_buf(N, M);
     Halide::Buffer<DATA_TYPE> C2_buf(N, M);
+    Halide::Buffer<DATA_TYPE> Consts_buf(2);
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j++) {
             // Note that indices are flipped (see tutorial 2)
             C_buf(j, i) = C[i * N + j];
         }
     }
+    Consts_buf(0) = 3; // A "random" alpha
+    Consts_buf(1) = 2; // Ditto beta
 
     // Make a dummy call to set up GPU (initalization takes time)
-    matmul(A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
+    matmul(Consts_buf.raw_buffer(), A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
 
     // CPU Multiplication for correctness check
 
@@ -66,7 +72,7 @@ int main(int argc, char *argv[])
                     // Note that indices are flipped (see tutorial 2)
                     acc += A_buf(k, i) * B_buf(j, k);
                 }
-                C2_buf(j, i) = acc * alpha + C[i * N + j] * beta;
+                C2_buf(j, i) = acc * Consts_buf(0) + C[i * N + j] * Consts_buf(1);
             }
         }
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -81,7 +87,7 @@ int main(int argc, char *argv[])
     std::vector<t_duration> durations1;
     for (int i = 0; i < testN; i++) {
         auto t1 = std::chrono::high_resolution_clock::now();
-        matmul(A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
+        matmul(Consts_buf.raw_buffer(), A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
         auto t2 = std::chrono::high_resolution_clock::now();
         durations1.push_back(t2 - t1);
     }
@@ -110,8 +116,8 @@ int main(int argc, char *argv[])
         cublasSetMatrix(N, K, sizeof(*B), B, N, d_B, N);
         cublasSetMatrix(N, M, sizeof(*C), C, N, d_C, N);
 
-        float alpha_var = alpha;
-        float beta_var = beta;
+        float alpha_var = Consts_buf(0);
+        float beta_var = Consts_buf(1);
 
         // Since cublas is column-major we swap A and B to get C as row-major result
         cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha_var, d_B, N, d_A, K, &beta_var, d_C, N);

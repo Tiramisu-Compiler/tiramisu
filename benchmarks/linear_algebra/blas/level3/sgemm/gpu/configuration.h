@@ -13,6 +13,3 @@
 #define M 3072
 #define N 3072
 #define K 3072
-
-#define alpha ((float) 3)
-#define beta ((float) 2)

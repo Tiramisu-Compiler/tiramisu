@@ -24,6 +24,7 @@ int main(int argc, char **argv)
     buffer b_A("b_A", {M, K}, DATA_PTYPE, a_input);
     buffer b_B("b_B", {K, N}, DATA_PTYPE, a_input);
     buffer b_C("b_C", {M, N}, DATA_PTYPE, a_output);
+    buffer b_Consts("b_Consts", {2}, DATA_PTYPE, a_input);
     // Declare gpu buffers.
     buffer b_A_glb("b_A_glb", {M, K}, DATA_PTYPE, a_temporary);
     buffer b_B_glb("b_B_glb", {K, N}, DATA_PTYPE, a_temporary);
@@ -51,6 +52,9 @@ int main(int argc, char **argv)
     input c_B_glb({i0, j0, k0, j1}, DATA_PTYPE);
     input c_B_shr({i0, j0, k, j1}, DATA_PTYPE);
     input c_B({k, j}, DATA_PTYPE);
+    input c_Consts({i}, DATA_PTYPE);
+    constant c_alpha("alpha", c_Consts(0));
+    constant c_beta("beta", c_Consts(1));
     // Declare computations
     computation c_A_glb_to_shr({i0, j0, k0, i1}, c_A_glb(i0, j0, k0, i1));
     computation c_A_shr_to_reg({i0, j0, k, i1}, c_A_shr(i0, j0, k, i1));
@@ -60,7 +64,7 @@ int main(int argc, char **argv)
     computation c_acc({i, j, k}, DATA_PTYPE);
     c_acc.set_expression(c_acc(i, j, 0) + c_A(i, k) * c_B(k, j));
     computation c_C({i, j}, DATA_PTYPE);
-    c_C.set_expression(c_acc(i, j, 0) * alpha + c_C(i, j) * beta);
+    c_C.set_expression(c_acc(i, j, 0) * c_alpha + c_C(i, j) * c_beta);
     // Declare declarations
     computation c_A_shr_dec({i0, j0}, allocate(b_A_shr));
     computation c_A_reg_dec({i0, j0}, allocate(b_A_reg));
@@ -143,13 +147,14 @@ int main(int argc, char **argv)
     c_acc_init.store_in(&b_acc, {i % R_BLOCK_I, j % R_BLOCK_J});
     c_acc.store_in(&b_acc, {i % R_BLOCK_I, j % R_BLOCK_J});
     c_C.store_in(&b_C_glb);
+    c_Consts.store_in(&b_Consts, {i});
 
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
 
     // Generate object files. Last argument triggers cuda compilation.
-    tiramisu::codegen({&b_A, &b_B, &b_C}, "fct.o", true);
+    tiramisu::codegen({&b_Consts, &b_A, &b_B, &b_C}, "fct.o", true);
 
     return 0;
 }
