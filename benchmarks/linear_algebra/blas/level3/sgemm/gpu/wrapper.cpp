@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <cuda_profiler_api.h>
 #include <cuda_runtime.h>
 #include "cublas_v2.h"
 
@@ -56,14 +57,13 @@ int main(int argc, char *argv[])
     Consts_buf(0) = 3; // A "random" alpha
     Consts_buf(1) = 2; // Ditto beta
 
-    // Make a dummy call to set up GPU (initalization takes time)
-    matmul(Consts_buf.raw_buffer(), A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
-
     // CPU Multiplication for correctness check
 
     if (check_correctness) {
-        // Reference matrix multiplication
+        // GPU multiplication:
+        matmul(Consts_buf.raw_buffer(), A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
 
+        // Reference matrix multiplication
         auto t1 = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
@@ -82,7 +82,19 @@ int main(int argc, char *argv[])
         compare_buffers("matmul", C_buf, C2_buf);
     }
 
+    // Warm up:
+    if (!check_correctness) {
+        // GPU side tends to be slow for first couple of runs
+        std::cout << "Warm up..." << std::endl;
+        for (int i = 0; i < 15; i++) {
+            matmul(Consts_buf.raw_buffer(), A_buf.raw_buffer(), B_buf.raw_buffer(), C_buf.raw_buffer());
+        }
+        std::cout << "Warm up done" << std::endl;
+    }
+
     // GPU Multiplication
+
+    cudaProfilerStart();
 
     std::vector<t_duration> durations1;
     for (int i = 0; i < testN; i++) {
