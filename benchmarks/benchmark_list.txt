@@ -1,6 +1,7 @@
 ticket
 cvtcolor
 cvtcolorgpu[gpu]
+cvtcolordist[mpi,4]
 convolution
 blurxy
 gaussian
