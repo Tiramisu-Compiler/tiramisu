@@ -219,15 +219,8 @@ inline void store_dist_results(const std::string &test, int rank, const Halide::
     output_file.close();
 }
 
-// tuple._0 = channels
-// tuple._1 = width
-// tuple._2 = height
-// split_type = 0 => did split by channel
-// split_type = 1 => did split by column
-// split_type = 2 => did split by row
 // Combine distributed outputs into a single file. Assumes all individual output files are the same size.
-void combine_dist_results(const std::string &test, int split_type,
-                          std::vector<std::tuple<int, int, int>> dims_per_rank);
+void combine_dist_results(const std::string &test, std::vector<int> dims, int num_ranks);
 /**
  * success: a boolean indicating whether the test succeeded.
  */
