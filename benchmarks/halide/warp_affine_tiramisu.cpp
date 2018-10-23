@@ -1,124 +1,78 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
-#include "halide_image_io.h"
-
+#include "tiramisu/tiramisu.h"
 
 using namespace tiramisu;
 
-int main(int argc, char **argv)
-{
-    // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+#define mixf(x, y, a) (cast(p_float32, x) * (expr((float) 1) - cast(p_float32, a)) + cast(p_float32, y) * cast(p_float32, a))
+#define cast(TYPE, EXPRESSION) (tiramisu::expr(tiramisu::o_cast, TYPE, EXPRESSION))
+#define floor(EXPRESSION) (tiramisu::expr(o_floor, EXPRESSION))
+#define clamp(EXPRESSION, MIN_VAL, MAX_VAL) (tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, EXPRESSION, MAX_VAL), MIN_VAL))
 
-    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./utils/images/rgb.png");
-    int SIZE0 = in_image.extent(0);
-    int SIZE1 = in_image.extent(1);
+int main(int argc, char* argv[]) {
 
-    tiramisu::function affine_tiramisu("warp_affine_tiramisu");
+    // Name of the function that we want to generate.
+    tiramisu::init("warp_affine_tiramisu");
 
-    // Input params.
-    float a00__0 = 0.1;
-    float a01__0 = 0.1;
-    float a10__0 = 0.1;
-    float a11__0 = 0.1;
-    float b00__0 = 0.1;
-    float b10__0 = 0.1;
+    // Declare an input that holds the sizes of input arrays.
+    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
 
-    // Output buffers.
-    int affine_extent_1 = SIZE1;
-    int affine_extent_0 = SIZE0;
-    tiramisu::buffer buff_affine("buff_affine", {tiramisu::expr(affine_extent_1), tiramisu::expr(affine_extent_0)}, tiramisu::p_float32, tiramisu::a_output, &affine_tiramisu);
+    constant N0("N0", SIZES(0));
+    constant N1("N1", SIZES(1));
 
-    // Input buffers.
-    int input_extent_1 = SIZE1;
-    int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &affine_tiramisu);
-    tiramisu::computation input("[input_extent_1, input_extent_0]->{input[i1, i0]: (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &affine_tiramisu);
-    input.set_access("{input[i1, i0]->buff_input[i1, i0]}");
+    var x("x", 0, N1), y("y", 0, N0);
+    input in("in", {y, x}, p_uint8);
 
+    expr a00 = expr((float) 0.1);
+    expr a01 = expr((float) 0.1);
+    expr a10 = expr((float) 0.1);
+    expr a11 = expr((float) 0.1);
+    expr b00 = expr((float) 0.1);
+    expr b10 = expr((float) 0.1);
 
-    // Define loop bounds for dimension "affine_s0_y".
-    tiramisu::constant affine_s0_y_loop_min("affine_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &affine_tiramisu);
-    tiramisu::constant affine_s0_y_loop_extent("affine_s0_y_loop_extent", tiramisu::expr((int32_t)affine_extent_1), tiramisu::p_int32, true, NULL, 0, &affine_tiramisu);
+    // Translating this algorithm as close as possible
+    expr o_r = (a11 * cast(p_float32, y)) + (a10 * cast(p_float32, x)) + b00;
+    expr o_c = (a01 * cast(p_float32, y)) + (a00 * cast(p_float32, x)) + b10;
 
-    // Define loop bounds for dimension "affine_s0_x".
-    tiramisu::constant affine_s0_x_loop_min("affine_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &affine_tiramisu);
-    tiramisu::constant affine_s0_x_loop_extent("affine_s0_x_loop_extent", tiramisu::expr((int32_t)affine_extent_0), tiramisu::p_int32, true, NULL, 0, &affine_tiramisu);
-    tiramisu::computation affine_s0(
-        "[affine_s0_y_loop_min, affine_s0_y_loop_extent, affine_s0_x_loop_min, affine_s0_x_loop_extent]->{affine_s0[affine_s0_y, affine_s0_x]: "
-        "(affine_s0_y_loop_min <= affine_s0_y <= ((affine_s0_y_loop_min + affine_s0_y_loop_extent) + -1)) and (affine_s0_x_loop_min <= affine_s0_x <= ((affine_s0_x_loop_min + affine_s0_x_loop_extent) + -1))}",
-        tiramisu::expr(), true, tiramisu::p_float32, &affine_tiramisu);
-    tiramisu::constant t57("t57", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))), tiramisu::expr(input_extent_0)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t58("t58", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))), tiramisu::expr(input_extent_1)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t59("t59", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))), tiramisu::expr(input_extent_0)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t60("t60", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))) + tiramisu::expr((int32_t)1)), tiramisu::expr(input_extent_1)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t61("t61", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))) + tiramisu::expr((int32_t)1)), tiramisu::expr(input_extent_0)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t62("t62", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))), tiramisu::expr(input_extent_1)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t63("t63", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))) + tiramisu::expr((int32_t)1)), tiramisu::expr(input_extent_0)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    tiramisu::constant t64("t64", tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))) + tiramisu::expr((int32_t)1)), tiramisu::expr(input_extent_1)), tiramisu::expr((int32_t)0)), tiramisu::p_int32, false, &affine_s0, 1, &affine_tiramisu);
-    affine_s0.set_expression(((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t57, t58)) * (tiramisu::expr((float)1) - ((((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t59, t60)) * ((((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))))) * (tiramisu::expr((float)1) - ((((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))))) + (((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t61, t62)) * (tiramisu::expr((float)1) - ((((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t63, t64)) * ((((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a11__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a10__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b00__0)))))) * ((((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)) - tiramisu::expr(o_floor, (((tiramisu::expr(a01__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_y"))) + (tiramisu::expr(a00__0) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("affine_s0_x")))) + tiramisu::expr(b10__0)))))));
-    affine_s0.set_access("{affine_s0[affine_s0_y, affine_s0_x]->buff_affine[affine_s0_y, affine_s0_x]}");
+    expr r = o_r - floor(o_r);
+    expr c = o_c - floor(o_c);
 
-    // Define compute level for "affine".
+    expr coord_00_r = cast(p_int32, floor(o_r));
+    expr coord_00_c = cast(p_int32, floor(o_c));
+    expr coord_01_r = coord_00_r;
+    expr coord_01_c = coord_00_c + 1;
+    expr coord_10_r = coord_00_r + 1;
+    expr coord_10_c = coord_00_c;
+    expr coord_11_r = coord_00_r + 1;
+    expr coord_11_c = coord_00_c + 1;
 
-    // Declare vars.
-    tiramisu::var affine_s0_x("affine_s0_x");
-    tiramisu::var affine_s0_x_outer("affine_s0_x_outer");
-    tiramisu::var affine_s0_x_inner("affine_s0_x_inner");
-    tiramisu::var affine_s0_y("affine_s0_y");
+    coord_00_r = clamp(coord_00_r, 0, N0);
+    coord_00_c = clamp(coord_00_c, 0, N1);
+    coord_01_r = clamp(coord_01_r, 0, N0);
+    coord_01_c = clamp(coord_01_c, 0, N1);
+    coord_10_r = clamp(coord_10_r, 0, N0);
+    coord_10_c = clamp(coord_10_c, 0, N1);
+    coord_11_r = clamp(coord_11_r, 0, N0);
+    coord_11_c = clamp(coord_11_c, 0, N1);
 
-    affine_tiramisu.add_context_constraints("[affine_s0_x_loop_min, affine_s0_x_loop_extent]->{:affine_s0_x_loop_extent%8=0 and affine_s0_x_loop_min=0}");
+    expr A00 = in(coord_00_c, coord_00_r);
+    expr A10 = in(coord_10_c, coord_10_r);
+    expr A01 = in(coord_01_c, coord_01_r);
+    expr A11 = in(coord_11_c, coord_11_r);
 
-    // Add schedules.
+    expr e = cast(p_float32, mixf(mixf(A00, A10, cast(p_uint8, r)), mixf(A01, A11, cast(p_uint8, r)), cast(p_uint8, c)));
 
-    t57.split(affine_s0_x, 8);
-    t58.split(affine_s0_x, 8);
-    t59.split(affine_s0_x, 8);
-    t60.split(affine_s0_x, 8);
-    t61.split(affine_s0_x, 8);
-    t62.split(affine_s0_x, 8);
-    t63.split(affine_s0_x, 8);
-    t64.split(affine_s0_x, 8);
-    affine_s0.split(affine_s0_x, 8);
+    computation affine({y, x}, e);
 
+    affine.parallelize(y);
+    affine.vectorize(x, 8);
 
-    t57.tag_vector_level(2, 8);
-    t58.tag_vector_level(2, 8);
-    t59.tag_vector_level(2, 8);
-    t60.tag_vector_level(2, 8);
-    t61.tag_vector_level(2, 8);
-    t62.tag_vector_level(2, 8);
-    t63.tag_vector_level(2, 8);
-    t64.tag_vector_level(2, 8);
-    affine_s0.tag_vector_level(2, 8);
-    affine_s0.tag_parallel_level(affine_s0_y);
+    buffer  b_input("b_input",  {N1, N0}, p_uint8, a_input);
+    buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
+    buffer b_affine("b_affine", {N1, N0}, p_float32, a_output);
+    in.store_in(&b_input);
+    SIZES.store_in(&b_SIZES);
+    affine.store_in(&b_affine);
 
-
-    t58.after(t57, 2);
-    t59.after(t58, 2);
-    t60.after(t59, 2);
-    t61.after(t60, 2);
-    t62.after(t61, 2);
-    t63.after(t62, 2);
-    t64.after(t63, 2);
-    affine_s0.after(t64, 2);
-
-    affine_tiramisu.set_arguments({&buff_input, &buff_affine});
-    affine_tiramisu.gen_time_space_domain();
-    affine_tiramisu.gen_isl_ast();
-    affine_tiramisu.gen_halide_stmt();
-    affine_tiramisu.dump_halide_stmt();
-    affine_tiramisu.gen_halide_obj("build/generated_fct_warp_affine.o");
+    tiramisu::codegen({&b_SIZES, &b_input, &b_affine}, "build/generated_fct_warp_affine.o");
 
     return 0;
 }
