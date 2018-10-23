@@ -69,3 +69,53 @@ void print_time(const string &file_name, const string &kernel_name,
 
     file.close();
 }
+
+void combine_dist_results(const std::string &test, int split_type,
+                          std::vector<std::tuple<int, int, int>> dims_per_rank) {
+    // Figure out the total size
+    int total_channels = 0;
+    int total_cols = 0;
+    int total_rows = 0;
+    if (split_type == 0) { // rows and cols constant across ranks
+        total_cols = std::get<0>(dims_per_rank[0]);
+        total_rows = std::get<1>(dims_per_rank[0]);
+        for (auto e : dims_per_rank) {
+            total_channels += std::get<2>(e);
+        }
+    } else if (split_type == 1) { // channels and rows constant across ranks
+        total_channels = std::get<2>(dims_per_rank[0]);
+        total_rows = std::get<1>(dims_per_rank[0]);
+        for (auto e : dims_per_rank) {
+            total_cols += std::get<0>(e);
+        }
+    } else if (split_type == 2) { // channels and cols constant across ranks
+        total_channels = std::get<2>(dims_per_rank[0]);
+        total_cols = std::get<0>(dims_per_rank[0]);
+        for (auto e : dims_per_rank) {
+            total_rows += std::get<1>(e);
+        }
+    } else {
+        assert(false); // TODO put in appropriate error checking
+    }
+    std::ofstream output_file;
+    output_file.open("/tmp/" + test + "_all_ranks.txt");
+    for (int rank = 0; rank < dims_per_rank.size(); rank++) {
+        std::ifstream f("/tmp/" + test + "_rank_" + std::to_string(rank) + ".txt");
+        if (f.is_open()) {
+            std::string line;
+            for (int chan = 0; chan < total_channels; chan++) {
+                for (int cols = 0; cols < total_cols; cols++) {
+                    for (int rows = 0; rows < total_rows; rows++) {
+                        std::getline(f, line);
+                        output_file << line << std::endl;
+                    }
+                }
+            }
+        } else {
+            assert(false); // TODO put in appropriate error checking
+        }
+        f.close();
+    }
+    output_file.flush();
+    output_file.close();
+}
