@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     computation affine({y, x}, e);
 
     affine.parallelize(y);
-    affine.vectorize(x, 8);
+    affine.vectorize(x, 16);
 
     buffer  b_input("b_input",  {N0, N1}, p_uint8, a_input);
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
