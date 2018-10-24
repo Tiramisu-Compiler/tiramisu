@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int warp_affine_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
+int warp_affine_tiramisu(halide_buffer_t *_b_SIZES, halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int warp_affine_tiramisu_argv(void **args);
 int warp_affine_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *_b_blury_buffer);
 int warp_affine_ref_argv(void **args);
