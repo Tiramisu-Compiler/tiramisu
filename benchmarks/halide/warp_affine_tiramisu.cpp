@@ -3,9 +3,6 @@
 using namespace tiramisu;
 
 #define mixf(x, y, a) (cast(p_float32, x) * (expr((float) 1) - cast(p_float32, a)) + cast(p_float32, y) * cast(p_float32, a))
-#define cast(TYPE, EXPRESSION) (tiramisu::expr(tiramisu::o_cast, TYPE, EXPRESSION))
-#define floor(EXPRESSION) (tiramisu::expr(o_floor, EXPRESSION))
-#define clamp(EXPRESSION, MIN_VAL, MAX_VAL) (tiramisu::expr(tiramisu::o_max, tiramisu::expr(tiramisu::o_min, EXPRESSION, MAX_VAL), MIN_VAL))
 
 int main(int argc, char* argv[]) {
 
@@ -30,7 +27,7 @@ int main(int argc, char* argv[]) {
 
     // Translating this algorithm as close as possible
     expr o_r = a11*cast(p_float32, y) + a10*cast(p_float32, x) + b00;
-    expr o_c = a01*(cast(p_float32, y)) + a00*cast(p_float32, x) + b10;
+    expr o_c = a01*cast(p_float32, y) + a00*cast(p_float32, x) + b10;
 
     expr r = o_r - floor(o_r);
     expr c = o_c - floor(o_c);
@@ -38,20 +35,20 @@ int main(int argc, char* argv[]) {
     expr coord_00_r = cast(p_int32, floor(o_r));
     expr coord_00_c = cast(p_int32, floor(o_c));
     expr coord_01_r = cast(p_int32, coord_00_r);
-    expr coord_01_c = cast(p_int32, coord_00_c + expr((int) 1));
-    expr coord_10_r = cast(p_int32, coord_00_r + expr((int) 1));
+    expr coord_01_c = cast(p_int32, coord_00_c + 1);
+    expr coord_10_r = cast(p_int32, coord_00_r + 1);
     expr coord_10_c = cast(p_int32, coord_00_c);
-    expr coord_11_r = cast(p_int32, coord_00_r + expr((int) 1));
-    expr coord_11_c = cast(p_int32, coord_00_c + expr((int) 1));
+    expr coord_11_r = cast(p_int32, coord_00_r + 1);
+    expr coord_11_c = cast(p_int32, coord_00_c + 1);
 
-    coord_00_r = clamp(coord_00_r, 0, cast(p_int32, N0));
-    coord_00_c = clamp(coord_00_c, 0, cast(p_int32, N1));
-    coord_01_r = clamp(coord_01_r, 0, cast(p_int32, N0));
-    coord_01_c = clamp(coord_01_c, 0, cast(p_int32, N1));
-    coord_10_r = clamp(coord_10_r, 0, cast(p_int32, N0));
-    coord_10_c = clamp(coord_10_c, 0, cast(p_int32, N1));
-    coord_11_r = clamp(coord_11_r, 0, cast(p_int32, N0));
-    coord_11_c = clamp(coord_11_c, 0, cast(p_int32, N1));
+    coord_00_r = clamp(coord_00_r, 0, N0);
+    coord_00_c = clamp(coord_00_c, 0, N1);
+    coord_01_r = clamp(coord_01_r, 0, N0);
+    coord_01_c = clamp(coord_01_c, 0, N1);
+    coord_10_r = clamp(coord_10_r, 0, N0);
+    coord_10_c = clamp(coord_10_c, 0, N1);
+    coord_11_r = clamp(coord_11_r, 0, N0);
+    coord_11_c = clamp(coord_11_c, 0, N1);
 
     expr A00 = in(coord_00_c, coord_00_r);
     expr A10 = in(coord_10_c, coord_10_r);
@@ -63,7 +60,7 @@ int main(int argc, char* argv[]) {
     computation affine({y, x}, e);
 
     affine.parallelize(y);
-//    affine.vectorize(x, 8);
+    affine.vectorize(x, 8);
 
     buffer  b_input("b_input",  {N0, N1}, p_uint8, a_input);
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
