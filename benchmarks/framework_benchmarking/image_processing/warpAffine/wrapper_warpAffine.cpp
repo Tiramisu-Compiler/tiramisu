@@ -1,66 +1,53 @@
 #include "warpAffine.h"
 
-#include "Halide.h"
-#include "halide_image_io.h"
+#include <stdlib.h>
+#ifdef __PROFILE_CUDA__
+#include <cuda_profiler_api.h>
+#endif
 #include <cstdlib>
 #include <iostream>
-#include <stdlib.h>
 
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
-{
-    double median;
-    size_t size = scores.size();
+#include "Halide.h"
+#include "halide_image_io.h"
+#include "tiramisu/utils.h"
 
-    std::sort(scores.begin(), scores.end());
-
-    if (size % 2 == 0)
-    {
-        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
-    }
-    else
-    {
-        median = scores[size / 2].count();
-    }
-
-    return median;
-}
-
-float random(float a, float b)
-{
-    return ((b - a)*((float)rand()/RAND_MAX)) + a;
-}
-
-int main(int, char**)
-{
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+int main(int, char**) {
+    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
 
     Halide::Buffer<uint8_t> input = Halide::Tools::load_image("../rgb.png");
 
     Halide::Buffer<float> output1(input.width(), input.height());
 
-    // Warm up
-    pencil_affine_linear(input.extent(0), input.extent(1), 1,
-			 (float *) input.raw_buffer()->host,
-			 output1.extent(0), output1.extent(1), 1,
-			 (float *) output1.raw_buffer()->host,
-			 0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
+    #ifdef __PROFILE_CUDA__
+    cudaProfilerStop();
+    #endif
 
-    // Tiramisu
-    for (int i=0; i<10; i++)
-    {
-        auto start1 = std::chrono::high_resolution_clock::now();
-        pencil_affine_linear(input.extent(0), input.extent(1), 1,
-			 (float *) input.raw_buffer()->host,
-			 output1.extent(0), output1.extent(1), 1,
-			 (float *) output1.raw_buffer()->host,
-			 0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration1 = end1 - start1;
-        duration_vector_1.push_back(duration1);
+    // Warm up
+    pencil_affine_linear(input.extent(0), input.extent(1), input.extent(1),
+                         (uint8_t *) input.raw_buffer()->host,
+                         output1.extent(0), output1.extent(1), output1.extent(1),
+                         (float *) output1.raw_buffer()->host,
+                         0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
+
+    std::cout << "Warmup done" << std::endl << std::flush;
+
+    #ifdef __PROFILE_CUDA__
+    cudaProfilerStart();
+    #endif
+
+    for (int i = 0; i < 100; i++) {
+        auto start = std::chrono::high_resolution_clock::now();
+        pencil_affine_linear(input.extent(0), input.extent(1), input.extent(1),
+                             (uint8_t *) input.raw_buffer()->host,
+                             output1.extent(0), output1.extent(1), output1.extent(1),
+                             (float *) output1.raw_buffer()->host,
+                             0.1, 0.1, 0.1, 0.1, 0.1, 0.1);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = end - start;
+        duration_vector.push_back(duration);
     }
 
-    std::cout << "time: " << median(duration_vector_1) << std::endl;
+    std::cout << "time: " << median(duration_vector) << std::endl;
 
     return 0;
 }

@@ -1,5 +1,7 @@
 LANKA=0
 
+# TODO: Should make this relative path. But undoable for now since the system
+#   is very intricate.
 #export TIRAMISU_ROOT=/data/scratch/baghdadi/tiramisu/
 export TIRAMISU_ROOT=/Users/b/Documents/src/MIT/tiramisu/
 export BENCHMARK_ROOT=${TIRAMISU_ROOT}/benchmarks/framework_benchmarking/
@@ -23,7 +25,7 @@ else
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${CUDA_HOME}/lib64
 	export PATH=$PATH:${CUDA_HOME}/bin
 	export NVCC=${CUDA_HOME}/bin/nvcc
-	export JPEG=/data/scratch/baghdadi/libs/jpeg_prefix/
+	export JPEG=/data/scratch/baghdadi/libs/jpeg_prefix/ # TODO
 fi
 
 PPCG_DIR=${BENCHMARK_ROOT}/software/ppcg/
@@ -43,3 +45,5 @@ RUN_HALIDE=0
 RUN_POLLY=0
 RUN_LLVM=1
 RUN_GCC=1
+
+COMPILE_WITH_PENCIL=1

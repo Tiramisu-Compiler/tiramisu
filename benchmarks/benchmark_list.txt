@@ -1,6 +1,7 @@
 ticket
 cvtcolor
 cvtcolorgpu[gpu]
+cvtcolordist[mpi,4]
 convolution
 blurxy
 gaussian
@@ -12,6 +13,7 @@ recfilter
 resize
 laplacian
 edge
+edgegpu[gpu]
 heat2dgpu[gpu]
 gaussiangpu[gpu]
 rgbyuv420gpu[gpu]

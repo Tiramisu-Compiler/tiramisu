@@ -19,4 +19,4 @@ script:
   - cd build
   - cmake ..
   - make -j tiramisu
-  # - make test
+  - make test

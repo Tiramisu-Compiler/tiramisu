@@ -92,16 +92,23 @@ compile_tilable_sgemms()
 	fi
 
 	if [ ${COMPILE_WITH_PENCIL} -ne 0 ]; then
-		$PPCG ${INCLUDES} --target=opencl --opencl-embed-kernel-code --tile --tile-size="${TILE_D1},${TILE_D2},${TILE_D3}" --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
+		$PPCG ${INCLUDES} --target=cuda --no-isl-schedule-separate-components --isl-schedule-fuse=max $KERNEL.c
 	fi
 
-	gcc -c $CFLAGS ${INCLUDES} ${KERNEL}_host.c -o ${KERNEL}_host
-	gcc -c $CFLAGS ${INCLUDES} ${PPCG_DIR}/ocl_utilities.c -lOpenCL -o ocl_utilities
-	g++ -c $CFLAGS ${INCLUDES} ${BENCHMARK_ROOT}/software/polybench/polybench.c -o polybench
-	g++ -fPIC -fno-rtti -std=c++11 $CXXFLAGS ${INCLUDES} ${KERNEL}_host polybench ocl_utilities wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -lOpenCL -o wrapper_${KERNEL}
+	${NVCC} --std=c++11 -c ${KERNEL}_host.cu -o ${KERNEL}_host.o
+	${NVCC} --std=c++11 -c ${KERNEL}_kernel.cu -o ${KERNEL}_kernel.o
+    if [ -z ${PROFILE_CUDA} ]; then
+        ${NVCC} -std=c++11 ${INCLUDES} ${KERNEL}_host.o ${KERNEL}_kernel.o wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+    else
+        ${NVCC} -std=c++11 -D__PROFILE_CUDA__ ${INCLUDES} ${KERNEL}_host.o ${KERNEL}_kernel.o wrapper_${KERNEL}.cpp ${LIBRARIES_DIR} ${LIBRARIES} -o wrapper_${KERNEL}
+    fi
 
-	echo "Running PENCIL-$KERNEL"
-	./wrapper_${KERNEL}
+	echo "Running PENCIL GPU-$KERNEL"
+    if [ -z ${PROFILE_CUDA} ]; then
+        ./wrapper_${KERNEL}
+    else
+        ${CUDA_HOME}/bin/nvprof --print-gpu-trace ./wrapper_${KERNEL}
+    fi
 
 	if [ $? -ne 0 ]; then
 		exit
