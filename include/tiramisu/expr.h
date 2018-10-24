@@ -289,8 +289,13 @@ public:
      */
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
-        assert(expr0.get_data_type() == expr1.get_data_type()
-               && "expr0 and expr1 should be of the same type. Dumping expr0 and expr1.");
+        if (expr0.get_data_type() != expr1.get_data_type())
+	{
+	    tiramisu::str_dump("Binary operation between the following two expressions.");
+	    expr0.dump(false);
+	    expr1.dump(false);
+            ERROR("expr0 and expr1 should be of the same type. Dumping expr0 and expr1.", true);
+	}
 
         this->_operator = o;
         this->etype = tiramisu::e_op;
@@ -1482,7 +1487,7 @@ public:
                         str +=  ") ";
                         break;
                     case tiramisu::o_cast:
-                        str +=  "cast(" + this->get_operand(0).to_str();
+                        str +=  "cast(" + str_from_tiramisu_type_primitive(this->get_data_type()) + ", " + this->get_operand(0).to_str();
                         str +=  ") ";
                         break;
                     case tiramisu::o_access:
