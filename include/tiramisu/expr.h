@@ -1487,7 +1487,7 @@ public:
                         str +=  ") ";
                         break;
                     case tiramisu::o_cast:
-                        str +=  "cast(" + str_from_tiramisu_type_primitive(this->get_data_type()) + ", " + this->get_operand(0).to_str();
+                        str +=  "cast(" + this->get_operand(0).to_str();
                         str +=  ") ";
                         break;
                     case tiramisu::o_access:
