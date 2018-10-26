@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-int convolution_tiramisu(halide_buffer_t *, halide_buffer_t *_b_input_buffer, halide_buffer_t *kernel, halide_buffer_t *_b_output_buffer);
+int convolution_tiramisu(halide_buffer_t *_b_input_buffer, halide_buffer_t *kernel, halide_buffer_t *_b_output_buffer);
 int convolution_tiramisu_argv(void **args);
 int convolution_ref(halide_buffer_t *_b_input_buffer, halide_buffer_t *kernel, halide_buffer_t *_b_output_buffer);
 int convolution_ref_argv(void **args);
