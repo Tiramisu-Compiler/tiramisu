@@ -35,9 +35,8 @@ int main(int argc, char **argv)
 						       )));
 
     // Add schedules.
-//    conv.parallelize(c);
-//    conv.parallelize(y);
-//    conv.vectorize(x, 8);
+    conv.parallelize(c);
+    conv.vectorize(x, 8);
 
     // Buffers.
     buffer buff_input("buff_input", {SIZE2, SIZE1, SIZE0}, p_uint8, a_input);
