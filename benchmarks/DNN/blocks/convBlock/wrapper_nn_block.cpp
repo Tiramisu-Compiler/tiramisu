@@ -30,6 +30,11 @@ int main(int, char**)
 
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+
+
+    for (int i=0; i<NB_TESTS; i++)
+    {
+
 srand (1);
 for (int n = 0; n < BATCH_SIZE; ++n)
 	for (int z = 0; z < FIn; ++z)
@@ -66,8 +71,6 @@ for (int n = 0; n < BATCH_SIZE; ++n)
     parameters(4) = BATCH_SIZE;
 
 
-    for (int i=0; i<NB_TESTS; i++)
-    {
         auto start1 = std::chrono::high_resolution_clock::now();
 	conv_block_tiramisu(parameters.raw_buffer(), input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer(), filter2.raw_buffer(), bias2.raw_buffer(), conv2_tiramisu.raw_buffer(),maxpool_tiramisu.raw_buffer(),negative_slope.raw_buffer());
 
