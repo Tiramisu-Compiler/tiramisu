@@ -76,8 +76,8 @@ int main(int argc, char* argv[])
     var l1("l1", 0, 2*w);
     computation tA("tA", {k, x2, y1}, A(k, y1, x2));
 
-    computation mul1_init("mul1_init", {k, x2, y2}, expr((uint8_t) 0));
-    computation mul1("mul1", {k, x2, y2, l1}, mul1_init(k, x2, y2) + tA(k, x2, l1) * A(k, l1, y2));
+    computation mul1("mul1", {k, x2, y2}, expr((uint8_t) 0));
+    computation mul1_update("mul1_update", {k, x2, y2, l1}, mul1(k, x2, y2) + tA(k, x2, l1) * A(k, l1, y2));
 
     // Compute the inverse of mul1 using LU decomposition.
     // We use the following reference implementation (lines 95 to 126)
@@ -92,9 +92,9 @@ int main(int argc, char* argv[])
     var k2("k2", 0, j1);
     
     // LU decomposition of A
-    computation w1_init("w1_init", {k, i1, j1}, mul1(k, i1, j1, 0));
-    computation     w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2, 0)*mul1(k, k2, j1, 0));
-    computation   temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1, 0));
+    computation w1_init("w1_init", {k, i1, j1}, mul1(k, i1, j1));
+    computation     w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2)*mul1(k, k2, j1));
+    computation   temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1));
 
     var j2("j2", i1, 4*w);
     var k3("k3",  0,  i1);
@@ -143,8 +143,8 @@ int main(int argc, char* argv[])
 	.then(A_right, y1)
 	.then(b, y1)
 	.then(tA, computation::root)
-	.then(mul1_init, computation::root)
-	.then(mul1, y2)
+	.then(mul1, computation::root)
+	.then(mul1_update, y2)
 	.then(w1_init, computation::root)
 	.then(w1, j1)
 	.then(temp, j1)
@@ -206,8 +206,8 @@ int main(int argc, char* argv[])
     A_right.store_in(&b_A, {x1+2*10, y1});  //2*w
     b.store_in(&b_b, {x1, y1});
     tA.store_in(&b_tA, {x2, y1});
-    mul1_init.store_in(&b_mul, {x2, y2});
     mul1.store_in(&b_mul, {x2, y2});
+    mul1_update.store_in(&b_mul, {x2, y2});
     w1_init.store_in(&b_w1, {0});
     w1.store_in(&b_w1, {0});
     temp.store_in(&b_temp, {i1, j1});
