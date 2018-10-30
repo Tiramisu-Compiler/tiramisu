@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
     tiramisu::init("optical_flow_tiramisu");
 
     // Declare input sizes
+    // TODO: "input" dimension sizes should be expressions not variables.
     input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
 
     constant N0("N0", SIZES(0));
@@ -61,9 +62,9 @@ int main(int argc, char* argv[])
     var x1("x1", 0, 2*w);
     var y1("y1", 0, 2*w);
     var k1("k1", 0, 2*w);
-    computation  A("A",  {k, y1, x1}, Ix_m(y1+i(0)-w, x1+j(0)-w)); //i(k), j(k)
-    computation A2("A2", {k, y1, x1}, Iy_m(y1+i(0)-w, x1+j(0)-w)); //i(k), j(k)
-    computation b("b", {k, y1, x1}, (-It_m(y1+i(0)-w, x1+j(0)-w))); //i(k), j(k)
+    computation        A("A",        {k, y1, x1},   Ix_m(i(0)+y1-w, j(0)+x1-w));  //TODO: use i(k) and j(k) instead of i(0) and j(0)
+    computation A_right("A_right", {k, y1, x1},   Iy_m(i(0)+y1-w, j(0)+x1-w));  //i(k), j(k)
+    computation        b("b",        {k, y1, x1}, (-It_m(i(0)+y1-w, j(0)+x1-w))); //i(k), j(k)
 
     // Compute pinv(A):
     //	    tA = transpose(A)
@@ -130,12 +131,16 @@ int main(int argc, char* argv[])
     computation nu("nu", {k, i1, x1}, expr((uint8_t) 0));
     computation nu_update("nu_update", {k, i1, x1, y1}, nu(k, i1, x1) + pinvA(k, i1, y1)*b(k, y1, x1));
 
+    // Results
+    // u(k) = nu(0)
+    // v(k) = nu(1)
+
     Ix_m.then(Iy_m, x)
 	.then(It_m, x)
 	.then(i, computation::root)
 	.then(j, k)
 	.then(A, y1)
-	.then(A2, y1)
+	.then(A_right, y1)
 	.then(b, y1)
 	.then(tA, computation::root)
 	.then(mul1_init, computation::root)
@@ -198,7 +203,7 @@ int main(int argc, char* argv[])
     i.store_in(&b_i, {0});
     j.store_in(&b_j, {0});
     A.store_in(&b_A, {x1, y1});
-    A2.store_in(&b_A, {x1+2*10, y1});  //2*w
+    A_right.store_in(&b_A, {x1+2*10, y1});  //2*w
     b.store_in(&b_b, {x1, y1});
     tA.store_in(&b_tA, {x2, y1});
     mul1_init.store_in(&b_mul, {x2, x3});
