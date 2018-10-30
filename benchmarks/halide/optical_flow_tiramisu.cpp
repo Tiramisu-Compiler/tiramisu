@@ -10,6 +10,8 @@ int main(int argc, char* argv[])
     // Declare the function name
     tiramisu::init("optical_flow_tiramisu");
 
+    // TODO: input should be a gray image.
+
     // Declare input sizes
     // TODO: "input" dimension sizes should be expressions not variables.
     input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
@@ -107,10 +109,9 @@ int main(int argc, char* argv[])
     // The inverse will be stored in X.
     var r("r", 0, 4*w);
     var r2("r2", r, r+1);
-    var r3("r3", r, r+1);
     computation     Y("Y", {k, r, i1}, p_uint8);
     computation     bp("bp", {k, r, i1}, expr((uint8_t) 0));
-//    computation     bp_update("bp_update", {k, r2, r3}, expr((uint8_t) 1));
+    computation     bp_update("bp_update", {k, r, r2}, expr((uint8_t) 1));
     computation     w3("w3", {k, r, i1}, bp(k, r, i1));
     computation     w3_update("w3_update", {k, r, i1, j1}, w3(k, r, j1) - LU(k, i1, j1)*Y(k, r, j1));
     Y.set_expression(w3(k, r, i1));
@@ -152,7 +153,7 @@ int main(int argc, char* argv[])
 	.then(w2_update, j2)
 	.then(LU, j2)
 	.then(bp, computation::root)
-//	.then(bp_update, r)
+	.then(bp_update, r)
 	.then(w3, r)
 	.then(w3_update, i1)
 	.then(Y, i1)
@@ -216,7 +217,7 @@ int main(int argc, char* argv[])
     LU.store_in(&b_LU, {i1, j2});
     Y.store_in(&b_y, {r, i1});
     bp.store_in(&b_bp, {r, i1});
-//    bp_update.store_in(&b_bp, {r, i1});
+    bp_update.store_in(&b_bp, {r, r2});
     w3.store_in(&b_w3, {0});
     w3_update.store_in(&b_w3, {0});
     X.store_in(&b_x, {r, i1});
