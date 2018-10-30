@@ -93,8 +93,8 @@ int main(int argc, char* argv[])
     
     // LU decomposition of A
     computation w1_init("w1_init", {k, i1, j1}, mul1(k, i1, j1));
-    computation     w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2)*mul1(k, k2, j1));
-    computation   temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1));
+    computation      w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2)*mul1(k, k2, j1));
+    computation    temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1));
 
     var j2("j2", i1, 4*w);
     var k3("k3",  0,  i1);
