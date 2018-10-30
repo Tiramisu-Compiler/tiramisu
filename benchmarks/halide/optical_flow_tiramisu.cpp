@@ -61,41 +61,50 @@ int main(int argc, char* argv[])
     var x1("x1", 0, 2*w);
     var y1("y1", 0, 2*w);
     var k1("k1", 0, 2*w);
-    var y2("y2", 0, 4*w);
     computation  A("A",  {k, y1, x1}, Ix_m(y1+i(0)-w, x1+j(0)-w)); //i(k), j(k)
     computation A2("A2", {k, y1, x1}, Iy_m(y1+i(0)-w, x1+j(0)-w)); //i(k), j(k)
     computation b("b", {k, y1, x1}, (-It_m(y1+i(0)-w, x1+j(0)-w))); //i(k), j(k)
 
     // Compute pinv(A):
     //	    tA = transpose(A)
-    //	    pinv(A) = inv(tA * A) * tA
-    computation tA("tA", {k, y2, x1}, A(k, x1, y2));
-    computation mul1_init("mul1_init", {k, y1, x1}, expr((uint8_t) 0));
-    computation mul1("mul1", {k, y1, x1, y2}, mul1_init(k, y2, x1) + A(k, x1, y2) * tA(k, y2, x1));
+    //	    mul1 = tA * A
+    //	    X = inv(mul1)
+    //	    pinv(A) = X * tA
+    var x2("x2", 0, 4*w);
+    var x3("x3", 0, 4*w);
+    computation tA("tA", {k, x2, y1}, A(k, x2, y1));
 
-    // Compute the inverse of (tA * A) using LU decomposition.
-    // Compute the LU decomposition of mul1(y1, x1)
+    computation mul1_init("mul1_init", {k, x2, x3}, expr((uint8_t) 0));
+    computation mul1("mul1", {k, x2, x3, y1}, mul1_init(k, x2, x3) + tA(k, x2, y1) * A(k, y1, x3));
+
+    // Compute the inverse of mul1 using LU decomposition.
     // We use the following reference implementation (lines 95 to 126)
     // https://github.com/Meinersbur/polybench/blob/master/polybench-code/linear-algebra/solvers/ludcmp/ludcmp.c
+    //	    1)- Compute the LU decomposition of mul1: LU = mul1
+    //	    2)- Use LU to compute X, the inverse of mul1 by solving the following
+    //	    system:
+    //		    LU*X=I
+    //	    where I is the identity matrix.
 
-    var i1("i1", 0, 2*w);
+    var i1("i1", 0, 4*w);
     var j1("j1", 0, i1);
     var k2("k2", 0, j1);
     
-    // LU decomposition
+    // LU decomposition of A
     computation w1_init("w1_init", {k, i1, j1}, mul1(k, i1, j1, 0));
     computation     w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2, 0)*mul1(k, k2, j1, 0));
     computation   temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1, 0));
 
-    var j2("j2", i1, 2*w);
+    var j2("j2", i1, 4*w);
     var k3("k3",  0,  i1);
 
     computation     w2_init("w2_init", {k, i1, j2}, temp(k, i1, j2));
     computation     w2("w2", {k, i1, j2, k3}, w2_init(k, i1, j2) + A(k, i1, k3)*A(k, k3, j2));
     computation     LU("LU", {k, i1, j2}, w2(k, i1, j2, 0));
 
-    // Finding the inverse
-    var r("r", 0, 2*w);
+    // Finding the inverse of A.
+    // The inverse will be stored in X.
+    var r("r", 0, 4*w);
     var r2("r2", r, r+1);
     var r3("r3", r, r+1);
     computation     Y("Y", {k, r, i1}, p_uint8);
@@ -105,11 +114,16 @@ int main(int argc, char* argv[])
     computation     w3_update("w3_update", {k, r, i1, j1}, w3(k, r, j1) - LU(k, i1, j1)*Y(k, r, j1));
     Y.set_expression(w3(k, r, i1));
 
-    var j3("j3", i1+1, 2*w);
+    var j3("j3", i1+1, 4*w);
     computation     X("X", {k, r, i1}, p_uint8);
-    computation     w4("w4", {k, r, i1}, Y(k, r, 2*w-i1));
-    computation     w4_update("w4_update", {k, r, i1, j3}, w4(k, r, 2*w-i1) - LU(k, 2*w-i1, j3)*X(k, r, j3));
-    X.set_expression(w4(k, r, i1)/LU(k, 2*w-i1, 2*w-i1));
+    computation     w4("w4", {k, r, i1}, Y(k, r, 4*w-i1));
+    computation     w4_update("w4_update", {k, r, i1, j3}, w4(k, r, 4*w-i1) - LU(k, 4*w-i1, j3)*X(k, r, j3));
+    X.set_expression(w4(k, r, i1)/LU(k, 4*w-i1, 4*w-i1));
+
+    // Computing pinv(A)=X*tA
+    var j4("j4", 0, 4*w);
+    computation    pinvA_init("pinv1_init", {k, i1, y1}, expr((uint8_t) 0));
+    computation    pinvA("pinvA", {k, i1, y1, j4}, pinvA_init(k, i1, y1) + X(k, i1, j4)*tA(k, j4, y1));
 
     Ix_m.then(Iy_m, x)
 	.then(It_m, x)
@@ -120,7 +134,7 @@ int main(int argc, char* argv[])
 	.then(b, y1)
 	.then(tA, computation::root)
 	.then(mul1_init, computation::root)
-	.then(mul1, x1)
+	.then(mul1, y1)
 	.then(w1_init, computation::root)
 	.then(w1, j1)
 	.then(temp, j1)
@@ -134,7 +148,9 @@ int main(int argc, char* argv[])
 	.then(Y, i1)
 	.then(w4, computation::root)
 	.then(w4_update, i1)
-	.then(X, i1);
+	.then(X, i1)
+	.then(pinvA_init, computation::root)
+	.then(pinvA, y1);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
@@ -160,6 +176,7 @@ int main(int argc, char* argv[])
     buffer b_w3("b_w3", {1}, p_float32, a_temporary);
     buffer b_x("b_x", {2*w, 2*w}, p_float32, a_temporary);
     buffer b_w4("b_w4", {1}, p_float32, a_temporary);
+    buffer b_pinvA("b_pinvA", {4*w, 2*w}, p_float32, a_temporary);
 
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
@@ -174,9 +191,9 @@ int main(int argc, char* argv[])
     A.store_in(&b_A, {x1, y1});
     A2.store_in(&b_A, {x1+2*10, y1});  //2*w
     b.store_in(&b_b, {x1, y1});
-    tA.store_in(&b_tA, {y2, x1});
-    mul1_init.store_in(&b_mul, {x1, y1});
-    mul1.store_in(&b_mul, {x1, y1});
+    tA.store_in(&b_tA, {x2, y1});
+    mul1_init.store_in(&b_mul, {x2, x3});
+    mul1.store_in(&b_mul, {x2, x3});
     w1_init.store_in(&b_w1, {0});
     w1.store_in(&b_w1, {0});
     temp.store_in(&b_temp, {i1, j1});
@@ -191,6 +208,8 @@ int main(int argc, char* argv[])
     X.store_in(&b_x, {r, i1});
     w4.store_in(&b_w4, {0});
     w4_update.store_in(&b_w4, {0});
+    pinvA_init.store_in(&b_pinvA, {i1, y1});
+    pinvA.store_in(&b_pinvA, {i1, y1});
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2}, "build/generated_fct_optical_flow.o");
 
