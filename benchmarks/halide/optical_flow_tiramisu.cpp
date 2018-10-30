@@ -99,9 +99,9 @@ int main(int argc, char* argv[])
     var j2("j2", i1, 4*w);
     var l3("l3",  0,  i1);
 
-    computation     w2_init("w2_init", {k, i1, j2}, temp(k, i1, j2));
-    computation     w2("w2", {k, i1, j2, l3}, w2_init(k, i1, j2) + A(k, i1, l3)*A(k, l3, j2));
-    computation     LU("LU", {k, i1, j2}, w2(k, i1, j2, 0));
+    computation        w2("w2",        {k, i1, j2},     temp(k, i1, j2));
+    computation w2_update("w2_update", {k, i1, j2, l3}, w2(k, i1, j2) - temp(k, i1, l3)*temp(k, l3, j2));
+    computation        LU("LU",        {k, i1, j2},     w2(k, i1, j2));
 
     // Finding the inverse of A.
     // The inverse will be stored in X.
@@ -148,8 +148,8 @@ int main(int argc, char* argv[])
 	.then(w1, computation::root)
 	.then(w1_update, j1)
 	.then(temp, j1)
-	.then(w2_init, computation::root)
-	.then(w2, j2)
+	.then(w2, computation::root)
+	.then(w2_update, j2)
 	.then(LU, j2)
 	.then(bp, computation::root)
 //	.then(bp_update, r)
@@ -211,8 +211,8 @@ int main(int argc, char* argv[])
     w1.store_in(&b_w1, {0});
     w1_update.store_in(&b_w1, {0});
     temp.store_in(&b_temp, {i1, j1});
-    w2_init.store_in(&b_w2, {0});
     w2.store_in(&b_w2, {0});
+    w2_update.store_in(&b_w2, {0});
     LU.store_in(&b_LU, {i1, j2});
     Y.store_in(&b_y, {r, i1});
     bp.store_in(&b_bp, {r, i1});
