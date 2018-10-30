@@ -89,18 +89,18 @@ int main(int argc, char* argv[])
     //	    where I is the identity matrix.
     var i1("i1", 0, 4*w);
     var j1("j1", 0, i1);
-    var k2("k2", 0, j1);
+    var l2("l2", 0, j1);
     
     // LU decomposition of A
-    computation w1_init("w1_init", {k, i1, j1}, mul1(k, i1, j1));
-    computation      w1("w1",  {k, i1, j1, k2}, w1_init(k, i1, j1) - mul1(k, i1, k2)*mul1(k, k2, j1));
-    computation    temp("temp", {k, i1, j1}, w1(k, i1, j1, 0)/mul1(k, j1, j1));
+    computation        w1("w1",        {k, i1, j1},     mul1(k, i1, j1));
+    computation w1_update("w1_update", {k, i1, j1, l2},   w1(k, i1, j1) - mul1(k, i1, l2)*mul1(k, l2, j1));
+    computation      temp("temp",      {k, i1, j1},       w1(k, i1, j1)/mul1(k, j1, j1));
 
     var j2("j2", i1, 4*w);
-    var k3("k3",  0,  i1);
+    var l3("l3",  0,  i1);
 
     computation     w2_init("w2_init", {k, i1, j2}, temp(k, i1, j2));
-    computation     w2("w2", {k, i1, j2, k3}, w2_init(k, i1, j2) + A(k, i1, k3)*A(k, k3, j2));
+    computation     w2("w2", {k, i1, j2, l3}, w2_init(k, i1, j2) + A(k, i1, l3)*A(k, l3, j2));
     computation     LU("LU", {k, i1, j2}, w2(k, i1, j2, 0));
 
     // Finding the inverse of A.
@@ -145,8 +145,8 @@ int main(int argc, char* argv[])
 	.then(tA, computation::root)
 	.then(mul1, computation::root)
 	.then(mul1_update, y2)
-	.then(w1_init, computation::root)
-	.then(w1, j1)
+	.then(w1, computation::root)
+	.then(w1_update, j1)
 	.then(temp, j1)
 	.then(w2_init, computation::root)
 	.then(w2, j2)
@@ -208,8 +208,8 @@ int main(int argc, char* argv[])
     tA.store_in(&b_tA, {x2, y1});
     mul1.store_in(&b_mul, {x2, y2});
     mul1_update.store_in(&b_mul, {x2, y2});
-    w1_init.store_in(&b_w1, {0});
     w1.store_in(&b_w1, {0});
+    w1_update.store_in(&b_w1, {0});
     temp.store_in(&b_temp, {i1, j1});
     w2_init.store_in(&b_w2, {0});
     w2.store_in(&b_w2, {0});
