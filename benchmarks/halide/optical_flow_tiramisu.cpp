@@ -51,6 +51,7 @@ int main(int argc, char* argv[])
 
 
     // Second part of the algorithm
+    // Compute "u" and "v" for each corner "k"
     computation i({k}, C2(k));
     computation j({k}, C1(k));
 
@@ -61,7 +62,6 @@ int main(int argc, char* argv[])
     // b = -It
     var x1("x1", 0, 2*w);
     var y1("y1", 0, 2*w);
-    var k1("k1", 0, 2*w);
     computation        A("A",        {k, y1, x1},   Ix_m(i(0)+y1-w, j(0)+x1-w));  //TODO: use i(k) and j(k) instead of i(0) and j(0)
     computation A_right("A_right",   {k, y1, x1},   Iy_m(i(0)+y1-w, j(0)+x1-w));  //i(k), j(k)
     computation        b("b",        {k, y1, x1}, (-It_m(i(0)+y1-w, j(0)+x1-w))); //i(k), j(k)
@@ -72,11 +72,12 @@ int main(int argc, char* argv[])
     //	    X = inv(mul1)
     //	    pinv(A) = X * tA
     var x2("x2", 0, 4*w);
-    var x3("x3", 0, 4*w);
+    var y2("y2", 0, 4*w);
+    var l1("l1", 0, 2*w);
     computation tA("tA", {k, x2, y1}, A(k, y1, x2));
 
-    computation mul1_init("mul1_init", {k, x2, x3}, expr((uint8_t) 0));
-    computation mul1("mul1", {k, x2, x3, y1}, mul1_init(k, x2, x3) + tA(k, x2, y1) * A(k, y1, x3));
+    computation mul1_init("mul1_init", {k, x2, y2}, expr((uint8_t) 0));
+    computation mul1("mul1", {k, x2, y2, l1}, mul1_init(k, x2, y2) + tA(k, x2, l1) * A(k, l1, y2));
 
     // Compute the inverse of mul1 using LU decomposition.
     // We use the following reference implementation (lines 95 to 126)
@@ -86,7 +87,6 @@ int main(int argc, char* argv[])
     //	    system:
     //		    LU*X=I
     //	    where I is the identity matrix.
-
     var i1("i1", 0, 4*w);
     var j1("j1", 0, i1);
     var k2("k2", 0, j1);
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
 	.then(b, y1)
 	.then(tA, computation::root)
 	.then(mul1_init, computation::root)
-	.then(mul1, y1)
+	.then(mul1, y2)
 	.then(w1_init, computation::root)
 	.then(w1, j1)
 	.then(temp, j1)
@@ -206,8 +206,8 @@ int main(int argc, char* argv[])
     A_right.store_in(&b_A, {x1+2*10, y1});  //2*w
     b.store_in(&b_b, {x1, y1});
     tA.store_in(&b_tA, {x2, y1});
-    mul1_init.store_in(&b_mul, {x2, x3});
-    mul1.store_in(&b_mul, {x2, x3});
+    mul1_init.store_in(&b_mul, {x2, y2});
+    mul1.store_in(&b_mul, {x2, y2});
     w1_init.store_in(&b_w1, {0});
     w1.store_in(&b_w1, {0});
     temp.store_in(&b_temp, {i1, j1});
