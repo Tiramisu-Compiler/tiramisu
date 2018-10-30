@@ -122,8 +122,13 @@ int main(int argc, char* argv[])
 
     // Computing pinv(A)=X*tA
     var j4("j4", 0, 4*w);
-    computation    pinvA_init("pinv1_init", {k, i1, y1}, expr((uint8_t) 0));
-    computation    pinvA("pinvA", {k, i1, y1, j4}, pinvA_init(k, i1, y1) + X(k, i1, j4)*tA(k, j4, y1));
+    computation    pinvA("pinvA", {k, i1, y1}, expr((uint8_t) 0));
+    computation    pinvA_update("pinvA_update", {k, i1, y1, j4}, pinvA(k, i1, y1) + X(k, i1, j4)*tA(k, j4, y1));
+
+    // Compute nu
+    // i1= 4w, y1: 2w
+    computation nu("nu", {k, i1, x1}, expr((uint8_t) 0));
+    computation nu_update("nu_update", {k, i1, x1, y1}, nu(k, i1, x1) + pinvA(k, i1, y1)*b(k, y1, x1));
 
     Ix_m.then(Iy_m, x)
 	.then(It_m, x)
@@ -149,8 +154,10 @@ int main(int argc, char* argv[])
 	.then(w4, computation::root)
 	.then(w4_update, i1)
 	.then(X, i1)
-	.then(pinvA_init, computation::root)
-	.then(pinvA, y1);
+	.then(pinvA, computation::root)
+	.then(pinvA_update, y1)
+	.then(nu, computation::root)
+	.then(nu_update, x1);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
@@ -177,6 +184,8 @@ int main(int argc, char* argv[])
     buffer b_x("b_x", {2*w, 2*w}, p_float32, a_temporary);
     buffer b_w4("b_w4", {1}, p_float32, a_temporary);
     buffer b_pinvA("b_pinvA", {4*w, 2*w}, p_float32, a_temporary);
+    buffer b_nu("b_nu", {4*w, 2*w}, p_float32, a_temporary);
+
 
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
@@ -208,8 +217,10 @@ int main(int argc, char* argv[])
     X.store_in(&b_x, {r, i1});
     w4.store_in(&b_w4, {0});
     w4_update.store_in(&b_w4, {0});
-    pinvA_init.store_in(&b_pinvA, {i1, y1});
     pinvA.store_in(&b_pinvA, {i1, y1});
+    pinvA_update.store_in(&b_pinvA, {i1, y1});
+    nu.store_in(&b_nu, {i1, x1});
+    nu_update.store_in(&b_nu, {i1, x1});
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2}, "build/generated_fct_optical_flow.o");
 
