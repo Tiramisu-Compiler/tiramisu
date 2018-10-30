@@ -113,14 +113,15 @@ int main(int argc, char* argv[])
     computation     bp("bp", {k, r, i1}, expr((uint8_t) 0));
     computation     bp_update("bp_update", {k, r, r2}, expr((uint8_t) 1));
     computation     w3("w3", {k, r, i1}, bp(k, r, i1));
-    computation     w3_update("w3_update", {k, r, i1, j1}, w3(k, r, j1) - LU(k, i1, j1)*Y(k, r, j1));
+    computation     w3_update("w3_update", {k, r, i1, j1}, w3(k, r, i1) - LU(k, i1, j1)*Y(k, r, j1));
     Y.set_expression(w3(k, r, i1));
 
+    // TODO: support reverse order loops.
     var j3("j3", i1+1, 4*w);
     computation     X("X", {k, r, i1}, p_uint8);
-    computation     w4("w4", {k, r, i1}, Y(k, r, 4*w-i1));
-    computation     w4_update("w4_update", {k, r, i1, j3}, w4(k, r, 4*w-i1) - LU(k, 4*w-i1, j3)*X(k, r, j3));
-    X.set_expression(w4(k, r, i1)/LU(k, 4*w-i1, 4*w-i1));
+    computation     w4("w4", {k, r, i1}, Y(k, r, 4-w-1-i1));
+    computation     w4_update("w4_update", {k, r, i1, j3}, w4(k, r, i1) - LU(k, 4-w-1-i1, j3)*X(k, r, j3));
+    X.set_expression(w4(k, r, i1)/LU(k, 4-w-1-i1, 4-w-1-i1));
 
     // Computing pinv(A)=X*tA
     var j4("j4", 0, 4*w);
