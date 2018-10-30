@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     var y1("y1", 0, 2*w);
     var k1("k1", 0, 2*w);
     computation        A("A",        {k, y1, x1},   Ix_m(i(0)+y1-w, j(0)+x1-w));  //TODO: use i(k) and j(k) instead of i(0) and j(0)
-    computation A_right("A_right", {k, y1, x1},   Iy_m(i(0)+y1-w, j(0)+x1-w));  //i(k), j(k)
+    computation A_right("A_right",   {k, y1, x1},   Iy_m(i(0)+y1-w, j(0)+x1-w));  //i(k), j(k)
     computation        b("b",        {k, y1, x1}, (-It_m(i(0)+y1-w, j(0)+x1-w))); //i(k), j(k)
 
     // Compute pinv(A):
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
     //	    pinv(A) = X * tA
     var x2("x2", 0, 4*w);
     var x3("x3", 0, 4*w);
-    computation tA("tA", {k, x2, y1}, A(k, x2, y1));
+    computation tA("tA", {k, x2, y1}, A(k, y1, x2));
 
     computation mul1_init("mul1_init", {k, x2, x3}, expr((uint8_t) 0));
     computation mul1("mul1", {k, x2, x3, y1}, mul1_init(k, x2, x3) + tA(k, x2, y1) * A(k, y1, x3));
