@@ -11,6 +11,10 @@ int main(int argc, char* argv[])
     tiramisu::init("optical_flow_tiramisu");
 
     // TODO: input should be a gray image.
+    // TODO: check data types.
+    // TODO: isolate ludcmp and compare it separately.
+    // TODO: compare correctness (partial results) to Matlab.
+    // TODO: compare results and performance to OpenCV (one pyramid).
 
     // Declare input sizes
     // TODO: "input" dimension sizes should be expressions not variables.
@@ -34,21 +38,21 @@ int main(int argc, char* argv[])
     // First convolution (partial on x)
     // Ix_m = conv2(im1, [-1 1; -1 1])
     expr e1 = cast(p_uint8, (cast(p_float32,   im1(y + 1, x) + im1(y + 1, x + 1)
-					     - im1(y,     x) - im1(y,     x + 1))/expr((float) 4)));
+					     - im1(y,     x) - im1(y,     x + 1))));
     computation Ix_m("Ix_m", {y, x}, e1);
 
     // Second convolution  (partial on y)
     // Iy_m = conv2(im1, [-1 -1; 1 1])
     expr e2 = cast(p_uint8, (cast(p_float32,   im1(y, x + 1) + im1(y + 1, x + 1)
-					     - im1(y,     x) - im1(y + 1, x    ))/expr((float) 4)));
+					     - im1(y,     x) - im1(y + 1, x    ))));
     computation Iy_m("Iy_m", {y, x}, e2);
 
     // Third convolution
     // It_m = conv2(im1, ones(2)) + conv2(im2, -ones(2));
     expr e3 = cast(p_uint8, (cast(p_float32,    im1(y,     x)  + im1(y,     x + 1)
-					      + im1(y + 1, x)  + im1(y + 1, x + 1))/expr((float) 4)));
+					      + im1(y + 1, x)  + im1(y + 1, x + 1))));
     expr e4 = cast(p_uint8, (cast(p_float32, (- im2(y,     x)) - im2(y,     x + 1)
-					      - im2(y + 1, x)  - im2(y + 1, x + 1))/expr((float) 4)));
+					      - im2(y + 1, x)  - im2(y + 1, x + 1))));
     computation It_m("It_m", {y, x}, e3 + e4);
 
 
@@ -132,9 +136,6 @@ int main(int argc, char* argv[])
     computation nu("nu", {k, i1, x1}, expr((uint8_t) 0));
     computation nu_update("nu_update", {k, i1, x1, y1}, nu(k, i1, x1) + pinvA(k, i1, y1)*b(k, y1, x1));
 
-    //TODO: check data types.
-    //TODO: isolate ludcmp and compare it separately.
-
     // Results
     // u(k) = nu(0)
     // v(k) = nu(1)
@@ -194,7 +195,6 @@ int main(int argc, char* argv[])
     buffer b_w4("b_w4", {1}, p_float32, a_temporary);
     buffer b_pinvA("b_pinvA", {4*w, 2*w}, p_float32, a_temporary);
     buffer b_nu("b_nu", {4*w, 2*w}, p_float32, a_temporary);
-
 
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
