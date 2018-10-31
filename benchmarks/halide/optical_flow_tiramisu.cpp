@@ -128,10 +128,12 @@ int main(int argc, char* argv[])
     computation    pinvA("pinvA", {k, i1, y1}, expr((uint8_t) 0));
     computation    pinvA_update("pinvA_update", {k, i1, y1, j4}, pinvA(k, i1, y1) + X(k, i1, j4)*tA(k, j4, y1));
 
-    // Compute nu
-    // i1= 4w, y1: 2w
+    // Compute nu = pinv(A)*b
     computation nu("nu", {k, i1, x1}, expr((uint8_t) 0));
     computation nu_update("nu_update", {k, i1, x1, y1}, nu(k, i1, x1) + pinvA(k, i1, y1)*b(k, y1, x1));
+
+    //TODO: check data types.
+    //TODO: isolate ludcmp and compare it separately.
 
     // Results
     // u(k) = nu(0)
