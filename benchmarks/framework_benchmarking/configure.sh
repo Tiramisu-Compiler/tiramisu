@@ -1,7 +1,7 @@
+# Set 1 if you are using the LANKA machine
 LANKA=0
 
-# TODO: Should make this relative path. But undoable for now since the system
-#   is very intricate.
+# TODO: use relative paths.
 #export TIRAMISU_ROOT=/data/scratch/baghdadi/tiramisu/
 export TIRAMISU_ROOT=/Users/b/Documents/src/MIT/tiramisu/
 export BENCHMARK_ROOT=${TIRAMISU_ROOT}/benchmarks/framework_benchmarking/
@@ -36,14 +36,17 @@ PLUTO_OPTS="--tile --parallel"
 LLVM="/Volumes/ALL/extra/polly/llvm_build/bin/clang"
 POLLY_OPTS="-mllvm -polly -mllvm -polly-vectorizer=stripmine -mllvm -polly-parallel"
 
+
+# Set the compiler you want to use to 1 and set the others to 0
 RUN_PLUTO=0
-RUN_PENCIL=0
+RUN_PENCIL=1
 RUN_PENCIL_GPU=0
 RUN_ALPHAZ=0
 RUN_OpenBLAS=0
 RUN_HALIDE=0
 RUN_POLLY=0
-RUN_LLVM=1
-RUN_GCC=1
+RUN_LLVM=0
+RUN_GCC=0
 
+# Keep this set to 1 
 COMPILE_WITH_PENCIL=1

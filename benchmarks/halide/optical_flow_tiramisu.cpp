@@ -36,19 +36,16 @@ int main(int argc, char* argv[])
     input C2("C2", {k}, p_int32);
 
     // First convolution (partial on x)
-    // Ix_m = conv2(im1, [-1 1; -1 1])
-    expr e1 = cast(p_uint8, (cast(p_float32,   im1(y + 1, x) + im1(y + 1, x + 1)
-					     - im1(y,     x) - im1(y,     x + 1))));
+    expr e1 = cast(p_uint8, (cast(p_float32,	im1(y,     x) - im1(y,     x + 1) +
+						im1(y + 1, x) - im1(y + 1, x + 1))));
     computation Ix_m("Ix_m", {y, x}, e1);
 
     // Second convolution  (partial on y)
-    // Iy_m = conv2(im1, [-1 -1; 1 1])
-    expr e2 = cast(p_uint8, (cast(p_float32,   im1(y, x + 1) + im1(y + 1, x + 1)
-					     - im1(y,     x) - im1(y + 1, x    ))));
+    expr e2 = cast(p_uint8, (cast(p_float32,    im1(y,     x)     + im1(y,     x + 1)
+					      - im1(y + 1, x + 1) - im1(y + 1, x    ))));
     computation Iy_m("Iy_m", {y, x}, e2);
 
     // Third convolution
-    // It_m = conv2(im1, ones(2)) + conv2(im2, -ones(2));
     expr e3 = cast(p_uint8, (cast(p_float32,    im1(y,     x)  + im1(y,     x + 1)
 					      + im1(y + 1, x)  + im1(y + 1, x + 1))));
     expr e4 = cast(p_uint8, (cast(p_float32, (- im2(y,     x)) - im2(y,     x + 1)
@@ -63,9 +60,11 @@ int main(int argc, char* argv[])
 
     // Ix = Ix_m(i-w:i+w, j-w:j+w);
     // Iy = Iy_m(i-w:i+w, j-w:j+w);
-    // A = [Ix Iy];
     // It = It_m(i-w:i+w, j-w:j+w);
-    // b = -It
+    // Ix = Ix(:); % flatten the IX 2D array into a vector
+    // Iy = Iy(:);
+    // A = [Ix Iy];
+    // b = -It(:); % get b here
     var x1("x1", 0, 2*w);
     var y1("y1", 0, 2*w);
     computation        A("A",        {k, y1, x1},   Ix_m(i(0)+y1-w, j(0)+x1-w));  //TODO: use i(k) and j(k) instead of i(0) and j(0)
