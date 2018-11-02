@@ -2,6 +2,8 @@ ticket
 cvtcolor
 cvtcolorgpu[gpu]
 convolution
+convolution_layer
+vgg
 blurxy
 gaussian
 warp_affine
