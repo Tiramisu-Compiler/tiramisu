@@ -318,7 +318,7 @@ int main(int argc, char **argv)
 		duration_vector_2.push_back(duration);
     	}
 
-        std::cout << "\t\tMKL-DNN vggBlock duration" << ": " << median(duration_vector_2)/1000 << "; " << std::endl;
+        std::cout << "\t\tMKL-DNN vggBlock duration" << ": " << median(duration_vector_2) << "; " << std::endl;
     }
     
     catch (error &e)
