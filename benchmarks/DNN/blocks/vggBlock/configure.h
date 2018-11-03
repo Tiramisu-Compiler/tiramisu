@@ -2,8 +2,8 @@
 #define __CONV_CONF_HEADER_
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	1
-#define SMALL_DATA_SET	0
+#define MEDIUM_DATA_SET	0
+#define SMALL_DATA_SET	1
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
