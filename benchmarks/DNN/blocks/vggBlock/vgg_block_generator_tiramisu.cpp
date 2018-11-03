@@ -10,7 +10,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-   function vgg_block("vgg_block_tiramisu");
+    function vgg_block("vgg_block_tiramisu");
 
     // parameters
     // N: parameters[0]
@@ -68,49 +68,48 @@ int main(int argc, char **argv)
 
     int vec_len , y_block , o_block ;
   
-            vec_len = 16;
-            y_block = 8;
-            o_block = 4;          
+    vec_len = 16;
+    y_block = 8;
+    o_block = 4;          
     
 
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+    conv_init.tag_parallel_level(0);
+    conv.after(conv_init, 2);
 
-            // 0, 1,   2,   3,   4,   5,     6,
-            // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
-            // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
-           // n, z, (r_z,   y),   x, r_y,   r_x,
+    // 0, 1,   2,   3,   4,   5,     6,
+    // n, z,   y,   x, r_z, r_y,   r_x,
+    conv.interchange(3, 4);
+    // n, z,   y, (r_z,   x), r_y,   r_x,
+    conv.interchange(3, 2);
+    // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
-            // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+    conv.split(1, o_block);
+    conv_init.split(1, o_block);
+    // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
+    conv.split(3, y_block);
+    conv.split(6, vec_len);
+    conv.tag_vector_level(7, vec_len);
 
-            // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
+    // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
+    conv_init.split(4, vec_len);
+    conv_init.tag_vector_level(5, vec_len);
 
-
-	    // Order between the first and second convolutions
-	    relu.after(conv, tiramisu::computation::root_dimension);
-	    conv2_init.after(relu, tiramisu::computation::root_dimension);
-
-
-	    // Schedule of 2nd convolution
-	    conv2_init.tag_parallel_level(0);
-            conv2.after(conv2_init, 2);
-	    relu2.after(conv2,2);
+    // Order between the first and second convolutions
+    relu.after(conv, tiramisu::computation::root_dimension);
+    conv2_init.after(relu, tiramisu::computation::root_dimension);
 
 
-	    // Schedule of maxpooling
-	    maxpool_init.after(relu2, tiramisu::computation::root_dimension);
-            maxpool.after(maxpool_init, tiramisu::computation::root_dimension);
+    // Schedule of 2nd convolution
+    conv2_init.tag_parallel_level(0);
+    conv2.after(conv2_init, 2);
+    relu2.after(conv2,2);
+
+
+    // Schedule of maxpooling
+    maxpool_init.after(relu2, tiramisu::computation::root_dimension);
+    maxpool.after(maxpool_init, tiramisu::computation::root_dimension);
 
 
     // Layer III
@@ -140,14 +139,9 @@ int main(int argc, char **argv)
     relu2.store_in(&conv2_buf);
 
     maxpool_init.store_in(&maxpool_buf);
-    maxpool.store_in(&maxpool_buf,{n, z, y3, x3});
+    maxpool.store_in(&maxpool_buf,{n, z, y3, x3}); 
 
-
-
-    
-
- tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf, &filter2_buf, &bias2_buf, &conv2_buf,&maxpool_buf}, "generated_vgg_block.o");
-
+    tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf, &filter2_buf, &bias2_buf, &conv2_buf,&maxpool_buf}, "generated_vgg_block.o");
 
     return 0;
 }
