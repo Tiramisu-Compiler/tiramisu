@@ -16,9 +16,9 @@ int main(int, char**)
     Halide::Buffer<uint8_t> im1 = Halide::Tools::load_image("./utils/images/rgb.png");
     Halide::Buffer<uint8_t> im2 = Halide::Tools::load_image("./utils/images/rgb.png");
 
-    Halide::Buffer<uint8_t> Ix_m(im1.width(), im1.height(), 3);
-    Halide::Buffer<uint8_t> Iy_m(im1.width(), im1.height(), 3);
-    Halide::Buffer<uint8_t> It_m(im1.width(), im1.height(), 3);
+    Halide::Buffer<float> Ix_m(im1.width(), im1.height(), 3);
+    Halide::Buffer<float> Iy_m(im1.width(), im1.height(), 3);
+    Halide::Buffer<float> It_m(im1.width(), im1.height(), 3);
     Halide::Buffer<int> C1(20);
     Halide::Buffer<int> C2(20);
     Halide::Buffer<int> SIZES(2);
