@@ -14,17 +14,15 @@ using namespace std;
 void vggBlock()
 {
     auto cpu_engine = engine(engine::cpu, 0);
-
-
     std::vector<float> net_src(BATCH_SIZE * FIn* (N+K) * (N+K));
     std::vector<float> net_dst(BATCH_SIZE * FOut* N * N);
 
     /* initializing non-zero values for src */
     srand (1);
     for (size_t i = 0; i < net_src.size(); ++i)
-        net_src[i] = rand()%10; //printf("%d, ",(int)net_src[i]);}
+        net_src[i] = rand()%10; 
 
-    /* AlexNet: conv     */
+    /*  conv     */
     memory::dims conv_src_tz = { BATCH_SIZE, FIn, (N+K), (N+K) };
     memory::dims conv_weights_tz = { FOut, FIn, K+1, K+1 };
     memory::dims conv_bias_tz = { FOut };
@@ -60,10 +58,7 @@ void vggBlock()
               cpu_engine },
             conv_bias.data());
 												        
-    /* create mmemory descriptors for convolution data w/ no specified
-     * format(`any`)
-     * format `any` lets a primitive(convolution in this case)
-     * chose the memory format preferred for best performance. */
+    /* create mmemory descriptors for convolution data  */
     auto conv_src_md = memory::desc({ conv_src_tz }, memory::data_type::f32,
                                     memory::format::nchw);
     auto conv_bias_md = memory::desc({ conv_bias_tz }, memory::data_type::f32,
@@ -107,12 +102,11 @@ void vggBlock()
     auto conv_dst_memory = memory(conv_pd.dst_primitive_desc());
 
     /* finally create a convolution primitive */
-    auto conv
-            = convolution_forward(conv_pd, conv_src_memory, conv_weights_memory,
+    auto conv = convolution_forward(conv_pd, conv_src_memory, conv_weights_memory,
                                   conv_user_bias_memory, conv_dst_memory);
 
 
-  /* AlexNet: relu     */  
+  /*  relu     */  
     const float negative_slope = 0.0f;
 
     /* create relu primitive desc */
@@ -130,10 +124,7 @@ void vggBlock()
     auto relu = eltwise_forward(relu_pd, conv_dst_memory, relu_dst_memory);
 
 
-/****************** conv 2 *******************************************************************/
-
-
-    /* AlexNet: conv2     */
+    /*  conv2     */
     memory::dims conv2_src_tz = { BATCH_SIZE, FOut, N, N};
     memory::dims conv2_weights_tz = { FOut, FOut, K+1, K+1 };
     memory::dims conv2_bias_tz = { FOut };
@@ -215,12 +206,10 @@ void vggBlock()
                                   conv2_user_bias_memory, conv2_dst_memory);
 
 
-  /* AlexNet: relu     */  
+  /*  relu 2    */  
     const float negative_slope2 = 0.0f;
 
     /* create relu primitive desc */
-    /* keep memory format of source same as the format of convolution
-     * output in order to avoid reorder */
     auto relu2_desc = eltwise_forward::desc(prop_kind::forward,
             algorithm::eltwise_relu, conv2_pd.dst_primitive_desc().desc(),
             negative_slope2);
@@ -233,8 +222,7 @@ void vggBlock()
     auto relu2 = eltwise_forward(relu2_pd, conv2_dst_memory, relu2_dst_memory);
 
 
-
- /* AlexNet: pool   src BATCH_SIZE, FOut, (N-K+2), (N-K+2)      */
+ /*  pool  */
 
     memory::dims pool_dst_tz = { BATCH_SIZE, FOut, N-2*K, N-2*K };
     memory::dims pool_kernel = { K+1, K+1 };
@@ -278,9 +266,6 @@ void vggBlock()
     auto pool = pooling_forward(pool_pd, relu2_dst_memory, pool_dst_memory,
                                 pool_workspace_memory);
 
-
-
-
    
     /* build forward net */
     std::vector<primitive> net_fwd;
@@ -304,16 +289,18 @@ void vggBlock()
     stream(stream::kind::eager).submit(net_fwd).wait();
 
 
-printf("writing result in file\n");
-ofstream resultfile;
-  resultfile.open ("mkldnn_result.txt");
+    printf("writing result in file\n");
+    ofstream resultfile;
+    resultfile.open ("mkldnn_result.txt");
 
-float * poolres = (float*)pool_dst_memory.get_data_handle();
-for (size_t i = 0; i < BATCH_SIZE; ++i)
-	for (size_t j = 0; j < FOut; ++j)
-		for (size_t k = 0; k < N-2*K; ++k)	for (size_t l = 0; l < N-2*K; ++l)	resultfile <<poolres[i*FOut*(N-2*K)*(N-2*K) + j*(N-2*K)*(N-2*K) + k*(N-2*K) + l];
+    float * poolres = (float*)pool_dst_memory.get_data_handle();
+    for (size_t i = 0; i < BATCH_SIZE; ++i)
+    	for (size_t j = 0; j < FOut; ++j)
+		for (size_t k = 0; k < N-2*K; ++k)	
+			for (size_t l = 0; l < N-2*K; ++l)	
+				resultfile <<poolres[i*FOut*(N-2*K)*(N-2*K) + j*(N-2*K)*(N-2*K) + k*(N-2*K) + l];
 
-  resultfile.close();
+    resultfile.close();
 
 }
 
@@ -322,22 +309,18 @@ int main(int argc, char **argv)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
     try
     {
+    	for (int i=0; i<NB_TESTS; i++)
+    	{
+		auto start1 = std::chrono::high_resolution_clock::now();
+		vggBlock();
+		auto end1 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double,std::milli> duration = end1 - start1;
+		duration_vector_2.push_back(duration);
+    	}
 
-
-
-    for (int i=0; i<NB_TESTS; i++)
-    {
-        auto start1 = std::chrono::high_resolution_clock::now();
-	vggBlock();
-	auto end1 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double,std::milli> duration = end1 - start1;
-	duration_vector_2.push_back(duration);
+        std::cout << "\t\tMKL-DNN vggBlock duration" << ": " << median(duration_vector_2)/1000 << "; " << std::endl;
     }
-
-    std::cout << "\t\tMKL-DNN vggBlock duration" << ": " << median(duration_vector_2)/1000 << "; " << std::endl;
     
- 
-    }
     catch (error &e)
     {
         std::cerr << "status: " << e.status << std::endl;
@@ -345,18 +328,3 @@ int main(int argc, char **argv)
     }
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
