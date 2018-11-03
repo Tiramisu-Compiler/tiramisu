@@ -25,6 +25,7 @@
 	#define N 64
 #elif SMALL_DATA_SET
 	#define N 32
+
 #endif
 
 
