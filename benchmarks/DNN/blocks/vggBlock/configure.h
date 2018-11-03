@@ -29,10 +29,11 @@
 #define FOut 16
 
 // Size of convolution filter (KxK)
+
 #define K 4
 
 // If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 0
+#define PRINT_ONLY_10 1
 
 #define NB_TESTS 1
 
