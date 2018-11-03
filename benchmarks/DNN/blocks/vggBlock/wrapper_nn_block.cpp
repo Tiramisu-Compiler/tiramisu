@@ -90,7 +90,7 @@ int main(int, char**)
     }
 
 
-    std::cout << "\t\tTiramisu vgg Block duration" << ": " << median(duration_vector_2)/1000 << "; " << std::endl;
+    std::cout << "\t\tTiramisu vgg Block duration" << ": " << median(duration_vector_2) << "; " << std::endl;
     std::cout << "\t\t Result" << ": ";
 
     ifstream in("tiramisu_result.txt"); 
