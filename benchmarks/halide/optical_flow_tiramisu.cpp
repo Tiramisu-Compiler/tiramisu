@@ -12,12 +12,6 @@ int main(int argc, char* argv[])
     // Declare the function name
     tiramisu::init("optical_flow_tiramisu");
 
-    // TODO: input should be a gray image.
-    // TODO: check data types.
-    // TODO: isolate ludcmp and compare it separately.
-    // TODO: compare correctness (partial results) to Matlab.
-    // TODO: compare results and performance to OpenCV (one pyramid).
-
     // Declare input sizes
     // TODO: "input" dimension sizes should be expressions not variables.
     input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
