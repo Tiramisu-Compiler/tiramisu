@@ -130,6 +130,8 @@ int main(int argc, char* argv[])
 	.then(u, k)
 	.then(v, k);
 
+    Ix_m.parallelize(y);
+
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
     buffer b_im1("b_im1", {N0, N1}, p_uint8, a_input);
