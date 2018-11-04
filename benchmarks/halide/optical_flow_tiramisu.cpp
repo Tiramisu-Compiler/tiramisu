@@ -1,7 +1,6 @@
 #include "tiramisu/tiramisu.h"
 #include "wrapper_optical_flow.h"
 
-
 // This code is the Tiramisu implementation of the following Matlab code
 // https://www.mathworks.com/examples/computer-vision/community/35625-lucas-kanade-method-example-2?s_tid=examples_p1_BOTH
 
@@ -25,6 +24,7 @@ int main(int argc, char* argv[])
     // input images
     input im1("im1", {y, x}, p_uint8);
     input im2("im2", {y, x}, p_uint8);
+
     // Corners 
     input C1("C1", {k}, p_int32);
     input C2("C2", {k}, p_int32);
@@ -112,8 +112,8 @@ int main(int argc, char* argv[])
 	.then(i, computation::root)
 	.then(j, k)
 	.then(A1, k)
-	.then(A1_right, k)
-	.then(b1, k)
+	.then(A1_right, xp)
+	.then(b1, xp)
 	.then(tA, k)
 	.then(tAA, k)
 	.then(tAA_update, y2)
