@@ -1,4 +1,6 @@
 #include "tiramisu/tiramisu.h"
+#include "wrapper_optical_flow.h"
+
 
 // This code is the Tiramisu implementation of the following Matlab code
 // https://www.mathworks.com/examples/computer-vision/community/35625-lucas-kanade-method-example-2?s_tid=examples_p1_BOTH
@@ -22,10 +24,7 @@ int main(int argc, char* argv[])
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
-    constant NC("NC", 20); // Number of corners
-
-    // Window size
-    #define w 10
+    constant NC("NC", _NC); // Number of corners
 
     // Loop iterators
     var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
@@ -95,25 +94,25 @@ int main(int argc, char* argv[])
     computation tAA_update("tAA_update", {k, x1, y2, l1}, tAA(k, x1, y2) + (tA(k, x1, l1) * A(k, l1, y2)));
 
     // 3) Computing X = inv(tAA)
-    computation determinant("determinant", {k}, (tAA(k,0,0)*tAA(k,1,1)) - (tAA(k,0,1)*tAA(k,1,0)));
-    computation tAAp_00("tAAp_00", {k},  tAA(k,1,1)/determinant(k));
-    computation tAAp_11("tAAp_11", {k},  tAA(k,0,0)/determinant(k));
-    computation tAAp_01("tAAp_01", {k}, -tAA(k,0,1)/determinant(k));
-    computation tAAp_10("tAAp_10", {k}, -tAA(k,1,0)/determinant(k));
-    input X("X", {k, x1, y2}, p_float32);
+    computation determinant("determinant", {k}, cast(p_float64,tAA(k,0,0))*cast(p_float64, tAA(k,1,1)) - (cast(p_float64, tAA(k,0,1))*cast(p_float64, tAA(k,1,0))));
+    computation tAAp_00("tAAp_00", {k},  cast(p_float64, tAA(k,1,1))/determinant(k));
+    computation tAAp_11("tAAp_11", {k},  cast(p_float64, tAA(k,0,0))/determinant(k));
+    computation tAAp_01("tAAp_01", {k}, -cast(p_float64, tAA(k,0,1))/determinant(k));
+    computation tAAp_10("tAAp_10", {k}, -cast(p_float64, tAA(k,1,0))/determinant(k));
+    input X("X", {k, x1, y2}, p_float64);
 
     // 4) Computing pinv(A) = X*tA
     var l2("l2", 0, 2);
-    computation    pinvA("pinvA", {k, x1, y1}, expr((float) 0));
-    computation    pinvA_update("pinvA_update", {k, x1, y1, l2}, pinvA(k, x1, y1) + X(k, x1, l2)*tA(k, l2, y1));
+    computation    pinvA("pinvA", {k, x1, y1}, expr((double) 0));
+    computation    pinvA_update("pinvA_update", {k, x1, y1, l2}, pinvA(k, x1, y1) + X(k, x1, l2)*cast(p_float64, tA(k, l2, y1)));
 
     // Compute nu = pinv(A)*b
     computation nu("nu", {k, x1}, expr((float) 0));
-    computation nu_update("nu_update", {k, x1, y1}, nu(k, x1) + pinvA(k, x1, y1)*b(k, y1));
+    computation nu_update("nu_update", {k, x1, y1}, nu(k, x1) + cast(p_float32, pinvA(k, x1, y1))*b(k, y1));
 
     // Results
-    // u(k) = nu(0)
-    // v(k) = nu(1)
+    computation u("u", {k}, nu(k, 0));
+    computation v("v", {k}, nu(k, 1));
 
     Ix_m.then(Iy_m, x)
 	.then(It_m, x)
@@ -134,7 +133,9 @@ int main(int argc, char* argv[])
 	.then(pinvA, k)
 	.then(pinvA_update, y1)
 	.then(nu, k)
-	.then(nu_update, x1);
+	.then(nu_update, x1)
+	.then(u, k)
+	.then(v, k);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
@@ -147,14 +148,16 @@ int main(int argc, char* argv[])
     buffer b_C2("b_C2", {NC}, p_int32, a_input);
     buffer b_i("b_i", {1}, p_int32, a_temporary);
     buffer b_j("b_j", {1}, p_int32, a_temporary);
-    buffer b_A("b_A", {4*w*w, 2}, p_float32, a_temporary);
+    buffer b_A("b_A", {4*w*w, 2}, p_float32, a_output);
     buffer b_b("b_b", {4*w*w}, p_float32, a_temporary);
-    buffer b_tA("b_tA", {2, 4*w*w}, p_float32, a_temporary);
-    buffer b_tAA("b_tAA", {2, 2}, p_float32, a_temporary);
-    buffer b_determinant("b_determinant", {1}, p_float32, a_temporary);
-    buffer b_X("b_X", {2, 2}, p_float32, a_temporary);
-    buffer b_pinvA("b_pinvA", {2, 4*w*w}, p_float32, a_temporary);
+    buffer b_tA("b_tA", {2, 4*w*w}, p_float32, a_output);
+    buffer b_tAA("b_tAA", {2, 2}, p_float32, a_output);
+    buffer b_determinant("b_determinant", {1}, p_float64, a_output);
+    buffer b_X("b_X", {2, 2}, p_float64, a_output);
+    buffer b_pinvA("b_pinvA", {2, 4*w*w}, p_float64, a_output);
     buffer b_nu("b_nu", {2}, p_float32, a_temporary);
+    buffer b_u("b_u", {NC}, p_float32, a_output);
+    buffer b_v("b_v", {NC}, p_float32, a_output);
 
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
@@ -184,8 +187,10 @@ int main(int argc, char* argv[])
     pinvA_update.store_in(&b_pinvA, {x1, y1});
     nu.store_in(&b_nu, {x1});
     nu_update.store_in(&b_nu, {x1});
+    u.store_in(&b_u, {k});
+    v.store_in(&b_v, {k});
 
-    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2}, "build/generated_fct_optical_flow.o");
+    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X}, "build/generated_fct_optical_flow.o");
 
     return 0;
 }
