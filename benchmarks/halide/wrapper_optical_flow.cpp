@@ -8,7 +8,7 @@
 #include <iostream>
 #include <stdlib.h>
 
-#define SYNTHETIC_INPUT 1
+#define SYNTHETIC_INPUT 0
 
 int main(int, char**)
 {
@@ -45,14 +45,11 @@ int main(int, char**)
     Halide::Buffer<float> tAA(2, 2);
     Halide::Buffer<double> X(2, 2);
 
-
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
-
     C1(0) = 4; C2(0) = 6;
     C1(1) = 5; C2(1) = 7;
     det(0) = 0;
-
     init_buffer(Ix_m, (float) 0);
     init_buffer(Iy_m, (float) 0);
     init_buffer(It_m, (float) 0);
@@ -62,12 +59,10 @@ int main(int, char**)
     init_buffer(tAA, (float) 0);
     init_buffer(X, (double) 0);
 
-
     // Warm up
     optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
 			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(), A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(), tA.raw_buffer(), X.raw_buffer());
-//    optical_flow_ref(im1.raw_buffer(), output2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -81,23 +76,9 @@ int main(int, char**)
         duration_vector_1.push_back(duration1);
     }
 
-    // Reference
-    for (int i=0; i<NB_TESTS; i++)
-    {
-        auto start2 = std::chrono::high_resolution_clock::now();
-        //warp_affine_ref(im1.raw_buffer(), output2.raw_buffer());
-        auto end2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-        duration_vector_2.push_back(duration2);
-    }
+    std::cout << "Time: " << median(duration_vector_1) << std::endl;
 
-    print_time("performance_CPU.csv", "optical_flow",
-               {"Tiramisu", "Halide"},
-               {median(duration_vector_1), median(duration_vector_2)});
-
-//    if (CHECK_CORRECTNESS)
-//	compare_buffers_approximately("benchmark_warp_affine", It_m, It_m2);
-
+#if SYNTHETIC_INPUT
     print_buffer(im1);
     print_buffer(im2);
 
@@ -111,10 +92,12 @@ int main(int, char**)
     print_buffer(det);
     print_buffer(X);
     print_buffer(pinvA);
+#endif
+
+    std::cout << "Output" << std::endl;
 
     print_buffer(u);
     print_buffer(v);
-
 
     return 0;
 }
