@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
     tiramisu::init("optical_flow_tiramisu");
 
     // Declare input sizes
-    // TODO: "input" dimension sizes should be expressions not variables.
     input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
 
     constant N0("N0", SIZES(0));
@@ -62,9 +61,9 @@ int main(int argc, char* argv[])
     // b = -It(:); % get b here
     var xp("xp", 0, 2*w);
     var yp("yp", 0, 2*w);
-    computation        A1("A1",        {k, yp, xp},   Ix_m(i(0)+yp-w, j(0)+xp-w));  //TODO: use i(k) and j(k) instead of i(0) and j(0)
-    computation  A1_right("A1_right",  {k, yp, xp},   Iy_m(i(0)+yp-w, j(0)+xp-w));  //i(k), j(k)
-    computation        b1("b1",        {k, yp, xp}, (-It_m(i(0)+yp-w, j(0)+xp-w))); //i(k), j(k)
+    computation        A1("A1",        {k, yp, xp},   Ix_m(i(0)+yp-w, j(0)+xp-w));
+    computation  A1_right("A1_right",  {k, yp, xp},   Iy_m(i(0)+yp-w, j(0)+xp-w));
+    computation        b1("b1",        {k, yp, xp}, (-It_m(i(0)+yp-w, j(0)+xp-w)));
 
     // Reshape A1 to A
     var x1("x1", 0, 2);
