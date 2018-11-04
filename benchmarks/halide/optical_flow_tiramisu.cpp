@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     #define w 10
 
     // Loop iterators
-    var x("x", 0, N1), y("y", 0, N0), k("k", 0, NC);
+    var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
 
     // input images
     input im1("im1", {y, x}, p_uint8);
@@ -38,20 +38,20 @@ int main(int argc, char* argv[])
     input C2("C2", {k}, p_int32);
 
     // First convolution (partial on x)
-    expr e1 = (cast(p_float32,	im1(y,     x) - im1(y,     x + 1) +
-				im1(y + 1, x) - im1(y + 1, x + 1)));
+    expr e1 = cast(p_float32, cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
+			      cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
     computation Ix_m("Ix_m", {y, x}, e1);
 
     // Second convolution  (partial on y)
-    expr e2 = (cast(p_float32,    im1(y,     x)     + im1(y,     x + 1)
-			        - im1(y + 1, x + 1) - im1(y + 1, x    )));
+    expr e2 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
+			    - cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
     computation Iy_m("Iy_m", {y, x}, e2);
 
     // Third convolution
-    expr e3 = (cast(p_float32,    im1(y,     x)  + im1(y,     x + 1)
-				+ im1(y + 1, x)  + im1(y + 1, x + 1)));
-    expr e4 = (cast(p_float32, (- im2(y,     x)) - im2(y,     x + 1)
-			        - im2(y + 1, x)  - im2(y + 1, x + 1)));
+    expr e3 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
+			    + cast(p_int32, im1(y + 1, x)) + cast(p_int32, im1(y + 1, x + 1)));
+    expr e4 = cast(p_float32, (- cast(p_int32, im2(y,     x))) - cast(p_int32, im2(y,     x + 1))
+			       - cast(p_int32, im2(y + 1, x))  - cast(p_int32, im2(y + 1, x + 1)));
     computation It_m("It_m", {y, x}, e3 + e4);
 
 

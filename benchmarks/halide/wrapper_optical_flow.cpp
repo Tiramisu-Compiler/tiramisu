@@ -8,17 +8,34 @@
 #include <iostream>
 #include <stdlib.h>
 
+#define SYNTHETIC_INPUT 1
+
 int main(int, char**)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<uint8_t> im1 = Halide::Tools::load_image("./utils/images/rgb.png");
-    Halide::Buffer<uint8_t> im2 = Halide::Tools::load_image("./utils/images/rgb.png");
+    if (SYNTHETIC_INPUT)
+    {
+	    Halide::Buffer<uint8_t> im1(10, 10);
+	    Halide::Buffer<uint8_t> im2(10, 10);
 
-    Halide::Buffer<float> Ix_m(im1.width(), im1.height(), 3);
-    Halide::Buffer<float> Iy_m(im1.width(), im1.height(), 3);
-    Halide::Buffer<float> It_m(im1.width(), im1.height(), 3);
+	    for (int i = 0; i < 10; i++)
+		    for (int j = 0; j < 10; j++)
+		    {
+			    im1(i, j) = (uint8_t) i+1;
+			    im2(i, j) = (uint8_t) i;
+		    }
+    }
+    else
+    {
+	    Halide::Buffer<uint8_t> im1 = Halide::Tools::load_image("./utils/images/rgb.png");
+	    Halide::Buffer<uint8_t> im2 = Halide::Tools::load_image("./utils/images/rgb.png");
+    }
+
+    Halide::Buffer<float> Ix_m(im1.width(), im1.height());
+    Halide::Buffer<float> Iy_m(im1.width(), im1.height());
+    Halide::Buffer<float> It_m(im1.width(), im1.height());
     Halide::Buffer<int> C1(20);
     Halide::Buffer<int> C2(20);
     Halide::Buffer<int> SIZES(2);
@@ -28,6 +45,9 @@ int main(int, char**)
 
     init_buffer(C1, (int) 0);
     init_buffer(C2, (int) 0);
+    init_buffer(Ix_m, (float) 0);
+    init_buffer(Iy_m, (float) 0);
+    init_buffer(It_m, (float) 0);
 
     // Warm up
     optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
@@ -63,6 +83,13 @@ int main(int, char**)
 
 //    if (CHECK_CORRECTNESS)
 //	compare_buffers_approximately("benchmark_warp_affine", It_m, It_m2);
+
+    print_buffer(im1);
+    print_buffer(im2);
+
+    print_buffer(Ix_m);
+    print_buffer(Iy_m);
+    print_buffer(It_m);
 
     return 0;
 }
