@@ -131,6 +131,9 @@ int main(int argc, char* argv[])
 	.then(v, k);
 
     Ix_m.parallelize(y);
+    Ix_m.vectorize(x, 32);
+    Iy_m.vectorize(x, 32);
+    It_m.vectorize(x, 32);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
