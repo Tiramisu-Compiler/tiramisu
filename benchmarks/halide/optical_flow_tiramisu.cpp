@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     // Ix = Ix(:); % flatten the IX 2D array into a vector
     // Iy = Iy(:);
     // A = [Ix Iy];
-    // b = -It(:); % get b here
+    // b = -It(:);
     var xp("xp", 0, 2*w);
     var yp("yp", 0, 2*w);
     computation        A1("A1",        {k, yp, xp},   Ix_m(i(0)+yp-w, j(0)+xp-w));
