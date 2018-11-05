@@ -140,7 +140,6 @@ int main(int argc, char* argv[])
     A1_right.vectorize(xp, 32);
     b1.vectorize(xp, 32);
     tA.vectorize(y1, 16);
-    tAA_update.vectorize(l1, 32);
 
 
     // Buffer allocation and mapping computations to buffers
