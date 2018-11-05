@@ -11,7 +11,7 @@ extern "C" {
 #define _NC 2
 
 // Window size
-#define w 2
+#define w 32
 
 int optical_flow_tiramisu(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
 			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,

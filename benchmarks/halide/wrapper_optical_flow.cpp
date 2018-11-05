@@ -47,8 +47,8 @@ int main(int, char**)
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
-    C1(0) = 4; C2(0) = 6;
-    C1(1) = 5; C2(1) = 7;
+    C1(0) = 100; C2(0) = 200;
+    C1(1) = 400; C2(1) = 500;
     det(0) = 0;
     init_buffer(Ix_m, (float) 0);
     init_buffer(Iy_m, (float) 0);
