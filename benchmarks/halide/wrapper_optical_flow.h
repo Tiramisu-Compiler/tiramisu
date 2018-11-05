@@ -8,10 +8,10 @@ extern "C" {
 #endif
 
 // Corner number
-#define _NC 2
+#define _NC 8
 
 // Window size
-#define w 32
+#define w 128
 
 int optical_flow_tiramisu(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
 			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,

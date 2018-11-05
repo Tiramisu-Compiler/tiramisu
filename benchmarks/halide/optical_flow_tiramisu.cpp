@@ -132,17 +132,19 @@ int main(int argc, char* argv[])
 	.then(u, k)
 	.then(v, k);
 
+    int VEC = 32;
+
     Ix_m.parallelize(y);
     A1.parallelize(k);
-    Ix_m.vectorize(x, 32);
-    Iy_m.vectorize(x, 32);
-    It_m.vectorize(x, 32);
-    A1.vectorize(xp, 32);
-    A1_right.vectorize(xp, 32);
-    b1.vectorize(xp, 32);
-    tA.vectorize(y1, 16);
-    pinvA.vectorize(y1, 32);
-    pinvA_update.vectorize(y1, 32);
+    Ix_m.vectorize(x, VEC);
+    Iy_m.vectorize(x, VEC);
+    It_m.vectorize(x, VEC);
+    A1.vectorize(xp, VEC);
+    A1_right.vectorize(xp, VEC);
+    b1.vectorize(xp, VEC);
+    tA.vectorize(y1, VEC/2);
+    pinvA.vectorize(y1, VEC);
+    pinvA_update.vectorize(y1, VEC);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
