@@ -42,8 +42,6 @@ int main(int argc, char** argv)
     cornersA.push_back(cv::Point2f(200, 900));
     cornersA.push_back(cv::Point2f(900, 200));
 
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
-
     // Call the Lucas Kanade algorithm
     vector<uchar> features_found;
 
@@ -67,7 +65,6 @@ int main(int argc, char** argv)
 
     auto end1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double,std::milli> duration = end1 - start1;
-
     std::cout << "Time: " << duration.count() << std::endl;
 
     return 0;
