@@ -107,6 +107,8 @@ int main(int argc, char* argv[])
     computation u("u", {k}, nu(k, 0));
     computation v("v", {k}, nu(k, 1));
 
+
+    // Schedule
     Ix_m.then(Iy_m, x)
 	.then(It_m, x)
 	.then(i, computation::root)
@@ -130,14 +132,11 @@ int main(int argc, char* argv[])
 	.then(u, k)
 	.then(v, k);
 
-    var nx0("nx0"), ny0("ny0"), nx1("nx1"), ny1("ny1");
     Ix_m.parallelize(y);
-    Ix_m.tile(y,x, 32,32, ny0, nx0, ny1, nx1);
-    Iy_m.tile(y,x, 32,32, ny0, nx0, ny1, nx1);
-    It_m.tile(y,x, 32,32, ny0, nx0, ny1, nx1);
-    Ix_m.vectorize(nx1, 32);
-    Iy_m.vectorize(nx1, 32);
-    It_m.vectorize(nx1, 32);
+    Ix_m.vectorize(x, 32);
+    Iy_m.vectorize(x, 32);
+    It_m.vectorize(x, 32);
+
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
