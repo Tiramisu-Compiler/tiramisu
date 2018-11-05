@@ -143,6 +143,8 @@ int main(int argc, char* argv[])
     tA.vectorize(y1, 16);
     pinvA.vectorize(y1, 32);
     pinvA_update.vectorize(y1, 32);
+    nu.vectorize(x1, 32);
+    nu_update.vectorize(x1, 32);
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
