@@ -136,6 +136,9 @@ int main(int argc, char* argv[])
     Ix_m.vectorize(x, 32);
     Iy_m.vectorize(x, 32);
     It_m.vectorize(x, 32);
+    A1.vectorize(xp, 4);
+    A1_right.vectorize(xp, 4);
+    b1.vectorize(xp, 4);
 
 
     // Buffer allocation and mapping computations to buffers
