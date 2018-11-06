@@ -34,9 +34,5 @@ heat3d.compile_to_object("build/generated_fct_heat3d_ref.o",
                            "heat3d_ref",
                            target);
 
-heat3d.compile_to_lowered_stmt("build/generated_fct_heat3d_ref.txt",
-                                 {input},
-                                 Text,
-                                 target);
 return 0;
 }
