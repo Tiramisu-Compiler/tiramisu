@@ -24,8 +24,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-    function conv_fct("conv_tiramisu");
-   
 
     // N: parameters[0]
     // K: parameters[1]
@@ -56,7 +54,7 @@ int main(int argc, char **argv)
     computation conv_init("conv_init",{n, z, y1, x1}, bias(z) );
     computation conv("conv",{n, z, y1, x1, k_z, k_y, k_x }, conv_init(n, z, y1, x1) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y1 + k_y, x1 + k_x));
     
-    conv_fct.add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
+    global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
     // Layer II
     if (LARGE_DATA_SET)
     {
