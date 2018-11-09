@@ -28,9 +28,9 @@ if (SYNTHETIC_DATA)
               49, 50, 53, 58, 65, 74, 85, 98, 113, 130;
               64, 65, 68, 73, 80, 89, 100, 113, 128, 145;
               81, 82, 85, 90, 97, 106, 117, 130, 145, 162];
-    numLevels=2;    % levels number
+    numLevels=3;    % levels number
     window=2;       % window size
-    iterations=2;   % iterations number
+    iterations=3;   % iterations number
 else
     im1=single(rgb2gray(imread('/Users/b/Documents/src/MIT/tiramisu/utils/images/rgb.png')));
     im2=single(rgb2gray(imread('/Users/b/Documents/src/MIT/tiramisu/utils/images/rgb.png')));
