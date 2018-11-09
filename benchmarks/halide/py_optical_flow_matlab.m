@@ -55,7 +55,7 @@ for i=2:numLevels
     im2 = impyramid(im2, 'reduce');
     pyramid1(1:size(im1,1), 1:size(im1,2), i) = im1;
     pyramid2(1:size(im2,1), 1:size(im2,2), i) = im2;
-end;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Processing all levels
