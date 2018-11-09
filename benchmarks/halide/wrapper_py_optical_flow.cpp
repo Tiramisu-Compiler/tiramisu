@@ -44,6 +44,8 @@ int main(int, char**)
     Halide::Buffer<double> det(1);
     Halide::Buffer<float> tAA(2, 2);
     Halide::Buffer<double> X(2, 2);
+    Halide::Buffer<uint8_t> pyramids1(im1.width(), im1.height(), npyramids);
+    Halide::Buffer<uint8_t> pyramids2(im1.width(), im1.height(), npyramids);
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
@@ -69,7 +71,7 @@ int main(int, char**)
     // Warm up
     py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
-			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(), A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(), tA.raw_buffer(), X.raw_buffer());
+			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(), A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(), tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -77,7 +79,7 @@ int main(int, char**)
         auto start1 = std::chrono::high_resolution_clock::now();
         py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
-			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(), A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(), tA.raw_buffer(), X.raw_buffer());
+			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(), A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(), tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -99,6 +101,8 @@ int main(int, char**)
     print_buffer(det);
     print_buffer(X);
     print_buffer(pinvA);
+    print_buffer(pyramids1);
+    print_buffer(pyramids2);
 #endif
 
     std::cout << "Output" << std::endl;

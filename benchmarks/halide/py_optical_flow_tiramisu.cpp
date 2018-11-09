@@ -2,7 +2,7 @@
 #include "wrapper_py_optical_flow.h"
 
 // This code is the Tiramisu implementation of the following Matlab code
-// https://www.mathworks.com/examples/computer-vision/community/35625-lucas-kanade-method-example-2?s_tid=examples_p1_BOTH
+// https://www.mathworks.com/matlabcentral/fileexchange/22950-lucas-kanade-pyramidal-refined-optical-flow-implementation
 
 using namespace tiramisu;
 
@@ -25,9 +25,20 @@ int main(int argc, char* argv[])
     input im1("im1", {y, x}, p_uint8);
     input im2("im2", {y, x}, p_uint8);
 
-    // Corners 
+    // Corners
     input C1("C1", {k}, p_int32);
     input C2("C2", {k}, p_int32);
+
+    var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, npyramids);
+
+    // Gaussian pyramid creation
+    computation pyramid1("pyramid1", {p0, i1, j1}, cast(p_float32, im1(i1, j1)));
+    computation pyramid1_ux("pyramid1_ux", {p1, i1, j1}, (expr((float) 0.0625)*pyramid1(p1-1, i1, j1-2) + expr((float)0.25)*pyramid1(p1-1, i1, j1-1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid1(p1-1, i1, j1+2)));
+    computation pyramid1_uy("pyramid1_uy", {p1, i1, j1}, (expr((float)0.0625)*pyramid1(p1-1, i1-2, j1) + expr((float)0.25)*pyramid1(p1-1, i1-1, j1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid1(p1-1, i1+2, j1)));
+
+    computation pyramid2("pyramid2", {p0, i1, j1}, cast(p_float32, im2(i1, j1)));
+    computation pyramid2_ux("pyramid2_ux", {p1, i1, j1}, (expr((float)0.0625)*pyramid2(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2(p1-1, i1, j1+2)));
+    computation pyramid2_uy("pyramid2_uy", {p1, i1, j1}, (expr((float)0.0625)*pyramid2(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2(p1-1, i1+2, j1)));
 
     // First convolution (partial on x)
     expr e1 = cast(p_float32, cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
@@ -109,7 +120,13 @@ int main(int argc, char* argv[])
 
 
     // Schedule
-    Ix_m.then(Iy_m, x)
+    pyramid1.then(pyramid1_ux, computation::root)
+	.then(pyramid1_uy, computation::root)
+	.then(pyramid2, computation::root)
+	.then(pyramid2_ux, computation::root)
+	.then(pyramid2_uy, computation::root)
+	.then(Ix_m, computation::root)
+	.then(Iy_m, x)
 	.then(It_m, x)
 	.then(i, computation::root)
 	.then(j, k)
@@ -150,6 +167,8 @@ int main(int argc, char* argv[])
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
     buffer b_im1("b_im1", {N0, N1}, p_uint8, a_input);
     buffer b_im2("b_im2", {N0, N1}, p_uint8, a_input);
+    buffer b_pyramid1("b_pyramid1", {N0, N1, npyramids}, p_uint8, a_output);
+    buffer b_pyramid2("b_pyramid2", {N0, N1, npyramids}, p_uint8, a_output);
     buffer b_Ix_m("b_Ix_m", {N0, N1}, p_float32, a_output);
     buffer b_Iy_m("b_Iy_m", {N0, N1}, p_float32, a_output);
     buffer b_It_m("b_It_m", {N0, N1}, p_float32, a_output);
@@ -171,6 +190,12 @@ int main(int argc, char* argv[])
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
     im2.store_in(&b_im2);
+    pyramid1.store_in(&b_pyramid1);
+    pyramid1_ux.store_in(&b_pyramid1);
+    pyramid1_uy.store_in(&b_pyramid1);
+    pyramid2.store_in(&b_pyramid2);
+    pyramid2_ux.store_in(&b_pyramid2);
+    pyramid2_uy.store_in(&b_pyramid2);
     Ix_m.store_in(&b_Ix_m);
     Iy_m.store_in(&b_Iy_m);
     It_m.store_in(&b_It_m);
@@ -199,7 +224,7 @@ int main(int argc, char* argv[])
     u.store_in(&b_u, {k});
     v.store_in(&b_v, {k});
 
-    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X}, "build/generated_fct_py_optical_flow.o");
+    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2}, "build/generated_fct_py_optical_flow.o");
 
     return 0;
 }
