@@ -29,16 +29,41 @@ int main(int argc, char* argv[])
     input C1("C1", {k}, p_int32);
     input C2("C2", {k}, p_int32);
 
-    var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, npyramids);
+    var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, 2), p2("p2", 2, 3);
 
     // Gaussian pyramid creation
-    computation pyramid1("pyramid1", {p0, i1, j1}, cast(p_float32, im1(i1, j1)));
-    computation pyramid1_ux("pyramid1_ux", {p1, i1, j1}, (expr((float) 0.0625)*pyramid1(p1-1, i1, j1-2) + expr((float)0.25)*pyramid1(p1-1, i1, j1-1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid1(p1-1, i1, j1+2)));
-    computation pyramid1_uy("pyramid1_uy", {p1, i1, j1}, (expr((float)0.0625)*pyramid1(p1-1, i1-2, j1) + expr((float)0.25)*pyramid1(p1-1, i1-1, j1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid1(p1-1, i1+2, j1)));
+    // Level 0 (original image)
+    computation pyramid1("pyramid1", {p0, i1, j1},
+	    cast(p_float32, im1(i1, j1)));
 
-    computation pyramid2("pyramid2", {p0, i1, j1}, cast(p_float32, im2(i1, j1)));
-    computation pyramid2_ux("pyramid2_ux", {p1, i1, j1}, (expr((float)0.0625)*pyramid2(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2(p1-1, i1, j1+2)));
-    computation pyramid2_uy("pyramid2_uy", {p1, i1, j1}, (expr((float)0.0625)*pyramid2(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2(p1-1, i1+2, j1)));
+    // Level 1
+    computation pyramid1_l1x("pyramid1_l1x", {p1, i1, j1},
+	    (expr((float) 0.0625)*pyramid1(p1-1, i1, j1-2) + expr((float)0.25)*pyramid1(p1-1, i1, j1-1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid1(p1-1, i1, j1+2)));
+    computation pyramid1_l1y("pyramid1_l1y", {p1, i1, j1},
+	    (expr((float)0.0625)*pyramid1_l1x(p1-1, i1-2, j1) + expr((float)0.25)*pyramid1_l1x(p1-1, i1-1, j1) + expr((float)0.375)*pyramid1_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid1_l1x(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid1_l1x(p1-1, i1+2, j1)));
+
+    // Level 2
+    computation pyramid1_l2x("pyramid1_l2x", {p2, i1, j1},
+	    (expr((float) 0.0625)*pyramid1_l1y(p2-1, i1, j1-2) + expr((float)0.25)*pyramid1_l1y(p2-1, i1, j1-1) + expr((float)0.375)*pyramid1_l1y(p2-1, i1, j1) + expr((float)0.25)*pyramid1_l1y(p2-1, i1, j1+1) + expr((float)0.0625)*pyramid1_l1y(p2-1, i1, j1+2)));
+    computation pyramid1_l2y("pyramid1_l2y", {p2, i1, j1},
+	    (expr((float)0.0625)*pyramid1_l2x(p2-1, i1-2, j1) + expr((float)0.25)*pyramid1_l2x(p2-1, i1-1, j1) + expr((float)0.375)*pyramid1_l2x(p2-1, i1, j1) + expr((float)0.25)*pyramid1_l2x(p2-1, i1+1, j1) + expr((float)0.0625)*pyramid1_l2x(p2-1, i1+2, j1)));
+
+    // Level 0 (original image)
+    computation pyramid2("pyramid2", {p0, i1, j1},
+	    cast(p_float32, im2(i1, j1)));
+
+    // Level 1
+    computation pyramid2_l1x("pyramid2_l1x", {p1, i1, j1},
+	    (expr((float)0.0625)*pyramid2(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2(p1-1, i1, j1+2)));
+    computation pyramid2_l1y("pyramid2_l1y", {p1, i1, j1},
+	    (expr((float)0.0625)*pyramid2_l1x(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2_l1x(p1-1, i1+2, j1)));
+
+    // Level 2
+    computation pyramid2_l2x("pyramid2_l2x", {p1, i1, j1},
+	    (expr((float)0.0625)*pyramid2_l1x(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2_l1x(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2_l1x(p1-1, i1, j1+2)));
+    computation pyramid2_l2y("pyramid2_l2y", {p1, i1, j1},
+	    (expr((float)0.0625)*pyramid2_l1y(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2_l1y(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2_l1y(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1y(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2_l1y(p1-1, i1+2, j1)));
+
 
     // First convolution (partial on x)
     expr e1 = cast(p_float32, cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
@@ -120,11 +145,15 @@ int main(int argc, char* argv[])
 
 
     // Schedule
-    pyramid1.then(pyramid1_ux, computation::root)
-	.then(pyramid1_uy, computation::root)
+    pyramid1.then(pyramid1_l1x, computation::root)
+	.then(pyramid1_l1y, computation::root)
+	.then(pyramid1_l2x, computation::root)
+	.then(pyramid1_l2y, computation::root)
 	.then(pyramid2, computation::root)
-	.then(pyramid2_ux, computation::root)
-	.then(pyramid2_uy, computation::root)
+	.then(pyramid2_l1x, computation::root)
+	.then(pyramid2_l1y, computation::root)
+	.then(pyramid2_l2x, computation::root)
+	.then(pyramid2_l2y, computation::root)
 	.then(Ix_m, computation::root)
 	.then(Iy_m, x)
 	.then(It_m, x)
@@ -149,6 +178,7 @@ int main(int argc, char* argv[])
 	.then(u, k)
 	.then(v, k);
 
+#if 0
     int VEC = 32;
 
     Ix_m.parallelize(y);
@@ -162,6 +192,7 @@ int main(int argc, char* argv[])
     tA.vectorize(y1, VEC/2);
     pinvA.vectorize(y1, VEC);
     pinvA_update.vectorize(y1, VEC);
+#endif
 
     // Buffer allocation and mapping computations to buffers
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
@@ -191,11 +222,15 @@ int main(int argc, char* argv[])
     im1.store_in(&b_im1);
     im2.store_in(&b_im2);
     pyramid1.store_in(&b_pyramid1);
-    pyramid1_ux.store_in(&b_pyramid1);
-    pyramid1_uy.store_in(&b_pyramid1);
+    pyramid1_l1x.store_in(&b_pyramid1);
+    pyramid1_l1y.store_in(&b_pyramid1);
+    pyramid1_l2x.store_in(&b_pyramid1);
+    pyramid1_l2y.store_in(&b_pyramid1);
     pyramid2.store_in(&b_pyramid2);
-    pyramid2_ux.store_in(&b_pyramid2);
-    pyramid2_uy.store_in(&b_pyramid2);
+    pyramid2_l1x.store_in(&b_pyramid2);
+    pyramid2_l1y.store_in(&b_pyramid2);
+    pyramid2_l2x.store_in(&b_pyramid2);
+    pyramid2_l2y.store_in(&b_pyramid2);
     Ix_m.store_in(&b_Ix_m);
     Iy_m.store_in(&b_Iy_m);
     It_m.store_in(&b_It_m);

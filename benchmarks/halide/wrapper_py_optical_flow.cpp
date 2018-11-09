@@ -8,7 +8,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-#define SYNTHETIC_INPUT 0
 
 int main(int, char**)
 {
@@ -49,6 +48,10 @@ int main(int, char**)
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
+#ifdef SYNTHETIC_INPUT
+    C1(0) = 4; C2(0) = 5;
+    C1(1) = 6; C2(1) = 6;
+#else
     C1(0) = 500; C2(0) = 400;
     C1(1) = 800; C2(1) = 900;
     C1(2) = 200; C2(2) = 400;
@@ -57,6 +60,7 @@ int main(int, char**)
     C1(5) = 800; C2(5) = 200;
     C1(6) = 200; C2(6) = 900;
     C1(7) = 900; C2(7) = 200;
+#endif
 
     det(0) = 0;
     init_buffer(Ix_m, (float) 0);
@@ -67,6 +71,8 @@ int main(int, char**)
     init_buffer(pinvA, (double) 0);
     init_buffer(tAA, (float) 0);
     init_buffer(X, (double) 0);
+    init_buffer(pyramids1, (uint8_t) 0);
+    init_buffer(pyramids2, (uint8_t) 0);
 
     // Warm up
     py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
@@ -88,20 +94,30 @@ int main(int, char**)
     std::cout << "Time: " << median(duration_vector_1) << std::endl;
 
 #if SYNTHETIC_INPUT
+    std::cout << "Im1 and Im2." << std::endl;
     print_buffer(im1);
     print_buffer(im2);
 
+    std::cout << "Ix_m, Iy_m and It_m." << std::endl;
     print_buffer(Ix_m);
     print_buffer(Iy_m);
     print_buffer(It_m);
 
+    std::cout << "A, tA, tAA, det." << std::endl;
     print_buffer(A);
     print_buffer(tA);
     print_buffer(tAA);
     print_buffer(det);
+
+    std::cout << "X" << std::endl;
     print_buffer(X);
+
+    std::cout << "pinvA" << std::endl;
     print_buffer(pinvA);
+
+    std::cout << "pyramids1" << std::endl;
     print_buffer(pyramids1);
+    std::cout << "pyramids2" << std::endl;
     print_buffer(pyramids2);
 #endif
 

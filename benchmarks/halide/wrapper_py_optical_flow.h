@@ -7,11 +7,19 @@
 extern "C" {
 #endif
 
-// Corner number
-#define _NC 8
+#define SYNTHETIC_INPUT 1
 
-// Window size
-#define w 128
+#ifdef SYNTHETIC_INPUT
+    // Window size
+    #define w 2
+    #define _NC 2
+#else
+    // Window size
+    #define w 128
+    #define _NC 8
+#endif
+
+// Corner number
 
 // Number of pyramid levels
 #define npyramids 3
