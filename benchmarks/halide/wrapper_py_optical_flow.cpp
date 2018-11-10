@@ -43,8 +43,8 @@ int main(int, char**)
     Halide::Buffer<double> det(1);
     Halide::Buffer<float> tAA(2, 2);
     Halide::Buffer<double> X(2, 2);
-    Halide::Buffer<float> pyramids1(im1.width(), im1.height(), npyramids);
-    Halide::Buffer<float> pyramids2(im1.width(), im1.height(), npyramids);
+    Halide::Buffer<uint8_t> pyramids1(im1.width(), im1.height(), npyramids);
+    Halide::Buffer<uint8_t> pyramids2(im1.width(), im1.height(), npyramids);
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
@@ -71,8 +71,8 @@ int main(int, char**)
     init_buffer(pinvA, (double) 0);
     init_buffer(tAA, (float) 0);
     init_buffer(X, (double) 0);
-    init_buffer(pyramids1, (float) 0);
-    init_buffer(pyramids2, (float) 0);
+    init_buffer(pyramids1, (uint8_t) 0);
+    init_buffer(pyramids2, (uint8_t) 0);
 
     // Warm up
     py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
