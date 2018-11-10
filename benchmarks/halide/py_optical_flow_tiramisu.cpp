@@ -57,22 +57,29 @@ int main(int argc, char* argv[])
     computation pyramid2_l2y("pyramid2_l2y", {p1, j3, i3},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3-2)) + expr((float)0.25)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3-1)) + expr((float)0.375)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3+1)) + expr((float)0.0625)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3+2)))));
 
 
+    var p("p", 0, npyramids), r("r", 0, niterations);
+
+
     // First convolution (partial on x)
-    expr e1 = cast(p_float32, cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
-			      cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
-    computation Ix_m("Ix_m", {y, x}, e1);
+    expr e1 = cast(p_float32, (cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
+			       cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1))))/expr((float)4);
+    expr e2 = cast(p_float32, (cast(p_int32, im2(y,     x)) - cast(p_int32, im2(y,     x + 1)) +
+	 		       cast(p_int32, im2(y + 1, x)) - cast(p_int32, im2(y + 1, x + 1))))/expr((float)4);
+    computation Ix_m("Ix_m", {y, x}, e1 + e2);
 
     // Second convolution  (partial on y)
-    expr e2 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-			    - cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
-    computation Iy_m("Iy_m", {y, x}, e2);
+    expr e3 = cast(p_float32, (cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
+	 		     - cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1))))/expr((float) 4);
+    expr e4 = cast(p_float32, (cast(p_int32, im2(y,     x)) + cast(p_int32, im2(y,     x + 1))
+			     - cast(p_int32, im2(y + 1, x)) - cast(p_int32, im2(y + 1, x + 1))))/expr((float) 4);
+    computation Iy_m("Iy_m", {y, x}, e3 + e4);
 
     // Third convolution
-    expr e3 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-			    + cast(p_int32, im1(y + 1, x)) + cast(p_int32, im1(y + 1, x + 1)));
-    expr e4 = cast(p_float32, (- cast(p_int32, im2(y,     x))) - cast(p_int32, im2(y,     x + 1))
-			       - cast(p_int32, im2(y + 1, x))  - cast(p_int32, im2(y + 1, x + 1)));
-    computation It_m("It_m", {y, x}, e3 + e4);
+    expr e5 = cast(p_float32, (cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
+			    + cast(p_int32, im1(y + 1, x)) + cast(p_int32, im1(y + 1, x + 1))))/expr((float) 4);
+    expr e6 = cast(p_float32, ((- cast(p_int32, im2(y,     x))) - cast(p_int32, im2(y,     x + 1))
+			        - cast(p_int32, im2(y + 1, x))  - cast(p_int32, im2(y + 1, x + 1))))/expr((float) 4);
+    computation It_m("It_m", {y, x}, e5 + e6);
 
 
     // Second part of the algorithm
