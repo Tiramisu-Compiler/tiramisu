@@ -50,7 +50,7 @@ if (SYNTHETIC_DATA)
               105, 106, 109, 114, 121, 130, 141, 154, 169, 186, 205, 226, 249, 18, 45, 74, 105, 138, 173, 210];
 
     numLevels=3    % levels number
-    window=2       % window size
+    window=4       % window size
     iterations=3   % iterations number
 else
     im1=single(rgb2gray(imread('/Users/b/Documents/src/MIT/tiramisu/utils/images/rgb.png')));
