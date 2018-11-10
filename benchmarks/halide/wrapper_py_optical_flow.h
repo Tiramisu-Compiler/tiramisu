@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 #define SYNTHETIC_INPUT 1
+#define SYNTHETIC_INPUT_SIZE 20
 
 #ifdef SYNTHETIC_INPUT
     // Window size

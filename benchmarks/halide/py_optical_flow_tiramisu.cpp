@@ -30,39 +30,31 @@ int main(int argc, char* argv[])
     input C2("C2", {k}, p_int32);
 
     var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, 2), p2("p2", 2, 3);
+    var i2("i2", 2, (N1/2)-2), j2("j2", 2, (N0/2)-2);
+    var i3("i3", 2, (N1/4)-2), j3("j3", 2, (N0/4)-2);
 
     // Gaussian pyramid creation
     // Level 0 (original image)
-    computation pyramid1("pyramid1", {p0, i1, j1},
-	    cast(p_float32, im1(i1, j1)));
+    computation pyramid1("pyramid1", {p0, j1, i1},  cast(p_float32, im1(j1, i1)));
 
     // Level 1
-    computation pyramid1_l1x("pyramid1_l1x", {p1, i1, j1},
-	    (expr((float) 0.0625)*pyramid1(p1-1, i1, j1-2) + expr((float)0.25)*pyramid1(p1-1, i1, j1-1) + expr((float)0.375)*pyramid1(p1-1, i1, j1) + expr((float)0.25)*pyramid1(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid1(p1-1, i1, j1+2)));
-    computation pyramid1_l1y("pyramid1_l1y", {p1, i1, j1},
-	    (expr((float)0.0625)*pyramid1_l1x(p1-1, i1-2, j1) + expr((float)0.25)*pyramid1_l1x(p1-1, i1-1, j1) + expr((float)0.375)*pyramid1_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid1_l1x(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid1_l1x(p1-1, i1+2, j1)));
+    computation pyramid1_l1x("pyramid1_l1x", {p1, j2, i2},  (expr((float) 0.0625)*pyramid1(p1-1, 2*j2-2, 2*i2) + expr((float)0.25)*pyramid1(p1-1, 2*j2-1, 2*i2) + expr((float)0.375)*pyramid1(p1-1, 2*j2, 2*i2) + expr((float)0.25)*pyramid1(p1-1, 2*j2+1, 2*i2) + expr((float)0.0625)*pyramid1(p1-1, 2*j2+2, 2*i2)));
+    computation pyramid1_l1y("pyramid1_l1y", {p1, j2, i2},  (expr((float)0.0625)*pyramid1_l1x(p1-1, 2*j2, 2*i2-2) + expr((float)0.25)*pyramid1_l1x(p1-1, 2*j2, 2*i2-1) + expr((float)0.375)*pyramid1_l1x(p1-1, 2*j2, 2*i2) + expr((float)0.25)*pyramid1_l1x(p1-1, 2*j2, 2*i2+1) + expr((float)0.0625)*pyramid1_l1x(p1-1, 2*j2, 2*i2+2)));
 
     // Level 2
-    computation pyramid1_l2x("pyramid1_l2x", {p2, i1, j1},
-	    (expr((float) 0.0625)*pyramid1_l1y(p2-1, i1, j1-2) + expr((float)0.25)*pyramid1_l1y(p2-1, i1, j1-1) + expr((float)0.375)*pyramid1_l1y(p2-1, i1, j1) + expr((float)0.25)*pyramid1_l1y(p2-1, i1, j1+1) + expr((float)0.0625)*pyramid1_l1y(p2-1, i1, j1+2)));
-    computation pyramid1_l2y("pyramid1_l2y", {p2, i1, j1},
-	    (expr((float)0.0625)*pyramid1_l2x(p2-1, i1-2, j1) + expr((float)0.25)*pyramid1_l2x(p2-1, i1-1, j1) + expr((float)0.375)*pyramid1_l2x(p2-1, i1, j1) + expr((float)0.25)*pyramid1_l2x(p2-1, i1+1, j1) + expr((float)0.0625)*pyramid1_l2x(p2-1, i1+2, j1)));
+    computation pyramid1_l2x("pyramid1_l2x", {p2, j3, i3},  (expr((float) 0.0625)*pyramid1_l1y(p2-1, 2*j3-2, 2*i3) + expr((float)0.25)*pyramid1_l1y(p2-1, 2*j3-1, 2*i3) + expr((float)0.375)*pyramid1_l1y(p2-1, 2*j3, 2*i3) + expr((float)0.25)*pyramid1_l1y(p2-1, 2*j3+1, 2*i3) + expr((float)0.0625)*pyramid1_l1y(p2-1, 2*j3+2, 2*i3)));
+    computation pyramid1_l2y("pyramid1_l2y", {p2, j3, i3},  (expr((float)0.0625)*pyramid1_l2x(p2-1, 2*j3, 2*i3-2) + expr((float)0.25)*pyramid1_l2x(p2-1, 2*j3, 2*i3-1) + expr((float)0.375)*pyramid1_l2x(p2-1, 2*j3, 2*i3) + expr((float)0.25)*pyramid1_l2x(p2-1, 2*j3, 2*i3+1) + expr((float)0.0625)*pyramid1_l2x(p2-1, 2*j3, 2*i3+2)));
 
     // Level 0 (original image)
-    computation pyramid2("pyramid2", {p0, i1, j1},
-	    cast(p_float32, im2(i1, j1)));
+    computation pyramid2("pyramid2", {p0, j1, i1}, cast(p_float32, im2(j1, i1)));
 
     // Level 1
-    computation pyramid2_l1x("pyramid2_l1x", {p1, i1, j1},
-	    (expr((float)0.0625)*pyramid2(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2(p1-1, i1, j1) + expr((float)0.25)*pyramid2(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2(p1-1, i1, j1+2)));
-    computation pyramid2_l1y("pyramid2_l1y", {p1, i1, j1},
-	    (expr((float)0.0625)*pyramid2_l1x(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2_l1x(p1-1, i1+2, j1)));
+    computation pyramid2_l1x("pyramid2_l1x", {p1, j2, i2},  (expr((float)0.0625)*pyramid2(p1-1, 2*j2-2, 2*i2) + expr((float)0.25)*pyramid2(p1-1, 2*j2-1, 2*i2) + expr((float)0.375)*pyramid2(p1-1, 2*j2, 2*i2) + expr((float)0.25)*pyramid2(p1-1, 2*j2+1, 2*i2) + expr((float)0.0625)*pyramid2(p1-1, 2*j2+2, 2*i2)));
+    computation pyramid2_l1y("pyramid2_l1y", {p1, j2, i2},  (expr((float)0.0625)*pyramid2_l1x(p1-1, 2*j2, 2*i2-2) + expr((float)0.25)*pyramid2_l1x(p1-1, 2*j2, 2*i2-1) + expr((float)0.375)*pyramid2_l1x(p1-1, 2*j2, 2*i2) + expr((float)0.25)*pyramid2_l1x(p1-1, 2*j2, 2*i2+1) + expr((float)0.0625)*pyramid2_l1x(p1-1, 2*j2, 2*i2+2)));
 
     // Level 2
-    computation pyramid2_l2x("pyramid2_l2x", {p1, i1, j1},
-	    (expr((float)0.0625)*pyramid2_l1x(p1-1, i1, j1-2) + expr((float)0.25)*pyramid2_l1x(p1-1, i1, j1-1) + expr((float)0.375)*pyramid2_l1x(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1x(p1-1, i1, j1+1) + expr((float)0.0625)*pyramid2_l1x(p1-1, i1, j1+2)));
-    computation pyramid2_l2y("pyramid2_l2y", {p1, i1, j1},
-	    (expr((float)0.0625)*pyramid2_l1y(p1-1, i1-2, j1) + expr((float)0.25)*pyramid2_l1y(p1-1, i1-1, j1) + expr((float)0.375)*pyramid2_l1y(p1-1, i1, j1) + expr((float)0.25)*pyramid2_l1y(p1-1, i1+1, j1) + expr((float)0.0625)*pyramid2_l1y(p1-1, i1+2, j1)));
+    computation pyramid2_l2x("pyramid2_l2x", {p1, j3, i3},  (expr((float)0.0625)*pyramid2_l1x(p1-1, 2*j3-2, 2*i3) + expr((float)0.25)*pyramid2_l1x(p1-1, 2*j3-1, 2*i3) + expr((float)0.375)*pyramid2_l1x(p1-1, 2*j3, 2*i3) + expr((float)0.25)*pyramid2_l1x(p1-1, 2*j3+1, 2*i3) + expr((float)0.0625)*pyramid2_l1x(p1-1, 2*j3+2, 2*i3)));
+    computation pyramid2_l2y("pyramid2_l2y", {p1, j3, i3},  (expr((float)0.0625)*pyramid2_l1y(p1-1, 2*j3, 2*i3-2) + expr((float)0.25)*pyramid2_l1y(p1-1, 2*j3, 2*i3-1) + expr((float)0.375)*pyramid2_l1y(p1-1, 2*j3, 2*i3) + expr((float)0.25)*pyramid2_l1y(p1-1, 2*j3, 2*i3+1) + expr((float)0.0625)*pyramid2_l1y(p1-1, 2*j3, 2*i3+2)));
 
 
     // First convolution (partial on x)
@@ -198,8 +190,8 @@ int main(int argc, char* argv[])
     buffer b_SIZES("b_SIZES", {2}, p_int32, a_input);
     buffer b_im1("b_im1", {N0, N1}, p_uint8, a_input);
     buffer b_im2("b_im2", {N0, N1}, p_uint8, a_input);
-    buffer b_pyramid1("b_pyramid1", {N0, N1, npyramids}, p_uint8, a_output);
-    buffer b_pyramid2("b_pyramid2", {N0, N1, npyramids}, p_uint8, a_output);
+    buffer b_pyramid1("b_pyramid1", {npyramids, N0, N1}, p_float32, a_output);
+    buffer b_pyramid2("b_pyramid2", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_Ix_m("b_Ix_m", {N0, N1}, p_float32, a_output);
     buffer b_Iy_m("b_Iy_m", {N0, N1}, p_float32, a_output);
     buffer b_It_m("b_It_m", {N0, N1}, p_float32, a_output);
