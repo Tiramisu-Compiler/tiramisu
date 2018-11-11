@@ -3916,7 +3916,21 @@ public:
     {
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        assert(access_expressions.size() == number_of_dims);
+        if (access_expressions.size() != number_of_dims)
+	{
+	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+	    for (int i = 0; i < access_expressions.size(); i++)
+	    {
+		tiramisu::expr e = access_expressions[i];
+		e.dump(false);
+		if (i != access_expressions.size() - 1)
+		    tiramisu::str_dump(", ");
+	    }
+	    tiramisu::str_dump(").\n");
+	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+	    exit(1);
+	}
+
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
             for (auto const &variable: this->access_variables) {
