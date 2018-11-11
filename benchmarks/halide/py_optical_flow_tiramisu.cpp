@@ -6,24 +6,32 @@
 
 using namespace tiramisu;
 
-expr conv2(computation im1, var y, var x, std::vector<int> weights)
+expr conv2(computation im1, var p, var y, var x, std::vector<int> weights)
 {
-    expr e = cast(p_float32, (cast(p_int32, weights[0]*im1(y,     x)) - weights[1]*cast(p_int32, im1(y,     x + 1)) +
-	  		      cast(p_int32, weights[2]*im1(y + 1, x)) - weights[3]*cast(p_int32, im1(y + 1, x + 1))))/expr((float)4);
+    expr e = cast(p_float32, (cast(p_int32, weights[0]*im1(p, y,     x)) - weights[1]*cast(p_int32, im1(p, y,     x + 1)) +
+	  		      cast(p_int32, weights[2]*im1(p, y + 1, x)) - weights[3]*cast(p_int32, im1(p, y + 1, x + 1))))/expr((float)4);
 
     return e;
 }
 
 expr gauss_x(computation pyramid1, var p1, var j2, var i2)
 {
-    expr e = cast(p_uint8, (expr((float) 0.0625)*cast(p_float32, pyramid1(p1-1, 2*j2-2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2-1, 2*i2)) + expr((float)0.375)*cast(p_float32,pyramid1(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2+1, 2*i2)) + expr((float)0.0625)*cast(p_float32,pyramid1(p1-1, 2*j2+2, 2*i2))));
+    expr e = cast(p_uint8, (expr((float) 0.0625)*cast(p_float32, pyramid1(p1-1, 2*j2-2, 2*i2)) +
+			    expr((float)   0.25)*cast(p_float32, pyramid1(p1-1, 2*j2-1, 2*i2)) +
+			    expr((float)  0.375)*cast(p_float32, pyramid1(p1-1, 2*j2,   2*i2)) +
+			    expr((float)   0.25)*cast(p_float32, pyramid1(p1-1, 2*j2+1, 2*i2)) +
+			    expr((float) 0.0625)*cast(p_float32, pyramid1(p1-1, 2*j2+2, 2*i2))));
 
     return e;
 }
 
 expr gauss_y(computation pyramid1_l1x, var p1, var j2, var i2)
 {
-    expr e = cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-1)) + expr((float)0.375)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+1)) + expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+2))));
+    expr e = cast(p_uint8, (expr((float) 0.0625)*cast(p_float32, pyramid1_l1x(p1-1, 2*j2, 2*i2-2)) +
+			    expr((float)   0.25)*cast(p_float32, pyramid1_l1x(p1-1, 2*j2, 2*i2-1)) +
+			    expr((float)  0.375)*cast(p_float32, pyramid1_l1x(p1-1, 2*j2, 2*i2)) +
+			    expr((float)   0.25)*cast(p_float32, pyramid1_l1x(p1-1, 2*j2, 2*i2+1)) +
+			    expr((float) 0.0625)*cast(p_float32, pyramid1_l1x(p1-1, 2*j2, 2*i2+2))));
 
     return e;
 }
@@ -86,19 +94,18 @@ int main(int argc, char* argv[])
     std::vector<int> w4 = {-1,-1, -1, -1};
 
     // First convolution (partial on x)
-    computation Ix_m("Ix_m", {y, x}, conv2(im1, y, x, w1) + conv2(im2, y, x, w1));
+    computation Ix_m("Ix_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w1) + conv2(pyramid2_l2y, p, y, x, w1));
 
     // Second convolution  (partial on y)
-    computation Iy_m("Iy_m", {y, x}, conv2(im1, y, x, w2) + conv2(im2, y, x, w2));
+    computation Iy_m("Iy_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w2) + conv2(pyramid2_l2y, p, y, x, w2));
 
     // Third convolution
-    computation It_m("It_m", {y, x}, conv2(im1, y, x, w3) + conv2(im2, y, x, w4));
+    computation It_m("It_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w3) + conv2(pyramid2_l2y, p, y, x, w4));
 
 
     // Second part of the algorithm
-    // Compute "u" and "v" for each corner "k"
+    // Compute "u" and "v" for each pixel "i, j"
     var i("i", w, N0-w), j("j", w, N1-w);
-
 
     // Ix = Ix_m(i-w:i+w, j-w:j+w);
     // Iy = Iy_m(i-w:i+w, j-w:j+w);
@@ -109,9 +116,9 @@ int main(int argc, char* argv[])
     // b = -It(:);
     var xp("xp", 0, 2*w);
     var yp("yp", 0, 2*w);
-    computation        A1("A1",        {p, r, i, j, yp, xp},   Ix_m(i+yp-w, j+xp-w));
-    computation  A1_right("A1_right",  {p, r, i, j, yp, xp},   Iy_m(i+yp-w, j+xp-w));
-    computation        b1("b1",        {p, r, i, j, yp, xp}, (-It_m(i+yp-w, j+xp-w)));
+    computation        A1("A1",        {p, r, i, j, yp, xp},   Ix_m(p, i+yp-w, j+xp-w));
+    computation  A1_right("A1_right",  {p, r, i, j, yp, xp},   Iy_m(p, i+yp-w, j+xp-w));
+    computation        b1("b1",        {p, r, i, j, yp, xp}, (-It_m(p, i+yp-w, j+xp-w)));
 
     // Reshape A1 to A
     var x1("x1", 0, 2);
