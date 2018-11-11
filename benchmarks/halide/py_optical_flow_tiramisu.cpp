@@ -6,6 +6,28 @@
 
 using namespace tiramisu;
 
+expr conv2(computation im1, var y, var x, std::vector<int> weights)
+{
+    expr e = cast(p_float32, (cast(p_int32, weights[0]*im1(y,     x)) - weights[1]*cast(p_int32, im1(y,     x + 1)) +
+	  		      cast(p_int32, weights[2]*im1(y + 1, x)) - weights[3]*cast(p_int32, im1(y + 1, x + 1))))/expr((float)4);
+
+    return e;
+}
+
+expr gauss_x(computation pyramid1, var p1, var j2, var i2)
+{
+    expr e = cast(p_uint8, (expr((float) 0.0625)*cast(p_float32, pyramid1(p1-1, 2*j2-2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2-1, 2*i2)) + expr((float)0.375)*cast(p_float32,pyramid1(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2+1, 2*i2)) + expr((float)0.0625)*cast(p_float32,pyramid1(p1-1, 2*j2+2, 2*i2))));
+
+    return e;
+}
+
+expr gauss_y(computation pyramid1_l1x, var p1, var j2, var i2)
+{
+    expr e = cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-1)) + expr((float)0.375)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+1)) + expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+2))));
+
+    return e;
+}
+
 int main(int argc, char* argv[])
 {
     // Declare the function name
@@ -38,54 +60,45 @@ int main(int argc, char* argv[])
     computation pyramid1("pyramid1", {p0, j1, i1},  im1(j1, i1));
 
     // Level 1
-    computation pyramid1_l1x("pyramid1_l1x", {p1, j2, i2},  cast(p_uint8, (expr((float) 0.0625)*cast(p_float32, pyramid1(p1-1, 2*j2-2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2-1, 2*i2)) + expr((float)0.375)*cast(p_float32,pyramid1(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1(p1-1, 2*j2+1, 2*i2)) + expr((float)0.0625)*cast(p_float32,pyramid1(p1-1, 2*j2+2, 2*i2)))));
-    computation pyramid1_l1y("pyramid1_l1y", {p1, j2, i2},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2-1)) + expr((float)0.375)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+1)) + expr((float)0.0625)*cast(p_float32,pyramid1_l1x(p1-1, 2*j2, 2*i2+2)))));
+    computation pyramid1_l1x("pyramid1_l1x", {p1, j2, i2},  gauss_x(pyramid1,     p1, j2, i2));
+    computation pyramid1_l1y("pyramid1_l1y", {p1, j2, i2},  gauss_y(pyramid1_l1x, p1, j2, i2));
 
     // Level 2
-    computation pyramid1_l2x("pyramid1_l2x", {p2, j3, i3},  cast(p_uint8, (expr((float) 0.0625)*cast(p_float32,pyramid1_l1y(p2-1, 2*j3-2, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid1_l1y(p2-1, 2*j3-1, 2*i3)) + expr((float)0.375)*cast(p_float32,pyramid1_l1y(p2-1, 2*j3, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid1_l1y(p2-1, 2*j3+1, 2*i3)) + expr((float)0.0625)*cast(p_float32,pyramid1_l1y(p2-1, 2*j3+2, 2*i3)))));
-    computation pyramid1_l2y("pyramid1_l2y", {p2, j3, i3},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid1_l2x(p2-1, 2*j3, 2*i3-2)) + expr((float)0.25)*cast(p_float32,pyramid1_l2x(p2-1, 2*j3, 2*i3-1)) + expr((float)0.375)*cast(p_float32,pyramid1_l2x(p2-1, 2*j3, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid1_l2x(p2-1, 2*j3, 2*i3+1)) + expr((float)0.0625)*cast(p_float32,pyramid1_l2x(p2-1, 2*j3, 2*i3+2)))));
+    computation pyramid1_l2x("pyramid1_l2x", {p2, j3, i3}, gauss_x(pyramid1_l1y, p2, j3, i3));
+    computation pyramid1_l2y("pyramid1_l2y", {p2, j3, i3}, gauss_y(pyramid1_l2x, p2, j3, i3));
 
     // Level 0 (original image)
     computation pyramid2("pyramid2", {p0, j1, i1}, im2(j1, i1));
 
     // Level 1
-    computation pyramid2_l1x("pyramid2_l1x", {p1, j2, i2},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid2(p1-1, 2*j2-2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid2(p1-1, 2*j2-1, 2*i2)) + expr((float)0.375)*cast(p_float32,pyramid2(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid2(p1-1, 2*j2+1, 2*i2)) + expr((float)0.0625)*cast(p_float32,pyramid2(p1-1, 2*j2+2, 2*i2)))));
-    computation pyramid2_l1y("pyramid2_l1y", {p1, j2, i2},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid2_l1x(p1-1, 2*j2, 2*i2-2)) + expr((float)0.25)*cast(p_float32,pyramid2_l1x(p1-1, 2*j2, 2*i2-1)) + expr((float)0.375)*cast(p_float32,pyramid2_l1x(p1-1, 2*j2, 2*i2)) + expr((float)0.25)*cast(p_float32,pyramid2_l1x(p1-1, 2*j2, 2*i2+1)) + expr((float)0.0625)*cast(p_float32,pyramid2_l1x(p1-1, 2*j2, 2*i2+2)))));
+    computation pyramid2_l1x("pyramid2_l1x", {p1, j2, i2},  gauss_x(pyramid2,     p1, j2, i2));
+    computation pyramid2_l1y("pyramid2_l1y", {p1, j2, i2},  gauss_y(pyramid2_l1x, p1, j2, i2));
 
     // Level 2
-    computation pyramid2_l2x("pyramid2_l2x", {p1, j3, i3},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid2_l1x(p1-1, 2*j3-2, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid2_l1x(p1-1, 2*j3-1, 2*i3)) + expr((float)0.375)*cast(p_float32,pyramid2_l1x(p1-1, 2*j3, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid2_l1x(p1-1, 2*j3+1, 2*i3)) + expr((float)0.0625)*cast(p_float32,pyramid2_l1x(p1-1, 2*j3+2, 2*i3)))));
-    computation pyramid2_l2y("pyramid2_l2y", {p1, j3, i3},  cast(p_uint8, (expr((float)0.0625)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3-2)) + expr((float)0.25)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3-1)) + expr((float)0.375)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3)) + expr((float)0.25)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3+1)) + expr((float)0.0625)*cast(p_float32,pyramid2_l1y(p1-1, 2*j3, 2*i3+2)))));
+    computation pyramid2_l2x("pyramid2_l2x", {p2, j3, i3},  gauss_x(pyramid2_l1y, p2, j3, i3));
+    computation pyramid2_l2y("pyramid2_l2y", {p2, j3, i3},  gauss_y(pyramid2_l2x, p2, j3, i3));
 
 
     var p("p", 0, npyramids), r("r", 0, niterations);
-
+    std::vector<int> w1 = {1, -1,  1, -1};
+    std::vector<int> w2 = {1,  1, -1, -1};
+    std::vector<int> w3 = {1,  1,  1,  1};
+    std::vector<int> w4 = {-1,-1, -1, -1};
 
     // First convolution (partial on x)
-    expr e1 = cast(p_float32, (cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
-			       cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1))))/expr((float)4);
-    expr e2 = cast(p_float32, (cast(p_int32, im2(y,     x)) - cast(p_int32, im2(y,     x + 1)) +
-	 		       cast(p_int32, im2(y + 1, x)) - cast(p_int32, im2(y + 1, x + 1))))/expr((float)4);
-    computation Ix_m("Ix_m", {y, x}, e1 + e2);
+    computation Ix_m("Ix_m", {y, x}, conv2(im1, y, x, w1) + conv2(im2, y, x, w1));
 
     // Second convolution  (partial on y)
-    expr e3 = cast(p_float32, (cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-	 		     - cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1))))/expr((float) 4);
-    expr e4 = cast(p_float32, (cast(p_int32, im2(y,     x)) + cast(p_int32, im2(y,     x + 1))
-			     - cast(p_int32, im2(y + 1, x)) - cast(p_int32, im2(y + 1, x + 1))))/expr((float) 4);
-    computation Iy_m("Iy_m", {y, x}, e3 + e4);
+    computation Iy_m("Iy_m", {y, x}, conv2(im1, y, x, w2) + conv2(im2, y, x, w2));
 
     // Third convolution
-    expr e5 = cast(p_float32, (cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-			    + cast(p_int32, im1(y + 1, x)) + cast(p_int32, im1(y + 1, x + 1))))/expr((float) 4);
-    expr e6 = cast(p_float32, ((- cast(p_int32, im2(y,     x))) - cast(p_int32, im2(y,     x + 1))
-			        - cast(p_int32, im2(y + 1, x))  - cast(p_int32, im2(y + 1, x + 1))))/expr((float) 4);
-    computation It_m("It_m", {y, x}, e5 + e6);
+    computation It_m("It_m", {y, x}, conv2(im1, y, x, w3) + conv2(im2, y, x, w4));
 
 
     // Second part of the algorithm
     // Compute "u" and "v" for each corner "k"
-    computation i("i", {k}, C2(k));
-    computation j("j", {k}, C1(k));
+    var i("i", w, N0-w), j("j", w, N1-w);
+
 
     // Ix = Ix_m(i-w:i+w, j-w:j+w);
     // Iy = Iy_m(i-w:i+w, j-w:j+w);
@@ -96,15 +109,15 @@ int main(int argc, char* argv[])
     // b = -It(:);
     var xp("xp", 0, 2*w);
     var yp("yp", 0, 2*w);
-    computation        A1("A1",        {k, yp, xp},   Ix_m(i(0)+yp-w, j(0)+xp-w));
-    computation  A1_right("A1_right",  {k, yp, xp},   Iy_m(i(0)+yp-w, j(0)+xp-w));
-    computation        b1("b1",        {k, yp, xp}, (-It_m(i(0)+yp-w, j(0)+xp-w)));
+    computation        A1("A1",        {p, r, i, j, yp, xp},   Ix_m(i+yp-w, j+xp-w));
+    computation  A1_right("A1_right",  {p, r, i, j, yp, xp},   Iy_m(i+yp-w, j+xp-w));
+    computation        b1("b1",        {p, r, i, j, yp, xp}, (-It_m(i+yp-w, j+xp-w)));
 
     // Reshape A1 to A
     var x1("x1", 0, 2);
     var y1("y1", 0, 4*w*w);
-    input        A("A",        {k, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
-    input        b("b",        {k, y1}, p_float32);     // Use b to reshape b1
+    input        A("A",        {p, r, i, j, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
+    input        b("b",        {p, r, i, j, y1}, p_float32);     // Use b to reshape b1
 
     // Compute pinv(A):
     // 1)    tA = transpose(A)
@@ -113,35 +126,34 @@ int main(int argc, char* argv[])
     // 4)    pinv(A) = X * tA
  
     // 1) Computing tA = transpose(A)
-    computation tA("tA", {k, x1, y1}, A(k, y1, x1));
+    computation tA("tA", {p, r, i, j, x1, y1}, A(p, r, i, j, y1, x1));
 
     // 2) Computing tAA = tA * A
     var y2("y2", 0, 2);
     var l1("l1", 0, 4*w*w);
-    computation tAA("tAA", {k, x1, y2}, expr((float) 0));
-    computation tAA_update("tAA_update", {k, x1, y2, l1}, tAA(k, x1, y2) + (tA(k, x1, l1) * A(k, l1, y2)));
+    computation tAA("tAA", {p, r, i, j, x1, y2}, expr((float) 0));
+    computation tAA_update("tAA_update", {p, r, i, j, x1, y2, l1}, tAA(p, r, i, j, x1, y2) + (tA(p, r, i, j, x1, l1) * A(p, r, i, j, l1, y2)));
 
     // 3) Computing X = inv(tAA)
-    computation determinant("determinant", {k}, tAA(k,0,0)*tAA(k,1,1) - tAA(k,0,1)*tAA(k,1,0));
-    computation tAAp_00("tAAp_00", {k},  tAA(k,1,1)/determinant(k));
-    computation tAAp_11("tAAp_11", {k},  tAA(k,0,0)/determinant(k));
-    computation tAAp_01("tAAp_01", {k}, -tAA(k,0,1)/determinant(k));
-    computation tAAp_10("tAAp_10", {k}, -tAA(k,1,0)/determinant(k));
-    input X("X", {k, x1, y2}, p_float32);
+    computation determinant("determinant", {p, r, i, j}, tAA(p,r,i,j,0,0)*tAA(p,r,i,j,1,1) - tAA(p,r,i,j,0,1)*tAA(p,r,i,j,1,0));
+    computation tAAp_00("tAAp_00", {p,r,i,j},  tAA(p,r,i,j,1,1)/determinant(p,r,i,j));
+    computation tAAp_11("tAAp_11", {p,r,i,j},  tAA(p,r,i,j,0,0)/determinant(p,r,i,j));
+    computation tAAp_01("tAAp_01", {p,r,i,j}, -tAA(p,r,i,j,0,1)/determinant(p,r,i,j));
+    computation tAAp_10("tAAp_10", {p,r,i,j}, -tAA(p,r,i,j,1,0)/determinant(p,r,i,j));
+    input X("X", {p,r,i,j, x1, y2}, p_float32);
 
     // 4) Computing pinv(A) = X*tA
     var l2("l2", 0, 2);
-    computation    pinvA("pinvA", {k, x1, y1}, expr((float) 0));
-    computation    pinvA_update("pinvA_update", {k, x1, y1, l2}, pinvA(k, x1, y1) + X(k, x1, l2)*tA(k, l2, y1));
+    computation    pinvA("pinvA", {p,r,i,j, x1, y1}, expr((float) 0));
+    computation    pinvA_update("pinvA_update", {p,r,i,j, x1, y1, l2}, pinvA(p,r,i,j, x1, y1) + X(p,r,i,j, x1, l2)*tA(p,r,i,j, l2, y1));
 
     // Compute nu = pinv(A)*b
-    computation nu("nu", {k, x1}, expr((float) 0));
-    computation nu_update("nu_update", {k, x1, y1}, nu(k, x1) + pinvA(k, x1, y1)*b(k, y1));
+    computation nu("nu", {p,r,i,j, x1}, expr((float) 0));
+    computation nu_update("nu_update", {p,r,i,j, x1, y1}, nu(p,r,i,j, x1) + pinvA(p,r,i,j, x1, y1)*b(p,r,i,j, y1));
 
     // Results
-    computation u("u", {k}, nu(k, 0));
-    computation v("v", {k}, nu(k, 1));
-
+    computation u("u", {p,r,i,j}, nu(p,r,i,j, 0));
+    computation v("v", {p,r,i,j}, nu(p,r,i,j, 1));
 
     // Schedule
     pyramid1.then(pyramid1_l1x, computation::root)
@@ -156,32 +168,30 @@ int main(int argc, char* argv[])
 	.then(Ix_m, computation::root)
 	.then(Iy_m, x)
 	.then(It_m, x)
-	.then(i, computation::root)
-	.then(j, k)
-	.then(A1, k)
+	.then(A1, computation::root)
 	.then(A1_right, xp)
 	.then(b1, xp)
-	.then(tA, k)
-	.then(tAA, k)
+	.then(tA, j)
+	.then(tAA, j)
 	.then(tAA_update, y2)
-	.then(determinant, k)
-	.then(tAAp_00, k)
-	.then(tAAp_11, k)
-	.then(tAAp_01, k)
-	.then(tAAp_10, k)
-	.then(X, k)
-	.then(pinvA, k)
+	.then(determinant, j)
+	.then(tAAp_00, j)
+	.then(tAAp_11, j)
+	.then(tAAp_01, j)
+	.then(tAAp_10, j)
+	.then(X, j)
+	.then(pinvA, j)
 	.then(pinvA_update, y1)
-	.then(nu, k)
+	.then(nu, j)
 	.then(nu_update, x1)
-	.then(u, k)
-	.then(v, k);
+	.then(u, j)
+	.then(v, j);
 
 #if 0
     int VEC = 32;
 
     Ix_m.parallelize(y);
-    A1.parallelize(k);
+    A1.parallelize(j);
     Ix_m.vectorize(x, VEC);
     Iy_m.vectorize(x, VEC);
     It_m.vectorize(x, VEC);
@@ -204,8 +214,6 @@ int main(int argc, char* argv[])
     buffer b_It_m("b_It_m", {N0, N1}, p_float32, a_output);
     buffer b_C1("b_C1", {NC}, p_int32, a_input);
     buffer b_C2("b_C2", {NC}, p_int32, a_input);
-    buffer b_i("b_i", {1}, p_int32, a_temporary);
-    buffer b_j("b_j", {1}, p_int32, a_temporary);
     buffer b_A("b_A", {4*w*w, 2}, p_float32, a_output);
     buffer b_b("b_b", {4*w*w}, p_float32, a_temporary);
     buffer b_tA("b_tA", {2, 4*w*w}, p_float32, a_output);
@@ -235,8 +243,6 @@ int main(int argc, char* argv[])
     It_m.store_in(&b_It_m);
     C1.store_in(&b_C1);
     C2.store_in(&b_C2);
-    i.store_in(&b_i, {0});
-    j.store_in(&b_j, {0});
     A1.store_in(&b_A, {xp+yp*2*w, 0});
     A1_right.store_in(&b_A, {xp+yp*2*w, 1});
     b1.store_in(&b_b, {xp+yp*2*w});
@@ -255,8 +261,8 @@ int main(int argc, char* argv[])
     pinvA_update.store_in(&b_pinvA, {x1, y1});
     nu.store_in(&b_nu, {x1});
     nu_update.store_in(&b_nu, {x1});
-    u.store_in(&b_u, {k});
-    v.store_in(&b_v, {k});
+    u.store_in(&b_u, {j});
+    v.store_in(&b_v, {j});
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2}, "build/generated_fct_py_optical_flow.o");
 
