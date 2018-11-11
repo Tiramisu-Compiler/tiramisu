@@ -216,9 +216,9 @@ int main(int argc, char* argv[])
     buffer b_im2("b_im2", {N0, N1}, p_uint8, a_input);
     buffer b_pyramid1("b_pyramid1", {npyramids, N0, N1}, p_uint8, a_output);
     buffer b_pyramid2("b_pyramid2", {npyramids, N0, N1}, p_uint8, a_output);
-    buffer b_Ix_m("b_Ix_m", {N0, N1}, p_float32, a_output);
-    buffer b_Iy_m("b_Iy_m", {N0, N1}, p_float32, a_output);
-    buffer b_It_m("b_It_m", {N0, N1}, p_float32, a_output);
+    buffer b_Ix_m("b_Ix_m", {npyramids, N0, N1}, p_float32, a_output);
+    buffer b_Iy_m("b_Iy_m", {npyramids, N0, N1}, p_float32, a_output);
+    buffer b_It_m("b_It_m", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_C1("b_C1", {NC}, p_int32, a_input);
     buffer b_C2("b_C2", {NC}, p_int32, a_input);
     buffer b_A("b_A", {4*w*w, 2}, p_float32, a_output);
