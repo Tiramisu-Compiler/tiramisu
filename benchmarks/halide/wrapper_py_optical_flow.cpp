@@ -98,19 +98,30 @@ int main(int, char**)
     std::cout << "Time: " << median(duration_vector_1) << std::endl;
 
 #if SYNTHETIC_INPUT
-    std::cout << "Im1 and Im2." << std::endl;
+    std::cout << "Im1." << std::endl;
     print_buffer(im1);
+    std::cout << "Im2." << std::endl;
     print_buffer(im2);
 
-    std::cout << "Ix_m, Iy_m and It_m." << std::endl;
+    std::cout << "pyramids1" << std::endl;
+    print_buffer(pyramids1);
+    std::cout << "pyramids2" << std::endl;
+    print_buffer(pyramids2);
+
+    std::cout << "Ix_m." << std::endl;
     print_buffer(Ix_m);
+    std::cout << "Iy_m." << std::endl;
     print_buffer(Iy_m);
+    std::cout << "It_m." << std::endl;
     print_buffer(It_m);
 
-    std::cout << "A, tA, tAA, det." << std::endl;
+    std::cout << "A." << std::endl;
     print_buffer(A);
+    std::cout << "tA." << std::endl;
     print_buffer(tA);
+    std::cout << "tAA." << std::endl;
     print_buffer(tAA);
+    std::cout << "det." << std::endl;
     print_buffer(det);
 
     std::cout << "X" << std::endl;
@@ -118,15 +129,9 @@ int main(int, char**)
 
     std::cout << "pinvA" << std::endl;
     print_buffer(pinvA);
-
-    std::cout << "pyramids1" << std::endl;
-    print_buffer(pyramids1);
-    std::cout << "pyramids2" << std::endl;
-    print_buffer(pyramids2);
 #endif
 
     std::cout << "Output" << std::endl;
-
     print_buffer(u);
     print_buffer(v);
 
