@@ -32,11 +32,9 @@ int main(int, char**)
     Halide::Buffer<float> Ix_m(im1.width(), im1.height(), npyramids);
     Halide::Buffer<float> Iy_m(im1.width(), im1.height(), npyramids);
     Halide::Buffer<float> It_m(im1.width(), im1.height(), npyramids);
-    Halide::Buffer<int> C1(_NC);
-    Halide::Buffer<int> C2(_NC);
     Halide::Buffer<int> SIZES(2);
-    Halide::Buffer<int> u(_NC);
-    Halide::Buffer<int> v(_NC);
+    Halide::Buffer<int> u(im1.width(), im1.height());
+    Halide::Buffer<int> v(im1.width(), im1.height());
     Halide::Buffer<float> A(2, 4*w*w);
     Halide::Buffer<float> tA(4*w*w, 2);
     Halide::Buffer<double> pinvA(4*w*w, 2);
@@ -48,19 +46,6 @@ int main(int, char**)
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
-#ifdef SYNTHETIC_INPUT
-    C1(0) = 4; C2(0) = 5;
-    C1(1) = 6; C2(1) = 6;
-#else
-    C1(0) = 500; C2(0) = 400;
-    C1(1) = 800; C2(1) = 900;
-    C1(2) = 200; C2(2) = 400;
-    C1(3) = 400; C2(3) = 200;
-    C1(4) = 400; C2(4) = 500;
-    C1(5) = 800; C2(5) = 200;
-    C1(6) = 200; C2(6) = 900;
-    C1(7) = 900; C2(7) = 200;
-#endif
 
     det(0) = 0;
     init_buffer(Ix_m, (float) 0);
@@ -77,7 +62,7 @@ int main(int, char**)
     // Warm up
     py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
-			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(),
+			  u.raw_buffer(), v.raw_buffer(),
 			  A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(),
 			  tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer());
 
@@ -87,7 +72,7 @@ int main(int, char**)
         auto start1 = std::chrono::high_resolution_clock::now();
         py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
-			  C1.raw_buffer(), C2.raw_buffer(), u.raw_buffer(), v.raw_buffer(),
+			  u.raw_buffer(), v.raw_buffer(),
 			  A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(),
 			  tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();

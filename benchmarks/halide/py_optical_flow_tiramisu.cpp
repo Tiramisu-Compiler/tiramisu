@@ -46,18 +46,13 @@ int main(int argc, char* argv[])
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
-    constant NC("NC", _NC); // Number of corners
 
     // Loop iterators
-    var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
+    var x("x", 0, N1-1), y("y", 0, N0-1);
 
     // input images
     input im1("im1", {y, x}, p_uint8);
     input im2("im2", {y, x}, p_uint8);
-
-    // Corners
-    input C1("C1", {k}, p_int32);
-    input C2("C2", {k}, p_int32);
 
     var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, 2), p2("p2", 2, 3);
     var i2("i2", 2, (N1/2)-2), j2("j2", 2, (N0/2)-2);
@@ -102,6 +97,9 @@ int main(int argc, char* argv[])
     // Third convolution
     computation It_m("It_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w3) + conv2(pyramid2_l2y, p, y, x, w4));
 
+    // Initializ u and v (outputs)
+    computation u("u", {y, x}, expr((float) 0));
+    computation v("v", {y, x}, expr((float) 0));
 
     // Second part of the algorithm
     // Compute "u" and "v" for each pixel "i, j"
@@ -159,8 +157,8 @@ int main(int argc, char* argv[])
     computation nu_update("nu_update", {p,r,i,j, x1, y1}, nu(p,r,i,j, x1) + pinvA(p,r,i,j, x1, y1)*b(p,r,i,j, y1));
 
     // Results
-    computation u("u", {p,r,i,j}, nu(p,r,i,j, 0));
-    computation v("v", {p,r,i,j}, nu(p,r,i,j, 1));
+    computation u_update("u_update", {p,r,i,j}, u(i,j) + nu(p,r,i,j, 0));
+    computation v_update("v_update", {p,r,i,j}, v(i,j) + nu(p,r,i,j, 1));
 
     // Schedule
     pyramid1.then(pyramid1_l1x, computation::root)
@@ -172,6 +170,8 @@ int main(int argc, char* argv[])
 	.then(pyramid2_l1y, computation::root)
 	.then(pyramid2_l2x, computation::root)
 	.then(pyramid2_l2y, computation::root)
+	.then(u, computation::root)
+	.then(v, x)
 	.then(Ix_m, computation::root)
 	.then(Iy_m, x)
 	.then(It_m, x)
@@ -191,8 +191,8 @@ int main(int argc, char* argv[])
 	.then(pinvA_update, y1)
 	.then(nu, j)
 	.then(nu_update, x1)
-	.then(u, j)
-	.then(v, j);
+	.then(u_update, j)
+	.then(v_update, j);
 
 #if 0
     int VEC = 32;
@@ -219,8 +219,6 @@ int main(int argc, char* argv[])
     buffer b_Ix_m("b_Ix_m", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_Iy_m("b_Iy_m", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_It_m("b_It_m", {npyramids, N0, N1}, p_float32, a_output);
-    buffer b_C1("b_C1", {NC}, p_int32, a_input);
-    buffer b_C2("b_C2", {NC}, p_int32, a_input);
     buffer b_A("b_A", {4*w*w, 2}, p_float32, a_output);
     buffer b_b("b_b", {4*w*w}, p_float32, a_temporary);
     buffer b_tA("b_tA", {2, 4*w*w}, p_float32, a_output);
@@ -229,8 +227,8 @@ int main(int argc, char* argv[])
     buffer b_X("b_X", {2, 2}, p_float32, a_output);
     buffer b_pinvA("b_pinvA", {2, 4*w*w}, p_float32, a_output);
     buffer b_nu("b_nu", {2}, p_float32, a_temporary);
-    buffer b_u("b_u", {NC}, p_float32, a_output);
-    buffer b_v("b_v", {NC}, p_float32, a_output);
+    buffer b_u("b_u", {N0, N1}, p_float32, a_output);
+    buffer b_v("b_v", {N0, N1}, p_float32, a_output);
 
     SIZES.store_in(&b_SIZES);
     im1.store_in(&b_im1);
@@ -248,8 +246,6 @@ int main(int argc, char* argv[])
     Ix_m.store_in(&b_Ix_m);
     Iy_m.store_in(&b_Iy_m);
     It_m.store_in(&b_It_m);
-    C1.store_in(&b_C1);
-    C2.store_in(&b_C2);
     A1.store_in(&b_A, {xp+yp*2*w, 0});
     A1_right.store_in(&b_A, {xp+yp*2*w, 1});
     b1.store_in(&b_b, {xp+yp*2*w});
@@ -268,10 +264,12 @@ int main(int argc, char* argv[])
     pinvA_update.store_in(&b_pinvA, {x1, y1});
     nu.store_in(&b_nu, {x1});
     nu_update.store_in(&b_nu, {x1});
-    u.store_in(&b_u, {j});
-    v.store_in(&b_v, {j});
+    u.store_in(&b_u);
+    v.store_in(&b_v);
+    u_update.store_in(&b_u, {i, j});
+    v_update.store_in(&b_v, {i, j});
 
-    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2}, "build/generated_fct_py_optical_flow.o");
+    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2}, "build/generated_fct_py_optical_flow.o");
 
     return 0;
 }
