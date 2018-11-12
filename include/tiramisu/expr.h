@@ -291,11 +291,12 @@ public:
     {
         if (expr0.get_data_type() != expr1.get_data_type())
 	{
-	    tiramisu::str_dump("Binary operation between the following two expressions. ");
+	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
 	    expr0.dump(false);
 	    tiramisu::str_dump(" and ");
 	    expr1.dump(false);
-            ERROR(". Expr0 and expr1 should be of the same type. Dumping expr0 and expr1.", true);
+	    tiramisu::str_dump("\n");
+            ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
 	}
 
         this->_operator = o;
