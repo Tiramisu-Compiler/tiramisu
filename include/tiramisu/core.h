@@ -3946,11 +3946,47 @@ public:
 
 };
 
-
 class input: public computation
 {
 
 public:
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * Declare an input.
+      *
+      * \p name is the name of the input.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the input.  It is used to define the size of the input.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
+      *
+      * Example:
+      *
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type uint8.  We can first declare two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following input
+      *
+      * \code
+      * input A("A", {i,j}, p_uint8);
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to actually declare
+      * the buffer and map this input to that buffer.
+      *
+      * An example is provided in tutorial 02.
+      *
+     */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
 	    computation(name, iterator_variables, expr(), false)
     {
@@ -3958,6 +3994,9 @@ public:
         this->expression.dtype = t;
     }
 
+    /**
+      * \overload
+      */
     input(std::vector<var> iterator_variables, primitive_t t):
 	    input(generate_new_computation_name(), iterator_variables, t)
     {
@@ -3965,10 +4004,44 @@ public:
 
 };
 
-class view:public input{
+class view:public computation{
+
 public:
-    view(std::string name, std::vector<var> iterator_variables, primitive_t t):
-    input(name,iterator_variables,t){}
+    /**
+      * \brief Constructor for a view.
+      *
+      * \details
+      *
+      * Declare a view.
+      *
+      * \p name is the name of the view.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the view.  It is used to define the size of the view.
+      *
+      * Example:
+      *
+      * If we want to access a buffer buf where results of a computation C are stored
+      * we declare a view V and we map it to the buffer buf.
+      *
+      * We declare the iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following view
+      *
+      * \code
+      * view V("V", {i,j});
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to map the view to that buffer.
+      * V.store_in(&buf);
+      *
+     */
+    view(std::string name, std::vector<var> iterator_variables):
+    computation(name,iterator_variables,expr(),false){}
 };
 
 
