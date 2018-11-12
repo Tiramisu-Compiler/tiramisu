@@ -102,17 +102,10 @@ int main(int argc, char* argv[])
     // Third convolution
     computation It_m("It_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w3) + conv2(pyramid2_l2y, p, y, x, w4));
 
-    // Second part of the algorithm
+    // Perform a Lukas-Kanade step.
     // Compute "u" and "v" for each pixel "i, j"
     var i("i", w, N0-w), j("j", w, N1-w);
 
-    // Ix = Ix_m(i-w:i+w, j-w:j+w);
-    // Iy = Iy_m(i-w:i+w, j-w:j+w);
-    // It = It_m(i-w:i+w, j-w:j+w);
-    // Ix = Ix(:); % flatten the IX 2D array into a vector
-    // Iy = Iy(:);
-    // A = [Ix Iy];
-    // b = -It(:);
     var xp("xp", 0, 2*w);
     var yp("yp", 0, 2*w);
     computation        A1("A1",        {p, r, i, j, yp, xp},   Ix_m(p, i+yp-w, j+xp-w));
