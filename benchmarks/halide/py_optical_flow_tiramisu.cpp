@@ -6,10 +6,12 @@
 
 using namespace tiramisu;
 
-expr conv2(computation im1, var p, var y, var x, std::vector<int> weights)
+expr conv2(computation& im1, var p, var y, var x, std::vector<float> weights)
 {
-    expr e = cast(p_float32, (cast(p_int32, weights[0]*im1(p, y,     x)) - weights[1]*cast(p_int32, im1(p, y,     x + 1)) +
-	  		      cast(p_int32, weights[2]*im1(p, y + 1, x)) - weights[3]*cast(p_int32, im1(p, y + 1, x + 1))))/expr((float)4);
+    expr e = cast(p_float32, (cast(p_int32, expr((float) weights[0])*cast(p_float32, im1(npyramids - p - 1, y,     x))) +
+			      cast(p_int32, expr((float) weights[1])*cast(p_float32, im1(npyramids - p - 1, y,     x + 1))) +
+	  		      cast(p_int32, expr((float) weights[2])*cast(p_float32, im1(npyramids - p - 1, y + 1, x))) +
+			      cast(p_int32, expr((float) weights[3])*cast(p_float32, im1(npyramids - p - 1, y + 1, x + 1)))));
 
     return e;
 }
@@ -81,12 +83,15 @@ int main(int argc, char* argv[])
     computation pyramid2_l2x("pyramid2_l2x", {p2, j3, i3},  gauss_x(pyramid2_l1y, p2, j3, i3));
     computation pyramid2_l2y("pyramid2_l2y", {p2, j3, i3},  gauss_y(pyramid2_l2x, p2, j3, i3));
 
+    // Initializ u and v (outputs)
+    computation u("u", {y, x}, expr((float) 0));
+    computation v("v", {y, x}, expr((float) 0));
 
     var p("p", 0, npyramids), r("r", 0, niterations);
-    std::vector<int> w1 = {1, -1,  1, -1};
-    std::vector<int> w2 = {1,  1, -1, -1};
-    std::vector<int> w3 = {1,  1,  1,  1};
-    std::vector<int> w4 = {-1,-1, -1, -1};
+    std::vector<float> w1 = {0.25, -0.25,  0.25, -0.25};
+    std::vector<float> w2 = {0.25,  0.25, -0.25, -0.25};
+    std::vector<float> w3 = {0.25,  0.25,  0.25,  0.25};
+    std::vector<float> w4 = {-0.25,-0.25, -0.25, -0.25};
 
     // First convolution (partial on x)
     computation Ix_m("Ix_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w1) + conv2(pyramid2_l2y, p, y, x, w1));
@@ -96,10 +101,6 @@ int main(int argc, char* argv[])
 
     // Third convolution
     computation It_m("It_m", {p, y, x}, conv2(pyramid1_l2y, p, y, x, w3) + conv2(pyramid2_l2y, p, y, x, w4));
-
-    // Initializ u and v (outputs)
-    computation u("u", {y, x}, expr((float) 0));
-    computation v("v", {y, x}, expr((float) 0));
 
     // Second part of the algorithm
     // Compute "u" and "v" for each pixel "i, j"
@@ -157,8 +158,8 @@ int main(int argc, char* argv[])
     computation nu_update("nu_update", {p,r,i,j, x1, y1}, nu(p,r,i,j, x1) + pinvA(p,r,i,j, x1, y1)*b(p,r,i,j, y1));
 
     // Results
-    computation u_update("u_update", {p,r,i,j}, u(i,j) + nu(p,r,i,j, 0));
-    computation v_update("v_update", {p,r,i,j}, v(i,j) + nu(p,r,i,j, 1));
+    computation u_update("u_update", {p,r,i,j}, floor(u(i,j)) + nu(p,r,i,j, 0));
+    computation v_update("v_update", {p,r,i,j}, floor(v(i,j)) + nu(p,r,i,j, 1));
 
     // Schedule
     pyramid1.then(pyramid1_l1x, computation::root)
@@ -226,7 +227,7 @@ int main(int argc, char* argv[])
     buffer b_determinant("b_determinant", {1}, p_float32, a_output);
     buffer b_X("b_X", {2, 2}, p_float32, a_output);
     buffer b_pinvA("b_pinvA", {2, 4*w*w}, p_float32, a_output);
-    buffer b_nu("b_nu", {2}, p_float32, a_temporary);
+    buffer b_nu("b_nu", {2}, p_float32, a_output);
     buffer b_u("b_u", {N0, N1}, p_float32, a_output);
     buffer b_v("b_v", {N0, N1}, p_float32, a_output);
 
@@ -269,7 +270,7 @@ int main(int argc, char* argv[])
     u_update.store_in(&b_u, {i, j});
     v_update.store_in(&b_v, {i, j});
 
-    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2}, "build/generated_fct_py_optical_flow.o");
+    tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2, &b_nu}, "build/generated_fct_py_optical_flow.o");
 
     return 0;
 }
