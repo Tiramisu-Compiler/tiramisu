@@ -63,6 +63,7 @@ int main(int, char**)
     init_buffer(v, (float) 0);
     init_buffer(nu, (float) 0);
 
+
     // Warm up
     py_optical_flow_tiramisu(SIZES.raw_buffer(), im1.raw_buffer(), im2.raw_buffer(),
 			  Ix_m.raw_buffer(), Iy_m.raw_buffer(), It_m.raw_buffer(),
