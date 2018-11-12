@@ -3981,8 +3981,10 @@ public:
       * input A("A", {i,j}, p_uint8);
       * \endcode
       *
+      * \code 
       * Later in the code (in Layer III), we need to actually declare
       * the buffer and map this input to that buffer.
+      * \endcode
       *
       * An example is provided in tutorial 02.
       *
