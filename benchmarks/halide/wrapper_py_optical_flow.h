@@ -28,7 +28,10 @@ extern "C" {
 
 int py_optical_flow_tiramisu(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
 			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
-			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *i, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *);
+			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
+			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
+			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *,
+			  halide_buffer_t *, halide_buffer_t *, halide_buffer_t *);
 
 #ifdef __cplusplus
 }  // extern "C"

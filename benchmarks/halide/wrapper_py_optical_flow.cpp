@@ -44,6 +44,8 @@ int main(int, char**)
     Halide::Buffer<uint8_t> pyramids1(im1.width(), im1.height(), npyramids);
     Halide::Buffer<uint8_t> pyramids2(im1.width(), im1.height(), npyramids);
     Halide::Buffer<float> nu(2);
+    Halide::Buffer<float> b(4*w*w);
+
 
     SIZES(0) = im1.height();
     SIZES(1) = im1.width();
@@ -62,6 +64,7 @@ int main(int, char**)
     init_buffer(u, (float) 0);
     init_buffer(v, (float) 0);
     init_buffer(nu, (float) 0);
+    init_buffer(b, (float) 0);
 
 
     // Warm up
@@ -70,7 +73,7 @@ int main(int, char**)
 			  u.raw_buffer(), v.raw_buffer(),
 			  A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(),
 			  tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer(),
-			  nu.raw_buffer());
+			  nu.raw_buffer(), b.raw_buffer());
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -81,7 +84,7 @@ int main(int, char**)
 			  u.raw_buffer(), v.raw_buffer(),
 			  A.raw_buffer(), pinvA.raw_buffer(), det.raw_buffer(), tAA.raw_buffer(),
 			  tA.raw_buffer(), X.raw_buffer(), pyramids1.raw_buffer(), pyramids2.raw_buffer(),
-			  nu.raw_buffer());
+			  nu.raw_buffer(), b.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -121,6 +124,9 @@ int main(int, char**)
 
     std::cout << "pinvA" << std::endl;
     print_buffer(pinvA);
+
+    std::cout << "b" << std::endl;
+    print_buffer(b);
 
     std::cout << "nu" << std::endl;
     print_buffer(nu);
