@@ -126,20 +126,5 @@ int main(int, char**)
     /*************************** Comparaison of the result of  Halide & Tiramisu******************************/
 
      compare_4D_buffers("comparing Tiramisu output with Halide output", vgg_tiramisu_buff, vgg_halide, 5);
-
-    /*************************Comparaison of the result of  Halide/Tiramisu and Pencil ***********************************/
-
-    
-   /* ifstream in("/home/dina/tiramisuOut/vgg_tiramisu_result.txt"); 
-    ifstream in2("/home/dina/tiramisuOut/vgg_halide_result.txt");
-        
-        while ((!in.eof()) && (!in2.eof())) { 
-            string line,line2;
-            getline(in,line); 
-            getline(in2,line2);
-            if(line!=line2){ printf("result of comparison:: error !!"); break;}
-        else {	if ((in.eof()) && (in2.eof()) ) printf("\n\n Result of comparison::correct\n\n"); }
-        }
-    in.close(); in2.close();  */
     return 0;
 }
