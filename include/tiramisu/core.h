@@ -4023,7 +4023,31 @@ public:
 	    input(generate_new_computation_name(), iterator_variables, t)
     {
     }
+};
 
+class Input: public input{
+
+public:
+    std::vector<var> iterators_from_size_expressions(std::vector<expr> sizes)
+    {
+	std::vector<var> iterator_variables;
+
+	for (int s = 0; s < sizes.size(); s++)
+	{
+	    var v(generate_new_computation_name(), 0, sizes[s]);
+	    iterator_variables.push_back(v);
+	}
+
+	return iterator_variables;
+    }
+
+    /**
+      * \overload
+      */
+    Input(std::string name, std::vector<expr> sizes, primitive_t t)
+	:input(name, iterators_from_size_expressions(sizes), t)
+    {
+    }
 };
 
 class view:public computation{
