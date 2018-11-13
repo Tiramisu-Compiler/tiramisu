@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     tiramisu::init("optical_flow_tiramisu");
 
     // Declare input sizes
-    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
+    Input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
@@ -30,12 +30,12 @@ int main(int argc, char* argv[])
     var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
 
     // input images
-    input im1("im1", {y, x}, p_uint8);
-    input im2("im2", {y, x}, p_uint8);
+    Input im1("im1", {N0-1, N1-1}, p_uint8);
+    Input im2("im2", {N0-1, N1-1}, p_uint8);
 
     // Corners 
-    input C1("C1", {k}, p_int32);
-    input C2("C2", {k}, p_int32);
+    Input C1("C1", {NC}, p_int32);
+    Input C2("C2", {NC}, p_int32);
 
     // First convolution (partial on x)
     std::vector<int> w1 = {1, -1,  1, -1};
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
     computation tAAp_11("tAAp_11", {k},  tAA(k,0,0)/determinant(k));
     computation tAAp_01("tAAp_01", {k}, -tAA(k,0,1)/determinant(k));
     computation tAAp_10("tAAp_10", {k}, -tAA(k,1,0)/determinant(k));
-    input X("X", {k, x1, y2}, p_float32);
+    view X("X", {k, x1, y2}, p_float32);
 
     // 4) Computing pinv(A) = X*tA
     var l2("l2", 0, 2);

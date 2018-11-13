@@ -8,13 +8,14 @@ int main(int argc, char* argv[])
 {
     tiramisu::init("warp_affine_tiramisu");
 
-    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
+    Input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
 
+    Input in("in", {N0, N1}, p_uint8);
+
     var x("x", 0, N1), y("y", 0, N0);
-    input in("in", {y, x}, p_uint8);
 
     expr a00 = expr((float) 0.1);
     expr a01 = expr((float) 0.1);

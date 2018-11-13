@@ -73,7 +73,8 @@ expr resize(computation& im1, var p1, var n_r, var n_c, expr o_h, expr o_w, expr
 
     expr e = cast(p_float32, mixf(mixf(A00, A10, r), mixf(A01, A11, r), c));
 
-    return e;
+    expr e2 = expr((float) 0);
+    return e2;
 }
 
 
@@ -83,17 +84,17 @@ int main(int argc, char* argv[])
     tiramisu::init("py_optical_flow_tiramisu");
 
     // Declare input sizes
-    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
+    Input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
 
+    // input images
+    Input im1("im1", {N0-1, N1-1}, p_uint8);
+    Input im2("im2", {N0-1, N1-1}, p_uint8);
+
     // Loop iterators
     var x("x", 0, N1-1), y("y", 0, N0-1);
-
-    // input images
-    input im1("im1", {y, x}, p_uint8);
-    input im2("im2", {y, x}, p_uint8);
 
     var i1("i1", 2, N1-2), j1("j1", 2, N0-2), p0("p0", 0, 1), p1("p1", 1, 2), p2("p2", 2, 3);
     var i2("i2", 2, (N1/2)-2), j2("j2", 2, (N0/2)-2);
@@ -122,14 +123,21 @@ int main(int argc, char* argv[])
     computation pyramid2_l2x("pyramid2_l2x", {p2, j3, i3},  gauss_x(pyramid2_l1y, p2, j3, i3));
     computation pyramid2_l2y("pyramid2_l2y", {p2, j3, i3},  gauss_y(pyramid2_l2x, p2, j3, i3));
 
+    var p("p", 0, npyramids), r("r", 0, niterations);
+
     // Initializ u and v (outputs)
     computation u("u", {p0, y, x}, expr((float) 0));
     computation v("v", {p0, y, x}, expr((float) 0));
 
-    computation u2("u", {p1, y, x}, resize(u, p1, y, x, N0, N1, N0, N1));
-    computation v2("v", {p1, y, x}, resize(u, p1, y, x, N0, N1, N0, N1));
+    // Compute the new size of u and v
+    computation nN0("nN0", {p0}, cast(p_int32, cast(p_float32, N0)/expr((float) std::pow(2, npyramids))));
+    computation nN1("nN0", {p0}, cast(p_int32, cast(p_float32, N1)/expr((float) std::pow(2, npyramids))));
+    computation nN0_update("nN0_update", {p1}, nN0(p1-1)*2);
+    computation nN1_update("nN0_update", {p1}, nN1(p1-1)*2);
 
-    var p("p", 0, npyramids), r("r", 0, niterations);
+    computation u2("u", {p1, y, x}, resize(u, p1, y, x, nN0(p1-1), nN1(p1-1), nN0(p1), nN1(p1)));
+    computation v2("v", {p1, y, x}, resize(u, p1, y, x, nN0(p1-1), nN1(p1-1), nN0(p1), nN1(p1)));
+
     std::vector<float> w1 = {0.25, -0.25,  0.25, -0.25};
     std::vector<float> w2 = {0.25,  0.25, -0.25, -0.25};
     std::vector<float> w3 = {0.25,  0.25,  0.25,  0.25};
@@ -157,8 +165,8 @@ int main(int argc, char* argv[])
     // Reshape A1 to A
     var x1("x1", 0, 2);
     var y1("y1", 0, 4*w*w);
-    input        A("A",        {p, r, i, j, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
-    input        b("b",        {p, r, i, j, y1}, p_float32);     // Use b to reshape b1
+    view        A("A",        {p, r, i, j, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
+    view        b("b",        {p, r, i, j, y1}, p_float32);     // Use b to reshape b1
 
     // Compute pinv(A):
     // 1)    tA = transpose(A)
@@ -181,7 +189,7 @@ int main(int argc, char* argv[])
     computation tAAp_11("tAAp_11", {p,r,i,j},  tAA(p,r,i,j,0,0)/determinant(p,r,i,j));
     computation tAAp_01("tAAp_01", {p,r,i,j}, -tAA(p,r,i,j,0,1)/determinant(p,r,i,j));
     computation tAAp_10("tAAp_10", {p,r,i,j}, -tAA(p,r,i,j,1,0)/determinant(p,r,i,j));
-    input X("X", {p,r,i,j, x1, y2}, p_float32);
+    view X("X", {p,r,i,j, x1, y2}, p_float32);
 
     // 4) Computing pinv(A) = X*tA
     var l2("l2", 0, 2);
@@ -206,9 +214,13 @@ int main(int argc, char* argv[])
 	.then(pyramid2_l1y, computation::root)
 	.then(pyramid2_l2x, computation::root)
 	.then(pyramid2_l2y, computation::root)
+	.then(nN0, computation::root)
+	.then(nN1, computation::root)
 	.then(u, computation::root)
 	.then(v, x)
-	.then(u2, x)
+	.then(nN0_update, p1)
+	.then(nN1_update, p1)
+	.then(u2, p1)
 	.then(v2, x)
 	.then(Ix_m, p)
 	.then(Iy_m, x)
@@ -255,6 +267,8 @@ int main(int argc, char* argv[])
     buffer b_im2("b_im2", {N0, N1}, p_uint8, a_input);
     buffer b_pyramid1("b_pyramid1", {npyramids, N0, N1}, p_uint8, a_output);
     buffer b_pyramid2("b_pyramid2", {npyramids, N0, N1}, p_uint8, a_output);
+    buffer b_nN0("b_nN0", {1}, p_int32, a_temporary);
+    buffer b_nN1("b_nN1", {1}, p_int32, a_temporary);
     buffer b_Ix_m("b_Ix_m", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_Iy_m("b_Iy_m", {npyramids, N0, N1}, p_float32, a_output);
     buffer b_It_m("b_It_m", {npyramids, N0, N1}, p_float32, a_output);
@@ -282,6 +296,10 @@ int main(int argc, char* argv[])
     pyramid2_l1y.store_in(&b_pyramid2);
     pyramid2_l2x.store_in(&b_pyramid2);
     pyramid2_l2y.store_in(&b_pyramid2);
+    nN0.store_in(&b_nN0);
+    nN1.store_in(&b_nN1);
+    nN0_update.store_in(&b_nN0);
+    nN1_update.store_in(&b_nN1);
     Ix_m.store_in(&b_Ix_m);
     Iy_m.store_in(&b_Iy_m);
     It_m.store_in(&b_It_m);
