@@ -383,9 +383,6 @@ string assignment_expression_generator_inputs(vector<computation_abstract *> inp
             case 2:
                 expr += " * " + inputs[i]->name + vars;
                 break;
-                // case 3:
-                //   expr += " / " + inputs[i]->name + vars + " + 1";
-                // break;
 
         }
     }
@@ -467,7 +464,6 @@ tiramisu_code::tiramisu_code(string function_name, vector<computation*> *computa
     this->default_type = *default_type;
     this->computations = *computations;
     this->variables = *variables;
-    //this->constants = *constants;
     this->inputs = *inputs;
     this->buffers = *buffers;
     this->indentation_level = 1;
@@ -492,11 +488,9 @@ void tiramisu_code::write_variables(){
     if (!variables.empty()){
         new_line(2, this->indentation_level, &this->code_buffer);
 
-        //this->code_buffer += "var " + variables[0]->name + "(\"" + variables[0]->name + "\", " + to_string(variables[0]->inf_value) + ", " + variables[0]->sup_value->name + ")";
         this->code_buffer += "var " + variables[0]->name + "(\"" + variables[0]->name + "\", " + to_string(variables[0]->inf_value) + ", " + to_string(variables[0]->sup_value) + ")";
         for (int i = 1; i < variables.size(); ++i) {
-            //this->code_buffer += ", " + variables[i]->name + "(\"" + variables[i]->name + "\", " + to_string(variables[i]->inf_value) + ", " + variables[i]->sup_value->name + ")";
-            this->code_buffer += ", " + variables[i]->name + "(\"" + variables[i]->name + "\", " + to_string(variables[i]->inf_value) + ", " + to_string(variables[i]->sup_value) + ")";
+             this->code_buffer += ", " + variables[i]->name + "(\"" + variables[i]->name + "\", " + to_string(variables[i]->inf_value) + ", " + to_string(variables[i]->sup_value) + ")";
             check_buffer_size(&code_buffer, &output_file);
         }
         this->code_buffer += ";";
@@ -612,23 +606,6 @@ computation_abstract* tiramisu_code::generate_tiramisu_conv_layer(vector<int> *i
     //filter_dimensions : #filters, #channels, height, width
     int padding, output_height, output_width;
 
-    //constant *output_height, *output_width;
-
-    //constants
-   /* constant *nb_channels = new constant("nb_channels" + to_string(layer_number), (*input_dimensions)[0]);
-    constant *input_height = new constant("input_height" + to_string(layer_number), (*input_dimensions)[1]);
-    constant *input_width = new constant("input_width" + to_string(layer_number), (*input_dimensions)[2]);
-    constant *nb_filters = new constant("nb_filters" + to_string(layer_number), (*filter_dimensions)[0]);
-    constant *filter_height = new constant("filter_height" + to_string(layer_number), (*filter_dimensions)[2]);
-    constant *filter_width = new constant("filter_width" + to_string(layer_number), (*filter_dimensions)[3]);
-
-    constants.push_back(nb_channels);
-    constants.push_back(input_height);
-    constants.push_back(input_width);
-    constants.push_back(nb_filters);
-    constants.push_back(filter_height);
-    constants.push_back(filter_width);*/
-
    int nb_channels = (*input_dimensions)[0], input_height = (*input_dimensions)[1], input_width = (*input_dimensions)[2], nb_filters = (*filter_dimensions)[0], filter_height = (*filter_dimensions)[2], filter_width = (*filter_dimensions)[3];
 
 
@@ -638,28 +615,12 @@ computation_abstract* tiramisu_code::generate_tiramisu_conv_layer(vector<int> *i
             padding = ((*filter_dimensions)[2] - 1) / 2;
             output_height = input_height;
             output_width = input_width;
-
             break;
         case VALID:
             padding = 0;
-            //output_height = new constant("output_height" + to_string(layer_number), (*input_dimensions)[1] + 2 * padding - (*filter_dimensions)[2] + 1);
-            //output_width = new constant("output_width" + to_string(layer_number), (*input_dimensions)[2] + 2 * padding - (*filter_dimensions)[3] + 1);
-
-
+  
             output_height = (*input_dimensions)[1] + 2 * padding - (*filter_dimensions)[2] + 1;
             output_width = (*input_dimensions)[2] + 2 * padding - (*filter_dimensions)[3] + 1;
-
-
-            //constants.push_back(output_height);
-            //constants.push_back(output_width);
-            break;
-        default:
-            /*padding = 0;
-            output_height = new constant("output_height" + to_string(layer_number), (*input_dimensions)[1] + 2 * padding - (*filter_dimensions)[2] + 1);
-            output_width = new constant("output_width" + to_string(layer_number), (*input_dimensions)[2] + 2 * padding - (*filter_dimensions)[3] + 1);
-
-            constants.push_back(output_height);
-            constants.push_back(output_width);*/
             break;
     }
 
@@ -701,15 +662,11 @@ computation_abstract* tiramisu_code::generate_tiramisu_conv_layer(vector<int> *i
     if (padding_type == SAME){     //computation for adding the padding
         vector <variable*> init_same_variables;
         init_same_variables.push_back(new variable("chan" + to_string(layer_number), 0, nb_channels));
-       // init_same_variables.push_back(new variable("i" + to_string(layer_number), padding, new constant(input_height->name + " + " + to_string(padding), padding + (*input_dimensions)[1])));
-       // init_same_variables.push_back(new variable("j" + to_string(layer_number), padding, new constant(input_width->name + " + " + to_string(padding), padding + (*input_dimensions)[2])));
         init_same_variables.push_back(new variable("i" + to_string(layer_number), padding, padding + (*input_dimensions)[1]));
         init_same_variables.push_back(new variable("j" + to_string(layer_number), padding, padding + (*input_dimensions)[2]));
 
 
         variables.push_back(new variable("chan" + to_string(layer_number), 0, nb_channels));
-      //  variables.push_back(new variable("i" + to_string(layer_number), padding, new constant(input_height->name + " + " + to_string(padding), padding + (*input_dimensions)[1])));
-       // variables.push_back(new variable("j" + to_string(layer_number), padding, new constant(input_width->name + " + " + to_string(padding), padding + (*input_dimensions)[2])));
         variables.push_back(new variable("i" + to_string(layer_number), padding, padding + (*input_dimensions)[1]));
         variables.push_back(new variable("j" + to_string(layer_number), padding, padding + (*input_dimensions)[2]));
 
@@ -717,7 +674,6 @@ computation_abstract* tiramisu_code::generate_tiramisu_conv_layer(vector<int> *i
         computation *init_input_same = new computation("init_same" + to_string(layer_number),  ASSIGNMENT_INPUTS,&init_same_variables);
         init_input_same->expression = input_comp->name + "(chan" + to_string(layer_number) + ", i" + to_string(layer_number) +" - " + to_string(padding) +", j" + to_string(layer_number) + "- " + to_string(padding);
         if(input_comp->variables.size() > 3){
-           // init_input_same->expression += ", " + nb_channels->name + ", " + filter_height->name + ", " + filter_width->name;
             init_input_same->expression += ", " + to_string(nb_channels) + " - 1, " + to_string(filter_height) + " - 1, " + to_string(filter_width) + " - 1";
         }
         init_input_same->expression += ")";
@@ -735,7 +691,6 @@ computation_abstract* tiramisu_code::generate_tiramisu_conv_layer(vector<int> *i
                               ", h" + to_string(layer_number) +" + f_h" + to_string(layer_number) +
                               ", w" + to_string(layer_number) +" + f_w" + to_string(layer_number);
     if(init_input->variables.size() > 3){
-        // init_input_same->expression += ", " + nb_channels->name + ", " + filter_height->name + ", " + filter_width->name;
         output_comp->expression += ", " + to_string(nb_channels) + " - 1, " + to_string(filter_height) + " - 1, " + to_string(filter_width) + " - 1";
     }
     output_comp->expression += ") * " + filter_comp->name + filter_comp->vars_to_string();
@@ -794,14 +749,6 @@ tiramisu_code::tiramisu_code(string function_name, vector <int> *padding_types, 
     vector <variable*> variables_test;
     vector <computation_abstract*> comps;
 
- /*   constant *init_nb_channels = new constant("nb_chans0", inits[0]);
-    constant *init_input_height = new constant("in_height0", inits[1]);
-    constant *init_input_width = new constant("in_width0", inits[2]);
-
-    constants.push_back(init_nb_channels);
-    constants.push_back(init_input_height);
-    constants.push_back(init_input_width);*/
-
     int init_nb_channels = inits[0], init_input_height = inits[1], init_input_width = inits[2];
 
     variables_test.push_back(new variable("chan0", 0, init_nb_channels));
@@ -827,7 +774,6 @@ tiramisu_code::tiramisu_code(string function_name, vector <int> *padding_types, 
 
     }
 
-   // write_constants();
     write_variables();
     write_inputs();
     write_computations();
