@@ -75,8 +75,8 @@ int main(int argc, char* argv[])
     // Reshape A1 to A
     var x1("x1", 0, 2);
     var y1("y1", 0, 4*w*w);
-    input        A("A",        {k, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
-    input        b("b",        {k, y1}, p_float32);     // Use b to reshape b1
+    view        A("A",        {k, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
+    view        b("b",        {k, y1}, p_float32);     // Use b to reshape b1
 
     // Compute pinv(A):
     // 1)    tA = transpose(A)
@@ -113,7 +113,6 @@ int main(int argc, char* argv[])
     // Results
     computation u("u", {k}, nu(k, 0));
     computation v("v", {k}, nu(k, 1));
-
 
     // Schedule
     Ix_m.then(Iy_m, x)
