@@ -8,7 +8,12 @@ First you need to edit the benchmarks/framework_benchmarking/DNN/configure.sh fi
 
 **Example**
 
-to compile and run the convolution_Pencil benchmark which is in benchmarks/framework_benchmarking/DNN/convolution_layer run:
+to compile and run the convolution_Pencil benchmark which is in 
 
-  cd benchmarks/framework_benchmarking/DNN/
-  ./compile_run_Pencil_DNN_benchmarks.sh convolution_layer convolution_Pencil
+benchmarks/framework_benchmarking/DNN/convolution_layer 
+
+run:  
+
+      cd benchmarks/framework_benchmarking/DNN/
+
+    ./compile_run_Pencil_DNN_benchmarks.sh convolution_layer convolution_Pencil
