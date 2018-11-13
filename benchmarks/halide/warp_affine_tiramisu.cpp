@@ -4,12 +4,10 @@ using namespace tiramisu;
 
 #define mixf(x, y, a) (cast(p_float32, x) * (expr((float) 1) - cast(p_float32, a)) + cast(p_float32, y) * cast(p_float32, a))
 
-int main(int argc, char* argv[]) {
-
-    // Name of the function that we want to generate.
+int main(int argc, char* argv[])
+{
     tiramisu::init("warp_affine_tiramisu");
 
-    // Declare an input that holds the sizes of input arrays.
     input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
 
     constant N0("N0", SIZES(0));
@@ -25,7 +23,6 @@ int main(int argc, char* argv[]) {
     expr b00 = expr((float) 0.1);
     expr b10 = expr((float) 0.1);
 
-    // Translating this algorithm as close as possible
     expr o_r = a11*cast(p_float32, y) + a10*cast(p_float32, x) + b00;
     expr o_c = a01*cast(p_float32, y) + a00*cast(p_float32, x) + b10;
 
