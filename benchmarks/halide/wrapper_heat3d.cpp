@@ -22,13 +22,13 @@ int main(int, char **)
       }
     }
 
-    Halide::Buffer<float> output1(_X, _Y,_Z,"output1");
+    Halide::Buffer<float> output1(_X, _Y,_Z,_TIME+1,"output1");
     Halide::Buffer<float> output2(_X, _Y,_Z,_TIME+1,"output2");
     Halide::Buffer<float> output_ref(_X, _Y,_Z,"output_ref");
-
+    Halide::Buffer<float> output_tiramisu(_X, _Y,_Z,"output_tiramisu");
     // Warm up code.
     heat3d_tiramisu(input.raw_buffer(), output1.raw_buffer());
-    heat3d_ref(input.raw_buffer(), output2.raw_buffer());
+
 
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
@@ -39,7 +39,8 @@ int main(int, char **)
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
     }
-
+    
+    heat3d_ref(input.raw_buffer(), output2.raw_buffer());
     // Reference
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -59,8 +60,13 @@ int main(int, char **)
         for (int j=0;j<_Y;j++)
             for(int k=0;k<_Z;k++)
                 output_ref(i,j,k)=output2(i,j,k,_TIME);
+    //
+    for(int i=0;i<_X;i++)
+        for (int j=0;j<_Y;j++)
+            for(int k=0;k<_Z;k++)
+                output_tiramisu(i,j,k)=output1(i,j,k,_TIME);
 
-    if (CHECK_CORRECTNESS) compare_buffers_approximately("benchmark_heat3d", output1, output_ref);
+    if (CHECK_CORRECTNESS) compare_buffers_approximately("benchmark_heat3d", output_tiramisu, output_ref);
 
     return 0;
 }

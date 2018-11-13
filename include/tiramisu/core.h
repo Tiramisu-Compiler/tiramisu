@@ -2475,6 +2475,12 @@ protected:
       * Collapse all the iterations of a loop into one single iteration.
       */
     void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
+    /**
+      * \overload
+      */
+    computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+
+
 
 public:
 
@@ -2586,6 +2592,7 @@ public:
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
+
     /**
       * \brief Constructor for computations.
       *
@@ -2637,6 +2644,7 @@ public:
      * \overload
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
 
     /**
       * \overload
@@ -4041,8 +4049,14 @@ public:
       * V.store_in(&buf);
       * \endcode
      */
+
     view(std::string name, std::vector<var> iterator_variables):
     computation(name,iterator_variables,expr(),false){}
+
+   view(
+    std::string name, std::vector<var> iterator_variables, primitive_t t
+    ): computation(name, iterator_variables, expr(), false,t){}
+
 };
 
 

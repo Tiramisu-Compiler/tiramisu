@@ -3,8 +3,8 @@
 
 //dimensions
 #define _X 100
-#define _Y 100
-#define _Z 100
+#define _Y 110
+#define _Z 120
 //time
 #define _TIME 200
 //the constants of the algorithm

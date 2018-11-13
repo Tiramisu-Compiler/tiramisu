@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     //input -- 3D
     input data("data",{z_in,y_in,x_in},p_float32);
     //init computation
-    computation heat3d_init("heat3d_init",{z_in,y_in,x_in},data(z_in,y_in,x_in));
+    computation heat3d_init("heat3d_init",{t_in,z_in,y_in,x_in},data(z_in,y_in,x_in));
     //kernel
     computation heat3dc("heat3dc",{t,z,y,x},p_float32);
     heat3dc.set_expression(
@@ -33,20 +33,14 @@ int main(int argc, char **argv)
 			  heat3dc(t-1,z-1,y,x) - expr(o_mul,BETA,heat3dc(t-1,z,y,x)) + heat3dc(t-1,z+1,y,x)
 			+ heat3dc(t-1,z,y-1,x) - expr(o_mul,BETA,heat3dc(t-1,z,y,x)) + heat3dc(t-1,z,y+1,x)
 			+ heat3dc(t-1,z,y,x-1) - expr(o_mul,BETA,heat3dc(t-1,z,y,x)) + heat3dc(t-1,z,y,x+1)));
-    //for scheduling
-    var x0("x0"), y0("y0"),z0("z0"),x1("x1"), y1("y1"),z1("z1");
-    heat3d_init.tile(z_in,y_in,x_in, 32,32, 32, z0,y0,x0,z1,y1,x1);
-    heat3dc.tile(z,y,x, 32,32, 32, z0,y0,x0,z1,y1,x1);
-    // Parallelize the outermost loop level of Z
-    heat3d_init.parallelize(z0);
-    heat3dc.parallelize(z0);
     heat3dc.after(heat3d_init,computation::root); //we need to initialize all data before computing
+    
     //buffers
     buffer b_in("b_in",{HEIGHT,COLS,ROWS},p_float32,a_input);
-    buffer b_out("b_out",{HEIGHT,COLS,ROWS},p_float32,a_output);
+    buffer b_out("b_out",{TIME+1,HEIGHT,COLS,ROWS},p_float32,a_output);
     data.store_in(&b_in);
-    heat3d_init.store_in(&b_out,{z_in,y_in,x_in});
-    heat3dc.store_in(&b_out,{z,y,x});
+    heat3d_init.store_in(&b_out,{t_in,z_in,y_in,x_in});
+    heat3dc.store_in(&b_out,{t,z,y,x});
 
     codegen({&b_in,&b_out}, "build/generated_fct_heat3d.o");
     return 0;
