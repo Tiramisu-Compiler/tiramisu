@@ -9,7 +9,7 @@
     // Window size
     #define w 32
     // Image size
-    #define PY_IMG_SIZE 200
+    #define PY_IMG_SIZE 100
 #endif
 
 // Number of pyramid levels

@@ -68,5 +68,7 @@ int main(int argc, char* argv[])
 
     tiramisu::codegen({&b_SIZES, &b_input, &b_affine}, "build/generated_fct_warp_affine.o");
 
+    global::get_implicit_function()->dump_halide_stmt();
+
     return 0;
 }

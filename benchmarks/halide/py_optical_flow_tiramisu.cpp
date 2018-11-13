@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 	.then(u_update, j)
 	.then(v_update, j);
 
-    if (0) //(SYNTHETIC_INPUT == 0)
+    if (SYNTHETIC_INPUT == 0)
     {
 	int VEC = 16;
 
@@ -265,6 +265,8 @@ int main(int argc, char* argv[])
     v_update.store_in(&b_v, {i, j});
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X, &b_pyramid1, &b_pyramid2, &b_nu, &b_b}, "build/generated_fct_py_optical_flow.o");
+
+    global::get_implicit_function()->dump_halide_stmt();
 
     return 0;
 }

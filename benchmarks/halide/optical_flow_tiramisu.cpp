@@ -208,5 +208,7 @@ int main(int argc, char* argv[])
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X}, "build/generated_fct_optical_flow.o");
 
+    global::get_implicit_function()->dump_halide_stmt();
+
     return 0;
 }
