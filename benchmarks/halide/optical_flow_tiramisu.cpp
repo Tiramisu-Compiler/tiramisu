@@ -39,19 +39,16 @@ int main(int argc, char* argv[])
 
     // First convolution (partial on x)
     std::vector<int> w1 = {1, -1,  1, -1};
-    expr e1 = conv2(im1, y, x, w1);
-    computation Ix_m("Ix_m", {y, x}, e1);
+    computation Ix_m("Ix_m", {y, x}, conv2(im1, y, x, w1));  // Ix_m(y, x) = conv2(im1, y, x, w1);
 
     // Second convolution (partial on y)
     std::vector<int> w2 = {1, 1,  -1, -1};
-    expr e2 = conv2(im1, y, x, w2);
-    computation Iy_m("Iy_m", {y, x}, e2);
+    computation Iy_m("Iy_m", {y, x}, conv2(im1, y, x, w2));
 
     // Third convolution
     std::vector<int> w3 = {1, 1, 1, 1};
     std::vector<int> w4 = {-1, -1, -1, -1};
-    expr e3 = conv2(im1, y, x, w3) + conv2(im2, y, x, w4);
-    computation It_m("It_m", {y, x}, e3);
+    computation It_m("It_m", {y, x}, conv2(im1, y, x, w3) + conv2(im2, y, x, w4));
 
 
     // Second part of the algorithm
