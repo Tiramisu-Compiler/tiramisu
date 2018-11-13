@@ -1,4 +1,4 @@
-OPENCV_PREFIX=/Users/b/Documents/src-not-saved/opencv-3.2.0_prefix/
+OPENCV_PREFIX=/Volumes/ALL/extra/opencv-3.2.0_prefix/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OPENCV_PREFIX}/lib/
 
 
