@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define SYNTHETIC_INPUT 1
+#define SYNTHETIC_INPUT 0
 #define SYNTHETIC_INPUT_SIZE 20
 
 #ifdef SYNTHETIC_INPUT
@@ -15,13 +15,13 @@ extern "C" {
     #define w 4
 #else
     // Window size
-    #define w 128
+    #define w 32
 #endif
 
 // Corner number
 
 // Number of pyramid levels
-#define npyramids 2
+#define npyramids 1
 
 // Number of refinement iterations
 #define niterations 1
