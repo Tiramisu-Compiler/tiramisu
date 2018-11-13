@@ -15,8 +15,8 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
 #if SYNTHETIC_INPUT
-    Halide::Buffer<uint8_t> im1(SYNTHETIC_INPUT_SIZE, SYNTHETIC_INPUT_SIZE);
-    Halide::Buffer<uint8_t> im2(SYNTHETIC_INPUT_SIZE, SYNTHETIC_INPUT_SIZE);
+    Halide::Buffer<uint8_t> im1(PY_IMG_SIZE, PY_IMG_SIZE);
+    Halide::Buffer<uint8_t> im2(PY_IMG_SIZE, PY_IMG_SIZE);
 
     for (int i = 0; i < SYNTHETIC_INPUT_SIZE; i++)
 	    for (int j = 0; j < SYNTHETIC_INPUT_SIZE; j++)
@@ -25,8 +25,8 @@ int main(int, char**)
 		    im2(i, j) = (uint8_t) i*i+j*j;
 	    }
 #else
-    Halide::Buffer<uint8_t> im1 = Halide::Tools::load_image("./utils/images/rgb.png");
-    Halide::Buffer<uint8_t> im2 = Halide::Tools::load_image("./utils/images/rgb.png");
+    Halide::Buffer<uint8_t> im1(PY_IMG_SIZE, PY_IMG_SIZE);
+    Halide::Buffer<uint8_t> im2(PY_IMG_SIZE, PY_IMG_SIZE);
 #endif
 
     Halide::Buffer<float> Ix_m(im1.width(), im1.height(), npyramids);
@@ -130,11 +130,11 @@ int main(int, char**)
 
     std::cout << "nu" << std::endl;
     print_buffer(nu);
-#endif
 
     std::cout << "Output" << std::endl;
     print_buffer(u);
     print_buffer(v);
+#endif
 
     return 0;
 }
