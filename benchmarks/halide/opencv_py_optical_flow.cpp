@@ -55,10 +55,10 @@ int main(int argc, char** argv)
         features_found,               // Output vector, each is 1 for tracked
         cv::noArray(),                // Output vector, lists errors (optional)
         cv::Size(win_size * 2 + 1, win_size * 2 + 1),  // Search window size
-        1,                            // Maximum pyramid level to construct
+        0,                            // Maximum pyramid level to construct
         cv::TermCriteria(
-            cv::TermCriteria::MAX_ITER | cv::TermCriteria::EPS,
-            20,                         // Maximum number of iterations
+            cv::TermCriteria::COUNT,
+            1,                         // Maximum number of iterations
             0.3                         // Minimum change per iteration
         )
     );
