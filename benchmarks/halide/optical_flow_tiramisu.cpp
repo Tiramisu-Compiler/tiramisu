@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     expr e1 = conv2(im1, y, x, w1);
     computation Ix_m("Ix_m", {y, x}, e1);
 
-    // Second convolution  (partial on y)
+    // Second convolution (partial on y)
     std::vector<int> w2 = {1, 1,  -1, -1};
     expr e2 = conv2(im1, y, x, w2);
     computation Iy_m("Iy_m", {y, x}, e2);
