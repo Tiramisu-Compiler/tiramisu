@@ -717,7 +717,7 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
         int pos = N_without_cast.find("cast");
         N_without_cast = N_without_cast.erase(pos, 4);
     }
- 
+
     std::string constraint;
     constraint = "";
     for (int i=0; i<isl_map_dim(this->get_schedule(), isl_dim_param); i++)
@@ -2232,7 +2232,7 @@ void tiramisu::computation::after(computation &comp, tiramisu::var level)
 
     std::vector<int> dimensions =
         this->get_loop_level_numbers_from_dimension_names({level.get_name()});
-    
+
     assert(dimensions.size() == 1);
 
     DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
@@ -5434,7 +5434,7 @@ tiramisu::computation::computation(std::string iteration_domain_str, tiramisu::e
 void tiramisu::computation::unschedule_this_computation() {
     schedule_this_computation = false;
 }
-  
+
 /**
   * Return true if the this computation is supposed to be scheduled
   * by Tiramisu.
@@ -6152,6 +6152,22 @@ tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> 
     DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
 
     init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, e.get_data_type());
+    is_let = false;
+
+    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+    DEBUG_INDENT(-4);
+}
+//overloaded
+tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
+    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
+    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+    init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, t);
     is_let = false;
 
     DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
