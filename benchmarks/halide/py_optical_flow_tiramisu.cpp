@@ -6,6 +6,8 @@
 
 using namespace tiramisu;
 
+#define mixf(x, y, a) (cast(p_float32, x) * (expr((float) 1) - cast(p_float32, a)) + cast(p_float32, y) * cast(p_float32, a))
+
 expr conv2(computation& im1, var p, var y, var x, std::vector<float> weights)
 {
     expr e = cast(p_float32, (cast(p_int32, expr((float) weights[0])*cast(p_float32, im1(npyramids - p - 1, y,     x))) +
@@ -37,6 +39,43 @@ expr gauss_y(computation pyramid1_l1x, var p1, var j2, var i2)
 
     return e;
 }
+
+expr resize(computation& im1, var p1, var n_r, var n_c, expr o_h, expr o_w, expr n_h, expr n_w)
+{
+    expr o_r = ((cast(p_float32, n_r) + expr((float) 0.5)) * (cast(p_float32, o_h)) / (cast(p_float32, n_h))) - expr((float) 0.5);
+    expr o_c = ((cast(p_float32, n_c) + expr((float) 0.5)) * (cast(p_float32, o_w)) / (cast(p_float32, n_w))) - expr((float) 0.5);
+
+    expr r = o_r - floor(o_r);
+    expr c = o_c - floor(o_c);
+
+    expr coord_00_r = cast(p_int32, floor(o_r));
+    expr coord_00_c = cast(p_int32, floor(o_c));
+    expr coord_01_r = cast(p_int32, coord_00_r);
+    expr coord_01_c = cast(p_int32, coord_00_c + 1);
+    expr coord_10_r = cast(p_int32, coord_00_r + 1);
+    expr coord_10_c = cast(p_int32, coord_00_c);
+    expr coord_11_r = cast(p_int32, coord_00_r + 1);
+    expr coord_11_c = cast(p_int32, coord_00_c + 1);
+
+    coord_00_r = clamp(coord_00_r, 0, o_h);
+    coord_00_c = clamp(coord_00_c, 0, o_w);
+    coord_01_r = clamp(coord_01_r, 0, o_h);
+    coord_01_c = clamp(coord_01_c, 0, o_w);
+    coord_10_r = clamp(coord_10_r, 0, o_h);
+    coord_10_c = clamp(coord_10_c, 0, o_w);
+    coord_11_r = clamp(coord_11_r, 0, o_h);
+    coord_11_c = clamp(coord_11_c, 0, o_w);
+
+    expr A00 = im1(p1, coord_00_c, coord_00_r);
+    expr A10 = im1(p1, coord_10_c, coord_10_r);
+    expr A01 = im1(p1, coord_01_c, coord_01_r);
+    expr A11 = im1(p1, coord_11_c, coord_11_r);
+
+    expr e = cast(p_float32, mixf(mixf(A00, A10, r), mixf(A01, A11, r), c));
+
+    return e;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -84,8 +123,11 @@ int main(int argc, char* argv[])
     computation pyramid2_l2y("pyramid2_l2y", {p2, j3, i3},  gauss_y(pyramid2_l2x, p2, j3, i3));
 
     // Initializ u and v (outputs)
-    computation u("u", {y, x}, expr((float) 0));
-    computation v("v", {y, x}, expr((float) 0));
+    computation u("u", {p0, y, x}, expr((float) 0));
+    computation v("v", {p0, y, x}, expr((float) 0));
+
+    computation u2("u", {p1, y, x}, resize(u, p1, y, x, N0, N1, N0, N1));
+    computation v2("v", {p1, y, x}, resize(u, p1, y, x, N0, N1, N0, N1));
 
     var p("p", 0, npyramids), r("r", 0, niterations);
     std::vector<float> w1 = {0.25, -0.25,  0.25, -0.25};
@@ -151,8 +193,8 @@ int main(int argc, char* argv[])
     computation nu_update("nu_update", {p,r,i,j, x1, y1}, nu(p,r,i,j, x1) + pinvA(p,r,i,j, x1, y1)*b(p,r,i,j, y1));
 
     // Results
-    computation u_update("u_update", {p,r,i,j}, floor(u(i,j)) + nu(p,r,i,j, 0));
-    computation v_update("v_update", {p,r,i,j}, floor(v(i,j)) + nu(p,r,i,j, 1));
+    computation u_update("u_update", {p,r,i,j}, floor(u(p0, i,j)) + nu(p,r,i,j, 0));
+    computation v_update("v_update", {p,r,i,j}, floor(v(p0, i,j)) + nu(p,r,i,j, 1));
 
     // Schedule
     pyramid1.then(pyramid1_l1x, computation::root)
@@ -166,7 +208,9 @@ int main(int argc, char* argv[])
 	.then(pyramid2_l2y, computation::root)
 	.then(u, computation::root)
 	.then(v, x)
-	.then(Ix_m, computation::root)
+	.then(u2, x)
+	.then(v2, x)
+	.then(Ix_m, p)
 	.then(Iy_m, x)
 	.then(It_m, x)
 	.then(A1, computation::root)
@@ -259,8 +303,10 @@ int main(int argc, char* argv[])
     pinvA_update.store_in(&b_pinvA, {x1, y1});
     nu.store_in(&b_nu, {x1});
     nu_update.store_in(&b_nu, {x1});
-    u.store_in(&b_u);
-    v.store_in(&b_v);
+    u.store_in(&b_u, {y, x});
+    v.store_in(&b_v, {y, x});
+    u2.store_in(&b_u, {y, x});
+    v2.store_in(&b_v, {y, x});
     u_update.store_in(&b_u, {i, j});
     v_update.store_in(&b_v, {i, j});
 
