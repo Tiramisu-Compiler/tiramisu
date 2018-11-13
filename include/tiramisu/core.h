@@ -4027,6 +4027,8 @@ public:
       * \p iterator_variables is a vector that represents the dimensions of
       * the view.  It is used to define the size of the view.
       *
+      * \p t is the type of buffer data (p_float32 for example).
+      *
       * Example:
       *
       * If we want to access a buffer buf where results of a computation C are stored
@@ -4041,7 +4043,7 @@ public:
       * and then we can declare the following view
       *
       * \code
-      * view V("V", {i,j});
+      * view V("V", {i,j}, p_float64);
       * \endcode
       *
       * Later in the code (in Layer III), we need to map the view to that buffer.
@@ -4049,13 +4051,8 @@ public:
       * V.store_in(&buf);
       * \endcode
      */
-
-    view(std::string name, std::vector<var> iterator_variables):
-    computation(name,iterator_variables,expr(),false){}
-
-   view(
-    std::string name, std::vector<var> iterator_variables, primitive_t t
-    ): computation(name, iterator_variables, expr(), false,t){}
+   view(std::string name, std::vector<var> iterator_variables, primitive_t t):
+	computation(name, iterator_variables, expr(), false,t){}
 
 };
 
