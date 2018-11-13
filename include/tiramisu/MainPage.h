@@ -12,4 +12,5 @@
  * - The \ref tiramisu::computation class: used to declare a computation which is the equivalent of a statement in C.  A computation has an expression (tiramisu::expr) and iteration domain defined using an iterator variable.
  * - The \ref tiramisu::buffer class: a class to represent memory buffers.
  * - The \ref tiramisu::expr class: used to declare Tiramisu expressions (e.g., 4, 4 + 4, 4 * i, A(i, j), ...).
+ * - The \ref tiramisu::view class: used to declare a view on a buffer
  */

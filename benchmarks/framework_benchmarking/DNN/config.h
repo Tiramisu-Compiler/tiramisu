@@ -3,12 +3,29 @@
 #include <time.h>
 #include <math.h>
 
-#define BATCH_SIZE 8
+#define LARGE_DATA_SET	0
+#define MEDIUM_DATA_SET	0
+#define SMALL_DATA_SET	1
+
+#if LARGE_DATA_SET
+	#define BATCH_SIZE 100 
+#elif MEDIUM_DATA_SET
+	#define BATCH_SIZE 32
+#elif SMALL_DATA_SET
+	#define BATCH_SIZE 8
+#endif
 
 // Size of one data dimension
 // Data is NxNx16
 
-#define N 32
+#if LARGE_DATA_SET
+	#define N 512
+#elif MEDIUM_DATA_SET
+	#define N 64
+#elif SMALL_DATA_SET
+	#define N 32
+#endif
+
 
 // Number of features in the input
 #define FIn 16
@@ -29,12 +46,11 @@
 #define pK K+1
 
 
-
 static double rtclock()
 {
 struct timeval Cnv;
 gettimeofday (&Cnv, NULL);
-return (Cnv.tv_sec + Cnv.tv_usec * 1.0e-6);
+return (Cnv.tv_sec* 1.0e3 + Cnv.tv_usec * 1.0e-3);
 }
 
 static float Max(float a, float b) {

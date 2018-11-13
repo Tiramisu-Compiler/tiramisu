@@ -26,7 +26,7 @@
 
 namespace tiramisu
 {
-
+class view;
 class input;
 class function;
 class computation;
@@ -40,6 +40,7 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
+
 
 struct HalideCodegenOutput
 {
@@ -110,7 +111,7 @@ void init(std::string name);
 void init();
 
 /**
-  * \brief Generate code. 
+  * \brief Generate code.
   *
   * \details
   *
@@ -1099,7 +1100,7 @@ public:
       * \details
       *
       * A Tiramisu buffer is equivalent to an array in C.
-      * 
+      *
       * Buffers have two use cases:
       * - Used to store the results of computations, and
       * - Used to represent input arguments to functions.
@@ -2474,6 +2475,12 @@ protected:
       * Collapse all the iterations of a loop into one single iteration.
       */
     void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
+    /**
+      * \overload
+      */
+    computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+
+
 
 public:
 
@@ -2585,6 +2592,7 @@ public:
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
+
     /**
       * \brief Constructor for computations.
       *
@@ -2596,7 +2604,7 @@ public:
       * \p name is the name of the computation.
       *
       * \p iterator_variables is a vector that represents the loop iterators
-      * around the computation. 
+      * around the computation.
       *
       * \p e is the expression computed by the computation.
       *
@@ -2636,6 +2644,7 @@ public:
      * \overload
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
 
     /**
       * \overload
@@ -3998,7 +4007,7 @@ public:
       * the buffer and map this input to that buffer.
       *
       * An example is provided in tutorial 02.
-      * 
+      *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
 	    computation(name, iterator_variables, expr(), false)
@@ -4016,6 +4025,52 @@ public:
     }
 
 };
+
+class view:public computation{
+
+public:
+    /**
+      * \brief Constructor for a view.
+      *
+      * \details
+      *
+      * Declare a view.
+      *
+      * \p name is the name of the view.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the view.  It is used to define the size of the view.
+      *
+      * \p t is the type of buffer data (p_float32 for example).
+      *
+      * Example:
+      *
+      * If we want to access a buffer buf where results of a computation C are stored
+      * we declare a view V and we map it to the buffer buf.
+      *
+      * We declare the iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following view
+      *
+      * \code
+      * view V("V", {i,j}, p_float64);
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to map the view to that buffer.
+      * \code
+      * V.store_in(&buf);
+      * \endcode
+     */
+   view(std::string name, std::vector<var> iterator_variables, primitive_t t):
+	computation(name, iterator_variables, expr(), false,t){}
+
+};
+
+
 
 
 /**
