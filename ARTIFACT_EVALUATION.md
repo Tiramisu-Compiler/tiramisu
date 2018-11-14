@@ -7,13 +7,23 @@
 
 - Instructions for installing Tiramisu are provided in section "Building Tiramisu" in the Tiramisu [README file](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/README.md).  If there is a need, more detailed instructions are provided in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/INSTALL.md
 
-## Try Tiramisu
+## Trying Tiramisu
 - You can compile Tiramisu (without recompiling all of its submodules) as follows
 
       cd /home/b/tiramisu
       cd build
       make clean
       make tiramisu
+
+- A set of introductory tutorials is provided here: https://github.com/Tiramisu-Compiler/tiramisu/tree/master/tutorials 
+
+- You can try a given tutorial X using
+
+      make run_developers_tutorial_X
+
+for example, you can try tutorial_01 using
+
+      make run_developers_tutorial_01
 
 - You can try a given benchmark X using
 
@@ -28,4 +38,3 @@ This will generate code from the Tiramisu warp_affine benchmark and will run it.
 - To try the cvtcolor benchmark
 
       make run_benchmark_cvt_color
-
