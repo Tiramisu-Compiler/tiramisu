@@ -25,6 +25,8 @@ for example, you can try tutorial_01 using
 
       make run_developers_tutorial_01
 
+The code for Tutorial 01 is provided in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/tutorials/developers/tutorial_01/tutorial_01.cpp
+
 - You can try a given benchmark X using
 
       make run_benchmark_X
