@@ -23,7 +23,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-    function vgg_tiramisu("vgg_tiramisu");
 
     // parameters
     // N: parameters[0]
