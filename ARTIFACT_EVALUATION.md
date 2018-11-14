@@ -15,7 +15,7 @@
       make clean
       make tiramisu
 
-- You can try a given benchmark X as follows
+- You can try a given benchmark X using
 
       make run_benchmark_X
 
