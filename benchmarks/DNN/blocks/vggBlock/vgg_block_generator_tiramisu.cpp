@@ -10,8 +10,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-    function vgg_block("vgg_block_tiramisu");
-
     // parameters
     // N: parameters[0]
     // K: parameters[1]
