@@ -6,16 +6,10 @@
 - The instructions for installing Tiramisu from sources are provided in section "Building Tiramisu" in the Tiramisu [README file](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/README.md).  If there is a need, more detailed instructions are provided in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/INSTALL.md
 
 ## Trying Tiramisu
-- You can compile Tiramisu (without recompiling all of its submodules) as follows
-
-      cd /home/b/tiramisu
-      cd build
-      make clean
-      make tiramisu
 
 - A set of introductory tutorials is provided here: https://github.com/Tiramisu-Compiler/tiramisu/tree/master/tutorials 
 
-- Assuming you are in the "build" directory, you can try a given tutorial X using
+- Assuming you are in the "build" directory, and assuming you have Tiramisu compiled, you can try a given tutorial X using
 
       make run_developers_tutorial_X
 
