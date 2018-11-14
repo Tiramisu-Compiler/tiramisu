@@ -79,7 +79,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
         cmake ..
         make -j tiramisu
 
-## Tiramisu on a Virtual Machine
+## Tiramisu on a Virtual Machine (Soon)
 A virtual machine for Tiramisu is being prepared and will be uploaded online very soon. Once uploaded, users can use the Tiramisu [virtual machine disk image]().  The image is created using virtual box (5.2.12).
 Once you download the image, unzip it and use virtual box to open the file 'Ubuntu14-Tiramisu.vbox'.
 
