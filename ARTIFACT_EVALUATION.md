@@ -23,6 +23,9 @@ for example, you can try warp_affine using
 
       make run_benchmark_warp_affine
 
-This will generate code from the Tiramisu code and run it.  The performance numbers are difficult to produce on the virtual machine though.
+This will generate code from the Tiramisu warp_affine benchmark and will run it.  Code for this benchmarks is available in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/benchmarks/halide/warp_affine_tiramisu.cpp
 
-Code for this benchmarks is provided in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/benchmarks/halide/warp_affine_tiramisu.cpp
+- To try the cvtcolor benchmark
+
+      make run_benchmark_cvt_color
+
