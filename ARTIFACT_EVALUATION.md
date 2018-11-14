@@ -17,7 +17,7 @@
 
 - A set of introductory tutorials is provided here: https://github.com/Tiramisu-Compiler/tiramisu/tree/master/tutorials 
 
-- You can try a given tutorial X using
+- Assuming you are in the "build" directory, you can try a given tutorial X using
 
       make run_developers_tutorial_X
 
