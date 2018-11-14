@@ -5,8 +5,6 @@
 
 - The instructions for installing Tiramisu from sources are provided in section "Building Tiramisu" in the Tiramisu [README file](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/README.md).  If there is a need, more detailed instructions are provided in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/INSTALL.md
 
-- A virtual machine that has Tiramisu pre-built will be added soon (20GB being uploaded to the servers).
-
 ## Trying Tiramisu
 - You can compile Tiramisu (without recompiling all of its submodules) as follows
 
