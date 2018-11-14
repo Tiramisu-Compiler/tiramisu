@@ -79,16 +79,19 @@ This section provides a short description of how to build Tiramisu.  A more deta
         cmake ..
         make -j tiramisu
 
-## Tiramisu on a Virtual Machine (Soon)
-A virtual machine for Tiramisu is being prepared and will be uploaded online very soon. Once uploaded, users can use the Tiramisu [virtual machine disk image]().  The image is created using virtual box (5.2.12).
-Once you download the image, unzip it and use virtual box to open the file 'Ubuntu14-Tiramisu.vbox'.
+## Tiramisu on a Virtual Machine
+Users can use the Tiramisu [virtual machine disk image](http://groups.csail.mit.edu/commit/software/TiramisuVM.zip).  The image is created using virtual box (5.2.12) and has Tiramisu already pre-compiled and ready for use. It was compiled using the same instructions in this README file.
 
-    Username: b
-    Password: b
+Once you download the image, unzip it and use virtual box to open the file 'TiramisuVM.vbox'.
 
 Once the virtual machine has started, open a terminal, then go to the Tiramisu directory
 
     cd /home/b/tiramisu/
+    
+If asked for a username/password
+
+    Username:b
+    Password:b
 
 
 ## Getting Started
