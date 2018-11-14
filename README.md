@@ -80,16 +80,14 @@ This section provides a short description of how to build Tiramisu.  A more deta
         make -j tiramisu
 
 ## Tiramisu on a Virtual Machine
-Users can use the Tiramisu virtual machine disk image.  The image was created using virtual box (5.2.12).
-
-- [VM Image Link]().
-
+Users can use the Tiramisu [virtual machine disk image]().  The image was created using virtual box (5.2.12).
 Once you download the image, unzip it and use virtual box to open the file 'Ubuntu14-Tiramisu.vbox'.
 
     Username: b
     Password: b
 
 Once the virtual machine has started, open a terminal, then go to the Tiramisu directory
+
     cd /home/b/tiramisu/
 
 
