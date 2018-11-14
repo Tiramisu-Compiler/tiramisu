@@ -1,5 +1,4 @@
-Tiramisu website: http://tiramisu-compiler.github.io/
-Tiramisu github repository: https://github.com/Tiramisu-Compiler/tiramisu
+- Tiramisu website: http://tiramisu-compiler.github.io/
+- Tiramisu github repository: https://github.com/Tiramisu-Compiler/tiramisu
 
-You can get Tiramisu running either by installing Tiramisu from sources or by using a virtual machine with Tiramisu pre-installed.  Both procedures are described in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/README.md
-
+- You can test Tiramisu by installing from sources or by using the Tiramisu virtual machine.  Both procedures are described in https://github.com/Tiramisu-Compiler/tiramisu/blob/master/README.md
