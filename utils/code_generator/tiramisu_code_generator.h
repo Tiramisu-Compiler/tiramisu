@@ -65,9 +65,9 @@ class computation_abstract {
 public:
     string name;
     vector<variable*> variables;
-    //returns a string containing the computation variables {i0, ..., in}
+    //returns a string containing the computation variables between curly braces {i0, ..., in}
     string variables_to_string();
-    //returns a string containing the computation variables (i0, ..., in)
+    //returns a string containing the computation variables between brackets (i0, ..., in)
     string vars_to_string();
     //returns all combinations used in stencils
 //ex: {(i0, i1, i2), (i0, i1 - 1, i2), (i0, i1 + 1, i2), (i0 - 1, i1, i2), (i0 - 1, i1 - 1, i2), (i0 - 1, i1 + 1, i2), (i0 + 1, i1, i2), (i0 + 1, i1 - 1, i2), (i0 + 1, i1 + 1, i2)}
@@ -145,6 +145,7 @@ void generate_tiramisu_code_multiple_computations(int code_id, vector<int> *comp
                                                   string *default_type_wrapper, int offset);
 
 //=====================================================================tiramisu_code class==========================================================================================================
+//this class stores all the generated code infos : constants, variables, computations and buffers, and allows to write everything into an output file
 class tiramisu_code{
 private:
     //write all declarations of the tiramisu code into the output file
@@ -166,12 +167,14 @@ public:
     vector<buffer*> buffers;
     int indentation_level;
     ofstream output_file;
-    //instentiate a tiramisu code of the first type
+    //instentiate a tiramisu code of the first type : Sequence of computations which can be : simple assignments, assignments with other computations or stencils.
+    //we provide a name, vectors of the attributes of the code (computations, variables, inputs and buffers) and the default type of the data.
     tiramisu_code(string function_name, vector<computation*> *computations, vector <variable*> *variables,  vector<input*> *inputs, vector<buffer*> *buffers, string *default_type);
-    //instantiate a tiramisu code with convlutional layers
+    //instantiate a tiramisu code with convlutional layers, we provide a name, a vector of the padding type (each element represents a layer) and the default data type.
     tiramisu_code(string function_name, vector<int> *padding_types, string *default_type);
-
+    //add the code generation part into the generated tiramisu code
     void generate_code();
+    //add the last lines of the generated tiramisu code and write it into the output file
     void write_footer();
 
 
