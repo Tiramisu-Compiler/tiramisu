@@ -10,7 +10,7 @@ int main(int, char**) {
     int rank = tiramisu_MPI_init();
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
-
+    std::cout << "I'm rank == " << rank << std::endl;
     //start executing tiramisu version
     Halide::Buffer<float> node_input(_X,_Y,_Z/NODES,"data");//buffer specific for each node
     init_buffer(node_input,(float)0);
@@ -49,6 +49,8 @@ int main(int, char**) {
           }
     }
     MPI_Gather(in_node, _X*_Y*_Z/NODES, MPI_FLOAT,in_global, _X*_Y*_Z/NODES, MPI_FLOAT,0,MPI_COMM_WORLD);
+    //if z%NODES!=0 the last node will need to send more than _X*_Y*_Z/NODES a more sophisticated test
+    //will be written
 
     float out_node[_Z/NODES][_Y][_X];
     float out_global[_Z][_Y][_X];//change with dynamic allocation and allocate only when rank=0

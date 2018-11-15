@@ -4,9 +4,10 @@
 //dimensions
 #define _X 30
 #define _Y 30
-#define _Z 30
+#define _Z 400
 #ifndef NODES
 #define NODES 4
+#endif
 //time
 #define _TIME 200
 //the constants of the algorithm
