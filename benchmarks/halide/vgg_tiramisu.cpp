@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     relu2.store_in(&conv2_buf);
 
     maxpool_init.store_in(&maxpool_buf);
-    maxpool.store_in(&maxpool_buf,{n, z, y3, x3}); 
+maxpool.store_in(&maxpool_buf,{n, z, y3, x3}); 
 
     tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf, &filter2_buf, &bias2_buf, &conv2_buf,&maxpool_buf}, "build/generated_fct_vgg.o");
 
