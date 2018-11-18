@@ -3767,7 +3767,9 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     //       Disable travis tests in .travis.yml if you switch to AVX2.
     std::vector<Halide::Target::Feature> features =
             {
-                    Halide::Target::AVX, Halide::Target::SSE41,// Halide::Target::OpenCL,
+                    Halide::Target::AVX,
+                    Halide::Target::SSE41,
+                    // Halide::Target::AVX2,
                     Halide::Target::LargeBuffers
             };
 
