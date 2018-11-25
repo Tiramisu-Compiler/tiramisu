@@ -73,21 +73,46 @@ int main(int, char**) {
             }
         }
         //warm up
-        heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
-
-        for (int i = 0; i < 1; i++) {
-            auto start2 = std::chrono::high_resolution_clock::now();
-            heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
-            auto end2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> duration2 = end2 - start2;
-            duration_vector_2.push_back(duration2);
-        }
+        // heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
+        //
+        // for (int i = 0; i < 1; i++) {
+        //     auto start2 = std::chrono::high_resolution_clock::now();
+        //     heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
+        //     auto end2 = std::chrono::high_resolution_clock::now();
+        //     std::chrono::duration<double, std::milli> duration2 = end2 - start2;
+        //     duration_vector_2.push_back(duration2);
+        // }
 
         print_time("performance_CPU.csv", "Heat3d Dist",
                    {"Tiramisu", "Halide"},
-                   {median(duration_vector_1), median(duration_vector_2)});
+                   {median(duration_vector_1), 0});
 
-        if (CHECK_CORRECTNESS) {
+        //another way to check results
+        //Test
+        Halide::Buffer<float> ref(_X, _Y, _Z, 2,"ref");
+        //check the results
+        //init
+        for (int z=0; z<_Z; z++) {
+          for (int c = 0; c < _Y; c++) {
+              for (int r = 0; r < _X; r++)
+                   ref(r, c, z, 0) =ref(r, c, z, 1)= input_halide(r, c, z);
+          }
+        }
+        //polybench implementation, to test
+        for (int t=0;t<_TIME;t++){
+            for (int z = 1; z < _Z-1; z++) {
+              for (int y = 1; y < _Y-1; y++) {
+                  for (int x=1; x<_X-1; x++)
+                       ref(x, y, z, (t+1)%2) =
+   			ref(x,y,z,t%2) + _ALPHA *
+   				( ref(x,y,z-1,t%2) - _BETA * ref(x,y,z,t%2) + ref(x,y,z+1,t%2)
+   				+ ref(x,y-1,z,t%2) - _BETA * ref(x,y,z,t%2) + ref(x,y+1,z,t%2)
+   				+ ref(x-1,y,z,t%2) - _BETA * ref(x,y,z,t%2) + ref(x+1,y,z,t%2));
+              }
+            }
+        }
+
+       if (CHECK_CORRECTNESS) {
             //comparison
             Halide::Buffer<float> output_ref(_X, _Y, _Z,"output_ref");
             Halide::Buffer<float> output_tiramisu(_X, _Y, _Z,"output_tiramisu");
@@ -95,7 +120,7 @@ int main(int, char**) {
                 for (int c = 0; c < _Y; c++) {
                     for (int r = 0; r < _X; r++)
                             {
-                                output_ref(r,c,z) = output_halide(r,c,z,_TIME);
+                                output_ref(r,c,z) = ref(r,c,z,_TIME%2);
                                 output_tiramisu(r,c,z)=out_global[z][c][r];//from gatherd result
                             }
                           }

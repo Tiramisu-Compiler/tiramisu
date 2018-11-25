@@ -2,14 +2,14 @@
 #define HALIDE__build___wrapper_heat3ddist_o_h
 
 //dimensions
-#define _X 30
-#define _Y 30
-#define _Z 400
+#define _X 5
+#define _Y 5
+#define _Z 40
 #ifndef NODES
 #define NODES 4
 #endif
 //time
-#define _TIME 200
+#define _TIME 20
 //the constants of the algorithm
 #define _ALPHA 0.125f
 #define _BETA 2.0f

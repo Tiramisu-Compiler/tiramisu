@@ -24,4 +24,4 @@ convolutiongpu[gpu]
 warp_affinegpu[gpu]
 fusiongpu[gpu]
 heat3d
-heat3ddist[mpi,10]
+heat3ddist[mpi,4]
