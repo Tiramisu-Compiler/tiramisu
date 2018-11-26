@@ -253,6 +253,12 @@ bool access_has_id(const tiramisu::expr &exp)
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:
@@ -341,15 +347,21 @@ bool access_is_affine(const tiramisu::expr &exp)
             case tiramisu::o_max:
             case tiramisu::o_min:
             case tiramisu::o_floor:
-            case tiramisu::o_sin:
-            case tiramisu::o_cos:
             case tiramisu::o_select:
             case tiramisu::o_lerp:
             case tiramisu::o_cond:
+            case tiramisu::o_sin:
+            case tiramisu::o_cos:
             case tiramisu::o_tan:
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:
@@ -705,6 +717,12 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:
@@ -846,6 +864,12 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:
@@ -1138,6 +1162,12 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:
@@ -3680,6 +3710,30 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 result = Halide::atan(op0);
                 DEBUG(10, tiramisu::str_dump("op type: o_atan"));
                 break;
+            case tiramisu::o_sinh:
+                result = Halide::sinh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_sinh"));
+                break;
+            case tiramisu::o_cosh:
+                result = Halide::cosh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_cosh"));
+                break;
+            case tiramisu::o_tanh:
+                result = Halide::tanh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_tanh"));
+                break;
+            case tiramisu::o_asinh:
+                result = Halide::asinh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_asinh"));
+                break;
+            case tiramisu::o_acosh:
+                result = Halide::acosh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_acosh"));
+                break;
+            case tiramisu::o_atanh:
+                result = Halide::atanh(op0);
+                DEBUG(10, tiramisu::str_dump("op type: o_atanh"));
+                break;
             case tiramisu::o_abs:
                 result = Halide::abs(op0);
                 DEBUG(10, tiramisu::str_dump("op type: o_abs"));
@@ -3841,6 +3895,12 @@ void tiramisu::generator::_update_producer_expr_name(tiramisu::expr &current_exp
             case tiramisu::o_asin:
             case tiramisu::o_acos:
             case tiramisu::o_atan:
+            case tiramisu::o_sinh:
+            case tiramisu::o_cosh:
+            case tiramisu::o_tanh:
+            case tiramisu::o_asinh:
+            case tiramisu::o_acosh:
+            case tiramisu::o_atanh:
             case tiramisu::o_abs:
             case tiramisu::o_sqrt:
             case tiramisu::o_expo:

@@ -1256,6 +1256,18 @@ public:
                         return *this;
                     case tiramisu::o_asin:
                         return *this;
+                    case tiramisu::o_sinh:
+                        return *this;
+                    case tiramisu::o_cosh:
+                        return *this;
+                    case tiramisu::o_tanh:
+                        return *this;
+                    case tiramisu::o_asinh:
+                        return *this;
+                    case tiramisu::o_acosh:
+                        return *this;
+                    case tiramisu::o_atanh:
+                        return *this;
                     case tiramisu::o_abs:
                         return *this;
                     case tiramisu::o_sqrt:
@@ -1459,6 +1471,30 @@ public:
                     case tiramisu::o_asin:
                         str +=  "asin(" + this->get_operand(0).to_str();
                         str +=  ") ";
+                        break;
+                    case tiramisu::o_sinh:
+                        str += "sinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_cosh:
+                        str += "cosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_tanh:
+                        str += "tanh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_asinh:
+                        str += "asinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_acosh:
+                        str += "acosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_atanh:
+                        str += "atanh(" + this->get_operand(0).to_str();
+                        str += ") ";
                         break;
                     case tiramisu::o_abs:
                         str +=  "abs(" + this->get_operand(0).to_str();

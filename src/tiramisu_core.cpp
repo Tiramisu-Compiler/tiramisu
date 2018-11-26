@@ -4949,6 +4949,18 @@ std::string str_tiramisu_type_op(tiramisu::op_t type)
         return "acos";
     case tiramisu::o_atan:
         return "atan";
+    case tiramisu::o_sinh:
+        return "sinh";
+    case tiramisu::o_cosh:
+        return "cosh";
+    case tiramisu::o_tanh:
+        return "tanh";
+    case tiramisu::o_asinh:
+        return "asinh";
+    case tiramisu::o_acosh:
+        return "acosh";
+    case tiramisu::o_atanh:
+        return "atanh";
     case tiramisu::o_abs:
         return "abs";
     case tiramisu::o_sqrt:
