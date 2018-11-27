@@ -10,11 +10,14 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-    var p_i("p_i", 0, 1);
+    var p_i("p_i", 0, 4);
     input params({p_i}, p_int32);
     constant feature_size("feature_size", params(0));
+    constant batch_size("batch_size", params(1));
+    constant num_layers("num_layers", params(2));
+    constant seq_length("seq_length", params(3));
 
-    var i("i", 0, feature_size), j("j", 0, feature_size);
+    var i("i", 0, feature_size), j("j", 0, feature_size), k("k", 0, batch_size);
 
     input R_i("R_i", {i, j}, p_float32);
     input R_z("R_z", {i, j}, p_float32);
@@ -28,27 +31,28 @@ int main(int argc, char **argv)
     input b_z("b_z", {i}, p_float32);
     input b_o("b_o", {i}, p_float32);
     input b_f("b_f", {i}, p_float32);
-    input h_prev({j}, p_float32);
-    input c_prev({j}, p_float32);
-    input x({j}, p_float32);
+    input h_prev({k, j}, p_float32);
+    input c_prev({k, j}, p_float32);
+    input x({k, j}, p_float32);
 
-    computation sum_i_init({i}, b_i(i));
-    computation sum_z_init({i}, b_z(i));
-    computation sum_o_init({i}, b_o(i));
-    computation sum_f_init({i}, b_f(i));
-    computation sum_i({i, j}, sum_i_init(i) + R_i(i, j) * h_prev(j) + W_i(i, j) * x(j));
-    computation sum_z({i, j}, sum_z_init(i) + R_z(i, j) * h_prev(j) + W_z(i, j) * x(j));
-    computation sum_o({i, j}, sum_o_init(i) + R_o(i, j) * h_prev(j) + W_o(i, j) * x(j));
-    computation sum_f({i, j}, sum_f_init(i) + R_f(i, j) * h_prev(j) + W_f(i, j) * x(j));
-    computation sig_i({i}, expr(float(1)) / (1 + expr(o_expo, -sum_i(i, -1))));
-    computation tnh_z({i}, expr(o_tanh, sum_z(i, -1)));
-    computation sig_o({i}, expr(float(1)) / (1 + expr(o_expo, -sum_o(i, -1))));
-    computation sig_f({i}, expr(float(1)) / (1 + expr(o_expo, -sum_f(i, -1))));
-    computation mul_iz({i}, sig_i(i) * tnh_z(i));
-    computation mul_fc({i}, sig_f(i) * c_prev(i));
-    computation c({i}, mul_iz(i) + mul_fc(i));
-    computation tnh_c({i}, expr(o_tanh, c(i)));
-    computation h({i}, tnh_c(i) * sig_o(i));
+    computation sum_i_init({k, i}, b_i(i));
+    computation sum_z_init({k, i}, b_z(i));
+    computation sum_o_init({k, i}, b_o(i));
+    computation sum_f_init({k, i}, b_f(i));
+    computation sum_i({k, i, j}, sum_i_init(k, i) + R_i(i, j) * h_prev(k, j) + W_i(i, j) * x(k, j));
+    computation sum_z({k, i, j}, sum_z_init(k, i) + R_z(i, j) * h_prev(k, j) + W_z(i, j) * x(k, j));
+    computation sum_o({k, i, j}, sum_o_init(k, i) + R_o(i, j) * h_prev(k, j) + W_o(i, j) * x(k, j));
+    computation sum_f({k, i, j}, sum_f_init(k, i) + R_f(i, j) * h_prev(k, j) + W_f(i, j) * x(k, j));
+    #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
+    computation sig_i({k, i}, sigmoid(sum_i(k, i, -1)));
+    computation tnh_z({k, i}, expr(o_tanh, sum_z(k, i, -1)));
+    computation sig_o({k, i}, sigmoid(sum_o(k, i, -1)));
+    computation sig_f({k, i}, sigmoid(sum_f(k, i, -1)));
+    computation mul_iz({k, i}, sig_i(k, i) * tnh_z(k, i));
+    computation mul_fc({k, i}, sig_f(k, i) * c_prev(k, i));
+    computation c({k, i}, mul_iz(k, i) + mul_fc(k, i));
+    computation tnh_c({k, i}, expr(o_tanh, c(k, i)));
+    computation h({k, i}, tnh_c(k, i) * sig_o(k, i));
 
     // -------------------------------------------------------
     // Layer II
@@ -79,15 +83,15 @@ int main(int argc, char **argv)
     buffer buf_params("buf_params", {1}, p_int32, a_input);
     buffer buf_Weights("buf_Weights", {feature_size * 8, feature_size}, p_float32, a_input);
     buffer buf_biases("buf_biases", {feature_size * 4}, p_float32, a_input);
-    buffer buf_h_prev("buf_h_prev", {feature_size}, p_float32, a_input);
-    buffer buf_c_prev("buf_c_prev", {feature_size}, p_float32, a_input);
-    buffer buf_x("buf_x", {feature_size}, p_float32, a_input);
-    buffer buf_tmp_i("buf_tmp_i", {feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_z("buf_tmp_z", {feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_o("buf_tmp_o", {feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_f("buf_tmp_f", {feature_size}, p_float32, a_temporary);
-    buffer buf_c("buf_c", {feature_size}, p_float32, a_output);
-    buffer buf_h("buf_h", {feature_size}, p_float32, a_output);
+    buffer buf_h_prev("buf_h_prev", {batch_size, feature_size}, p_float32, a_input);
+    buffer buf_c_prev("buf_c_prev", {batch_size, feature_size}, p_float32, a_input);
+    buffer buf_x("buf_x", {batch_size, feature_size}, p_float32, a_input);
+    buffer buf_tmp_i("buf_tmp_i", {batch_size, feature_size}, p_float32, a_temporary);
+    buffer buf_tmp_z("buf_tmp_z", {batch_size, feature_size}, p_float32, a_temporary);
+    buffer buf_tmp_o("buf_tmp_o", {batch_size, feature_size}, p_float32, a_temporary);
+    buffer buf_tmp_f("buf_tmp_f", {batch_size, feature_size}, p_float32, a_temporary);
+    buffer buf_c("buf_c", {batch_size, feature_size}, p_float32, a_output);
+    buffer buf_h("buf_h", {batch_size, feature_size}, p_float32, a_output);
 
     params.store_in(&buf_params);
     R_i.set_access("[feature_size]->{R_i[i, j]->buf_Weights[i + feature_size * 0, j]}");
@@ -109,10 +113,10 @@ int main(int argc, char **argv)
     sum_z_init.store_in(&buf_tmp_z);
     sum_o_init.store_in(&buf_tmp_o);
     sum_f_init.store_in(&buf_tmp_f);
-    sum_i.store_in(&buf_tmp_i, {i});
-    sum_z.store_in(&buf_tmp_z, {i});
-    sum_o.store_in(&buf_tmp_o, {i});
-    sum_f.store_in(&buf_tmp_f, {i});
+    sum_i.store_in(&buf_tmp_i, {k, i});
+    sum_z.store_in(&buf_tmp_z, {k, i});
+    sum_o.store_in(&buf_tmp_o, {k, i});
+    sum_f.store_in(&buf_tmp_f, {k, i});
     sig_i.store_in(&buf_tmp_i);
     tnh_z.store_in(&buf_tmp_z);
     sig_o.store_in(&buf_tmp_o);
