@@ -3542,7 +3542,7 @@ public:
 
     /**
       * Apply loop skewing on the loop levels \p i and \p j.
-      * The names of the new loop levels is \p new_i and \p new_j.
+      * The names of the new loop levels is \p ni and \p nj.
       *
       * This command transforms the loop (i, j) into the loop (i, i+j).
       * For example if you have the following loop
