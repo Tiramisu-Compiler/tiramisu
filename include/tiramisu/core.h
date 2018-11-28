@@ -3542,6 +3542,7 @@ public:
 
     /**
       * Apply loop skewing on the loop levels \p i and \p j.
+      * The names of the new loop levels is \p new_i and \p new_j.
       *
       * This command transforms the loop (i, j) into the loop (i, i+j).
       * For example if you have the following loop
@@ -3555,7 +3556,7 @@ public:
       * and apply
 
       \code
-	a.skew(i, j)
+	a.skew(i, j, ni, nj)
       \endcode
 
       * you would get
@@ -3567,10 +3568,17 @@ public:
       \endcode
 
       */
-    //@{
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var ni, tiramisu::var nj);
+
+    /**
+      * \overload
+      */
     void skew(tiramisu::var i, tiramisu::var j);
+
+    /**
+      * \overload
+      */
     void skew(int i, int j);
-    //@}
 
     /**
       * Split the loop level \p L0 of the iteration space into two

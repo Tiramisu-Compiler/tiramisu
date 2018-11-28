@@ -3494,6 +3494,34 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
     return sched;
 }
 
+void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var new_L0_var, tiramisu::var new_L1_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(new_L0_var.get_name().length() > 0);
+    assert(new_L1_var.get_name().length() > 0);
+
+    this->assert_names_not_assigned({new_L0_var.get_name(), new_L1_var.get_name()});
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+
+    this->skew(L0, L1);
+
+    this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
+
+    DEBUG_INDENT(-4);
+}
+
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var)
 {
     DEBUG_FCT_NAME(3);
@@ -3502,13 +3530,10 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var)
     assert(L0_var.get_name().length() > 0);
     assert(L1_var.get_name().length() > 0);
 
-    std::vector<int> dimensions =
-        this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
-    this->check_dimensions_validity(dimensions);
-    int L0 = dimensions[0];
-    int L1 = dimensions[1];
+    tiramisu::var new_L0_var = tiramisu::var(generate_new_variable_name());
+    tiramisu::var new_L1_var = tiramisu::var(generate_new_variable_name());
 
-    this->skew(L0, L1);
+    this->skew(L0_var, L1_var, new_L0_var, new_L1_var);
 
     DEBUG_INDENT(-4);
 }
