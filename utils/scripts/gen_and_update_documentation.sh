@@ -13,6 +13,8 @@ set -e
 
 echo "### Generate new documentation, copy the generated documentation to the website. ####"
 
+echo_and_run_cmd "cd ${WEBSITE_DIR}"
+echo_and_run_cmd "git pull"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/build/"
 echo_and_run_cmd "make doc"
 echo_and_run_cmd "cp -r doc/* ${WEBSITE_DIR}/doc/"
