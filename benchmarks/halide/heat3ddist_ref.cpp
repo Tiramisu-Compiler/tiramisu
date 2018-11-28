@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_heat3d.h"
+#include "wrapper_heat3ddist.h"
 
 using namespace Halide;
 int main(int argc, char **argv) {
@@ -7,7 +7,7 @@ ImageParam input(Float(32), 3, "input");
 
 Buffer<float>  output(_X,_Y,_Z,_TIME+1);
 
-Func heat3d("heat3d_ref");
+Func heat3d("heat3ddist_ref");
 
 Var x("x"), y("y"),z("z"),k("K"),x0,x1,y0,y1,z0,z1;
 
@@ -22,9 +22,9 @@ heat3d(st.x, st.y, st.z, st.w) =  heat3d(st.x, st.y, st.z,st.w-1) +_ALPHA *
 
 Halide::Target target = Halide::get_host_target();
 
-heat3d.compile_to_object("build/generated_fct_heat3d_ref.o",
+heat3d.compile_to_object("build/generated_fct_heat3ddist_ref.o",
                            {input},
-                           "heat3d_ref",
+                           "heat3ddist_ref",
                            target);
 
 return 0;

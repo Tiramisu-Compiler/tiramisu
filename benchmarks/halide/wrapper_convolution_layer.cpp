@@ -32,10 +32,10 @@ int main(int, char**)
 		for (int y = 0; y < N+K; ++y)	       
 			for (int x = 0; x < N+K; ++x)
 			    //input(x, y, z, n) = rand()%10; 
-				input(x, y, z, n) = 1; 
+				input(x, y, z, n) = 5; 
 
     for (int z = 0; z < FOut; ++z)
-        bias(z) = 0;
+        bias(z) = 1;
 
      for (int y = 0; y < K+1; ++y)
         for (int x = 0; x < K+1; ++x)
@@ -62,13 +62,13 @@ int main(int, char**)
     std::cout << "\t\tHalide convolution_layer duration" << ": " << median(duration_vector_1)/1000 << "; " << std::endl;
   
     // Write the result 
-    std::ofstream halide_resultfile;
+   /* std::ofstream halide_resultfile;
     halide_resultfile.open ("/home/dina/tiramisuOut/convolution_layer_halide_result.txt");
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int z = 0; z < FOut; ++z) 
             for (int y = 0; y < N; ++y)	       
                 for (int x = 0; x < N; ++x) halide_resultfile <<convolution_layer_halide(x, y, z, n);  
-    halide_resultfile.close();
+    halide_resultfile.close();*/
 
     /****************************************** Tiramisu Part ********************************************************/
 
@@ -94,13 +94,13 @@ int main(int, char**)
     std::cout << "\t\tTiramisu convolution_layer duration" << ": " << median(duration_vector_2)/1000 << "; " << std::endl;
 
        // Write the result 
-    std::ofstream resultfile;
+    /*std::ofstream resultfile;
     resultfile.open ("/home/dina/tiramisuOut/convolution_layer_tiramisu_result.txt");
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int z = 0; z < FOut; ++z) 
             for (int y = 0; y < N; ++y)	       
                 for (int x = 0; x < N; ++x) resultfile <<convolution_layer_tiramisu_buff(x, y, z, n);     
-    resultfile.close();
+    resultfile.close();*/
   
 
     /*************************** Comparaison of the result of  Halide & Tiramisu******************************/

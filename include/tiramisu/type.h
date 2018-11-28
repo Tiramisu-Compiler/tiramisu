@@ -62,6 +62,12 @@ enum op_t
     o_asin,
     o_acos,
     o_atan,
+    o_sinh,
+    o_cosh,
+    o_tanh,
+    o_asinh,
+    o_acosh,
+    o_atanh,
     o_abs,
     o_sqrt,
     o_expo, // exponential
