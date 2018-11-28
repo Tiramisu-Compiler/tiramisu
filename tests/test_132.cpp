@@ -25,7 +25,7 @@ void generate_function(std::string name, int size, int val0)
 
     // Algorithm
     tiramisu::constant N("N", tiramisu::expr((int32_t) size));
-    tiramisu::var i("i", 0, N), j("j", 0, N);
+    tiramisu::var i("i", 1, N-1), j("j", 1, N-1);
     tiramisu::input A("A", {i, j}, p_uint8);
 
     tiramisu::computation result({i,j}, A(i-1, j) + A(i, j-1));
