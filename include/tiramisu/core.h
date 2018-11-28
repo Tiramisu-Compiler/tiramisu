@@ -3541,6 +3541,38 @@ public:
     void shift(tiramisu::var L0, int n);
 
     /**
+      * Apply loop skewing on the loop levels \p i and \p j.
+      *
+      * This command transforms the loop (i, j) into the loop (i, i+j).
+      * For example if you have the following loop
+      *
+      * \code
+        for (int i = 1; i < N; i++)
+	  for (int j = 1; j < M; j++)
+	    a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
+
+      * and apply
+
+      \code
+	a.skew(i, j)
+      \endcode
+
+      * you would get
+      *
+      \code
+      for (int i = 1; i < N; i++)
+        for (int j = i+1; j < i+M; j++)
+	  a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
+      \endcode
+
+      */
+    //@{
+    void skew(tiramisu::var i, tiramisu::var j);
+    void skew(int i, int j);
+    //@}
+
+    /**
       * Split the loop level \p L0 of the iteration space into two
       * new loop levels.
       *
