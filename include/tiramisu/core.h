@@ -3541,16 +3541,15 @@ public:
     void shift(tiramisu::var L0, int n);
 
     /**
-      * Apply loop skewing on the loop levels \p i and \p j.
-      * The names of the new loop levels is \p ni and \p nj.
+      * Apply loop skewing on the loop levels \p i and \p j.  The names of the new loop levels is \p ni and \p nj.
       *
       * This command transforms the loop (i, j) into the loop (i, i+j).
       * For example if you have the following loop
       *
       * \code
-        for (int i = 1; i < N; i++)
-	  for (int j = 1; j < M; j++)
-	    a[i][j] = a[i - 1][j] + a[i][j - 1];
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
        \endcode
 
       * and apply
@@ -3564,7 +3563,7 @@ public:
       \code
       for (int i = 1; i < N; i++)
         for (int j = i+1; j < i+M; j++)
-	  a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
+          a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
       \endcode
 
       */
