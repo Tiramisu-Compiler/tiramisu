@@ -17,6 +17,10 @@
 
 // BARYON_N is used for loop iterators.
 #define BARYON_N 16
+#define BX 16
+#define BY 16
+#define BZ 16
+#define BT 16
 // BARYON_P1 is used for the size of first dimension
 // of array and possible value of the parameters used
 // in that first dimension.
