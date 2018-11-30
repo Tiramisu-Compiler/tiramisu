@@ -366,5 +366,6 @@ if (${USE_GPU})
 endif()
 add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
 add_subdirectory(benchmarks/DNN/blocks/conv2)
+add_subdirectory(benchmarks/DNN/blocks/LSTM/cpu)
 
 

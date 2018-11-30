@@ -291,11 +291,12 @@ public:
     {
         if (expr0.get_data_type() != expr1.get_data_type())
 	{
-	    tiramisu::str_dump("Binary operation between the following two expressions. ");
+	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
 	    expr0.dump(false);
 	    tiramisu::str_dump(" and ");
 	    expr1.dump(false);
-            ERROR(". Expr0 and expr1 should be of the same type. Dumping expr0 and expr1.", true);
+	    tiramisu::str_dump("\n");
+            ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
 	}
 
         this->_operator = o;
@@ -1255,6 +1256,18 @@ public:
                         return *this;
                     case tiramisu::o_asin:
                         return *this;
+                    case tiramisu::o_sinh:
+                        return *this;
+                    case tiramisu::o_cosh:
+                        return *this;
+                    case tiramisu::o_tanh:
+                        return *this;
+                    case tiramisu::o_asinh:
+                        return *this;
+                    case tiramisu::o_acosh:
+                        return *this;
+                    case tiramisu::o_atanh:
+                        return *this;
                     case tiramisu::o_abs:
                         return *this;
                     case tiramisu::o_sqrt:
@@ -1458,6 +1471,30 @@ public:
                     case tiramisu::o_asin:
                         str +=  "asin(" + this->get_operand(0).to_str();
                         str +=  ") ";
+                        break;
+                    case tiramisu::o_sinh:
+                        str += "sinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_cosh:
+                        str += "cosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_tanh:
+                        str += "tanh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_asinh:
+                        str += "asinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_acosh:
+                        str += "acosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_atanh:
+                        str += "atanh(" + this->get_operand(0).to_str();
+                        str += ") ";
                         break;
                     case tiramisu::o_abs:
                         str +=  "abs(" + this->get_operand(0).to_str();

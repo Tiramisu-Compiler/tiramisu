@@ -3541,6 +3541,45 @@ public:
     void shift(tiramisu::var L0, int n);
 
     /**
+      * Apply loop skewing on the loop levels \p i and \p j.  The names of the new loop levels is \p ni and \p nj.
+      *
+      * This command transforms the loop (i, j) into the loop (i, i+j).
+      * For example if you have the following loop
+      *
+      * \code
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
+
+      * and apply
+
+      \code
+	a.skew(i, j, ni, nj)
+      \endcode
+
+      * you would get
+      *
+      \code
+      for (int i = 1; i < N; i++)
+        for (int j = i+1; j < i+M; j++)
+          a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
+      \endcode
+
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var ni, tiramisu::var nj);
+
+    /**
+      * \overload
+      */
+    void skew(tiramisu::var i, tiramisu::var j);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j);
+
+    /**
       * Split the loop level \p L0 of the iteration space into two
       * new loop levels.
       *
@@ -3925,7 +3964,21 @@ public:
     {
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        assert(access_expressions.size() == number_of_dims);
+        if (access_expressions.size() != number_of_dims)
+	{
+	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+	    for (int i = 0; i < access_expressions.size(); i++)
+	    {
+		tiramisu::expr e = access_expressions[i];
+		e.dump(false);
+		if (i != access_expressions.size() - 1)
+		    tiramisu::str_dump(", ");
+	    }
+	    tiramisu::str_dump(").\n");
+	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+	    exit(1);
+	}
+
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
             for (auto const &variable: this->access_variables) {
@@ -4009,7 +4062,31 @@ public:
 	    input(generate_new_computation_name(), iterator_variables, t)
     {
     }
+};
 
+class Input: public input{
+
+public:
+    std::vector<var> iterators_from_size_expressions(std::vector<expr> sizes)
+    {
+	std::vector<var> iterator_variables;
+
+	for (int s = 0; s < sizes.size(); s++)
+	{
+	    var v(generate_new_computation_name(), 0, sizes[s]);
+	    iterator_variables.push_back(v);
+	}
+
+	return iterator_variables;
+    }
+
+    /**
+      * \overload
+      */
+    Input(std::string name, std::vector<expr> sizes, primitive_t t)
+	:input(name, iterators_from_size_expressions(sizes), t)
+    {
+    }
 };
 
 class view:public computation{
@@ -4027,6 +4104,8 @@ public:
       * \p iterator_variables is a vector that represents the dimensions of
       * the view.  It is used to define the size of the view.
       *
+      * \p t is the type of buffer data (p_float32 for example).
+      *
       * Example:
       *
       * If we want to access a buffer buf where results of a computation C are stored
@@ -4041,7 +4120,7 @@ public:
       * and then we can declare the following view
       *
       * \code
-      * view V("V", {i,j});
+      * view V("V", {i,j}, p_float64);
       * \endcode
       *
       * Later in the code (in Layer III), we need to map the view to that buffer.
@@ -4049,13 +4128,8 @@ public:
       * V.store_in(&buf);
       * \endcode
      */
-
-    view(std::string name, std::vector<var> iterator_variables):
-    computation(name,iterator_variables,expr(),false){}
-
-   view(
-    std::string name, std::vector<var> iterator_variables, primitive_t t
-    ): computation(name, iterator_variables, expr(), false,t){}
+   view(std::string name, std::vector<var> iterator_variables, primitive_t t):
+	computation(name, iterator_variables, expr(), false,t){}
 
 };
 

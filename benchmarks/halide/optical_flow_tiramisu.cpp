@@ -6,13 +6,21 @@
 
 using namespace tiramisu;
 
+expr conv2(computation& im1, var y, var x, std::vector<int> weights)
+{
+    expr e = cast(p_float32, weights[0]*cast(p_int32, im1(y,     x)) + weights[1]*cast(p_int32, im1(y,     x + 1)) +
+			     weights[2]*cast(p_int32, im1(y + 1, x)) + weights[3]*cast(p_int32, im1(y + 1, x + 1)));
+
+    return e;
+}
+
 int main(int argc, char* argv[])
 {
     // Declare the function name
     tiramisu::init("optical_flow_tiramisu");
 
     // Declare input sizes
-    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
+    Input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
@@ -22,29 +30,25 @@ int main(int argc, char* argv[])
     var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
 
     // input images
-    input im1("im1", {y, x}, p_uint8);
-    input im2("im2", {y, x}, p_uint8);
+    Input im1("im1", {N0-1, N1-1}, p_uint8);
+    Input im2("im2", {N0-1, N1-1}, p_uint8);
 
     // Corners 
-    input C1("C1", {k}, p_int32);
-    input C2("C2", {k}, p_int32);
+    Input C1("C1", {NC}, p_int32);
+    Input C2("C2", {NC}, p_int32);
 
     // First convolution (partial on x)
-    expr e1 = cast(p_float32, cast(p_int32, im1(y,     x)) - cast(p_int32, im1(y,     x + 1)) +
-			      cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
-    computation Ix_m("Ix_m", {y, x}, e1);
+    std::vector<int> w1 = {1, -1,  1, -1};
+    computation Ix_m("Ix_m", {y, x}, conv2(im1, y, x, w1));  // Ix_m(y, x) = conv2(im1, y, x, w1);
 
-    // Second convolution  (partial on y)
-    expr e2 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-			    - cast(p_int32, im1(y + 1, x)) - cast(p_int32, im1(y + 1, x + 1)));
-    computation Iy_m("Iy_m", {y, x}, e2);
+    // Second convolution (partial on y)
+    std::vector<int> w2 = {1, 1,  -1, -1};
+    computation Iy_m("Iy_m", {y, x}, conv2(im1, y, x, w2));
 
     // Third convolution
-    expr e3 = cast(p_float32, cast(p_int32, im1(y,     x)) + cast(p_int32, im1(y,     x + 1))
-			    + cast(p_int32, im1(y + 1, x)) + cast(p_int32, im1(y + 1, x + 1)));
-    expr e4 = cast(p_float32, (- cast(p_int32, im2(y,     x))) - cast(p_int32, im2(y,     x + 1))
-			       - cast(p_int32, im2(y + 1, x))  - cast(p_int32, im2(y + 1, x + 1)));
-    computation It_m("It_m", {y, x}, e3 + e4);
+    std::vector<int> w3 = {1, 1, 1, 1};
+    std::vector<int> w4 = {-1, -1, -1, -1};
+    computation It_m("It_m", {y, x}, conv2(im1, y, x, w3) + conv2(im2, y, x, w4));
 
 
     // Second part of the algorithm
@@ -68,8 +72,8 @@ int main(int argc, char* argv[])
     // Reshape A1 to A
     var x1("x1", 0, 2);
     var y1("y1", 0, 4*w*w);
-    input        A("A",        {k, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
-    input        b("b",        {k, y1}, p_float32);     // Use b to reshape b1
+    view        A("A",        {k, y1, x1}, p_float32); // Use A to reshape A1 and A1_right
+    view        b("b",        {k, y1}, p_float32);     // Use b to reshape b1
 
     // Compute pinv(A):
     // 1)    tA = transpose(A)
@@ -92,7 +96,7 @@ int main(int argc, char* argv[])
     computation tAAp_11("tAAp_11", {k},  tAA(k,0,0)/determinant(k));
     computation tAAp_01("tAAp_01", {k}, -tAA(k,0,1)/determinant(k));
     computation tAAp_10("tAAp_10", {k}, -tAA(k,1,0)/determinant(k));
-    input X("X", {k, x1, y2}, p_float32);
+    view X("X", {k, x1, y2}, p_float32);
 
     // 4) Computing pinv(A) = X*tA
     var l2("l2", 0, 2);
@@ -106,7 +110,6 @@ int main(int argc, char* argv[])
     // Results
     computation u("u", {k}, nu(k, 0));
     computation v("v", {k}, nu(k, 1));
-
 
     // Schedule
     Ix_m.then(Iy_m, x)
@@ -200,6 +203,8 @@ int main(int argc, char* argv[])
     v.store_in(&b_v, {k});
 
     tiramisu::codegen({&b_SIZES, &b_im1, &b_im2, &b_Ix_m, &b_Iy_m, &b_It_m, &b_C1, &b_C2, &b_u, &b_v, &b_A, &b_pinvA, &b_determinant, &b_tAA, &b_tA, &b_X}, "build/generated_fct_optical_flow.o");
+
+    global::get_implicit_function()->dump_halide_stmt();
 
     return 0;
 }

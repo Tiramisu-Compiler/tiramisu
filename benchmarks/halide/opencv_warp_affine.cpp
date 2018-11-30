@@ -12,9 +12,10 @@ int main( int, char** argv )
   Point2f dstTri[3];
   Mat rot_mat( 2, 3, CV_32FC1 );
   Mat warp_mat( 2, 3, CV_32FC1 );
-  Mat src, warp_dst, warp_rotate_dst;
+  Mat src0, src, warp_dst, warp_rotate_dst;
 
-  src = imread( argv[1], 1 );
+  src0 = imread( argv[1], 1 );
+  cv::cvtColor(src0, src, CV_BGR2GRAY);
   warp_dst = Mat::zeros( src.rows, src.cols, src.type() );
   srcTri[0] = Point2f( 0,0 );
   srcTri[1] = Point2f( src.cols - 1.f, 0 );

@@ -4,19 +4,18 @@ using namespace tiramisu;
 
 #define mixf(x, y, a) (cast(p_float32, x) * (expr((float) 1) - cast(p_float32, a)) + cast(p_float32, y) * cast(p_float32, a))
 
-int main(int argc, char* argv[]) {
-
-    // Name of the function that we want to generate.
+int main(int argc, char* argv[])
+{
     tiramisu::init("warp_affine_tiramisu");
 
-    // Declare an input that holds the sizes of input arrays.
-    input SIZES("SIZES", {var("S", 0, 2)}, p_int32);
+    Input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
 
+    Input in("in", {N0, N1}, p_uint8);
+
     var x("x", 0, N1), y("y", 0, N0);
-    input in("in", {y, x}, p_uint8);
 
     expr a00 = expr((float) 0.1);
     expr a01 = expr((float) 0.1);
@@ -25,7 +24,6 @@ int main(int argc, char* argv[]) {
     expr b00 = expr((float) 0.1);
     expr b10 = expr((float) 0.1);
 
-    // Translating this algorithm as close as possible
     expr o_r = a11*cast(p_float32, y) + a10*cast(p_float32, x) + b00;
     expr o_c = a01*cast(p_float32, y) + a00*cast(p_float32, x) + b10;
 
@@ -70,6 +68,8 @@ int main(int argc, char* argv[]) {
     affine.store_in(&b_affine);
 
     tiramisu::codegen({&b_SIZES, &b_input, &b_affine}, "build/generated_fct_warp_affine.o");
+
+    global::get_implicit_function()->dump_halide_stmt();
 
     return 0;
 }

@@ -17,6 +17,7 @@ laplacian
 edge
 edgegpu[gpu]
 optical_flow
+py_optical_flow
 heat2dgpu[gpu]
 gaussiangpu[gpu]
 rgbyuv420gpu[gpu]
