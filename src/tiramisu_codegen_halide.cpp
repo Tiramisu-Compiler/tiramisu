@@ -1612,7 +1612,7 @@ Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
                                                bool is_a_child_block,
-                                               std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map)
+                                               std::unordered_map<isl_ast_node*, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1881,7 +1881,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
         char *cstr = isl_ast_expr_to_C_str(iter);
         std::string iterator_str = std::string(cstr);
 
-        auto it_kernel = iterator_to_kernel_map.find(iterator_str);
+        auto it_kernel = iterator_to_kernel_map.find(node);
 
         if (it_kernel != iterator_to_kernel_map.end())
         {
