@@ -279,6 +279,14 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 gpu_local.clear();
                 kernel_simplified_vars.clear();
                 current_kernel->set_body(statement_ptr{final_body});
+                // Add previous iterators as arguments to the kernel:
+                for (auto it = iterator_stack.begin(); it != iterator_stack.end() - 1; it++) {
+                    current_kernel->add_used_scalar(
+                        scalar_ptr{new cuda_ast::scalar{
+                            tiramisu::global::get_loop_iterator_data_type(),
+                            *it,
+                            cuda_ast::memory_location::reg}});
+                }
                 kernels.push_back(current_kernel);
                 result = statement_ptr{new kernel_call{current_kernel}};
                 iterator_to_kernel_map[node].push_back(current_kernel);
