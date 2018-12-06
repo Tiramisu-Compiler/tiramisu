@@ -46,13 +46,7 @@ int main(int argc, char **argv)
     buffer buf_biases_gpu("buf_biases_gpu", {num_layers, 4, feature_size}, p_float32, a_temporary);
     buffer buf_x_gpu("buf_x_gpu", {seq_length, batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_y_gpu("buf_y_gpu", {seq_length, batch_size, feature_size}, p_float32, a_temporary);
-    // TODO: Does not support parallel
-    buffer buf_tmp_i("buf_tmp_i", {num_layers, batch_size, feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_z("buf_tmp_z", {num_layers, batch_size, feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_o("buf_tmp_o", {num_layers, batch_size, feature_size}, p_float32, a_temporary);
-    buffer buf_tmp_f("buf_tmp_f", {num_layers, batch_size, feature_size}, p_float32, a_temporary);
-    // TODO: As in cuDNN LSTM example, we store every output at separate places in a huge tensor.
-    // This can be made more compact.
+    buffer buf_workspace("buf_workspace", {num_layers, 4, batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_h("buf_h", {seq_length + 1, num_layers + 1, batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_c("buf_c", {seq_length + 1, num_layers, batch_size, feature_size}, p_float32, a_temporary);
 
@@ -60,10 +54,7 @@ int main(int argc, char **argv)
     buf_biases_gpu.tag_gpu_global();
     buf_x_gpu.tag_gpu_global();
     buf_y_gpu.tag_gpu_global();
-    buf_tmp_i.tag_gpu_global();
-    buf_tmp_z.tag_gpu_global();
-    buf_tmp_o.tag_gpu_global();
-    buf_tmp_f.tag_gpu_global();
+    buf_workspace.tag_gpu_global();
     buf_h.tag_gpu_global();
     buf_c.tag_gpu_global();
 
@@ -185,21 +176,21 @@ int main(int argc, char **argv)
     b_f.store_in(&buf_biases_gpu, {l, 3, i});
     x.store_in(&buf_x_gpu);
     y.store_in(&buf_y_gpu);
-    sum_i_init.store_in(&buf_tmp_i, {l, k, i});
-    sum_z_init.store_in(&buf_tmp_z, {l, k, i});
-    sum_o_init.store_in(&buf_tmp_o, {l, k, i});
-    sum_f_init.store_in(&buf_tmp_f, {l, k, i});
-    sum_i.store_in(&buf_tmp_i, {l, k, i});
-    sum_z.store_in(&buf_tmp_z, {l, k, i});
-    sum_o.store_in(&buf_tmp_o, {l, k, i});
-    sum_f.store_in(&buf_tmp_f, {l, k, i});
-    sig_i.store_in(&buf_tmp_i, {l, k, i});
-    tnh_z.store_in(&buf_tmp_z, {l, k, i});
-    sig_o.store_in(&buf_tmp_o, {l, k, i});
-    sig_f.store_in(&buf_tmp_f, {l, k, i});
-    mul_iz.store_in(&buf_tmp_i, {l, k, i});
-    mul_fc.store_in(&buf_tmp_f, {l, k, i});
-    tnh_c.store_in(&buf_tmp_i, {l, k, i});
+    sum_i_init.store_in(&buf_workspace, {l, 0, k, i});
+    sum_z_init.store_in(&buf_workspace, {l, 1, k, i});
+    sum_o_init.store_in(&buf_workspace, {l, 2, k, i});
+    sum_f_init.store_in(&buf_workspace, {l, 3, k, i});
+    sum_i.store_in(&buf_workspace, {l, 0, k, i});
+    sum_z.store_in(&buf_workspace, {l, 1, k, i});
+    sum_o.store_in(&buf_workspace, {l, 2, k, i});
+    sum_f.store_in(&buf_workspace, {l, 3, k, i});
+    sig_i.store_in(&buf_workspace, {l, 0, k, i});
+    tnh_z.store_in(&buf_workspace, {l, 1, k, i});
+    sig_o.store_in(&buf_workspace, {l, 2, k, i});
+    sig_f.store_in(&buf_workspace, {l, 3, k, i});
+    mul_iz.store_in(&buf_workspace, {l, 0, k, i});
+    mul_fc.store_in(&buf_workspace, {l, 3, k, i});
+    tnh_c.store_in(&buf_workspace, {l, 0, k, i});
     h.store_in(&buf_h, {m + 1, l + 1, k, i});
     c.store_in(&buf_c, {m + 1, l, k, i});
     h_init.store_in(&buf_h, {0, l, k, i});
