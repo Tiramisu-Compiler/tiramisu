@@ -25,7 +25,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int tiramisu_generated_code(halide_buffer_t *_p0_buffer, halide_buffer_t *_p1_buffer, halide_buffer_t *_p2_buffer);
+
+int tiramisu_generated_code(halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *);
+
 int tiramisu_generated_code_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

@@ -125,7 +125,7 @@ void ref(float Res2[BT],
                Res1 = Res1 + wp[k][b2][b1][b0] * Res0;
 	   }
 
-           Res2[t] = Res2[t] + Res1;
+           Res2[t] = Res2[t] + /*exp(i(i3*px+i2*py+i1*pz)) **/ Res1;
          }
     }
 }

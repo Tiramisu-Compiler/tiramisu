@@ -60,7 +60,10 @@ int main(int, char **)
 	    auto start1 = std::chrono::high_resolution_clock::now();
 	    tiramisu_generated_code(buf_res2.raw_buffer(),
 				    buf_S.raw_buffer(),
-				    buf_wp.raw_buffer());
+				    buf_wp.raw_buffer(),
+				    fc1.raw_buffer(),
+				    fc2.raw_buffer(),
+				    fc3.raw_buffer());
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
