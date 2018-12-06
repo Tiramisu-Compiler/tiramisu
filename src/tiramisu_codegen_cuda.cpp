@@ -289,7 +289,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 }
                 kernels.push_back(current_kernel);
                 result = statement_ptr{new kernel_call{current_kernel}};
-                iterator_to_kernel_map[node].push_back(current_kernel);
+                iterator_to_kernel_map[node] = current_kernel;
                 current_kernel.reset();
                 in_kernel = false;
             } else {
@@ -794,7 +794,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         nvcc_compiler = std::shared_ptr<cuda_ast::compiler>{new cuda_ast::compiler{code}};
 
-        iterator_to_kernel_list = generator.iterator_to_kernel_map;
+        this->iterator_to_kernel_map = generator.iterator_to_kernel_map;
 
 
         DEBUG_INDENT(-4);
