@@ -280,7 +280,10 @@ private:
      */
     std::vector<std::string> iterator_names;
 
-    std::unordered_map<isl_ast_node*, std::list<cuda_ast::kernel_ptr>> iterator_to_kernel_list;
+    /**
+     * Map from loop iterators to CUDA kernels.
+     */
+    std::unordered_map<isl_ast_node*, cuda_ast::kernel_ptr> iterator_to_kernel_map;
 
     std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
 
@@ -4341,8 +4344,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block,
-                                                            std::unordered_map<isl_ast_node*, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map);
+                                                            bool is_a_child_block);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,

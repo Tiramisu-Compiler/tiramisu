@@ -664,7 +664,7 @@ private:
     cuda_ast::statement_ptr parse_tiramisu(const tiramisu::expr & tiramisu_expr);
     int loop_level = 0;
     kernel_ptr current_kernel;
-    std::unordered_map<isl_ast_node*, std::list<kernel_ptr>> iterator_to_kernel_map;
+    std::unordered_map<isl_ast_node*, kernel_ptr> iterator_to_kernel_map;
     std::vector<kernel_ptr> kernels;
     // Will be set to true as soon as GPU computation is encountered, and set to false as soon as GPU loop is exited
     bool in_kernel = false;
