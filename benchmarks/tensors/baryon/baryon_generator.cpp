@@ -25,12 +25,12 @@ void generate_function(std::string name, int size)
     tiramisu::function function0(name);
 
     tiramisu::constant N_CONST("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant BT_CONST("BT", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant BT_CONST("BT", tiramisu::expr((int32_t) BT), p_int32, true, NULL, 0, &function0);
     tiramisu::constant a1("a1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant a2("a2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant a3("a3", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant xp0("xp0", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
-    tiramisu::constant KMAX("KMAX", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
+    tiramisu::constant KMAX("KMAX", tiramisu::expr((int32_t) BK), p_int32, true, NULL, 0, &function0);
     tiramisu::constant b0("b0", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
@@ -60,15 +60,11 @@ void generate_function(std::string name, int size)
     tiramisu::computation Res1_update_0("[BT, N, KMAX]->{Res1_update_0[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
     Res1_update_0.set_expression(Res1(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
-    tiramisu::computation Res2_temp("[BT, N]->{Res2_temp[t, i1, i2, i3]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res2_temp_update_0("[BT, N]->{Res2_temp_update_0[t, i1, i2, i3]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
-    Res2_temp_update_0.set_expression(Res2_temp_update_0(t, i1, i2, i3) + Res1_update_0(t, i1, i2, i3, KMAX));
-
     tiramisu::computation Res2("[BT, N]->{Res2[t]: 0<=t<BT}", tiramisu::expr((float) 0), true, p_float32, &function0);
     tiramisu::computation Res2_update_0("[BT, N]->{Res2_update_0[t, i1, i2, i3]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
-    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res2_temp_update_0(t, i1, i2, i3));
+    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3, 0));
 
-    function0.add_context_constraints("[N, M, K]->{:N=16}");
+    function0.add_context_constraints("[N, M, K,BT]->{:N=16}, BT=16");
 
     // -------------------------------------------------------
     // Layer III
@@ -76,19 +72,23 @@ void generate_function(std::string name, int size)
     tiramisu::buffer buf_fc1("buf_fc1", {KMAX}, tiramisu::p_int32, a_input, &function0);
     tiramisu::buffer buf_fc2("buf_fc2", {KMAX}, tiramisu::p_int32, a_input, &function0);
     tiramisu::buffer buf_fc3("buf_fc3", {KMAX}, tiramisu::p_int32, a_input, &function0);
-    tiramisu::buffer buf_d1("buf_d1", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
-    tiramisu::buffer buf_d2("buf_d2", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
-    tiramisu::buffer buf_d3("buf_d3", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
 
-
-    tiramisu::buffer buf_res0("buf_res0", {N_CONST}, tiramisu::p_float32, a_temporary, &function0);
+    tiramisu::buffer buf_res0("buf_res0", {BZ}, tiramisu::p_float32, a_temporary, &function0);
     buf_res0.set_auto_allocate(false);
-    tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res2_temp, i3);
+    tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res2, t);
     tiramisu::buffer buf_res1("buf_res1", {N_CONST}, tiramisu::p_float32, a_temporary, &function0);
     buf_res1.set_auto_allocate(false);
-    tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res2_temp, i3);
-    tiramisu::buffer buf_res2_temp("buf_res2_temp", {N_CONST}, tiramisu::p_float32, a_temporary, &function0);
+    tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res2, t);
     tiramisu::buffer buf_res2("buf_res2", {BT_CONST}, tiramisu::p_float32, a_output, &function0);
+    tiramisu::buffer buf_d1("buf_d1", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    buf_d1.set_auto_allocate(false);
+    tiramisu::computation *alloc_d1 = buf_d1.allocate_at(Res2, t);
+    tiramisu::buffer buf_d2("buf_d2", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    buf_d2.set_auto_allocate(false);
+    tiramisu::computation *alloc_d2 = buf_d2.allocate_at(Res2, t);
+    tiramisu::buffer buf_d3("buf_d3", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    buf_d3.set_auto_allocate(false);
+    tiramisu::computation *alloc_d3 = buf_d3.allocate_at(Res2, t);
 
     // S(d1, i3, i2, i1, t, a1, x’0)
     tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), N_CONST, N_CONST, N_CONST, tiramisu::expr((int32_t) BARYON_P1)}, tiramisu::p_float32, a_input, &function0);
@@ -101,11 +101,9 @@ void generate_function(std::string name, int size)
     d1.store_in(&buf_d1, {0});
     d2.store_in(&buf_d2, {0});
     d3.store_in(&buf_d3, {0});
-    Res0.store_in(&buf_res0, {k});
+    Res0.store_in(&buf_res0, {i3});
     Res1.store_in(&buf_res1, {i3});
     Res1_update_0.store_in(&buf_res1, {i3});
-    Res2_temp.store_in(&buf_res2_temp, {i3});
-    Res2_temp_update_0.store_in(&buf_res2_temp, {i3});
     Res2.store_in(&buf_res2, {t});
     Res2_update_0.store_in(&buf_res2, {t});
     S.store_in(&buf_S);
@@ -115,19 +113,21 @@ void generate_function(std::string name, int size)
     // Layer II
     // -------------------------------------------------------
 
-    Res2.then(*alloc_res0, t)
-	.then(*alloc_res1, i3)
-	.then(Res2_temp, i3)
+    Res2.then(*alloc_res1, t)
+	.then(*alloc_res0, t)
+	.then(*alloc_d1, t)
+	.then(*alloc_d2, t)
+	.then(*alloc_d3, t)
 	.then(Res1, i3)
 	.then(d1, i3)
 	.then(d2, k)
 	.then(d3, k)
 	.then(Res0, k)
 	.then(Res1_update_0, k)
-	.then(Res2_temp_update_0, i3)
 	.then(Res2_update_0, i2);
 
-//    Res2_temp.tag_vector_level(i1, BARYON_N);
+    Res0.tag_vector_level(i3, BARYON_N);
+    Res2.tag_parallel_level(t);
 
     // -------------------------------------------------------
     // Code Generation

@@ -109,7 +109,7 @@ void ref(float Res2[BT],
          {
            float Res1 = 0;
 
-           for (int k = 1; k <= BARYON_N; k++)
+           for (int k = 1; k <= BK; k++)
 	   {
                int c1 = fc1[k];
                int c2 = fc2[k];
