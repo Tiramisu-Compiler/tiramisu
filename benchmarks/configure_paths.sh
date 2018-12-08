@@ -1,4 +1,6 @@
-## Configure the use of MKL library. Only required for benchmarking GEMM (matrix multiplication).
+#!/usr/bin/env bash 
+
+## Configure the MKL library (Only required for benchmarks that use Intel MKL)
 #### Path to MKL
 export MKL_PREFIX=/opt/intel/compilers_and_libraries/mac/mkl/
 #### MKL library flag
@@ -8,9 +10,12 @@ export MKL_LIB_PATH_SUFFIX=
 ################################################################
 # Most of the following options do not need to be modified.
 
-# Path to the Tiramisu root directory.  If this fails for some reason, just specify the path to tiramisu manually.
+# Path to the Tiramisu root director
+# If this fails for some reason, just specify the path to tiramisu manually.
 # For example /Users/b/Documents/src/MIT/tiramisu/
-export TIRAMISU_ROOT=$(dirname "$0")/../
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+export TIRAMISU_ROOT=${SCRIPTPATH}/../
+echo ${TIRAMISU_ROOT}
 
 # Use the perf tool ?
 export USE_PERF=0
