@@ -17,7 +17,7 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 export TIRAMISU_ROOT=${SCRIPTPATH}/../
 echo ${TIRAMISU_ROOT}
 
-# Number of cores used for compilations
+# Number of Halide threads used for parallelization
 export CORES=1
 
 # Paths to Tiramisu 3rd party libraries
