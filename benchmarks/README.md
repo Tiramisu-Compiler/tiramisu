@@ -64,5 +64,18 @@ Example
         
 This will compile and run the baryon benchmark.
 
+# Other Benchmarks
+#### Run Benchmarks
+
+To run a given benchmark
+
+        ./compile_and_run_benchmarks.sh <path-to-benchmark> <benchmark-name>
+        
+Example
+
+        ./compile_and_run_benchmarks.sh tensors/baryon/ baryon
+        
+This will compile and run the baryon benchmark.
+
 #### Troubleshooting
 - The script that compiles benchmarks uses the configuration file [configure_paths.sh](../../benchmarks/configure_paths.sh). Open that file to make sure the configuration is correct (path to Intel MKL, ...).
