@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
 
     // Note that indices are flipped (see tutorial 2)
     Halide::Buffer<int32_t> buf_params(4);
-    Halide::Buffer<float> buf_Weights(feature_size, feature_size, 8, num_layers);
-    Halide::Buffer<float> buf_biases(feature_size, 4, num_layers);
+    Halide::Buffer<float> buf_Weights(feature_size, 4 * feature_size, 2, num_layers);
+    Halide::Buffer<float> buf_biases(4 * feature_size, num_layers);
     Halide::Buffer<float> buf_x(feature_size, batch_size, seq_length);
     Halide::Buffer<float> buf_y(feature_size, batch_size, seq_length);
 
