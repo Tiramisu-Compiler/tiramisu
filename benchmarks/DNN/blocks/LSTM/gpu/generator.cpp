@@ -2,7 +2,7 @@
 
 using namespace tiramisu;
 
-#define BLOCK 16
+#define BLOCK 8
 
 int main(int argc, char **argv)
 {
@@ -23,10 +23,10 @@ int main(int argc, char **argv)
     // Inner dimensions
     var i("i", 0, feature_size), j("j", 0, feature_size), k("k", 0, batch_size);
     var i_merged("i_m", 0, feature_size * 4);
+    var i0("i0"), i1("i1"), k0("k0"), k1("k1");
     var j0("j0", 0, feature_size / BLOCK), j1("j1", 0, BLOCK);
     // Outer dimensions
     var l("l", 0, num_layers), m("m", 0, seq_length);
-    var i0("i0"), i1("i1"), k0("k0"), k1("k1");
 
     input R("R", {l, i_merged, j}, p_float32);
     input W("W", {l, i_merged, j}, p_float32);

@@ -10,8 +10,8 @@ typedef std::chrono::duration<double,std::milli> duration_t;
 
 int main(int argc, char *argv[])
 {
-    int testN = 1;
-    int warmupN = 5;
+    int testN = 100;
+    int warmupN = 20;
 
     // Gemm requires these sizes to be constant
     int feature_size = 512;
