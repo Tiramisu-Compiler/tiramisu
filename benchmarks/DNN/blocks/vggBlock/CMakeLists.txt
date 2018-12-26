@@ -10,8 +10,8 @@ set(compare_SOURCES wrapper_nn_block.cpp)
 add_executable(vgg_block_generator_tiramisu ${tiramisu_SOURCES})
 add_executable(wrapper_nn_block_vgg ${compare_SOURCES})
  
-target_link_libraries(vgg_block_generator_tiramisu   ${PROJECT_DIR}/build/libtiramisu.so)
-target_link_libraries(wrapper_nn_block_vgg ${CMAKE_CURRENT_SOURCE_DIR}/generated_vgg_block.o ${PROJECT_DIR}/build/libtiramisu.so )
+target_link_libraries(vgg_block_generator_tiramisu   tiramisu)
+target_link_libraries(wrapper_nn_block_vgg ${CMAKE_CURRENT_SOURCE_DIR}/generated_vgg_block.o tiramisu )
 
 add_custom_target(tiramisu_run_vgg_block
   COMMAND vgg_block_generator_tiramisu
