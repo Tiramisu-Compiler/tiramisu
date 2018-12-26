@@ -17,11 +17,8 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 export TIRAMISU_ROOT=${SCRIPTPATH}/../
 echo ${TIRAMISU_ROOT}
 
-# Use the perf tool ?
-export USE_PERF=0
-
-# Number of cores used for compilations
-export CORES=4
+# Number of Halide threads used for parallelization
+export CORES=1
 
 # Paths to Tiramisu 3rd party libraries
 export ISL_INCLUDE_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/isl/build/include/

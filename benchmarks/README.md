@@ -52,6 +52,22 @@ To add a given benchmark to the build system, add its name in the file
         # Download and install Intel MKL from:
         https://software.intel.com/mkl
 
+#### Configuration
+- To run linear algebra benchmarks, you need to specify the path to Intel MKL in the configuration file [configure_paths.sh](../../benchmarks/configure_paths.sh). Edit that file to provide the path to Intel MKL.
+
+#### Run Benchmarks
+
+To run a given benchmark
+
+        ./compile_and_run_benchmarks.sh <path-to-benchmark> <benchmark-name>
+        
+Example
+
+        ./compile_and_run_benchmarks.sh linear_algebra/blas/level3/sgemm/cpu/ sgemm
+        
+This will compile and run the baryon benchmark.
+
+# Other Benchmarks
 #### Run Benchmarks
 
 To run a given benchmark
@@ -63,6 +79,3 @@ Example
         ./compile_and_run_benchmarks.sh tensors/baryon/ baryon
         
 This will compile and run the baryon benchmark.
-
-#### Troubleshooting
-- The script that compiles benchmarks uses the configuration file [configure_paths.sh](../../benchmarks/configure_paths.sh). Open that file to make sure the configuration is correct (path to Intel MKL, ...).
