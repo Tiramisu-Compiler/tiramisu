@@ -34,7 +34,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - RDom predicate: test_54
 - .parallelize(): test_75
 - saxpy: test_71
-- skew(): 131, 132, 133
+- skew(): 131, 132, 133, 134, 135
 - .store_at(): test_29, 30, 31, 38, 39, 82, 83
 - .shift(): test_15
 -  shift operator: test_06
