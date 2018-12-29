@@ -21,20 +21,34 @@ int main(int, char **)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<float> buf_res2(1, "buf_res2");
-    Halide::Buffer<float> buf_res2_ref(1, "buf_res2_ref");
-    Halide::Buffer<float> buf_S(BARYON_P, BARYON_P, BARYON_P, BARYON_N, BARYON_N, BARYON_N, BARYON_P1, "buf_S");
-    Halide::Buffer<float> buf_wp(BARYON_N, BARYON_P, BARYON_P, BARYON_P, BARYON_P1, BARYON_P1, BARYON_P1, "buf_wp");
+    Halide::Buffer<float> buf_res2(BT, "buf_res2");
+    Halide::Buffer<float> buf_res2_ref(BT, "buf_res2_ref");
+    Halide::Buffer<float> buf_S(BARYON_P1, BZ, BY, BX, BARYON_P, BARYON_P, BARYON_P, "buf_S");
+    Halide::Buffer<float> buf_wp(BARYON_P, BARYON_P, BARYON_P, BARYON_N, "buf_wp");
+    Halide::Buffer<int> fc1(BARYON_N, "buf_fc1");
+    Halide::Buffer<int> fc2(BARYON_N, "buf_fc2");
+    Halide::Buffer<int> fc3(BARYON_N, "buf_fc2");
 
-    init_buffers((float (*)[BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P1]) buf_S.raw_buffer()->host, (float (*)[BARYON_P][BARYON_P][BARYON_P][BARYON_P1][BARYON_P1][BARYON_P1]) buf_wp.raw_buffer()->host, (float)5);
+
+    init_buffers((float (*)[BARYON_P][BARYON_P][BX][BY][BZ][BARYON_P1]) buf_S.raw_buffer()->host,
+		 (float (*)[BARYON_P][BARYON_P][BARYON_P]) buf_wp.raw_buffer()->host,
+		 (float) 5,
+		 (int *) fc1.raw_buffer()->host,
+		 (int *) fc2.raw_buffer()->host,
+		 (int *) fc3.raw_buffer()->host);
 
     for (int i = 0; i < NB_TESTS; i++)
     {
     	    init_buffer(buf_res2_ref, (float)0);
 	    auto start2 = std::chrono::high_resolution_clock::now();
+
 	    ref((float *) buf_res2_ref.raw_buffer()->host,
-		(float (*)[BARYON_P][BARYON_P][BARYON_N][BARYON_N][BARYON_N][BARYON_P1]) buf_S.raw_buffer()->host,
-		(float (*)[BARYON_P][BARYON_P][BARYON_P][BARYON_P1][BARYON_P1][BARYON_P1]) buf_wp.raw_buffer()->host);
+		(float (*)[BARYON_P][BARYON_P][BX][BY][BZ][BARYON_P1]) buf_S.raw_buffer()->host,
+		(float (*)[BARYON_P][BARYON_P][BARYON_P]) buf_wp.raw_buffer()->host,
+		(int *) fc1.raw_buffer()->host,
+		(int *) fc2.raw_buffer()->host,
+		(int *) fc3.raw_buffer()->host);
+
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
@@ -44,7 +58,12 @@ int main(int, char **)
     {
 	    init_buffer(buf_res2, (float)0);
 	    auto start1 = std::chrono::high_resolution_clock::now();
-	    tiramisu_generated_code(buf_res2.raw_buffer(), buf_S.raw_buffer(), buf_wp.raw_buffer());
+	    tiramisu_generated_code(buf_res2.raw_buffer(),
+				    buf_S.raw_buffer(),
+				    buf_wp.raw_buffer(),
+				    fc1.raw_buffer(),
+				    fc2.raw_buffer(),
+				    fc3.raw_buffer());
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);

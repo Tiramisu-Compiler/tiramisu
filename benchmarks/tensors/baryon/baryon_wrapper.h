@@ -25,7 +25,30 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-int tiramisu_generated_code(halide_buffer_t *_p0_buffer, halide_buffer_t *_p1_buffer, halide_buffer_t *_p2_buffer);
+
+// BARYON_N is used for loop iterators.
+#define BARYON_N 16
+#define BX 16
+#define BY 16
+#define BZ 16
+#define BT 16
+#define BK 16
+
+// BARYON_P1 is used for the size of first dimension
+// of array and possible value of the parameters used
+// in that first dimension.
+#define BARYON_P1 3
+// BARYON_P is used for the size of the other array
+// dimensions that are not of size BARYON_N
+#define BARYON_P 1
+
+int tiramisu_generated_code(halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *);
+
 int tiramisu_generated_code_argv(void **args);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;

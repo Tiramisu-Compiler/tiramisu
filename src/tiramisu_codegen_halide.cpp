@@ -1611,8 +1611,7 @@ Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Inte
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                               bool is_a_child_block,
-                                               std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map)
+                                               bool is_a_child_block)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1734,8 +1733,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
                 // Generate a child block
-                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true,
-                                                                       iterator_to_kernel_map);
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true);
             }
             isl_ast_node_free(child);
 
@@ -1881,14 +1879,11 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
         char *cstr = isl_ast_expr_to_C_str(iter);
         std::string iterator_str = std::string(cstr);
 
-        auto it_kernel = iterator_to_kernel_map.find(iterator_str);
+        auto it_kernel = fct.iterator_to_kernel_map.find(node);
 
-        if (it_kernel != iterator_to_kernel_map.end())
+        if (it_kernel != fct.iterator_to_kernel_map.end())
         {
-            assert(!(it_kernel->second.empty()) && "Required kernel was not generated");
-            auto k = it_kernel->second.back();
-            it_kernel->second.pop_back();
-
+            auto k = it_kernel->second;
             std::vector<Halide::Expr> args;
             std::vector<isl_ast_expr *> ie;
             for (auto &id: k->get_arguments())
@@ -1966,8 +1961,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
                     std::cout << cond_upper_bound_halide_format);
             Halide::Internal::Stmt halide_body =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false,
-                                                                   iterator_to_kernel_map);
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false);
             Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
             Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
@@ -2271,8 +2265,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
             Halide::Internal::Stmt if_s =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false,
-                                                                   iterator_to_kernel_map);
+                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false);
 
             DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
 
@@ -2293,8 +2286,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
-                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false,
-                                                                            iterator_to_kernel_map);
+                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false);
                     DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
                 }
             }
@@ -2334,8 +2326,7 @@ void function::gen_halide_stmt()
     Halide::Internal::Stmt stmt;
 
     // Generate the statement that represents the whole function
-    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, false,
-                                                          this->iterator_to_kernel_list);
+    stmt = tiramisu::generator::halide_stmt_from_isl_node(*this, this->get_isl_ast(), 0, generated_stmts, false);
 
     DEBUG(3, tiramisu::str_dump("The following Halide statement was generated:\n"); std::cout << stmt << std::endl);
 

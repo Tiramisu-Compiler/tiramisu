@@ -152,8 +152,8 @@ const std::string tiramisu_type_to_cuda_type(tiramisu::primitive_t t) {
 
 namespace tiramisu {
 
-cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(isl_ast_node_ptr &node) {
-        isl_ast_node_type type = isl_ast_node_get_type(node.get());
+cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(isl_ast_node *node) {
+        isl_ast_node_type type = isl_ast_node_get_type(node);
 
         switch (type) {
             case isl_ast_node_for:
@@ -171,14 +171,14 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_node_ptr &node) {
-        isl_ast_node_ptr then_body{isl_ast_node_if_get_then(node.get())};
-        isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node.get())};
+    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_node *node) {
+        isl_ast_node *then_body = isl_ast_node_if_get_then(node);
+        isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node)};
 
         statement_ptr then_body_stmt{cuda_stmt_from_isl_node(then_body)};
         statement_ptr else_body_stmt;
-        if (isl_ast_node_if_has_else(node.get())) {
-            isl_ast_node_ptr else_body{isl_ast_node_if_get_else(node.get())};
+        if (isl_ast_node_if_has_else(node)) {
+            isl_ast_node *else_body = isl_ast_node_if_get_else(node);
             else_body_stmt = cuda_stmt_from_isl_node(else_body);
         }
 
@@ -192,12 +192,12 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_block(isl_ast_node_ptr &node) {
-        isl_ast_node_list_ptr children_list{isl_ast_node_block_get_children(node.get())};
+    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_block(isl_ast_node *node) {
+        isl_ast_node_list_ptr children_list{isl_ast_node_block_get_children(node)};
         const int block_length = isl_ast_node_list_n_ast_node(children_list.get());
         auto *b = new block;
         for (int i = 0; i < block_length; i++) {
-            isl_ast_node_ptr child_node{isl_ast_node_list_get_ast_node(children_list.get(), i)};
+            isl_ast_node *child_node = isl_ast_node_list_get_ast_node(children_list.get(), i);
             b->add_statement(cuda_stmt_from_isl_node(child_node));
         }
         return statement_ptr{b};
@@ -213,7 +213,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node_ptr &node)
+    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node *node)
     {
         // TODO this is potentially a hack
         assert(isl_ast_expr_get_type(expr.get()) == isl_ast_expr_type::isl_ast_expr_op);
@@ -231,17 +231,17 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_for(isl_ast_node_ptr &node) {
-        isl_ast_expr_ptr iterator{isl_ast_node_for_get_iterator(node.get())};
+    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_for(isl_ast_node *node) {
+        isl_ast_expr_ptr iterator{isl_ast_node_for_get_iterator(node)};
         isl_id_ptr iterator_id{isl_ast_expr_get_id(iterator.get())};
         std::string iterator_name(isl_id_get_name(iterator_id.get()));
         DEBUG(3, tiramisu::str_dump("The iterator name is: ", iterator_name.c_str()));
 
 
-        isl_ast_expr_ptr condition{isl_ast_node_for_get_cond(node.get())};
-        isl_ast_expr_ptr incrementor{isl_ast_node_for_get_inc(node.get())};
-        isl_ast_expr_ptr initializer{isl_ast_node_for_get_init(node.get())};
-        isl_ast_node_ptr body{isl_ast_node_for_get_body(node.get())};
+        isl_ast_expr_ptr condition{isl_ast_node_for_get_cond(node)};
+        isl_ast_expr_ptr incrementor{isl_ast_node_for_get_inc(node)};
+        isl_ast_expr_ptr initializer{isl_ast_node_for_get_init(node)};
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
 
 
         // TODO check if degenerate
@@ -279,9 +279,17 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 gpu_local.clear();
                 kernel_simplified_vars.clear();
                 current_kernel->set_body(statement_ptr{final_body});
+                // Add previous iterators as arguments to the kernel:
+                for (auto it = iterator_stack.begin(); it != iterator_stack.end() - 1; it++) {
+                    current_kernel->add_used_scalar(
+                        scalar_ptr{new cuda_ast::scalar{
+                            tiramisu::global::get_loop_iterator_data_type(),
+                            *it,
+                            cuda_ast::memory_location::reg}});
+                }
                 kernels.push_back(current_kernel);
                 result = statement_ptr{new kernel_call{current_kernel}};
-                iterator_to_kernel_map[iterator_name].push_back(current_kernel);
+                iterator_to_kernel_map[node] = current_kernel;
                 current_kernel.reset();
                 in_kernel = false;
             } else {
@@ -317,7 +325,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_expr(isl_ast_expr_ptr &expr,
-                                                                                     isl_ast_node_ptr &node) {
+                                                                                     isl_ast_node *node) {
         isl_ast_expr_type type = isl_ast_expr_get_type(expr.get());
         switch (type) {
             case isl_ast_expr_op: DEBUG(3, tiramisu::str_dump("isl op"));
@@ -499,10 +507,10 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr,
-                                                                                        isl_ast_node_ptr &node) {
+                                                                                        isl_ast_node *node) {
         isl_ast_op_type op_type = isl_ast_expr_get_op_type(expr.get());
         if (op_type == isl_ast_op_call) {
-            auto *comp = get_computation_annotated_in_a_node(node.get());
+            auto *comp = get_computation_annotated_in_a_node(node);
             // TODO use lower bound
             if (!this->in_kernel) {
                 for (auto &comp_gpu_pair : this->m_fct.gpu_block_dimensions) {
@@ -682,8 +690,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node_ptr &node) {
-        isl_ast_expr_ptr expr{isl_ast_node_user_get_expr(node.get())};
+    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
+        isl_ast_expr_ptr expr{isl_ast_node_user_get_expr(node)};
         return cuda_stmt_handle_isl_expr(expr, node);
     }
 
@@ -696,8 +704,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         cuda_ast::generator generator{*this};
 
         auto *body = new cuda_ast::block;
-        isl_ast_node_ptr isl_main_body{isl_ast_node_copy(this->get_isl_ast())};
-        auto main_body = generator.cuda_stmt_from_isl_node(isl_main_body);
+        auto main_body = generator.cuda_stmt_from_isl_node(this->get_isl_ast());
 
         for (auto &kernel : generator.kernels)
         {
@@ -787,7 +794,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         nvcc_compiler = std::shared_ptr<cuda_ast::compiler>{new cuda_ast::compiler{code}};
 
-        iterator_to_kernel_list = generator.iterator_to_kernel_map;
+        this->iterator_to_kernel_map = generator.iterator_to_kernel_map;
 
 
         DEBUG_INDENT(-4);

@@ -1,11 +1,3 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
 #include <string.h>
@@ -30,7 +22,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation result({i,j}, expr((uint8_t) 2));
 
     // Scheduling
-    result.skew(i, j);
+    result.skew(i, j, 1);
 
     // Data mapping
     tiramisu::buffer result_buffer("result_buffer", {size, size}, tiramisu::p_uint8, a_output);

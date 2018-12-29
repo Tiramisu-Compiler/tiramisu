@@ -155,8 +155,8 @@ find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 # Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
-string(STRIP ${LLVM_VERSION} LLVM_VERSION)
-if (${LLVM_VERSION} VERSION_LESS 5.0)
+string(STRIP "${LLVM_VERSION}" LLVM_VERSION)
+if ("${LLVM_VERSION}" VERSION_LESS 5.0)
     message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
 endif()
 
@@ -363,9 +363,9 @@ endforeach()
 if (${USE_GPU})
     add_subdirectory(benchmarks/linear_algebra/blas/level3/sgemm/gpu)
     add_subdirectory(benchmarks/linear_algebra/chain_mm/gpu)
+    add_subdirectory(benchmarks/DNN/blocks/LSTM/gpu)
 endif()
 add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
 add_subdirectory(benchmarks/DNN/blocks/conv2)
 add_subdirectory(benchmarks/DNN/blocks/LSTM/cpu)
-
-
+add_subdirectory(benchmarks/DNN/blocks/vggBlock)

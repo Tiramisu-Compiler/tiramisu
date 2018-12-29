@@ -280,7 +280,10 @@ private:
      */
     std::vector<std::string> iterator_names;
 
-    std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> iterator_to_kernel_list;
+    /**
+     * Map from loop iterators to CUDA kernels.
+     */
+    std::unordered_map<isl_ast_node*, cuda_ast::kernel_ptr> iterator_to_kernel_map;
 
     std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
 
@@ -3541,9 +3544,10 @@ public:
     void shift(tiramisu::var L0, int n);
 
     /**
-      * Apply loop skewing on the loop levels \p i and \p j.  The names of the new loop levels is \p ni and \p nj.
+      * Apply loop skewing on the loop levels \p i and \p j with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni and \p nj.
       *
-      * This command transforms the loop (i, j) into the loop (i, i+j).
+      * This command transforms the loop (i, j) into the loop (i, f*i+j).
       * For example if you have the following loop
       *
       * \code
@@ -3555,7 +3559,7 @@ public:
       * and apply
 
       \code
-	a.skew(i, j, ni, nj)
+	a.skew(i, j, 1, ni, nj);
       \endcode
 
       * you would get
@@ -3567,17 +3571,55 @@ public:
       \endcode
 
       */
-    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var ni, tiramisu::var nj);
+    void skew(tiramisu::var i, tiramisu::var j, int f, tiramisu::var ni, tiramisu::var nj);
+
+    /**
+      * Apply loop skewing on the loop levels \p i, \p j and \p k with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni, \p nj and \p nk.
+      *
+      * This command transforms the loop (i, j, k) into the loop (i, f*i+j, f*i+k).
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor,
+	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk);
+
+    /**
+      * Apply loop skewing on the loop levels \p i, \p j, \p k, \p l with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni, \p nj, \p nk and \p nl.
+      *
+      * This command transforms the loop (i, j, k, l) into the loop (i, f*i+j, f*i+k, f*i+l).
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor,
+	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk, tiramisu::var nl);
 
     /**
       * \overload
       */
-    void skew(tiramisu::var i, tiramisu::var j);
+    void skew(tiramisu::var i, tiramisu::var j, int factor);
 
     /**
       * \overload
       */
-    void skew(int i, int j);
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int k, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int k, int l, int factor);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -4341,8 +4383,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block,
-                                                            std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map);
+                                                            bool is_a_child_block);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
