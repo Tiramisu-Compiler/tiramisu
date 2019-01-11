@@ -5,6 +5,7 @@
 #include <cuda_profiler_api.h>
 
 #include "wrapper.h"
+#include "wrapper_cudnn.h"
 
 typedef std::chrono::duration<double,std::milli> duration_t;
 
@@ -55,11 +56,26 @@ int main(int argc, char *argv[])
         durations.push_back(t2 - t1);
     }
 
-    if (testN > 0) {
-        std::cout << "LSTM median runtime: " << median(durations) << "ms" << std::endl << std::flush;
+    std::cout << "LSTM done" << std::endl;
+
+    setup_cudnn(seq_length, num_layers, batch_size, feature_size);
+
+    std::vector<duration_t> cudnn_durations;
+    for (int i = 0; i < testN; i++) {
+        auto t1 = std::chrono::high_resolution_clock::now();
+        run_cudnn();
+        auto t2 = std::chrono::high_resolution_clock::now();
+        cudnn_durations.push_back(t2 - t1);
     }
 
-    std::cout << "LSTM done" << std::endl;
+    free_cudnn();
+
+    std::cout << "cudnn done" << std::endl;
+
+    if (testN > 0) {
+        std::cout << "LSTM median runtime: " << median(durations) << "ms" << std::endl << std::flush;
+        std::cout << "cudnn median runtime: " << median(cudnn_durations) << "ms" << std::endl << std::flush;
+    }
 
     return 0;
 }
