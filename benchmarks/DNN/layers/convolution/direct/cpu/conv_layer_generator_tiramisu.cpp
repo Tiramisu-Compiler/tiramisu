@@ -58,54 +58,6 @@ int main(int argc, char **argv)
     // Layer II
     if (LARGE_DATA_SET)
     {
-	if (0) {
-		int vec_len = 32;
-		int y_block = 32;
-		int o_block = 4;
-
-		conv_init.tag_parallel_level(0);
-		conv_init.split(3, vec_len);
-		conv_init.tag_vector_level(4, vec_len);
-
-		conv.after(conv_init, 1);
-
-		conv.interchange(3, 4);
-		// conv_init.tile(1, 2, 32, 32);
-		// conv.tile(1, 2, 32, 32);
-
-		// conv.split(1, o_block);
-		conv.split(2, y_block);
-		conv.split(5, vec_len);
-		conv.tag_vector_level(6, vec_len);
-		conv.tag_unroll_level(7);
-		conv.tag_unroll_level(8);
-	}
-	if (0) {
-	    int vec_len = 32;
-	    int y_block = 32;
-	    int o_block = 4;
-
-	    conv_init.tag_parallel_level(0);
-	    conv.after(conv_init, 2);
-
-	    // 0, 1,   2,   3,   4,   5,     6,
-	    // n, z,   y,   x, r_z, r_y,   r_x,
-	    conv.interchange(3, 4);
-	    // n, z,   y  r_z,   x, r_y,   r_x,
-
-	    conv.split(1, o_block);
-	    conv_init.split(1, o_block);
-
-	    conv.split(3, y_block);
-	    conv.split(6, vec_len);
-	    conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(9);
-
-	    conv_init.split(4, vec_len);
-	    conv_init.tag_vector_level(5, vec_len);
-	}
-	if (1)
-	{
             int vec_len = 32;
             int y_block = 32;
             int o_block = 4;
@@ -133,48 +85,9 @@ int main(int argc, char **argv)
             // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
             conv_init.split(4, vec_len);
             conv_init.tag_vector_level(5, vec_len);
-	}
     }
     else if (MEDIUM_DATA_SET)
     {
-	if (0) // Replicate of Halide's schedule. But Halide = 18ms and Tiramisu=54ms, so there is a problem in Tiramisu code generator.
-	{
-	    int vec_len = 32;
-	    int y_block = 32;
-	    int o_block = 4;
-
-	    conv_init.tag_parallel_level(0);
-	    conv.after(conv_init, tiramisu::computation::root_dimension);
-
-	    // 0, 1,   2,   3,   4,   5,     6,
-	    // n, z,   y,   x, r_z, r_y,   r_x,
-	    conv.interchange(3, 4);
-	    // n, z,   y, (r_z,   x), r_y,   r_x,
-	    conv.interchange(3, 2);
-	    // n, z, (r_z,   y),   x, r_y,   r_x,
-
-	    conv.split(1, o_block);
-	    // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
-
-	    conv.split(4, y_block);
-	    // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-
-	    conv.interchange(2, 3);
-	    // n, z, (r_z, z_t), y, y_t, x, r_y,   r_x,
-
-	    conv.interchange(3, 4);
-	    // n, z, r_z, (y, z_t), y_t, x, r_y,   r_x,
-
-	    conv.split(6, vec_len); 
-	    conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(8);
-	    conv.tag_unroll_level(9);
-
-	    conv_init.split(3, vec_len);
-	    conv_init.tag_vector_level(4, vec_len);
-	}
-	if (1)
-	{
             int vec_len = 32;
             int y_block = 32;
             int o_block = 4;
@@ -200,7 +113,6 @@ int main(int argc, char **argv)
             // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
             conv_init.split(4, vec_len);
             conv_init.tag_vector_level(5, vec_len);
-	}
     }
     else if (SMALL_DATA_SET)
     {
@@ -249,87 +161,3 @@ int main(int argc, char **argv)
 
     return 0;
 }
-
-#if 0
-int main(int argc, char **argv)
-{
-    ImageParam            input{Float(32), 4, "input"};
-    ImageParam            filter{Float(32), 4, "filter"};
-    ImageParam            bias{Float(32), 1, "bias"};
-
-    Var x("x"), y("y"), z("z"), n("n");
-
-    Func f_conv("conv");
-    RDom r(0, K, 0, K, 0, FIn);
-
-    f_conv(x, y, z, n) = bias(z);
-    f_conv(x, y, z, n) += filter(r.x, r.y, r.z, z) * input(x + r.x, y + r.y, r.z, n);
-
-    /* THE SCHEDULE */
-    if (SCHEDULE_CPU)
-    {
-	if (LARGE_DATA_SET)
-	{
-	    // Blocking spatially with vectorization
-	    Var z_t("z_t"), y_t("y_t"), par("par");
-	    int vec_len = 128;
-	    int o_block_size = 8;
-	    int y_block = 32;
-	    f_conv.compute_root();
-	    f_conv.fuse(z, n, par).parallel(par);
-	    f_conv.update().reorder(x, y, r.z);
-	    f_conv.update().split(y, y, y_t, y_block);
-	    f_conv.update().split(z, z, z_t, o_block_size);
-	    f_conv.update().reorder(y_t, z_t, y, r.z, z);
-	    f_conv.update().vectorize(x, vec_len);
-	    f_conv.update().unroll(r.x);
-	    f_conv.update().unroll(r.y);
-	    f_conv.update().fuse(z, n, par).parallel(par);
-	}
-	else if (MEDIUM_DATA_SET)
-	{
-	    // Blocking spatially with vectorization
-	    Var z_t("z_t"), y_t("y_t"), par("par");
-	    int vec_len = 32;
-	    int o_block_size = 4;
-	    int y_block = 32;
-	    f_conv.compute_root();
-	    f_conv.fuse(z, n, par).parallel(par);
-	    f_conv.update().reorder(x, y, r.z);
-	    f_conv.update().split(y, y, y_t, y_block);
-	    f_conv.update().split(z, z, z_t, o_block_size);
-	    f_conv.update().reorder(y_t, z_t, y, r.z, z);
-	    f_conv.update().vectorize(x, vec_len);
-	    f_conv.update().unroll(r.x);
-	    f_conv.update().unroll(r.y);
-	    f_conv.update().fuse(z, n, par).parallel(par);
-	}
-	else if (SMALL_DATA_SET)
-	{
-	    // Blocking spatially with vectorization
-	    Var z_t("z_t"), y_t("y_t"), par("par");
-	    int vec_len = 32;
-	    int o_block_size = 8;
-	    int y_block = 32;
-	    f_conv.compute_root();
-	    f_conv.parallel(n);
-	    f_conv.update().reorder(x, y, r.z);
-	    f_conv.update().split(y, y, y_t, y_block);
-	    f_conv.update().split(z, z, z_t, o_block_size);
-	    f_conv.update().reorder(y_t, z_t, y, r.z, z);
-	    f_conv.update().vectorize(x, vec_len);
-	    f_conv.update().unroll(r.x);
-	    f_conv.update().unroll(r.y);
-	    f_conv.update().fuse(z, n, par).parallel(par);
-	}
-    }
- 
-    Halide::Target target = Halide::get_host_target();
-
-    f_conv.compile_to_object("generated_conv.o",
-                             {input, filter, bias},
-                             "conv_halide",
-                             target);
-    return 0;
-}
-#endif
