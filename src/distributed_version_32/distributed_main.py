@@ -107,10 +107,10 @@ def data_6():
 ############################################################################
 
 #result = data_1();
-#result = data_3();
+result = data_3();
 #result = data_4();
 #result = data_5();
-result = data_6();
+#result = data_6();
 
 dist.compute_communication(result['S0_dom'], result['Access_A'], result['Access_B'], result['Access_C'], result['str_schedule'], result['A'], result['B'], result['C'], result['pr_partitioner_A'], result['ps_partitioner_A'], result['pr_partitioner_B'], result['ps_partitioner_B'], result['pr_partitioner_C'], result['ps_partitioner_C'], result['context'])
 
