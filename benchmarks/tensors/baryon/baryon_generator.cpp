@@ -23,6 +23,7 @@ void generate_function(std::string name, int size)
     // -------------------------------------------------------
 
     tiramisu::function function0(name);
+    global::set_implicit_function(&function0);
 
     tiramisu::constant N_CONST("N", tiramisu::expr((int32_t) size), p_int32, true, NULL, 0, &function0);
     tiramisu::constant BT_CONST("BT", tiramisu::expr((int32_t) BT), p_int32, true, NULL, 0, &function0);
@@ -35,10 +36,10 @@ void generate_function(std::string name, int size)
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0), p_int32, true, NULL, 0, &function0);
 
-    tiramisu::var i3("i3"), i2("i2"), i1("i1"), k("k"), t("t");
-    tiramisu::computation fc1("{fc1[i]}", tiramisu::expr(), false, p_int32, &function0);
-    tiramisu::computation fc2("{fc2[i]}", tiramisu::expr(), false, p_int32, &function0);
-    tiramisu::computation fc3("{fc3[i]}", tiramisu::expr(), false, p_int32, &function0);
+    tiramisu::var i3("i3"), i2("i2"), i1("i1"), k("k", 1, KMAX), t("t");
+    tiramisu::input fc1("fc1", {k}, p_int32);
+    tiramisu::input fc2("fc2", {k}, p_int32);
+    tiramisu::input fc3("fc3", {k}, p_int32);
     tiramisu::computation S("{S[xp0, a1, t, i1, i2, i3, d1]}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation wp("{wp[k, b0, b1, b2]}", tiramisu::expr(), false, p_float32, &function0);
 
