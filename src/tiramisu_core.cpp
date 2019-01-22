@@ -7844,12 +7844,12 @@ void computation::generate_communication(int number_of_nodes){
     //get the initial domain of the computation
     isl_set* initial_domain=isl_set_copy(this->get_iteration_domain());
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
-        isl_map_dump(initial_domain));
+        isl_set_dump(initial_domain));
 
     //get the set that will be computed bu the rank r
     isl_set* to_compute_set=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_r));
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
-        isl_map_dump(to_compute_set));
+        isl_set_dump(to_compute_set));
 
     //To compute the data needed by this computation,
     //we have to retrieve its read accesses.
@@ -7861,28 +7861,49 @@ void computation::generate_communication(int number_of_nodes){
         needed_sets.push_back(isl_set_apply(isl_set_copy(to_compute_set),read_accesses[i]));
     }
 
-    isl_set*need_set;
-    if(needed_sets.size()>0) need_set=isl_set_copy(needed_sets[0]);
+
+    isl_union_set* need_set;
+    if(needed_sets.size()>0) need_set=isl_union_set_from_set(isl_set_copy(needed_sets[0]));
     for(int i=1;i<needed_sets.size();i++){
-         need_set=isl_set_union(isl_set_copy(need_set),needed_sets[i]);
+         need_set=isl_union_set_union(isl_union_set_copy(need_set),
+         isl_union_set_from_set(isl_set_copy(needed_sets[i])));
     }
-    need_set=isl_set_coalesce(need_set);
+    need_set=isl_union_set_coalesce(need_set);//all needs
+    isl_union_set_dump(need_set);
+
+    std::set<std::string> needed_set_names;//no duplicate names
+    for(isl_set* set: needed_sets ){
+        needed_set_names.insert(isl_set_get_tuple_name(isl_set_copy(set)));
+    }
+    for(auto s:needed_set_names){
+        std::cout << s <<"\t" << std::endl;
+    }
 
     //we make an assumption that all computations have the same distributed_dimension
     //this migh be false
-    to_compute_set=isl_set_set_tuple_name(to_compute_set,isl_set_get_tuple_name(isl_set_copy(need_set)));
+    isl_union_set* have_set=isl_union_set_empty(isl_set_get_space(isl_set_copy(to_compute_set)));
+    for(auto s:needed_set_names){
+        isl_set* tmp_set=isl_set_set_tuple_name(isl_set_copy(to_compute_set),s.c_str());
+        have_set=isl_union_set_union(isl_union_set_copy(have_set),isl_union_set_from_set(tmp_set));
+    }
+    have_set=isl_union_set_coalesce(have_set);//all needs
+    isl_union_set_dump(have_set);
 
-    isl_set* missing_set=isl_set_subtract(need_set,to_compute_set);
-    missing_set=isl_set_coalesce(missing_set);
+    isl_union_set* missing_set=isl_union_set_subtract(need_set,have_set);
+    missing_set=isl_union_set_coalesce(missing_set);
+    isl_union_set_dump(missing_set);
 
     //have of other
-    isl_set* have_set_rp=
-        isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_rp));
-    have_set_rp=isl_set_set_tuple_name(have_set_rp,
-        isl_set_get_tuple_name(isl_set_copy(need_set)));
-
-    isl_set* to_send_set=isl_set_intersect(missing_set,have_set_rp);
-
+    isl_set* to_compute_set_rp=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_rp));
+    isl_union_set* have_set_rp=isl_union_set_empty(isl_set_get_space(isl_set_copy(to_compute_set_rp)));
+    for(auto s:needed_set_names){
+        isl_set* tmp_set=isl_set_set_tuple_name(isl_set_copy(to_compute_set_rp),s.c_str());
+        have_set_rp=isl_union_set_union(isl_union_set_copy(have_set_rp),isl_union_set_from_set(tmp_set));
+    }
+    have_set_rp=isl_union_set_coalesce(have_set_rp);//all needs
+    isl_union_set_dump(have_set_rp);
+    isl_union_set* to_send_set=isl_union_set_intersect(missing_set,have_set_rp);
+    isl_union_set_dump(to_send_set);
     DEBUG_INDENT(-4);
 }
 
@@ -7992,8 +8013,7 @@ std::string tiramisu::utility::get_parameter_from_bound(tiramisu::expr e){
             i++;
         }
 
-    DEBUG(3, tiramisu::str_dump("The extracted parameter from loop bound"+e.to_str()+"is :");
-                isl_map_dump(map));
+    DEBUG(3, tiramisu::str_dump("The extracted parameter from loop bound"+e.to_str()+"is :"));
 
     DEBUG_INDENT(-4);
 
