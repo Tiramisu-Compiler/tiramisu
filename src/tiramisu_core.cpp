@@ -7827,16 +7827,15 @@ void tiramisu::buffer::tag_gpu_register() {
   * rank and not owned by it.
  */
 void computation::generate_communication(int number_of_nodes){
-
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    //get the distribution map of this rank
+    //get the distribution map of this rank r
     isl_map* distribution_map_r=construct_distribution_map("r",number_of_nodes);
     DEBUG(3, tiramisu::str_dump("The distribution_map for this rank : ");
         isl_map_dump(distribution_map_r));
 
-    //get the distribution map for other ranks
+    //get the distribution map for other ranks rp
     isl_map* distribution_map_rp=construct_distribution_map("rp",number_of_nodes);
     DEBUG(3, tiramisu::str_dump("The distribution_map for other rank : ");
         isl_map_dump(distribution_map_rp));
@@ -7846,7 +7845,7 @@ void computation::generate_communication(int number_of_nodes){
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
         isl_set_dump(initial_domain));
 
-    //get the set that will be computed bu the rank r
+    //get the set that will be computed by the rank r for this computation
     isl_set* to_compute_set=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_r));
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
         isl_set_dump(to_compute_set));
@@ -7857,21 +7856,30 @@ void computation::generate_communication(int number_of_nodes){
     generator::get_rhs_accesses(this->get_function(),this,read_accesses,false);
     std::vector<isl_set*> needed_sets;
     //apply the map to get the set of the needed elements due to a read
+
+    if(read_accesses.size()==0) return; //no read accesses - for inputs
+
+    //calculate the needed sets
     for(int i=0;i<read_accesses.size();i++){
         needed_sets.push_back(isl_set_apply(isl_set_copy(to_compute_set),read_accesses[i]));
     }
 
-
+    //construct a union set of the needed sets
     isl_union_set* need_set;
     if(needed_sets.size()>0) need_set=isl_union_set_from_set(isl_set_copy(needed_sets[0]));
     for(int i=1;i<needed_sets.size();i++){
          need_set=isl_union_set_union(isl_union_set_copy(need_set),
          isl_union_set_from_set(isl_set_copy(needed_sets[i])));
     }
-    need_set=isl_union_set_coalesce(need_set);//all needs
-    isl_union_set_dump(need_set);
+    need_set=isl_union_set_coalesce(need_set);
 
+    DEBUG(3, tiramisu::str_dump("The need set is  : ");
+        isl_union_set_dump(need_set));
+
+    //to compute the data to exchange, we need to find what data do we have
+    //and the data that others have
     std::set<std::string> needed_set_names;//no duplicate names
+    //get the names of computations involved in the exchange
     for(isl_set* set: needed_sets ){
         needed_set_names.insert(isl_set_get_tuple_name(isl_set_copy(set)));
     }
@@ -7887,11 +7895,14 @@ void computation::generate_communication(int number_of_nodes){
         have_set=isl_union_set_union(isl_union_set_copy(have_set),isl_union_set_from_set(tmp_set));
     }
     have_set=isl_union_set_coalesce(have_set);//all needs
-    isl_union_set_dump(have_set);
+    DEBUG(3, tiramisu::str_dump("The have set for the needed elements is  : ");
+        isl_union_set_dump(have_set));
 
+    //calculate the missing set
     isl_union_set* missing_set=isl_union_set_subtract(need_set,have_set);
     missing_set=isl_union_set_coalesce(missing_set);
-    isl_union_set_dump(missing_set);
+    DEBUG(3, tiramisu::str_dump("The missing set is  : ");
+        isl_union_set_dump(missing_set));
 
     //have of other
     isl_set* to_compute_set_rp=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_rp));
@@ -7901,9 +7912,14 @@ void computation::generate_communication(int number_of_nodes){
         have_set_rp=isl_union_set_union(isl_union_set_copy(have_set_rp),isl_union_set_from_set(tmp_set));
     }
     have_set_rp=isl_union_set_coalesce(have_set_rp);//all needs
-    isl_union_set_dump(have_set_rp);
+    DEBUG(3, tiramisu::str_dump("The have set of other processors is  : ");
+        isl_union_set_dump(have_set_rp));
+
+    //calculate the data tha needs to be sent
     isl_union_set* to_send_set=isl_union_set_intersect(missing_set,have_set_rp);
-    isl_union_set_dump(to_send_set);
+    DEBUG(3, tiramisu::str_dump("The exchange set between rank r and ranks rp is  : ");
+        isl_union_set_dump(to_send_set));
+
     DEBUG_INDENT(-4);
 }
 
