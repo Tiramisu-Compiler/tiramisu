@@ -64,31 +64,30 @@ int main(int, char**) {
 
     if(rank==0){
         //copy to a halide buffer
-        Halide::Buffer<float> input_global(_X, _Y, _Z,"input_global");
-        Halide::Buffer<float> output_global(_X, _Y, _Z,_TIME+1,"output_global");
+        Halide::Buffer<float> input_halide(_X, _Y, _Z,"input_halide");
+        Halide::Buffer<float> output_halide(_X, _Y, _Z,_TIME+1,"output_halide");
         for (int z=0; z<_Z; z++) {
             for (int c = 0; c < _Y; c++) {
                 for (int r = 0; r < _X; r++)
-                    input_global(r, c, z)= in_global[z][c][r];
+                    input_halide(r, c, z)= in_global[z][c][r];
             }
         }
         //warm up
-        heat3ddist_ref(input_global.raw_buffer(), output_global.raw_buffer());
+        heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
 
         for (int i = 0; i < 1; i++) {
             auto start2 = std::chrono::high_resolution_clock::now();
-            heat3ddist_ref(input_global.raw_buffer(), output_global.raw_buffer());
+            heat3ddist_ref(input_halide.raw_buffer(), output_halide.raw_buffer());
             auto end2 = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> duration2 = end2 - start2;
             duration_vector_2.push_back(duration2);
         }
 
         print_time("performance_CPU.csv", "Heat3d Dist",
-                   {"Tiramisu dist", "Tiramisu"},
+                   {"Tiramisu", "Halide"},
                    {median(duration_vector_1), median(duration_vector_2)});
 
-
-       if (CHECK_CORRECTNESS) {
+        if (CHECK_CORRECTNESS) {
             //comparison
             Halide::Buffer<float> output_ref(_X, _Y, _Z,"output_ref");
             Halide::Buffer<float> output_tiramisu(_X, _Y, _Z,"output_tiramisu");
@@ -96,7 +95,7 @@ int main(int, char**) {
                 for (int c = 0; c < _Y; c++) {
                     for (int r = 0; r < _X; r++)
                             {
-                                output_ref(r,c,z) = output_global(r,c,z,_TIME);
+                                output_ref(r,c,z) = output_halide(r,c,z,_TIME);
                                 output_tiramisu(r,c,z)=out_global[z][c][r];//from gatherd result
                             }
                           }
