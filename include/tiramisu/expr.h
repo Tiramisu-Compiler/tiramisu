@@ -83,13 +83,10 @@ public:
     }
 
     /**
-      * Return the implicit function created during Tiramisu initialization.
+      * set the implicit function to the function given as an argument.
       *
-      * When Tiramisu is initialized, an implicit Tiramisu
-      * function is created.  All the computations and buffers
-      * created later are added by deafult to this function unless
-      * the user indicates otherwise using the Tiramisu API (by using the low
-      * level Tiramisu API and by providing a different function as input to the API).
+      * All the computations and buffers created later are added by deafult
+      * to this function unless it's modified again.
       */
     static void set_implicit_function(function *fct)
     {
@@ -1229,7 +1226,7 @@ public:
                     case tiramisu::o_lt:
                         return *this;
                     case tiramisu::o_ge:
-                        return *this; 
+                        return *this;
                     case tiramisu::o_gt:
                         return *this;
                     case tiramisu::o_logical_not:
