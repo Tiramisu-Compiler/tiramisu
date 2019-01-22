@@ -14,14 +14,11 @@ using namespace tiramisu;
  */
 void generate_function(std::string name, int size)
 {
-    tiramisu::global::set_default_tiramisu_options();
+    tiramisu::init(name);
 
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-
-    tiramisu::function function0(name);
-    global::set_implicit_function(&function0);
 
     tiramisu::constant N("N", tiramisu::expr((int32_t) size));
     tiramisu::constant T("T", tiramisu::expr((int32_t) BT));
@@ -63,36 +60,36 @@ void generate_function(std::string name, int size)
     tiramisu::computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
     Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3, 0));
 
-    function0.add_context_constraints("[N, M, K, T]->{:N=16}, T=16");
+    global::get_implicit_function()->add_context_constraints("[N, M, K, T]->{:N=16}, T=16");
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    tiramisu::buffer buf_fc1("buf_fc1", {K}, tiramisu::p_int32, a_input, &function0);
-    tiramisu::buffer buf_fc2("buf_fc2", {K}, tiramisu::p_int32, a_input, &function0);
-    tiramisu::buffer buf_fc3("buf_fc3", {K}, tiramisu::p_int32, a_input, &function0);
+    tiramisu::buffer buf_fc1("buf_fc1", {K}, tiramisu::p_int32, a_input);
+    tiramisu::buffer buf_fc2("buf_fc2", {K}, tiramisu::p_int32, a_input);
+    tiramisu::buffer buf_fc3("buf_fc3", {K}, tiramisu::p_int32, a_input);
 
-    tiramisu::buffer buf_res0("buf_res0", {BZ}, tiramisu::p_float32, a_temporary, &function0);
+    tiramisu::buffer buf_res0("buf_res0", {BZ}, tiramisu::p_float32, a_temporary);
     buf_res0.set_auto_allocate(false);
     tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res2, t);
-    tiramisu::buffer buf_res1("buf_res1", {N}, tiramisu::p_float32, a_temporary, &function0);
+    tiramisu::buffer buf_res1("buf_res1", {N}, tiramisu::p_float32, a_temporary);
     buf_res1.set_auto_allocate(false);
     tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res2, t);
-    tiramisu::buffer buf_res2("buf_res2", {T}, tiramisu::p_float32, a_output, &function0);
-    tiramisu::buffer buf_d1("buf_d1", {K}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_res2("buf_res2", {T}, tiramisu::p_float32, a_output);
+    tiramisu::buffer buf_d1("buf_d1", {K}, tiramisu::p_int32, a_temporary);
     buf_d1.set_auto_allocate(false);
     tiramisu::computation *alloc_d1 = buf_d1.allocate_at(Res2, t);
-    tiramisu::buffer buf_d2("buf_d2", {K}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_d2("buf_d2", {K}, tiramisu::p_int32, a_temporary);
     buf_d2.set_auto_allocate(false);
     tiramisu::computation *alloc_d2 = buf_d2.allocate_at(Res2, t);
-    tiramisu::buffer buf_d3("buf_d3", {K}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_d3("buf_d3", {K}, tiramisu::p_int32, a_temporary);
     buf_d3.set_auto_allocate(false);
     tiramisu::computation *alloc_d3 = buf_d3.allocate_at(Res2, t);
 
     // S(d1, i3, i2, i1, t, a1, x’0)
-    tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), N, N, N, tiramisu::expr((int32_t) BARYON_P1)}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), N, N, N, tiramisu::expr((int32_t) BARYON_P1)}, tiramisu::p_float32, a_input);
 
-    tiramisu::buffer buf_wp("buf_wp", {tiramisu::expr((int32_t) BARYON_N), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P)}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_wp("buf_wp", {tiramisu::expr((int32_t) BARYON_N), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P)}, tiramisu::p_float32, a_input);
 
     fc1.store_in(&buf_fc1);
     fc2.store_in(&buf_fc2);
@@ -132,11 +129,8 @@ void generate_function(std::string name, int size)
     // Code Generation
     // -------------------------------------------------------
 
-    function0.set_arguments({&buf_res2, &buf_S, &buf_wp, &buf_fc1, &buf_fc2, &buf_fc3});
-    function0.gen_time_space_domain();
-    function0.gen_isl_ast();
-    function0.gen_halide_stmt();
-    function0.gen_halide_obj("generated_" + std::string(TEST_NAME_STR) + ".o");
+    tiramisu::codegen({&buf_res2, &buf_S, &buf_wp, &buf_fc1, &buf_fc2, &buf_fc3},
+		      "generated_" + std::string(TEST_NAME_STR) + ".o");
 }
 
 int main(int argc, char **argv)
