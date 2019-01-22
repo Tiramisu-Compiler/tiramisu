@@ -4065,6 +4065,22 @@ public:
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
 
+    /**
+      * This function generates communication code for data exchange between ranks.
+      * Not safe to. currently being implemented
+      * Details:
+      * Suppose we have the following code
+      * \code
+      * data.set_expression(in(i)+in(i-1));
+      * data.tag_distribute_level(i);
+      * data.generate_communication(number_of_ranks)
+      * /endcode
+      * We have a computation data and an input in, both data and input have i as
+      * their distributed dimension, number_of_ranks is the number of mpi ranks.
+      * this function will generate send/receive to exchange all data "data" required by a
+      * rank and not owned by it.
+     */
+    void generate_communication(int number_of_nodes);
 
 };
 

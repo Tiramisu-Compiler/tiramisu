@@ -7811,6 +7811,80 @@ void tiramisu::buffer::tag_gpu_register() {
 }
 
 
+/**
+  * This function generates communication code for data exchange between ranks.
+  * Not safe to. currently being implemented
+  * Details:
+  * Suppose we have the following code
+  * \code
+  * data.set_expression(in(i)+in(i-1));
+  * data.tag_distribute_level(i);
+  * data.generate_communication(number_of_ranks)
+  * /endcode
+  * We have a computation data and an input in, both data and input have i as
+  * their distributed dimension, number_of_ranks is the number of mpi ranks.
+  * this function will generate send/receive to exchange all data "data" required by a
+  * rank and not owned by it.
+ */
+void computation::generate_communication(int number_of_nodes){
+
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    //get the distribution map of this rank
+    isl_map* distribution_map_r=construct_distribution_map("r",number_of_nodes);
+    DEBUG(3, tiramisu::str_dump("The distribution_map for this rank : ");
+        isl_map_dump(distribution_map_r));
+
+    //get the distribution map for other ranks
+    isl_map* distribution_map_rp=construct_distribution_map("rp",number_of_nodes);
+    DEBUG(3, tiramisu::str_dump("The distribution_map for other rank : ");
+        isl_map_dump(distribution_map_rp));
+
+    //get the initial domain of the computation
+    isl_set* initial_domain=isl_set_copy(this->get_iteration_domain());
+    DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
+        isl_map_dump(initial_domain));
+
+    //get the set that will be computed bu the rank r
+    isl_set* to_compute_set=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_r));
+    DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
+        isl_map_dump(to_compute_set));
+
+    //To compute the data needed by this computation,
+    //we have to retrieve its read accesses.
+    std::vector<isl_map*> read_accesses;
+    generator::get_rhs_accesses(this->get_function(),this,read_accesses,false);
+    std::vector<isl_set*> needed_sets;
+    //apply the map to get the set of the needed elements due to a read
+    for(int i=0;i<read_accesses.size();i++){
+        needed_sets.push_back(isl_set_apply(isl_set_copy(to_compute_set),read_accesses[i]));
+    }
+
+    isl_set*need_set;
+    if(needed_sets.size()>0) need_set=isl_set_copy(needed_sets[0]);
+    for(int i=1;i<needed_sets.size();i++){
+         need_set=isl_set_union(isl_set_copy(need_set),needed_sets[i]);
+    }
+    need_set=isl_set_coalesce(need_set);
+
+    //we make an assumption that all computations have the same distributed_dimension
+    //this migh be false
+    to_compute_set=isl_set_set_tuple_name(to_compute_set,isl_set_get_tuple_name(isl_set_copy(need_set)));
+
+    isl_set* missing_set=isl_set_subtract(need_set,to_compute_set);
+    missing_set=isl_set_coalesce(missing_set);
+
+    //have of other
+    isl_set* have_set_rp=
+        isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_rp));
+    have_set_rp=isl_set_set_tuple_name(have_set_rp,
+        isl_set_get_tuple_name(isl_set_copy(need_set)));
+
+    isl_set* to_send_set=isl_set_intersect(missing_set,have_set_rp);
+
+    DEBUG_INDENT(-4);
+}
 
 /**
   * This function constructs the distributed map of a computation.
