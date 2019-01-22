@@ -34,18 +34,18 @@ void generate_function(std::string name, int size)
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0));
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0));
 
-    tiramisu::var i3("i3", 0, N), i2("i2", 0, N), i1("i1", 0, N), k("k", 1, K), t("t", 0, T);
+    tiramisu::var i1("i1", 0, N), i2("i2", 0, N), i3("i3", 0, N), k("k", 1, K), t("t", 0, T), k0("k", 0, 1);
     tiramisu::input fc1("fc1", {k}, p_int32);
     tiramisu::input fc2("fc2", {k}, p_int32);
     tiramisu::input fc3("fc3", {k}, p_int32);
     tiramisu::input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
-    tiramisu::computation wp("{wp[k, b0, b1, b2]}", tiramisu::expr(), false, p_float32, &function0);
+    tiramisu::input wp("wp", {"k", "b0", "b1", "b2"}, {K, 1, 1, 1}, p_float32);
 
     tiramisu::computation d1("d1", {t, i1, i2, i3, k}, fc1(k));
     tiramisu::computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
     tiramisu::computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
 
-    tiramisu::computation Res0("[T, N, K]->{Res0[t, i1, i2, i3, k]: 0<=t<T and 0<=i1<N and 0<=i2<N and 0<=i3<N and 1<=k<K}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res0("Res0", {t, i1, i2, i3, k}, p_float32);
     Res0.set_expression(
 			  S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d3(0,0,0,0,0))
 			+ S(xp0, a1, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
@@ -55,8 +55,8 @@ void generate_function(std::string name, int size)
 		        - S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0))
 		);
 
-    tiramisu::computation Res1("[T, N]->{Res1[t, i1, i2, i3, k]: 0<=t<T and 0<=i3<N and 0<=i2<N and 0<=i1<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res1_update_0("[T, N, K]->{Res1_update_0[t, i1, i2, i3, k]: 0<=t<T and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<K}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res1("Res1", {t, i1, i2, i3, k0}, tiramisu::expr((float) 0));
+    tiramisu::computation Res1_update_0("Res1_update_0", {t, i1, i2, i3, k}, p_float32);
     Res1_update_0.set_expression(Res1(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
     tiramisu::computation Res2("Res2", {t}, tiramisu::expr((float) 0));
