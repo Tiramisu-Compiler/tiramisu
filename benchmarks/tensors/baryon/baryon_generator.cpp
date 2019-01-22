@@ -61,11 +61,11 @@ void generate_function(std::string name, int size)
     tiramisu::computation Res1_update_0("[BT, N, KMAX]->{Res1_update_0[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
     Res1_update_0.set_expression(Res1(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
-    tiramisu::computation Res2("[BT, N]->{Res2[t]: 0<=t<BT}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res2_update_0("[BT, N]->{Res2_update_0[t, i1, i2, i3]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res2("Res2", {t}, tiramisu::expr((float) 0));
+    tiramisu::computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
     Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3, 0));
 
-    function0.add_context_constraints("[N, M, K,BT]->{:N=16}, BT=16");
+    function0.add_context_constraints("[N, M, K, BT]->{:N=16}, BT=16");
 
     // -------------------------------------------------------
     // Layer III
