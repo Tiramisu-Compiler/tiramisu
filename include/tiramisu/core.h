@@ -1003,7 +1003,6 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
-
 };
 
 
@@ -2482,7 +2481,26 @@ protected:
       * \overload
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
-
+    /**
+      * This function constructs the distributed map of a computation.
+      * Not safe to use. currently being implemented
+      * Details:
+      * given the number of nodes (mpi ranks) and the rank which can be either
+      * r  which means the current rank or rp which means other ranks
+      * This function will generate the distribution map
+      * Example :
+      * \code
+      * data.set_expression(in(i)+in(i-1));
+      * data.tag_distribute_level(i);
+      * data.generate_communication(5);
+      * /endcode
+      * the function generate communication calls this function and the generated distribution map
+      * is :
+      * \code
+      * [r] -> { data[i] -> data[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * /endcode
+     */
+    isl_map* construct_distribution_map(std::string rank,int number_of_nodes);
 
 
 public:
@@ -4047,6 +4065,7 @@ public:
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
 
+
 };
 
 class input: public computation
@@ -4512,6 +4531,11 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
+    /**
+      * This function return a parameter of expression if it has, else empty string
+      * Not safe to use, might be removed soon
+     */
+    static std::string get_parameter_from_bound(tiramisu::expr e);
 
 };
 

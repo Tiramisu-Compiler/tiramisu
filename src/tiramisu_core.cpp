@@ -7810,4 +7810,121 @@ void tiramisu::buffer::tag_gpu_register() {
     set_auto_allocate(false);
 }
 
+
+
+/**
+  * This function constructs the distributed map of a computation.
+  * Not safe to use. currently being implemented
+  * Details:
+  * given the number of nodes (mpi ranks) and the rank which can be either
+  * r  which means the current rank or rp which means other ranks
+  * This function will generate the distribution map
+  * Example :
+  * \code
+  * data.set_expression(in(i)+in(i-1));
+  * data.tag_distribute_level(i);
+  * data.generate_communication(5);
+  * /endcode
+  * the function generate communication calls this function and the generated distribution map
+  * is :
+  * \code
+  * [r] -> { data[i] -> data[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+  * /endcode
+ */
+isl_map* computation::construct_distribution_map(std::string rank_name,int number_of_nodes){
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    int distributed_dimension=0; // we suppose that it's the first level
+
+    //search the distributed dimension
+    while(distributed_dimension<this->get_iteration_domain_dimensions_number() and
+        !this->get_function()->should_distribute(this->get_name(),distributed_dimension))
+        distributed_dimension++;
+
+    //if no distributed dimension quit, it's unsafe to continue
+    if(distributed_dimension==this->get_iteration_domain_dimensions_number())
+            ERROR("No distributed dimenions found in "+this->get_name()+
+                ".\n  Cannot compute data to send or receive.", true);
+
+    //lower and upper bound to use - Search for a better way
+    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_iteration_domain(), distributed_dimension, false);
+    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_iteration_domain(), distributed_dimension, true);
+    tiramisu::expr loop_bound = upper_bound -lower_bound + value_cast(global::get_loop_iterator_data_type(), 1);
+    loop_bound=loop_bound.simplify();
+
+    //get the invariant of the loop
+    std::string loop_bound_invariant=tiramisu::utility::get_parameter_from_bound(loop_bound);
+    int distributed_stride=0;
+    //look if this invariant is correct
+    std::vector<tiramisu::constant> invariants=this->get_function()->get_invariants();
+    for(tiramisu::constant invariant: invariants){
+        if(loop_bound_invariant==invariant.get_name()) distributed_stride=std::stoi(invariant.get_expr().to_str());
+    }
+    if(loop_bound_invariant=="") distributed_stride= std::stoi(loop_bound_invariant);
+
+    std::string distribution_map_string="";
+    //transform dimensions to string
+    std::string dimensions_string="";
+    for(int dimension=0;dimension<this->get_iteration_domain_dimensions_number();dimension++)
+        {
+            dimensions_string+=this->get_dimension_name_for_loop_level(dimension);
+            if(dimension<this->get_iteration_domain_dimensions_number()-1) dimensions_string+=",";
+        }
+
+    //construct parameters, here we have the r or rp
+    //maybe we can have later an expression for the distributed dimension
+    std::string params=rank_name;
+
+    //processors definitions
+    std::string processors_definition="0<="+rank_name+"<"+std::to_string(number_of_nodes);
+
+    //TODO : this won't give a correct result is distributed_stride%number_of_nodes!=0
+    //should be corrected
+    distribution_map_string+=
+    "["+params+"]->{"+this->get_name()+"["+ dimensions_string +"]->" +this->get_name()+"["+
+    dimensions_string +"]:"+processors_definition+" and "+std::to_string(distributed_stride/number_of_nodes);
+    distribution_map_string+=rank_name+"<="+this->get_dimension_name_for_loop_level(distributed_dimension)+"<"+std::to_string(distributed_stride/number_of_nodes)
+    +"*("+rank_name+"+1)}";
+
+    isl_map* map=isl_map_read_from_str(this->get_ctx(), distribution_map_string.c_str());
+    DEBUG(3, tiramisu::str_dump("The distribution_map is : "); isl_map_dump(map));
+    DEBUG_INDENT(-4);
+   return map;
+}
+
+/**
+  * This function return a parameter of expression if it has, else empty string
+  * Not safe to use, might be removed soon
+ */
+std::string tiramisu::utility::get_parameter_from_bound(tiramisu::expr e){
+
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+    std::string expr_string=e.to_str();
+    std::string parameter="";
+    int i=0;
+
+    //TODO : check the regex of a parameter, and use it to get the parameter
+    //ask if there is a function that already does this
+
+    while(i<expr_string.size() and !(expr_string[i]>='a' and expr_string[i]<='z')
+        and !(expr_string[i]>='A' and expr_string[i]<='Z')) i++;
+
+    while(i<expr_string.size() and ((expr_string[i]>='a' and expr_string[i]<='z')
+        or (expr_string[i]>='A' and expr_string[i]<='Z')
+        or (expr_string[i]>='0' and expr_string[i]<='9'))){
+            parameter+=expr_string[i];
+            i++;
+        }
+
+    DEBUG(3, tiramisu::str_dump("The extracted parameter from loop bound"+e.to_str()+"is :");
+                isl_map_dump(map));
+
+    DEBUG_INDENT(-4);
+
+    return parameter;
+}
+
+
 }
