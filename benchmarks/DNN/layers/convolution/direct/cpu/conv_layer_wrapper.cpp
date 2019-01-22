@@ -3,7 +3,7 @@
 #include <chrono>
 #include <iostream>
 #include "configure.h"
-#include "wrapper_nn.h"
+#include "conv_layer_wrapper.h"
 #include <tiramisu/utils.h>
 
 // MKL-DNN default format is NCHW according to
@@ -38,29 +38,7 @@ int main(int, char**)
 
     std::cout << "\t\tBuffers initialized" << std::endl;
 
-    for (int i=0; i<NB_TESTS; i++)
-    {
-	auto start1 = std::chrono::high_resolution_clock::now();
-	conv_halide(input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer());
-	auto end1 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double,std::milli> duration = end1 - start1;
-	duration_vector_1.push_back(duration);
-    }
-
-    std::cout << "\t\tHalide conv" << ": " << median(duration_vector_1) << "; " << std::endl;
-    std::cout << "\t\tResult" << ": ";
-
-    int count = 0;
-    for (int y = 0; y < N+K; ++y)
-        for (int x = 0; x < N+K; ++x)
-            for (int z = 0; z < FIn; ++z)
-	        for (int n = 0; n < BATCH_SIZE; ++n)
-		    if (count < 10)
-		    {
-			std::cerr << conv(x, y, z, n) << ", ";
-			count++;
-		    }
-    std::cout << std::endl;
+    unsigned int count = 0;
 
     // Initialize parameters[]
     parameters(0) = N;
@@ -91,8 +69,6 @@ int main(int, char**)
 			count++;
 		    }
     std::cout << std::endl;
-
-    compare_buffers("comparing Tiramisu output with Halide output", conv_tiramisu_buffer, conv);
 
     return 0;
 }
