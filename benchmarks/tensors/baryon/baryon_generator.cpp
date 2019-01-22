@@ -5,8 +5,6 @@
 #include <Halide.h>
 
 #include "baryon_wrapper.h"
-#include "benchmarks.h"
-
 
 using namespace tiramisu;
 
@@ -25,29 +23,29 @@ void generate_function(std::string name, int size)
     tiramisu::function function0(name);
     global::set_implicit_function(&function0);
 
-    tiramisu::constant N_CONST("N", tiramisu::expr((int32_t) size));
-    tiramisu::constant BT_CONST("BT", tiramisu::expr((int32_t) BT));
+    tiramisu::constant N("N", tiramisu::expr((int32_t) size));
+    tiramisu::constant T("T", tiramisu::expr((int32_t) BT));
     tiramisu::constant a1("a1", tiramisu::expr((int32_t) 0));
     tiramisu::constant a2("a2", tiramisu::expr((int32_t) 0));
     tiramisu::constant a3("a3", tiramisu::expr((int32_t) 0));
     tiramisu::constant xp0("xp0", tiramisu::expr((int32_t) 0));
-    tiramisu::constant KMAX("KMAX", tiramisu::expr((int32_t) BK));
+    tiramisu::constant K("K", tiramisu::expr((int32_t) BK));
     tiramisu::constant b0("b0", tiramisu::expr((int32_t) 0));
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0));
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0));
 
-    tiramisu::var i3("i3", 0, N_CONST), i2("i2", 0, N_CONST), i1("i1", 0, N_CONST), k("k", 1, KMAX), t("t", 0, BT_CONST);
+    tiramisu::var i3("i3", 0, N), i2("i2", 0, N), i1("i1", 0, N), k("k", 1, K), t("t", 0, T);
     tiramisu::input fc1("fc1", {k}, p_int32);
     tiramisu::input fc2("fc2", {k}, p_int32);
     tiramisu::input fc3("fc3", {k}, p_int32);
-    tiramisu::computation S("{S[xp0, a1, t, i1, i2, i3, d1]}", tiramisu::expr(), false, p_float32, &function0);
+    tiramisu::input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
     tiramisu::computation wp("{wp[k, b0, b1, b2]}", tiramisu::expr(), false, p_float32, &function0);
 
     tiramisu::computation d1("d1", {t, i1, i2, i3, k}, fc1(k));
     tiramisu::computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
     tiramisu::computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
 
-    tiramisu::computation Res0("[BT, N, KMAX]->{Res0[t, i1, i2, i3, k]: 0<=t<BT and 0<=i1<N and 0<=i2<N and 0<=i3<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res0("[T, N, K]->{Res0[t, i1, i2, i3, k]: 0<=t<T and 0<=i1<N and 0<=i2<N and 0<=i3<N and 1<=k<K}", tiramisu::expr(), true, p_float32, &function0);
     Res0.set_expression(
 			  S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d3(0,0,0,0,0))
 			+ S(xp0, a1, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
@@ -57,42 +55,42 @@ void generate_function(std::string name, int size)
 		        - S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0))
 		);
 
-    tiramisu::computation Res1("[BT, N]->{Res1[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
-    tiramisu::computation Res1_update_0("[BT, N, KMAX]->{Res1_update_0[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
+    tiramisu::computation Res1("[T, N]->{Res1[t, i1, i2, i3, k]: 0<=t<T and 0<=i3<N and 0<=i2<N and 0<=i1<N and k=0}", tiramisu::expr((float) 0), true, p_float32, &function0);
+    tiramisu::computation Res1_update_0("[T, N, K]->{Res1_update_0[t, i1, i2, i3, k]: 0<=t<T and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<K}", tiramisu::expr(), true, p_float32, &function0);
     Res1_update_0.set_expression(Res1(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
     tiramisu::computation Res2("Res2", {t}, tiramisu::expr((float) 0));
     tiramisu::computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
     Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3, 0));
 
-    function0.add_context_constraints("[N, M, K, BT]->{:N=16}, BT=16");
+    function0.add_context_constraints("[N, M, K, T]->{:N=16}, T=16");
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    tiramisu::buffer buf_fc1("buf_fc1", {KMAX}, tiramisu::p_int32, a_input, &function0);
-    tiramisu::buffer buf_fc2("buf_fc2", {KMAX}, tiramisu::p_int32, a_input, &function0);
-    tiramisu::buffer buf_fc3("buf_fc3", {KMAX}, tiramisu::p_int32, a_input, &function0);
+    tiramisu::buffer buf_fc1("buf_fc1", {K}, tiramisu::p_int32, a_input, &function0);
+    tiramisu::buffer buf_fc2("buf_fc2", {K}, tiramisu::p_int32, a_input, &function0);
+    tiramisu::buffer buf_fc3("buf_fc3", {K}, tiramisu::p_int32, a_input, &function0);
 
     tiramisu::buffer buf_res0("buf_res0", {BZ}, tiramisu::p_float32, a_temporary, &function0);
     buf_res0.set_auto_allocate(false);
     tiramisu::computation *alloc_res0 = buf_res0.allocate_at(Res2, t);
-    tiramisu::buffer buf_res1("buf_res1", {N_CONST}, tiramisu::p_float32, a_temporary, &function0);
+    tiramisu::buffer buf_res1("buf_res1", {N}, tiramisu::p_float32, a_temporary, &function0);
     buf_res1.set_auto_allocate(false);
     tiramisu::computation *alloc_res1 = buf_res1.allocate_at(Res2, t);
-    tiramisu::buffer buf_res2("buf_res2", {BT_CONST}, tiramisu::p_float32, a_output, &function0);
-    tiramisu::buffer buf_d1("buf_d1", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_res2("buf_res2", {T}, tiramisu::p_float32, a_output, &function0);
+    tiramisu::buffer buf_d1("buf_d1", {K}, tiramisu::p_int32, a_temporary, &function0);
     buf_d1.set_auto_allocate(false);
     tiramisu::computation *alloc_d1 = buf_d1.allocate_at(Res2, t);
-    tiramisu::buffer buf_d2("buf_d2", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_d2("buf_d2", {K}, tiramisu::p_int32, a_temporary, &function0);
     buf_d2.set_auto_allocate(false);
     tiramisu::computation *alloc_d2 = buf_d2.allocate_at(Res2, t);
-    tiramisu::buffer buf_d3("buf_d3", {KMAX}, tiramisu::p_int32, a_temporary, &function0);
+    tiramisu::buffer buf_d3("buf_d3", {K}, tiramisu::p_int32, a_temporary, &function0);
     buf_d3.set_auto_allocate(false);
     tiramisu::computation *alloc_d3 = buf_d3.allocate_at(Res2, t);
 
     // S(d1, i3, i2, i1, t, a1, x’0)
-    tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), N_CONST, N_CONST, N_CONST, tiramisu::expr((int32_t) BARYON_P1)}, tiramisu::p_float32, a_input, &function0);
+    tiramisu::buffer buf_S("buf_S", {tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), N, N, N, tiramisu::expr((int32_t) BARYON_P1)}, tiramisu::p_float32, a_input, &function0);
 
     tiramisu::buffer buf_wp("buf_wp", {tiramisu::expr((int32_t) BARYON_N), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P), tiramisu::expr((int32_t) BARYON_P)}, tiramisu::p_float32, a_input, &function0);
 

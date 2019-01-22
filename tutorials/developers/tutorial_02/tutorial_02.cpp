@@ -26,12 +26,14 @@ int main(int argc, char **argv)
     constant N("N", NN);
     constant M("M", MM);
 
+    // Declare an input.  The input is declared by providing a name for the
+    // input, the names of the input dimensions ("i" and "j" in this example),
+    // the size of the input (which is NxM in this example), and the type of
+    // the input elements.
+    input A("A", {"i", "j"}, {N, M}, p_uint8);
+
     // Declare iterator variables.
     var i("i", 0, N), j("j", 0, M);
-
-    // Declare an input.  The input is declared by providing a name, iterators
-    // (that define the size of the buffer) and the type of the buffer elements.
-    input A("A", {i,j}, p_uint8);
 
     // Declare the output computation.
     computation output("output", {i,j}, (A(i, j) + cast(p_uint8, i) + (uint8_t)4));
