@@ -36,16 +36,16 @@ void generate_function(std::string name, int size)
     tiramisu::constant b1("b1", tiramisu::expr((int32_t) 0));
     tiramisu::constant b2("b2", tiramisu::expr((int32_t) 0));
 
-    tiramisu::var i3("i3"), i2("i2"), i1("i1"), k("k", 1, KMAX), t("t");
+    tiramisu::var i3("i3", 0, N_CONST), i2("i2", 0, N_CONST), i1("i1", 0, N_CONST), k("k", 1, KMAX), t("t", 0, BT_CONST);
     tiramisu::input fc1("fc1", {k}, p_int32);
     tiramisu::input fc2("fc2", {k}, p_int32);
     tiramisu::input fc3("fc3", {k}, p_int32);
     tiramisu::computation S("{S[xp0, a1, t, i1, i2, i3, d1]}", tiramisu::expr(), false, p_float32, &function0);
     tiramisu::computation wp("{wp[k, b0, b1, b2]}", tiramisu::expr(), false, p_float32, &function0);
 
-    tiramisu::computation d1("[BT, N, KMAX]->{d1[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", fc1(k), true, p_int32, &function0);
-    tiramisu::computation d2("[BT, N, KMAX]->{d2[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", fc2(k), true, p_int32, &function0);
-    tiramisu::computation d3("[BT, N, KMAX]->{d3[t, i1, i2, i3, k]: 0<=t<BT and 0<=i3<N and 0<=i2<N and 0<=i1<N and 1<=k<KMAX}", fc3(k), true, p_int32, &function0);
+    tiramisu::computation d1("d1", {t, i1, i2, i3, k}, fc1(k));
+    tiramisu::computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
+    tiramisu::computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
 
     tiramisu::computation Res0("[BT, N, KMAX]->{Res0[t, i1, i2, i3, k]: 0<=t<BT and 0<=i1<N and 0<=i2<N and 0<=i3<N and 1<=k<KMAX}", tiramisu::expr(), true, p_float32, &function0);
     Res0.set_expression(
