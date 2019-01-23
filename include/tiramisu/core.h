@@ -3299,6 +3299,11 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
+	/**
+      * Returns a pointer to the computation scheduled immediately after this computation,
+      * or a null pointer if none exist.
+      */
+    computation * get_successor();
 
     /**
       * Returns the \p index update that has been added to this computation such that:
