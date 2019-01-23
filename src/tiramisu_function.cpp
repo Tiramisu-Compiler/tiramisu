@@ -116,6 +116,43 @@ isl_union_map *tiramisu::function::compute_dep_graph() {
     return result;
 }
 
+	
+const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2 ) const
+{
+    std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
+    std::string name, cpt_name;
+    tiramisu::buffer* bcpu;
+    int i = 1;
+    std::map<std::string, tiramisu::buffer*>::iterator it ;
+    tiramisu::computation* cpt = c1;
+    tiramisu::computation* cptl = c2;
+    DEBUG_INDENT(4);
+    for (it = buff.begin(); it != buff.end(); ++it)
+    {
+        tiramisu::buffer b = *(it->second);
+        if (b.get_argument_type() == tiramisu::a_temporary){
+            it->second->tag_gpu_global();
+            name= b.get_name().substr(0,b.get_name().size()-4) ;
+            bcpu = buff.find(name)->second;
+            if (bcpu->get_argument_type() == tiramisu::a_input){
+                cpt_name= "cpt" + std::to_string(i);   i++;
+                tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
+                (*ccccc).then((*cpt),computation::root);
+                cpt = ccccc ;                           
+                }
+            if (bcpu->get_argument_type() == tiramisu::a_output){
+                cpt_name= "cpt" + std::to_string(i);   i++;
+                tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
+                (*cptl).then((*ccccc),computation::root);
+                cptl = ccccc ;
+               }
+        }
+    }
+
+
+    return 0;
+}
+	
 // TODO: get_live_in_computations() does not consider the case of "maybe"
 // live-out (non-affine control flow, ...).
 std::vector<tiramisu::computation *> tiramisu::function::get_live_in_computations()
@@ -1635,6 +1672,9 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
 }
 
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
+    tiramisu::computation* c1 = this->get_first_cpt();
+    tiramisu::computation* c2 = this->get_last_cpt();
+    Automatic_communication(c1,c2);
     this->set_arguments(arguments);
     this->lift_dist_comps();
     this->gen_time_space_domain();
