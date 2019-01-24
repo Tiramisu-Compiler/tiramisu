@@ -27,7 +27,7 @@ void generate_function(std::string name, int size)
     computation A("A", {iB, jD}, expr((double) 0));
     computation A_update("A_update", {iB, kB, lB, jD}, A(iB, jD) + B(iB, kB, lB) * D(lB, jD) * C(kB, jD));
 
-    global::get_implicit_function()->add_context_constraints("[N]->{:N=256}");
+    global::get_implicit_function()->add_context_constraints("[N]->{:N="+std::to_string(SIZE)+"}");
 
     // -------------------------------------------------------
     // Scheduling
