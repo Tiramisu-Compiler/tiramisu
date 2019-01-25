@@ -142,15 +142,15 @@ const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu
                             bcpu = buff.find(name)->second;
                                     if (bcpu->get_argument_type() == tiramisu::a_input){
                                         cpt_name= "cpt" + std::to_string(i);   i++;
-                                        tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
-                                        (*ccccc).then((*cpt),computation::root);
-                                        cpt = ccccc ;
+                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
+                                        (*comp).then((*cpt),computation::root);
+                                        cpt = comp;
                                         }
                                     if (bcpu->get_argument_type() == tiramisu::a_output){
                                         cpt_name= "cpt" + std::to_string(i);   i++;
-                                        tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
-                                        (*cptl).then((*ccccc),computation::root);
-                                        cptl = ccccc ;
+                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
+                                        (*cptl).then((*comp),computation::root);
+                                        cptl = comp ;
                                        }
                                  break;
 				    // for these cases i have to see what i can auto first.
