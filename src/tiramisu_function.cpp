@@ -1699,9 +1699,11 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
 }
 
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
+    if (gen_cuda_stmt) {
     tiramisu::computation* c1 = this->get_first_cpt();
     tiramisu::computation* c2 = this->get_last_cpt();
     Automatic_communication(c1,c2);
+    }
     this->set_arguments(arguments);
     this->lift_dist_comps();
     this->gen_time_space_domain();

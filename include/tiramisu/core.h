@@ -739,6 +739,24 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
+	/**
+     * \brief generates the automatic communication CPU/GPU \p name.
+     * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
+     * cpu buffer and buffer_gpu is the name of the corresponding gpu buffer.
+     */
+    const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
+    /**
+     * \brief Returns a ptr to the first computation in the sched_graph \p name.
+     * \details The computation that have no predecessor
+     */
+    computation * get_first_cpt();
+     /**
+     * \brief Returns a ptr to the last computation in the sched_graph \p name.
+     * \details The computation that have no succesor
+     */
+    computation * get_last_cpt();
+
+
 
     /**
       * \brief Add a set of constraints to the context of the program.
