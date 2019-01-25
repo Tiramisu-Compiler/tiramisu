@@ -1,6 +1,6 @@
 #include <tiramisu/tiramisu.h>
 
-#include "wrapper_test_133.h"
+#include "wrapper_test_134.h"
 
 using namespace tiramisu;
 
@@ -21,7 +21,7 @@ void generate_function(std::string name, int size, int val0)
 
     // Schedule
     tiramisu::var ni("ni"), nj("nj");
-    result.skew(i, j, 1, ni, nj);
+    result.skew(i, j, 2, ni, nj);
     result.parallelize(ni);
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);
