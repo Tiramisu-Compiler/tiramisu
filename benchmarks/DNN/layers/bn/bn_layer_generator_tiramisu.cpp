@@ -1,3 +1,26 @@
+/* 
+    This benchmrk calculates the batch normalization result on Input tensor 
+    for z = 0 .. FIn
+        for n = 0 .. BATCH_SIZE
+            for y = 0 .. N
+                for x = 0 .. N
+                    Input[n,z,y,x] = ( Input[n,z,y,x] - mean[z] ) / sqrt ( variance[z] );
+    
+    mean and variance are calculated over the axes : n, y and x
+    
+    for z = 0 .. FIn
+        for n = 0 .. BATCH_SIZE
+            for y = 0 .. N
+                for x = 0 .. N
+                    mean[z] += Input[n,z,y,x]/(n*y*x) ;
+    
+    for z = 0 .. FIn
+        for n = 0 .. BATCH_SIZE
+            for y = 0 .. N
+                for x = 0 .. N
+                    variance[z] += (Input[n,z,y,x]- mean[z])²/(n*y*x) ;    
+*/
+
 #include <tiramisu/tiramisu.h>
 
 using namespace tiramisu;
