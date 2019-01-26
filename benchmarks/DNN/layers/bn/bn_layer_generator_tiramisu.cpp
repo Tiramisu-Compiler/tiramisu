@@ -4,21 +4,21 @@
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
-                    Output[n,z,y,x] = ( Input[n,z,y,x] - mean[z] ) / sqrt ( variance[z] );
+                    Output[n,z,y,x] = ( Input[n,z,y,x] - sum[z] ) / sqrt ( sumSquared[z] );
     
-    mean and variance are calculated over the axes: n, y, and x
-    
-    for z = 0 .. FIn
-        for n = 0 .. BATCH_SIZE
-            for y = 0 .. N
-                for x = 0 .. N
-                    mean[z] += Input[n,z,y,x]/(BATCH_SIZE*N*N) ;
+    sum and sumSquared are calculated over the axes: n, y, and x
     
     for z = 0 .. FIn
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
-                    variance[z] += (Input[n,z,y,x]- mean[z])²/(BATCH_SIZE*N*N) ;    
+                    sum[z] += Input[n,z,y,x]/(BATCH_SIZE*N*N) ;
+    
+    for z = 0 .. FIn
+        for n = 0 .. BATCH_SIZE
+            for y = 0 .. N
+                for x = 0 .. N
+                    sumSquared[z] += (Input[n,z,y,x]- sum[z])²/(BATCH_SIZE*N*N) ;    
 */
 
 #include <tiramisu/tiramisu.h>
@@ -46,62 +46,62 @@ int main(int argc, char **argv)
 
     input c_input("c_input", {n, z, y, x}, p_float32);
 
-    computation init_mean("init_mean", {n, z, y, x}, c_input(n, z, y, x));
-    computation x_mean("x_mean", {n, z, y, x1}, init_mean(n, z, y, x1) + init_mean(n, z, y, x1 - 1));
-    computation y_mean("y_mean", {n, z, y1, x_m}, x_mean(n, z, y1, x_m) + x_mean(n, z, y1 - 1, x_m));
-    computation mean("mean", {n1, z, y_m, x_m}, y_mean(n1, z, y_m, x_m) + y_mean(n1 - 1, z, y_m, x_m));
+    //Calculate the sum of the input values in parallel
+    computation init_sum("init_sum", {n, z, y, x}, c_input(n, z, y, x));
+    computation x_sum("x_sum", {n, z, y, x1}, init_sum(n, z, y, x1) + init_sum(n, z, y, x1 - 1));
+    computation y_sum("y_sum", {n, z, y1, x_m}, x_sum(n, z, y1, x_m) + x_sum(n, z, y1 - 1, x_m));
+    computation sum("sum", {n1, z, y_m, x_m}, y_sum(n1, z, y_m, x_m) + y_sum(n1 - 1, z, y_m, x_m));
 
-    computation init_variance("init_variance", {n, z, y, x}, (c_input(n, z, y, x) - expr(o_div, mean(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS))) * (c_input(n, z, y, x) - expr(o_div, mean(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS))));
+    //Calculate the sum of the input values squared in parallel
+    computation init_sumSquared("init_sumSquared", {n, z, y, x}, c_input(n, z, y, x) * c_input(n, z, y, x));
+    computation x_sumSquared("x_sumSquared", {n, z, y, x1}, init_sumSquared(n, z, y, x1) + init_sumSquared(n, z, y, x1 - 1));
+    computation y_sumSquared("y_sumSquared", {n, z, y1, x_m}, x_sumSquared(n, z, y1, x_m) + x_sumSquared(n, z, y1 - 1, x_m));
+    computation sumSquared("sumSquared", {n1, z, y_m, x_m}, y_sumSquared(n1, z, y_m, x_m) + y_sumSquared(n1 - 1, z, y_m, x_m));
 
-    computation x_variance("x_variance", {n, z, y, x1}, init_variance(n, z, y, x1) + init_variance(n, z, y, x1 - 1));
-    computation y_variance("y_variance", {n, z, y1, x_m}, x_variance(n, z, y1, x_m) + x_variance(n, z, y1 - 1, x_m));
-    computation variance("variance", {n1, z, y_m, x_m}, y_variance(n1, z, y_m, x_m) + y_variance(n1 - 1, z, y_m, x_m));
+    computation output("output", {n, z, y, x}, (c_input(n, z, y, x) - sum(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1) / cast(p_float32, C_NB_ELEMENTS)) / expr(o_sqrt, sumSquared(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1) / cast(p_float32, C_NB_ELEMENTS) - (sum(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1) / cast(p_float32, C_NB_ELEMENTS)) * (sum(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1) / cast(p_float32, C_NB_ELEMENTS))));
 
-    computation output("output", {n, z, y, x}, expr(o_div, (c_input(n, z, y, x) - expr(o_div, mean(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS))), expr(o_sqrt, expr(o_div, variance(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS)))));
+    init_sum.tag_parallel_level(n);
 
-    init_mean.tag_parallel_level(n);
+    x_sum.tag_parallel_level(n);
+    x_sum.after(init_sumSquared, x1);
 
-    x_mean.tag_parallel_level(n);
-    x_mean.after(init_mean, x1);
+    y_sum.tag_parallel_level(n);
+    y_sum.after(x_sumSquared, y1);
 
-    y_mean.tag_parallel_level(n);
-    y_mean.after(x_mean, y1);
+    sum.after(y_sumSquared, n1);
 
-    mean.after(y_mean, n1);
+    init_sumSquared.tag_parallel_level(n);
+    init_sumSquared.after(init_sum, x);
 
-    init_variance.tag_parallel_level(n);
-    init_variance.after(mean, computation::root_dimension);
+    x_sumSquared.tag_parallel_level(n);
+    x_sumSquared.after(x_sum, x1);
 
-    x_variance.tag_parallel_level(n);
-    x_variance.after(init_variance, computation::root_dimension);
+    y_sumSquared.tag_parallel_level(n);
+    y_sumSquared.after(y_sum, y1);
 
-    y_variance.tag_parallel_level(n);
-    y_variance.after(x_variance, computation::root_dimension);
+    sumSquared.after(sum, n1);
 
-    variance.after(y_variance, computation::root_dimension);
-
-    output.tag_parallel_level(n);
-    output.after(variance, computation::root_dimension);
-    output.tag_unroll_level(x);
+    output.after(sumSquared, n);
+    output.tag_unroll_level(n);
 
     buffer input_buf("input_buf", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_input);
     buffer parameters_buf("parameters_buf", {expr(3)}, p_int32, a_input);
     buffer output_buf("output_buf", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_output);
-    buffer mean_buff("mean_buff", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_output);
-    buffer variance_buff("variance_buff", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_output);
+    buffer sum_buff("sum_buff", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_output);
+    buffer sumSquared_buff("sumSquared_buff", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_output);
 
     parameters.store_in(&parameters_buf);
     c_input.store_in(&input_buf);
-    init_mean.store_in(&mean_buff);
-    mean.store_in(&mean_buff);
-    x_mean.store_in(&mean_buff);
-    y_mean.store_in(&mean_buff);
-    init_variance.store_in(&variance_buff);
-    x_variance.store_in(&variance_buff);
-    y_variance.store_in(&variance_buff);
-    variance.store_in(&variance_buff);
+    init_sum.store_in(&sum_buff);
+    sum.store_in(&sum_buff);
+    x_sum.store_in(&sum_buff);
+    y_sum.store_in(&sum_buff);
+    init_sumSquared.store_in(&sumSquared_buff);
+    x_sumSquared.store_in(&sumSquared_buff);
+    y_sumSquared.store_in(&sumSquared_buff);
+    sumSquared.store_in(&sumSquared_buff);
     output.store_in(&output_buf);
 
-    tiramisu::codegen({&input_buf, &parameters_buf, &mean_buff, &variance_buff, &output_buf}, "bn_layer_generator_tiramisu.o");
+    tiramisu::codegen({&input_buf, &parameters_buf, &sum_buff, &sumSquared_buff, &output_buf}, "bn_layer_generator_tiramisu.o");
     return 0;
 }

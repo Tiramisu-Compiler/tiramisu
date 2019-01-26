@@ -31,7 +31,7 @@
 // Size of convolution filter (KxK)
 #define K 5
 
-// Epsilon
+// epsilon
 #define EPSILON 0
 
 // If this is defined, print 10 array elements only

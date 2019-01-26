@@ -24,7 +24,7 @@ To run this benchmark:
     then 
         ./wrapper_nn_bn
     
-    The execution results could be found in the text files : 
+    Execution results could be found in the text files : 
         mkldnn_result.txt
         tiramisu_result.txt
         
