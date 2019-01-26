@@ -64,11 +64,11 @@ double median(int n, double x[])
     double temp;
     int i, j;
 
-    // the following two loops sort the array x in ascending order
+    // The following two loops sort the array x in ascending order
     for(i=0; i<n-1; i++) {
         for(j=i+1; j<n; j++) {
             if(x[j] < x[i]) {
-                // swap elements
+                // Swap elements
                 temp = x[i];
                 x[i] = x[j];
                 x[j] = temp;
@@ -77,10 +77,10 @@ double median(int n, double x[])
     }
 
     if(n%2==0) {
-        // if there is an even number of elements, return mean of the two elements in the middle
+        // If there is an even number of elements, return mean of the two elements in the middle
         return((x[n/2] + x[n/2 - 1]) / 2.0);
     } else {
-        // else return the element in the middle
+        // Else return the element in the middle
         return x[n/2];
     }
 }
