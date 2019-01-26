@@ -1,3 +1,16 @@
+/* 
+    This benchmrk calculates maxpooling result for an Input tensor 
+    This is a simple example ( strides = 1 and padding = 0)
+    for z = 0 .. FIn
+        for n = 0 .. BATCH_SIZE
+            for y = 0 .. N / kernel
+                for x = 0 .. N / kernel
+                    for j = 0 .. kernel 
+                        for i = 0 .. kernel
+                            Output[n, z, y, x] = max ( Output[n, z, y, x], Input[n, z, y * kernel + j, x * kernel + i ] );
+ 
+*/
+
 #include <tiramisu/tiramisu.h>
 #include "configure.h"
 #define padValue -2147483647
