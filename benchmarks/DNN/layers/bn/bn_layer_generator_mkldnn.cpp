@@ -14,10 +14,10 @@ using namespace std;
 
 void bn_mkldnn()
 {
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
     auto cpu_engine = engine(engine::cpu, 0);
     std::vector<float> net_src(BATCH_SIZE * FIn * N * N);
     std::vector<float> net_dst(BATCH_SIZE * FIn * N * N);
+
     std::vector<float> mean_vect(FIn);
     std::vector<float> variance_vect(FIn);
 
@@ -28,6 +28,7 @@ void bn_mkldnn()
 
     memory::dims src_tz = {BATCH_SIZE, FIn, N, N};
     memory::dims dst_tz = {BATCH_SIZE, FIn, N, N};
+
     memory::dims mean_tz = {0, FIn, 0, 0};
     memory::dims variance_tz = {0, FIn, 0, 0};
 
@@ -36,7 +37,6 @@ void bn_mkldnn()
         {{{src_tz}, memory::data_type::f32, memory::format::nchw},
          cpu_engine},
         net_src.data());
-
     /* Create memory for bn dst data in user format */
     auto dst_memory = memory(
         {{{dst_tz}, memory::data_type::f32, memory::format::nchw},
@@ -62,6 +62,7 @@ void bn_mkldnn()
                                   memory::format::any);
 
     /* Create bn primitive descriptor */
+
     unsigned flags = !mkldnn_use_global_stats && !mkldnn_use_scaleshift && !mkldnn_fuse_bn_relu;
 
     auto bn_desc = batch_normalization_forward::desc(
@@ -69,23 +70,14 @@ void bn_mkldnn()
     auto bn_pd = batch_normalization_forward::primitive_desc(bn_desc, cpu_engine);
 
     /* Create a bn primitive */
+
     auto bn = batch_normalization_forward(bn_pd, user_src_memory, dst_memory, mean_memory, variance_memory);
 
     /* Build forward net */
     std::vector<primitive> net_fwd;
     net_fwd.push_back(bn);
 
-    for (int i = 0; i < NB_TESTS; i++)
-    {
-        auto start1 = std::chrono::high_resolution_clock::now();
-        stream(stream::kind::eager).submit(net_fwd).wait();
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end1 - start1;
-        duration_vector.push_back(duration);
-    }
-
-    std::cout << "\t\tMKL-DNN BN duration"
-              << ": " << median(duration_vector) << "; " << std::endl;
+    stream(stream::kind::eager).submit(net_fwd).wait();
 
     ofstream resultfile;
     resultfile.open("mkldnn_result.txt");
@@ -102,9 +94,20 @@ void bn_mkldnn()
 
 int main(int argc, char **argv)
 {
+    std::vector<std::chrono::duration<double, std::milli>> duration_vector_2;
     try
     {
-        bn_mkldnn();
+        for (int i = 0; i < NB_TESTS; i++)
+        {
+            auto start1 = std::chrono::high_resolution_clock::now();
+            bn_mkldnn();
+            auto end1 = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> duration = end1 - start1;
+            duration_vector_2.push_back(duration);
+        }
+
+        std::cout << "\t\tMKL-DNN BN duration"
+                  << ": " << median(duration_vector_2) << "; " << std::endl;
     }
 
     catch (error &e)

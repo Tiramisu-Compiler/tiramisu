@@ -31,7 +31,7 @@
 // Size of convolution filter (KxK)
 #define K 5
 
-// Epsilon
+// epsilon
 #define EPSILON 0
 
 // If this is defined, print 10 array elements only
@@ -64,11 +64,11 @@ double median(int n, double x[])
     double temp;
     int i, j;
 
-    // The following two loops sort the array x in ascending order
+    // the following two loops sort the array x in ascending order
     for(i=0; i<n-1; i++) {
         for(j=i+1; j<n; j++) {
             if(x[j] < x[i]) {
-                // Swap elements
+                // swap elements
                 temp = x[i];
                 x[i] = x[j];
                 x[j] = temp;
@@ -77,10 +77,10 @@ double median(int n, double x[])
     }
 
     if(n%2==0) {
-        // If there is an even number of elements, return mean of the two elements in the middle
+        // if there is an even number of elements, return mean of the two elements in the middle
         return((x[n/2] + x[n/2 - 1]) / 2.0);
     } else {
-        // Else return the element in the middle
+        // else return the element in the middle
         return x[n/2];
     }
 }

@@ -13,17 +13,3 @@ The files in this folder are organized as follows:
 
     Intel MKLDNN
         bn_layer_generator_mkldnn.cpp: code that calls Intel MKL DNN batch normalization. 
-
-To run this benchmark:
-
-    At the directory build/benchmarks/DNN/layers/bn execute 
-	    make 
-
-    wrapper_nn_bn executable will be created in the current directory. to compare the result of tiramisu with MKL DNN execute :
-        ./compile_and_run_mkldnn.sh
-    then 
-        ./wrapper_nn_bn
-    
-    Execution results could be found in the text files : 
-        mkldnn_result.txt
-        tiramisu_result.txt
