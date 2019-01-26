@@ -29,6 +29,7 @@ int main(int, char **)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
                     input(x, y, z, n) = rand() % 100;
+                    
     // Initialize parameters[]
     parameters(0) = N;
     parameters(1) = FIn;

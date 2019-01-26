@@ -59,30 +59,30 @@ int main(int argc, char **argv)
 
     computation output("output", {n, z, y, x}, expr(o_div, (c_input(n, z, y, x) - expr(o_div, mean(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS))), expr(o_sqrt, expr(o_div, variance(C_BATCH_SIZE - 1, z, C_N - 1, C_NX - 1), cast(p_float32, C_NB_ELEMENTS)))));
 
-    init_mean.tag_parallel_level(0);
+    init_mean.tag_parallel_level(n);
 
-    x_mean.tag_parallel_level(0);
-    x_mean.after(init_mean, 3);
+    x_mean.tag_parallel_level(n);
+    x_mean.after(init_mean, x1);
 
-    y_mean.tag_parallel_level(0);
-    y_mean.after(x_mean, 2);
+    y_mean.tag_parallel_level(n);
+    y_mean.after(x_mean, y1);
 
-    mean.after(y_mean, computation::root_dimension);
+    mean.after(y_mean, n1);
 
-    init_variance.tag_parallel_level(0);
+    init_variance.tag_parallel_level(n);
     init_variance.after(mean, computation::root_dimension);
 
-    x_variance.tag_parallel_level(0);
+    x_variance.tag_parallel_level(n);
     x_variance.after(init_variance, computation::root_dimension);
 
-    y_variance.tag_parallel_level(0);
+    y_variance.tag_parallel_level(n);
     y_variance.after(x_variance, computation::root_dimension);
 
     variance.after(y_variance, computation::root_dimension);
 
-    output.tag_parallel_level(0);
+    output.tag_parallel_level(n);
     output.after(variance, computation::root_dimension);
-    output.tag_unroll_level(3);
+    output.tag_unroll_level(x);
 
     buffer input_buf("input_buf", {C_BATCH_SIZE, C_FIn, C_N, C_N}, p_float32, a_input);
     buffer parameters_buf("parameters_buf", {expr(3)}, p_int32, a_input);
