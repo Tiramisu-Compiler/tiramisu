@@ -12,13 +12,13 @@
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
-                    mean[z] += Input[n,z,y,x]/(n*y*x) ;
+                    mean[z] += Input[n,z,y,x]/(BATCH_SIZE*N*N) ;
     
     for z = 0 .. FIn
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
-                    variance[z] += (Input[n,z,y,x]- mean[z])²/(n*y*x) ;    
+                    variance[z] += (Input[n,z,y,x]- mean[z])²/(BATCH_SIZE*N*N) ;    
 */
 
 #include <tiramisu/tiramisu.h>
