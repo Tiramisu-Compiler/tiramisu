@@ -1,12 +1,12 @@
 /* 
-    This benchmrk calculates the batch normalization result on Input tensor 
+    This benchmark calculates the batch normalization result on Input tensor 
     for z = 0 .. FIn
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
                     Output[n,z,y,x] = ( Input[n,z,y,x] - mean[z] ) / sqrt ( variance[z] );
     
-    mean and variance are calculated over the axes : n, y and x
+    mean and variance are calculated over the axes: n, y, and x
     
     for z = 0 .. FIn
         for n = 0 .. BATCH_SIZE

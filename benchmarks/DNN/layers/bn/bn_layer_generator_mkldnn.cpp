@@ -21,7 +21,7 @@ void bn_mkldnn()
     std::vector<float> mean_vect(FIn);
     std::vector<float> variance_vect(FIn);
 
-    /* initializing non-zero values for src */
+    /* Initializing non-zero values for src */
     srand(1);
     for (size_t i = 0; i < net_src.size(); ++i)
         net_src[i] = rand() % 100;
@@ -32,12 +32,12 @@ void bn_mkldnn()
     memory::dims mean_tz = {0, FIn, 0, 0};
     memory::dims variance_tz = {0, FIn, 0, 0};
 
-    /* create memory for user data */
+    /* Create memory for user data */
     auto user_src_memory = memory(
         {{{src_tz}, memory::data_type::f32, memory::format::nchw},
          cpu_engine},
         net_src.data());
-    /* create memory for bn dst data in user format */
+    /* Create memory for bn dst data in user format */
     auto dst_memory = memory(
         {{{dst_tz}, memory::data_type::f32, memory::format::nchw},
          cpu_engine},
@@ -53,15 +53,15 @@ void bn_mkldnn()
          cpu_engine},
         variance_vect.data());
 
-    /* create mmemory descriptors for source data  */
+    /* Create mmemory descriptors for source data  */
     auto src_md = memory::desc({src_tz}, memory::data_type::f32,
                                memory::format::nchw);
 
-    /* create bn dst memory descriptor in format any */
+    /* Create bn dst memory descriptor in format any */
     auto bn_dst_md = memory::desc({dst_tz}, memory::data_type::f32,
                                   memory::format::any);
 
-    /* create bn primitive descriptor */
+    /* Create bn primitive descriptor */
 
     unsigned flags = !mkldnn_use_global_stats && !mkldnn_use_scaleshift && !mkldnn_fuse_bn_relu;
 
@@ -73,13 +73,12 @@ void bn_mkldnn()
 
     auto bn = batch_normalization_forward(bn_pd, user_src_memory, dst_memory, mean_memory, variance_memory);
 
-    /* build forward net */
+    /* Build forward net */
     std::vector<primitive> net_fwd;
     net_fwd.push_back(bn);
 
     stream(stream::kind::eager).submit(net_fwd).wait();
 
-    //printf("writing result in file\n");
     ofstream resultfile;
     resultfile.open("mkldnn_result.txt");
 
