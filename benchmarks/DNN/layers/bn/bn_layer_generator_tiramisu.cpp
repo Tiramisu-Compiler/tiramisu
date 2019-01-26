@@ -4,7 +4,7 @@
         for n = 0 .. BATCH_SIZE
             for y = 0 .. N
                 for x = 0 .. N
-                    Input[n,z,y,x] = ( Input[n,z,y,x] - mean[z] ) / sqrt ( variance[z] );
+                    Output[n,z,y,x] = ( Input[n,z,y,x] - mean[z] ) / sqrt ( variance[z] );
     
     mean and variance are calculated over the axes : n, y and x
     
