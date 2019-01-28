@@ -1,0 +1,1 @@
+rm -rf fused_resnet_block_generator_tiramisu fused_resnet_block_generator_tiramisu.o fused_resnet_block_generator_tiramisu.o.h wrapper_nn_block_fused_resnet fused_resnet_block_generator_tiramisu fused_resnet_block_mkldnn_result tiramisu_result.txt mkldnn_result.txt
