@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--no-as-needed -ldl -g -lz -lpthread -std=c++11 -O3  -fno-rtti")
 
 include_directories(  ${PROJECT_DIR}/3rdParty/Halide/include ${PROJECT_DIR}/include/ ${PROJECT_DIR}/3rdParty/isl/include )
 
@@ -10,8 +9,8 @@ set(compare_SOURCES wrapper_nn_block.cpp)
 add_executable(vgg_block_generator_tiramisu ${tiramisu_SOURCES})
 add_executable(wrapper_nn_block_vgg ${compare_SOURCES})
  
-target_link_libraries(vgg_block_generator_tiramisu   tiramisu)
-target_link_libraries(wrapper_nn_block_vgg ${CMAKE_CURRENT_SOURCE_DIR}/generated_vgg_block.o tiramisu )
+target_link_libraries(vgg_block_generator_tiramisu tiramisu)
+target_link_libraries(wrapper_nn_block_vgg ${CMAKE_CURRENT_SOURCE_DIR}/generated_vgg_block.o tiramisu)
 
 add_custom_target(tiramisu_run_vgg_block
   COMMAND vgg_block_generator_tiramisu
@@ -21,6 +20,3 @@ add_custom_target(tiramisu_run_vgg_block
 )
 
 add_dependencies(wrapper_nn_block_vgg tiramisu_run_vgg_block)
-
-
-

@@ -40,9 +40,9 @@ int main(int argc, char **argv)
     var i("i", 0, p0), j("j", 0, p0), k("k", 0, p0);
 
     // Declare computations that represents the input buffers.
-    input A("A", {i,j}, p_uint8);
-    input B("B", {i,j}, p_uint8);
-    input D("D", {i,j}, p_uint8);
+    input A("A", {"i", "j"}, {SIZE0, SIZE0}, p_uint8);
+    input B("B", {"i", "j"}, {SIZE0, SIZE0}, p_uint8);
+    input D("D", {"i", "j"}, {SIZE0, SIZE0}, p_uint8);
 
     // Declare a computation to initialize the reductions.
     computation C_init("C_init", {i,j}, expr((uint8_t) 0));

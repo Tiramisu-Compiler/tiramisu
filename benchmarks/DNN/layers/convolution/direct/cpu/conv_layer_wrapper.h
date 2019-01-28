@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-int conv_halide(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *);
-int conv_halide_argv(void **args);
 int conv_tiramisu(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *);
 int conv_tiramisu_argv(void **args);
 

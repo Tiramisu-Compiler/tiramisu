@@ -123,7 +123,7 @@ int main(int argc, char **argv)
   should be built automatically if you follow the default installation process).
   
   cd ${TIRAMISU_ROOT}/build
-  g++ -std=c++11 -fno-rtti -DHALIDE_NO_JPEG -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/include -I${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/ -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o developers_tutorial_01_fct_generator  -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/tutorial_01.cpp -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm   
+  g++ -std=c++11 -fno-rtti -DHALIDE_NO_JPEG -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/include -I${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/build/lib -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o developers_tutorial_01_fct_generator  -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/tutorial_01.cpp -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm   
   
   Run the generator to generate the object file.
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
   You can compile the wrapper code (code that uses the generated code) and link it to the generated object file.
   
   cd ${TIRAMISU_ROOT}/build
-  g++ -std=c++11 -fno-rtti -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/Halide/include -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o wrapper_tutorial_01  -ltiramisu -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/wrapper_tutorial_01.cpp  generated_fct_developers_tutorial_01.o -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm 
+  g++ -std=c++11 -fno-rtti -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/Halide/include -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o wrapper_tutorial_01  -ltiramisu -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/wrapper_tutorial_01.cpp  generated_fct_developers_tutorial_01.o -ltiramisu -lHalide -ldl -lpthread -lz -lm 
   
   To run the program.
   

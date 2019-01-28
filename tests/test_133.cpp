@@ -21,7 +21,7 @@ void generate_function(std::string name, int size, int val0)
 
     // Schedule
     tiramisu::var ni("ni"), nj("nj");
-    result.skew(i, j, ni, nj);
+    result.skew(i, j, 1, ni, nj);
     result.parallelize(ni);
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);

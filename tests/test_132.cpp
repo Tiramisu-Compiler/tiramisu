@@ -31,7 +31,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::computation result({i,j}, A(i-1, j) + A(i, j-1));
 
     // Schedule
-    result.skew(i, j);
+    result.skew(i, j, 1);
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);
     A.store_in(&buff_A);

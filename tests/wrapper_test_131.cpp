@@ -15,10 +15,10 @@ extern "C" {
 
 int main(int, char **)
 {
-    Halide::Buffer<uint8_t> reference_buf0(SIZE0, "reference_buf0");
+    Halide::Buffer<uint8_t> reference_buf0(SIZE1, SIZE1, "reference_buf0");
     init_buffer(reference_buf0, (uint8_t)2);
 
-    Halide::Buffer<uint8_t> output_buf0(SIZE0, "output_buf0");
+    Halide::Buffer<uint8_t> output_buf0(SIZE1, SIZE1, "output_buf0");
     init_buffer(output_buf0, (uint8_t)0);
 
     // Call the Tiramisu generated code
