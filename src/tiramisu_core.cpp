@@ -85,6 +85,7 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 {
     function *fct = global::get_implicit_function();
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
+
 }
 
 //********************************************************
@@ -7811,230 +7812,167 @@ void tiramisu::buffer::tag_gpu_register() {
 }
 
 
-/**
-  * This function generates communication code for data exchange between ranks.
-  * Not safe to. currently being implemented
-  * Details:
-  * Suppose we have the following code
-  * \code
-  * data.set_expression(in(i)+in(i-1));
-  * data.tag_distribute_level(i);
-  * data.generate_communication(number_of_ranks)
-  * /endcode
-  * We have a computation data and an input in, both data and input have i as
-  * their distributed dimension, number_of_ranks is the number of mpi ranks.
-  * this function will generate send/receive to exchange all data "data" required by a
-  * rank and not owned by it.
- */
+isl_set* tiramisu::utility::get_set_with_dynamic_dimension(isl_set* set) {
+    isl_set* resulting_set = isl_set_copy(set);
+    int number_of_dims = isl_set_dim(resulting_set,isl_dim_set);
+    int static_dim = 0;
+    while (isl_set_dim(resulting_set, isl_dim_set) > number_of_dims/2) {
+        resulting_set = isl_set_project_out(resulting_set, isl_dim_set, static_dim, 1);
+        static_dim++;
+    }
+    resulting_set = isl_set_set_tuple_name(resulting_set, isl_set_get_tuple_name(set));
+    return resulting_set;
+}
+
 void computation::generate_communication(int number_of_nodes){
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
-
     //get the distribution map of this rank r
-    isl_map* distribution_map_r=construct_distribution_map("r",number_of_nodes);
+    isl_map* distribution_map_r = construct_distribution_map("r", number_of_nodes);
     DEBUG(3, tiramisu::str_dump("The distribution_map for this rank : ");
-        isl_map_dump(distribution_map_r));
-
+     isl_map_dump(distribution_map_r));
     //get the distribution map for other ranks rp
-    isl_map* distribution_map_rp=construct_distribution_map("rp",number_of_nodes);
-    DEBUG(3, tiramisu::str_dump("The distribution_map for other rank : ");
-        isl_map_dump(distribution_map_rp));
-
+    isl_map* distribution_map_rp = construct_distribution_map("rp", number_of_nodes);
+     DEBUG(3, tiramisu::str_dump("The distribution_map for other rank : ");
+     isl_map_dump(distribution_map_rp));
     //get the initial domain of the computation
-    isl_set* initial_domain=isl_set_copy(this->get_iteration_domain());
+    isl_set* initial_domain = this->get_trimmed_time_processor_domain();
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
-        isl_set_dump(initial_domain));
-
+    isl_set_dump(initial_domain));
     //get the set that will be computed by the rank r for this computation
-    isl_set* to_compute_set=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_r));
+    isl_set* to_compute_set = isl_set_apply(isl_set_copy(initial_domain),
+        isl_map_copy(distribution_map_r));
     DEBUG(3, tiramisu::str_dump("Initial dommain of the computation : ");
-        isl_set_dump(to_compute_set));
-
-    //To compute the data needed by this computation,
+    isl_set_dump(to_compute_set));
+    // To compute the data needed by this computation,
     //we have to retrieve its read accesses.
     std::vector<isl_map*> read_accesses;
     generator::get_rhs_accesses(this->get_function(),this,read_accesses,false);
     std::vector<isl_set*> needed_sets;
     //apply the map to get the set of the needed elements due to a read
-
-    if(read_accesses.size()==0) return; //no read accesses - for inputs
-
+    if (read_accesses.size()==0) return; //no read accesses - for inputs
     //calculate the needed sets
-    for(int i=0;i<read_accesses.size();i++){
-        needed_sets.push_back(isl_set_apply(isl_set_copy(to_compute_set),read_accesses[i]));
+    for (int i = 0; i < read_accesses.size(); i++) {
+        isl_map* schedule = isl_map_copy(this->get_trimmed_union_of_schedules());
+        auto name = isl_map_get_tuple_name(read_accesses[i], isl_dim_out);
+        read_accesses[i] = isl_map_apply_domain(read_accesses[i], isl_map_copy(schedule));
+        schedule = isl_map_set_tuple_name(schedule, isl_dim_in,name);
+        schedule  =isl_map_set_tuple_name(schedule, isl_dim_out,name);
+        read_accesses[i] = isl_map_apply_range(read_accesses[i], schedule);
+        isl_set* tmp = isl_set_apply(isl_set_copy(to_compute_set), read_accesses[i]);
+        needed_sets.push_back(tiramisu::utility::get_set_with_dynamic_dimension(tmp));
     }
-
     //construct a union set of the needed sets
     isl_union_set* need_set;
-    if(needed_sets.size()>0) need_set=isl_union_set_from_set(isl_set_copy(needed_sets[0]));
-    for(int i=1;i<needed_sets.size();i++){
-         need_set=isl_union_set_union(isl_union_set_copy(need_set),
-         isl_union_set_from_set(isl_set_copy(needed_sets[i])));
+    if (needed_sets.size() > 0) need_set=isl_union_set_from_set(isl_set_copy(needed_sets[0]));
+    for(int i = 1; i < needed_sets.size(); i++) {
+         need_set = isl_union_set_union(need_set, isl_union_set_from_set(isl_set_copy(needed_sets[i])));
     }
-    need_set=isl_union_set_coalesce(need_set);
-
-    DEBUG(3, tiramisu::str_dump("The need set is  : ");
+    need_set = isl_union_set_coalesce(need_set);
+    DEBUG(3, tiramisu::str_dump("The need set is:");
         isl_union_set_dump(need_set));
-
     //to compute the data to exchange, we need to find what data do we have
     //and the data that others have
     std::set<std::string> needed_set_names;//no duplicate names
     //get the names of computations involved in the exchange
-    for(isl_set* set: needed_sets ){
+    for (isl_set* set:needed_sets) {
         needed_set_names.insert(isl_set_get_tuple_name(isl_set_copy(set)));
     }
-    for(auto s:needed_set_names){
-        std::cout << s <<"\t" << std::endl;
-    }
-
-    //we make an assumption that all computations have the same distributed_dimension
-    //this migh be false
+    // we make an assumption that all computations have the same distributed_dimension
+    // this migh be false
     isl_union_set* have_set=isl_union_set_empty(isl_set_get_space(isl_set_copy(to_compute_set)));
-    for(auto s:needed_set_names){
-        isl_set* tmp_set=isl_set_set_tuple_name(isl_set_copy(to_compute_set),s.c_str());
-        have_set=isl_union_set_union(isl_union_set_copy(have_set),isl_union_set_from_set(tmp_set));
+    for(auto s:needed_set_names) {
+        isl_set* tmp_set = isl_set_set_tuple_name(isl_set_copy(to_compute_set),s.c_str());
+        tmp_set = tiramisu::utility::get_set_with_dynamic_dimension(tmp_set);
+        have_set = isl_union_set_union(isl_union_set_copy(have_set),isl_union_set_from_set(tmp_set));
     }
-    have_set=isl_union_set_coalesce(have_set);//all needs
+    have_set = isl_union_set_coalesce(have_set);//all needs
     DEBUG(3, tiramisu::str_dump("The have set for the needed elements is  : ");
         isl_union_set_dump(have_set));
-
-    //calculate the missing set
-    isl_union_set* missing_set=isl_union_set_subtract(need_set,have_set);
-    missing_set=isl_union_set_coalesce(missing_set);
+    //Calculate the missing set
+    isl_union_set* missing_set = isl_union_set_subtract(need_set, have_set);
+    missing_set = isl_union_set_coalesce(missing_set);
     DEBUG(3, tiramisu::str_dump("The missing set is  : ");
         isl_union_set_dump(missing_set));
-
-    //have of other
-    isl_set* to_compute_set_rp=isl_set_apply(isl_set_copy(initial_domain),isl_map_copy(distribution_map_rp));
-    isl_union_set* have_set_rp=isl_union_set_empty(isl_set_get_space(isl_set_copy(to_compute_set_rp)));
-    for(auto s:needed_set_names){
-        isl_set* tmp_set=isl_set_set_tuple_name(isl_set_copy(to_compute_set_rp),s.c_str());
-        have_set_rp=isl_union_set_union(isl_union_set_copy(have_set_rp),isl_union_set_from_set(tmp_set));
+    //Have set of other
+    isl_set* to_compute_set_rp = isl_set_apply(isl_set_copy(initial_domain),
+        isl_map_copy(distribution_map_rp));
+    isl_union_set* have_set_rp = isl_union_set_empty(isl_set_get_space(isl_set_copy(to_compute_set_rp)));
+    for(auto s:needed_set_names) {
+        isl_set* tmp_set = isl_set_set_tuple_name(isl_set_copy(to_compute_set_rp), s.c_str());
+        tmp_set = tiramisu::utility::get_set_with_dynamic_dimension(tmp_set);
+        have_set_rp = isl_union_set_union(isl_union_set_copy(have_set_rp),
+            isl_union_set_from_set(tmp_set));
     }
-    have_set_rp=isl_union_set_coalesce(have_set_rp);//all needs
+    have_set_rp = isl_union_set_coalesce(have_set_rp);//all needs
     DEBUG(3, tiramisu::str_dump("The have set of other processors is  : ");
         isl_union_set_dump(have_set_rp));
 
-    //calculate the data tha needs to be sent
-    isl_union_set* to_send_set=isl_union_set_intersect(missing_set,have_set_rp);
-    DEBUG(3, tiramisu::str_dump("The exchange set between rank r and ranks rp is  : ");
+    //Calculate the data tha needs to be sent
+    isl_union_set* to_send_set = isl_union_set_intersect(missing_set, have_set_rp);
+    DEBUG(3, tiramisu::str_dump("The exchange set between rank r and ranks rp is:");
         isl_union_set_dump(to_send_set));
-
-    DEBUG_INDENT(-4);
+        DEBUG_INDENT(-4);
 }
 
-/**
-  * This function constructs the distributed map of a computation.
-  * Not safe to use. currently being implemented
-  * Details:
-  * given the number of nodes (mpi ranks) and the rank which can be either
-  * r  which means the current rank or rp which means other ranks
-  * This function will generate the distribution map
-  * Example :
-  * \code
-  * data.set_expression(in(i)+in(i-1));
-  * data.tag_distribute_level(i);
-  * data.generate_communication(5);
-  * /endcode
-  * the function generate communication calls this function and the generated distribution map
-  * is :
-  * \code
-  * [r] -> { data[i] -> data[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
-  * /endcode
- */
-isl_map* computation::construct_distribution_map(std::string rank_name,int number_of_nodes){
+std::vector<std::string> computation::get_dimensions_names() {
+    std::vector<std::string> dimensions_names;
+    this->gen_time_space_domain();
+    isl_set* iteration_domain = this->get_trimmed_time_processor_domain();
+    int number_of_dims = isl_set_dim(iteration_domain,isl_dim_set);
+    for(int i = 0; i < number_of_dims; i++) {
+        if (isl_set_has_dim_name(iteration_domain, isl_dim_set, i))
+            dimensions_names.push_back(isl_set_get_dim_name(iteration_domain, isl_dim_set, i));
+        else
+            dimensions_names.push_back(generate_new_variable_name());
+    }
+    return dimensions_names;
+}
+
+int computation::get_distributed_dimension() {
+    this->gen_time_space_domain();
+    int number_of_dimensions = isl_set_dim(this->get_trimmed_time_processor_domain(), isl_dim_set);
+    int distributed_dimension = 0;
+    while(distributed_dimension < number_of_dimensions and
+         !this->get_function()->should_distribute(this->get_name(), distributed_dimension))
+            distributed_dimension++;
+    if(distributed_dimension < number_of_dimensions) return distributed_dimension;
+    else return -1;//nodistributed dimension
+}
+
+isl_map* computation::construct_distribution_map(std::string rank_name, int number_of_nodes) {
+
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    int distributed_dimension=0; // we suppose that it's the first level
+    std::vector<std::string> dimensions_names = this->get_dimensions_names();
+    int distributed_dimension = this->get_distributed_dimension();
 
-    //search the distributed dimension
-    while(distributed_dimension<this->get_iteration_domain_dimensions_number() and
-        !this->get_function()->should_distribute(this->get_name(),distributed_dimension))
-        distributed_dimension++;
-
-    //if no distributed dimension quit, it's unsafe to continue
-    if(distributed_dimension==this->get_iteration_domain_dimensions_number())
-            ERROR("No distributed dimenions found in "+this->get_name()+
-                ".\n  Cannot compute data to send or receive.", true);
-
-    //lower and upper bound to use - Search for a better way
-    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_iteration_domain(), distributed_dimension, false);
-    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_iteration_domain(), distributed_dimension, true);
-    tiramisu::expr loop_bound = upper_bound -lower_bound + value_cast(global::get_loop_iterator_data_type(), 1);
-    loop_bound=loop_bound.simplify();
-
-    //get the invariant of the loop
-    std::string loop_bound_invariant=tiramisu::utility::get_parameter_from_bound(loop_bound);
-    int distributed_stride=0;
-    //look if this invariant is correct
-    std::vector<tiramisu::constant> invariants=this->get_function()->get_invariants();
-    for(tiramisu::constant invariant: invariants){
-        if(loop_bound_invariant==invariant.get_name()) distributed_stride=std::stoi(invariant.get_expr().to_str());
-    }
-    if(loop_bound_invariant=="") distributed_stride= std::stoi(loop_bound_invariant);
+    this->simplify(this->get_iteration_domain());
+    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, false);
+    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, true);
+    int extent = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
 
     std::string distribution_map_string="";
-    //transform dimensions to string
     std::string dimensions_string="";
-    for(int dimension=0;dimension<this->get_iteration_domain_dimensions_number();dimension++)
+    for(int i = 0; i < dimensions_names.size(); i++)
         {
-            dimensions_string+=this->get_dimension_name_for_loop_level(dimension);
-            if(dimension<this->get_iteration_domain_dimensions_number()-1) dimensions_string+=",";
+            dimensions_string += dimensions_names[i];
+            if(i < dimensions_names.size()-1) dimensions_string += ",";
         }
-
-    //construct parameters, here we have the r or rp
-    //maybe we can have later an expression for the distributed dimension
     std::string params=rank_name;
-
-    //processors definitions
-    std::string processors_definition="0<="+rank_name+"<"+std::to_string(number_of_nodes);
-
+    std::string processors_definition = "0<="+rank_name+"<"+std::to_string(number_of_nodes);
     //TODO : this won't give a correct result is distributed_stride%number_of_nodes!=0
     //should be corrected
-    distribution_map_string+=
+    distribution_map_string +=
     "["+params+"]->{"+this->get_name()+"["+ dimensions_string +"]->" +this->get_name()+"["+
-    dimensions_string +"]:"+processors_definition+" and "+std::to_string(distributed_stride/number_of_nodes);
-    distribution_map_string+=rank_name+"<="+this->get_dimension_name_for_loop_level(distributed_dimension)+"<"+std::to_string(distributed_stride/number_of_nodes)
-    +"*("+rank_name+"+1)}";
-
-    isl_map* map=isl_map_read_from_str(this->get_ctx(), distribution_map_string.c_str());
-    DEBUG(3, tiramisu::str_dump("The distribution_map is : "); isl_map_dump(map));
+    dimensions_string +"]:"+processors_definition+" and "+
+    std::to_string(extent/number_of_nodes);
+    distribution_map_string += rank_name+"<="+this->get_dimension_name_for_loop_level(distributed_dimension)+
+    "<"+std::to_string(extent/number_of_nodes)+"*("+rank_name+"+1)}";
+    isl_map* map = isl_map_read_from_str(this->get_ctx(), distribution_map_string.c_str());
+    DEBUG(3, tiramisu::str_dump("The distribution map is : "); isl_map_dump(map));
     DEBUG_INDENT(-4);
    return map;
 }
-
-/**
-  * This function return a parameter of expression if it has, else empty string
-  * Not safe to use, might be removed soon
- */
-std::string tiramisu::utility::get_parameter_from_bound(tiramisu::expr e){
-
-    DEBUG_FCT_NAME(10);
-    DEBUG_INDENT(4);
-    std::string expr_string=e.to_str();
-    std::string parameter="";
-    int i=0;
-
-    //TODO : check the regex of a parameter, and use it to get the parameter
-    //ask if there is a function that already does this
-
-    while(i<expr_string.size() and !(expr_string[i]>='a' and expr_string[i]<='z')
-        and !(expr_string[i]>='A' and expr_string[i]<='Z')) i++;
-
-    while(i<expr_string.size() and ((expr_string[i]>='a' and expr_string[i]<='z')
-        or (expr_string[i]>='A' and expr_string[i]<='Z')
-        or (expr_string[i]>='0' and expr_string[i]<='9'))){
-            parameter+=expr_string[i];
-            i++;
-        }
-
-    DEBUG(3, tiramisu::str_dump("The extracted parameter from loop bound"+e.to_str()+"is :"));
-
-    DEBUG_INDENT(-4);
-
-    return parameter;
-}
-
-
 }

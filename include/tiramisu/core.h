@@ -2481,27 +2481,41 @@ protected:
       * \overload
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+
     /**
-      * This function constructs the distributed map of a computation.
-      * Not safe to use. currently being implemented
-      * Details:
-      * given the number of nodes (mpi ranks) and the rank which can be either
-      * r  which means the current rank or rp which means other ranks
-      * This function will generate the distribution map
+      * \brief This function constructs the distribution map of a computation.
+      * Not safe to use. currently being implemented.
+      *
+      * A distribution map is a map that discribes which instances of the distributed loop
+      * should be executed by a rank.
+      *
+      * Given the number of nodes (mpi ranks) and the rank which can be either
+      * r which means the current rank or rp which means other ranks, this function will
+      * generate the distribution map
+      *
       * Example :
       * \code
-      * data.set_expression(in(i)+in(i-1));
-      * data.tag_distribute_level(i);
-      * data.generate_communication(5);
+      * c.set_expression(in(i)+in(i-1));
+      * c.tag_distribute_level(i);
+      * c.generate_communication(5);
       * /endcode
-      * the function generate communication calls this function and the generated distribution map
+      * The function generates communication calls this function and the generated distribution map
       * is :
       * \code
-      * [r] -> { data[i] -> data[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
       * /endcode
      */
-    isl_map* construct_distribution_map(std::string rank,int number_of_nodes);
+    isl_map* construct_distribution_map(std::string rank, int number_of_nodes);
 
+    /**
+      * Return the distributed dimension of a computation.
+      */
+    int get_distributed_dimension();
+
+    /**
+      * Return the names of dimensions of the iteration domain after applying schedule
+      */
+    std::vector<std::string> get_dimensions_names();
 
 public:
 
@@ -4547,11 +4561,11 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
+
     /**
-      * This function return a parameter of expression if it has, else empty string
-      * Not safe to use, might be removed soon
-     */
-    static std::string get_parameter_from_bound(tiramisu::expr e);
+      * Return a new set containing only the dynamic dimensions.
+      */
+    static isl_set* get_set_with_dynamic_dimension(isl_set* set);
 
 };
 
