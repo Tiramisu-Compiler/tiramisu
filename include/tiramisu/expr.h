@@ -83,7 +83,7 @@ public:
     }
 
     /**
-      * set the implicit function to the function given as an argument.
+      * Set the implicit function to the function given as an argument.
       *
       * All the computations and buffers created later are added by deafult
       * to this function unless it's modified again.
