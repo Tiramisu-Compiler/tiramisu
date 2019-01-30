@@ -303,6 +303,7 @@ void resnetBlock()
                 for (size_t l = 0; l < N; ++l)
                 {
                     resultfile << fixed << setprecision(2) << (float)((int)(output[i * 64 * N * N + j * N * N + k * N + l] * 1000) / 1000.0);
+                    resultfile << "\n";
                 }
     resultfile.close();
 }
