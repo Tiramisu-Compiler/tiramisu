@@ -3299,7 +3299,7 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-
+    computation * get_successor();
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
