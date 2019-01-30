@@ -126,30 +126,57 @@ const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu
     std::map<std::string, tiramisu::buffer*>::iterator it ;
     tiramisu::computation* cpt = c1;
     tiramisu::computation* cptl = c2;
+    char x;
     DEBUG_INDENT(4);
     for (it = buff.begin(); it != buff.end(); ++it)
     {
         tiramisu::buffer b = *(it->second);
         if (b.get_argument_type() == tiramisu::a_temporary){
-            it->second->tag_gpu_global();
-            name= b.get_name().substr(0,b.get_name().size()-4) ;
-            bcpu = buff.find(name)->second;
-            if (bcpu->get_argument_type() == tiramisu::a_input){
-                cpt_name= "cpt" + std::to_string(i);   i++;
-                tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
-                (*ccccc).then((*cpt),computation::root);
-                cpt = ccccc ;                           
-                }
-            if (bcpu->get_argument_type() == tiramisu::a_output){
-                cpt_name= "cpt" + std::to_string(i);   i++;
-                tiramisu::computation* ccccc =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
-                (*cptl).then((*ccccc),computation::root);
-                cptl = ccccc ;
-               }
+            name= b.get_name().substr(0,b.get_name().size()-2);
+            x = b.get_name().substr(b.get_name().size()-1,b.get_name().size())[0] ;
+            if ((name + "_" + x).compare(b.get_name())== 0){
+                    switch (x)                        
+                    {
+                            case 'g':
+                            it->second->tag_gpu_global();
+                            bcpu = buff.find(name)->second;
+                                    if (bcpu->get_argument_type() == tiramisu::a_input){
+                                        cpt_name= "cpt" + std::to_string(i);   i++;
+                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
+                                        (*comp).then((*cpt),computation::root);
+                                        cpt = comp;
+                                        }
+                                    if (bcpu->get_argument_type() == tiramisu::a_output){
+                                        cpt_name= "cpt" + std::to_string(i);   i++;
+                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
+                                        (*cptl).then((*comp),computation::root);
+                                        cptl = comp ;
+                                       }
+                                 break;
+				    // for these cases i have to see what i can auto first.
+                          /*  case 's':
+                            it->second->tag_gpu_shared() ;
+                            break;
+                            case 'c':
+                            it->second->tag_gpu_constant();
+                            break;
+                            case 'l':
+                            it->second->tag_gpu_local();
+                            break;
+                            case 'r':
+                            it->second->tag_gpu_register();
+                            break;*/
+                            default:
+                            DEBUG(3, tiramisu::str_dump("gpu beffers should end with _g for global, _s for shared, _c for condtant, _l for local and _r for regesters  "));
+                            break;
+
+                    }
+            }else DEBUG(3, tiramisu::str_dump("gpu beffers should end with _g for global, _s for shared, _c for condtant, _l for local and _r for regesters  "));
+
+                
         }
-    }
-
-
+    }     
+            
     return 0;
 }
 	
@@ -1672,9 +1699,12 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
 }
 
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
-    tiramisu::computation* c1 = this->get_first_cpt();
-    tiramisu::computation* c2 = this->get_last_cpt();
-    Automatic_communication(c1,c2);
+
+    if (gen_cuda_stmt) {
+	    tiramisu::computation* c1 = this->get_first_cpt();
+	    tiramisu::computation* c2 = this->get_last_cpt();
+	    Automatic_communication(c1,c2);
+    }
     this->set_arguments(arguments);
     this->lift_dist_comps();
     this->gen_time_space_domain();

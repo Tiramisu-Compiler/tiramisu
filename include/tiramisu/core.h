@@ -740,9 +740,9 @@ public:
      */
     function(std::string name);
 	/**
-     * \brief generates the automatic communication CPU/GPU \p name.
+     * \brief Generates the automatic communication CPU/GPU \p name.
      * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
-     * cpu buffer and buffer_gpu is the name of the corresponding gpu buffer.
+     * cpu buffer and buffer_g is the name of the corresponding gpu buffer.
      */
     const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
     /**
@@ -3299,7 +3299,12 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-
+	
+	/**
+      * Returns a pointer to the computation scheduled immediately after this computation,
+      * or a null pointer if none exist.
+      */
+    computation * get_successor();
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
