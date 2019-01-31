@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     computation copy_y_to_host({}, memcpy(buf_y_gpu, buf_y));
 
     // Block dimension derivation causes a bug
-    // global::get_implicit_function()->add_context_constraints("[feature_size, batch_size]->{:feature_size % 16 = 0 and batch_size % 16 = 0}");
+    global::get_implicit_function()->add_context_constraints("[feature_size, batch_size]->{:feature_size % 16 = 0 and batch_size % 16 = 0}");
 
     // -------------------------------------------------------
     // Layer II

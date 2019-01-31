@@ -220,15 +220,18 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         auto expr_type = isl_ast_expr_get_op_type(expr.get());
         assert(expr_type == isl_ast_op_type::isl_ast_op_lt || expr_type == isl_ast_op_type::isl_ast_op_le);
         isl_ast_expr_ptr value{isl_ast_expr_get_op_arg(expr.get(), 1)};
-        if (expr_type == isl_ast_op_lt)
-        {
+        if (expr_type == isl_ast_op_lt) {
             DEBUG(3, tiramisu::str_dump("not supported"));
-            return cuda_stmt_handle_isl_expr(value, node);
-        } else
-        {
+            // Even though this is "not supported", this case happens with block dimensions sometimes.
+            // cuda_ast expects loop ranges to be inclusive so we adjust the value by subtracting 1.
+            cuda_ast::statement_ptr stmt = cuda_stmt_handle_isl_expr(value, node);
+            return statement_ptr{new binary{stmt->get_type(),
+                stmt,
+                statement_ptr{new cuda_ast::value{value_cast(stmt->get_type(), 1)}},
+                "-"}};
+        } else {
             return cuda_stmt_handle_isl_expr(value, node);
         }
-
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_for(isl_ast_node *node) {
@@ -486,8 +489,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         } else {
             actual_bound = upper_bound;
         }
-        gpu_iterator result{type, dim,  statement_ptr{new binary{actual_bound->get_type(),
-                                                                 actual_bound,
+        gpu_iterator result{type, dim, statement_ptr{new binary{actual_bound->get_type(),
+                                                                actual_bound,
                                                                 statement_ptr{new value{value_cast(actual_bound->get_type(), 1)}},
                                                                 "+"}}};
         if (min_cap.first) {
