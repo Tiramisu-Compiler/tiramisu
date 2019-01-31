@@ -222,6 +222,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         isl_ast_expr_ptr value{isl_ast_expr_get_op_arg(expr.get(), 1)};
         if (expr_type == isl_ast_op_lt) {
             DEBUG(3, tiramisu::str_dump("not supported"));
+            // Even though this is "not supported", this case happens with block dimensions sometimes.
+            // cuda_ast expects loop ranges to be inclusive so we adjust the value by subtracting 1.
             cuda_ast::statement_ptr stmt = cuda_stmt_handle_isl_expr(value, node);
             return statement_ptr{new binary{stmt->get_type(),
                 stmt,
