@@ -265,10 +265,10 @@ int main(int argc, char **argv)
     matmul1_R_glb_to_prefreg.store_in(&buf_matmul1_R_prefreg, {0});
     matmul1_R_prefreg_to_shr.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, k % BLOCK});
     matmul1_R_shr_access.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, j % BLOCK});
-    matmul1_h_access.store_in(&buf_h, {m - 1, l, k, j0 * BLOCK + i_merged % BLOCK});
-    matmul1_h_shr_pref.store_in(&buf_matmul1_h_shr, {k % BLOCK, i_merged % BLOCK});
+    matmul1_h_access.store_in(&buf_h, {m - 1, l, k - k % BLOCK + i_merged % BLOCK, j0 * BLOCK + k % BLOCK});
+    matmul1_h_shr_pref.store_in(&buf_matmul1_h_shr, {i_merged % BLOCK, k % BLOCK});
     matmul1_h_glb_to_prefreg.store_in(&buf_matmul1_h_prefreg, {0});
-    matmul1_h_prefreg_to_shr.store_in(&buf_matmul1_h_shr, {k % BLOCK, i_merged % BLOCK});
+    matmul1_h_prefreg_to_shr.store_in(&buf_matmul1_h_shr, {i_merged % BLOCK, k % BLOCK});
     matmul1_h_shr_access.store_in(&buf_matmul1_h_shr, {k % BLOCK, j % BLOCK});
     matmul1_acc_init.store_in(&buf_matmul1_acc, {0});
     matmul1_acc.store_in(&buf_matmul1_acc, {0});
@@ -277,8 +277,8 @@ int main(int argc, char **argv)
     matmul2_W_access.store_in(&buf_Weights_gpu, {l, 1, i_merged, j0 * BLOCK + k % BLOCK});
     matmul2_W_shr_copy.store_in(&buf_matmul2_W_shr, {i_merged % BLOCK, k % BLOCK});
     matmul2_W_shr_access.store_in(&buf_matmul2_W_shr, {i_merged % BLOCK, j % BLOCK});
-    matmul2_h_access.store_in(&buf_h, {m, l - 1, k, j0 * BLOCK + i_merged % BLOCK});
-    matmul2_h_shr_copy.store_in(&buf_matmul2_h_shr, {k % BLOCK, i_merged % BLOCK});
+    matmul2_h_access.store_in(&buf_h, {m, l - 1, k - k % BLOCK + i_merged % BLOCK, j0 * BLOCK + k % BLOCK});
+    matmul2_h_shr_copy.store_in(&buf_matmul2_h_shr, {i_merged % BLOCK, k % BLOCK});
     matmul2_h_shr_access.store_in(&buf_matmul2_h_shr, {k % BLOCK, j % BLOCK});
     matmul2_acc_init.store_in(&buf_matmul2_acc, {0});
     matmul2_acc.store_in(&buf_matmul2_acc, {0});
