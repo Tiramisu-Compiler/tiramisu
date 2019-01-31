@@ -386,9 +386,14 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                         return statement_ptr{
                                 new function_call{tiramisu_expr.get_data_type(), tiramisu_expr.get_name(), operands}};
                     }
-                    case o_cast:
-                        return statement_ptr {new cuda_ast::cast{tiramisu_expr.get_data_type(),
-                                                                 parse_tiramisu(tiramisu_expr.get_operand(0))}};
+                    case o_cast: {
+                        if (tiramisu_expr.get_data_type() != tiramisu_expr.get_operand(0).get_data_type()) {
+                            return statement_ptr{new cuda_ast::cast{tiramisu_expr.get_data_type(),
+                                parse_tiramisu(tiramisu_expr.get_operand(0))}};
+                        } else {
+                            return parse_tiramisu(tiramisu_expr.get_operand(0));
+                        }
+                    }
                     case o_allocate:
                     {
                         auto buffer = get_buffer(tiramisu_expr.get_name());
