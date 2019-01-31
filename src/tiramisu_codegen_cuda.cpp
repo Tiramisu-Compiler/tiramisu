@@ -387,6 +387,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                                 new function_call{tiramisu_expr.get_data_type(), tiramisu_expr.get_name(), operands}};
                     }
                     case o_cast: {
+                        // Add a cast statement only if necessary
                         if (tiramisu_expr.get_data_type() != tiramisu_expr.get_operand(0).get_data_type()) {
                             return statement_ptr{new cuda_ast::cast{tiramisu_expr.get_data_type(),
                                 parse_tiramisu(tiramisu_expr.get_operand(0))}};
