@@ -739,8 +739,9 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
+
 	/**
-     * \brief Generates the automatic communication CPU/GPU \p name.
+     * \brief Generates the automatic communication CPU/GPU.
      * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
      * \cpu buffer and buffer_g is the name of the corresponding gpu buffer.
      */
@@ -768,6 +769,8 @@ public:
      * \brief Adds a new pair to the mapping field.  
      */
     void  add_mapping(std::pair<std::string ,tiramisu::buffer *> p);
+
+ 
     /**
       * \brief Add a set of constraints to the context of the program.
       *
@@ -3331,11 +3334,12 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-	
+  
 	/**
       * Returns a pointer to the computation scheduled immediately after this computation,
       * or a null pointer if none exist.
       */
+
     computation * get_successor();
     /**
       * Returns the \p index update that has been added to this computation such that:
