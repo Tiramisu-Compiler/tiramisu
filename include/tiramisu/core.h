@@ -739,24 +739,38 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
-    /**
-     * \brief generates the automatic communication CPU/GPU \p name.
+
+	/**
+     * \brief Generates the automatic communication CPU/GPU.
      * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
-     * cpu buffer and buffer_gpu is the name of the corresponding gpu buffer.
+     * \cpu buffer and buffer_g is the name of the corresponding gpu buffer.
      */
     const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
     /**
-     * \brief Returns a ptr to the first computation in the sched_graph \p name.
+     * \brief Returns a ptr to the first computation in the sched_graph.
      * \details The computation that have no predecessor
      */
     computation * get_first_cpt();
      /**
-     * \brief Returns a ptr to the last computation in the sched_graph \p name.
+     * \brief Returns a ptr to the last computation in the sched_graph.
      * \details The computation that have no succesor
      */
     computation * get_last_cpt();
+     /**
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
+     * \details it is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     */
+    std::map<std::string, tiramisu::buffer *> mapping ;
+     /**
+     * \brief Returns the mapping field of a given function.  
+     */
+    const std::map<std::string , tiramisu::buffer *> get_mapping() const;
+     /**
+     * \brief Adds a new pair to the mapping field.  
+     */
+    void  add_mapping(std::pair<std::string ,tiramisu::buffer *> p);
 
-
+ 
     /**
       * \brief Add a set of constraints to the context of the program.
       *
@@ -1086,6 +1100,20 @@ private:
      * The location of the buffer (host if in memory, else where on GPU).
      */
     cuda_ast::memory_location location;
+	
+     /**
+     * specify which memory is tagged when using the gpu. By default it is equal to 'g' for global memory, 
+     * it can be set to 'c' to tag constant memory. 
+     * This field is modified when creatin a gpu buffer.
+     */
+     char tag;
+	
+     /**
+     * auto_trans = true by default, is it set to false when the user do data transfert to gpu manually
+     */
+     bool auto_trans;
+
+	
 
 protected:
     /**
@@ -1161,13 +1189,21 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
+      * 
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      * This field is only set, when we creat a gpu buffer.
+      *
+      * \p tag is char to spécify in wich memory the gpu buffer will be stored in, 
+      *  It can either take the default value 'g' for global memory, or 'c' to tag 
+      *  the constant memory.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-	   tiramisu::function *fct = global::get_implicit_function());
+           tiramisu::function *fct = global::get_implicit_function(), std::string corr= "",char tag='g');
+
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -3298,6 +3334,12 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
+  
+	/**
+      * Returns a pointer to the computation scheduled immediately after this computation,
+      * or a null pointer if none exist.
+      */
+
     computation * get_successor();
     /**
       * Returns the \p index update that has been added to this computation such that:

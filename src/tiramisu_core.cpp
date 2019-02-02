@@ -5054,18 +5054,25 @@ std::string str_from_is_null(void *ptr)
 
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct):
-    allocated(false), argtype(argt), auto_allocate(true), dim_sizes(dim_sizes), fct(fct),
+                         tiramisu::argument_t argt, tiramisu::function *fct,std::string corr, char tag):
+    allocated(false), argtype(argt), auto_allocate(true), auto_trans(true), dim_sizes(dim_sizes), fct(fct),
     name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
-
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-
+     // Check that the specified tag are either 'g' for global memory or 'c' for constant memory.
+    assert((tag == 'g' || tag == 'c' || tag == '') && ("The tag should be 'g' for global memory and 'c' for constant memory"));     
+    if(corr.compare("") != 0)
+    {
+      assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));  
+      fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
+    }
+        
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
+
 
 /**
   * Return the type of the argument (if the buffer is an argument).
@@ -5560,6 +5567,43 @@ computation * computation::get_predecessor() {
 
     return reverse_graph.begin()->first;
 }
+  
+ computation * computation::get_successor() {
+    auto &reverse_graph = this->get_function()->sched_graph[this];
+
+    if (reverse_graph.empty())
+        return nullptr;
+
+    return reverse_graph.begin()->first;
+}
+
+computation * function::get_first_cpt() {
+    if (this->is_sched_graph_tree()){
+         tiramisu::computation* cpt = this->sched_graph.begin()->first;   
+         while (cpt->get_predecessor() != NULL){
+            cpt = cpt->get_predecessor();
+            }
+         return cpt;
+    }else{
+        DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
+    }
+}
+
+computation * function::get_last_cpt() {
+
+    if (this->is_sched_graph_tree()){
+         tiramisu::computation* cpt = this->sched_graph.begin()->first;
+         while (cpt->get_successor() != NULL){
+            cpt = cpt->get_successor();
+          }
+
+         return cpt;
+    }else{
+        DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+    }
+}
+  
+  
 
 /**
   * Return the time-processor domain of the computation.
@@ -7118,10 +7162,12 @@ void tiramisu::buffer::tag_gpu_shared() {
 
 void tiramisu::buffer::tag_gpu_constant() {
     location = cuda_ast::memory_location::constant;
+    this->auto_trans = false ;    
 }
 
 void tiramisu::buffer::tag_gpu_global() {
     location = cuda_ast::memory_location::global;
+    this->auto_trans = false ;
 }
 
 void tiramisu::buffer::tag_gpu_local() {
