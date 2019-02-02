@@ -1748,7 +1748,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
 	{
 		tiramisu::computation* c1 = this->get_first_cpt();
 		tiramisu::computation* c2 = this->get_last_cpt();
-		Auto_comm(c1,c2);
+		Automatic_communication(c1,c2);
         }
 	else 
 		DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));    }
