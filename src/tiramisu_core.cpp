@@ -5056,18 +5056,18 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct,std::string corr, char tag):
     allocated(false), argtype(argt), auto_allocate(true), auto_trans(true), dim_sizes(dim_sizes), fct(fct),
-    name(name), type(type), location(cuda_ast::memory_location::host),tag(tag)
+    name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
-
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-
-    fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
-    
+     // Check that the specified tag are either 'g' for global memory or 'c' for constant memory.
+    assert((tag == 'g' || tag == 'c' || tag == '') && ("The tag should be 'g' for global memory and 'c' for constant memory"));
+    assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));   
     if(corr.compare("") != 0)
         fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
+    fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
 
 
