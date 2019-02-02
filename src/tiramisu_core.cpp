@@ -5063,7 +5063,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
      // Check that the specified tag are either 'g' for global memory or 'c' for constant memory.
-    assert((tag == 'g' || tag == 'c' || tag == '') && ("The tag should be 'g' for global memory and 'c' for constant memory"));     
+    assert((tag == 'g' || tag == 'c') && ("The tag should be 'g' for global memory and 'c' for constant memory"));     
     if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));  
