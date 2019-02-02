@@ -1740,8 +1740,8 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
     }
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
-
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) 
+{
     if (gen_cuda_stmt) 
     {
 	if(!this->mapping.empty())
@@ -1751,7 +1751,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
 		Automatic_communication(c1,c2);
         }
 	else 
-		DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));    }
+	     	DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));    
     }
     this->set_arguments(arguments);
     this->lift_dist_comps();
