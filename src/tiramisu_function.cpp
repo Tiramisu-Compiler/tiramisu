@@ -131,7 +131,6 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
 	
 const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2 ) const
 {
-    {
     std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
