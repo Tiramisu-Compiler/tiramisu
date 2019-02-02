@@ -740,10 +740,9 @@ public:
      */
     function(std::string name);
 
-	/**
+     /**
      * \brief Generates the automatic communication CPU/GPU.
-     * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
-     * \cpu buffer and buffer_g is the name of the corresponding gpu buffer.
+     * 
      */
     const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
     /**
