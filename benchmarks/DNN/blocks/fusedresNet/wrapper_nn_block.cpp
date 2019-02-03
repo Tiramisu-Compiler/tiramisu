@@ -118,7 +118,7 @@ int main(int, char **)
         f1 = std::stof(line1);
         f2 = std::stof(line2);
 
-        if (f1 - f2 <= 0.01)
+        if (abs(f1 - f2) < 0.02)
             corr += 1;
     }
 
