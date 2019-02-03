@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 
   computation bn2("bn2", {n, k_z, y, x}, (conv2(n, k_z, y, x, 0, 0, 0) - sum2(C_BATCH_SIZE - 1, k_z, C_N - 1, C_NX - 1) / cast(p_float64, C_NB_ELEMENTS)) / expr(o_sqrt, sumSquared2(C_BATCH_SIZE - 1, k_z, C_N - 1, C_NX - 1) / cast(p_float64, C_NB_ELEMENTS) - (sum2(C_BATCH_SIZE - 1, k_z, C_N - 1, C_NX - 1) / cast(p_float64, C_NB_ELEMENTS)) * (sum2(C_BATCH_SIZE - 1, k_z, C_N - 1, C_NX - 1) / cast(p_float64, C_NB_ELEMENTS))));
 
-  // ResNet block with each convolution fusion with its following bn function
+  // ResNet block with each convolution fused with its following bn function
   if (0)
   {
     init_input.after(inputPadd, x2);
