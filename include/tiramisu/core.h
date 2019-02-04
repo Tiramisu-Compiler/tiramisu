@@ -730,6 +730,43 @@ protected:
      * .after(), ...
      */
     bool use_low_level_scheduling_commands;
+	
+   /**
+     * \brief Generates the automatic communication CPU/GPU.
+     * \details This fucntion takes two pointers to the first and the last computation
+     *  of the fucntion.
+     *  C1 is the first computation, which means that it hasn't a predecessor.
+     *  C2 is the last computation, which means that it hasn't a successor.
+     */
+    const int  &Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const;
+	
+    /**
+     * \brief Returns a ptr to the first computation in the sched_graph.
+     * \details The computation that has no predecessor.
+     */
+    computation* get_first_cpt();
+	
+     /**
+     * \brief Returns a ptr to the last computation in the sched_graph.
+     * \details The computation that has no succesor.
+     */
+    computation* get_last_cpt();
+	
+     /**
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
+     * \details it is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     */
+    std::map<std::string, tiramisu::buffer *> mapping ;
+	
+     /**
+     * \brief Returns the mapping field of a given function.  
+     */
+    const std::map<std::string, tiramisu::buffer *> get_mapping() const;
+	
+     /**
+     * \brief Adds a new pair to the mapping field.  
+     */
+    void  add_mapping(std::pair<std::string, tiramisu::buffer *> p);
 
 public:
 
@@ -739,37 +776,7 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
-
-     /**
-     * \brief Generates the automatic communication CPU/GPU.
-     * 
-     */
-    const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
-    /**
-     * \brief Returns a ptr to the first computation in the sched_graph.
-     * \details The computation that have no predecessor
-     */
-    computation * get_first_cpt();
-     /**
-     * \brief Returns a ptr to the last computation in the sched_graph.
-     * \details The computation that have no succesor
-     */
-    computation * get_last_cpt();
-     /**
-     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
-     * \details it is modified when creating a gpu buffer, please have a look at the buffer constructor.
-     */
-    std::map<std::string, tiramisu::buffer *> mapping ;
-     /**
-     * \brief Returns the mapping field of a given function.  
-     */
-    const std::map<std::string , tiramisu::buffer *> get_mapping() const;
-     /**
-     * \brief Adds a new pair to the mapping field.  
-     */
-    void  add_mapping(std::pair<std::string ,tiramisu::buffer *> p);
-
- 
+	
     /**
       * \brief Add a set of constraints to the context of the program.
       *
@@ -1201,7 +1208,8 @@ public:
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-           tiramisu::function *fct = global::get_implicit_function(), std::string corr= "",char tag='g');
+           tiramisu::function *fct = global::get_implicit_function(), 
+	   std::string corr = "", char tag = 'g');
 
 
     /**
@@ -3334,12 +3342,12 @@ public:
       */
     computation * get_predecessor();
   
-	/**
+    /**
       * Returns a pointer to the computation scheduled immediately after this computation,
       * or a null pointer if none exist.
       */
-
     computation * get_successor();
+	
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
