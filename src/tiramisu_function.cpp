@@ -119,17 +119,22 @@ isl_union_map *tiramisu::function::compute_dep_graph() {
 const std::map<std::string, tiramisu::buffer *> tiramisu::function::get_mapping() const
 {
   return this->mapping;
-
 }
 
 void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> p)
 {
   this->mapping.insert(p);
-
 }
 
-	
-const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2 ) const
+/**
+ * This function takes computation pts to C1 and C2 which are the first and the last computation
+ * of the fucntion.
+ * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
+ * By default, the data management will be done automatically, and the copies will be inserted
+ * in the begining and at the end of the gpu funcion.
+ * computation). Store the access in computation->access.
+ */
+const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
 {
     std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
