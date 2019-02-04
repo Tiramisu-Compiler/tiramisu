@@ -4100,6 +4100,31 @@ public:
 
 class input: public computation
 {
+private:
+
+    /**
+      * Compute a vector of loop iterators from a vector of sizes.
+      * If the input is {10, 20}, this function returns a vector
+      * that has the following iterators var("random_name_0, 0, 10)
+      * and var("random_name_1", 0, 20.
+      */
+    static std::vector<var>
+	compute_iterators_from_sizes(std::vector<std::string> dimension_names,
+				     std::vector<tiramisu::expr> dimension_sizes)
+	{
+	    assert(dimension_sizes.size() != 0);
+
+	    std::vector<var> iterator_variables;
+
+	    for (int i = 0; i < dimension_sizes.size(); i++)
+	    {
+		tiramisu::var *v = new
+		    tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
+		    iterator_variables.push_back(*v);
+	    }
+
+	    return iterator_variables;
+	}
 
 public:
     /**
@@ -4152,6 +4177,49 @@ public:
     input(std::vector<var> iterator_variables, primitive_t t):
 	    input(generate_new_computation_name(), iterator_variables, t)
     {
+    }
+
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * Declare an input.
+      *
+      * \p name is the name of the input.
+      *
+      * \p dimension_names is a vector that represents the names of the input
+      * dimensions.
+      *
+      * \p dimension_sizes is a vector that represents the sizes of the input
+      * dimensions.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
+      *
+      * Example:
+      *
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type uint8 and where the first dimension is called
+      * "i" and the second dimension is "j".
+      *
+      * \code
+      * input A("A", {"i", "j"}, {20, 30}, p_uint8);
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to actually declare
+      * the buffer and map this input to that buffer.
+      *
+      * An example is provided in tutorial 02.
+      *
+     */
+    input(std::string name, std::vector<std::string> dimension_names,
+			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
+	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(), false)
+    {
+        this->data_type = t;
+        this->expression.dtype = t;
     }
 };
 
@@ -4291,6 +4359,18 @@ public:
              int at_loop_level,
              tiramisu::function *func = global::get_implicit_function());
 
+    /**
+      * This constructor has the same behaviour as
+      * \code
+         constant(std::string param_name, const tiramisu::expr &param_expr,
+             tiramisu::primitive_t t,
+             bool function_wide,
+             tiramisu::computation *with_computation,
+             int at_loop_level,
+             tiramisu::function *func);
+	\endcode
+      * except that it has less arguments.
+      */
     constant(std::string param_name, const tiramisu::expr &param_expr,
              tiramisu::primitive_t t,
              tiramisu::function *func = global::get_implicit_function());
