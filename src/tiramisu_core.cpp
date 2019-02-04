@@ -5068,8 +5068,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));  
       fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
-    }
-        
+    }        
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
 
@@ -5564,16 +5563,13 @@ computation * computation::get_predecessor() {
 
     if (reverse_graph.empty())
         return nullptr;
-
     return reverse_graph.begin()->first;
 }
   
  computation * computation::get_successor() {
     auto &reverse_graph = this->get_function()->sched_graph[this];
-
     if (reverse_graph.empty())
         return nullptr;
-
     return reverse_graph.begin()->first;
 }
 
@@ -5584,7 +5580,7 @@ computation * function::get_first_cpt() {
             cpt = cpt->get_predecessor();
             }
          return cpt;
-    }else{
+    } else {
         DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
     }
 }
@@ -5596,15 +5592,12 @@ computation * function::get_last_cpt() {
          while (cpt->get_successor() != NULL){
             cpt = cpt->get_successor();
           }
-
          return cpt;
-    }else{
+    } else {
         DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
     }
 }
   
-  
-
 /**
   * Return the time-processor domain of the computation.
   * In this representation, the logical time of execution and the
