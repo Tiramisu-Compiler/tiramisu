@@ -138,6 +138,16 @@ enum argument_t
 };
 
 /**
+  * Types of ranks in a distributed communication
+  * "r_" stands for rank.
+  */
+enum class rank_t
+{
+    r_sender,
+    r_receiver
+};
+
+/**
   * Convert a Tiramisu type into the equivalent Halide type (if it exists),
   * otherwise show an error message (no automatic type conversion is performed).
   */
