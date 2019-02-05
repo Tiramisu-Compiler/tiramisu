@@ -2486,7 +2486,7 @@ protected:
       * \brief Construct the distribution map of a computation.
       * Not safe to use. It's currently being implemented.
       *
-      * A distribution map is a map that describes how the computation is distributed across ranks.
+      * A distribution map partitions a computation across ranks.
       * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
       * is either r_sender or r_receiver, the distribution map will specify for each rank the
       * iterations it should execute.

@@ -85,7 +85,6 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 {
     function *fct = global::get_implicit_function();
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
-
 }
 
 //********************************************************
@@ -7814,9 +7813,9 @@ void tiramisu::buffer::tag_gpu_register() {
 std::string get_rank_string_type(tiramisu::rank_t rank_type)
 {
     if (rank_type == rank_t::r_sender)
-        return "r_sender";
+        return "r_snd";
     else
-        return "r_receiver";
+        return "r_rcv";
 }
 
 std::vector<std::string> computation::get_static_and_dynamic_dimensions_names()
