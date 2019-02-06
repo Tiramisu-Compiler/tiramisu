@@ -5054,16 +5054,15 @@ std::string str_from_is_null(void *ptr)
 
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct,std::string corr, char tag):
-    allocated(false), argtype(argt), auto_allocate(true), auto_trans(true), dim_sizes(dim_sizes), fct(fct),
-    name(name), type(type), location(cuda_ast::memory_location::host)
+                         tiramisu::argument_t argt, tiramisu::function *fct,std::string corr, 
+                         cuda_ast::memory_location location):
+                         allocated(false), argtype(argt), auto_allocate(true), auto_trans(true), 
+                         dim_sizes(dim_sizes), fct(fct),name(name), type(type), location(location)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
     // Check that the buffer does not already exist.
-    assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-     // Check that the specified tag are either 'g' for global memory or 'c' for constant memory.
-    assert((tag == 'g' || tag == 'c') && ("The tag should be 'g' for global memory and 'c' for constant memory"));     
+    assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));  
     if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));  
@@ -5071,6 +5070,15 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
     }        
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
+void buffer::set_atuomatic_gpu_copy(bool atuomatic_gpu_copy)
+{
+    this->atuomatic_gpu_copy = atuomatic_gpu_copy;
+}
+
+bool buffer::get_atuomatic_gpu_copy()
+{
+    return this->atuomatic_gpu_copy;
+}
 
 
 /**
@@ -7155,12 +7163,12 @@ void tiramisu::buffer::tag_gpu_shared() {
 
 void tiramisu::buffer::tag_gpu_constant() {
     location = cuda_ast::memory_location::constant;
-    this->auto_trans = false ;    
+    this->atuomatic_gpu_copy = false ;    
 }
 
 void tiramisu::buffer::tag_gpu_global() {
     location = cuda_ast::memory_location::global;
-    this->auto_trans = false ;
+    this->atuomatic_gpu_copy = false ;
 }
 
 void tiramisu::buffer::tag_gpu_local() {
