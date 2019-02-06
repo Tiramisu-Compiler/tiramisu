@@ -754,12 +754,14 @@ protected:
 	
      /**
      * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
-     * \details it is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     * \details It is modified when creating a gpu buffer, please have a look at the buffer constructor.
      */
     std::map<std::string, tiramisu::buffer *> mapping ;
 	
      /**
      * \brief Returns the mapping field of a given function.  
+     * \details It returns a pair of a string, which is the name of a cpu buffer, and a ptr to a
+     *  to the gpu buffer corresponding.
      */
     const std::map<std::string, tiramisu::buffer *> get_mapping() const;
 	
