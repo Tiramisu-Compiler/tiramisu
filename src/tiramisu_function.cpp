@@ -140,24 +140,25 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
     std::string name, cpt_name;
-    int i = 1;
-    char tag;  
+    int i = 1; 
     tiramisu::computation* first_cpt = c1;
     tiramisu::computation* last_cpt = c2;
+    assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
+    assert(c2->get_successor() == nullptr && "C1 must be the computation that hasn't a successor ");
     for (it = buff.begin(); it != buff.end(); ++it)
     {
       name = it->second->get_name();
-      tag = it->second->tag;
+    
       if (it->second->get_argument_type() != tiramisu::a_temporary)
         {
             cpt_name= "cpt" + std::to_string(i); 
             i++;
-            switch (tag)
+            switch (buff.find(mp.find(name)->second->get_name())->second->location)
             {
-                case 'c':
+                case cuda_ast::memory_location::constant :
                 if ((it->second->get_argument_type() == tiramisu::a_input) && (mp.find(name) != mp.end()))
                 {
-                   if (buff.find(mp.find(name)->second->get_name())->second->auto_trans== true) 
+                   if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
                     {
                         tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
                         memcpy((*(it->second)),*(buff.find(mp.find(name)->second->get_name())->second)));
@@ -176,14 +177,12 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                 }
                     
                 break;
-
                 default:
-
                 if ((it->second->get_argument_type() == tiramisu::a_input) && (mp.find(name) != mp.end()))
                 {
-                    if (buff.find(mp.find(name)->second->get_name())->second->auto_trans== true) 
+                    if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
                     {
-                        buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
+                        //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
                         tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
                         memcpy((*(it->second)),*(buff.find(mp.find(name)->second->get_name())->second)));
                         (*c).then((*first_cpt),computation::root);
@@ -200,9 +199,9 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                 }
                 if ((it->second->get_argument_type() == tiramisu::a_output) &&  (mp.find(name) != mp.end()))
                 {
-                    if (buff.find(mp.find(name)->second->get_name())->second->auto_trans == true )
+                    if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true )
                     {
-                        buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
+                        //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
                         tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
                         memcpy(*(buff.find(mp.find(name)->second->get_name())->second),(*(it->second))));
                         (*last_cpt).then((*c),computation::root);
@@ -217,7 +216,6 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                        DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
                    }
                 }
-
                 break;
             }
         } 
