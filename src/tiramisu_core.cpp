@@ -7166,12 +7166,12 @@ void tiramisu::buffer::tag_gpu_shared() {
 
 void tiramisu::buffer::tag_gpu_constant() {
     location = cuda_ast::memory_location::constant;
-    this->atuomatic_gpu_copy = false ;    
+    this->automatic_gpu_copy = false ;    
 }
 
 void tiramisu::buffer::tag_gpu_global() {
     location = cuda_ast::memory_location::global;
-    this->atuomatic_gpu_copy = false ;
+    this->automatic_gpu_copy = false ;
 }
 
 void tiramisu::buffer::tag_gpu_local() {
