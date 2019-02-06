@@ -5078,7 +5078,7 @@ void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
     this->automatic_gpu_copy = automatic_gpu_copy;
 }
 
-bool buffer::get_atuomatic_gpu_copy()
+bool buffer::get_automatic_gpu_copy()
 {
     return this->automatic_gpu_copy;
 }
