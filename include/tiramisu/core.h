@@ -1110,7 +1110,7 @@ private:
     cuda_ast::memory_location location;
 	
      /**
-     * auto_trans = true by default, is it set to false when the user wants
+     * automatic_gpu_copy = true by default, is it set to false when the user wants
      * to do data transfert to gpu manually.
      */
      bool automatic_gpu_copy;
