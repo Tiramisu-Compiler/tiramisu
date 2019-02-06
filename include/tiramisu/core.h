@@ -1113,7 +1113,7 @@ private:
      * auto_trans = true by default, is it set to false when the user wants
      * to do data transfert to gpu manually.
      */
-     bool atuomatic_gpu_copy;
+     bool automatic_gpu_copy;
 
 	
 
@@ -1137,7 +1137,7 @@ protected:
     /**
       * Return whether the copy should be done automatically.
       */	
-    bool get_atuomatic_gpu_copy();
+    bool get_automatic_gpu_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1324,7 +1324,7 @@ public:
     /**
       * Set whether the GPU copy should be done automatically.
       */
-    void set_atuomatic_gpu_copy(bool atuomatic_gpu_copy);	
+    void set_automatic_gpu_copy(bool atuomatic_gpu_copy);	
 
     /**
      * Return true if all extents of the buffer are literal integer
