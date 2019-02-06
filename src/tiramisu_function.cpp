@@ -132,11 +132,16 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
  * By default, the data management will be done automatically, and the copies will be inserted
  * in the begining and at the end of the gpu funcion.
+ * The inputs of the function will be copied to the device before the computations, and the 
+ * outputs of the functions will be copied back to the host at the end.
+ * We have two cases copies to constant memory and the default case which is copies to the global memory.
  */
 const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
 {
+    assert(c1 != nullptr && "C1 = NULL ");
+    assert(c2 != nullptr && "C2 = NULL ");
     assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
-    assert(c2->get_successor() == nullptr && "C1 must be the computation that hasn't a successor ");
+    assert(c2->get_successor() == nullptr && "C2 must be the computation that hasn't a successor ");
     std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
@@ -144,74 +149,47 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
     int i = 1; 
     tiramisu::computation* first_cpt = c1;
     tiramisu::computation* last_cpt = c2;
-    tiramisu::buffer* gpu_buffer;
-    for (it = buff.begin(); it != buff.end(); ++it)
+    for (it = mp.begin(); it != mp.end(); ++it)
     {
-      name = it->second->get_name();
-      if ((it->second->get_argument_type() != tiramisu::a_temporary ) && (mp.find(name) != mp.end()))
+      name = it->first;
+      assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
+      if (it->second->automatic_gpu_copy == true)
         {
-            gpu_buffer = buff.find(mp.find(name)->second->get_name())->second;
             cpt_name= "cpt" + std::to_string(i); 
             i++;
-            switch (gpu_buffer->location)
+            switch (it->second->location)
             {
                 case cuda_ast::memory_location::constant :
-                if ((it->second->get_argument_type() == tiramisu::a_input) && (gpu_buffer->automatic_gpu_copy == true)) 
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input) 
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
+                    memcpy(*(buff.find(name)->second),(*(it->second))));
                     (*c).then((*first_cpt), computation::root);
                     first_cpt = c;
                 }
-                else
-                {
-                   if (gpu_buffer->automatic_gpu_copy == false)
-                   {
-                        DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
-                   }
-                }
-                    
                 break;
-                default:  // location is the gloabl memory 
-                if ((it->second->get_argument_type() == tiramisu::a_input) && (gpu_buffer->automatic_gpu_copy == true))
+                default:  
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
                 {
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
-                        (*c).then((*first_cpt), computation::root);
-                        first_cpt = c;                }
-                else
-                {
-                   if (gpu_buffer->automatic_gpu_copy == false)
-                   {
-                       DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
-                   }
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                    (*c).then((*first_cpt), computation::root);
+                    first_cpt = c;                
                 }
-                if ((it->second->get_argument_type() == tiramisu::a_output) && (gpu_buffer->automatic_gpu_copy == true))
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
                 {
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy(*(buff.find(mp.find(name)->second->get_name())->second), (*(it->second))));
-                        (*last_cpt).then((*c), computation::root);
-                        last_cpt = c;
-                }
-                else
-                {
-                   if (gpu_buffer->automatic_gpu_copy == false)
-                   {
-                       DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
-                   }
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy((*(it->second)),*(buff.find(name)->second)));
+                    (*last_cpt).then((*c), computation::root);
+                    last_cpt = c;
                 }
                 break;
             }
         } else 
-            if (mp.find(name) == mp.end())
-               {
-                    DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
-               }
+            DEBUG(3, tiramisu::str_dump("Communication should be done manually !"));
     }
     return 0;
 }
-
-
 	
 // TODO: get_live_in_computations() does not consider the case of "maybe"
 // live-out (non-affine control flow, ...).
