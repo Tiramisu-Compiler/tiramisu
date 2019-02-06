@@ -1108,16 +1108,10 @@ private:
     cuda_ast::memory_location location;
 	
      /**
-     * specify which memory is tagged when using the gpu. By default it is equal to 'g' for global memory, 
-     * it can be set to 'c' to tag constant memory. 
-     * This field is modified when creatin a gpu buffer.
+     * auto_trans = true by default, is it set to false when the user wants
+     * to do data transfert to gpu manually.
      */
-     char tag;
-	
-     /**
-     * auto_trans = true by default, is it set to false when the user do data transfert to gpu manually
-     */
-     bool auto_trans;
+     bool atuomatic_gpu_copy;
 
 	
 
@@ -1137,6 +1131,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+		
+    /**
+      * Return whether the copy should be done automatically.
+      */	
+    bool get_atuomatic_gpu_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1199,9 +1198,8 @@ public:
       * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
       * This field is only set, when we creat a gpu buffer.
       *
-      * \p tag is char to spécify in wich memory the gpu buffer will be stored in, 
-      *  It can either take the default value 'g' for global memory, or 'c' to tag 
-      *  the constant memory.
+      * \p location specifies where to store the buffer. Either in host or 
+      *  one of the GPU memories.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
@@ -1209,7 +1207,7 @@ public:
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
            tiramisu::function *fct = global::get_implicit_function(), 
-	   std::string corr = "", char tag = 'g');
+	   std::string corr = "", cuda_ast::memory_location location = cuda_ast::memory_location::host);
 
 
     /**
@@ -1320,6 +1318,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+      * Set whether the GPU copy should be done automatically.
+      */
+    void set_atuomatic_gpu_copy(bool atuomatic_gpu_copy);	
 
     /**
      * Return true if all extents of the buffer are literal integer
