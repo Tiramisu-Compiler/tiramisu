@@ -7818,7 +7818,7 @@ std::string get_rank_string_type(tiramisu::rank_t rank_type)
         return "r_rcv";
 }
 
-std::vector<std::string> computation::get_static_and_dynamic_dimensions_names()
+std::vector<std::string> computation::get_trimmed_time_space_domain_dimension_names()
 {
     std::vector<std::string> dimensions_names;
 
@@ -7859,7 +7859,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
 
-    std::vector<std::string> dimensions_names = this->get_static_and_dynamic_dimensions_names();
+    std::vector<std::string> dimensions_names = this->get_trimmed_time_space_domain_dimension_names();
 
     int distributed_dimension = this->get_distributed_dimension();
 
@@ -7881,7 +7881,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
         if (i < dimensions_names.size()-1)
             dimensions_string += ",";
     }
-    //TODO : this won't give a correct result is distributed_stride%number_of_nodes!=0
+    //TODO : this won't give a correct result if distributed_stride%number_of_nodes!=0
     //should be corrected
     std::string rank_name = get_rank_string_type(rank_type);
     std::string params = "[" + rank_name + "]";
@@ -7889,12 +7889,12 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
 
     std::string domain = this->get_name() + "[" + dimensions_string + "]";
 
-    std::string constaint_on_distributed_dimension = std::to_string(extent/number_of_ranks)
+    std::string constraint_on_distributed_dimension = std::to_string(extent/number_of_ranks)
     + rank_name + "<=" + this->get_dimension_name_for_loop_level(distributed_dimension) +
     "<" + std::to_string(extent/number_of_ranks) + "*(" + rank_name + "+1)";
 
     std::string distribution_map_string = params + "->{" + domain +"->" + domain + ":"
-    + ranks_definition + " and " + constaint_on_distributed_dimension + "}";
+    + ranks_definition + " and " + constraint_on_distributed_dimension + "}";
 
     isl_map* distribution_map = isl_map_read_from_str(this->get_ctx(), distribution_map_string.c_str());
 
@@ -7903,5 +7903,4 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
 
     return distribution_map;
 }
-
 }

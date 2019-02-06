@@ -2511,10 +2511,10 @@ protected:
     int get_distributed_dimension();
 
     /**
-      * Return dimensions names of the iteration domain after applying the schedule
+      * Return names of trimmed time space domain dimensions.
       */
-    std::vector<std::string> get_static_and_dynamic_dimensions_names();
-
+    std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
+    
 public:
 
     /**
