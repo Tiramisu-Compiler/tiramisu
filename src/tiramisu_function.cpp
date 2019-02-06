@@ -132,7 +132,6 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
  * By default, the data management will be done automatically, and the copies will be inserted
  * in the begining and at the end of the gpu funcion.
- * computation). Store the access in computation->access.
  */
 const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
 {
@@ -160,9 +159,9 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                 {
                    if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
                     {
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
-                        memcpy((*(it->second)),*(buff.find(mp.find(name)->second->get_name())->second)));
-                        (*c).then((*first_cpt),computation::root);
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                        memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
+                        (*c).then((*first_cpt), computation::root);
                         first_cpt = c;
                     }
                     else 
@@ -183,9 +182,9 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                     if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
                     {
                         //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
-                        memcpy((*(it->second)),*(buff.find(mp.find(name)->second->get_name())->second)));
-                        (*c).then((*first_cpt),computation::root);
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                        memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
+                        (*c).then((*first_cpt), computation::root);
                         first_cpt = c;
                     }
                     else DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
@@ -202,9 +201,9 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
                     if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true )
                     {
                         //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name,{},
-                        memcpy(*(buff.find(mp.find(name)->second->get_name())->second),(*(it->second))));
-                        (*last_cpt).then((*c),computation::root);
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                        memcpy(*(buff.find(mp.find(name)->second->get_name())->second), (*(it->second))));
+                        (*last_cpt).then((*c), computation::root);
                         last_cpt = c;
                     }
                     else DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
