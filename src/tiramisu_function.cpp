@@ -133,8 +133,10 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * By default, the data management will be done automatically, and the copies will be inserted
  * in the begining and at the end of the gpu funcion.
  */
-const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
+const int  &function::Auto_comm(tiramisu::computation* c1, tiramisu::computation* c2) const
 {
+    assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
+    assert(c2->get_successor() == nullptr && "C1 must be the computation that hasn't a successor ");
     std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
@@ -142,86 +144,73 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
     int i = 1; 
     tiramisu::computation* first_cpt = c1;
     tiramisu::computation* last_cpt = c2;
-    assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
-    assert(c2->get_successor() == nullptr && "C1 must be the computation that hasn't a successor ");
+    tiramisu::buffer* gpu_buffer;
     for (it = buff.begin(); it != buff.end(); ++it)
     {
       name = it->second->get_name();
-    
-      if (it->second->get_argument_type() != tiramisu::a_temporary)
+      if ((it->second->get_argument_type() != tiramisu::a_temporary ) && (mp.find(name) != mp.end()))
         {
+            gpu_buffer = buff.find(mp.find(name)->second->get_name())->second;
             cpt_name= "cpt" + std::to_string(i); 
             i++;
-            switch (buff.find(mp.find(name)->second->get_name())->second->location)
+            switch (gpu_buffer->location)
             {
                 case cuda_ast::memory_location::constant :
-                if ((it->second->get_argument_type() == tiramisu::a_input) && (mp.find(name) != mp.end()))
+                if ((it->second->get_argument_type() == tiramisu::a_input) && (gpu_buffer->automatic_gpu_copy == true)) 
                 {
-                   if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
-                    {
-                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
-                        (*c).then((*first_cpt), computation::root);
-                        first_cpt = c;
-                    }
-                    else 
-                        DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
+                    (*c).then((*first_cpt), computation::root);
+                    first_cpt = c;
                 }
                 else
                 {
-                   if (mp.find(name) == mp.end())
+                   if (gpu_buffer->automatic_gpu_copy == false)
                    {
-                       DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
+                        DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
                    }
                 }
                     
                 break;
-                default:
-                if ((it->second->get_argument_type() == tiramisu::a_input) && (mp.find(name) != mp.end()))
+                default:  // location is the gloabl memory 
+                if ((it->second->get_argument_type() == tiramisu::a_input) && (gpu_buffer->automatic_gpu_copy == true))
                 {
-                    if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true) 
-                    {
-                        //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
                         tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
                         memcpy((*(it->second)), *(buff.find(mp.find(name)->second->get_name())->second)));
                         (*c).then((*first_cpt), computation::root);
-                        first_cpt = c;
-                    }
-                    else DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
-                }
+                        first_cpt = c;                }
                 else
                 {
-                   if (mp.find(name) == mp.end())
+                   if (gpu_buffer->automatic_gpu_copy == false)
                    {
-                       DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
+                       DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
                    }
                 }
-                if ((it->second->get_argument_type() == tiramisu::a_output) &&  (mp.find(name) != mp.end()))
+                if ((it->second->get_argument_type() == tiramisu::a_output) && (gpu_buffer->automatic_gpu_copy == true))
                 {
-                    if (buff.find(mp.find(name)->second->get_name())->second->atuomatic_gpu_copy == true )
-                    {
-                        //buff.find(mp.find(name)->second->get_name())->second->tag_gpu_global();
                         tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
                         memcpy(*(buff.find(mp.find(name)->second->get_name())->second), (*(it->second))));
                         (*last_cpt).then((*c), computation::root);
                         last_cpt = c;
-                    }
-                    else DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
                 }
                 else
                 {
-                   if (mp.find(name) == mp.end())
+                   if (gpu_buffer->automatic_gpu_copy == false)
                    {
-                       DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
+                       DEBUG(3, tiramisu::str_dump("Communication should be done manually"));
                    }
                 }
                 break;
             }
-        } 
-
+        } else 
+            if (mp.find(name) == mp.end())
+               {
+                    DEBUG(3, tiramisu::str_dump("Corresponding CPU buffer not found!"));
+               }
     }
     return 0;
 }
+
 
 	
 // TODO: get_live_in_computations() does not consider the case of "maybe"
