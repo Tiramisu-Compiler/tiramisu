@@ -1003,7 +1003,6 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
-
 };
 
 
@@ -2266,6 +2265,39 @@ private:
       */
     bool operator==(tiramisu::computation comp1);
 
+    /**
+      * \brief Construct the distribution map of a computation.
+      * Not safe to use. It's currently being implemented.
+      *
+      * A distribution map partitions a computation across ranks.
+      * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
+      * is either r_sender or r_receiver, the distribution map will specify for each rank the
+      * iterations it should execute.
+      *
+      * Example :
+      * \code
+      * c.set_expression(in(i)+in(i-1));
+      * c.tag_distribute_level(i);
+      * /endcode
+      *
+      * If the function is called on c, it will construct the following map:
+      *
+      * \code
+      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * /endcode
+     */
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks);
+
+    /**
+      * Return the distributed dimension of a computation.
+      */
+    int get_distributed_dimension();
+
+    /**
+      * Return names of trimmed time space domain dimensions.
+      */
+    std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
+
 protected:
 
     /**
@@ -2482,8 +2514,6 @@ protected:
       * \overload
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
-
-
 
 public:
 
@@ -4046,7 +4076,6 @@ public:
 
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
-
 };
 
 class input: public computation
@@ -4592,7 +4621,6 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
-
 };
 
 // TODO Jess: add doc comments
