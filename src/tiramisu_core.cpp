@@ -5051,25 +5051,28 @@ std::string str_from_is_null(void *ptr)
 {
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
-
+  
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct,std::string corr, 
-                         cuda_ast::memory_location location):
-                         allocated(false), argtype(argt), auto_allocate(true), auto_trans(true), 
-                         dim_sizes(dim_sizes), fct(fct),name(name), type(type), location(location)
+                         tiramisu::argument_t argt, tiramisu::function *fct, 
+                         std::string corr, cuda_ast::memory_location location):
+                         allocated(false), argtype(argt), auto_allocate(true), 
+                         atuomatic_gpu_copies(true), dim_sizes(dim_sizes), fct(fct),
+                         name(name), type(type), location(location)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
+
     // Check that the buffer does not already exist.
-    assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));  
-    if(corr.compare("") != 0)
-    {
-      assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));  
-      fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
-    }        
-    fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
+    assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
+if(corr.compare("") != 0)  
+{
+  assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));
+  fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
+}
+fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
+  
 void buffer::set_atuomatic_gpu_copy(bool atuomatic_gpu_copy)
 {
     this->atuomatic_gpu_copy = atuomatic_gpu_copy;
