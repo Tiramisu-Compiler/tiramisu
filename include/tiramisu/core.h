@@ -778,7 +778,7 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
-	
+
     /**
       * \brief Add a set of constraints to the context of the program.
       *
@@ -1200,16 +1200,13 @@ public:
       * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
       * This field is only set, when we creat a gpu buffer.
       *
-      * \p location specifies where to store the buffer. Either in host or 
-      *  one of the GPU memories.
-      *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
            tiramisu::function *fct = global::get_implicit_function(), 
-	   std::string corr = "", cuda_ast::memory_location location = cuda_ast::memory_location::host);
+	   std::string corr = "");
 
 
     /**
