@@ -133,7 +133,7 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * By default, the data management will be done automatically, and the copies will be inserted
  * in the begining and at the end of the gpu funcion.
  */
-const int  &function::Auto_comm(tiramisu::computation* c1, tiramisu::computation* c2) const
+const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
 {
     assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
     assert(c2->get_successor() == nullptr && "C1 must be the computation that hasn't a successor ");
