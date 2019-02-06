@@ -5057,7 +5057,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          tiramisu::argument_t argt, tiramisu::function *fct, 
                          std::string corr, cuda_ast::memory_location location):
                          allocated(false), argtype(argt), auto_allocate(true), 
-                         atuomatic_gpu_copies(true), dim_sizes(dim_sizes), fct(fct),
+                         automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(location)
 {
     assert(!name.empty() && "Empty buffer name");
@@ -5073,14 +5073,14 @@ if(corr.compare("") != 0)
 fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
   
-void buffer::set_atuomatic_gpu_copy(bool atuomatic_gpu_copy)
+void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 {
-    this->atuomatic_gpu_copy = atuomatic_gpu_copy;
+    this->automatic_gpu_copy = automatic_gpu_copy;
 }
 
 bool buffer::get_atuomatic_gpu_copy()
 {
-    return this->atuomatic_gpu_copy;
+    return this->automatic_gpu_copy;
 }
 
 
