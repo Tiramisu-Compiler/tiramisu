@@ -1324,7 +1324,7 @@ public:
     /**
       * Set whether the GPU copy should be done automatically.
       */
-    void set_automatic_gpu_copy(bool atuomatic_gpu_copy);	
+    void set_automatic_gpu_copy(bool automatic_gpu_copy);	
 
     /**
      * Return true if all extents of the buffer are literal integer
