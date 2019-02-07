@@ -734,6 +734,45 @@ protected:
      * .after(), ...
      */
     bool use_low_level_scheduling_commands;
+	
+   /**
+     * \brief Generates the automatic communication CPU/GPU.
+     * \details This fucntion takes two pointers to the first and the last computation
+     *  of the fucntion.
+     *  C1 is the first computation, which means that it hasn't a predecessor.
+     *  C2 is the last computation, which means that it hasn't a successor.
+     */
+    const int  &Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const;
+	
+    /**
+     * \brief Returns a ptr to the first computation in the sched_graph.
+     * \details The computation that has no predecessor.
+     */
+    computation* get_first_cpt();
+	
+     /**
+     * \brief Returns a ptr to the last computation in the sched_graph.
+     * \details The computation that has no succesor.
+     */
+    computation* get_last_cpt();
+	
+     /**
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
+     * \details It is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     */
+    std::map<std::string, tiramisu::buffer *> mapping ;
+	
+     /**
+     * \brief Returns the mapping field of a given function.  
+     * \details It returns a pair of a string, which is the name of a cpu buffer, and a ptr to a
+     *  to the gpu buffer corresponding.
+     */
+    const std::map<std::string, tiramisu::buffer *> get_mapping() const;
+	
+     /**
+     * \brief Adds a new pair to the mapping field.  
+     */
+    void  add_mapping(std::pair<std::string, tiramisu::buffer *> p);
 
 public:
 
@@ -1072,6 +1111,14 @@ private:
      * The location of the buffer (host if in memory, else where on GPU).
      */
     cuda_ast::memory_location location;
+	
+     /**
+     * automatic_gpu_copy = true by default, is it set to false when the user wants
+     * to do data transfert to gpu manually.
+     */
+     bool automatic_gpu_copy;
+
+	
 
 protected:
     /**
@@ -1089,6 +1136,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+		
+    /**
+      * Return whether the copy should be done automatically.
+      */	
+    bool get_automatic_gpu_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1147,13 +1199,18 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
+      * 
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-	   tiramisu::function *fct = global::get_implicit_function());
+           tiramisu::function *fct = global::get_implicit_function(), 
+	   std::string corr = "");
+
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -1263,6 +1320,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+      * Set whether the GPU copy should be done automatically.
+      */
+    void set_automatic_gpu_copy(bool automatic_gpu_copy);	
 
     /**
      * Return true if all extents of the buffer are literal integer
@@ -3323,7 +3385,13 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-
+  
+    /**
+      * Returns a pointer to the computation scheduled immediately after this computation,
+      * or a null pointer if none exist.
+      */
+    computation * get_successor();
+	
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
