@@ -5058,7 +5058,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
                          std::string corr):
                          allocated(false), argtype(argt), auto_allocate(true), 
                          automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
-                         name(name), type(type) 
+                         name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
     assert(fct != NULL && "Input function is NULL");
