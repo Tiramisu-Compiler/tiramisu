@@ -146,9 +146,9 @@ int main(int argc, char **argv)
     tnh_c.store_in(&buf_tmp_i, {k, i});
     h.store_in(&buf_h, {m + 1, l + 1, k, i});
     c.store_in(&buf_c, {m + 1, l, k, i});
-    h_init.store_in(&buf_h, {0, l, k, i});
+    h_init.store_in(&buf_h, {0, l + 1, k, i});
     c_init.store_in(&buf_c, {0, l, k, i});
-    h_copy_x.store_in(&buf_h, {m, 0, k, i});
+    h_copy_x.store_in(&buf_h, {m + 1, 0, k, i});
 
     // -------------------------------------------------------
     // Code Generation
