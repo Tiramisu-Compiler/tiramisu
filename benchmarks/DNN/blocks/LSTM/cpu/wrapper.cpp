@@ -29,7 +29,30 @@ int main(int argc, char *argv[])
     buf_params(2) = num_layers;
     buf_params(3) = seq_length;
 
-    // TODO: Initialize inputs
+    std::srand(0);
+    for (int i = 0; i < num_layers; i++) {
+        for (int j = 0; j < 8; j++) {
+            for (int k = 0; k < feature_size; k++) {
+                for (int l = 0; l < feature_size; l++) {
+                    buf_Weights(l, k, j, i) = (std::rand() % 200 - 100) / 100.;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < num_layers; i++) {
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < feature_size; k++) {
+                buf_biases(k, j, i) = (std::rand() % 200 - 100) / 100.;
+            }
+        }
+    }
+    for (int i = 0; i < seq_length; i++) {
+        for (int j = 0; j < batch_size; j++) {
+            for (int k = 0; k < feature_size; k++) {
+                buf_x(k, j, i) = (std::rand() % 200 - 100) / 100.;
+            }
+        }
+    }
 
     for (int i = 0; i < warmupN; i++) {
         lstm(buf_params.raw_buffer(),
