@@ -359,11 +359,11 @@ foreach(t ${TIRAMISU_USERS_TUTORIALS})
     new_users_tutorial(${t})
 endforeach()
 
-# TODO(akkas): Add a systematic way to add subdirectories
 if (${USE_GPU})
     add_subdirectory(benchmarks/linear_algebra/blas/level3/sgemm/gpu)
     add_subdirectory(benchmarks/linear_algebra/chain_mm/gpu)
-    add_subdirectory(benchmarks/DNN/blocks/LSTM/gpu)
+    # Disable by default since it requires cudnn
+    # add_subdirectory(benchmarks/DNN/blocks/LSTM/gpu)
 endif()
 add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
 add_subdirectory(benchmarks/DNN/layers/bn)

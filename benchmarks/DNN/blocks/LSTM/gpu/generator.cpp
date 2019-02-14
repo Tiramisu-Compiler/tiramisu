@@ -2,11 +2,10 @@
 
 using namespace tiramisu;
 
-#define BLOCK 8
+#define BLOCK 16
 
 int main(int argc, char **argv)
 {
-    // Single LSTM block without minibatching
     // Biases, R weights, and W weights are merged to reduce the number of GEMMs
     tiramisu::init("lstm");
 
@@ -55,14 +54,18 @@ int main(int argc, char **argv)
     buf_c.tag_gpu_global();
 
     buffer buf_matmul1_R_shr("b_m1_R_shr", {BLOCK, BLOCK}, p_float32, a_temporary);
-    buffer buf_matmul1_h_shr("b_m1_h_shr", {BLOCK, BLOCK}, p_float32, a_temporary);
+    buffer buf_matmul1_R_prefreg("b_m1_R_prefreg", {1}, p_float32, a_temporary);  // Prefetch register
+    buffer buf_matmul1_h_shr("b_m1_h_shr", {BLOCK, BLOCK + 1}, p_float32, a_temporary);
+    buffer buf_matmul1_h_prefreg("b_m1_h_prefreg", {1}, p_float32, a_temporary);  // Prefetch register
     buffer buf_matmul1_acc("b_m1_acc", {1}, p_float32, a_temporary);
     buf_matmul1_R_shr.tag_gpu_shared();
+    buf_matmul1_R_prefreg.tag_gpu_register();
     buf_matmul1_h_shr.tag_gpu_shared();
+    buf_matmul1_h_prefreg.tag_gpu_register();
     buf_matmul1_acc.tag_gpu_register();
 
     buffer buf_matmul2_W_shr("b_m2_W_shr", {BLOCK, BLOCK}, p_float32, a_temporary);
-    buffer buf_matmul2_h_shr("b_m2_h_shr", {BLOCK, BLOCK}, p_float32, a_temporary);
+    buffer buf_matmul2_h_shr("b_m2_h_shr", {BLOCK, BLOCK + 1}, p_float32, a_temporary);
     buffer buf_matmul2_acc("b_m2_acc", {1}, p_float32, a_temporary);
     buf_matmul2_W_shr.tag_gpu_shared();
     buf_matmul2_h_shr.tag_gpu_shared();
@@ -80,13 +83,21 @@ int main(int argc, char **argv)
     computation matmul_base({m, l, k, i_merged}, b(l, i_merged));
 
     computation matmul1_R_shr_dec({m, l, k, i_merged}, allocate(buf_matmul1_R_shr));
+    computation matmul1_R_prefreg_dec({m, l, k, i_merged}, allocate(buf_matmul1_R_prefreg));
     input matmul1_R_access({l, k, i_merged, j0}, p_float32); // Access workaround
-    computation matmul1_R_shr_copy({m, l, k, i_merged, j0}, matmul1_R_access(l, k, i_merged, j0));
+    computation matmul1_R_shr_pref({m, l, k, i_merged}, matmul1_R_access(l, k, i_merged, 0));
+    computation matmul1_R_glb_to_prefreg({m, l, k, i_merged, j0}, matmul1_R_access(l, k, i_merged, j0 + 1));
+    computation matmul1_R_prefreg_to_shr({m, l, k, i_merged, j0}, matmul1_R_glb_to_prefreg(m, l, k, i_merged, j0));
     input matmul1_R_shr_access({i_merged, j}, p_float32);
     computation matmul1_h_shr_dec({m, l, k, i_merged}, allocate(buf_matmul1_h_shr));
+    computation matmul1_h_prefreg_dec({m, l, k, i_merged}, allocate(buf_matmul1_h_prefreg));
     input matmul1_h_access({m, l, k, i_merged, j0}, p_float32);
-    computation matmul1_h_shr_copy({m, l, k, i_merged, j0}, matmul1_h_access(m, l, k, i_merged, j0));
+    computation matmul1_h_shr_pref({m, l, k, i_merged}, matmul1_h_access(m, l, k, i_merged, 0));
+    computation matmul1_h_glb_to_prefreg({m, l, k, i_merged, j0}, matmul1_h_access(m, l, k, i_merged, j0 + 1));
+    computation matmul1_h_prefreg_to_shr({m, l, k, i_merged, j0}, matmul1_h_glb_to_prefreg(m, l, k, i_merged, j0));
     input matmul1_h_shr_access({k, j}, p_float32);
+    computation matmul1_sync1({m, l, k, i_merged}, tiramisu::sync());
+    computation matmul1_sync2({m, l, k, i_merged, j0}, tiramisu::sync());
     computation matmul1_acc_dec({m, l, k, i_merged}, allocate(buf_matmul1_acc));
     computation matmul1_acc_init({m, l, k, i_merged}, (float) 0);
     computation matmul1_acc({m, l, k, i_merged, j}, matmul1_acc_init(m, l, k, i_merged)
@@ -101,6 +112,7 @@ int main(int argc, char **argv)
     input matmul2_h_access({m, l, k, i_merged, j0}, p_float32);
     computation matmul2_h_shr_copy({m, l, k, i_merged, j0}, matmul2_h_access(m, l, k, i_merged, j0));
     input matmul2_h_shr_access({k, j}, p_float32);
+    computation matmul2_sync({m, l, k, i_merged, j0}, tiramisu::sync());
     computation matmul2_acc_dec({m, l, k, i_merged}, allocate(buf_matmul2_acc));
     computation matmul2_acc_init({m, l, k, i_merged}, (float) 0);
     computation matmul2_acc({m, l, k, i_merged, j}, matmul2_acc_init(m, l, k, i_merged)
@@ -126,7 +138,7 @@ int main(int argc, char **argv)
     computation copy_y_to_host({}, memcpy(buf_y_gpu, buf_y));
 
     // Block dimension derivation causes a bug
-    // global::get_implicit_function()->add_context_constraints("[feature_size, batch_size]->{:feature_size % 16 = 0 and batch_size % 16 = 0}");
+    global::get_implicit_function()->add_context_constraints("[feature_size, batch_size]->{:feature_size % 16 = 0 and batch_size % 16 = 0}");
 
     // -------------------------------------------------------
     // Layer II
@@ -148,9 +160,21 @@ int main(int argc, char **argv)
     matmul_base.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
 
     matmul1_R_shr_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
-    matmul1_R_shr_copy.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_R_prefreg_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_R_shr_pref.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_R_glb_to_prefreg.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_R_glb_to_prefreg.add_predicate(j0 < (feature_size - 1) / BLOCK);
+    matmul1_R_prefreg_to_shr.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_R_prefreg_to_shr.add_predicate(j0 < (feature_size - 1) / BLOCK);
     matmul1_h_shr_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
-    matmul1_h_shr_copy.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_h_prefreg_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_h_shr_pref.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_h_glb_to_prefreg.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_h_glb_to_prefreg.add_predicate(j0 < (feature_size - 1) / BLOCK);
+    matmul1_h_prefreg_to_shr.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_h_prefreg_to_shr.add_predicate(j0 < (feature_size - 1) / BLOCK);
+    matmul1_sync1.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul1_sync2.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul1_acc_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul1_acc_init.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul1_acc.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
@@ -161,6 +185,7 @@ int main(int argc, char **argv)
     matmul2_W_shr_copy.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul2_h_shr_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul2_h_shr_copy.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
+    matmul2_sync.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul2_acc_dec.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul2_acc_init.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
     matmul2_acc.gpu_tile(k, i_merged, BLOCK, BLOCK, k0, i0, k1, i1);
@@ -187,11 +212,19 @@ int main(int argc, char **argv)
         .then(matmul_base, computation::root)
         .then(matmul1_acc_dec, l)
         .then(matmul1_R_shr_dec, i1)
+        .then(matmul1_R_prefreg_dec, i1)
         .then(matmul1_h_shr_dec, i1)
+        .then(matmul1_h_prefreg_dec, i1)
         .then(matmul1_acc_init, i1)
-        .then(matmul1_R_shr_copy, i1)
-        .then(matmul1_h_shr_copy, j0)
+        .then(matmul1_R_shr_pref, i1)
+        .then(matmul1_h_shr_pref, i1)
+        .then(matmul1_sync1, i1)
+        .then(matmul1_R_glb_to_prefreg, i1)
+        .then(matmul1_h_glb_to_prefreg, j0)
         .then(matmul1_acc, j0)
+        .then(matmul1_sync2, j0)
+        .then(matmul1_R_prefreg_to_shr, j0)
+        .then(matmul1_h_prefreg_to_shr, j0)
         .then(matmul1, i1)
         .then(matmul2_acc_dec, l)
         .then(matmul2_W_shr_dec, i1)
@@ -199,6 +232,7 @@ int main(int argc, char **argv)
         .then(matmul2_acc_init, i1)
         .then(matmul2_W_shr_copy, i1)
         .then(matmul2_h_shr_copy, j0)
+        .then(matmul2_sync, j0)
         .then(matmul2_acc, j0)
         .then(matmul2, i1)
         .then(sig_i, l)
@@ -227,10 +261,14 @@ int main(int argc, char **argv)
     matmul_base.store_in(&buf_workspace, {l, k, i_merged});
 
     matmul1_R_access.store_in(&buf_Weights_gpu, {l, 0, i_merged, j0 * BLOCK + k % BLOCK});
-    matmul1_R_shr_copy.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, k % BLOCK});
+    matmul1_R_shr_pref.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, k % BLOCK});
+    matmul1_R_glb_to_prefreg.store_in(&buf_matmul1_R_prefreg, {0});
+    matmul1_R_prefreg_to_shr.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, k % BLOCK});
     matmul1_R_shr_access.store_in(&buf_matmul1_R_shr, {i_merged % BLOCK, j % BLOCK});
-    matmul1_h_access.store_in(&buf_h, {m - 1, l, k, j0 * BLOCK + i_merged % BLOCK});
-    matmul1_h_shr_copy.store_in(&buf_matmul1_h_shr, {k % BLOCK, i_merged % BLOCK});
+    matmul1_h_access.store_in(&buf_h, {m - 1, l, k - k % BLOCK + i_merged % BLOCK, j0 * BLOCK + k % BLOCK});
+    matmul1_h_shr_pref.store_in(&buf_matmul1_h_shr, {i_merged % BLOCK, k % BLOCK});
+    matmul1_h_glb_to_prefreg.store_in(&buf_matmul1_h_prefreg, {0});
+    matmul1_h_prefreg_to_shr.store_in(&buf_matmul1_h_shr, {i_merged % BLOCK, k % BLOCK});
     matmul1_h_shr_access.store_in(&buf_matmul1_h_shr, {k % BLOCK, j % BLOCK});
     matmul1_acc_init.store_in(&buf_matmul1_acc, {0});
     matmul1_acc.store_in(&buf_matmul1_acc, {0});
@@ -239,8 +277,8 @@ int main(int argc, char **argv)
     matmul2_W_access.store_in(&buf_Weights_gpu, {l, 1, i_merged, j0 * BLOCK + k % BLOCK});
     matmul2_W_shr_copy.store_in(&buf_matmul2_W_shr, {i_merged % BLOCK, k % BLOCK});
     matmul2_W_shr_access.store_in(&buf_matmul2_W_shr, {i_merged % BLOCK, j % BLOCK});
-    matmul2_h_access.store_in(&buf_h, {m, l - 1, k, j0 * BLOCK + i_merged % BLOCK});
-    matmul2_h_shr_copy.store_in(&buf_matmul2_h_shr, {k % BLOCK, i_merged % BLOCK});
+    matmul2_h_access.store_in(&buf_h, {m, l - 1, k - k % BLOCK + i_merged % BLOCK, j0 * BLOCK + k % BLOCK});
+    matmul2_h_shr_copy.store_in(&buf_matmul2_h_shr, {i_merged % BLOCK, k % BLOCK});
     matmul2_h_shr_access.store_in(&buf_matmul2_h_shr, {k % BLOCK, j % BLOCK});
     matmul2_acc_init.store_in(&buf_matmul2_acc, {0});
     matmul2_acc.store_in(&buf_matmul2_acc, {0});
@@ -256,9 +294,9 @@ int main(int argc, char **argv)
     tnh_c.set_access("[feature_size] -> {tnh_c[m, l, k, i] -> buf_workspace[l, k, i + 0 * feature_size]}");
     h.store_in(&buf_h, {m + 1, l + 1, k, i});
     c.store_in(&buf_c, {m + 1, l, k, i});
-    h_init.store_in(&buf_h, {0, l, k, i});
+    h_init.store_in(&buf_h, {0, l + 1, k, i});
     c_init.store_in(&buf_c, {0, l, k, i});
-    h_copy_x.store_in(&buf_h, {m, 0, k, i});
+    h_copy_x.store_in(&buf_h, {m + 1, 0, k, i});
 
     // -------------------------------------------------------
     // Code Generation

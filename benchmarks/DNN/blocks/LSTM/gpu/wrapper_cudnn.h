@@ -39,7 +39,8 @@ cudnnFilterDescriptor_t wDesc;
 void *workspace;
 size_t workSize;
 
-void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size) {
+void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size,
+        float *raw_Weights, float *raw_biases, float *raw_x) {
     seqLength = _seqLength;
     int hiddenSize = feature_size;
     int inputSize = hiddenSize;
@@ -54,12 +55,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     // Set up inputs and outputs
     // -------------------------
     cudaErrCheck(cudaMalloc((void**)&x, seqLength * inputSize * miniBatch * sizeof(float)));
-    cudaErrCheck(cudaMalloc((void**)&hx, numLayers * hiddenSize * miniBatch * sizeof(float)));
-    cudaErrCheck(cudaMalloc((void**)&cx, numLayers * hiddenSize * miniBatch * sizeof(float)));
-
     cudaErrCheck(cudaMalloc((void**)&y, seqLength * hiddenSize * miniBatch * sizeof(float)));
-    cudaErrCheck(cudaMalloc((void**)&hy, numLayers * hiddenSize * miniBatch * sizeof(float)));
-    cudaErrCheck(cudaMalloc((void**)&cy, numLayers * hiddenSize * miniBatch * sizeof(float)));
 
     xDesc = (cudnnTensorDescriptor_t*)malloc(seqLength * sizeof(cudnnTensorDescriptor_t));
     yDesc = (cudnnTensorDescriptor_t*)malloc(seqLength * sizeof(cudnnTensorDescriptor_t));
@@ -185,18 +181,9 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudaErrCheck(cudaMalloc((void**)&workspace, workSize));
 
     // *********************************************************************************************************
-    // Initialise weights and inputs
+    // Initialise inputs
     // *********************************************************************************************************
-    // We initialise to something simple.
-    // Matrices are initialised to 1 / matrixSize, biases to 1, data is 1.
     // initGPUData((float*)x, seqLength * inputSize * miniBatch, 1.f);
-    // if (hx != NULL) initGPUData((float*)hx, numLayers * hiddenSize * miniBatch * (bidirectional ? 2 : 1), 1.f);
-    // if (cx != NULL) initGPUData((float*)cx, numLayers * hiddenSize * miniBatch * (bidirectional ? 2 : 1), 1.f);
-
-    // initGPUData((float*)dy, seqLength * hiddenSize * miniBatch * (bidirectional ? 2 : 1), 1.f);
-    // if (dhy != NULL) initGPUData((float*)dhy, numLayers * hiddenSize * miniBatch * (bidirectional ? 2 : 1), 1.f);
-    // if (dcy != NULL) initGPUData((float*)dcy, numLayers * hiddenSize * miniBatch * (bidirectional ? 2 : 1), 1.f);
-
 
     // Weights
     int numLinearLayers = 8;
@@ -302,11 +289,7 @@ float run_cudnn() {
 
 void free_cudnn() {
     cudaFree(x);
-    cudaFree(hx);
-    cudaFree(cx);
     cudaFree(y);
-    cudaFree(hy);
-    cudaFree(cy);
     cudaFree(workspace);
     cudaFree(w);
 

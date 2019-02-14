@@ -4,8 +4,8 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Single LSTM block without minibatching
-    tiramisu::init("lstm");
+    // Reference LSTM implementation for correctness check
+    tiramisu::init("lstm_ref");
 
     // -------------------------------------------------------
     // Layer I
@@ -70,8 +70,6 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-    // TODO: Add tiling and better schedule
-
     // Scheduling commands
     h_init.then(c_init, computation::root)
           .then(h_copy_x, computation::root)
@@ -99,34 +97,31 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     buffer buf_params("buf_params", {4}, p_int32, a_input);
-    buffer buf_Weights("buf_Weights", {num_layers, 8, feature_size, feature_size}, p_float32, a_input);
-    buffer buf_biases("buf_biases", {num_layers, 4, feature_size}, p_float32, a_input);
+    buffer buf_Weights("buf_Weights", {num_layers, 2, 4 * feature_size, feature_size}, p_float32, a_input);
+    buffer buf_biases("buf_biases", {num_layers, 4 * feature_size}, p_float32, a_input);
     buffer buf_x("buf_x", {seq_length, batch_size, feature_size}, p_float32, a_input);
     buffer buf_y("buf_y", {seq_length, batch_size, feature_size}, p_float32, a_output);
-    // TODO: Does not support parallel
     buffer buf_tmp_i("buf_tmp_i", {batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_tmp_z("buf_tmp_z", {batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_tmp_o("buf_tmp_o", {batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_tmp_f("buf_tmp_f", {batch_size, feature_size}, p_float32, a_temporary);
-    // TODO: As in cuDNN LSTM example, we store every output at separate places in a huge tensor.
-    // This can be made more compact.
     buffer buf_h("buf_h", {seq_length + 1, num_layers + 1, batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_c("buf_c", {seq_length + 1, num_layers, batch_size, feature_size}, p_float32, a_temporary);
 
     params.store_in(&buf_params);
-    // Weights and biases are packed
-    R_i.store_in(&buf_Weights, {l, 0, i, j});
-    R_z.store_in(&buf_Weights, {l, 1, i, j});
-    R_o.store_in(&buf_Weights, {l, 2, i, j});
-    R_f.store_in(&buf_Weights, {l, 3, i, j});
-    W_i.store_in(&buf_Weights, {l, 4, i, j});
-    W_z.store_in(&buf_Weights, {l, 5, i, j});
-    W_o.store_in(&buf_Weights, {l, 6, i, j});
-    W_f.store_in(&buf_Weights, {l, 7, i, j});
-    b_i.store_in(&buf_biases, {l, 0, i});
-    b_z.store_in(&buf_biases, {l, 1, i});
-    b_o.store_in(&buf_biases, {l, 2, i});
-    b_f.store_in(&buf_biases, {l, 3, i});
+    // store_in workaround
+    R_i.set_access("[feature_size] -> {R_i[l, i, j] -> buf_Weights[l, 0, i + 0 * feature_size, j]}");
+    R_z.set_access("[feature_size] -> {R_z[l, i, j] -> buf_Weights[l, 0, i + 1 * feature_size, j]}");
+    R_o.set_access("[feature_size] -> {R_o[l, i, j] -> buf_Weights[l, 0, i + 2 * feature_size, j]}");
+    R_f.set_access("[feature_size] -> {R_f[l, i, j] -> buf_Weights[l, 0, i + 3 * feature_size, j]}");
+    W_i.set_access("[feature_size] -> {W_i[l, i, j] -> buf_Weights[l, 1, i + 0 * feature_size, j]}");
+    W_z.set_access("[feature_size] -> {W_z[l, i, j] -> buf_Weights[l, 1, i + 1 * feature_size, j]}");
+    W_o.set_access("[feature_size] -> {W_o[l, i, j] -> buf_Weights[l, 1, i + 2 * feature_size, j]}");
+    W_f.set_access("[feature_size] -> {W_f[l, i, j] -> buf_Weights[l, 1, i + 3 * feature_size, j]}");
+    b_i.set_access("[feature_size] -> {b_i[l, i] -> buf_biases[l, i + 0 * feature_size]}");
+    b_z.set_access("[feature_size] -> {b_z[l, i] -> buf_biases[l, i + 1 * feature_size]}");
+    b_o.set_access("[feature_size] -> {b_o[l, i] -> buf_biases[l, i + 2 * feature_size]}");
+    b_f.set_access("[feature_size] -> {b_f[l, i] -> buf_biases[l, i + 3 * feature_size]}");
     x.store_in(&buf_x);
     y.store_in(&buf_y);
     sum_i_init.store_in(&buf_tmp_i, {k, i});
@@ -161,7 +156,7 @@ int main(int argc, char **argv)
             &buf_biases,
             &buf_x,
             &buf_y,
-        }, "lstm.o");
+        }, "lstm_ref.o");
 
     return 0;
 }
