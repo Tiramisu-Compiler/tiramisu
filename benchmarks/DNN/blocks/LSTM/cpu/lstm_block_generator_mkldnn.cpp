@@ -21,33 +21,28 @@ void lstm()
         std::vector<primitive> lstm_net;
         std::vector<float> net_src(SEQ_LENGTH * BATCH_SIZE * FEATURE_SIZE);
 
-        /* Initializing non-zero values for src */
-        srand(1);
-        for (size_t i = 0; i < net_src.size(); ++i)
-                net_src[i] = rand() % 10;
-
-        /* Encoder */
-
         memory::dims src_layer_tz = {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE};
         memory::dims weights_layer_tz = {1, 1, FEATURE_SIZE, NUM_LAYERS, FEATURE_SIZE};
         memory::dims weights_iter_tz = {1, 1, FEATURE_SIZE, NUM_LAYERS, FEATURE_SIZE};
         memory::dims bias_tz = {1, 1, NUM_LAYERS, FEATURE_SIZE};
         memory::dims dst_layer_tz = {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE};
 
-        /* GNMT encoder: 1 bidirectional layer and 7 unidirectional layers  */
-
         std::vector<float> user_wei_layer(1 * 1 * 2 * FEATURE_SIZE * NUM_LAYERS * FEATURE_SIZE);
         std::vector<float> user_wei_iter(1 * 1 * FEATURE_SIZE * NUM_LAYERS * FEATURE_SIZE);
         std::vector<float> user_bias(1 * 1 * NUM_LAYERS * FEATURE_SIZE);
 
         /* Initializing non-zero values for weights and bias */
-        srand(3);
+        srand(0);
         for (int i = 0; i < (int)user_wei_layer.size(); ++i)
-                user_wei_layer[i] = 3;
+                user_wei_layer[i] = (rand() % 200) / 100.;
         for (int i = 0; i < (int)user_wei_iter.size(); ++i)
-                user_wei_iter[i] = 3;
-        for (size_t i = 0; i < user_bias.size(); ++i)
-                user_bias[i] = rand() % 5;
+                user_wei_iter[i] = (rand() % 200) / 100.;
+        for (int i = 0; i < (int)user_bias.size(); ++i)
+                user_bias[i] = (rand() % 200) / 100.;
+
+        /* Initializing non-zero values for src */
+        for (int i = 0; i < (int)net_src.size(); ++i)
+                net_src[i] = (std::rand() % 200 - 100) / 100.;
 
         // We create the memory descriptors used by the user
         auto user_src_layer_md = mkldnn::memory::desc(
@@ -62,8 +57,8 @@ void lstm()
             {weights_iter_tz}, mkldnn::memory::data_type::f32,
             mkldnn::memory::format::ldigo);
 
-        auto user_bias_md = mkldnn::memory::desc({bias_tz},
-                                                 mkldnn::memory::data_type::f32, mkldnn::memory::format::ldgo);
+        auto user_bias_md = mkldnn::memory::desc(
+            {bias_tz}, mkldnn::memory::data_type::f32, mkldnn::memory::format::ldgo);
 
         auto dst_layer_md = mkldnn::memory::desc(
             {dst_layer_tz}, mkldnn::memory::data_type::f32,
@@ -79,7 +74,6 @@ void lstm()
         auto user_bias_memory = mkldnn::memory({user_bias_md, cpu_engine},
                                                user_bias.data());
 
-        /// @todo fix this once cell desc is merged with rnn_desc
         rnn_cell::desc lstm_cell(algorithm::vanilla_lstm);
         rnn_forward::desc layer_desc(prop_kind::forward_inference, lstm_cell,
                                      rnn_direction::unidirectional_left2right, user_src_layer_md,
@@ -87,9 +81,6 @@ void lstm()
                                      user_bias_md, dst_layer_md, zero_md());
 
         auto prim_desc = mkldnn::rnn_forward::primitive_desc(layer_desc, cpu_engine);
-
-        // there are currently no reorders
-        /// @todo add a reorder when they will be available
 
         auto dst_layer_memory = mkldnn::memory(prim_desc.dst_layer_primitive_desc());
 
@@ -121,7 +112,6 @@ void lstm()
                         for (size_t k = 0; k < FEATURE_SIZE; ++k)
                         {
                                 resultfile << output[i * BATCH_SIZE * FEATURE_SIZE + j * FEATURE_SIZE + k];
-                                //resultfile << fixed << setprecision(2) << (float)((int)(output[i * 64 * N * N + j * N * N + k * N + l] * 1000) / 1000.0);
                                 resultfile << "\n";
                         }
         resultfile.close();
