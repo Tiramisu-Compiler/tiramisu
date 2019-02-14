@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     // Note that indices are flipped (see tutorial 2)
     Halide::Buffer<int32_t> buf_params(4);
     Halide::Buffer<float> buf_Weights(feature_size, 4 * feature_size, 2, num_layers);
-    Halide::Buffer<float> buf_biases(feature_size, 4, num_layers);
+    Halide::Buffer<float> buf_biases(4 * feature_size, num_layers);
     Halide::Buffer<float> buf_x(feature_size, batch_size, seq_length);
     Halide::Buffer<float> buf_y(feature_size, batch_size, seq_length);
 
@@ -40,10 +40,8 @@ int main(int argc, char *argv[])
         }
     }
     for (int i = 0; i < num_layers; i++) {
-        for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < feature_size; k++) {
-                buf_biases(k, j, i) = (std::rand() % 200 - 100) / 100.;
-            }
+        for (int j = 0; j < 4 * feature_size; j++) {
+            buf_biases(j, i) = (std::rand() % 200 - 100) / 100.;
         }
     }
     for (int i = 0; i < seq_length; i++) {
