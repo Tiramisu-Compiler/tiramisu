@@ -30,9 +30,6 @@ void generate_function(std::string name, int size)
     input fc1("fc1", {k}, p_int32);
     input fc2("fc2", {k}, p_int32);
     input fc3("fc3", {k}, p_int32);
-    computation d1("d1", {t, i1, i2, i3, k}, fc1(k));
-    computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
-    computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
 
     input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
     input wp("wp", {"k", "b0", "b1", "b2"}, {K, 1, 1, 1}, p_float32);
@@ -41,12 +38,12 @@ void generate_function(std::string name, int size)
     computation Res1("Res1", {t, i1, i2, i3}, expr((float) 0));
 
     computation Res0("Res0", {t, i1, i2, i3, k}, p_float32);
-    Res0.set_expression(S(xp0, a1, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d3(t,i1,i2,i3,k))
-		      + S(xp0, a1, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d1(t,i1,i2,i3,k))
-		      + S(xp0, a1, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d2(t,i1,i2,i3,k))
-		      - S(xp0, a1, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d3(t,i1,i2,i3,k))
-		      - S(xp0, a1, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d1(t,i1,i2,i3,k))
-		      - S(xp0, a1, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d2(t,i1,i2,i3,k)));
+    Res0.set_expression(S(xp0, a1, t, i1, i2, i3, fc1(k)) * S(xp0, a2, t, i1, i2, i3, fc2(k)) * S(xp0, a3, t, i1, i2, i3, fc3(k))
+		      + S(xp0, a1, t, i1, i2, i3, fc2(k)) * S(xp0, a2, t, i1, i2, i3, fc3(k)) * S(xp0, a3, t, i1, i2, i3, fc1(k))
+		      + S(xp0, a1, t, i1, i2, i3, fc3(k)) * S(xp0, a2, t, i1, i2, i3, fc1(k)) * S(xp0, a3, t, i1, i2, i3, fc2(k))
+		      - S(xp0, a1, t, i1, i2, i3, fc2(k)) * S(xp0, a2, t, i1, i2, i3, fc1(k)) * S(xp0, a3, t, i1, i2, i3, fc3(k))
+		      - S(xp0, a1, t, i1, i2, i3, fc3(k)) * S(xp0, a2, t, i1, i2, i3, fc2(k)) * S(xp0, a3, t, i1, i2, i3, fc1(k))
+		      - S(xp0, a1, t, i1, i2, i3, fc1(k)) * S(xp0, a2, t, i1, i2, i3, fc3(k)) * S(xp0, a3, t, i1, i2, i3, fc2(k)));
 
     computation Res1_update_0("Res1_update_0", {t, i1, i2, i3, k}, p_float32);
     Res1_update_0.set_expression(Res1_update_0(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
@@ -88,9 +85,6 @@ void generate_function(std::string name, int size)
     fc1.store_in(&buf_fc1);
     fc2.store_in(&buf_fc2);
     fc3.store_in(&buf_fc3);
-    d1.store_in(&buf_d1, {0});
-    d2.store_in(&buf_d2, {0});
-    d3.store_in(&buf_d3, {0});
     Res0.store_in(&buf_res0, {i3});
     Res1.store_in(&buf_res1, {i3});
     Res1_update_0.store_in(&buf_res1, {i3});
@@ -109,10 +103,7 @@ void generate_function(std::string name, int size)
 	.then(*alloc_d2, t)
 	.then(*alloc_d3, t)
 	.then(Res1, i3)
-	.then(d1, i3)
-	.then(d2, k)
-	.then(d3, k)
-	.then(Res0, k)
+	.then(Res0, i3)
 	.then(Res1_update_0, k)
 	.then(Res2_update_0, i2);
 
