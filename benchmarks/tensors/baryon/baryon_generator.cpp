@@ -26,15 +26,16 @@ void generate_function(std::string name, int size)
     constant b2("b2", 0);
 
     var i1("i1", 0, N), i2("i2", 0, N), i3("i3", 0, N), k("k", 1, K), t("t", 0, T), k0("k", 0, 1);
+
     input fc1("fc1", {k}, p_int32);
     input fc2("fc2", {k}, p_int32);
     input fc3("fc3", {k}, p_int32);
-    input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
-    input wp("wp", {"k", "b0", "b1", "b2"}, {K, 1, 1, 1}, p_float32);
-
     computation d1("d1", {t, i1, i2, i3, k}, fc1(k));
     computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
     computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
+
+    input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
+    input wp("wp", {"k", "b0", "b1", "b2"}, {K, 1, 1, 1}, p_float32);
 
     computation Res2("Res2", {t}, expr((float) 0));
     computation Res1("Res1", {t, i1, i2, i3}, expr((float) 0));
@@ -48,7 +49,7 @@ void generate_function(std::string name, int size)
 		      - S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0)));
 
     computation Res1_update_0("Res1_update_0", {t, i1, i2, i3, k}, p_float32);
-    Res1_update_0.set_expression(Res1(t, i1, i2, i3) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
+    Res1_update_0.set_expression(Res1_update_0(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
     computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
     Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3));
