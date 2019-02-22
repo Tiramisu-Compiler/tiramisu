@@ -36,6 +36,9 @@ void generate_function(std::string name, int size)
     computation d2("d2", {t, i1, i2, i3, k}, fc2(k));
     computation d3("d3", {t, i1, i2, i3, k}, fc3(k));
 
+    computation Res2("Res2", {t}, expr((float) 0));
+    computation Res1("Res1", {t, i1, i2, i3}, expr((float) 0));
+
     computation Res0("Res0", {t, i1, i2, i3, k}, p_float32);
     Res0.set_expression(S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d3(0,0,0,0,0))
 		      + S(xp0, a1, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
@@ -44,13 +47,11 @@ void generate_function(std::string name, int size)
 		      - S(xp0, a1, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
 		      - S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0)));
 
-    computation Res1("Res1", {t, i1, i2, i3, k0}, expr((float) 0));
     computation Res1_update_0("Res1_update_0", {t, i1, i2, i3, k}, p_float32);
-    Res1_update_0.set_expression(Res1(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
+    Res1_update_0.set_expression(Res1(t, i1, i2, i3) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
-    computation Res2("Res2", {t}, expr((float) 0));
     computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
-    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3, 0));
+    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3));
 
     global::get_implicit_function()->add_context_constraints("[N, M, K, T]->{:N=16}, T=16");
 
