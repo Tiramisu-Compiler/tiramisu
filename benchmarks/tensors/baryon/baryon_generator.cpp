@@ -41,12 +41,12 @@ void generate_function(std::string name, int size)
     computation Res1("Res1", {t, i1, i2, i3}, expr((float) 0));
 
     computation Res0("Res0", {t, i1, i2, i3, k}, p_float32);
-    Res0.set_expression(S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d3(0,0,0,0,0))
-		      + S(xp0, a1, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
-		      + S(xp0, a1, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0))
-		      - S(xp0, a1, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d3(0,0,0,0,0))
-		      - S(xp0, a1, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d2(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d1(0,0,0,0,0))
-		      - S(xp0, a1, t, i1, i2, i3, d1(0,0,0,0,0)) * S(xp0, a2, t, i1, i2, i3, d3(0,0,0,0,0)) * S(xp0, a3, t, i1, i2, i3, d2(0,0,0,0,0)));
+    Res0.set_expression(S(xp0, a1, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d3(t,i1,i2,i3,k))
+		      + S(xp0, a1, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d1(t,i1,i2,i3,k))
+		      + S(xp0, a1, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d2(t,i1,i2,i3,k))
+		      - S(xp0, a1, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d3(t,i1,i2,i3,k))
+		      - S(xp0, a1, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d2(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d1(t,i1,i2,i3,k))
+		      - S(xp0, a1, t, i1, i2, i3, d1(t,i1,i2,i3,k)) * S(xp0, a2, t, i1, i2, i3, d3(t,i1,i2,i3,k)) * S(xp0, a3, t, i1, i2, i3, d2(t,i1,i2,i3,k)));
 
     computation Res1_update_0("Res1_update_0", {t, i1, i2, i3, k}, p_float32);
     Res1_update_0.set_expression(Res1_update_0(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
@@ -70,13 +70,13 @@ void generate_function(std::string name, int size)
     buf_res1.set_auto_allocate(false);
     computation *alloc_res1 = buf_res1.allocate_at(Res2, t);
     buffer buf_res2("buf_res2", {T}, p_float32, a_output);
-    buffer buf_d1("buf_d1", {K}, p_int32, a_temporary);
+    buffer buf_d1("buf_d1", {1}, p_int32, a_temporary);
     buf_d1.set_auto_allocate(false);
     computation *alloc_d1 = buf_d1.allocate_at(Res2, t);
-    buffer buf_d2("buf_d2", {K}, p_int32, a_temporary);
+    buffer buf_d2("buf_d2", {1}, p_int32, a_temporary);
     buf_d2.set_auto_allocate(false);
     computation *alloc_d2 = buf_d2.allocate_at(Res2, t);
-    buffer buf_d3("buf_d3", {K}, p_int32, a_temporary);
+    buffer buf_d3("buf_d3", {1}, p_int32, a_temporary);
     buf_d3.set_auto_allocate(false);
     computation *alloc_d3 = buf_d3.allocate_at(Res2, t);
 
