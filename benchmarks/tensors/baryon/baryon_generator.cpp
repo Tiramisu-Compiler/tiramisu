@@ -25,14 +25,13 @@ void generate_function(std::string name, int size)
     constant b1("b1", 0);
     constant b2("b2", 0);
 
-    var i1("i1", 0, N), i2("i2", 0, N), i3("i3", 0, N), k("k", 1, K), t("t", 0, T), k0("k", 0, 1);
-
-    input fc1("fc1", {k}, p_int32);
-    input fc2("fc2", {k}, p_int32);
-    input fc3("fc3", {k}, p_int32);
-
+    input fc1("fc1", {"k"}, {K}, p_int32);
+    input fc2("fc2", {"k"}, {K}, p_int32);
+    input fc3("fc3", {"k"}, {K}, p_int32);
     input S("S", {"xp0", "a1", "t", "i1", "i2", "i3", "d1"}, {1, 1, T, N, N, N, 1}, p_float32);
     input wp("wp", {"k", "b0", "b1", "b2"}, {K, 1, 1, 1}, p_float32);
+
+    var i1("i1", 0, N), i2("i2", 0, N), i3("i3", 0, N), k("k", 1, K), t("t", 0, T), k0("k", 0, 1);
 
     computation Res2("Res2", {t}, expr((float) 0));
     computation Res1("Res1", {t, i1, i2, i3}, expr((float) 0));
@@ -50,8 +49,6 @@ void generate_function(std::string name, int size)
 
     computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
     Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3));
-
-    global::get_implicit_function()->add_context_constraints("[N, M, K, T]->{:N=16}, T=16");
 
     // -------------------------------------------------------
     // Layer III
@@ -77,9 +74,7 @@ void generate_function(std::string name, int size)
     buf_d3.set_auto_allocate(false);
     computation *alloc_d3 = buf_d3.allocate_at(Res2, t);
 
-    // S(d1, i3, i2, i1, t, a1, x’0)
     buffer buf_S("buf_S", {BARYON_P, BARYON_P, BARYON_P, N, N, N, BARYON_P1}, p_float32, a_input);
-
     buffer buf_wp("buf_wp", {BARYON_N, BARYON_P, BARYON_P, BARYON_P}, p_float32, a_input);
 
     fc1.store_in(&buf_fc1);
@@ -115,7 +110,7 @@ void generate_function(std::string name, int size)
     // -------------------------------------------------------
 
     tiramisu::codegen({&buf_res2, &buf_S, &buf_wp, &buf_fc1, &buf_fc2, &buf_fc3},
-		      "generated_" + std::string(TEST_NAME_STR) + ".o");
+		      "generated_baryon.o");
 }
 
 int main(int argc, char **argv)
