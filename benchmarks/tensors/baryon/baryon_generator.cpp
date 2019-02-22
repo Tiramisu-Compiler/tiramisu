@@ -48,7 +48,7 @@ void generate_function(std::string name, int size)
     Res1_update_0.set_expression(Res1_update_0(t, i1, i2, i3, k-1) + wp(k, b2, b1, b0) * Res0(t, i1, i2, i3, k));
 
     computation Res2_update_0("Res2_update_0", {t, i1, i2, i3}, p_float32);
-    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + /* exp(i(i3*px+i2*py+i1*pz)) */ Res1(t, i1, i2, i3));
+    Res2_update_0.set_expression(Res2_update_0(t, i1, i2, i3) + cast(p_float32, expr(o_expo, i3+i2+i1, p_float32)) * Res1(t, i1, i2, i3)); //exp(i(i3*px+i2*py+i1*pz))
 
     // -------------------------------------------------------
     // Layer III

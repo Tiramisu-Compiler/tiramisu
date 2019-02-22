@@ -111,21 +111,17 @@ void ref(float Res2[BT],
 
            for (int k = 1; k <= BK; k++)
 	   {
-               int c1 = fc1[k];
-               int c2 = fc2[k];
-               int c3 = fc3[k];
-
-	       float Res0    =  S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c3]
-			      + S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c1]
-		              + S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c2]
-		              - S[xp0][a1][t][i1][i2][i3][c2] * S[xp0][a2][t][i1][i2][i3][c1] * S[xp0][a3][t][i1][i2][i3][c3]
-		              - S[xp0][a1][t][i1][i2][i3][c3] * S[xp0][a2][t][i1][i2][i3][c2] * S[xp0][a3][t][i1][i2][i3][c1]
-		              - S[xp0][a1][t][i1][i2][i3][c1] * S[xp0][a2][t][i1][i2][i3][c3] * S[xp0][a3][t][i1][i2][i3][c2];
+	       float Res0    =  S[xp0][a1][t][i1][i2][i3][fc1[k]] * S[xp0][a2][t][i1][i2][i3][fc2[k]] * S[xp0][a3][t][i1][i2][i3][fc3[k]]
+			      + S[xp0][a1][t][i1][i2][i3][fc2[k]] * S[xp0][a2][t][i1][i2][i3][fc3[k]] * S[xp0][a3][t][i1][i2][i3][fc1[k]]
+		              + S[xp0][a1][t][i1][i2][i3][fc3[k]] * S[xp0][a2][t][i1][i2][i3][fc1[k]] * S[xp0][a3][t][i1][i2][i3][fc2[k]]
+		              - S[xp0][a1][t][i1][i2][i3][fc2[k]] * S[xp0][a2][t][i1][i2][i3][fc1[k]] * S[xp0][a3][t][i1][i2][i3][fc3[k]]
+		              - S[xp0][a1][t][i1][i2][i3][fc3[k]] * S[xp0][a2][t][i1][i2][i3][fc2[k]] * S[xp0][a3][t][i1][i2][i3][fc1[k]]
+		              - S[xp0][a1][t][i1][i2][i3][fc1[k]] * S[xp0][a2][t][i1][i2][i3][fc3[k]] * S[xp0][a3][t][i1][i2][i3][fc2[k]];
 
                Res1 = Res1 + wp[k][b2][b1][b0] * Res0;
 	   }
 
-           Res2[t] = Res2[t] + /*exp(i(i3*px+i2*py+i1*pz)) **/ Res1;
+           Res2[t] = Res2[t] + exp(i1+i2+i3) * Res1; // exp(i(i3*px+i2*py+i1*pz))
          }
     }
 }
