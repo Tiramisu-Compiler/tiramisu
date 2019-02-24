@@ -32,6 +32,7 @@ void lstm()
         std::vector<float> user_bias(1 * 1 * NUM_LAYERS * FEATURE_SIZE);
 
         /* Initializing non-zero values for weights and bias */
+        /* Only tested with positive values for weigths and bias */
         srand(0);
         for (int i = 0; i < (int)user_wei_layer.size(); ++i)
                 user_wei_layer[i] = (rand() % 200) / 100.;
