@@ -56,10 +56,10 @@ int main(int, char **)
     std::cout << "\t\t Result"
               << ": ";
 
-   std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
+    std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
     std::string line1, line2;
     float file_count = 0, corr = 0, f1, f2;
-    
+
     while (std::getline(infile1, line1))
     {
         std::getline(infile2, line2);
@@ -73,6 +73,5 @@ int main(int, char **)
 
     printf("\t\t Percentage of correctness %f \n\n", corr / file_count * 100);
 
-    return 0;
     return 0;
 }
