@@ -149,11 +149,10 @@ static dnnError_t simple_net(int want_groups_conv)
                     fprintf(f, "%.0f", user_o[x + y * outputSize[0] + z * outputSize[0] * outputSize[1] + n * outputSize[0] * outputSize[1] * FIn]);
 
     fclose(f);
-    
 
-        bail_out :
+bail_out:
 
-        dnnDelete_F64(pool1);
+    dnnDelete_F64(pool1);
     dnnDelete_F64(cv_user_to_pool1_input);
     dnnDelete_F64(cv_pool1_to_user_output);
     dnnLayoutDelete_F64(lt_user_input);
