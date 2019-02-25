@@ -1,1 +1,0 @@
-rm -rf relu_layer_generator_tiramisu relu_layer_generator_tiramisu.o relu_layer_generator_tiramisu.o.h wrapper_nn_relu relu_layer_generator_tiramisu relu_layer_mkldnn_result tiramisu_result.txt mkldnn_result.txt

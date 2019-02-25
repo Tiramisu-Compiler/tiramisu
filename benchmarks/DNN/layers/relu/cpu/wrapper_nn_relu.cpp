@@ -56,7 +56,7 @@ int main(int, char **)
     std::cout << "\t\t Result"
               << ": ";
 
-    std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
+    std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt"); //infile2("mkldnn_result.txt")
     std::string line1, line2;
     float file_count = 0, corr = 0, f1, f2;
 

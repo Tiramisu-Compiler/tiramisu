@@ -1,6 +1,6 @@
 #set -x
 
-source ../../../configure_paths.sh
+source ../../../../configure_paths.sh
 
 CXXFLAGS="-std=c++11 -O3 -fno-rtti"
 
