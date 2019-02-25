@@ -19,21 +19,13 @@ int main(int argc, char **argv)
 
     // Inner dimensions
     var i("i", 0, feature_size), j("j", 0, feature_size), k("k", 0, batch_size);
+    var i_merged("i_merged", 0, 4 * feature_size);
     // Outer dimensions
     var l("l", 0, num_layers), m("m", 0, seq_length);
 
-    input R_i("R_i", {l, i, j}, p_float32);
-    input R_z("R_z", {l, i, j}, p_float32);
-    input R_o("R_o", {l, i, j}, p_float32);
-    input R_f("R_f", {l, i, j}, p_float32);
-    input W_i("W_i", {l, i, j}, p_float32);
-    input W_z("W_z", {l, i, j}, p_float32);
-    input W_o("W_o", {l, i, j}, p_float32);
-    input W_f("W_f", {l, i, j}, p_float32);
-    input b_i("b_i", {l, i}, p_float32);
-    input b_z("b_z", {l, i}, p_float32);
-    input b_o("b_o", {l, i}, p_float32);
-    input b_f("b_f", {l, i}, p_float32);
+    input R("R", {l, i_merged, j}, p_float32);
+    input W("W", {l, i_merged, j}, p_float32);
+    input b("b", {l, i_merged}, p_float32);
     input x({m, k, i}, p_float32);
 
     // h(m, l) is the output of the block (m, l)
@@ -45,19 +37,13 @@ int main(int argc, char **argv)
     computation h_init({l, k, i}, expr(float(0)));
     computation c_init({l, k, i}, expr(float(0)));
     computation h_copy_x({m, k, i}, x(m, k, i));
-    computation sum_i_init({m, l, k, i}, b_i(l, i));
-    computation sum_z_init({m, l, k, i}, b_z(l, i));
-    computation sum_o_init({m, l, k, i}, b_o(l, i));
-    computation sum_f_init({m, l, k, i}, b_f(l, i));
-    computation sum_i({m, l, k, i, j}, sum_i_init(m, l, k, i) + R_i(l, i, j) * h(m - 1, l, k, j) + W_i(l, i, j) * h(m, l - 1, k, j));
-    computation sum_z({m, l, k, i, j}, sum_z_init(m, l, k, i) + R_z(l, i, j) * h(m - 1, l, k, j) + W_z(l, i, j) * h(m, l - 1, k, j));
-    computation sum_o({m, l, k, i, j}, sum_o_init(m, l, k, i) + R_o(l, i, j) * h(m - 1, l, k, j) + W_o(l, i, j) * h(m, l - 1, k, j));
-    computation sum_f({m, l, k, i, j}, sum_f_init(m, l, k, i) + R_f(l, i, j) * h(m - 1, l, k, j) + W_f(l, i, j) * h(m, l - 1, k, j));
+    computation sum_init({m, l, k, i_merged}, b(l, i_merged));
+    computation sum({m, l, k, i_merged, j}, sum_init(m, l, k, i_merged) + R(l, i_merged, j) * h(m - 1, l, k, j) + W(l, i_merged, j) * h(m, l - 1, k, j));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
-    computation sig_i({m, l, k, i}, sigmoid(sum_i(m, l, k, i, 0)));
-    computation tnh_z({m, l, k, i}, expr(o_tanh, sum_z(m, l, k, i, 0)));
-    computation sig_o({m, l, k, i}, sigmoid(sum_o(m, l, k, i, 0)));
-    computation sig_f({m, l, k, i}, sigmoid(sum_f(m, l, k, i, 0)));
+    computation sig_i({m, l, k, i}, sigmoid(sum(m, l, k, i, 0)));
+    computation tnh_z({m, l, k, i}, expr(o_tanh, sum(m, l, k, i + feature_size, 0)));
+    computation sig_o({m, l, k, i}, sigmoid(sum(m, l, k, i + 2 * feature_size, 0)));
+    computation sig_f({m, l, k, i}, sigmoid(sum(m, l, k, i + 3 * feature_size, 0)));
     computation mul_iz({m, l, k, i}, sig_i(m, l, k, i) * tnh_z(m, l, k, i));
     computation mul_fc({m, l, k, i}, sig_f(m, l, k, i) * c(m - 1, l, k, i));
     c.set_expression(mul_iz(m, l, k, i) + mul_fc(m, l, k, i));
@@ -75,14 +61,8 @@ int main(int argc, char **argv)
     // Scheduling commands
     h_init.then(c_init, computation::root)
           .then(h_copy_x, computation::root)
-          .then(sum_i_init, computation::root)
-          .then(sum_z_init, l)
-          .then(sum_o_init, l)
-          .then(sum_f_init, l)
-          .then(sum_i, l)
-          .then(sum_z, l)
-          .then(sum_o, l)
-          .then(sum_f, l)
+          .then(sum_init, computation::root)
+          .then(sum, l)
           .then(sig_i, l)
           .then(tnh_z, l)
           .then(sig_o, l)
@@ -99,11 +79,12 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     buffer buf_params("buf_params", {4}, p_int32, a_input);
-    buffer buf_Weights("buf_Weights", {num_layers, 8, feature_size, feature_size}, p_float32, a_input);
-    buffer buf_biases("buf_biases", {num_layers, 4, feature_size}, p_float32, a_input);
+    buffer buf_Weights("buf_Weights", {num_layers, 2, 4 * feature_size, feature_size}, p_float32, a_input);
+    buffer buf_biases("buf_biases", {num_layers, 4 * feature_size}, p_float32, a_input);
     buffer buf_x("buf_x", {seq_length, batch_size, feature_size}, p_float32, a_input);
     buffer buf_y("buf_y", {seq_length, batch_size, feature_size}, p_float32, a_output);
     // TODO: Does not support parallel
+    buffer buf_tmp("buf_tmp", {batch_size, 4 * feature_size}, p_float32, a_temporary);
     buffer buf_tmp_i("buf_tmp_i", {batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_tmp_z("buf_tmp_z", {batch_size, feature_size}, p_float32, a_temporary);
     buffer buf_tmp_o("buf_tmp_o", {batch_size, feature_size}, p_float32, a_temporary);
@@ -115,28 +96,13 @@ int main(int argc, char **argv)
 
     params.store_in(&buf_params);
     // Weights and biases are packed
-    R_i.store_in(&buf_Weights, {l, 0, i, j});
-    R_z.store_in(&buf_Weights, {l, 1, i, j});
-    R_o.store_in(&buf_Weights, {l, 2, i, j});
-    R_f.store_in(&buf_Weights, {l, 3, i, j});
-    W_i.store_in(&buf_Weights, {l, 4, i, j});
-    W_z.store_in(&buf_Weights, {l, 5, i, j});
-    W_o.store_in(&buf_Weights, {l, 6, i, j});
-    W_f.store_in(&buf_Weights, {l, 7, i, j});
-    b_i.store_in(&buf_biases, {l, 0, i});
-    b_z.store_in(&buf_biases, {l, 1, i});
-    b_o.store_in(&buf_biases, {l, 2, i});
-    b_f.store_in(&buf_biases, {l, 3, i});
+    R.store_in(&buf_Weights, {l, 0, i_merged, j});
+    W.store_in(&buf_Weights, {l, 1, i_merged, j});
+    b.store_in(&buf_biases, {l, i_merged});
     x.store_in(&buf_x);
     y.store_in(&buf_y);
-    sum_i_init.store_in(&buf_tmp_i, {k, i});
-    sum_z_init.store_in(&buf_tmp_z, {k, i});
-    sum_o_init.store_in(&buf_tmp_o, {k, i});
-    sum_f_init.store_in(&buf_tmp_f, {k, i});
-    sum_i.store_in(&buf_tmp_i, {k, i});
-    sum_z.store_in(&buf_tmp_z, {k, i});
-    sum_o.store_in(&buf_tmp_o, {k, i});
-    sum_f.store_in(&buf_tmp_f, {k, i});
+    sum_init.store_in(&buf_tmp, {k, i_merged});
+    sum.store_in(&buf_tmp, {k, i_merged});
     sig_i.store_in(&buf_tmp_i, {k, i});
     tnh_z.store_in(&buf_tmp_z, {k, i});
     sig_o.store_in(&buf_tmp_o, {k, i});
