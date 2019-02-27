@@ -1,10 +1,16 @@
 ## Building Tiramisu (Long Version)
 
-Tiramisu has been well tested on Linux Ubuntu (14.04) and MacOS (10.12), if you find any problem installing Tiramisu please consider using one of these systems.
+Tiramisu has been well tested on Linux Ubuntu (18.04) and MacOS (10.12), if you find any problem installing Tiramisu please consider using one of these systems.
 
 #### Prerequisites
 
 For MacOs, we provide instructions on how to install the missing packages using [Homebrew](https://brew.sh/) but you can install these packages using any other way.  If you do not have Homebrew, you can install it as described [here](https://docs.brew.sh/Installation).
+
+If you are installing Tiramisu on Ubuntu 18.04, you can install all the required packages for generating CPU code by running the following command
+
+      sudo apt-get install autoconf libtool git cmake gcc g++ libpng-dev zlib1g-dev libjpeg-dev
+
+The next section provides more details about the installation of these prerequisites.
 
 ###### Required
 

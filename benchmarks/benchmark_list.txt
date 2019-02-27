@@ -1,7 +1,10 @@
 ticket
 cvtcolor
 cvtcolorgpu[gpu]
+cvtcolordist[mpi,4]
 convolution
+convolution_layer
+vgg
 blurxy
 gaussian
 warp_affine
@@ -13,9 +16,13 @@ resize
 laplacian
 edge
 edgegpu[gpu]
+optical_flow
+py_optical_flow
 heat2dgpu[gpu]
 gaussiangpu[gpu]
 rgbyuv420gpu[gpu]
 convolutiongpu[gpu]
 warp_affinegpu[gpu]
 fusiongpu[gpu]
+heat3d
+heat3ddist[mpi,4]

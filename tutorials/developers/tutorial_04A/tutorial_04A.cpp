@@ -34,8 +34,8 @@ int main(int argc, char **argv)
 
     // Declare computations that represents the input buffers.  The actual
     // input buffers will be declared later.
-    input A("A", {i, j}, p_uint8);
-    input B("B", {i, j}, p_uint8);
+    input A("A", {"i", "j"}, {SIZE0, SIZE0}, p_uint8);
+    input B("B", {"i", "j"}, {SIZE0, SIZE0}, p_uint8);
 
     // Declare a computation to initialize the reduction.
     computation C_init("C_init", {i,j}, expr((uint8_t) 0));
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     A.store_in(&b_A);
     B.store_in(&b_B);
 
-    // Store C_init[i,j,k] in b_C[i,j]
+    // Store C_init[i,j] in b_C[i,j]
     C_init.store_in(&b_C, {i,j});
     // Store c_C[i,j,k] in b_C[i,j]
     C.store_in(&b_C, {i,j});

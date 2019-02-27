@@ -26,7 +26,7 @@
 
 namespace tiramisu
 {
-
+class view;
 class input;
 class function;
 class computation;
@@ -40,6 +40,7 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
+
 
 struct HalideCodegenOutput
 {
@@ -110,7 +111,7 @@ void init(std::string name);
 void init();
 
 /**
-  * \brief Generate code. 
+  * \brief Generate code.
   *
   * \details
   *
@@ -279,7 +280,10 @@ private:
      */
     std::vector<std::string> iterator_names;
 
-    std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> iterator_to_kernel_list;
+    /**
+     * Map from loop iterators to CUDA kernels.
+     */
+    std::unordered_map<isl_ast_node*, cuda_ast::kernel_ptr> iterator_to_kernel_map;
 
     std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
 
@@ -730,6 +734,45 @@ protected:
      * .after(), ...
      */
     bool use_low_level_scheduling_commands;
+	
+   /**
+     * \brief Generates the automatic communication CPU/GPU.
+     * \details This fucntion takes two pointers to the first and the last computation
+     *  of the fucntion.
+     *  C1 is the first computation, which means that it hasn't a predecessor.
+     *  C2 is the last computation, which means that it hasn't a successor.
+     */
+    const int  &Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const;
+	
+    /**
+     * \brief Returns a ptr to the first computation in the sched_graph.
+     * \details The computation that has no predecessor.
+     */
+    computation* get_first_cpt();
+	
+     /**
+     * \brief Returns a ptr to the last computation in the sched_graph.
+     * \details The computation that has no succesor.
+     */
+    computation* get_last_cpt();
+	
+     /**
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
+     * \details It is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     */
+    std::map<std::string, tiramisu::buffer *> mapping ;
+	
+     /**
+     * \brief Returns the mapping field of a given function.  
+     * \details It returns a pair of a string, which is the name of a cpu buffer, and a ptr to a
+     *  to the gpu buffer corresponding.
+     */
+    const std::map<std::string, tiramisu::buffer *> get_mapping() const;
+	
+     /**
+     * \brief Adds a new pair to the mapping field.  
+     */
+    void  add_mapping(std::pair<std::string, tiramisu::buffer *> p);
 
 public:
 
@@ -739,24 +782,6 @@ public:
      * Names starting with _ are reserved names.
      */
     function(std::string name);
-	/**
-     * \brief Generates the automatic communication CPU/GPU \p name.
-     * \details GPU buffers names should be like the correponding CPU buffer's names (like buffer is the name of the 
-     * cpu buffer and buffer_g is the name of the corresponding gpu buffer.
-     */
-    const int  &Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2) const;
-    /**
-     * \brief Returns a ptr to the first computation in the sched_graph \p name.
-     * \details The computation that have no predecessor
-     */
-    computation * get_first_cpt();
-     /**
-     * \brief Returns a ptr to the last computation in the sched_graph \p name.
-     * \details The computation that have no succesor
-     */
-    computation * get_last_cpt();
-
-
 
     /**
       * \brief Add a set of constraints to the context of the program.
@@ -1017,7 +1042,6 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
-
 };
 
 
@@ -1087,6 +1111,14 @@ private:
      * The location of the buffer (host if in memory, else where on GPU).
      */
     cuda_ast::memory_location location;
+	
+     /**
+     * automatic_gpu_copy = true by default, is it set to false when the user wants
+     * to do data transfert to gpu manually.
+     */
+     bool automatic_gpu_copy;
+
+	
 
 protected:
     /**
@@ -1104,6 +1136,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+		
+    /**
+      * Return whether the copy should be done automatically.
+      */	
+    bool get_automatic_gpu_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1117,7 +1154,7 @@ public:
       * \details
       *
       * A Tiramisu buffer is equivalent to an array in C.
-      * 
+      *
       * Buffers have two use cases:
       * - Used to store the results of computations, and
       * - Used to represent input arguments to functions.
@@ -1162,13 +1199,18 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
+      * 
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-	   tiramisu::function *fct = global::get_implicit_function());
+           tiramisu::function *fct = global::get_implicit_function(), 
+	   std::string corr = "");
+
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -1278,6 +1320,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+      * Set whether the GPU copy should be done automatically.
+      */
+    void set_automatic_gpu_copy(bool automatic_gpu_copy);	
 
     /**
      * Return true if all extents of the buffer are literal integer
@@ -2280,6 +2327,39 @@ private:
       */
     bool operator==(tiramisu::computation comp1);
 
+    /**
+      * \brief Construct the distribution map of a computation.
+      * Not safe to use. It's currently being implemented.
+      *
+      * A distribution map partitions a computation across ranks.
+      * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
+      * is either r_sender or r_receiver, the distribution map will specify for each rank the
+      * iterations it should execute.
+      *
+      * Example :
+      * \code
+      * c.set_expression(in(i)+in(i-1));
+      * c.tag_distribute_level(i);
+      * /endcode
+      *
+      * If the function is called on c, it will construct the following map:
+      *
+      * \code
+      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * /endcode
+     */
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks);
+
+    /**
+      * Return the distributed dimension of a computation.
+      */
+    int get_distributed_dimension();
+
+    /**
+      * Return names of trimmed time space domain dimensions.
+      */
+    std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
+
 protected:
 
     /**
@@ -2492,6 +2572,10 @@ protected:
       * Collapse all the iterations of a loop into one single iteration.
       */
     void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
+    /**
+      * \overload
+      */
+    computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
 
 public:
 
@@ -2603,6 +2687,7 @@ public:
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
+
     /**
       * \brief Constructor for computations.
       *
@@ -2614,7 +2699,7 @@ public:
       * \p name is the name of the computation.
       *
       * \p iterator_variables is a vector that represents the loop iterators
-      * around the computation. 
+      * around the computation.
       *
       * \p e is the expression computed by the computation.
       *
@@ -2654,6 +2739,7 @@ public:
      * \overload
      */
    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
 
     /**
       * \overload
@@ -3299,12 +3385,13 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-	
-	/**
+  
+    /**
       * Returns a pointer to the computation scheduled immediately after this computation,
       * or a null pointer if none exist.
       */
     computation * get_successor();
+	
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
@@ -3553,6 +3640,84 @@ public:
       * a negative value would mean a shift backward.
       */
     void shift(tiramisu::var L0, int n);
+
+    /**
+      * Apply loop skewing on the loop levels \p i and \p j with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni and \p nj.
+      *
+      * This command transforms the loop (i, j) into the loop (i, f*i+j).
+      * For example if you have the following loop
+      *
+      * \code
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
+
+      * and apply
+
+      \code
+	a.skew(i, j, 1, ni, nj);
+      \endcode
+
+      * you would get
+      *
+      \code
+      for (int i = 1; i < N; i++)
+        for (int j = i+1; j < i+M; j++)
+          a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
+      \endcode
+
+      */
+    void skew(tiramisu::var i, tiramisu::var j, int f, tiramisu::var ni, tiramisu::var nj);
+
+    /**
+      * Apply loop skewing on the loop levels \p i, \p j and \p k with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni, \p nj and \p nk.
+      *
+      * This command transforms the loop (i, j, k) into the loop (i, f*i+j, f*i+k).
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor,
+	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk);
+
+    /**
+      * Apply loop skewing on the loop levels \p i, \p j, \p k, \p l with a skewing factor of \p f.
+      * The names of the new loop levels is \p ni, \p nj, \p nk and \p nl.
+      *
+      * This command transforms the loop (i, j, k, l) into the loop (i, f*i+j, f*i+k, f*i+l).
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor,
+	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk, tiramisu::var nl);
+
+    /**
+      * \overload
+      */
+    void skew(tiramisu::var i, tiramisu::var j, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int k, int factor);
+
+    /**
+      * \overload
+      */
+    void skew(int i, int j, int k, int l, int factor);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -3939,7 +4104,21 @@ public:
     {
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        assert(access_expressions.size() == number_of_dims);
+        if (access_expressions.size() != number_of_dims)
+	{
+	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+	    for (int i = 0; i < access_expressions.size(); i++)
+	    {
+		tiramisu::expr e = access_expressions[i];
+		e.dump(false);
+		if (i != access_expressions.size() - 1)
+		    tiramisu::str_dump(", ");
+	    }
+	    tiramisu::str_dump(").\n");
+	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+	    exit(1);
+	}
+
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
             for (auto const &variable: this->access_variables) {
@@ -3965,11 +4144,35 @@ public:
 
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
-
 };
 
 class input: public computation
 {
+private:
+
+    /**
+      * Compute a vector of loop iterators from a vector of sizes.
+      * If the input is {10, 20}, this function returns a vector
+      * that has the following iterators var("random_name_0, 0, 10)
+      * and var("random_name_1", 0, 20.
+      */
+    static std::vector<var>
+	compute_iterators_from_sizes(std::vector<std::string> dimension_names,
+				     std::vector<tiramisu::expr> dimension_sizes)
+	{
+	    assert(dimension_sizes.size() != 0);
+
+	    std::vector<var> iterator_variables;
+
+	    for (int i = 0; i < dimension_sizes.size(); i++)
+	    {
+		tiramisu::var *v = new
+		    tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
+		    iterator_variables.push_back(*v);
+	    }
+
+	    return iterator_variables;
+	}
 
 public:
     /**
@@ -4007,7 +4210,7 @@ public:
       * the buffer and map this input to that buffer.
       *
       * An example is provided in tutorial 02.
-      * 
+      *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
 	    computation(name, iterator_variables, expr(), false)
@@ -4024,7 +4227,120 @@ public:
     {
     }
 
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * Declare an input.
+      *
+      * \p name is the name of the input.
+      *
+      * \p dimension_names is a vector that represents the names of the input
+      * dimensions.
+      *
+      * \p dimension_sizes is a vector that represents the sizes of the input
+      * dimensions.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
+      *
+      * Example:
+      *
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type uint8 and where the first dimension is called
+      * "i" and the second dimension is "j".
+      *
+      * \code
+      * input A("A", {"i", "j"}, {20, 30}, p_uint8);
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to actually declare
+      * the buffer and map this input to that buffer.
+      *
+      * An example is provided in tutorial 02.
+      *
+     */
+    input(std::string name, std::vector<std::string> dimension_names,
+			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
+	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(), false)
+    {
+        this->data_type = t;
+        this->expression.dtype = t;
+    }
 };
+
+class Input: public input{
+
+public:
+    std::vector<var> iterators_from_size_expressions(std::vector<expr> sizes)
+    {
+	std::vector<var> iterator_variables;
+
+	for (int s = 0; s < sizes.size(); s++)
+	{
+	    var v(generate_new_computation_name(), 0, sizes[s]);
+	    iterator_variables.push_back(v);
+	}
+
+	return iterator_variables;
+    }
+
+    /**
+      * \overload
+      */
+    Input(std::string name, std::vector<expr> sizes, primitive_t t)
+	:input(name, iterators_from_size_expressions(sizes), t)
+    {
+    }
+};
+
+class view:public computation{
+
+public:
+    /**
+      * \brief Constructor for a view.
+      *
+      * \details
+      *
+      * Declare a view.
+      *
+      * \p name is the name of the view.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the view.  It is used to define the size of the view.
+      *
+      * \p t is the type of buffer data (p_float32 for example).
+      *
+      * Example:
+      *
+      * If we want to access a buffer buf where results of a computation C are stored
+      * we declare a view V and we map it to the buffer buf.
+      *
+      * We declare the iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following view
+      *
+      * \code
+      * view V("V", {i,j}, p_float64);
+      * \endcode
+      *
+      * Later in the code (in Layer III), we need to map the view to that buffer.
+      * \code
+      * V.store_in(&buf);
+      * \endcode
+     */
+   view(std::string name, std::vector<var> iterator_variables, primitive_t t):
+	computation(name, iterator_variables, expr(), false,t){}
+
+};
+
+
 
 
 /**
@@ -4091,6 +4407,18 @@ public:
              int at_loop_level,
              tiramisu::function *func = global::get_implicit_function());
 
+    /**
+      * This constructor has the same behaviour as
+      * \code
+         constant(std::string param_name, const tiramisu::expr &param_expr,
+             tiramisu::primitive_t t,
+             bool function_wide,
+             tiramisu::computation *with_computation,
+             int at_loop_level,
+             tiramisu::function *func);
+	\endcode
+      * except that it has less arguments.
+      */
     constant(std::string param_name, const tiramisu::expr &param_expr,
              tiramisu::primitive_t t,
              tiramisu::function *func = global::get_implicit_function());
@@ -4232,8 +4560,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block,
-                                                            std::unordered_map<std::string, std::list<cuda_ast::kernel_ptr>> &iterator_to_kernel_map);
+                                                            bool is_a_child_block);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
@@ -4362,7 +4689,6 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
-
 };
 
 // TODO Jess: add doc comments

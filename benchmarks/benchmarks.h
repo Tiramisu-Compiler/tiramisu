@@ -14,17 +14,6 @@
 #define PRINT_OUTPUT 0 
 #define SIZE_IS_MULTIPLE_OF_TILE 1
 
-
-// BARYON_N is used for loop iterators.
-#define BARYON_N 16
-// BARYON_P1 is used for the size of first dimension
-// of array and possible value of the parameters used
-// in that first dimension.
-#define BARYON_P1 3
-// BARYON_P is used for the size of the other array
-// dimensions that are not of size BARYON_N
-#define BARYON_P 1
-
 // Data size
 #if TIRAMISU_XLARGE
 

@@ -42,9 +42,9 @@ void generate_code()
 }
 ```
 
-## Building Tiramisu
+## Building Tiramisu from Sources
 
-This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
+This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04 and 18.04) and MacOS (10.12) but should work on other Linux and MacOS versions.
 
 #### Prerequisites
 ###### Required
@@ -78,6 +78,20 @@ This section provides a short description of how to build Tiramisu.  A more deta
         cd build
         cmake ..
         make -j tiramisu
+
+## Tiramisu on a Virtual Machine
+Users can use the Tiramisu [virtual machine disk image](http://groups.csail.mit.edu/commit/software/TiramisuVM.zip).  The image is created using virtual box (5.2.12) and has Tiramisu already pre-compiled and ready for use. It was compiled using the same instructions in this README file.
+
+Once you download the image, unzip it and use virtual box to open the file 'TiramisuVM.vbox'.
+
+Once the virtual machine has started, open a terminal, then go to the Tiramisu directory
+
+    cd /home/b/tiramisu/
+    
+If asked for a username/password
+
+    Username:b
+    Password:b
 
 
 ## Getting Started

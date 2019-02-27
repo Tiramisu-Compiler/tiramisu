@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
     convolution(x, y, c) = cast<uint8_t>(e);
 
-    convolution.parallel(y).vectorize(x, 8).parallel(c);
+    convolution.vectorize(x, 8).parallel(c);
 
     convolution.compile_to_object("build/generated_fct_convolution_ref.o", {in, kernel}, "convolution_ref");
 

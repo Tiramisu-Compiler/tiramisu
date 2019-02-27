@@ -69,3 +69,28 @@ void print_time(const string &file_name, const string &kernel_name,
 
     file.close();
 }
+
+void combine_dist_results(const std::string &test, std::vector<int> dims, int num_ranks) {
+    // Figure out the total size
+    int total_vals = 1;
+    for (auto d : dims) {
+        total_vals *= d;
+    }
+    std::ofstream output_file;
+    output_file.open("/tmp/" + test + "_all_ranks.txt");
+    for (int rank = 0; rank < num_ranks; rank++) {
+        std::ifstream f("/tmp/" + test + "_rank_" + std::to_string(rank) + ".txt");
+        if (f.is_open()) {
+            std::string line;
+            for (int v = 0; v < total_vals; v++) {
+                std::getline(f, line);
+                output_file << line << std::endl;
+            }
+        } else {
+            assert(false); // TODO put in appropriate error checking
+        }
+        f.close();
+    }
+    output_file.flush();
+    output_file.close();
+}

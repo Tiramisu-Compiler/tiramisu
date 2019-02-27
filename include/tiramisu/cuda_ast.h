@@ -47,12 +47,6 @@ namespace tiramisu
     };
     typedef std::unique_ptr<isl_id, isl_id_deleter> isl_id_ptr;
 
-    struct isl_ast_node_deleter
-    {
-        void operator()(isl_ast_node * p) const {isl_ast_node_free(p);}
-    };
-    typedef std::unique_ptr<isl_ast_node, isl_ast_node_deleter> isl_ast_node_ptr;
-
     struct isl_ast_node_list_deleter
     {
         void operator()(isl_ast_node_list * p) const {isl_ast_node_list_free(p);}
@@ -101,6 +95,12 @@ const op_data_t tiramisu_operation_description(tiramisu::op_t op);
 //        FN_CALL(o_asin, "asin", 1),
 //        FN_CALL(o_acos, "acos", 1),
 //        FN_CALL(o_atan, "atan", 1),
+//        FN_CALL(o_sinh, "sinh", 1),
+//        FN_CALL(o_cosh, "cosh", 1),
+//        FN_CALL(o_tanh, "tanh", 1),
+//        FN_CALL(o_asinh, "asinh", 1),
+//        FN_CALL(o_acosh, "acosh", 1),
+//        FN_CALL(o_atanh, "atanh", 1),
 //        FN_CALL(o_abs, "abs", 1),
 //        FN_CALL(o_sqrt, "sqrt", 1),
 //        FN_CALL(o_expo, "exp", 1),
@@ -664,7 +664,7 @@ private:
     cuda_ast::statement_ptr parse_tiramisu(const tiramisu::expr & tiramisu_expr);
     int loop_level = 0;
     kernel_ptr current_kernel;
-    std::unordered_map<std::string, std::list<kernel_ptr>> iterator_to_kernel_map;
+    std::unordered_map<isl_ast_node*, kernel_ptr> iterator_to_kernel_map;
     std::vector<kernel_ptr> kernels;
     // Will be set to true as soon as GPU computation is encountered, and set to false as soon as GPU loop is exited
     bool in_kernel = false;
@@ -684,14 +684,14 @@ private:
 public:
     explicit generator(tiramisu::function &fct);
 
-    statement_ptr cuda_stmt_from_isl_node(isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_handle_isl_for(isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_handle_isl_block(isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_handle_isl_if(isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_handle_isl_user(isl_ast_node_ptr &node);
-    cuda_ast::statement_ptr cuda_stmt_handle_isl_expr(isl_ast_expr_ptr &expr, isl_ast_node_ptr &node);
-    statement_ptr cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr, isl_ast_node_ptr &node);
+    statement_ptr cuda_stmt_from_isl_node(isl_ast_node *node);
+    statement_ptr cuda_stmt_handle_isl_for(isl_ast_node *node);
+    statement_ptr cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node *node);
+    statement_ptr cuda_stmt_handle_isl_block(isl_ast_node *node);
+    statement_ptr cuda_stmt_handle_isl_if(isl_ast_node *node);
+    statement_ptr cuda_stmt_handle_isl_user(isl_ast_node *node);
+    cuda_ast::statement_ptr cuda_stmt_handle_isl_expr(isl_ast_expr_ptr &expr, isl_ast_node *node);
+    statement_ptr cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr, isl_ast_node *node);
     void cuda_stmt_foreach_isl_expr_list(isl_ast_expr *node, const std::function<void(int, isl_ast_expr *)> &fn, int start = 0);
 
 

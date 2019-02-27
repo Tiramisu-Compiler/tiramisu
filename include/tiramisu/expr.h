@@ -83,13 +83,10 @@ public:
     }
 
     /**
-      * Return the implicit function created during Tiramisu initialization.
+      * Set the implicit function to the function given as an argument.
       *
-      * When Tiramisu is initialized, an implicit Tiramisu
-      * function is created.  All the computations and buffers
-      * created later are added by deafult to this function unless
-      * the user indicates otherwise using the Tiramisu API (by using the low
-      * level Tiramisu API and by providing a different function as input to the API).
+      * All the computations and buffers created later are added by deafult
+      * to this function unless it's modified again.
       */
     static void set_implicit_function(function *fct)
     {
@@ -289,8 +286,15 @@ public:
      */
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
-        assert(expr0.get_data_type() == expr1.get_data_type()
-               && "expr0 and expr1 should be of the same type. Dumping expr0 and expr1.");
+        if (expr0.get_data_type() != expr1.get_data_type())
+	{
+	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
+	    expr0.dump(false);
+	    tiramisu::str_dump(" and ");
+	    expr1.dump(false);
+	    tiramisu::str_dump("\n");
+            ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
+	}
 
         this->_operator = o;
         this->etype = tiramisu::e_op;
@@ -1222,7 +1226,7 @@ public:
                     case tiramisu::o_lt:
                         return *this;
                     case tiramisu::o_ge:
-                        return *this; 
+                        return *this;
                     case tiramisu::o_gt:
                         return *this;
                     case tiramisu::o_logical_not:
@@ -1248,6 +1252,18 @@ public:
                     case tiramisu::o_acos:
                         return *this;
                     case tiramisu::o_asin:
+                        return *this;
+                    case tiramisu::o_sinh:
+                        return *this;
+                    case tiramisu::o_cosh:
+                        return *this;
+                    case tiramisu::o_tanh:
+                        return *this;
+                    case tiramisu::o_asinh:
+                        return *this;
+                    case tiramisu::o_acosh:
+                        return *this;
+                    case tiramisu::o_atanh:
                         return *this;
                     case tiramisu::o_abs:
                         return *this;
@@ -1452,6 +1468,30 @@ public:
                     case tiramisu::o_asin:
                         str +=  "asin(" + this->get_operand(0).to_str();
                         str +=  ") ";
+                        break;
+                    case tiramisu::o_sinh:
+                        str += "sinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_cosh:
+                        str += "cosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_tanh:
+                        str += "tanh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_asinh:
+                        str += "asinh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_acosh:
+                        str += "acosh(" + this->get_operand(0).to_str();
+                        str += ") ";
+                        break;
+                    case tiramisu::o_atanh:
+                        str += "atanh(" + this->get_operand(0).to_str();
+                        str += ") ";
                         break;
                     case tiramisu::o_abs:
                         str +=  "abs(" + this->get_operand(0).to_str();

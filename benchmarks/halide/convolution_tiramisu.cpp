@@ -1,80 +1,52 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
+#include <tiramisu/tiramisu.h>
 
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
 #include <Halide.h>
 #include "halide_image_io.h"
-
 
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    // Set default tiramisu options.
-    global::set_default_tiramisu_options();
-
-    tiramisu::function convolution_tiramisu("convolution_tiramisu");
+    tiramisu::init("convolution_tiramisu");
 
     Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./utils/images/rgb.png");
-    int SIZE0 = in_image.extent(0);
-    int SIZE1 = in_image.extent(1);
-    int SIZE2 = in_image.extent(2);
-
-    // Output buffers.
-    int convolution_extent_2 = SIZE2;
-    int convolution_extent_1 = SIZE1 - 8;
-    int convolution_extent_0 = SIZE0 - 8;
-    tiramisu::buffer buff_convolution("buff_convolution", {tiramisu::expr(convolution_extent_2), tiramisu::expr(convolution_extent_1), tiramisu::expr(convolution_extent_0)}, tiramisu::p_uint8, tiramisu::a_output, &convolution_tiramisu);
-
-    // Input buffers.
-    int input_extent_2 = SIZE2;
-    int input_extent_1 = SIZE1;
-    int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_2), tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &convolution_tiramisu);
-    tiramisu::computation input("[input_extent_2, input_extent_1, input_extent_0]->{input[i2, i1, i0]: (0 <= i2 <= (input_extent_2 + -1)) and (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", expr(), false, tiramisu::p_uint8, &convolution_tiramisu);
-    input.set_access("{input[i2, i1, i0]->buff_input[i2, i1, i0]}");
+    constant SIZE0("SIZE0", in_image.extent(0));
+    constant SIZE1("SIZE1", in_image.extent(1));
+    constant SIZE2("SIZE2", in_image.extent(2));
 
     int kernel_extent_1 = 3;
     int kernel_extent_0 = 3;
-    tiramisu::buffer buff_kernel("buff_kernel", {tiramisu::expr(kernel_extent_1), tiramisu::expr(kernel_extent_0)}, tiramisu::p_float32, tiramisu::a_input, &convolution_tiramisu);
-    tiramisu::computation kernel("[kernel_extent_1, kernel_extent_0]->{kernel[i1, i0]: (0 <= i1 <= (kernel_extent_1 + -1)) and (0 <= i0 <= (kernel_extent_0 + -1))}", expr(), false, tiramisu::p_float32, &convolution_tiramisu);
-    kernel.set_access("{kernel[i1, i0]->buff_kernel[i1, i0]}");
+    var i2("i2", 0, SIZE2), i1("i1", 0, SIZE1), i0("i0", 0, SIZE0);
+    var k0("k0", 0, kernel_extent_0), k1("k1", 0, kernel_extent_1);
+    var c("c", 0, SIZE2), y("y", 0, SIZE1-8), x("x", 0, SIZE0-8);
 
+    input     in("in", {i2, i1, i0}, p_uint8);
+    input kernel("kernel", {k1, k0}, p_float32);
 
-    // Define loop bounds for dimension "convolution_s0_c".
-    tiramisu::constant convolution_s0_c_loop_min("convolution_s0_c_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-    tiramisu::constant convolution_s0_c_loop_extent("convolution_s0_c_loop_extent", tiramisu::expr(convolution_extent_2), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-
-    // Define loop bounds for dimension "convolution_s0_y".
-    tiramisu::constant convolution_s0_y_loop_min("convolution_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-    tiramisu::constant convolution_s0_y_loop_extent("convolution_s0_y_loop_extent", tiramisu::expr(convolution_extent_1), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-
-    // Define loop bounds for dimension "convolution_s0_x".
-    tiramisu::constant convolution_s0_x_loop_min("convolution_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-    tiramisu::constant convolution_s0_x_loop_extent("convolution_s0_x_loop_extent", tiramisu::expr(convolution_extent_0), tiramisu::p_int32, true, NULL, 0, &convolution_tiramisu);
-    tiramisu::computation convolution_s0("[convolution_s0_c_loop_min, convolution_s0_c_loop_extent, convolution_s0_y_loop_min, convolution_s0_y_loop_extent, convolution_s0_x_loop_min, convolution_s0_x_loop_extent]->{convolution_s0[convolution_s0_c, convolution_s0_y, convolution_s0_x]: "
-                        "(convolution_s0_c_loop_min <= convolution_s0_c <= ((convolution_s0_c_loop_min + convolution_s0_c_loop_extent) + -1)) and (convolution_s0_y_loop_min <= convolution_s0_y <= ((convolution_s0_y_loop_min + convolution_s0_y_loop_extent) + -1)) and (convolution_s0_x_loop_min <= convolution_s0_x <= ((convolution_s0_x_loop_min + convolution_s0_x_loop_extent) + -1))}",
-                        tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint8, (((((((((tiramisu::expr((float)0) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)0)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)0))))*kernel(tiramisu::expr((int32_t)0), tiramisu::expr((int32_t)0)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)0)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)1))))*kernel(tiramisu::expr((int32_t)0), tiramisu::expr((int32_t)1)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)0)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)2))))*kernel(tiramisu::expr((int32_t)0), tiramisu::expr((int32_t)2)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)1)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)0))))*kernel(tiramisu::expr((int32_t)1), tiramisu::expr((int32_t)0)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)1)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)1))))*kernel(tiramisu::expr((int32_t)1), tiramisu::expr((int32_t)1)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)1)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)2))))*kernel(tiramisu::expr((int32_t)1), tiramisu::expr((int32_t)2)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)2)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)0))))*kernel(tiramisu::expr((int32_t)2), tiramisu::expr((int32_t)0)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)2)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)1))))*kernel(tiramisu::expr((int32_t)2), tiramisu::expr((int32_t)1)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(tiramisu::var("convolution_s0_c"), (tiramisu::var("convolution_s0_y") + tiramisu::expr((int32_t)2)), (tiramisu::var("convolution_s0_x") + tiramisu::expr((int32_t)2))))*kernel(tiramisu::expr((int32_t)2), tiramisu::expr((int32_t)2))))), true, tiramisu::p_uint8, &convolution_tiramisu);
-    convolution_s0.set_access("{convolution_s0[convolution_s0_c, convolution_s0_y, convolution_s0_x]->buff_convolution[convolution_s0_c, convolution_s0_y, convolution_s0_x]}");
+    computation conv("conv", {c, y, x}, cast(p_uint8, (cast(p_float32, cast(p_float32, in(c, y,     x    ))*kernel(0, 0)) +
+						       cast(p_float32, cast(p_float32, in(c, y,     x + 1))*kernel(0, 1)) +
+						       cast(p_float32, cast(p_float32, in(c, y,     x + 2))*kernel(0, 2)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 1, x    ))*kernel(1, 0)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 1, x + 1))*kernel(1, 1)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 1, x + 2))*kernel(1, 2)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 2, x    ))*kernel(2, 0)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 2, x + 1))*kernel(2, 1)) +
+						       cast(p_float32, cast(p_float32, in(c, y + 2, x + 2))*kernel(2, 2))
+						       )));
 
     // Add schedules.
-    convolution_s0.tag_parallel_level(tiramisu::var("convolution_s0_c"));
-    convolution_s0.tag_parallel_level(tiramisu::var("convolution_s0_y"));
-    convolution_s0.vectorize(tiramisu::var("convolution_s0_x"), 8);
+    conv.parallelize(c);
+    conv.vectorize(x, 8);
 
-    convolution_tiramisu.set_arguments({&buff_input, &buff_kernel, &buff_convolution});
-    convolution_tiramisu.gen_time_space_domain();
-    convolution_tiramisu.gen_isl_ast();
-    convolution_tiramisu.gen_halide_stmt();
-    convolution_tiramisu.dump_halide_stmt();
-    convolution_tiramisu.gen_halide_obj("build/generated_fct_convolution.o");
+    // Buffers.
+    buffer buff_input("buff_input", {SIZE2, SIZE1, SIZE0}, p_uint8, a_input);
+    buffer buff_kernel("buff_kernel", {kernel_extent_1, kernel_extent_0}, p_float32, a_input);
+    buffer buff_convolution("buff_convolution", {SIZE2, SIZE1-8, SIZE0-8}, p_uint8, a_output);
+    in.store_in(&buff_input);
+    conv.store_in(&buff_convolution);
+    kernel.store_in(&buff_kernel);
+
+    tiramisu::codegen({&buff_input, &buff_kernel, &buff_convolution} ,"build/generated_fct_convolution.o");
 
     return 0;
 }

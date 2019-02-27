@@ -17,7 +17,7 @@ int main(int, char**)
     Halide::Buffer<float> kernel(3, 3);
     kernel(0,0) = 0; kernel(0,1) = 1.0f/5; kernel(0,2) = 0;
     kernel(1,0) = 1.0f/5; kernel(1,1) = 1.0f/5; kernel(1,2) = 1.0f/5;
-    kernel(2,0) = 0; kernel(2,1) = 1; kernel(2,2) = 0;
+    kernel(2,0) = 0; kernel(2,1) = 1.0f/5; kernel(2,2) = 0;
 
     Halide::Buffer<uint8_t> output1(input.width()-8, input.height()-8, input.channels());
     Halide::Buffer<uint8_t> output2(input.width()-8, input.height()-8, input.channels());
@@ -56,7 +56,7 @@ int main(int, char**)
     Halide::Tools::save_image(output2, "./build/convolution_ref.png");
 
     if (CHECK_CORRECTNESS)
-        compare_buffers("convolution",  output1, output2);
+        compare_buffers_approximately("convolution",  output1, output2, 1);
 
     return 0;
 }

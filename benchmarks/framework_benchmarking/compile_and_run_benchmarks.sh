@@ -168,13 +168,51 @@ compile_tilable_sgemms()
 
     #################################################################
     #################################################################
+    #################### Compile with LLVM ##########################
+
+    if [ ${RUN_LLVM} -ne 0 ]; then
+	echo "Compiling gemm with LLVM"
+	cd ${KERNEL_FOLDER}
+
+	$LLVM -O3 $CXXFLAGS ${INCLUDES} $KERNEL.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o ${KERNEL}
+	echo "Running LLVM generated code"
+	./${KERNEL}
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
+    #################### Compile with GCC ###########################
+
+    if [ ${RUN_GCC} -ne 0 ]; then
+	echo "Compiling gemm with GCC"
+	cd ${KERNEL_FOLDER}
+
+	gcc -O3 $CXXFLAGS ${INCLUDES} $KERNEL.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o ${KERNEL}
+	echo "Running LLVM generated code"
+	./${KERNEL}
+
+	if [ $? -ne 0 ]; then
+		exit
+	fi
+
+	cd ${BENCHMARK_ROOT}
+    fi
+
+    #################################################################
+    #################################################################
     #################### Compile with Polly #########################
 
     if [ ${RUN_POLLY} -ne 0 ]; then
 	echo "Compiling gemm with POLLY"
 	cd ${KERNEL_FOLDER}
 
-	$POLLY ${POLLY_OPTS} $CXXFLAGS ${INCLUDES} wrapper_${KERNEL}.cpp $KERNEL.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o ${KERNEL}
+	$LLVM ${POLLY_OPTS} $CXXFLAGS ${INCLUDES} $KERNEL.c ${BENCHMARK_ROOT}/software/polybench/polybench.c -o ${KERNEL}
 	echo "Running POLLY generated code"
 	./${KERNEL}
 

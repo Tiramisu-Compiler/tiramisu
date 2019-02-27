@@ -41,8 +41,8 @@ int main(int argc, char **argv)
     b_C_gpu.tag_gpu_global();
 
     // Declare inputs.
-    input A("A", {i, j}, p_uint8);
-    input B("B", {i, j}, p_uint8);
+    input A("A", {"i", "j"}, {N, N}, p_uint8);
+    input B("B", {"i", "j"}, {N, N}, p_uint8);
 
     // Declare a computation to initialize the reduction.
     computation C_init("C_init", {i, j}, expr((uint8_t) 0));

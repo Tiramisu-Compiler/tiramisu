@@ -116,67 +116,78 @@ isl_union_map *tiramisu::function::compute_dep_graph() {
     return result;
 }
 
-	
-const int  &function::Automatic_communication(tiramisu::computation* c1,tiramisu::computation* c2 ) const
+const std::map<std::string, tiramisu::buffer *> tiramisu::function::get_mapping() const
 {
+  return this->mapping;
+}
+
+void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> p)
+{
+  this->mapping.insert(p);
+}
+
+/**
+ * This function takes computation pts to C1 and C2 which are the first and the last computation
+ * of the fucntion.
+ * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
+ * By default, the data management will be done automatically, and the copies will be inserted
+ * in the begining and at the end of the gpu funcion.
+ * The inputs of the function will be copied to the device before the computations, and the 
+ * outputs of the functions will be copied back to the host at the end.
+ * We have two cases copies to constant memory and the default case which is copies to the global memory.
+ */
+const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
+{
+    assert(c1 != nullptr && "C1 = NULL ");
+    assert(c2 != nullptr && "C2 = NULL ");
+    assert(c1->get_predecessor() == nullptr && "C1 must be the computation that hasn't a predessessor ");
+    assert(c2->get_successor() == nullptr && "C2 must be the computation that hasn't a successor ");
     std::map<std::string, tiramisu::buffer*> buff = this->get_buffers();
-    std::string name, cpt_name;
-    tiramisu::buffer* bcpu;
-    int i = 1;
+    std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
-    tiramisu::computation* cpt = c1;
-    tiramisu::computation* cptl = c2;
-    char x;
-    DEBUG_INDENT(4);
-    for (it = buff.begin(); it != buff.end(); ++it)
+    std::string name, cpt_name;
+    int i = 1; 
+    tiramisu::computation* first_cpt = c1;
+    tiramisu::computation* last_cpt = c2;
+    for (it = mp.begin(); it != mp.end(); ++it)
     {
-        tiramisu::buffer b = *(it->second);
-        if (b.get_argument_type() == tiramisu::a_temporary){
-            name= b.get_name().substr(0,b.get_name().size()-2);
-            x = b.get_name().substr(b.get_name().size()-1,b.get_name().size())[0] ;
-            if ((name + "_" + x).compare(b.get_name())== 0){
-                    switch (x)                        
-                    {
-                            case 'g':
-                            it->second->tag_gpu_global();
-                            bcpu = buff.find(name)->second;
-                                    if (bcpu->get_argument_type() == tiramisu::a_input){
-                                        cpt_name= "cpt" + std::to_string(i);   i++;
-                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(buff.find(name)->second),(*(it->second))));
-                                        (*comp).then((*cpt),computation::root);
-                                        cpt = comp;
-                                        }
-                                    if (bcpu->get_argument_type() == tiramisu::a_output){
-                                        cpt_name= "cpt" + std::to_string(i);   i++;
-                                        tiramisu::computation* comp =  new tiramisu::computation(cpt_name,{}, memcpy(*(it->second),*(buff.find(name)->second)));
-                                        (*cptl).then((*comp),computation::root);
-                                        cptl = comp ;
-                                       }
-                                 break;
-				    // for these cases i have to see what i can auto first.
-                          /*  case 's':
-                            it->second->tag_gpu_shared() ;
-                            break;
-                            case 'c':
-                            it->second->tag_gpu_constant();
-                            break;
-                            case 'l':
-                            it->second->tag_gpu_local();
-                            break;
-                            case 'r':
-                            it->second->tag_gpu_register();
-                            break;*/
-                            default:
-                            DEBUG(3, tiramisu::str_dump("gpu beffers should end with _g for global, _s for shared, _c for condtant, _l for local and _r for regesters  "));
-                            break;
-
-                    }
-            }else DEBUG(3, tiramisu::str_dump("gpu beffers should end with _g for global, _s for shared, _c for condtant, _l for local and _r for regesters  "));
-
-                
-        }
-    }     
-            
+      name = it->first;
+      assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
+      if (it->second->automatic_gpu_copy == true)
+        {
+            cpt_name= "cpt" + std::to_string(i); 
+            i++;
+            switch (it->second->location)
+            {
+                case cuda_ast::memory_location::constant :
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input) 
+                {
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                    (*c).then((*first_cpt), computation::root);
+                    first_cpt = c;
+                }
+                break;
+                default:  
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
+                {
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                    (*c).then((*first_cpt), computation::root);
+                    first_cpt = c;                
+                }
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
+                {
+                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                    memcpy((*(it->second)),*(buff.find(name)->second)));
+                    (*last_cpt).then((*c), computation::root);
+                    last_cpt = c;
+                }
+                break;
+            }
+        } else 
+            DEBUG(3, tiramisu::str_dump("Communication should be done manually !"));
+    }
     return 0;
 }
 	
@@ -1698,12 +1709,18 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
     }
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) {
-
-    if (gen_cuda_stmt) {
-	    tiramisu::computation* c1 = this->get_first_cpt();
-	    tiramisu::computation* c2 = this->get_last_cpt();
-	    Automatic_communication(c1,c2);
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) 
+{
+    if (gen_cuda_stmt) 
+    {
+	if(!this->mapping.empty())
+	{
+		tiramisu::computation* c1 = this->get_first_cpt();
+		tiramisu::computation* c2 = this->get_last_cpt();
+		Automatic_communication(c1,c2);
+        }
+	else 
+	     	DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));    
     }
     this->set_arguments(arguments);
     this->lift_dist_comps();

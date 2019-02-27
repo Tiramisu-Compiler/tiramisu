@@ -18,6 +18,9 @@ int main(int argc, char* argv[]) {
     Func affine{"affine"};
     Var x, y;
 
+    Expr src_rows = in.height();
+    Expr src_cols = in.width();
+
     // Translating this algorithm as close as possible
     Expr o_r = a11 * y + a10 * x + b00;
     Expr o_c = a01 * y + a00 * x + b10;
@@ -34,9 +37,6 @@ int main(int argc, char* argv[]) {
     Expr coord_11_r = coord_00_r + 1;
     Expr coord_11_c = coord_00_c + 1;
 
-    Expr src_rows = in.height();
-    Expr src_cols = in.width();
-
     coord_00_r = clamp(coord_00_r, 0, src_rows);
     coord_00_c = clamp(coord_00_c, 0, src_cols);
     coord_01_r = clamp(coord_01_r, 0, src_rows);
@@ -51,9 +51,9 @@ int main(int argc, char* argv[]) {
     Expr A01 = in(coord_01_r, coord_01_c);
     Expr A11 = in(coord_11_r, coord_11_c);
 
-    affine(x, y) = mixf( mixf(A00, A10, r), mixf(A01, A11, r), c);
+    affine(x, y) = mixf(mixf(A00, A10, r), mixf(A01, A11, r), c);
 
-    affine.parallel(y).vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
+    affine.parallel(y).vectorize(x, 16, Halide::TailStrategy::GuardWithIf);
 
     affine.compile_to_object("build/generated_fct_warp_affine_ref.o", {in}, "warp_affine_ref");
 
