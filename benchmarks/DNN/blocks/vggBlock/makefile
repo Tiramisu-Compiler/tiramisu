@@ -142,14 +142,11 @@ RES_DIR = _results#/$(compiler)_$(interface)_$(_ia)_$(ext)_$(threading)
 RES = $(example:%=$(RES_DIR)/%.res)
 
 run   : $(RES)
-	echo $(RES_DIR)
-	echo $(RES)
 $(RES): .FORCE
 .FORCE:
 .PHONY: run
 
 $(RES_DIR)/%.res: $(RES_DIR)/%.exe ; $(shell which env) LD_LIBRARY_PATH=$(IMKL_PATH):$(IOMP_PATH):$(LD_LIBRARY_PATH) $< > $@
-	echo $@
 
 .SECONDARY:
 $(RES_DIR)/%.exe: $(RES_DIR)/%.o ; $(CC) $^ -o $@ $(LINK_OPTS)

@@ -8,8 +8,7 @@ export LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX}"
 
 rm -rf _results
 
-echo
-echo
+
 echo "MKL VGG"
 
 make libintel64 function="vgg_block_generator_mkl" MKLROOT=${MKL_PREFIX} 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "configure.h"
+#include <time.h>
 #include "mkl_dnn.h"
 
 #define CHECK_ERR(f, err)                                          \
@@ -43,29 +44,19 @@ static dnnError_t simple_net(int want_groups_conv)
     dnnError_t err;
 
     size_t output2Size[dimension] = {(N - K), (N - K), FOut, BATCH_SIZE};
-    size_t output2Strides[dimension] = {1, (N - K), (N - K) * (N - K), (N - K) * (N - K) * FOut};
-
     size_t outputSize[dimension] = {N, N, FOut, BATCH_SIZE};
-    size_t outputStrides[dimension] = {1, N, N * N, N * N * FOut};
-
     size_t inputSize[dimension] = {N + K, N + K, FIn, BATCH_SIZE};
     size_t inputStrides[dimension] = {1, N + K, (N + K) * (N + K), (N + K) * (N + K) * FIn};
-
     size_t filter2Size[dimension] = {(K + 1), (K + 1), FOut, FOut};
     size_t filter2Strides[dimension] = {1, (K + 1), (K + 1) * (K + 1), (K + 1) * (K + 1) * FOut};
-
     size_t filterSize[dimension] = {(K + 1), (K + 1), FIn, FOut};
     size_t filterStrides[dimension] = {1, (K + 1), (K + 1) * (K + 1), (K + 1) * (K + 1) * FIn};
-
     size_t convolutionStride[dimension - 2] = {1, 1};
     int inputOffset[dimension - 2] = {0, 0};
-
     size_t biasSize[1] = {outputSize[2]};
     size_t biasStrides[1] = {1};
-
     size_t pool_outputSize[dimension] = {(N - 2 * K), (N - 2 * K), FOut, BATCH_SIZE};
     size_t pool_outputStrides[dimension] = {1, (N - 2 * K), (N - 2 * K) * (N - 2 * K), (N - 2 * K) * (N - 2 * K) * FOut};
-
     size_t kernelSize[2] = {(K + 1), (K + 1)};
     size_t kernelStride[2] = {1, 1};
 
@@ -83,30 +74,23 @@ static dnnError_t simple_net(int want_groups_conv)
     dnnPrimitive_t cv_user_to_conv1_input = NULL,
                    cv_user_to_conv1_filt = NULL,
                    cv_user_to_conv1_bias = NULL;
-
     dnnPrimitive_t conv2 = NULL;
     dnnLayout_t lt_conv2_filt = NULL,
                 lt_conv2_output = NULL;
     double *resConv2[dnnResourceNumber] = {0};
     dnnPrimitive_t cv_user_to_conv2_filt = NULL;
-
     dnnPrimitive_t relu1 = NULL;
     double *resRelu1[dnnResourceNumber] = {0};
     dnnLayout_t lt_relu1_output = NULL;
-
     dnnPrimitive_t relu2 = NULL;
     double *resRelu2[dnnResourceNumber] = {0};
     dnnLayout_t lt_relu2_output = NULL;
-
     dnnLayout_t lt_pool1_input = NULL;
     dnnPrimitive_t pool1 = NULL;
     void *resPool1[dnnResourceNumber] = {0};
     dnnLayout_t lt_pool1_output = NULL,
                 lt_pool1_workspace = NULL;
-    dnnPrimitive_t cv_relu2_to_user_output = NULL;
-    dnnPrimitive_t cv_relu1_to_user_output = NULL;
     dnnPrimitive_t cv_pool1_to_user_output = NULL;
-
     dnnPrimitiveAttributes_t attributes = NULL;
 
     double *user_i = NULL,
@@ -115,9 +99,7 @@ static dnnError_t simple_net(int want_groups_conv)
            *user_c2_f = NULL,
            *user_o = NULL;
 
-    int k;
-
-    /*** data allocation ***/
+    /*** Data allocation ***/
     user_i = (double *)malloc(sizeof(double) * (inputSize[0] * inputSize[1] * inputSize[2] * inputSize[3]));
     user_c1_f = (double *)malloc(sizeof(double) * (filterSize[0] * filterSize[1] * filterSize[2] * filterSize[3]));
     user_c2_f = (double *)malloc(sizeof(double) * (filter2Size[0] * filter2Size[1] * filter2Size[2] * filter2Size[3]));
@@ -132,15 +114,13 @@ static dnnError_t simple_net(int want_groups_conv)
     CHECK_ERR(dnnLayoutCreate_F64(&lt_user_input, dimension, inputSize, inputStrides), err);
     CHECK_ERR(dnnLayoutCreate_F64(&lt_user_filt, dimension, filterSize, filterStrides), err);
     CHECK_ERR(dnnLayoutCreate_F64(&lt_user_bias, 1, biasSize, biasStrides), err);
-    //CHECK_ERR(dnnLayoutCreate_F64(&lt_user_output, dimension, outputSize, outputStrides), err);
-    //CHECK_ERR(dnnLayoutCreate_F64(&lt_user_output, dimension, output2Size, output2Strides), err);
     CHECK_ERR(dnnLayoutCreate_F64(&lt_user_output, dimension, pool_outputSize, pool_outputStrides), err);
     CHECK_ERR(dnnLayoutCreate_F64(&lt_user_filt2, dimension, filter2Size, filter2Strides), err);
 
     /* Initialize attributes */
     CHECK_ERR(dnnPrimitiveAttributesCreate_F64(&attributes), err);
 
-    /*** convolution section ***/
+    /*** Convolution section ***/
     if (!want_groups_conv)
     {
         CHECK_ERR(dnnConvolutionCreateForwardBias_F64(&conv1, attributes,
@@ -168,18 +148,14 @@ static dnnError_t simple_net(int want_groups_conv)
     CHECK_ERR(init_conversion(&cv_user_to_conv1_filt, &resConv1[dnnResourceFilter], lt_conv1_filt, lt_user_filt, user_c1_f), err);
     CHECK_ERR(init_conversion(&cv_user_to_conv1_bias, &resConv1[dnnResourceBias], lt_conv1_bias, lt_user_bias, user_c1_b), err);
     CHECK_ERR(dnnAllocateBuffer_F64((void **)&resConv1[dnnResourceDst], lt_conv1_output), err);
-    // CHECK_ERR(init_conversion(&cv_conv1_to_user_output, &user_o, lt_user_output, lt_conv1_output, resConv1[dnnResourceDst]), err);
 
     /*** ReLU section ***/
     CHECK_ERR(dnnReLUCreateForward_F64(&relu1, attributes, lt_conv1_output, 0.0f), err);
-
     resRelu1[dnnResourceSrc] = resConv1[dnnResourceDst];
-
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F64(&lt_relu1_output, relu1, dnnResourceDst), err);
     CHECK_ERR(dnnAllocateBuffer_F64((void **)&resRelu1[dnnResourceDst], lt_relu1_output), err);
-    // CHECK_ERR(init_conversion(&cv_relu1_to_user_output, &user_o, lt_user_output, lt_relu1_output, resRelu1[dnnResourceDst]), err);
 
-    /*** convolution 2 section ***/
+    /*** Convolution 2 section ***/
     if (!want_groups_conv)
     {
         CHECK_ERR(dnnConvolutionCreateForwardBias_F64(&conv2, attributes,
@@ -196,7 +172,6 @@ static dnnError_t simple_net(int want_groups_conv)
                                                             dnnBorderZeros),
                   err);
     }
-
     resConv2[dnnResourceSrc] = resRelu1[dnnResourceDst];
     resConv2[dnnResourceBias] = resConv1[dnnResourceBias];
 
@@ -208,22 +183,14 @@ static dnnError_t simple_net(int want_groups_conv)
 
     /*** ReLU 2 section ***/
     CHECK_ERR(dnnReLUCreateForward_F64(&relu2, attributes, lt_conv2_output, 0.0f), err);
-
     resRelu2[dnnResourceSrc] = resConv2[dnnResourceDst];
-
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F64(&lt_relu2_output, relu2, dnnResourceDst), err);
     CHECK_ERR(dnnAllocateBuffer_F64((void **)&resRelu2[dnnResourceDst], lt_relu2_output), err);
-    //CHECK_ERR(init_conversion(&cv_relu2_to_user_output, &user_o, lt_user_output, lt_relu2_output, resRelu2[dnnResourceDst]), err);
 
     /*** Pooling section ***/
     lt_pool1_input = lt_relu2_output;
-
-    CHECK_ERR(dnnPoolingCreateForward_F64(&pool1, attributes, dnnAlgorithmPoolingMax,
-                                          lt_pool1_input, kernelSize, kernelStride, inputOffset, dnnBorderZeros),
-              err);
-
+    CHECK_ERR(dnnPoolingCreateForward_F64(&pool1, attributes, dnnAlgorithmPoolingMax, lt_pool1_input, kernelSize, kernelStride, inputOffset, dnnBorderZeros), err);
     resPool1[dnnResourceSrc] = resRelu2[dnnResourceDst];
-
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F64(&lt_pool1_output, pool1, dnnResourceDst), err);
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F64(&lt_pool1_workspace, pool1, dnnResourceWorkspace), err);
     CHECK_ERR(dnnAllocateBuffer_F64(&resPool1[dnnResourceDst], lt_pool1_output), err);
@@ -238,9 +205,9 @@ static dnnError_t simple_net(int want_groups_conv)
     for (int i = 0; i < outputSize[2]; i++)
         user_c1_b[i] = (rand() % 200 - 100) / 100.;
     for (int i = 0; i < filterSize[0] * filterSize[1] * filterSize[2] * filterSize[3]; i++)
-        user_c1_f[i] = rand() % 5; 
+        user_c1_f[i] = (rand() % 200 - 100) / 100.;
     for (int i = 0; i < filter2Size[0] * filter2Size[1] * filter2Size[2] * filter2Size[3]; i++)
-        user_c2_f[i] = rand() % 5;
+        user_c2_f[i] = (rand() % 200 - 100) / 100.;
 
     /*** Execution ***/
     if (cv_user_to_conv1_filt)
@@ -249,45 +216,34 @@ static dnnError_t simple_net(int want_groups_conv)
         CHECK_ERR(dnnConversionExecute_F64(cv_user_to_conv1_bias, user_c1_b, resConv1[dnnResourceBias]), err);
     if (cv_user_to_conv2_filt)
         CHECK_ERR(dnnConversionExecute_F64(cv_user_to_conv2_filt, user_c2_f, resConv2[dnnResourceFilter]), err);
+    if (cv_user_to_conv1_input)
+        CHECK_ERR(dnnConversionExecute_F64(cv_user_to_conv1_input, user_i, resConv1[dnnResourceSrc]), err);
 
-    for (k = 0; k < 1; ++k)
+    double times[NB_TESTS];
+    clock_t start, end;
+    for (int i = 0; i < NB_TESTS; i++)
     {
-        if (cv_user_to_conv1_input)
-            CHECK_ERR(dnnConversionExecute_F64(cv_user_to_conv1_input, user_i, resConv1[dnnResourceSrc]), err);
-
+        start = clock();
         CHECK_ERR(dnnExecute_F64(conv1, (void *)resConv1), err);
         CHECK_ERR(dnnExecute_F64(relu1, (void *)resRelu1), err);
         CHECK_ERR(dnnExecute_F64(conv2, (void *)resConv2), err);
         CHECK_ERR(dnnExecute_F64(relu2, (void *)resRelu2), err);
         CHECK_ERR(dnnExecute_F64(pool1, (void *)resPool1), err);
-
-        if (cv_pool1_to_user_output)
-            CHECK_ERR(dnnConversionExecute_F64(cv_pool1_to_user_output, resPool1[dnnResourceDst], user_o), err);
-
-        // Shift pointers
-        /* if (cv_relu2_to_user_output)
-            CHECK_ERR(dnnConversionExecute_F64(cv_relu2_to_user_output, resRelu2[dnnResourceDst], user_o), err);*/
-        /* if (cv_relu1_to_user_output)
-            CHECK_ERR(dnnConversionExecute_F64(cv_relu1_to_user_output, resRelu1[dnnResourceDst], user_o), err);*/
+        end = clock();
+        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
+        times[i] = time_taken;
     }
+    printf("\n\n\tConvolution time: %f.\n", median(NB_TESTS, times));
+
+    if (cv_pool1_to_user_output)
+        CHECK_ERR(dnnConversionExecute_F64(cv_pool1_to_user_output, resPool1[dnnResourceDst], user_o), err);
+
     FILE *f = fopen("mkl_result.txt", "w");
     if (f == NULL)
     {
         printf("Error opening file!\n");
         exit(1);
     }
-    /* for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < FOut; ++z)
-            for (int y = 0; y < N; ++y) 
-                for (int x = 0; x < N; ++x)
-                    fprintf(f, "%f\n", user_o[x + y * (N) + z * (N) * (N) + n * (N) * (N)*FOut]);*/
-
-    /*for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < FOut; ++z)
-            for (int y = 0; y < N - K; ++y)
-                for (int x = 0; x < N - K; ++x)
-                    fprintf(f, "%f\n", user_o[x + y * (N - K) + z * (N - K) * (N - K) + n * (N - K) * (N - K) * FOut]);
-*/
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int z = 0; z < FOut; ++z)
@@ -295,8 +251,6 @@ static dnnError_t simple_net(int want_groups_conv)
                 for (int x = 0; x < N - 2 * K; ++x)
                     fprintf(f, "%f\n", user_o[x + y * (N - 2 * K) + z * (N - 2 * K) * (N - 2 * K) + n * (N - 2 * K) * (N - 2 * K) * FOut]);
 
-    /*    for (int i = 0; i < filterSize[0] * filterSize[1] * filterSize[2] * filterSize[3]; i++)
-        fprintf(f, "%f\n", user_c1_f[i]);*/
     fclose(f);
 
 bail_out:
@@ -309,8 +263,7 @@ bail_out:
     dnnDelete_F64(cv_user_to_conv1_filt);
     dnnDelete_F64(cv_user_to_conv1_bias);
     dnnDelete_F64(cv_user_to_conv2_filt);
-
-    /* dnnDelete_F64(cv_pool1_to_user_output);*/
+    dnnDelete_F64(cv_pool1_to_user_output);
 
     dnnLayoutDelete_F64(lt_user_input);
     dnnLayoutDelete_F64(lt_user_filt);
