@@ -2,15 +2,13 @@
 
 source ../../../configure_paths.sh
 
-export HalideSrc=${TIRAMISU_ROOT}/3rdParty/Halide/
+CXXFLAGS="-std=c++11 -O3 -fno-rtti"
 
-export INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${HALIDE_SOURCE_DIRECTORY}/include/ -I${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
-export LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread -ldl "
-export LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} -L${HALIDE_LIB_DIRECTORY}/ -L${ISL_LIB_DIRECTORY}/ -L${TIRAMISU_ROOT}/build/"
-
-export HL_DEBUG_CODEGEN=1
+INCLUDES="-I${MKL_PREFIX}/include/"
+LIBRARIES=" ${MKL_FLAGS} -lz -lpthread"
+LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX}"
 
 echo "MKLDNN VGG"
 
-g++ -std=c++11 -fopenmp -I${MKL_PREFIX}/include -L${MKL_PREFIX}/lib vgg_block_generator_mkldnn.cpp -lmkldnn -o vggBlock_mkldnn_result -lcblas
-LD_LIBRARY_PATH=${MKL_PREFIX}/build/src/:$LD_LIBRARY_PATH ./vggBlock_mkldnn_result
+g++ ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} vgg_block_generator_mkldnn.cpp ${LIBRARIES_DIR} ${LIBRARIES} -lmkldnn -o vgg_block_mkldnn_result
+LD_LIBRARY_PATH=${MKL_PREFIX}/build/src/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ./vgg_block_mkldnn_result
