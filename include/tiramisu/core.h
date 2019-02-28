@@ -2358,6 +2358,22 @@ private:
       */
     std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
 
+    /**
+      * \brief Return a unique identifier for the communication based on the type of
+      * the rank and a sequential number.
+      *
+      * All communication of a computation c will have the same prefix b_c followed
+      * by the sequential number i and then the type of communication r_snd or r_rcv
+      *
+      */
+    std::string get_communication_id(rank_t rank_type, int i);
+
+    /**
+      * \brief Return the itreation domain of the communication set which can be either
+      * a send iteration domain or a receive iteration domain.
+      */
+    isl_set* construct_comm_set(isl_set* set, rank_t rank_type, int communication_id);
+
 protected:
 
     /**
