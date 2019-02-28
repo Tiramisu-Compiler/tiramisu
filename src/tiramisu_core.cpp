@@ -8002,4 +8002,62 @@ isl_set* computation::construct_comm_set(isl_set* set, rank_t rank_type, int com
     //If it's a receiver --> b_r_rcv_compName_seqId
     return isl_set_set_tuple_name(set, get_comm_id(rank_type, communication_id).c_str());
 }
+
+std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
+{
+    //construct distribution map of the receiver
+    isl_map* receiver_dist_map = construct_distribution_map(rank_t::r_receiver);
+    //Find the set that needs to be computed by the receiver
+    isl_set* receiver_to_compute_set = isl_set_apply(isl_set_copy(this->get_trimmed_time_processor_domain()), receiver_dist_map);
+
+    //Find the receiver's needed_sets
+    std::vector<isl_map*> rhs_accesses;
+    generator::get_rhs_accesses(this->get_function(), this, rhs_accesses, false);
+    //map computation name to the receiver needed set of that computation
+    std::unordered_map <std::string, isl_set*> receiver_needed;
+
+    for (isl_map* rhs_access : rhs_accesses) {
+        //an access has the following structure [params]->{consumer[dims]->producer[dims]:constraints}
+        //consumer is the current computation
+        //get the name of the producer
+        std::string comp_name = isl_map_get_tuple_name(rhs_access, isl_dim_out);
+        //apply schedule to consumer
+        rhs_access = isl_map_apply_domain(rhs_access, isl_map_copy(get_trimmed_union_of_schedules()));
+        //apply schedule to producer
+        computation* producer = get_function()->get_computation_by_name(comp_name)[0];
+        rhs_access = isl_map_apply_range(rhs_access, isl_map_copy(producer->get_trimmed_union_of_schedules()));
+        //apply rhs_access
+        isl_set* needed_set = isl_set_apply(isl_set_copy(receiver_to_compute_set), rhs_access);
+
+        if (receiver_needed.find(comp_name) != receiver_needed.end())
+            receiver_needed[comp_name] = isl_set_coalesce(isl_set_union(receiver_needed[comp_name], needed_set));
+        else
+            receiver_needed.insert({comp_name, needed_set});
+    }
+
+    //receiver's owned_sets
+    std::unordered_map<std::string,isl_set*> receiver_owned;
+    for (auto needed_set : receiver_needed) {
+        receiver_owned.insert({needed_set.first, isl_set_set_tuple_name(isl_set_copy(receiver_to_compute_set), needed_set.first.c_str())});
+    }
+
+    //sender's owned set
+    isl_map* sender_dist_map = construct_distribution_map(rank_t::r_sender);
+    isl_set* sender_to_compute_set = isl_set_apply(isl_set_copy(this->get_trimmed_time_processor_domain()), sender_dist_map);
+
+    std::unordered_map<std::string,isl_set*> sender_owned;
+    for (auto needed_set : receiver_needed) {
+        sender_owned.insert({needed_set.first, isl_set_set_tuple_name(isl_set_copy(sender_to_compute_set), needed_set.first.c_str())});
+    }
+
+    //The sets that need to be sent from r_sender -> r_receiver
+    //sender_owned intersect (receiver_needed - receiver_owned)
+    std::unordered_map<std::string, isl_set*> to_exchange_sets;
+    for (auto needed : receiver_needed) {
+        isl_set* missing = isl_set_subtract(needed.second, receiver_owned[needed.first]);
+        to_exchange_sets.insert({needed.first, isl_set_coalesce(isl_set_intersect(missing, sender_owned[needed.first]))});
+    }
+
+    return to_exchange_sets;
+}
 }

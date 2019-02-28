@@ -2366,13 +2366,23 @@ private:
       * by the sequential number i and then the type of communication r_snd or r_rcv
       *
       */
-    std::string get_communication_id(rank_t rank_type, int i);
+    std::string get_comm_id(rank_t rank_type, int i);
 
     /**
-      * \brief Return the itreation domain of the communication set which can be either
+      * Return the itreation domain of the communication set which can be either
       * a send iteration domain or a receive iteration domain.
+      * set is an exchange set which we transform to a recv/send it_dom
       */
     isl_set* construct_comm_set(isl_set* set, rank_t rank_type, int communication_id);
+
+    /**
+      * \brief Return a unordred_map comp_name, set_to_exchange
+      *
+      * The set to exchange expresses a subset of the iteration domain of the computation comp_name
+      * that needs to be sent by r_sender which owns the data and received by r_receiver
+      * which needs this data.
+      */
+    std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
 
 protected:
 
