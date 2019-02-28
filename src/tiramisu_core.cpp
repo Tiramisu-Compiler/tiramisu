@@ -5709,12 +5709,12 @@ std::string str_from_is_null(void *ptr)
 {
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
-  
+
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct, 
+                         tiramisu::argument_t argt, tiramisu::function *fct,
                          std::string corr):
-                         allocated(false), argtype(argt), auto_allocate(true), 
+                         allocated(false), argtype(argt), auto_allocate(true),
                          automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(cuda_ast::memory_location::host)
 {
@@ -5723,14 +5723,14 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
 
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-    if(corr.compare("") != 0)  
+    if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));
       fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
     }
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
-  
+
 void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 {
     this->automatic_gpu_copy = automatic_gpu_copy;
@@ -6234,7 +6234,7 @@ computation * computation::get_predecessor() {
         return nullptr;
     return reverse_graph.begin()->first;
 }
-  
+
  computation * computation::get_successor() {
     auto &reverse_graph = this->get_function()->sched_graph[this];
     if (reverse_graph.empty())
@@ -6244,7 +6244,7 @@ computation * computation::get_predecessor() {
 
 computation * function::get_first_cpt() {
     if (this->is_sched_graph_tree()){
-         tiramisu::computation* cpt = this->sched_graph.begin()->first;   
+         tiramisu::computation* cpt = this->sched_graph.begin()->first;
          while (cpt->get_predecessor() != NULL){
             cpt = cpt->get_predecessor();
             }
@@ -6266,7 +6266,7 @@ computation * function::get_last_cpt() {
         DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
     }
 }
-  
+
 /**
   * Return the time-processor domain of the computation.
   * In this representation, the logical time of execution and the
@@ -7839,7 +7839,7 @@ void tiramisu::buffer::tag_gpu_shared() {
 }
 
 void tiramisu::buffer::tag_gpu_constant() {
-    location = cuda_ast::memory_location::constant;    
+    location = cuda_ast::memory_location::constant;
 }
 
 void tiramisu::buffer::tag_gpu_global() {
@@ -7902,7 +7902,7 @@ int computation::get_distributed_dimension()
         return -1;//no distributed dimension
 }
 
-isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks)
+isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
@@ -7914,15 +7914,13 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
     if (distributed_dimension == -1)
         ERROR("Computation " + this->get_name() + "isn't tagged distributed and called construct_distribution_map.",true);
 
-    //get the extent of the distributed loop
+    //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
     tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, false);
     tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, true);
-    int extent = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
+    int number_of_ranks = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
 
-    //construct the string of all dimensions
     std::string dimensions_string = "";
-
     for (int i = 0; i < dimensions_names.size(); i++)
     {
         dimensions_string += dimensions_names[i];
@@ -7937,9 +7935,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
 
     std::string domain = this->get_name() + "[" + dimensions_string + "]";
 
-    std::string constraint_on_distributed_dimension = std::to_string(extent/number_of_ranks)
-    + rank_name + "<=" + this->get_dimension_name_for_loop_level(distributed_dimension) +
-    "<" + std::to_string(extent/number_of_ranks) + "*(" + rank_name + "+1)";
+    std::string constraint_on_distributed_dimension = rank_name + "<=" + this->get_dimension_name_for_loop_level(distributed_dimension) + "<" + "(" + rank_name + "+1)";
 
     std::string distribution_map_string = params + "->{" + domain +"->" + domain + ":"
     + ranks_definition + " and " + constraint_on_distributed_dimension + "}";

@@ -734,7 +734,7 @@ protected:
      * .after(), ...
      */
     bool use_low_level_scheduling_commands;
-	
+
    /**
      * \brief Generates the automatic communication CPU/GPU.
      * \details This fucntion takes two pointers to the first and the last computation
@@ -743,34 +743,34 @@ protected:
      *  C2 is the last computation, which means that it hasn't a successor.
      */
     const int  &Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const;
-	
+
     /**
      * \brief Returns a ptr to the first computation in the sched_graph.
      * \details The computation that has no predecessor.
      */
     computation* get_first_cpt();
-	
+
      /**
      * \brief Returns a ptr to the last computation in the sched_graph.
      * \details The computation that has no succesor.
      */
     computation* get_last_cpt();
-	
+
      /**
-     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers. 
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers.
      * \details It is modified when creating a gpu buffer, please have a look at the buffer constructor.
      */
     std::map<std::string, tiramisu::buffer *> mapping ;
-	
+
      /**
-     * \brief Returns the mapping field of a given function.  
+     * \brief Returns the mapping field of a given function.
      * \details It returns a pair of a string, which is the name of a cpu buffer, and a ptr to a
      *  to the gpu buffer corresponding.
      */
     const std::map<std::string, tiramisu::buffer *> get_mapping() const;
-	
+
      /**
-     * \brief Adds a new pair to the mapping field.  
+     * \brief Adds a new pair to the mapping field.
      */
     void  add_mapping(std::pair<std::string, tiramisu::buffer *> p);
 
@@ -1111,14 +1111,14 @@ private:
      * The location of the buffer (host if in memory, else where on GPU).
      */
     cuda_ast::memory_location location;
-	
+
      /**
      * automatic_gpu_copy = true by default, is it set to false when the user wants
      * to do data transfert to gpu manually.
      */
      bool automatic_gpu_copy;
 
-	
+
 
 protected:
     /**
@@ -1136,10 +1136,10 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
-		
+
     /**
       * Return whether the copy should be done automatically.
-      */	
+      */
     bool get_automatic_gpu_copy();
 
     /**
@@ -1199,8 +1199,8 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
-      * 
-      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      *
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
       * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
@@ -1208,7 +1208,7 @@ public:
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-           tiramisu::function *fct = global::get_implicit_function(), 
+           tiramisu::function *fct = global::get_implicit_function(),
 	   std::string corr = "");
 
 
@@ -1324,7 +1324,7 @@ public:
     /**
       * Set whether the GPU copy should be done automatically.
       */
-    void set_automatic_gpu_copy(bool automatic_gpu_copy);	
+    void set_automatic_gpu_copy(bool automatic_gpu_copy);
 
     /**
      * Return true if all extents of the buffer are literal integer
@@ -2329,12 +2329,10 @@ private:
 
     /**
       * \brief Construct the distribution map of a computation.
-      * Not safe to use. It's currently being implemented.
       *
       * A distribution map partitions a computation across ranks.
-      * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
-      * is either r_sender or r_receiver, the distribution map will specify for each rank the
-      * iterations it should execute.
+      * Given the type of the rank rank_type which is either r_sender or r_receiver,
+      * the distribution map will specify for each rank the iterations it should execute.
       *
       * Example :
       * \code
@@ -2348,7 +2346,7 @@ private:
       * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
       * /endcode
      */
-    isl_map* construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks);
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type);
 
     /**
       * Return the distributed dimension of a computation.
@@ -3385,13 +3383,13 @@ public:
       * or a null pointer if none exist.
       */
     computation * get_predecessor();
-  
+
     /**
       * Returns a pointer to the computation scheduled immediately after this computation,
       * or a null pointer if none exist.
       */
     computation * get_successor();
-	
+
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
