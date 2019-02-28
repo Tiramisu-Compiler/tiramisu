@@ -7955,22 +7955,24 @@ std::string computation::get_comm_id(rank_t rank_type, int i)
 
 isl_set* computation::construct_comm_set(isl_set* set, rank_t rank_type, int communication_id)
 {
+    int dist_dim = this->get_distributed_dimension();
+
+    set = isl_set_insert_dims(set, isl_dim_set, 0, 1);
     set = isl_set_insert_dims(set, isl_dim_set, 1, 1);
-    set = isl_set_insert_dims(set, isl_dim_set, 2, 1);
 
     // If the rank is a receiver, this means that in the set, the iterators will be in
     // this order: dist_dim, r_receiver, r_sender, iterators
     if (rank_type == rank_t::r_receiver)
     {
-        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_receiver).c_str());
-        set = isl_set_set_dim_name(set, isl_dim_set, 2, get_rank_string_type(rank_t::r_sender).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 0, get_rank_string_type(rank_t::r_receiver).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_sender).c_str());
     }
     // If the rank is a sender, this means that in the set, the iterators will be in
     // this order: dist_dim, r_sender, r_receiver, iterators
     else
     {
-        set = isl_set_set_dim_name(set, isl_dim_set, 2, get_rank_string_type(rank_t::r_receiver).c_str());
-        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_sender).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_receiver).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 0, get_rank_string_type(rank_t::r_sender).c_str());
     }
 
     //Add constraints to create a relation between the dim_params and dim_sets
@@ -7981,7 +7983,7 @@ isl_set* computation::construct_comm_set(isl_set* set, rank_t rank_type, int com
     set = isl_set_read_from_str(isl_set_get_ctx(set), set_parts[0].c_str());
 
     //Project out the distributed dimension
-    set = isl_set_project_out(set, isl_dim_set, 0, 1);
+    set = isl_set_project_out(set, isl_dim_set, dist_dim + 2, 1);
 
     //Project out r_receiver from isl_dim_param
     int idx_rrcv= 0;
