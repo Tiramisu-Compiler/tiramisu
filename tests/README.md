@@ -14,6 +14,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .allocate_at: test_27, 90, 92, 93, 130
 - .allocate_and_map_buffer_automatically: test_49
 - .allocate_and_map_buffers_automatically: test_50
+- .auto_buffer: test_141
 - .between: test_58, 59
 - .before(): test_27
 - .store_in(): 105, 106, 107, 108, 109, 129

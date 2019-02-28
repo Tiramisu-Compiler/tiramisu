@@ -3074,6 +3074,14 @@ public:
     void apply_transformation_on_schedule(std::string map_str);
 
     /**
+      * \brief Automatically allocate and return a buffer for this computation.
+      *
+      * \details This method is meant to be used to create arguments for function::codegen.
+      * See test 141 for an example.
+      */
+    buffer* auto_buffer();
+
+    /**
       * \brief Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.
       *

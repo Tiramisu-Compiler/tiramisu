@@ -1461,6 +1461,30 @@ void computation::apply_transformation_on_schedule(std::string map_str)
     DEBUG_INDENT(-4);
 }
 
+buffer* computation::auto_buffer()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
+    std::string buff_name = "_" + this->name + "_autobuffer";
+    argument_t type = this->schedule_this_computation ? a_output : a_input;
+
+    tiramisu::buffer *buffer = new tiramisu::buffer(
+            buff_name,
+            (*dim_sizes),
+            this->get_data_type(),
+            type,
+            this->get_function());
+
+    delete dim_sizes;
+
+    this->store_in(buffer);
+
+    DEBUG_INDENT(-4);
+    return buffer;
+}
+
 void computation::apply_transformation_on_schedule_domain(std::string map_str)
 {
     DEBUG_FCT_NAME(3);
