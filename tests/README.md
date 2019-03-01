@@ -48,3 +48,4 @@ test number `XX` in the file `tests/test_list.txt`.
 - .unroll(): test_12, 74
 - .update() (new way of expressing updates): test_91
 - 64 bit buffers: test_97
+- gen_communication() : 141, 142
