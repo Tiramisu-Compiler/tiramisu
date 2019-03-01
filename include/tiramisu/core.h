@@ -2382,7 +2382,11 @@ private:
       * that needs to be sent by r_sender which owns the data and received by r_receiver
       * which needs this data.
       */
-    std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
+    std::unordered_map<std::string, isl_set*> construct_exchange_sets();
+
+
+    void gen_communication_code(isl_set*recv_it, isl_set* send_it, int communication_id, std::string computation_name);
+    std::string create_send_access_string(int send_id, std::vector<tiramisu::expr> iterators, std::string computation_name);
 
 protected:
 
@@ -4044,6 +4048,22 @@ public:
     // @}
 
     /**
+      * \brief Generate communication code for this computation
+      *
+      * Compute the sets that needs to be exchanged by the ranks, generate the corresponding
+      * xfers, schedule the send, receive at root level if no computation was scheduled before,
+      * map the received data to correct locations and allocate the required extra memory.
+      *
+      */
+    void gen_communication();
+
+    /**
+      * Same as gen_communication(), but schedules send/recv at level l.
+      *
+      */
+    void gen_communication(tiramisu::var l);
+
+    /**
       * root_dimension is a number used to specify the dimension level
       * known as root.
       * The root dimension level is the outermost level.  It is the level
@@ -4701,6 +4721,18 @@ public:
      * would return min(N-1,M-1)
      */
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
+
+    /**
+     * Return the extent of the loop.
+     *
+     * For example:
+     *
+     * [N]->{C[i,j]: 0 <= i < N and N = 10}
+     *
+     * then get_extent(C,0) would return 10.
+     *
+     */
+    static int get_extent(isl_set *set, int dim);
 
     /**
      * Create a comma separated string that represents the list

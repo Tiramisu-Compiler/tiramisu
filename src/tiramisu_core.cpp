@@ -5227,6 +5227,13 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     return e;
 }
 
+int utility::get_extent(isl_set *set, int dim)
+{
+    tiramisu::expr lower_bound = tiramisu::utility::get_bound(set, dim, false);
+    tiramisu::expr upper_bound = tiramisu::utility::get_bound(set, dim, true);
+    return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
+}
+
 bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
 {
     DEBUG_FCT_NAME(3);
@@ -7916,9 +7923,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 
     //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
-    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, false);
-    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, true);
-    int number_of_ranks = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
+    int number_of_ranks = tiramisu::utility::get_extent(this->get_trimmed_time_processor_domain(), distributed_dimension);
 
     std::string dimensions_string = "";
     for (int i = 0; i < dimensions_names.size(); i++)
@@ -8059,5 +8064,128 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
     }
 
     return to_exchange_sets;
+}
+
+void project_out_static_dimensions(isl_set*& set) {
+    int i = 0;
+
+    std::string tuple_name = isl_set_get_tuple_name(set);
+
+    while(i < isl_set_dim(set, isl_dim_set)) {
+        set = isl_set_project_out(set, isl_dim_set, i, 1);
+        i++;
+    }
+
+    isl_set_set_tuple_name(set, tuple_name.c_str());
+}
+
+void computation::gen_communication_code(isl_set*recv_it, isl_set* send_it, int communication_id, std::string computation_name)
+{
+    //creating access_variables
+    var r_snd(get_rank_string_type(rank_t::r_sender).c_str());
+    var r_rcv(get_rank_string_type(rank_t::r_receiver).c_str());
+
+    //creating new iterators
+    std::vector<tiramisu::expr> iterators;
+    int idx = 2;
+    while (idx < isl_set_dim(recv_it,isl_dim_set) ) {
+        std::string name = generate_new_variable_name();
+        recv_it = isl_set_set_dim_name(recv_it, isl_dim_set, idx, name.c_str());
+        send_it = isl_set_set_dim_name(send_it, isl_dim_set, idx, name.c_str());
+        iterators.push_back(var(name));
+        idx++;
+    }
+
+    //creating access
+    tiramisu::expr access = tiramisu::expr(op_t::o_access, computation_name,iterators,
+    get_function()->get_computation_by_name(computation_name)[0]->get_data_type());
+
+    xfer data_transfer = computation::create_xfer( isl_set_to_str(send_it), isl_set_to_str(recv_it), r_rcv, r_snd,
+    xfer_prop(p_uint32, {MPI, BLOCK, ASYNC}), xfer_prop(p_uint32, {MPI, BLOCK, ASYNC}), access, get_function());
+
+    data_transfer.s->tag_distribute_level(r_snd);
+    data_transfer.r->tag_distribute_level(r_rcv);
+
+    computation *c = get_function()->get_computation_by_name(this->get_name())[0];
+
+    //schedule communications
+    assert(this->get_function()->sched_graph_reversed[this].size() <= 1 &&
+            "Node has more than one predecessor.");
+
+    //if predecessor
+    if(this->get_predecessor() != nullptr) {
+        //get level
+        int level = this->get_function()->sched_graph_reversed[this][this->get_predecessor()] ;
+        //clear
+        this->get_function()->sched_graph_reversed[this].clear();
+        data_transfer.s->before(*data_transfer.r, level);
+        data_transfer.r->before(*c, level);
+    }else {
+        DEBUG(3, tiramisu::str_dump("Communication of "+ this->get_name()+" has no predecessor"));
+        data_transfer.s->before(*data_transfer.r, computation::root);
+        data_transfer.r->before(*c, computation::root);
+    }
+
+    std::string access_string = create_send_access_string(communication_id,iterators, computation_name);
+    data_transfer.r->set_access(access_string);
+
+    int additional_space = tiramisu::utility::get_extent(recv_it, 1);
+
+    tiramisu::buffer *buff = this->get_function()->get_buffers().find(isl_map_get_tuple_name(
+    get_function()->get_computation_by_name(computation_name)[0]->get_access_relation(), isl_dim_out))->second;
+
+    //Replace zero by correct idx
+    int size = buff->get_dim_sizes()[0].get_int_val() + additional_space;
+    buff->set_dim_size(0, size);
+}
+
+void computation::gen_communication()
+{
+    int comm_id = 0;
+    std::unordered_map<std::string, isl_set*>  to_receive_sets = construct_exchange_sets ();
+
+    for (auto set : to_receive_sets)
+    {
+        project_out_static_dimensions(set.second);
+
+        DEBUG(3, tiramisu::str_dump("To exchange set after project out:"); isl_set_dump(set.second));
+
+        if(isl_set_is_empty(set.second)) return;
+
+        isl_set* recv_it = construct_comm_set(isl_set_copy(set.second), rank_t::r_receiver, comm_id);
+        isl_set* send_it = construct_comm_set(set.second, rank_t::r_sender, comm_id);
+
+        DEBUG(3, tiramisu::str_dump("Send iteration domain:"); isl_set_dump(send_it));
+        DEBUG(3, tiramisu::str_dump("Receive iteration domain:"); isl_set_dump(recv_it));
+
+        gen_communication_code(recv_it, send_it, comm_id, set.first);
+
+        comm_id++;
+    }
+}
+
+std::string computation::create_send_access_string(int send_id, std::vector<tiramisu::expr> iterators, std::string computation_name)
+{
+    std::string it_string = "";
+
+    for (int i = 0; i < iterators.size(); i++)
+    {
+        it_string += iterators[i].get_name();
+        if(i < iterators.size() - 1) it_string += ',';
+    }
+
+    int distributed_dimension = this->get_distributed_dimension();
+    //get the extent of the distributed loop
+    this->simplify(this->get_iteration_domain());
+    int extent = tiramisu::utility::get_extent(this->get_trimmed_time_processor_domain(), distributed_dimension);
+
+    //construct string access
+    std::string access_string = "{" + get_comm_id(rank_t::r_receiver,send_id) + "[" + get_rank_string_type(rank_t::r_receiver)
+    + "," + get_rank_string_type(rank_t::r_sender) + "," + it_string + "]->" +
+    isl_map_get_tuple_name(get_function()->get_computation_by_name(computation_name)[0]->get_access_relation(), isl_dim_out);
+    access_string += "[" + std::to_string(extent) + "+" +it_string + "]}";
+
+    return access_string;
+
 }
 }
