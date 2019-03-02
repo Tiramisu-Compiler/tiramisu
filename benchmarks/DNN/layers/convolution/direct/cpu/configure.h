@@ -1,40 +1,123 @@
 #ifndef __CONV_CONF_HEADER_
 #define __CONV_CONF_HEADER_
 
-#define LARGE_DATA_SET	1
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	0
+#define C12	0
+#define C11	0
+#define C10	0
+#define C9	0
+#define C8	0
+#define C7	0
+#define C6	0
+#define C5	0
+#define C4	0
+#define C3	0
+#define C2	0
+#define C1	1
 
-#if LARGE_DATA_SET
+#if C12
+	#define BATCH_SIZE 7
+    #define N 7
+    #define FIn 512
+    #define FOut 512
+    #define KERNEL 3
+    #define STRIDES 1
+
+#elif C11
+	#define BATCH_SIZE 14
+    #define N 14
+    #define FIn 256
+    #define FOut 512
+    #define KERNEL 3
+    #define STRIDES 1
+
+#elif C10
+	#define BATCH_SIZE 14
+    #define N 14
+    #define FIn 256
+    #define FOut 512
+    #define KERNEL 3
+    #define STRIDES 2
+
+#elif C9
+	#define BATCH_SIZE 14
+    #define N 14
+    #define FIn 256
+    #define FOut 256
+    #define KERNEL 3
+    #define STRIDES 1
+  
+#elif C8
+	#define BATCH_SIZE 28
+    #define N 28
+    #define FIn 128
+    #define FOut 256
+    #define KERNEL 3
+    #define STRIDES 2
+
+#elif C7
+	#define BATCH_SIZE 28
+    #define N 28
+    #define FIn 128
+    #define FOut 256
+    #define KERNEL 3
+    #define STRIDES 2
+
+#elif C6
+	#define BATCH_SIZE 28
+    #define N 28
+    #define FIn 128
+    #define FOut 128
+    #define KERNEL 3
+    #define STRIDES 1
+
+#elif C5
+	#define BATCH_SIZE 56
+    #define N 56
+    #define FIn 64
+    #define FOut 128
+    #define KERNEL 2
+    #define STRIDES 1
+
+#elif C4
+	#define BATCH_SIZE 56
+    #define N 56
+    #define FIn 64
+    #define FOut 128
+    #define KERNEL 3
+    #define STRIDES 2
+
+#elif C3
 	#define BATCH_SIZE 100
-#elif MEDIUM_DATA_SET
+    #define N 152
+    #define FIn 32
+    #define FOut 64
+    #define STRIDES 1
+    #define KERNEL 3
+
+#elif C2
 	#define BATCH_SIZE 32
-#elif SMALL_DATA_SET
+    #define N 64
+    #define FIn 16
+    #define FOut 32 
+    #define STRIDES 1
+    #define KERNEL 3
+
+#elif C1
 	#define BATCH_SIZE 8
+    #define N 32
+    #define FIn 3
+    #define FOut 64
+    #define STRIDES 1
+    #define KERNEL 3
+    
 #endif
 
-// Size of one data dimension
-// Data is NxNx16
-#if LARGE_DATA_SET
-	#define N 512
-#elif MEDIUM_DATA_SET
-	#define N 64
-#elif SMALL_DATA_SET
-	#define N 32
-#endif
-
-// Number of features in the input
-#define FIn 16
-// Number of features in the output
-#define FOut 16
-
-// Size of convolution filter (KxK)
-#define K 5
+#define PADDING 1
 
 // If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 1
+#define PRINT_ONLY_10 100
 
-#define NB_TESTS 1
+#define NB_TESTS 100
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
