@@ -7,11 +7,11 @@
 #include <string>
 #include <time.h>
 #include "configure.h"
-#include "generated_conv_layer.o.h"
+#include "conv_layer_wrapper.h"
 #include <tiramisu/utils.h>
 using namespace std;
 
-int main(int, char **)
+int main(int, char**)
 {
     Halide::Buffer<int> parameters(4);
     Halide::Buffer<int> strides(2);
