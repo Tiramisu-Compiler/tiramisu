@@ -1,5 +1,16 @@
-#include <tiramisu/tiramisu.h>
+#include <isl/set.h>
+#include <isl/union_map.h>
+#include <isl/union_set.h>
+#include <isl/ast_build.h>
+#include <isl/schedule.h>
+#include <isl/schedule_node.h>
+#include <tiramisu/debug.h>
+#include <tiramisu/core.h>
+#include <tiramisu/utils.h>
+#include <string.h>
 #include "configure.h"
+
+#define SCHEDULE_CPU 1
 
 using namespace tiramisu;
 
@@ -10,13 +21,13 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-    function conv_tiramisu("conv_tiramisu");
-
+   
     // parameters
     // N: parameters[0]
     // FIn: parameters[1]
     // FOut: parameters[2]
     // BATCH_SIZE: parameters[3]
+
     var i("i", 0, 4);
     input parameters("parameters", {i}, p_int32);
 
