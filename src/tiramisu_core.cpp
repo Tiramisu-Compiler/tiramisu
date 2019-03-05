@@ -5229,6 +5229,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
 
 int utility::get_extent(isl_set *set, int dim)
 {
+
     tiramisu::expr lower_bound = tiramisu::utility::get_bound(set, dim, false);
     tiramisu::expr upper_bound = tiramisu::utility::get_bound(set, dim, true);
     return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
@@ -8166,13 +8167,17 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
     access_string += "[" + std::to_string(extent) + "+" +it_string + "]}";
     data_transfer.r->set_access(access_string);
 
+    /***This works onmy for outermost loops***/
+
+    //Important : get_bound doesn't work for dim more than one
+    recv_iter_dom = isl_set_project_out(recv_iter_dom, isl_dim_set, 0, 2);
+
     //adapt buffer size
-    int additional_space = tiramisu::utility::get_extent(recv_iter_dom, 1);
+    int additional_space = tiramisu::utility::get_extent(s, 0);
 
     tiramisu::buffer *buff = this->get_function()->get_buffers().find(isl_map_get_tuple_name(
     get_function()->get_computation_by_name(comp_name)[0]->get_access_relation(), isl_dim_out))->second;
 
-    //Replace zero by correct idx
     int size = buff->get_dim_sizes()[0].get_int_val() + additional_space;
     buff->set_dim_size(0, size);
 }
@@ -8189,11 +8194,7 @@ void computation::gen_communication()
 
         DEBUG(3, tiramisu::str_dump("To exchange set after project out:"); isl_set_dump(set.second));
 
-        if(isl_set_is_empty(set.second)) {
-            // std::cout << "\n\n No Generating code \n\n";
-            return;
-        }
-        // else std::cout << "\n\n Generating code \n\n";
+        if(isl_set_is_empty(set.second)) continue;
 
         isl_set* recv_iter_dom = construct_comm_set(isl_set_copy(set.second), rank_t::r_receiver, comm_id);
         isl_set_dump(recv_iter_dom);
