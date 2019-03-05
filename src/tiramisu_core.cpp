@@ -8173,7 +8173,7 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
     recv_iter_dom = isl_set_project_out(recv_iter_dom, isl_dim_set, 0, 2);
 
     //adapt buffer size
-    int additional_space = tiramisu::utility::get_extent(s, 0);
+    int additional_space = tiramisu::utility::get_extent(recv_iter_dom, 0);
 
     tiramisu::buffer *buff = this->get_function()->get_buffers().find(isl_map_get_tuple_name(
     get_function()->get_computation_by_name(comp_name)[0]->get_access_relation(), isl_dim_out))->second;
