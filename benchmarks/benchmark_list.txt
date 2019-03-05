@@ -26,3 +26,4 @@ warp_affinegpu[gpu]
 fusiongpu[gpu]
 heat3d
 heat3ddist[mpi,4]
+relu_layer_gpu[gpu]
