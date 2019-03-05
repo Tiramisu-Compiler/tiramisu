@@ -364,6 +364,7 @@ if (${USE_GPU})
     add_subdirectory(benchmarks/linear_algebra/chain_mm/gpu)
     # Disable by default since it requires cudnn
     # add_subdirectory(benchmarks/DNN/blocks/LSTM/gpu)
+    add_subdirectory(benchmarks/DNN/layers/relu/gpu)
 endif()
 add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
 add_subdirectory(benchmarks/DNN/layers/bn/cpu)
