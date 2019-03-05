@@ -8,7 +8,6 @@
 
 #endif
 
-#define NB_TESTS 30
 #ifdef __cplusplus
 extern "C" {
 #endif
