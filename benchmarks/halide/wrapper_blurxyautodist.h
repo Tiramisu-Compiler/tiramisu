@@ -3,8 +3,8 @@
 
 #include <tiramisu/utils.h>
 
-#define _ROWS 100
-#define _COLS 10
+#define _ROWS 100000
+#define _COLS 10000
 
 #ifdef __cplusplus
 extern "C" {

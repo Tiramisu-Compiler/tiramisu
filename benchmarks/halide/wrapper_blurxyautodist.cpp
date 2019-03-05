@@ -5,17 +5,17 @@
 #include <tiramisu/mpi_comm.h>
 #include <cstdlib>
 #include <iostream>
+#include "../benchmarks.h"
 
 int main() {
 
 #ifdef WITH_MPI
 
+  int rank = tiramisu_MPI_init();
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-  int rank = tiramisu_MPI_init();
-
-  Halide::Buffer<uint32_t> input(_COLS + 2, _ROWS/10, "input");
+  Halide::Buffer<uint32_t> input(_COLS + 2, _ROWS/10+2, "input");
 
   for (int r = 0; r < _ROWS/10; r++) {
     for (int c = 0; c < _COLS+2; c++) {
@@ -42,7 +42,7 @@ int main() {
   {
       MPI_Barrier(MPI_COMM_WORLD);
       auto start1 = std::chrono::high_resolution_clock::now();
-      ticket_tiramisu(output1.raw_buffer());
+       blurxyautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
       auto end1 = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration1 = end1 - start1;
       duration_vector_1.push_back(duration1);
@@ -65,7 +65,6 @@ int main() {
                  {"Tiramisu", "Halide"},
                  {median(duration_vector_1),0});
   }
-
 
   tiramisu_MPI_cleanup();
 #endif
