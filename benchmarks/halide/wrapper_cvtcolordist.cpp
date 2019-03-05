@@ -2,11 +2,11 @@
 #include "../benchmarks.h"
 #include "../../include/tiramisu/mpi_comm.h"
 #include "Halide.h"
-#include "halide_image_io.h"
 #include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
-
+#define _ROWS 5000
+#define _COLS 5000
 
 int main(int, char**) {
 
@@ -14,11 +14,7 @@ int main(int, char**) {
 
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
-
-    std::string path = "/home/tina/tiramisu/";
-    // We will mimic each node starting with its chunk of data by loading the whole image on each node and then just
-    // processing on the node's specific portion
-    Halide::Buffer<uint8_t> input = Halide::Tools::load_image(path+"utils/images/rgb.png");
+    Halide::Buffer<uint8_t> input(_COLS, _ROWS, 3);
     Halide::Buffer<uint8_t> output_ref(input.width(), input.height());
 
     // Create the node-specific buffers
@@ -55,26 +51,26 @@ int main(int, char**) {
 
     // Reference
     if (rank == 0) {
-        // only the 0th rank will run the full reference code
-        cvtcolordist_ref(input.raw_buffer(), output_ref.raw_buffer());
-        for (int i = 0; i < NB_TESTS; i++) {
-            auto start2 = std::chrono::high_resolution_clock::now();
-            cvtcolordist_ref(input.raw_buffer(), output_ref.raw_buffer());
-            auto end2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> duration2 = end2 - start2;
-            duration_vector_2.push_back(duration2);
-        }
+        // // only the 0th rank will run the full reference code
+        // cvtcolordist_ref(input.raw_buffer(), output_ref.raw_buffer());
+        // for (int i = 0; i < NB_TESTS; i++) {
+        //     auto start2 = std::chrono::high_resolution_clock::now();
+        //     cvtcolordist_ref(input.raw_buffer(), output_ref.raw_buffer());
+        //     auto end2 = std::chrono::high_resolution_clock::now();
+        //     std::chrono::duration<double, std::milli> duration2 = end2 - start2;
+        //     duration_vector_2.push_back(duration2);
+        // }
     }
 
     if (rank == 0) {
         print_time("performance_CPU.csv", "cvtcolor",
                    {"Tiramisu", "Halide"},
-                   {median(duration_vector_1), median(duration_vector_2)});
-        if (CHECK_CORRECTNESS) {
-            //Todo : Modify
-            combine_dist_results("benchmark_cvtcolordist", {rows_per_node, input.width()}, NODES);
-            compare_dist_buffers("benchmark_cvtcolordist", output_ref);
-        }
+                   {median(duration_vector_1), 0});
+        // if (CHECK_CORRECTNESS) {
+        //     //Todo : Modify
+        //     combine_dist_results("benchmark_cvtcolordist", {rows_per_node, input.width()}, NODES);
+        //     compare_dist_buffers("benchmark_cvtcolordist", output_ref);
+        // }
         std::cout << "Distributed cvtcolor passed" << std::endl;
     }
 

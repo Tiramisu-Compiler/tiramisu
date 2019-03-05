@@ -4,10 +4,11 @@
 #include <tiramisu/utils.h>
 
 #ifndef NODES
-#define NODES 4
+#define NODES 10
+
 #endif
 
-
+#define NB_TESTS 30
 #ifdef __cplusplus
 extern "C" {
 #endif
