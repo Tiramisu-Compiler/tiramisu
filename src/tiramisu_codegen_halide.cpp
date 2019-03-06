@@ -1504,29 +1504,29 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                                 0);
                 break;
             case isl_ast_op_max:
-                result = Halide::Internal::Max::make2(op0, op1, true);
+                result = Halide::Internal::Max::make(op0, op1);
                 break;
             case isl_ast_op_min:
-                result = Halide::Internal::Min::make2(op0, op1, true);
+                result = Halide::Internal::Min::make(op0, op1);
                 break;
             case isl_ast_op_minus:
-                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0, true);
+                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0);
                 break;
             case isl_ast_op_add:
-                result = Halide::Internal::Add::make(op0, op1, true);
+                result = Halide::Internal::Add::make(op0, op1);
                 break;
             case isl_ast_op_sub:
-                result = Halide::Internal::Sub::make(op0, op1, true);
+                result = Halide::Internal::Sub::make(op0, op1);
                 break;
             case isl_ast_op_mul:
-                result = Halide::Internal::Mul::make(op0, op1, true);
+                result = Halide::Internal::Mul::make(op0, op1);
                 break;
             case isl_ast_op_div:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 break;
             case isl_ast_op_fdiv_q:
             case isl_ast_op_pdiv_q:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 result = Halide::Internal::Cast::make(Halide::Int(N), Halide::floor(result));
                 break;
             case isl_ast_op_zdiv_r:
@@ -1538,19 +1538,19 @@ Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
                 result = Halide::Internal::Select::make(op0, op1, op2);
                 break;
             case isl_ast_op_le:
-                result = Halide::Internal::LE::make(op0, op1, true);
+                result = Halide::Internal::LE::make(op0, op1);
                 break;
             case isl_ast_op_lt:
-                result = Halide::Internal::LT::make(op0, op1, true);
+                result = Halide::Internal::LT::make(op0, op1);
                 break;
             case isl_ast_op_ge:
-                result = Halide::Internal::GE::make(op0, op1, true);
+                result = Halide::Internal::GE::make(op0, op1);
                 break;
             case isl_ast_op_gt:
-                result = Halide::Internal::GT::make(op0, op1, true);
+                result = Halide::Internal::GT::make(op0, op1);
                 break;
             case isl_ast_op_eq:
-                result = Halide::Internal::EQ::make(op0, op1, true);
+                result = Halide::Internal::EQ::make(op0, op1);
                 break;
             default:
                 tiramisu::str_dump("Transforming the following expression",
@@ -2316,8 +2316,6 @@ void function::gen_halide_stmt()
     DEBUG_INDENT(4);
 
     DEBUG(3, this->gen_c_code());
-
-    Halide::Internal::set_always_upcast();
 
     // This vector is used in generate_Halide_stmt_from_isl_node to figure
     // out what are the statements that have already been visited in the
@@ -3375,35 +3373,35 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 DEBUG(10, tiramisu::str_dump("op type: o_logical_or"));
                 break;
             case tiramisu::o_max:
-                result = Halide::Internal::Max::make2(op0, op1, true);
+                result = Halide::Internal::Max::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_max"));
                 break;
             case tiramisu::o_min:
-                result = Halide::Internal::Min::make2(op0, op1, true);
+                result = Halide::Internal::Min::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_min"));
                 break;
             case tiramisu::o_minus:
-                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0, true);
+                result = Halide::Internal::Sub::make(Halide::cast(op0.type(), Halide::Expr(0)), op0);
                 DEBUG(10, tiramisu::str_dump("op type: o_minus"));
                 break;
             case tiramisu::o_add:
-                result = Halide::Internal::Add::make(op0, op1, true);
+                result = Halide::Internal::Add::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_add"));
                 break;
             case tiramisu::o_sub:
-                result = Halide::Internal::Sub::make(op0, op1, true);
+                result = Halide::Internal::Sub::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_sub"));
                 break;
             case tiramisu::o_mul:
-                result = Halide::Internal::Mul::make(op0, op1, true);
+                result = Halide::Internal::Mul::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_mul"));
                 break;
             case tiramisu::o_div:
-                result = Halide::Internal::Div::make(op0, op1, true);
+                result = Halide::Internal::Div::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_div"));
                 break;
             case tiramisu::o_mod:
-                result = Halide::Internal::Mod::make(op0, op1, true);
+                result = Halide::Internal::Mod::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_mod"));
                 break;
             case tiramisu::o_select:
@@ -3418,19 +3416,19 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 ERROR("Code generation for o_cond is not supported yet.", true);
                 break;
             case tiramisu::o_le:
-                result = Halide::Internal::LE::make(op0, op1, true);
+                result = Halide::Internal::LE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_le"));
                 break;
             case tiramisu::o_lt:
-                result = Halide::Internal::LT::make(op0, op1, true);
+                result = Halide::Internal::LT::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_lt"));
                 break;
             case tiramisu::o_ge:
-                result = Halide::Internal::GE::make(op0, op1, true);
+                result = Halide::Internal::GE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_ge"));
                 break;
             case tiramisu::o_gt:
-                result = Halide::Internal::GT::make(op0, op1, true);
+                result = Halide::Internal::GT::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_gt"));
                 break;
             case tiramisu::o_logical_not:
@@ -3438,11 +3436,11 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 DEBUG(10, tiramisu::str_dump("op type: o_not"));
                 break;
             case tiramisu::o_eq:
-                result = Halide::Internal::EQ::make(op0, op1, true);
+                result = Halide::Internal::EQ::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_eq"));
                 break;
             case tiramisu::o_ne:
-                result = Halide::Internal::NE::make(op0, op1, true);
+	        result = Halide::Internal::NE::make(op0, op1);
                 DEBUG(10, tiramisu::str_dump("op type: o_ne"));
                 break;
             case tiramisu::o_type:
