@@ -979,12 +979,12 @@ tiramisu::buffer *tiramisu::computation::get_automatically_allocated_buffer()
     return this->automatically_allocated_buffer;
 }
 
-std::vector<tiramisu::expr>* computation::compute_buffer_size()
+std::vector<tiramisu::expr> computation::compute_buffer_size()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    std::vector<tiramisu::expr> *dim_sizes = new std::vector<tiramisu::expr>();
+    std::vector<tiramisu::expr> dim_sizes;
 
     // If the computation has an update, we first compute the union of all the
     // updates, then we compute the bounds of the union.
@@ -1004,7 +1004,7 @@ std::vector<tiramisu::expr>* computation::compute_buffer_size()
         tiramisu::expr diff = (upper - lower + 1);
 
         DEBUG(3, tiramisu::str_dump("Buffer dimension size (dim = " + std::to_string(i) + ") : "); diff.dump(false));
-        dim_sizes->push_back(diff);
+        dim_sizes.push_back(diff);
     }
 
     DEBUG_INDENT(-4);
@@ -1037,10 +1037,8 @@ tiramisu::computation *computation::store_at(tiramisu::computation &comp,
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
 
-    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
-
     tiramisu::buffer *buff = new tiramisu::buffer("_" + this->name + "_buffer",
-            (*dim_sizes),
+            this->compute_buffer_size(),
             this->get_data_type(),
             tiramisu::a_temporary,
             this->get_function());
@@ -1459,30 +1457,6 @@ void computation::apply_transformation_on_schedule(std::string map_str)
     this->name_unnamed_time_space_dimensions();
 
     DEBUG_INDENT(-4);
-}
-
-buffer* computation::auto_buffer()
-{
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
-    std::string buff_name = "_" + this->name + "_autobuffer";
-    argument_t type = this->schedule_this_computation ? a_output : a_input;
-
-    tiramisu::buffer *buffer = new tiramisu::buffer(
-            buff_name,
-            (*dim_sizes),
-            this->get_data_type(),
-            type,
-            this->get_function());
-
-    delete dim_sizes;
-
-    this->store_in(buffer);
-
-    DEBUG_INDENT(-4);
-    return buffer;
 }
 
 void computation::apply_transformation_on_schedule_domain(std::string map_str)
@@ -2081,7 +2055,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
 
     // If we reach this point, that means that no buffer has been allocated
     // for this computation or for the other definitions of this computation.
-    std::vector<tiramisu::expr> *dim_sizes = this->compute_buffer_size();
+    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = NULL;
 
@@ -2097,7 +2071,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
             std::string buff_name;
             buff_name = "_" + this->name + "_buffer";
             buff = new tiramisu::buffer(buff_name,
-                                (*dim_sizes),
+                                dim_sizes,
                                 this->get_data_type(),
                                 type,
                                 this->get_function());
@@ -2118,7 +2092,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
             std::string buff_name;
             buff_name = "_" + this->get_first_definition()->name + "_buffer";
             buff = new tiramisu::buffer(buff_name,
-                                (*dim_sizes),
+                                dim_sizes,
                                 this->get_data_type(),
                                 type,
                                 this->get_function());
@@ -5765,6 +5739,17 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 
     this->updates.push_back(this);
 
+    // Allocate a temporary buffer and map by default if type is suitable.
+    if (t != p_none && t != p_async && t != p_wait_ptr)
+    {
+        this->store_in(new tiramisu::buffer(
+                    "_" + this->name + "_buffer",
+                    this->compute_buffer_size(),
+                    this->get_data_type(),
+                    a_temporary,
+                    this->get_function()));
+    }
+
     DEBUG_INDENT(-4);
 }
 
@@ -5892,6 +5877,18 @@ bool tiramisu::computation::should_schedule_this_computation() const
 isl_map *tiramisu::computation::get_access_relation() const
 {
     return access;
+}
+
+buffer *computation::get_buffer() const
+{
+    if (this->access == NULL)
+    {
+        return nullptr;
+    }
+
+    std::string buffer_name = isl_map_get_tuple_name(this->access, isl_dim_out);
+    assert((this->get_function()->get_buffers().count(buffer_name) > 0) && ("Buffer does not exist"));
+    return this->get_function()->get_buffers().find(buffer_name)->second;
 }
 
 /**

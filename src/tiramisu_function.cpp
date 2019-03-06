@@ -1637,6 +1637,32 @@ void tiramisu::function::dump_schedule() const
 void tiramisu::function::set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec)
 {
     this->function_arguments = buffer_vec;
+    // Implicit buffers are set to type a_temporary by default. Change them to
+    // a_input or a_output, so that they don't get autoallocated.
+    for (auto &buffer : buffer_vec)
+    {
+        assert((buffer != nullptr) && "Buffer argument is null!");
+        if (buffer->get_argument_type() == a_temporary)
+        {
+            // Determine if it's an input function.
+            // If there are any scheduled computation that uses this buffer,
+            // buffer is marked as output.
+            bool is_input = true;
+            for (auto const &comp : this->body)
+            {
+                if (comp->get_buffer() == buffer
+                    && comp->should_schedule_this_computation())
+                {
+                    is_input = false;
+                    break;
+                }
+            }
+            DEBUG(3, tiramisu::str_dump("Setting type of buffer "
+                     + buffer->get_name() + " to "
+                     + (is_input ? "input" : "output")));
+            buffer->set_argument_type(is_input ? a_input : a_output);
+        }
+    }
 }
 
 void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim, int vector_length)

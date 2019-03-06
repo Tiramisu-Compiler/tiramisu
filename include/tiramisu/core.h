@@ -2386,7 +2386,7 @@ protected:
       * Compute the size of the buffer allocated automatically to hold the
       * results of this computation.
       */
-    std::vector<tiramisu::expr>* compute_buffer_size();
+    std::vector<tiramisu::expr> compute_buffer_size();
 
     /**
       * Return the context of the computations.
@@ -3350,6 +3350,12 @@ public:
     void drop_rank_iter(var level);
 
     /**
+      * Get the buffer that is used to store this computation. Buffer is
+      * determined using the access function.
+      */
+    buffer *get_buffer() const;
+
+    /**
       * Get the data type of the computation.
       */
     tiramisu::primitive_t get_data_type() const;
@@ -4221,10 +4227,8 @@ public:
       *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
-	    computation(name, iterator_variables, expr(), false)
+	    computation(name, iterator_variables, expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 
     /**
@@ -4272,10 +4276,8 @@ public:
      */
     input(std::string name, std::vector<std::string> dimension_names,
 			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
-	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(), false)
+	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 };
 
