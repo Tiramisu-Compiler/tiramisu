@@ -2,6 +2,10 @@
 # Example: ./gen_test.sh 10 143 "test 141 added"
 export OLD=$1
 export NEW=$2
+if [ -f test_$NEW.cpp ]; then
+    echo test_$NEW.cpp "already exists!"
+    exit 1
+fi
 cp test_$OLD.cpp test_$NEW.cpp
 cp wrapper_test_$OLD.cpp wrapper_test_$NEW.cpp
 cp wrapper_test_$OLD.h wrapper_test_$NEW.h
