@@ -235,6 +235,18 @@ public:
     }
 
     /**
+      * Create an undefined expression with type.
+      */
+    expr(tiramisu::primitive_t dtype)
+    {
+        this->defined = false;
+
+        this->_operator = tiramisu::o_none;
+        this->etype = tiramisu::e_none;
+        this->dtype = dtype;
+    }
+
+    /**
       * Create a cast expression to type \p t (a unary operator).
       */
     expr(tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0)
