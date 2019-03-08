@@ -18,44 +18,44 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
+        
+    init("conv_tiramisu");
 
-        init("conv_tiramisu");
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
 
-        // -------------------------------------------------------
-        // Layer I
-        // -------------------------------------------------------
+    // N: parameters[0]
+    // K: parameters[1]
+    // FIn: parameters[2]
+    // FOut: parameters[3]
+    // BATCH_SIZE: parameters[4]
 
-        // N: parameters[0]
-        // K: parameters[1]
-        // FIn: parameters[2]
-        // FOut: parameters[3]
-        // BATCH_SIZE: parameters[4]
+    var i("i", 0, 5);
+    input parameters("parameters",{i}, p_int32);
 
-        var i("i", 0, 5);
-        input parameters("parameters", {i}, p_int32);
+    constant C_N("C_N", parameters(0)+ parameters(1));
+    constant C_N1("C_N1",parameters(0));
+    constant C_K("C_K", parameters(1));
+    constant C_FIn("C_FIn", parameters(2));
+    constant C_FOut("C_FOut", parameters(3));
+    constant C_BATCH_SIZE("C_BATCH_SIZE", parameters(4));
 
-        constant C_N("C_N", parameters(0));
-        constant C_N1("C_N1", parameters(0) - parameters(1) + 1);
-        constant C_K("C_K", parameters(1));
-        constant C_FIn("C_FIn", parameters(2));
-        constant C_FOut("C_FOut", parameters(3));
-        constant C_BATCH_SIZE("C_BATCH_SIZE", parameters(4));
+    var x("x", 0, C_N ), y("y", 0, C_N),  z("z", 0, C_FOut), n("n", 0, C_BATCH_SIZE ); // input
+    var k_x("k_x",0,C_K), k_y("k_y",0,C_K), k_z("k_z",0,C_FIn); // filter variables
+    var x1("x1", 0, C_N1), y1("y1", 0, C_N1); // conv
 
-        var x("x", 0, C_N), y("y", 0, C_N), z("z", 0, C_FOut), n("n", 0, C_BATCH_SIZE); // input
-        var k_x("k_x", 0, C_K), k_y("k_y", 0, C_K), k_z("k_z", 0, C_FIn);               // filter variables
-        var x1("x1", 0, C_N1), y1("y1", 0, C_N1);                                       // conv
+    // Input computations
+    input c_input("c_input",{n, k_z, y, x} , p_float32);
+    input bias("bias", {z}, p_float32);
+    input filter("filter", {z, k_z , k_y, k_x}, p_float32);
 
-        // Input computations
-        input c_input("c_input", {n, k_z, y, x}, p_float32);
-        input bias("bias", {z}, p_float32);
-        input filter("filter", {z, k_z, k_y, k_x}, p_float32);
+    // First conv computations
+    computation conv_init("conv_init",{n, z, y1, x1}, bias(z) );
+    computation conv("conv",{n, z, y1, x1, k_z, k_y, k_x }, conv_init(n, z, y1, x1) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y1 + k_y, x1 + k_x));
 
-        // First conv computations
-        computation conv_init("conv_init", {n, z, y1, x1}, bias(z));
-        computation conv("conv", {n, z, y1, x1, k_z, k_y, k_x}, conv_init(n, z, y1, x1) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y1 + k_y, x1 + k_x));
-
-        global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
-
+    global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
+    
         // Layer II
         if (LARGE_DATA_SET or C11 or C12 or C13)
         {
