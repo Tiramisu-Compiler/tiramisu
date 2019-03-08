@@ -16,13 +16,13 @@ void block::gpu_tile(var L0, var L1, int sizeX, int sizeY) {
 void block::gpu_tile(var L0, var L1, int sizeX, int sizeY,
                      var L0_outer, var L1_outer, var L0_inner, var L1_inner) {
     for (auto &child : this->children) {
-        child->tile(L0, L1, sizeX, sizeY, L0_outer, L1_outer, L0_inner, L1_inner);
+        child->gpu_tile(L0, L1, sizeX, sizeY, L0_outer, L1_outer, L0_inner, L1_inner);
     }
 }
 
 void block::gpu_tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ) {
     for (auto &child : this->children) {
-        child->tile(L0, L1, L2, sizeX, sizeY, sizeZ);
+        child->gpu_tile(L0, L1, L2, sizeX, sizeY, sizeZ);
     }
 }
 
@@ -30,7 +30,7 @@ void block::gpu_tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
                      var L0_outer, var L1_outer, var L2_outer,
                      var L0_inner, var L1_inner, var L2_inner) {
     for (auto &child : this->children) {
-        child->tile(L0, L1, L2, sizeX, sizeY, sizeZ, L0_outer, L1_outer,
+        child->gpu_tile(L0, L1, L2, sizeX, sizeY, sizeZ, L0_outer, L1_outer,
                     L2_outer, L0_inner, L1_inner, L2_inner);
     }
 }
