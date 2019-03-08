@@ -296,21 +296,21 @@ int main(int argc, char **argv)
                 //conv_init.tag_vector_level(5, vec_len);
         }
 
-        // Layer III
-        buffer parameters_buf("parameters_buf", {expr(5)}, p_int32, a_input);
-        buffer input_buf("input_buf", {expr(C_BATCH_SIZE), expr(C_FIn), expr(C_N), expr(C_N)}, p_float32, a_input);
-        buffer conv_buf("conv_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N1), expr(C_N1)}, p_float32, a_output);
-        buffer filter_buf("filter_buf", {expr(C_FOut), expr(C_FIn), expr(C_K), expr(C_K)}, p_float32, a_input);
-        buffer bias_buf("bias_buf", {expr(C_FOut)}, p_float32, a_input);
+    // Layer III
+    buffer parameters_buf("parameters_buf", {expr(5)}, p_int32, a_input);
+    buffer input_buf("input_buf", {expr(C_BATCH_SIZE), expr(C_FIn), expr(C_N), expr(C_N)}, p_float32, a_input);
+    buffer conv_buf("conv_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N1), expr(C_N1)}, p_float32, a_output);
+    buffer filter_buf("filter_buf", {expr(C_FOut), expr(C_FIn), expr(C_K), expr(C_K)}, p_float32, a_input);
+    buffer bias_buf("bias_buf", {expr(C_FOut)}, p_float32, a_input);
 
-        parameters.store_in(&parameters_buf);
-        c_input.store_in(&input_buf);
-        bias.store_in(&bias_buf);
-        filter.store_in(&filter_buf);
-        conv_init.store_in(&conv_buf);
-        conv.store_in(&conv_buf, {n, z, y1, x1});
+    parameters.store_in(&parameters_buf);
+    c_input.store_in(&input_buf);
+    bias.store_in(&bias_buf);
+    filter.store_in(&filter_buf);
+    conv_init.store_in(&conv_buf);
+    conv.store_in(&conv_buf,{n, z, y1, x1});
 
-        tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf}, "generated_conv_layer.o");
+    tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf},"generated_conv_layer.o");
 
-        return 0;
+    return 0;
 }
