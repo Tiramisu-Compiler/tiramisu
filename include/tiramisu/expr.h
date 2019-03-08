@@ -649,7 +649,7 @@ public:
     {
         assert(this->get_expr_type() == tiramisu::e_val);
 
-        int64_t result = 0;
+        double result = 0;
 
         if (this->get_data_type() == tiramisu::p_float32)
         {
@@ -815,28 +815,6 @@ public:
         {
             bool equal = true;
 
-             /**
-               * The value of the expression.
-               */
-             union
-             {
-                 uint8_t     uint8_value;
-                 int8_t      int8_value;
-                 uint16_t    uint16_value;
-                 int16_t     int16_value;
-                 uint32_t    uint32_value;
-                 int32_t     int32_value;
-                 uint64_t    uint64_value;
-                 int64_t     int64_value;
-                 float       float32_value;
-                 double      float64_value;
-             };
-
-
-             std::vector<tiramisu::expr> access_vector;
-
-             std::vector<tiramisu::expr> argument_vector;
-
             if ((this->_operator != e._operator) ||
                 (this->op.size() != e.op.size()) ||
                 (this->access_vector.size()   != e.access_vector.size())   ||
@@ -877,7 +855,6 @@ public:
       */
 
     expr operator+(tiramisu::expr other) const;
-
 
     /**
       * Subtraction.
@@ -1624,7 +1601,7 @@ public:
                 }
                 case (tiramisu::e_var):
                 {
-                    str +=  this->get_name();
+                    str += this->get_name();
                     break;
                 }
                 case (tiramisu::e_sync):
