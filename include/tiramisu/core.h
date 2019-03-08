@@ -2386,7 +2386,7 @@ protected:
       * Compute the size of the buffer allocated automatically to hold the
       * results of this computation.
       */
-    std::vector<tiramisu::expr>* compute_buffer_size();
+    std::vector<tiramisu::expr> compute_buffer_size();
 
     /**
       * Return the context of the computations.
@@ -2680,13 +2680,12 @@ public:
       * \p schedule_this_computation indicates whether this computation should to
       * be scheduled.
       */
-   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
-   /**
-     * \overload
-     */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e);
-
+    /**
+      * \overload
+      */
+    computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
     /**
       * \brief Constructor for computations.
@@ -2733,13 +2732,12 @@ public:
       * reductions.
       *
       */
-   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
+    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
 
-   /**
-     * \overload
-     */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
-
+    /**
+      * \overload
+      */
+    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
     /**
       * \overload
@@ -2765,22 +2763,14 @@ public:
       * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
       * are of type uint8.
       */
-    computation(std::string name, std::vector<var> iterator_variables, primitive_t t):
-            computation(name, iterator_variables, expr())
-    {
-        this->data_type = t;
-        this->expression.dtype = t;
-    }
+    computation(std::string name, std::vector<var> iterator_variables, primitive_t t)
+            : computation(name, iterator_variables, expr(t)) {}
 
     /**
       * \overload
       */
-     computation(std::vector<var> iterator_variables, primitive_t t):
-            computation(iterator_variables, expr())
-    {
-        this->data_type = t;
-        this->expression.dtype = t;
-    }
+    computation(std::vector<var> iterator_variables, primitive_t t)
+            : computation(iterator_variables, expr(t)) {}
 
     virtual bool is_send() const;
 
@@ -3348,6 +3338,12 @@ public:
       * Specify that the rank loop iterator should be removed from linearization.
       */
     void drop_rank_iter(var level);
+
+    /**
+      * Get the buffer that is used to store this computation. Buffer is
+      * determined using the access function.
+      */
+    buffer *get_buffer() const;
 
     /**
       * Get the data type of the computation.
@@ -4112,20 +4108,20 @@ public:
     {
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        if (access_expressions.size() != number_of_dims)
-	{
-	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
-	    for (int i = 0; i < access_expressions.size(); i++)
-	    {
-		tiramisu::expr e = access_expressions[i];
-		e.dump(false);
-		if (i != access_expressions.size() - 1)
-		    tiramisu::str_dump(", ");
-	    }
-	    tiramisu::str_dump(").\n");
-	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
-	    exit(1);
-	}
+        if (access_expressions.size() != this->number_of_dims)
+        {
+            tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+            for (int i = 0; i < access_expressions.size(); i++)
+            {
+                tiramisu::expr e = access_expressions[i];
+                e.dump(false);
+                if (i != access_expressions.size() - 1)
+                    tiramisu::str_dump(", ");
+            }
+            tiramisu::str_dump(").\n");
+            tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+            exit(1);
+        }
 
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
@@ -4221,10 +4217,8 @@ public:
       *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
-	    computation(name, iterator_variables, expr(), false)
+	    computation(name, iterator_variables, expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 
     /**
@@ -4272,10 +4266,8 @@ public:
      */
     input(std::string name, std::vector<std::string> dimension_names,
 			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
-	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(), false)
+	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 };
 

@@ -14,7 +14,6 @@ test number `XX` in the file `tests/test_list.txt`.
 - .allocate_at: test_27, 90, 92, 93, 130
 - .allocate_and_map_buffer_automatically: test_49
 - .allocate_and_map_buffers_automatically: test_50
-- .auto_buffer: test_141
 - .between: test_58, 59
 - .before(): test_27
 - .store_in(): 105, 106, 107, 108, 109, 129
@@ -27,6 +26,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .get_last_update(): test_68
 - High level API: 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
     127, 128
+- Implicit buffers: test_141, 142
 - ISL-free API: 110, 111, 112, 113
 - tiramisu::init(): 103, 114, 115, 116
 - let statement: test_04

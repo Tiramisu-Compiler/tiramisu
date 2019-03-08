@@ -235,6 +235,18 @@ public:
     }
 
     /**
+      * Create an undefined expression with type.
+      */
+    expr(tiramisu::primitive_t dtype)
+    {
+        this->defined = false;
+
+        this->_operator = tiramisu::o_none;
+        this->etype = tiramisu::e_none;
+        this->dtype = dtype;
+    }
+
+    /**
       * Create a cast expression to type \p t (a unary operator).
       */
     expr(tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0)
@@ -637,7 +649,7 @@ public:
     {
         assert(this->get_expr_type() == tiramisu::e_val);
 
-        int64_t result = 0;
+        double result = 0;
 
         if (this->get_data_type() == tiramisu::p_float32)
         {
@@ -799,73 +811,65 @@ public:
     /**
       * Return true if \p e is identical to this expression.
       */
-        bool is_equal(tiramisu::expr e) const
+    bool is_equal(tiramisu::expr e) const
+    {
+        bool equal = true;
+
+        if ((this->_operator != e._operator) ||
+            (this->op.size() != e.op.size()) ||
+            (this->access_vector.size()   != e.access_vector.size())   ||
+            (this->argument_vector.size() != e.argument_vector.size()) ||
+            (this->defined != e.defined)     ||
+            (this->name != e.name)           ||
+            (this->dtype != e.dtype)         ||
+            (this->etype != e.etype))
         {
-            bool equal = true;
-
-             /**
-               * The value of the expression.
-               */
-             union
-             {
-                 uint8_t     uint8_value;
-                 int8_t      int8_value;
-                 uint16_t    uint16_value;
-                 int16_t     int16_value;
-                 uint32_t    uint32_value;
-                 int32_t     int32_value;
-                 uint64_t    uint64_value;
-                 int64_t     int64_value;
-                 float       float32_value;
-                 double      float64_value;
-             };
-
-
-             std::vector<tiramisu::expr> access_vector;
-
-             std::vector<tiramisu::expr> argument_vector;
-
-            if ((this->_operator != e._operator) ||
-                (this->op.size() != e.op.size()) ||
-                (this->access_vector.size()   != e.access_vector.size())   ||
-                (this->argument_vector.size() != e.argument_vector.size()) ||
-                (this->defined != e.defined)     ||
-                (this->name != e.name)           ||
-                (this->dtype != e.dtype)         ||
-                (this->etype != e.etype))
-            {
-                    equal = false;
-                    return equal;
-            }
-
-            for (int i = 0; i < this->access_vector.size(); i++)
-                equal = equal && this->access_vector[i].is_equal(e.access_vector[i]);
-
-            for (int i = 0; i < this->op.size(); i++)
-                equal = equal && this->op[i].is_equal(e.op[i]);
-
-            for (int i = 0; i < this->argument_vector.size(); i++)
-                equal = equal && this->argument_vector[i].is_equal(e.argument_vector[i]);
-
-            if ((this->etype == e_val) && (e.etype == e_val))
-            {
-                if (this->get_int_val() != e.get_int_val())
-                        equal = false;
-                if ((this->get_data_type() == tiramisu::p_float32) ||
-                    (this->get_data_type() == tiramisu::p_float64))
-                    if (this->get_double_val() != e.get_double_val())
-                        equal = false;
-            }
-
+            equal = false;
             return equal;
         }
+
+        for (int i = 0; i < this->access_vector.size(); i++)
+            equal = equal && this->access_vector[i].is_equal(e.access_vector[i]);
+
+        for (int i = 0; i < this->op.size(); i++)
+            equal = equal && this->op[i].is_equal(e.op[i]);
+
+        for (int i = 0; i < this->argument_vector.size(); i++)
+            equal = equal && this->argument_vector[i].is_equal(e.argument_vector[i]);
+
+        if ((this->etype == e_val) && (e.etype == e_val))
+        {
+            if (this->get_int_val() != e.get_int_val())
+                equal = false;
+            if ((this->get_data_type() == tiramisu::p_float32) ||
+                (this->get_data_type() == tiramisu::p_float64))
+                if (this->get_double_val() != e.get_double_val())
+                    equal = false;
+        }
+
+        return equal;
+    }
+
+    /**
+      * Return true if the expression is an integer value.
+      */
+    bool is_integer() const
+    {
+        return this->get_expr_type() == e_val &&
+                (this->get_data_type() == p_uint8 ||
+                 this->get_data_type() == p_uint16 ||
+                 this->get_data_type() == p_uint32 ||
+                 this->get_data_type() == p_uint64 ||
+                 this->get_data_type() == p_int16 ||
+                 this->get_data_type() == p_int32 ||
+                 this->get_data_type() == p_int8 ||
+                 this->get_data_type() == p_int64);
+    }
 
     /**
       * Addition.
       */
-
     expr operator+(tiramisu::expr other) const;
-
 
     /**
       * Subtraction.
@@ -1612,7 +1616,7 @@ public:
                 }
                 case (tiramisu::e_var):
                 {
-                    str +=  this->get_name();
+                    str += this->get_name();
                     break;
                 }
                 case (tiramisu::e_sync):
