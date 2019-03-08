@@ -2687,7 +2687,6 @@ public:
       */
     computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
-
     /**
       * \brief Constructor for computations.
       *
@@ -2765,13 +2764,13 @@ public:
       * are of type uint8.
       */
     computation(std::string name, std::vector<var> iterator_variables, primitive_t t)
-        : computation(name, iterator_variables, expr(t)) {}
+            : computation(name, iterator_variables, expr(t)) {}
 
     /**
       * \overload
       */
     computation(std::vector<var> iterator_variables, primitive_t t)
-        : computation(iterator_variables, expr(t)) {}
+            : computation(iterator_variables, expr(t)) {}
 
     virtual bool is_send() const;
 
