@@ -25,13 +25,20 @@ public:
     /**
       * \brief Constructor for block.
       *
-      * \details Accepts and stores a list of computations pointers and later on
-      * scheduling commands that are applied to this block are applied to these
-      * child computations as well.
+      * \details This constructor creates a block of computations.
       *
-      * \p children is the list of computations to be contained in this block.
-      * Actual order of the computations is independent of the vector order and
-      * determined by the scheduling commands.
+      * In Tiramisu each computation should be scheduled separately. If the
+      * user has multiple computations and wants to tile them for example,
+      * the user has to apply the tiling command on each one of the computations
+      * separately which is not convenient. The block class solves this problem.
+      * It allows the user to create a block of computations. Any scheduling
+      * command applied to the block is automatically applied to all of its
+      * computations.
+      *
+      * \p children is the list of the computations of the block.
+      *
+      * The actual order of the computations is not determined by the vector
+      * order. It is rather determined by the scheduling commands.
       */
     block(const std::vector<computation *> children);
 
