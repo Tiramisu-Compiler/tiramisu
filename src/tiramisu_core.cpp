@@ -5449,7 +5449,7 @@ std::string str_from_is_null(void *ptr)
 {
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
-  
+
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct, 
@@ -5858,25 +5858,27 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
     is_let = false;
 
     // Allocate implicit buffer if possible
-    bool is_bounded = true;
-    std::vector<expr> buffer_size;
-    for (const auto &var : iterator_variables) {
-        if (var.lower.is_defined() && var.lower.is_integer() &&
-            var.upper.is_defined() && var.upper.is_integer()) {
-            buffer_size.push_back(var.upper.get_int_val() - var.lower.get_int_val());
-        } else {
-            is_bounded = false;
-            break;
+    if (t != p_none && t != p_async && t != p_wait_ptr) {
+        bool is_bounded = true;
+        std::vector<expr> buffer_size;
+        for (const auto &var : iterator_variables) {
+            if (var.lower.is_defined() && var.lower.is_integer() &&
+                var.upper.is_defined() && var.upper.is_integer()) {
+                buffer_size.push_back(var.upper.get_int_val() - var.lower.get_int_val());
+            } else {
+                is_bounded = false;
+                break;
+            }
         }
-    }
-    if (is_bounded) {
-        std::string buffer_name = "_" + this->name + "_buffer" + std::to_string(id_counter++);
-        this->store_in(new tiramisu::buffer(
-                       buffer_name,
-                       buffer_size,
-                       this->get_data_type(),
-                       a_temporary,
-                       this->get_function()));
+        if (is_bounded) {
+            std::string buffer_name = "_" + this->name + "_buffer" + std::to_string(id_counter++);
+            this->store_in(new tiramisu::buffer(
+                           buffer_name,
+                           buffer_size,
+                           this->get_data_type(),
+                           a_temporary,
+                           this->get_function()));
+        }
     }
 
     DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
