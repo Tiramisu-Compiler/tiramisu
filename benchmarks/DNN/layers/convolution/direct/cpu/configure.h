@@ -3,8 +3,8 @@
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
-#define C11 0
+#define SMALL_DATA_SET	0
+#define C11 1
 #define C12 0
 #define C13 0
 #define C21 0
@@ -29,11 +29,11 @@
 #define C122 0
 #define C123 0
 
-#if LARGE_DATA_SET or C13 or C23 or C43 or C63 or C73 or C83 or C93 or C103 or C123
+#if LARGE_DATA_SET || C13 || C23 || C43 || C63 || C73 || C83 || C93 || C103 || C123
 	#define BATCH_SIZE 100
-#elif MEDIUM_DATA_SET or C12 or C22 or C42 or C62 or C72 or C82 or C92 +C102 or C122
+#elif MEDIUM_DATA_SET || C12 || C22 || C42 || C62 || C72 || C82 || C92 +C102 || C122
 	#define BATCH_SIZE 32
-#elif SMALL_DATA_SET or C11 or C21 or C41 or C61 or C71 or C81 or C91 or C101 or C121
+#elif SMALL_DATA_SET || C11 || C21 || C41 || C61 || C71 || C81 || C91 || C101 || C121
 	#define BATCH_SIZE 8 
 #endif
 
@@ -47,7 +47,7 @@
 	#define N 32
 #endif
 
-#if SMALL_DATA_SET or MEDIUM_DATA_SET or LARGE_DATA_SET
+#if SMALL_DATA_SET || MEDIUM_DATA_SET || LARGE_DATA_SET
     // Number of features in the input
     #define FIn 16
     // Number of features in the output
@@ -57,35 +57,35 @@
 // Size of convolution filter (KxK)
 #define K 5
 
-#if C11 or C12 or C13
+#if C11 || C12 || C13
     #define N 224
     #define FIn 3
     #define FOut 64
-#elif C21 or C22 or C23
+#elif C21 || C22 || C23
     #define N 56
     #define FIn 64
     #define FOut 64
-#elif C41 or C42 or C43
+#elif C41 || C42 || C43
     #define N 56
     #define FIn 64
     #define FOut 128
-#elif C61 or C62 or C63
+#elif C61 || C62 || C63
     #define N 28
     #define FIn 128
     #define FOut 128
-#elif C71 or C72 or C73
+#elif C71 || C72 || C73
     #define N 28
     #define FIn 128
     #define FOut 256
-#elif C91 or C92 or C93
+#elif C91 || C92 || C93
     #define N 14
     #define FIn 256
     #define FOut 256
-#elif C101 or C102 or C103
+#elif C101 || C102 || C103
     #define N 14
     #define FIn 256
     #define FOut 512
-#elif C121 or C122 or C123
+#elif C121 || C122 || C123
     #define N 7
     #define FIn 512
     #define FOut 512
