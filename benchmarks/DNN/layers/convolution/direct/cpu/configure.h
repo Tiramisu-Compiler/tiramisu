@@ -4,7 +4,7 @@
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
 #define SMALL_DATA_SET	0
-#define C11 1
+#define C11 0
 #define C12 0
 #define C13 0
 #define C21 0
