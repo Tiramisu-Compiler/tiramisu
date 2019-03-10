@@ -31,7 +31,7 @@
 
 #if LARGE_DATA_SET || C13 || C23 || C43 || C63 || C73 || C83 || C93 || C103 || C123
 	#define BATCH_SIZE 100
-#elif MEDIUM_DATA_SET || C12 || C22 || C42 || C62 || C72 || C82 || C92 +C102 || C122
+#elif MEDIUM_DATA_SET || C12 || C22 || C42 || C62 || C72 || C82 || C92 || C102 || C122
 	#define BATCH_SIZE 32
 #elif SMALL_DATA_SET || C11 || C21 || C41 || C61 || C71 || C81 || C91 || C101 || C121
 	#define BATCH_SIZE 8 
