@@ -5,8 +5,8 @@
 
 #define RADIUS 3
 #define _CHANNELS 3
-#define _ROWS 100
-#define _COLS 10
+#define _ROWS 10000
+#define _COLS 1000
 #define _NODES 10
 #ifdef __cplusplus
 extern "C" {

@@ -9,7 +9,6 @@ int main(int argc, char **argv)
     tiramisu::init("convolutiondist_ref");
 
     function *f = global::get_implicit_function();
-    f->add_context_constraints("[ROWS]->{: ROWS = "+std::to_string(_ROWS)+"}");
 
     constant SIZE0("COLS", _COLS);
     constant SIZE1("ROWS", _ROWS/_NODES);
@@ -64,9 +63,10 @@ int main(int argc, char **argv)
     data_transfer.r->before(*data_transfer.s, computation::root);
 
     // Buffers.
-    buffer buff_input("buff_input", {_ROWS/_NODES, _COLS, _CHANNELS},  p_int32, a_input);
+    buffer buff_input("buff_input", {_ROWS/_NODES + 2, _COLS, _CHANNELS},  p_int32, a_input);
     buffer buff_kernel("buff_kernel", {kernel_extent_1, kernel_extent_0}, p_float32, a_input);
     buffer buff_convolution("buff_convolution", {_ROWS/_NODES, _COLS-8, _CHANNELS}, p_int32, a_output);
+
     in.store_in(&buff_input);
     conv.store_in(&buff_convolution);
     kernel.store_in(&buff_kernel);
