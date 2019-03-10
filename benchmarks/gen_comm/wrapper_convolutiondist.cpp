@@ -38,6 +38,7 @@ int main(int, char**)
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
+        MPI_Barrier(MPI_COMM_WORLD);
         auto start1 = std::chrono::high_resolution_clock::now();
         convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
 			output1.raw_buffer());
@@ -45,6 +46,7 @@ int main(int, char**)
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // Warm up
     convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
@@ -52,6 +54,7 @@ int main(int, char**)
     // Tiramisu
     for (int i=0; i<NB_TESTS; i++)
     {
+        MPI_Barrier(MPI_COMM_WORLD);
         auto start2 = std::chrono::high_resolution_clock::now();
         convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(),
 			output2.raw_buffer());
@@ -59,6 +62,7 @@ int main(int, char**)
         std::chrono::duration<double,std::milli> duration2 = end2 - start2;
         duration_vector_2.push_back(duration2);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     compare_buffers_approximately("convolution rank "+std::to_string(rank) , output1, output2);
 
