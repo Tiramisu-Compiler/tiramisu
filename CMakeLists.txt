@@ -39,6 +39,7 @@ endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
+FILE(STRINGS benchmarks/gen_comm/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)
 FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
 FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
 
@@ -121,6 +122,7 @@ parse_list("${TIRAMISU_BENCHMARKS_RAW}" TIRAMISU_BENCHMARKS)
 parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
 parse_list("${TIRAMISU_DEVELOPERS_TUTORIALS_RAW}" TIRAMISU_DEVELOPERS_TUTORIALS)
 parse_list("${TIRAMISU_USERS_TUTORIALS_RAW}" TIRAMISU_USERS_TUTORIALS)
+parse_list("${TIRAMISU_DIST_BENCHMARKS_RAW}" TIRAMISU_DIST_BENCHMARKS)
 
 
 # Check that MPI variables are set correctly if we need it
@@ -271,7 +273,7 @@ function(new_test descriptor)
     if (NOT ${is_mpi})
         add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary. 
+        # configure the options so files are copied on the fly as necessary.
         add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
@@ -311,6 +313,33 @@ foreach(b ${TIRAMISU_BENCHMARKS})
     new_benchmark(${b})
 endforeach()
 
+
+add_custom_target(dist_benchmarks)
+
+function(new_dist_benchmark descriptor)
+    parse_descriptor(${descriptor})
+    set(tiramisu_generator_target dist_bench_tiramisu_${id}_generator)
+    set(ref_generator_target   dist_bench_ref_${id}_generator)
+    set_obj("${PROJECT_DIR}/build/generated_fct_${id}.o")
+    set(generated_obj_ref   ${PROJECT_DIR}/build/generated_fct_${id}_ref.o)
+    set(bench_name bench_${id})
+    build_g(${tiramisu_generator_target} benchmarks/gen_comm/${id}_tiramisu.cpp "${obj}")
+    build_g(${ref_generator_target} benchmarks/gen_comm/${id}_ref.cpp ${generated_obj_ref})
+    build_w(${bench_name} "${obj};${generated_obj_ref}" benchmarks/gen_comm/wrapper_${id}.cpp benchmarks/gen_comm/wrapper_${id}.h)
+    if (NOT ${is_mpi})
+        add_custom_target(run_dist_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_custom_command(TARGET dist_benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    elseif (${USE_MPI})
+        # configure the options so files are copied on the fly as necessary.
+        add_custom_target(run_dist_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe -wdir ${PROJECT_DIR} --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    endif()
+    add_dependencies(run_dist_benchmark_${id} ${bench_name})
+endfunction()
+
+foreach(b ${TIRAMISU_DIST_BENCHMARKS})
+    new_dist_benchmark(${b})
+endforeach()
+
 add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
 add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
 
@@ -327,7 +356,7 @@ function(new_developers_tutorial descriptor)
         add_custom_target(run_developers_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
         add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary. 
+        # configure the options so files are copied on the fly as necessary.
         add_custom_target(run_developers_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_developers_tutorial_${id} ${tutorial_name})
@@ -344,7 +373,7 @@ function(new_users_tutorial descriptor)
         add_custom_target(run_users_tutorial_${id} COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
         add_custom_command(TARGET tutorials COMMAND ${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
-        # configure the options so files are copied on the fly as necessary. 
+        # configure the options so files are copied on the fly as necessary.
         add_custom_target(run_users_tutorial_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${tutorial_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     add_dependencies(run_users_tutorial_${id} ${tutorial_name})
