@@ -5885,13 +5885,13 @@ computation::computation(std::string name, std::vector<var> iterator_variables, 
         : computation(name, iterator_variables, e, schedule_this_computation, e.get_data_type()) {}
 
 computation::computation(std::vector<var> iterator_variables, expr e, bool schedule_this_computation)
-        : computation(generate_new_computation_name(), iterator_variables, e, schedule_this_computation) {}
+        : computation(global::generate_new_computation_name(), iterator_variables, e, schedule_this_computation) {}
 
 computation::computation(std::string name, std::vector<var> iterator_variables, expr e)
         : computation(name, iterator_variables, e, true, e.get_data_type()) {}
 
 computation::computation(std::vector<var> iterator_variables, expr e)
-        : computation(generate_new_computation_name(), iterator_variables, e) {}
+        : computation(global::generate_new_computation_name(), iterator_variables, e) {}
 
 void tiramisu::computation::unschedule_this_computation() {
     schedule_this_computation = false;

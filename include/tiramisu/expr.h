@@ -1813,7 +1813,7 @@ public:
      * For example to declare a variable, use
      * tiramisu::var t;
      */
-    var(): var(generate_new_variable_name(), true) {}
+    var(): var(global::generate_new_variable_name(), true) {}
 };
 
 /**

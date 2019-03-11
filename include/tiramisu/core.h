@@ -4174,7 +4174,7 @@ private:
       */
     static std::vector<var>
     compute_iterators_from_sizes(std::vector<expr> dimension_sizes,
-                                 std::vector<std::string> dimension_names = std::vector<>())
+                                 std::vector<std::string> dimension_names = std::vector<std::string>())
     {
         assert(dimension_sizes.size() != 0);
 

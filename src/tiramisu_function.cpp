@@ -1179,7 +1179,7 @@ void function::gen_isl_ast()
     isl_id_list *iterators = isl_id_list_alloc(ctx, this->get_iterator_names().size());
     if (this->get_iterator_names().size() > 0)
     {
-        std::string name = generate_new_variable_name();
+        std::string name = global::generate_new_variable_name();
         isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
         iterators = isl_id_list_add(iterators, id);
 
@@ -1189,7 +1189,7 @@ void function::gen_isl_ast()
             id = isl_id_alloc(ctx, name.c_str(), NULL);
             iterators = isl_id_list_add(iterators, id);
 
-            name = generate_new_variable_name();
+            name = global::generate_new_variable_name();
             id = isl_id_alloc(ctx, name.c_str(), NULL);
             iterators = isl_id_list_add(iterators, id);
         }
