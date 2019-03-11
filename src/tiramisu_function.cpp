@@ -1732,7 +1732,7 @@ void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level, 
     assert(!stmt_name.empty());
     assert(factor >= 0);
 
-    this->unroll_dimensions.push_back({stmt_name, level, factor});
+    this->unroll_dimensions.push_back(std::make_tuple(stmt_name, level, factor));
 }
 
 void tiramisu::function::add_gpu_block_dimensions(std::string stmt_name, int dim0,
