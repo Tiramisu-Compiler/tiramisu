@@ -47,6 +47,6 @@ test number `XX` in the file `tests/test_list.txt`.
 - .then(): test_130
 - .tile(): test_01, 02, 03, 74, 80, 81
 - .vectorize(): test_10, 28, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 74
-- .unroll(): test_12, 74
+- .unroll(): test_12, 74, 144, 145, 146, 147, 148, 149, 150, 151, 152
 - .update() (new way of expressing updates): test_91
 - 64 bit buffers: test_97
