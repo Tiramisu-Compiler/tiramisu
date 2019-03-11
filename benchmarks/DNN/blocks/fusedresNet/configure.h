@@ -42,6 +42,9 @@
 // EPSILON
 #define EPSILON 0
 
+// Fusing schedule
+#define FUSED_SCHEDULE 1
+
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 100
 #define NB_TESTS 1

@@ -743,6 +743,45 @@ protected:
      */
     bool use_low_level_scheduling_commands;
 
+    /**
+     * \brief Generates the automatic communication CPU/GPU.
+     * \details This fucntion takes two pointers to the first and the last computation
+     *  of the fucntion.
+     *  C1 is the first computation, which means that it hasn't a predecessor.
+     *  C2 is the last computation, which means that it hasn't a successor.
+     */
+    void Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2);
+
+    /**
+     * \brief Returns a ptr to the first computation in the sched_graph.
+     * \details The computation that has no predecessor.
+     */
+    computation* get_first_cpt();
+
+    /**
+     * \brief Returns a ptr to the last computation in the sched_graph.
+     * \details The computation that has no succesor.
+     */
+    computation* get_last_cpt();
+
+    /**
+     * \brief This map contains the names of the cpu buffers and the pointers of the corresponding gpu buffers.
+     * \details It is modified when creating a gpu buffer, please have a look at the buffer constructor.
+     */
+    std::map<std::string, tiramisu::buffer *> mapping;
+
+    /**
+     * \brief Returns the mapping field of a given function.
+     * \details It returns a pair of a string, which is the name of a cpu buffer, and a ptr to a
+     *  to the gpu buffer corresponding.
+     */
+    const std::map<std::string, tiramisu::buffer *> get_mapping() const;
+
+     /**
+       * \brief Adds a new pair to the mapping field.
+       */
+    void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
+
 public:
 
     /**
@@ -1011,7 +1050,6 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
-
 };
 
 
@@ -1052,6 +1090,12 @@ private:
      * automatically by Tiramisu.
      */
     bool auto_allocate;
+
+    /**
+     * automatic_gpu_copy = true by default, is it set to false when the user wants
+     * to do data transfert to gpu manually.
+     */
+    bool automatic_gpu_copy;
 
     /**
       * The sizes of the dimensions of the buffer.  Assuming the following
@@ -1098,6 +1142,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+
+    /**
+      * Return whether the copy should be done automatically.
+      */
+    bool get_automatic_gpu_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1156,13 +1205,18 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
+      * 
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-	   tiramisu::function *fct = global::get_implicit_function());
+           tiramisu::function *fct = global::get_implicit_function(), 
+           std::string corr = "");
+
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -1272,6 +1326,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+      * Set whether the GPU copy should be done automatically.
+      */
+    void set_automatic_gpu_copy(bool automatic_gpu_copy);
 
     /**
      * Return true if all extents of the buffer are literal integer
@@ -2274,6 +2333,39 @@ private:
       */
     bool operator==(tiramisu::computation comp1);
 
+    /**
+      * \brief Construct the distribution map of a computation.
+      * Not safe to use. It's currently being implemented.
+      *
+      * A distribution map partitions a computation across ranks.
+      * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
+      * is either r_sender or r_receiver, the distribution map will specify for each rank the
+      * iterations it should execute.
+      *
+      * Example :
+      * \code
+      * c.set_expression(in(i)+in(i-1));
+      * c.tag_distribute_level(i);
+      * /endcode
+      *
+      * If the function is called on c, it will construct the following map:
+      *
+      * \code
+      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * /endcode
+     */
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks);
+
+    /**
+      * Return the distributed dimension of a computation.
+      */
+    int get_distributed_dimension();
+
+    /**
+      * Return names of trimmed time space domain dimensions.
+      */
+    std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
+
 protected:
 
     /**
@@ -2300,7 +2392,7 @@ protected:
       * Compute the size of the buffer allocated automatically to hold the
       * results of this computation.
       */
-    std::vector<tiramisu::expr>* compute_buffer_size();
+    std::vector<tiramisu::expr> compute_buffer_size();
 
     /**
       * Return the context of the computations.
@@ -2491,8 +2583,6 @@ protected:
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
 
-
-
 public:
 
     /**
@@ -2596,13 +2686,12 @@ public:
       * \p schedule_this_computation indicates whether this computation should to
       * be scheduled.
       */
-   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
-   /**
-     * \overload
-     */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e);
-
+    /**
+      * \overload
+      */
+    computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
     /**
       * \brief Constructor for computations.
@@ -2649,13 +2738,12 @@ public:
       * reductions.
       *
       */
-   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
+    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
 
-   /**
-     * \overload
-     */
-   computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
-
+    /**
+      * \overload
+      */
+    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
     /**
       * \overload
@@ -2681,22 +2769,14 @@ public:
       * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
       * are of type uint8.
       */
-    computation(std::string name, std::vector<var> iterator_variables, primitive_t t):
-            computation(name, iterator_variables, expr())
-    {
-        this->data_type = t;
-        this->expression.dtype = t;
-    }
+    computation(std::string name, std::vector<var> iterator_variables, primitive_t t)
+            : computation(name, iterator_variables, expr(t)) {}
 
     /**
       * \overload
       */
-     computation(std::vector<var> iterator_variables, primitive_t t):
-            computation(iterator_variables, expr())
-    {
-        this->data_type = t;
-        this->expression.dtype = t;
-    }
+    computation(std::vector<var> iterator_variables, primitive_t t)
+            : computation(iterator_variables, expr(t)) {}
 
     virtual bool is_send() const;
 
@@ -2990,6 +3070,14 @@ public:
     void apply_transformation_on_schedule(std::string map_str);
 
     /**
+      * \brief Automatically allocate and return a buffer for this computation.
+      *
+      * \details This method is meant to be used to create arguments for function::codegen.
+      * See test 141 for an example.
+      */
+    buffer* auto_buffer();
+
+    /**
       * \brief Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.
       *
@@ -3258,9 +3346,15 @@ public:
     void drop_rank_iter(var level);
 
     /**
+      * Get the buffer that is used to store this computation. Buffer is
+      * determined using the access function.
+      */
+    buffer *get_buffer() const;
+
+    /**
       * Get the data type of the computation.
       */
-    tiramisu::primitive_t get_data_type() const;
+    primitive_t get_data_type() const;
 
     /**
       * Return the Tiramisu expression associated with the computation.
@@ -3277,7 +3371,7 @@ public:
     /**
       * Get the last update of a computation.
       */
-    tiramisu::computation& get_last_update();
+    computation &get_last_update();
 
     /**
       * Search the time-space domain (the range of the schedule) and
@@ -3300,14 +3394,20 @@ public:
       * Returns a pointer to the computation scheduled immediately before this computation,
       * or a null pointer if none exist.
       */
-    computation * get_predecessor();
+    computation *get_predecessor();
+
+    /**
+      * Returns a pointer to the computation scheduled immediately after this computation,
+      * or a null pointer if none exist.
+      */
+    computation *get_successor();
 
     /**
       * Returns the \p index update that has been added to this computation such that:
       * - If \p index == 0, then this computation is returned.
       * - If \p > 0, then it returns the pth computation added through add_definitions.
       */
-    tiramisu::computation& get_update(int index);
+    computation& get_update(int index);
 
     /**
      * Get the schedule of the computation.
@@ -3329,33 +3429,33 @@ public:
       * are the names of the new dimensions created after tiling.
       */
     // @{
-    void gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY);
-    void gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY,
-                  tiramisu::var L0_outer, tiramisu::var L1_outer,
-                  tiramisu::var L0_inner, tiramisu::var L1_inner);
-    void gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, int sizeX, int sizeY, int sizeZ);
-    void gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2, int sizeX, int sizeY, int sizeZ,
-                  tiramisu::var L0_outer, tiramisu::var L1_outer, tiramisu::var L2_outer,
-                  tiramisu::var L0_inner, tiramisu::var L1_inner, tiramisu::var L2_inner);
+    virtual void gpu_tile(var L0, var L1, int sizeX, int sizeY);
+    virtual void gpu_tile(var L0, var L1, int sizeX, int sizeY,
+                          var L0_outer, var L1_outer,
+                          var L0_inner, var L1_inner);
+    virtual void gpu_tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ);
+    virtual void gpu_tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
+                          var L0_outer, var L1_outer, var L2_outer,
+                          var L0_inner, var L1_inner, var L2_inner);
     // @}
 
     /**
-     * Return the buffer that was allocated automatically using
-     * high level data mapping functions.
-     * If no automatic buffer was allocated, this function returns NULL.
-     */
-    tiramisu::buffer *get_automatically_allocated_buffer();
+      * Return the buffer that was allocated automatically using
+      * high level data mapping functions.
+      * If no automatic buffer was allocated, this function returns NULL.
+      */
+    buffer *get_automatically_allocated_buffer();
 
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
-    void interchange(tiramisu::var L0, tiramisu::var L1);
+    virtual void interchange(var L0, var L1);
 
     /**
       * Identical to
-      *     void interchange(tiramisu::var L0, tiramisu::var L1);
+      *     void interchange(var L0, var L1);
       */
-    void interchange(int L0, int L1);
+    virtual void interchange(int L0, int L1);
 
     /**
       * Mark this statement as a let statement.
@@ -3367,14 +3467,14 @@ public:
       */
     void mark_as_library_call();
 
-   /**
+    /**
       * Tag the loop level \p L to be parallelized.
       *
       * This function is equivalent to the function \ref tiramisu::computation::tag_parallel_level() .
       * There is no difference between the two.
       *
       */
-    void parallelize(tiramisu::var L);
+    virtual void parallelize(var L);
 
     /**
        * Set the access relation of the computation.
@@ -3549,7 +3649,7 @@ public:
       * number means a shift forward of the loop iterations while
       * a negative value would mean a shift backward.
       */
-    void shift(tiramisu::var L0, int n);
+    virtual void shift(var L0, int n);
 
     /**
       * Apply loop skewing on the loop levels \p i and \p j with a skewing factor of \p f.
@@ -3567,7 +3667,7 @@ public:
       * and apply
 
       \code
-	a.skew(i, j, 1, ni, nj);
+        a.skew(i, j, 1, ni, nj);
       \endcode
 
       * you would get
@@ -3579,7 +3679,7 @@ public:
       \endcode
 
       */
-    void skew(tiramisu::var i, tiramisu::var j, int f, tiramisu::var ni, tiramisu::var nj);
+    virtual void skew(var i, var j, int f, var ni, var nj);
 
     /**
       * Apply loop skewing on the loop levels \p i, \p j and \p k with a skewing factor of \p f.
@@ -3587,8 +3687,8 @@ public:
       *
       * This command transforms the loop (i, j, k) into the loop (i, f*i+j, f*i+k).
       */
-    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor,
-	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk);
+    virtual void skew(var i, var j, var k, int factor,
+                      var ni, var nj, var nk);
 
     /**
       * Apply loop skewing on the loop levels \p i, \p j, \p k, \p l with a skewing factor of \p f.
@@ -3596,38 +3696,38 @@ public:
       *
       * This command transforms the loop (i, j, k, l) into the loop (i, f*i+j, f*i+k, f*i+l).
       */
-    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor,
-	      tiramisu::var ni, tiramisu::var nj, tiramisu::var nk, tiramisu::var nl);
+    virtual void skew(var i, var j, var k, var l, int factor,
+                      var ni, var nj, var nk, var nl);
 
     /**
       * \overload
       */
-    void skew(tiramisu::var i, tiramisu::var j, int factor);
+    virtual void skew(var i, var j, int factor);
 
     /**
       * \overload
       */
-    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, int factor);
+    virtual void skew(var i, var j, var k, int factor);
 
     /**
       * \overload
       */
-    void skew(tiramisu::var i, tiramisu::var j, tiramisu::var k, tiramisu::var l, int factor);
+    virtual void skew(var i, var j, var k, var l, int factor);
 
     /**
       * \overload
       */
-    void skew(int i, int j, int factor);
+    virtual void skew(int i, int j, int factor);
 
     /**
       * \overload
       */
-    void skew(int i, int j, int k, int factor);
+    virtual void skew(int i, int j, int k, int factor);
 
     /**
       * \overload
       */
-    void skew(int i, int j, int k, int l, int factor);
+    virtual void skew(int i, int j, int k, int l, int factor);
 
     /**
       * Split the loop level \p L0 of the iteration space into two
@@ -3637,22 +3737,22 @@ public:
       * splitting.
       */
     //@{
-    void split(tiramisu::var L0, int sizeX);
-    void split(tiramisu::var L0, int sizeX,
-               tiramisu::var L0_outer, tiramisu::var L0_inner);
+    virtual void split(var L0, int sizeX);
+    virtual void split(var L0, int sizeX,
+                       var L0_outer, var L0_inner);
     //@}
 
     /**
       * Identical to
-      *     void split(tiramisu::var L0, int sizeX);
+      *     void split(var L0, int sizeX);
       */
-    void split(int L0, int sizeX);
+    virtual void split(int L0, int sizeX);
 
     /**
      * Fold the storage of the computation.
      * Fold the loop level \p dim by a factor \p f.
      */
-    void storage_fold(tiramisu::var dim, int f);
+    virtual void storage_fold(var dim, int f);
 
     /**
      * Allocate the storage of this computation in the loop level \p L0.
@@ -3669,8 +3769,7 @@ public:
      * The function returns the computation (operation) that allocates
      * the buffer.  The allocated buffer is not returned.
      */
-    tiramisu::computation *store_at(tiramisu::computation &comp,
-                                    tiramisu::var L0);
+    computation *store_at(computation &comp, var L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
@@ -3783,19 +3882,13 @@ public:
       * are the names of the new dimensions created after tiling.
       */
     // @{
-    void tile(tiramisu::var L0, tiramisu::var L1,
-              int sizeX, int sizeY);
-    void tile(tiramisu::var L0, tiramisu::var L1,
-              int sizeX, int sizeY,
-              tiramisu::var L0_outer, tiramisu::var L1_outer,
-              tiramisu::var L0_inner, tiramisu::var L1_inner);
-    void tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
-              int sizeX, int sizeY, int sizeZ);
-    void tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
-              int sizeX, int sizeY, int sizeZ,
-              tiramisu::var L0_outer, tiramisu::var L1_outer,
-              tiramisu::var L2_outer, tiramisu::var L0_inner,
-              tiramisu::var L1_inner, tiramisu::var L2_inner);
+    virtual void tile(var L0, var L1, int sizeX, int sizeY);
+    virtual void tile(var L0, var L1, int sizeX, int sizeY,
+                      var L0_outer, var L1_outer, var L0_inner, var L1_inner);
+    virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ);
+    virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ,
+                      var L0_outer, var L1_outer, var L2_outer, var L0_inner,
+                      var L1_inner, var L2_inner);
     // @}
 
     /**
@@ -3806,8 +3899,8 @@ public:
       * \p L0 > \p L1.
       */
     // @{
-    void tile(int L0, int L1, int sizeX, int sizeY);
-    void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
+    virtual void tile(int L0, int L1, int sizeX, int sizeY);
+    virtual void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
     /**
@@ -3872,8 +3965,8 @@ public:
       *
       */
     //@{
-    void unroll(tiramisu::var L, int fac);
-    void unroll(tiramisu::var L, int fac, tiramisu::var L_outer, tiramisu::var L_inner);
+    virtual void unroll(var L, int fac);
+    virtual void unroll(var L, int fac, var L_outer, var L_inner);
     //@}
 
     /**
@@ -3940,8 +4033,8 @@ public:
       * assigned.
       */
     // @{
-    void vectorize(tiramisu::var L, int v);
-    void vectorize(tiramisu::var L, int v, tiramisu::var L_outer, tiramisu::var L_inner);
+    virtual void vectorize(var L, int v);
+    virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
 
     /**
@@ -4029,20 +4122,20 @@ public:
     {
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
-        if (access_expressions.size() != number_of_dims)
-	{
-	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
-	    for (int i = 0; i < access_expressions.size(); i++)
-	    {
-		tiramisu::expr e = access_expressions[i];
-		e.dump(false);
-		if (i != access_expressions.size() - 1)
-		    tiramisu::str_dump(", ");
-	    }
-	    tiramisu::str_dump(").\n");
-	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
-	    exit(1);
-	}
+        if (access_expressions.size() != this->number_of_dims)
+        {
+            tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+            for (int i = 0; i < access_expressions.size(); i++)
+            {
+                tiramisu::expr e = access_expressions[i];
+                e.dump(false);
+                if (i != access_expressions.size() - 1)
+                    tiramisu::str_dump(", ");
+            }
+            tiramisu::str_dump(").\n");
+            tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+            exit(1);
+        }
 
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
@@ -4069,7 +4162,6 @@ public:
 
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
-
 };
 
 class input: public computation
@@ -4083,22 +4175,22 @@ private:
       * and var("random_name_1", 0, 20.
       */
     static std::vector<var>
-	compute_iterators_from_sizes(std::vector<std::string> dimension_names,
-				     std::vector<tiramisu::expr> dimension_sizes)
-	{
-	    assert(dimension_sizes.size() != 0);
+    compute_iterators_from_sizes(std::vector<std::string> dimension_names,
+            std::vector<tiramisu::expr> dimension_sizes)
+    {
+        assert(dimension_sizes.size() != 0);
 
-	    std::vector<var> iterator_variables;
+        std::vector<var> iterator_variables;
 
-	    for (int i = 0; i < dimension_sizes.size(); i++)
-	    {
-		tiramisu::var *v = new
-		    tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
-		    iterator_variables.push_back(*v);
-	    }
+        for (int i = 0; i < dimension_sizes.size(); i++)
+        {
+            tiramisu::var *v = new
+                tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
+            iterator_variables.push_back(*v);
+        }
 
-	    return iterator_variables;
-	}
+        return iterator_variables;
+    }
 
 public:
     /**
@@ -4139,10 +4231,8 @@ public:
       *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
-	    computation(name, iterator_variables, expr(), false)
+	    computation(name, iterator_variables, expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 
     /**
@@ -4190,10 +4280,8 @@ public:
      */
     input(std::string name, std::vector<std::string> dimension_names,
 			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
-	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(), false)
+	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
     {
-        this->data_type = t;
-        this->expression.dtype = t;
     }
 };
 
@@ -4615,7 +4703,6 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
-
 };
 
 // TODO Jess: add doc comments

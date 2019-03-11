@@ -1,1 +1,0 @@
-rm -rf maxpool_layer_generator_tiramisu maxpool_layer_generator_tiramisu.o maxpool_layer_generator_tiramisu.o.h wrapper_nn_maxpool maxpool_layer_generator_tiramisu maxpool_layer_mkldnn_result tiramisu_result.txt mkldnn_result.txt

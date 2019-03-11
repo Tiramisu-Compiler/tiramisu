@@ -115,7 +115,6 @@ tiramisu::var::var(tiramisu::primitive_t type, std::string name, bool save)
 
     auto declared = var::declared_vars.find(name);
 
-
     if (declared != var::declared_vars.end())
     {
         assert(declared->second.dtype == type);
