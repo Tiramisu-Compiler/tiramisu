@@ -930,6 +930,7 @@ computation * function::get_first_cpt() {
         return cpt;
     } else {
         DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
+        return NULL;
     }
 }
 
@@ -942,6 +943,7 @@ computation * function::get_last_cpt() {
         return cpt;
     } else {
         DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+        return NULL;
     }
 }
 
