@@ -25,7 +25,6 @@
 namespace tiramisu
 {
 
-std::string generate_new_variable_name();
 Halide::Expr make_comm_call(Halide::Type type, std::string func_name, std::vector<Halide::Expr> args);
 Halide::Expr halide_expr_from_tiramisu_type(tiramisu::primitive_t ptype);
 
@@ -837,7 +836,7 @@ tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computati
             {
                 DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Access is not affine. Access: "));
                 exp2.get_access()[i].dump(false); DEBUG_NEWLINE(10);
-                std::string access_name = generate_new_variable_name();
+                std::string access_name = global::generate_new_variable_name();
                 comp->add_associated_let_stmt(access_name, exp2.get_access()[i]);
                 exp2.set_access_dimension(i, tiramisu::var(exp2.get_access()[i].get_data_type(), access_name));
                 DEBUG(10, tiramisu::str_dump("New access:")); exp2.get_access()[i].dump(false);
