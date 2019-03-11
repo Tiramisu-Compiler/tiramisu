@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     tiramisu::init("optical_flow_tiramisu");
 
     // Declare input sizes
-    Input SIZES("SIZES", {2}, p_int32);
+    input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
@@ -30,12 +30,12 @@ int main(int argc, char* argv[])
     var x("x", 0, N1-1), y("y", 0, N0-1), k("k", 0, NC);
 
     // input images
-    Input im1("im1", {N0-1, N1-1}, p_uint8);
-    Input im2("im2", {N0-1, N1-1}, p_uint8);
+    input im1("im1", {N0-1, N1-1}, p_uint8);
+    input im2("im2", {N0-1, N1-1}, p_uint8);
 
     // Corners 
-    Input C1("C1", {NC}, p_int32);
-    Input C2("C2", {NC}, p_int32);
+    input C1("C1", {NC}, p_int32);
+    input C2("C2", {NC}, p_int32);
 
     // First convolution (partial on x)
     std::vector<int> w1 = {1, -1,  1, -1};

@@ -63,8 +63,6 @@ HalideCodegenOutput halide_pipeline_to_tiramisu_function(
 
 computation *get_computation_annotated_in_a_node(isl_ast_node *node);
 
-std::string generate_new_computation_name();
-
 isl_map *isl_map_add_free_var(const std::string &free_var_name, isl_map *map, isl_ctx *ctx);
 void split_string(std::string str, std::string delimiter, std::vector<std::string> &vector);
 int loop_level_into_dynamic_dimension(int level);
@@ -4171,12 +4169,12 @@ private:
     /**
       * Compute a vector of loop iterators from a vector of sizes.
       * If the input is {10, 20}, this function returns a vector
-      * that has the following iterators var("random_name_0, 0, 10)
-      * and var("random_name_1", 0, 20.
+      * that has the following iterators:
+      * [var("random_name_0", 0, 10), var("random_name_1", 0, 20)]
       */
     static std::vector<var>
-    compute_iterators_from_sizes(std::vector<std::string> dimension_names,
-            std::vector<tiramisu::expr> dimension_sizes)
+    compute_iterators_from_sizes(std::vector<expr> dimension_sizes,
+                                 std::vector<std::string> dimension_names = std::vector<>())
     {
         assert(dimension_sizes.size() != 0);
 
@@ -4184,9 +4182,8 @@ private:
 
         for (int i = 0; i < dimension_sizes.size(); i++)
         {
-            tiramisu::var *v = new
-                tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
-            iterator_variables.push_back(*v);
+            std::string var_name = (dimension_names.size() < i) ? dimension_names[i] : global::generate_new_variable_name();
+            iterator_variables.push_back(var(var_name, 0, dimension_sizes[i]));
         }
 
         return iterator_variables;
@@ -4230,18 +4227,14 @@ public:
       * An example is provided in tutorial 02.
       *
      */
-    input(std::string name, std::vector<var> iterator_variables, primitive_t t):
-	    computation(name, iterator_variables, expr(t), false)
-    {
-    }
+    input(std::string name, std::vector<var> iterator_variables, primitive_t t)
+            : computation(name, iterator_variables, expr(t), false) {}
 
     /**
       * \overload
       */
-    input(std::vector<var> iterator_variables, primitive_t t):
-	    input(generate_new_computation_name(), iterator_variables, t)
-    {
-    }
+    input(std::vector<var> iterator_variables, primitive_t t)
+            : input(global::generate_new_computation_name(), iterator_variables, t) {}
 
     /**
       * \brief Constructor for an input.
@@ -4279,38 +4272,14 @@ public:
       *
      */
     input(std::string name, std::vector<std::string> dimension_names,
-			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
-	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
-    {
-    }
+          std::vector<expr> dimension_sizes, primitive_t t)
+            : computation(name, compute_iterators_from_sizes(dimension_sizes, dimension_names), expr(t), false) {}
+
+    input(std::string name, std::vector<expr> sizes, primitive_t t)
+            : input(name, compute_iterators_from_sizes(sizes), t) {}
 };
 
-class Input: public input{
-
-public:
-    std::vector<var> iterators_from_size_expressions(std::vector<expr> sizes)
-    {
-	std::vector<var> iterator_variables;
-
-	for (int s = 0; s < sizes.size(); s++)
-	{
-	    var v(generate_new_computation_name(), 0, sizes[s]);
-	    iterator_variables.push_back(v);
-	}
-
-	return iterator_variables;
-    }
-
-    /**
-      * \overload
-      */
-    Input(std::string name, std::vector<expr> sizes, primitive_t t)
-	:input(name, iterators_from_size_expressions(sizes), t)
-    {
-    }
-};
-
-class view:public computation{
+class view : public computation {
 
 public:
     /**

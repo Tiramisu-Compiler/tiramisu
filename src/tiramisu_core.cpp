@@ -18,14 +18,9 @@ function *global::implicit_fct;
 
 primitive_t global::loop_iterator_type = p_int32;
 
-// Used for the generation of new variable names.
-int id_counter = 0;
-
 const var computation::root = var("root");
 
 static int next_dim_name = 0;
-
-std::string generate_new_variable_name();
 
 tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
                                                              const tiramisu::expr &exp);
@@ -264,16 +259,6 @@ void tiramisu::computation::rename_computation(std::string new_name)
             std::get<0>(pd) = new_name;
 
     DEBUG_INDENT(-4);
-}
-
-std::string generate_new_variable_name()
-{
-    return "t" + std::to_string(id_counter++);
-}
-
-std::string generate_new_computation_name()
-{
-    return "C" + std::to_string(id_counter++);
 }
 
 void computation::tag_gpu_level(tiramisu::var L0_var, tiramisu::var L1_var)
@@ -798,10 +783,10 @@ void tiramisu::computation::separate_at(var _level, std::vector<tiramisu::expr> 
 
     std::vector<tiramisu::constant> separate_points;
     for (auto p : _separate_points) {
-        separate_points.push_back(tiramisu::constant("c" + std::to_string(id_counter++), p, p.get_data_type(), true,
+        separate_points.push_back(constant(global::generate_new_constant_name(), p, p.get_data_type(), true,
                                                      NULL, 0, this->get_function()));
     }
-    tiramisu::constant max("c" + std::to_string(id_counter++), _max, _max.get_data_type(), true, NULL, 0,
+    constant max(global::generate_new_constant_name(), _max, _max.get_data_type(), true, NULL, 0,
                            this->get_function());
 
     // We create the constraint (i < separate_point)
@@ -970,7 +955,7 @@ tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr
         u_type = p_uint64;
     }
 
-    std::string separator_name = tiramisu::generate_new_variable_name();
+    std::string separator_name = global::generate_new_variable_name();
     tiramisu::expr div_expr = tiramisu::expr(o_div, loop_upper_bound, tiramisu::expr(v));
     tiramisu::expr cast_expr = tiramisu::expr(o_cast, f_type, div_expr);
     tiramisu::expr floor_expr = tiramisu::expr(o_floor, cast_expr);
@@ -1074,8 +1059,8 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
     this->vectorize(L0_var, v, L0_outer, L0_inner);
 
     DEBUG_INDENT(-4);
@@ -1197,8 +1182,8 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
     this->unroll(L0_var, v, L0_outer, L0_inner);
 
     DEBUG_INDENT(-4);
@@ -2527,7 +2512,7 @@ void computation::name_unnamed_time_space_dimensions()
     for (int i = 0; i < this->get_loop_levels_number(); i++)
     {
         if (isl_map_has_dim_name(sched, isl_dim_out, loop_level_into_dynamic_dimension(i)) == isl_bool_false)
-            sched = isl_map_set_dim_name(sched, isl_dim_out, loop_level_into_dynamic_dimension(i), generate_new_variable_name().c_str());
+            sched = isl_map_set_dim_name(sched, isl_dim_out, loop_level_into_dynamic_dimension(i), global::generate_new_variable_name().c_str());
     }
 
     this->set_schedule(sched);
@@ -2548,7 +2533,7 @@ void computation::name_unnamed_iteration_domain_dimensions()
     {
         if (isl_set_has_dim_name(iter, isl_dim_set, i) == isl_bool_false)
             iter = isl_set_set_dim_name(iter, isl_dim_set, i,
-                                        generate_new_variable_name().c_str());
+                                        global::generate_new_variable_name().c_str());
     }
 
     this->set_iteration_domain(iter);
@@ -2596,12 +2581,12 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1,
     assert(L1.get_name().length() > 0);
     assert(L2.get_name().length() > 0);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L1_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L2_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L1_inner = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L2_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L1_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L2_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L1_inner = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L2_inner = tiramisu::var(global::generate_new_variable_name());
 
     this->tile(L0, L1, L2, sizeX, sizeY, sizeZ,
                L0_outer, L1_outer, L0_outer, L0_inner, L1_inner, L2_inner);
@@ -2618,10 +2603,10 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1,
     assert(L0.get_name().length() > 0);
     assert(L1.get_name().length() > 0);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L1_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L1_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L1_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L1_inner = tiramisu::var(global::generate_new_variable_name());
 
     this->tile(L0, L1, sizeX, sizeY,
                L0_outer, L1_outer, L0_inner, L1_inner);
@@ -2875,7 +2860,7 @@ void computation::interchange(int L0, int L1)
         {
             if (isl_map_get_dim_name(schedule, isl_dim_out, i) == NULL)
             {
-                isl_id *new_id = isl_id_alloc(this->get_ctx(), generate_new_variable_name().c_str(), NULL);
+                isl_id *new_id = isl_id_alloc(this->get_ctx(), global::generate_new_variable_name().c_str(), NULL);
                 schedule = isl_map_set_dim_id(schedule, isl_dim_out, i, new_id);
             }
 
@@ -3359,8 +3344,8 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, int factor)
     assert(L1_var.get_name().length() > 0);
     assert(factor >= 1);
 
-    tiramisu::var new_L0_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L1_var = tiramisu::var(generate_new_variable_name());
+    tiramisu::var new_L0_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L1_var = tiramisu::var(global::generate_new_variable_name());
 
     this->skew(L0_var, L1_var, factor, new_L0_var, new_L1_var);
 
@@ -3378,9 +3363,9 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var
     assert(L2_var.get_name().length() > 0);
     assert(factor >= 1);
 
-    tiramisu::var new_L0_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L1_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L2_var = tiramisu::var(generate_new_variable_name());
+    tiramisu::var new_L0_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L1_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L2_var = tiramisu::var(global::generate_new_variable_name());
 
     this->skew(L0_var, L1_var, L2_var, factor, new_L0_var, new_L1_var, new_L2_var);
 
@@ -3399,10 +3384,10 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
     assert(L3_var.get_name().length() > 0);
     assert(factor >= 1);
 
-    tiramisu::var new_L0_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L1_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L2_var = tiramisu::var(generate_new_variable_name());
-    tiramisu::var new_L3_var = tiramisu::var(generate_new_variable_name());
+    tiramisu::var new_L0_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L1_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L2_var = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var new_L3_var = tiramisu::var(global::generate_new_variable_name());
 
     this->skew(L0_var, L1_var, L2_var, L3_var, factor, new_L0_var, new_L1_var, new_L2_var, new_L3_var);
 
@@ -3453,7 +3438,7 @@ void computation::skew(int L0, int L1, int factor)
 
     std::string inDim0_str, inDim1_str;
 
-    std::string outDim1_str = generate_new_variable_name();
+    std::string outDim1_str = global::generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -3470,13 +3455,13 @@ void computation::skew(int L0, int L1, int factor)
     {
         if (i == 0)
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
         }
         else
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
 
@@ -3602,8 +3587,8 @@ void computation::skew(int L0, int L1, int L2, int factor)
 
     std::string inDim0_str, inDim1_str, inDim2_str;
 
-    std::string outDim1_str = generate_new_variable_name();
-    std::string outDim2_str = generate_new_variable_name();
+    std::string outDim1_str = global::generate_new_variable_name();
+    std::string outDim2_str = global::generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -3620,13 +3605,13 @@ void computation::skew(int L0, int L1, int L2, int factor)
     {
         if (i == 0)
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
         }
         else
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
 
@@ -3766,9 +3751,9 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
 
     std::string inDim0_str, inDim1_str, inDim2_str, inDim3_str;
 
-    std::string outDim1_str = generate_new_variable_name();
-    std::string outDim2_str = generate_new_variable_name();
-    std::string outDim3_str = generate_new_variable_name();
+    std::string outDim1_str = global::generate_new_variable_name();
+    std::string outDim2_str = global::generate_new_variable_name();
+    std::string outDim3_str = global::generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -3785,13 +3770,13 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
     {
         if (i == 0)
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
         }
         else
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
 
@@ -4255,7 +4240,7 @@ std::vector<isl_set *> computation::compute_needed_and_produced(computation &con
         // Set the names of the new parameters
         for (int i = 0; i <= L; i++)
         {
-            std::string new_param = generate_new_variable_name();
+            std::string new_param = global::generate_new_variable_name();
             consumer_domain = isl_set_set_dim_name(consumer_domain, isl_dim_param, pos_last_param0 + i,
                                                    new_param.c_str());
             producer_domain = isl_set_set_dim_name(producer_domain, isl_dim_param, pos_last_param1 + i,
@@ -4878,7 +4863,7 @@ int computation::compute_maximal_AST_depth()
         if (isl_set_has_dim_name(set, isl_dim_set, i) == true)
             name = isl_set_get_dim_name(set, isl_dim_set, i);
         else
-            name = generate_new_variable_name();
+            name = global::generate_new_variable_name();
         isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
         iterators = isl_id_list_add(iterators, id);
     }
@@ -4960,7 +4945,7 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
         if (isl_set_has_dim_name(set, isl_dim_set, i) == true)
             name = isl_set_get_dim_name(set, isl_dim_set, i);
         else
-            name = generate_new_variable_name();
+            name = global::generate_new_variable_name();
         isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
         iterators = isl_id_list_add(iterators, id);
     }
@@ -4983,8 +4968,8 @@ bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
 
     bool split_happened = this->separateAndSplit(L0, sizeX, L0_outer, L0_inner);
 
@@ -5100,8 +5085,8 @@ void computation::split(tiramisu::var L0_var, int sizeX)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
-    tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
+    tiramisu::var L0_outer = tiramisu::var(global::generate_new_variable_name());
+    tiramisu::var L0_inner = tiramisu::var(global::generate_new_variable_name());
     this->split(L0_var, sizeX, L0_outer, L0_inner);
 
     DEBUG_INDENT(-4);
@@ -5162,9 +5147,9 @@ void computation::split(int L0, int sizeX)
 
     std::string inDim0_str;
 
-    std::string outDim0_str = generate_new_variable_name();
-    std::string static_dim_str = generate_new_variable_name();
-    std::string outDim1_str = generate_new_variable_name();
+    std::string outDim0_str = global::generate_new_variable_name();
+    std::string static_dim_str = global::generate_new_variable_name();
+    std::string outDim1_str = global::generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -5181,13 +5166,13 @@ void computation::split(int L0, int sizeX)
     {
         if (i == 0)
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
         }
         else
         {
-            std::string dim_str = generate_new_variable_name();
+            std::string dim_str = global::generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
 
@@ -5720,7 +5705,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     // the schedule range dimension to be equal to the names of the domain, we do not
     // get a conflict.
     for (int i = 0; i< this->get_iteration_domain_dimensions_number(); i++)
-        this->set_schedule_domain_dim_names({i}, {generate_new_variable_name()});
+        this->set_schedule_domain_dim_names({i}, {global::generate_new_variable_name()});
     for (int i = 0; i< nms.size(); i++)
         this->set_loop_level_names({i}, {nms[i]});
 
@@ -5882,7 +5867,7 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
             }
         }
         if (is_bounded) {
-            std::string buffer_name = "_" + this->name + "_buffer" + std::to_string(id_counter++);
+            std::string buffer_name = "_" + this->name + "_" + global::generate_new_buffer_name();
             this->store_in(new tiramisu::buffer(
                            buffer_name,
                            buffer_size,
@@ -6846,7 +6831,7 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
 
     std::string inDim0_str;
 
-    std::string outDim0_str = generate_new_variable_name();
+    std::string outDim0_str = global::generate_new_variable_name();
 
     int n_dims = isl_map_dim(access_relation, isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -6861,7 +6846,7 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
 
     for (int i = 0; i < n_dims; i++)
     {
-        std::string dim_str = generate_new_variable_name();
+        std::string dim_str = global::generate_new_variable_name();
         dimensions_str.push_back(dim_str);
         map = map + dim_str;
 
@@ -7611,7 +7596,7 @@ std::vector<std::string> computation::get_trimmed_time_space_domain_dimension_na
         if (isl_set_has_dim_name(iteration_domain, isl_dim_set, i))
             dimensions_names.push_back(isl_set_get_dim_name(iteration_domain, isl_dim_set, i));
         else
-            dimensions_names.push_back(generate_new_variable_name());
+            dimensions_names.push_back(global::generate_new_variable_name());
     }
 
     return dimensions_names;

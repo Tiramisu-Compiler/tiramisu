@@ -26,7 +26,6 @@ namespace tiramisu
 class function;
 class computation;
 
-std::string generate_new_variable_name();
 std::string str_from_tiramisu_type_expr(tiramisu::expr_t type);
 std::string str_tiramisu_type_op(tiramisu::op_t type);
 std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type);
@@ -131,6 +130,30 @@ public:
     static primitive_t get_loop_iterator_data_type()
     {
         return global::loop_iterator_type;
+    }
+
+    static std::string generate_new_variable_name()
+    {
+        static int counter = 0;
+        return "t" + std::to_string(counter++);
+    }
+
+    static std::string generate_new_computation_name()
+    {
+        static int counter = 0;
+        return "C" + std::to_string(counter++);
+    }
+
+    static std::string generate_new_buffer_name()
+    {
+        static int counter = 0;
+        return "b" + std::to_string(counter++);
+    }
+
+    static std::string generate_new_constant_name()
+    {
+        static int counter = 0;
+        return "c" + std::to_string(counter++);
     }
 
     global()

@@ -84,14 +84,14 @@ int main(int argc, char* argv[])
     tiramisu::init("py_optical_flow_tiramisu");
 
     // Declare input sizes
-    Input SIZES("SIZES", {2}, p_int32);
+    input SIZES("SIZES", {2}, p_int32);
 
     constant N0("N0", SIZES(0));
     constant N1("N1", SIZES(1));
 
     // input images
-    Input im1("im1", {N0-1, N1-1}, p_uint8);
-    Input im2("im2", {N0-1, N1-1}, p_uint8);
+    input im1("im1", {N0-1, N1-1}, p_uint8);
+    input im2("im2", {N0-1, N1-1}, p_uint8);
 
     // Loop iterators
     var x("x", 0, N1-1), y("y", 0, N0-1);
