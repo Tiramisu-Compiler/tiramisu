@@ -601,6 +601,41 @@ bool function::should_parallelize(const std::string &comp, int lev) const
 }
 
 /**
+* Return the unrolling factor used to unroll the computation \p comp
+* at the loop level \p lev.
+*/
+int function::get_unrolling_factor(const std::string &comp, int lev) const
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(!comp.empty());
+    assert(lev >= 0);
+
+    int unrolling_factor = -1;
+    bool found = false;
+
+    for (const auto &pd : this->unroll_dimensions)
+    {
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+        {
+            unrolling_factor = std::get<2>(pd);
+            found = true;
+        }
+    }
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be unrolled with a factor of " +
+                       std::to_string(unrolling_factor);
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return unrolling_factor;
+}
+
+/**
 * Return the vector length of the computation \p comp at
 * at the loop level \p lev.
 */
@@ -1068,7 +1103,7 @@ bool tiramisu::function::should_unroll(const std::string &comp, int lev0) const
     bool found = false;
     for (const auto &pd : this->unroll_dimensions)
     {
-        if ((pd.first == comp) && (pd.second == lev0))
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev0))
         {
             found = true;
         }
@@ -1391,12 +1426,13 @@ void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_d
     this->parallel_dimensions.push_back({stmt_name, vec_dim});
 }
 
-void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level)
+void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level, int factor)
 {
     assert(level >= 0);
     assert(!stmt_name.empty());
+    assert(factor >= 0);
 
-    this->unroll_dimensions.push_back({stmt_name, level});
+    this->unroll_dimensions.push_back({stmt_name, level, factor});
 }
 
 void tiramisu::function::add_gpu_block_dimensions(std::string stmt_name, int dim0,

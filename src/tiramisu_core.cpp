@@ -287,8 +287,8 @@ void tiramisu::computation::rename_computation(std::string new_name)
 
     // Rename parallel, unroll, vectorize and gpu vectors
     for (auto &pd : this->get_function()->unroll_dimensions)
-        if (pd.first == old_name)
-            pd.first = new_name;
+        if (std::get<0>(pd) == old_name)
+            std::get<0>(pd) = new_name;
     for (auto &pd : this->get_function()->parallel_dimensions)
         if (pd.first == old_name)
             pd.first = new_name;
@@ -605,6 +605,11 @@ void tiramisu::computation::tag_parallel_level(tiramisu::var L0_var)
 
 void tiramisu::computation::tag_unroll_level(tiramisu::var L0_var)
 {
+	this->tag_unroll_level(L0_var, 0);
+}
+
+void tiramisu::computation::tag_unroll_level(tiramisu::var L0_var, int factor)
+{
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
@@ -614,12 +619,17 @@ void tiramisu::computation::tag_unroll_level(tiramisu::var L0_var)
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
 
-    this->tag_unroll_level(L0);
+    this->tag_unroll_level(L0, factor);
 
     DEBUG_INDENT(-4);
 }
 
 void tiramisu::computation::tag_unroll_level(int level)
+{
+	this->tag_unroll_level(level, 0);
+}
+
+void tiramisu::computation::tag_unroll_level(int level, int factor)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -627,8 +637,9 @@ void tiramisu::computation::tag_unroll_level(int level)
     assert(level >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
+    assert(factor >= 0);
 
-    this->get_function()->add_unroll_dimension(this->get_name(), level);
+    this->get_function()->add_unroll_dimension(this->get_name(), level, factor);
 
     DEBUG_INDENT(-4);
 }
@@ -1253,11 +1264,11 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
     {
         // Tag the inner loop after splitting to be unrolled. That loop
         // is supposed to have a constant extent.
-        this->get_update(0).tag_unroll_level(L0 + 1);
+        this->get_update(0).tag_unroll_level(L0 + 1, v);
     }
     else
     {
-        this->get_update(0).tag_unroll_level(L0);
+        this->get_update(0).tag_unroll_level(L0, v);
         this->set_loop_level_names({L0}, {L0_outer.get_name()});
     }
 

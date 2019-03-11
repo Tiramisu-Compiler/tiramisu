@@ -239,11 +239,12 @@ private:
       * A vector representing the dimensions that should be unrolled
       * around the computations of the function.
       * Unrolled dimensions are identified using the tuple
-      * <computation_name, level0>, for example the tuple
-      * <S0, 1> indicates that the loops with level 1
-      * around the computation S0 should be unrolled.
+      * <computation_name, level0, factor>, for example the tuple
+      * <S0, 1, 8> indicates that the loops with level 1
+      * around the computation S0 should be unrolled with an unrolling
+      * factor of 8.
       */
-    std::vector<std::pair<std::string, int>> unroll_dimensions;
+    std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
 
     /**
       * Body of the function (a vector of computations).
@@ -316,8 +317,9 @@ private:
       * \p computation_name to be unrolled.
       * The dimension 0 represents the outermost loop level (it
       * corresponds to the leftmost dimension in the iteration space).
+      * \p factor in the unrolling factor.
       */
-    void add_unroll_dimension(std::string stmt_name, int L);
+    void add_unroll_dimension(std::string stmt_name, int L, int factor);
 
     /**
      * Get live in/out computations in the function.
@@ -624,6 +626,12 @@ protected:
      * at the loop level \p lev.
      */
     int get_vector_length(const std::string &comp, int lev) const;
+
+    /**
+     * If the computation \p comp is unrolled at the loop level \p lev,
+     * return its unrolling factor.
+     */
+    int get_unrolling_factor(const std::string &comp, int lev) const;
 
    /**
      * Return true if the usage of high level scheduling comments is valid; i.e. if
@@ -3722,10 +3730,25 @@ public:
     void tag_unroll_level(tiramisu::var L);
 
     /**
+      * Tag the loop level \p L to be unrolled with an unrolling
+      * factor \p F.
+      *
+      * The user can only tag loop levels that have constant extent
+      * equal to \p F.
+      */
+    void tag_unroll_level(tiramisu::var L, int F);
+
+    /**
      * Identical to
      *     void tag_unroll_level(tiramisu::var L);
      */
     void tag_unroll_level(int L);
+
+    /**
+     * Identical to
+     *     void tag_unroll_level(tiramisu::var L, int F);
+     */
+    void tag_unroll_level(int L, int F);
 
     /**
       * \brief Schedule this computation to run before the computation \p next_computation
