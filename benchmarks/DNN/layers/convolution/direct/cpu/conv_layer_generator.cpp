@@ -18,7 +18,7 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-
+        
     init("conv_tiramisu");
 
     // -------------------------------------------------------
@@ -53,95 +53,248 @@ int main(int argc, char **argv)
     // First conv computations
     computation conv_init("conv_init",{n, z, y1, x1}, bias(z) );
     computation conv("conv",{n, z, y1, x1, k_z, k_y, k_x }, conv_init(n, z, y1, x1) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y1 + k_y, x1 + k_x));
-    
+
     global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%16=0 and C_N%16=0}");
-    // Layer II
-    if (LARGE_DATA_SET)
-    {
-            int vec_len = 32;
-            int y_block = 32;
-            int o_block = 4;
+    
+        // Layer II
+        if (LARGE_DATA_SET or C11 or C12 or C13)
+        {
+                int vec_len = 32;
+                int y_block = 32;
+                int o_block = 4;
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+                if (C11 or C12)
+                {
+                        vec_len = 16;
+                        y_block = 6;
+                        o_block = 4;
+                }
+                else if (C13)
+                {
+                        vec_len = 32;
+                        y_block = 6;
+                        o_block = 2;
+                }
 
-            // 0, 1,   2,   3,   4,   5,     6,
-            // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
-            // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
-           // n, z, (r_z,   y),   x, r_y,   r_x,
+                conv_init.tag_parallel_level(0);
+                conv.after(conv_init, 2);
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
-            // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+                // 0, 1,   2,   3,   4,   5,     6,
+                // n, z,   y,   x, r_z, r_y,   r_x,
+                conv.interchange(3, 4);
+                // n, z,   y, (r_z,   x), r_y,   r_x,
+                conv.interchange(3, 2);
+                // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
-	    conv.tag_unroll_level(8);
-	    conv.tag_unroll_level(9);
+                conv.split(1, o_block);
+                conv_init.split(1, o_block);
+                // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
-    }
-    else if (MEDIUM_DATA_SET)
-    {
-            int vec_len = 32;
-            int y_block = 32;
-            int o_block = 4;
+                conv.split(3, y_block);
+                conv.split(6, vec_len);
+                conv.tag_vector_level(7, vec_len);
+                conv.tag_unroll_level(8);
+                conv.tag_unroll_level(9);
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+                // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
+                conv_init.split(4, vec_len);
+                conv_init.tag_vector_level(5, vec_len);
+        }
+        else if (MEDIUM_DATA_SET)
+        {
+                int vec_len = 32;
+                int y_block = 32;
+                int o_block = 4;
 
-            // 0, 1,   2,   3,   4,   5,     6,
-            // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
-            // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
-           // n, z, (r_z,   y),   x, r_y,   r_x,
+                conv_init.tag_parallel_level(0);
+                conv.after(conv_init, 2);
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
-            // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+                // 0, 1,   2,   3,   4,   5,     6,
+                // n, z,   y,   x, r_z, r_y,   r_x,
+                conv.interchange(3, 4);
+                // n, z,   y, (r_z,   x), r_y,   r_x,
+                conv.interchange(3, 2);
+                // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
+                conv.split(1, o_block);
+                conv_init.split(1, o_block);
+                // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
 
-            // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
-    }
-    else if (SMALL_DATA_SET)
-    {
-            int vec_len = 16;
-            int y_block = 8;
-            int o_block = 4;
+                conv.split(3, y_block);
+                conv.split(6, vec_len);
+                conv.tag_vector_level(7, vec_len);
 
-            conv_init.tag_parallel_level(0);
-            conv.after(conv_init, 2);
+                // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
+                conv_init.split(4, vec_len);
+                conv_init.tag_vector_level(5, vec_len);
+        }
+        else if (SMALL_DATA_SET or C21 or C22 or C41 or C42 or C43 or C61 or C62 or C63 or
+                 C71 or C72 or C73 or C91 or C92 or C93 or C101 or C102)
+        {
+                int vec_len = 16;
+                int y_block = 8;
+                int o_block = 4;
 
-            // 0, 1,   2,   3,   4,   5,     6,
-            // n, z,   y,   x, r_z, r_y,   r_x,
-            conv.interchange(3, 4);
-            // n, z,   y, (r_z,   x), r_y,   r_x,
-            conv.interchange(3, 2);
-           // n, z, (r_z,   y),   x, r_y,   r_x,
+                if (C21)
+                {
+                        vec_len = 4;
+                        y_block = 12;
+                        o_block = 4;
+                }
+                else if (C22)
+                {
+                        vec_len = 4;
+                        y_block = 6;
+                        o_block = 4;
+                }
+                else if (C23)
+                {
+                        vec_len = 4;
+                        y_block = 3;
+                        o_block = 2;
+                }
+                else if (C41)
+                {
+                        vec_len = 4;
+                        y_block = 6;
+                        o_block = 16;
+                }
+                else if (C42)
+                {
+                        vec_len = 4;
+                        y_block = 6;
+                        o_block = 32;
+                }
+                else if (C43)
+                {
+                        vec_len = 16;
+                        y_block = 6;
+                        o_block = 32;
+                }
+                else if (C61)
+                {
+                        vec_len = 8;
+                        y_block = 16;
+                        o_block = 16;
+                }
+                else if (C62 or C63)
+                {
+                        vec_len = 8;
+                        y_block = 32;
+                        o_block = 32;
+                }
+                else if (C71)
+                {
+                        vec_len = 8;
+                        y_block = 32;
+                        o_block = 16;
+                }
+                else if (C72)
+                {
+                        vec_len = 8;
+                        y_block = 32;
+                        o_block = 32;
+                }
+                else if (C73)
+                {
+                        vec_len = 8;
+                        y_block = 8;
+                        o_block = 8;
+                }
+                else if (C91 or C92 or C93)
+                {
+                        vec_len = 2;
+                        y_block = 32;
+                        o_block = 32;
+                }
+                else if (C101)
+                {
+                        vec_len = 2;
+                        y_block = 32;
+                        o_block = 8;
+                }
+                else if (C102)
+                {
+                        vec_len = 2;
+                        y_block = 32;
+                        o_block = 32;
+                }
+                else if (C103)
+                {
+                        vec_len = 2;
+                        y_block = 64;
+                        o_block = 64;
+                }
 
-            conv.split(1, o_block);
-            conv_init.split(1, o_block);
-            // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+                conv_init.tag_parallel_level(0);
+                conv.after(conv_init, 2);
 
-            conv.split(3, y_block);
-            conv.split(6, vec_len);
-            conv.tag_vector_level(7, vec_len);
+                // 0, 1,   2,   3,   4,   5,     6,
+                // n, z,   y,   x, r_z, r_y,   r_x,
+                conv.interchange(3, 4);
+                // n, z,   y, (r_z,   x), r_y,   r_x,
+                conv.interchange(3, 2);
+                // n, z, (r_z,   y),   x, r_y,   r_x,
 
-            // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-            conv_init.split(4, vec_len);
-            conv_init.tag_vector_level(5, vec_len);
-    }
+                conv.split(1, o_block);
+                conv_init.split(1, o_block);
+                // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+
+                conv.split(3, y_block);
+                conv.split(6, vec_len);
+                conv.tag_vector_level(7, vec_len);
+
+                // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
+                conv_init.split(4, vec_len);
+                conv_init.tag_vector_level(5, vec_len);
+        }
+
+        else if (C121 or C122 or 123)
+        {
+                int vec_len = 2, y_block = 2, o_block = 2;
+
+                if (C121)
+                {
+                        vec_len = 3;
+                        y_block = 16;
+                        o_block = 16;
+                }
+                else if (C122)
+                {
+                        vec_len = 3;
+                        y_block = 32;
+                        o_block = 16;
+                }
+                else if (C123)
+                {
+                        vec_len = 3;
+                        y_block = 128;
+                        o_block = 128;
+                }
+
+                //conv_init.tag_parallel_level(0);
+
+                conv.after(conv_init, 0);
+                conv.tag_parallel_level(0);
+                // 0, 1,   2,   3,   4,   5,     6,
+                // n, z,   y,   x, r_z, r_y,   r_x,
+                conv.interchange(3, 4);
+                // n, z,   y, (r_z,   x), r_y,   r_x,
+                conv.interchange(3, 2);
+                // n, z, (r_z,   y),   x, r_y,   r_x,
+
+                conv.split(1, o_block);
+                conv_init.split(1, o_block);
+                // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+
+                conv.split(3, y_block);
+                conv.split(6, vec_len);
+                conv.tag_vector_level(7, vec_len);
+
+                // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
+                conv_init.split(4, vec_len);
+                //conv_init.tag_vector_level(5, vec_len);
+        }
 
     // Layer III
     buffer parameters_buf("parameters_buf", {expr(5)}, p_int32, a_input);

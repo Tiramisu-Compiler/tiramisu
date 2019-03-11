@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
 # Add CMake header files
 set(HEADER_FILES
+        include/tiramisu/block.h
         include/tiramisu/cuda_ast.h
         include/tiramisu/core.h
         include/tiramisu/debug.h
@@ -21,7 +22,7 @@ set(HEADER_FILES
         )
 
 # Add CMake cpp files
-set(OBJS expr core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 
 ### CMAKE FILE INTERNALS ###
