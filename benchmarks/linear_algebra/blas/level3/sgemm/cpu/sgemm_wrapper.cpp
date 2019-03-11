@@ -177,53 +177,53 @@ int main(int, char **)
 	int local_K = sizes[j][2];
 	int local_size = sizes[j][3];
 
-	Halide::Buffer<int> SIZES(3, "SIZES");
-	Halide::Buffer<float> alpha(1, "alpha");
-	Halide::Buffer<float> beta(1, "beta");
-	Halide::Buffer<float> A(local_N, local_K, "A");
-	Halide::Buffer<float> B(local_K, local_M, "B");
-	Halide::Buffer<float> C(local_N, local_M, "C");
-	Halide::Buffer<float> C_mkl(local_N, local_M, "C_mkl");
+    Halide::Buffer<int> SIZES(3, "SIZES");
+    Halide::Buffer<float> alpha(1, "alpha");
+    Halide::Buffer<float> beta(1, "beta");
+    Halide::Buffer<float> A(local_N, local_K, "A");
+    Halide::Buffer<float> B(local_K, local_M, "B");
+    Halide::Buffer<float> C(local_N, local_M, "C");
+    Halide::Buffer<float> C_mkl(local_N, local_M, "C_mkl");
 
-	SIZES(0) = local_N; SIZES(1) = local_M; SIZES(2) = local_K;
-	alpha(0) = a; beta(0) = b;
-	init_buffer(A, (float)1);
-	init_buffer(B, (float)1);
-	init_buffer(C, (float)1);
-	init_buffer(C_mkl, (float)1);
+    SIZES(0) = local_N; SIZES(1) = local_M; SIZES(2) = local_K;
+    alpha(0) = a; beta(0) = b;
+    init_buffer(A, (float)1);
+    init_buffer(B, (float)1);
+    init_buffer(C, (float)1);
+    init_buffer(C_mkl, (float)1);
 
-	// Calling MKL
-	{
-		long long int   lda, ldb, ldc;
-		long long int   rmaxa, cmaxa, rmaxb, cmaxb, rmaxc, cmaxc;
-		CBLAS_LAYOUT    layout = CblasRowMajor;
-		CBLAS_TRANSPOSE transA = CblasNoTrans, transB = CblasNoTrans;
-		long long int ma, na, mb, nb;
+    // Calling MKL
+    {
+	long long int   lda, ldb, ldc;
+      	long long int   rmaxa, cmaxa, rmaxb, cmaxb, rmaxc, cmaxc;
+      	CBLAS_LAYOUT    layout = CblasRowMajor;
+      	CBLAS_TRANSPOSE transA = CblasNoTrans, transB = CblasNoTrans;
+      	long long int    ma, na, mb, nb;
 
-		if( transA == CblasNoTrans ) {
-			rmaxa = local_M + 1;
-			cmaxa = local_K;
-			ma    = local_M;
-			na    = local_K;
-		} else {
-			rmaxa = local_K + 1;
-			cmaxa = local_M;
-			ma    = local_K;
-			na    = local_M;
-		}
-		if( transB == CblasNoTrans ) {
-			rmaxb = local_K + 1;
-			cmaxb = local_N;
-			mb    = local_K;
-			nb    = local_N;
-		} else {
-			rmaxb = local_N + 1;
-			cmaxb = local_K;
-			mb    = local_N;
-			nb    = local_K;
-		}
-		rmaxc = local_M + 1;
-		cmaxc = local_N;
+        if( transA == CblasNoTrans ) {
+        	rmaxa = local_M + 1;
+         	cmaxa = local_K;
+		ma    = local_M;
+		na    = local_K;
+	} else {
+		rmaxa = local_K + 1;
+		cmaxa = local_M;
+		ma    = local_K;
+		na    = local_M;
+	}
+	if( transB == CblasNoTrans ) {
+		rmaxb = local_K + 1;
+		cmaxb = local_N;
+		mb    = local_K;
+		nb    = local_N;
+	} else {
+		rmaxb = local_N + 1;
+		cmaxb = local_K;
+		mb    = local_N;
+		nb    = local_K;
+	}
+	rmaxc = local_M + 1;
+	cmaxc = local_N;
 	if (layout == CblasRowMajor) {
 		lda=cmaxa;
 		ldb=cmaxb;
