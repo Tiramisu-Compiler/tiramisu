@@ -6056,34 +6056,6 @@ computation * computation::get_predecessor() {
     return reverse_graph.begin()->first;
 }
 
-
-computation * function::get_first_cpt() {
-    if (this->is_sched_graph_tree()){
-         tiramisu::computation* cpt = this->sched_graph.begin()->first;   
-         while (cpt->get_predecessor() != NULL){
-            cpt = cpt->get_predecessor();
-            }
-         return cpt;
-    } else {
-        DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
-	      return NULL;
-    }
-}
-
-computation * function::get_last_cpt() {
-    if (this->is_sched_graph_tree()){
-         tiramisu::computation* cpt = this->sched_graph.begin()->first;
-         while (cpt->get_successor() != NULL){
-            cpt = cpt->get_successor();
-          }
-         return cpt;
-    } else {
-        DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
-	      return NULL;
-    }
-}
-  
-
 /**
   * Return the time-processor domain of the computation.
   * In this representation, the logical time of execution and the
