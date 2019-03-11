@@ -12,7 +12,7 @@
 int main(int, char **)
 {
 
-    int sizes[26][4];
+    int sizes[27][4];
 
     sizes[0][0] = 32;
     sizes[0][1] = 8;
