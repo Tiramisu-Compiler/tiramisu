@@ -6256,7 +6256,6 @@ computation * function::get_first_cpt() {
 }
 
 computation * function::get_last_cpt() {
-
     if (this->is_sched_graph_tree()){
          tiramisu::computation* cpt = this->sched_graph.begin()->first;
          while (cpt->get_successor() != NULL){
