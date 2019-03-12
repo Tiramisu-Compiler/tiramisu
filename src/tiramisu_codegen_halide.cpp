@@ -2098,7 +2098,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 			{
 			    const Halide::Internal::IntImm *extent =
 				    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-			    if (!extent) {
+			    if (extent) {
 				fortype = Halide::Internal::ForType::Unrolled;
 				DEBUG(3, tiramisu::str_dump("Loop unrolled"));
 			    } else {
