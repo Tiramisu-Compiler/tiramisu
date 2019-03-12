@@ -1,0 +1,1 @@
+rm -rf _results wrapper_nn_bn bn_layer_generator_tiramisu bn_layer_generator_tiramisu.o bn_layer_generator_tiramisu.o.h bn_layer_mkldnn_result tiramisu_result.txt mkldnn_result.txt mkl_result.txt
