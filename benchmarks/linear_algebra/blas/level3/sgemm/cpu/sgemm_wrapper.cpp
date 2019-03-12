@@ -39,122 +39,99 @@ int main(int, char **)
     bool run_tiramisu = true;
 #endif
 
-
-	int sizes[27][4], D = 1060 * 1060; 
+	int sizes[22][3];
 
 	/************ SIZE_IS_MULTIPLE_OF_TILE 1 ******************/
 
 	sizes[0][0] = 4096;
 	sizes[0][1] = 4096;
 	sizes[0][2] = 4096;
-	sizes[0][3] = 65536 * 4096;
 
 	sizes[1][0] = 128;
 	sizes[1][1] = 128;
 	sizes[1][2] = 128;
-	sizes[1][3] = 128;
 
 	sizes[2][0] = 512;
 	sizes[2][1] = 512;
 	sizes[2][2] = 512;
-	sizes[2][3] = 1024;
 
 	sizes[3][0] = 1024;
 	sizes[3][1] = 1024;
 	sizes[3][2] = 1024;
-	sizes[3][3] = 1024 * 1024;
 
 	sizes[4][0] = 128;
 	sizes[4][1] = 128;
 	sizes[4][2] = 256;
-	sizes[4][3] = D;
 
 	sizes[5][0] = 2048;
 	sizes[5][1] = 2048;
 	sizes[5][2] = 2048;
-	sizes[5][3] = D;
 
 	sizes[6][0] = 2048;
 	sizes[6][1] = 2048;
 	sizes[6][2] = 1024;
-	sizes[6][3] = D;
 
 	sizes[7][0] = 1024;
 	sizes[7][1] = 1024;
 	sizes[7][2] = 2048;
-	sizes[7][3] = D;
 
 	sizes[8][0] = 1024;
 	sizes[8][1] = 1024;
 	sizes[8][2] = 512;
-	sizes[8][3] = D;
 
 	sizes[9][0] = 512;
 	sizes[9][1] = 512;
 	sizes[9][2] = 1024;
-	sizes[9][3] = D;
 
 	sizes[10][0] = 512;
 	sizes[10][1] = 512;
 	sizes[10][2] = 256;
-	sizes[10][3] = D;
 
 	sizes[11][0] = 128;
 	sizes[11][1] = 128;
 	sizes[11][2] = 2048;
-	sizes[11][3] = D;
 
 	sizes[12][0] = 256;
 	sizes[12][1] = 256;
 	sizes[12][2] = 256;
-	sizes[12][3] = D;
 
 	sizes[13][0] = 128;
 	sizes[13][1] = 128;
 	sizes[13][2] = 512;
-	sizes[13][3] = D;
 
 	sizes[14][0] = 128;
 	sizes[14][1] = 128;
 	sizes[14][2] = 1024;
-	sizes[14][3] = D;
 
 	sizes[15][0] = 128;
 	sizes[15][1] = 128;
 	sizes[15][2] = 64;
-	sizes[15][3] = D;
 
 	/**************  SIZE_IS_MULTIPLE_OF_TILE 0  ****************/
 
 	sizes[16][0] = 1060;
 	sizes[16][1] = 1060;
 	sizes[16][2] = 1060;
-	sizes[16][3] = D;
 
 	sizes[17][0] = 4;
 	sizes[17][1] = 4;
 	sizes[17][2] = 4;
-	sizes[17][3] = D;
 
 	sizes[18][0] = 8;
 	sizes[18][1] = 8;
 	sizes[18][2] = 4;
-	sizes[18][3] = D;
 
 	sizes[19][0] = 16;
 	sizes[19][1] = 16;
 	sizes[19][2] = 4;
-	sizes[19][3] = D;
 
 	sizes[20][0] = 16;
 	sizes[20][1] = 16;
 	sizes[20][2] = 16;
-	sizes[20][3] = D;
 
 	sizes[21][0] = 8;
 	sizes[21][1] = 8;
 	sizes[21][2] = 16;
-	sizes[21][3] = D;
 
 	int p, q;
 
