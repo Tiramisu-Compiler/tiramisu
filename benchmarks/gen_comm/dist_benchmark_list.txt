@@ -1,1 +1,3 @@
 convolutiondist[mpi,10]
+cvtcolordist[mpi,10]
+edgedist[mpi,10]

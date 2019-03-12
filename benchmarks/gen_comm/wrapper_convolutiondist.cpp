@@ -32,52 +32,82 @@ int main(int, char**)
     init_buffer(output1, (int32_t)0);
     init_buffer(output2, (int32_t)0);
 
+    if(rank == 0){
+        std::cout << "output1" <<"\n";
+        //print data
+        for(int i=0; i < _ROWS/_NODES + 2; i++)
+        {
+            for(int j=0; j < _COLS; j++)
+                {
+                    for(int k=0; k<3;k++)
+                        std::cout <<input(k,j,i) << "";
+                    std::cout <<"\t";
+                }
+                std::cout <<"\n";
+        }
+    }
+
     // Warm up
     convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
 
-    // Tiramisu
-    for (int i=0; i<NB_TESTS; i++)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-        auto start1 = std::chrono::high_resolution_clock::now();
-        convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
-			output1.raw_buffer());
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration1 = end1 - start1;
-        duration_vector_1.push_back(duration1);
+    if(rank == 0){
+        std::cout << "output1" <<"\n";
+        //print data
+        for(int i=0; i < _ROWS/_NODES + 2; i++)
+        {
+            for(int j=0; j < _COLS; j++)
+                {
+                    for(int k=0; k<3;k++)
+                        std::cout <<input(k,j,i) << "";
+                    std::cout <<"\t";
+                }
+                std::cout <<"\n";
+        }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
 
-    init_buffer(input, (int32_t)0);
-    //init data
-    for(int i=0; i < _ROWS/_NODES; i++)
-        for(int j=0; j < _COLS; j++)
-            for(int k=0; k< 3;k++)
-                input(k,j,i) = 3;
-
-    // Warm up
-    convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
-
-    // Tiramisu
-    for (int i=0; i<NB_TESTS; i++)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-        auto start2 = std::chrono::high_resolution_clock::now();
-        convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(),
-			output2.raw_buffer());
-        auto end2 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-        duration_vector_2.push_back(duration2);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    //compare_buffers_approximately("convolution rank "+std::to_string(rank) , output1, output2);
-
-    if(rank == 0)
-    {    print_time("performance_CPU.csv", "convolutiondist",
-            {"Tiramisu auto", "Tiramisu man"},
-         {median(duration_vector_1), median(duration_vector_2)});
-    }
+    // // Tiramisu
+    // for (int i=0; i<NB_TESTS; i++)
+    // {
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    //     auto start1 = std::chrono::high_resolution_clock::now();
+    //     convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(),
+	// 		output1.raw_buffer());
+    //     auto end1 = std::chrono::high_resolution_clock::now();
+    //     std::chrono::duration<double,std::milli> duration1 = end1 - start1;
+    //     duration_vector_1.push_back(duration1);
+    // }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //
+    // init_buffer(input, (int32_t)0);
+    // //init data
+    // for(int i=0; i < _ROWS/_NODES; i++)
+    //     for(int j=0; j < _COLS; j++)
+    //         for(int k=0; k< 3;k++)
+    //             input(k,j,i) = 3;
+    //
+    // // Warm up
+    // convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    //
+    // // Tiramisu
+    // for (int i=0; i<NB_TESTS; i++)
+    // {
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    //     auto start2 = std::chrono::high_resolution_clock::now();
+    //     convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(),
+	// 		output2.raw_buffer());
+    //     auto end2 = std::chrono::high_resolution_clock::now();
+    //     std::chrono::duration<double,std::milli> duration2 = end2 - start2;
+    //     duration_vector_2.push_back(duration2);
+    // }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //
+    // //compare_buffers_approximately("convolution rank "+std::to_string(rank) , output1, output2);
+    //
+    // if(rank == 0)
+    // {    print_time("performance_CPU.csv", "convolutiondist",
+    //         {"Tiramisu auto", "Tiramisu man"},
+    //      {median(duration_vector_1), median(duration_vector_2)});
+    // }
 
     tiramisu_MPI_cleanup();
     return 0;

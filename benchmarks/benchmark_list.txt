@@ -1,9 +1,6 @@
 ticket
 cvtcolor
 cvtcolorgpu[gpu]
-cvtcolordist[mpi,10]
-cvtcolorautodist[mpi,10]
-blurxyautodist[mpi,10]
 convolution
 convolution_layer
 vgg
