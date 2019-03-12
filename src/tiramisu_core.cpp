@@ -946,6 +946,17 @@ std::string utility::get_parameters_list(isl_set *set)
     return list;
 }
 
+int utility::get_extent(isl_set *set, int dim)
+{
+    tiramisu::expr lower_bound = tiramisu::utility::get_bound(set, dim, false);
+    tiramisu::expr upper_bound = tiramisu::utility::get_bound(set, dim, true);
+
+    if(lower_bound.get_expr_type() != tiramisu::e_val or upper_bound.get_expr_type() != tiramisu::e_val)
+        ERROR("Check if the context is set for constants of distributed dimension", true);
+
+    return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
+}
+
 tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr &loop_upper_bound, int v)
 {
     DEBUG_FCT_NAME(3);
@@ -2215,19 +2226,15 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
-void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+void computation::between(computation &before_c, int before_dim, computation &after_c, int after_dim)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(before_dim_var.get_name().length() > 0);
-    assert(after_dim_var.get_name().length() > 0);
+    assert(before_dim >= computation::root_dimension);
+    assert(after_dim >= computation::root_dimension);
 
-    std::vector<int> dimensions =
-        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
-    this->check_dimensions_validity(dimensions);
-    int before_dim = dimensions[0];
-    int after_dim = dimensions[1];
+    this->check_dimensions_validity({before_dim, after_dim});
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
                                 before_c.get_name() + " and " + after_c.get_name()));
@@ -2242,6 +2249,24 @@ void computation::between(computation &before_c, tiramisu::var before_dim_var, c
 
     this->after(before_c, before_dim);
     after_c.after(*this, after_dim);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(before_dim_var.get_name().length() > 0);
+    assert(after_dim_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    this->between(before_c, dimensions[0], after_c, dimensions[1]);
 
     DEBUG_INDENT(-4);
 }
@@ -5480,9 +5505,9 @@ std::string str_from_is_null(void *ptr)
 
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct, 
+                         tiramisu::argument_t argt, tiramisu::function *fct,
                          std::string corr):
-                         allocated(false), argtype(argt), auto_allocate(true), 
+                         allocated(false), argtype(argt), auto_allocate(true),
                          automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(cuda_ast::memory_location::host)
 {
@@ -5491,14 +5516,14 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
 
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-    if(corr.compare("") != 0)  
+    if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));
       fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
     }
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
-  
+
 void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 {
     this->automatic_gpu_copy = automatic_gpu_copy;
@@ -6067,7 +6092,7 @@ computation * computation::get_predecessor() {
         return nullptr;
     return reverse_graph.begin()->first;
 }
-  
+
  computation * computation::get_successor() {
     auto &reverse_graph = this->get_function()->sched_graph[this];
     if (reverse_graph.empty())
@@ -7606,7 +7631,7 @@ void tiramisu::buffer::tag_gpu_shared() {
 }
 
 void tiramisu::buffer::tag_gpu_constant() {
-    location = cuda_ast::memory_location::constant;    
+    location = cuda_ast::memory_location::constant;
 }
 
 void tiramisu::buffer::tag_gpu_global() {
@@ -7631,6 +7656,20 @@ std::string get_rank_string_type(tiramisu::rank_t rank_type)
         return "r_snd";
     else
         return "r_rcv";
+}
+
+void project_out_static_dimensions(isl_set*& set)
+{
+    int i = 0;
+
+    std::string tuple_name = isl_set_get_tuple_name(set);
+
+    while(i < isl_set_dim(set, isl_dim_set)) {
+        set = isl_set_project_out(set, isl_dim_set, i, 1);
+        i++;
+    }
+
+    isl_set_set_tuple_name(set, tuple_name.c_str());
 }
 
 std::vector<std::string> computation::get_trimmed_time_space_domain_dimension_names()
@@ -7669,7 +7708,7 @@ int computation::get_distributed_dimension()
         return -1;//no distributed dimension
 }
 
-isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks)
+isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
@@ -7679,17 +7718,18 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
     int distributed_dimension = this->get_distributed_dimension();
 
     if (distributed_dimension == -1)
-        ERROR("Computation " + this->get_name() + "isn't tagged distributed and called construct_distribution_map.",true);
+        ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
 
-    //get the extent of the distributed loop
+    if(distributed_dimension > 0)
+        ERROR("Generating communication code automatically inner distributed loops is currently not supported",true);
+
+    //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
-    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, false);
-    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, true);
-    int extent = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
+    isl_set * it_dom = this->get_trimmed_time_processor_domain();
+    project_out_static_dimensions(it_dom);
+    int number_of_ranks = tiramisu::utility::get_extent(it_dom, distributed_dimension);
 
-    //construct the string of all dimensions
     std::string dimensions_string = "";
-
     for (int i = 0; i < dimensions_names.size(); i++)
     {
         dimensions_string += dimensions_names[i];
@@ -7704,9 +7744,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type, int
 
     std::string domain = this->get_name() + "[" + dimensions_string + "]";
 
-    std::string constraint_on_distributed_dimension = std::to_string(extent/number_of_ranks)
-    + rank_name + "<=" + this->get_dimension_name_for_loop_level(distributed_dimension) +
-    "<" + std::to_string(extent/number_of_ranks) + "*(" + rank_name + "+1)";
+    std::string constraint_on_distributed_dimension = rank_name + "<=" + this->get_dimension_name_for_loop_level(distributed_dimension) + "<" + "(" + rank_name + "+1)";
 
     std::string distribution_map_string = params + "->{" + domain +"->" + domain + ":"
     + ranks_definition + " and " + constraint_on_distributed_dimension + "}";
