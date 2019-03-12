@@ -1205,8 +1205,8 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
-      * 
-      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      *
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
       * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
@@ -1214,7 +1214,7 @@ public:
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-           tiramisu::function *fct = global::get_implicit_function(), 
+           tiramisu::function *fct = global::get_implicit_function(),
            std::string corr = "");
 
 
@@ -2335,12 +2335,10 @@ private:
 
     /**
       * \brief Construct the distribution map of a computation.
-      * Not safe to use. It's currently being implemented.
       *
       * A distribution map partitions a computation across ranks.
-      * Given the number of available ranks number_of_ranks, the type of the rank rank_type which
-      * is either r_sender or r_receiver, the distribution map will specify for each rank the
-      * iterations it should execute.
+      * Given the type of the rank rank_type which is either r_sender or r_receiver,
+      * the distribution map will specify for each rank the iterations it should execute.
       *
       * Example :
       * \code
@@ -2354,7 +2352,7 @@ private:
       * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
       * /endcode
      */
-    isl_map* construct_distribution_map(tiramisu::rank_t rank_type, int number_of_ranks);
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type);
 
     /**
       * Return the distributed dimension of a computation.
@@ -3116,6 +3114,13 @@ public:
       *     - Each other computation should have exactly one computation scheduled before it.
       */
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
+
+    /**
+      * This function is equivalent to void between(computation &before_comp, tiramisu::var before_l,
+      * computation &after_comp, tiramisu::var after_l); except that it uses loop level numbers
+      * (0, 1, 2, ...) instead of using loop variables (tiramisu::var).
+      */
+    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
 
     /**
        * \brief Store this computation in \p buff
@@ -4714,6 +4719,18 @@ public:
      * would return min(N-1,M-1)
      */
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
+
+    /**
+     * Return the extent of the loop.
+     *
+     * For example:
+     *
+     * [N]->{C[i,j]: 0 <= i < N and N = 10}
+     *
+     * then get_extent(C,0) would return 10.
+     *
+     */
+    static int get_extent(isl_set *set, int dim);
 
     /**
      * Create a comma separated string that represents the list
