@@ -15,12 +15,12 @@ void gen(std::string name, int size, int val0, int val1)
 
     S0.tile(i, j, 2, 2, i0, j0, i1, j1);
     S0.unroll(i1, 2);
-    S0.vectorize(j1, 2);
+    S0.unroll(j1, 2);
 
     tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output);
     S0.store_in(&buf0, {i ,j});
 
-    tiramisu::codegen({&buf0}, "build/generated_fct_test_156.o");
+    tiramisu::codegen({&buf0}, "build/generated_fct_test_157.o");
 }
 
 int main(int argc, char **argv)

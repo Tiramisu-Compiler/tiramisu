@@ -1141,6 +1141,7 @@ void computation::update_names(std::vector<std::string> original_loop_level_name
     {
         DEBUG_NO_NEWLINE_NO_INDENT(3, tiramisu::str_dump(n + " "));
     }
+    DEBUG(3, tiramisu::str_dump(""));
 
     DEBUG_INDENT(-4);
 }
@@ -1165,15 +1166,18 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v, tiramisu::var
         // Tag the inner loop after splitting to be vectorized. That loop
         // is supposed to have a constant extent.
         this->get_update(0).tag_vector_level(L0 + 1, v);
+
+        // Replace the original dimension name with two new dimension names
+        this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
     }
     else
     {
         this->get_update(0).tag_vector_level(L0, v);
         this->set_loop_level_names({L0}, {L0_outer.get_name()});
-    }
 
-    // Replace the original dimension name with two new dimension names
-    this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
+        // Replace the original dimension name with two new dimension names
+        this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
+    }
 
     this->get_function()->align_schedules();
 
@@ -1235,15 +1239,18 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
         // Tag the inner loop after splitting to be unrolled. That loop
         // is supposed to have a constant extent.
         this->get_update(0).tag_unroll_level(L0 + 1, v);
+
+        // Replace the original dimension name with two new dimension names
+        this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
     }
     else
     {
         this->get_update(0).tag_unroll_level(L0, v);
         this->set_loop_level_names({L0}, {L0_outer.get_name()});
-    }
 
-    // Replace the original dimension name with two new dimension names
-    this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
+        // Replace the original dimension name with two new dimension names
+        this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
+    }
 
     this->get_function()->align_schedules();
 
@@ -4701,8 +4708,8 @@ int compute_recursively_max_AST_depth(isl_ast_node *node)
 
     int result = -1;
 
-    DEBUG(10, tiramisu::str_dump("Computing maximal AST depth from the following ISL AST node "));
-    DEBUG(10, tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
+    DEBUG(10, tiramisu::str_dump("Computing maximal AST depth from the following ISL AST node "););
+    DEBUG(10, tiramisu::str_dump("\n"); tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
 
     if (isl_ast_node_get_type(node) == isl_ast_node_block)
     {
@@ -4773,7 +4780,7 @@ tiramisu::expr utility::extract_bound_expression(isl_ast_node *node, int dim, bo
 
     DEBUG(3, tiramisu::str_dump("Extracting bounds from a loop at depth = " + std::to_string(dim)));
     DEBUG(3, tiramisu::str_dump("Extracting bounds from the following ISL AST node "));
-    DEBUG(3, tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
+    DEBUG(3, tiramisu::str_dump("\n"); tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
 
     if (isl_ast_node_get_type(node) == isl_ast_node_block)
     {
@@ -5031,9 +5038,13 @@ bool computation::separateAndSplit(int L0, int v)
     // Compute the depth before any scheduling.
     int original_depth = this->compute_maximal_AST_depth();
 
+    DEBUG(3, tiramisu::str_dump("Computing upper bound at loop level " + std::to_string(L0)));
+
     tiramisu::expr loop_upper_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
                        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true));
+
+    DEBUG(3, tiramisu::str_dump("Computing lower bound at loop level " + std::to_string(L0)));
 
     tiramisu::expr loop_lower_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
@@ -5061,6 +5072,10 @@ bool computation::separateAndSplit(int L0, int v)
      */
     this->separate(L0, loop_bound, v);
 
+    // Make a copy of the schedule before splitting so that we revert the
+    // schedule if splitting did not have any effect (i.e., did not happen).
+    isl_map *sc = isl_map_copy(this->get_schedule());
+
     /**
      * Split the full computation since the full computation will be vectorized.
      */
@@ -5072,14 +5087,16 @@ bool computation::separateAndSplit(int L0, int v)
     bool split_happened = false;
     if (depth == original_depth)
     {
-        DEBUG(3, tiramisu::str_dump("Split happened."));
-
+        DEBUG(3, tiramisu::str_dump("Split did not happen."));
         split_happened = false;
+
+	DEBUG(3, tiramisu::str_dump("Cancel splitting."));
+	this->set_schedule(sc);
     }
     else
     {
          split_happened = true;
-         DEBUG(3, tiramisu::str_dump("Split did not happen."));
+         DEBUG(3, tiramisu::str_dump("Split happenned."));
     }
 
     this->get_function()->align_schedules();
