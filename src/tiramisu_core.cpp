@@ -946,6 +946,17 @@ std::string utility::get_parameters_list(isl_set *set)
     return list;
 }
 
+int utility::get_extent(isl_set *set, int dim)
+{
+    tiramisu::expr lower_bound = tiramisu::utility::get_bound(set, dim, false);
+    tiramisu::expr upper_bound = tiramisu::utility::get_bound(set, dim, true);
+
+    if(lower_bound.get_expr_type() != tiramisu::e_val or upper_bound.get_expr_type() != tiramisu::e_val)
+        ERROR("Check if the context is set for constants of distributed dimension", true);
+
+    return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
+}
+
 tiramisu::constant *tiramisu::computation::create_separator(const tiramisu::expr &loop_upper_bound, int v)
 {
     DEBUG_FCT_NAME(3);
@@ -7630,6 +7641,20 @@ std::string get_rank_string_type(tiramisu::rank_t rank_type)
         return "r_rcv";
 }
 
+void project_out_static_dimensions(isl_set*& set)
+{
+    int i = 0;
+
+    std::string tuple_name = isl_set_get_tuple_name(set);
+
+    while(i < isl_set_dim(set, isl_dim_set)) {
+        set = isl_set_project_out(set, isl_dim_set, i, 1);
+        i++;
+    }
+
+    isl_set_set_tuple_name(set, tuple_name.c_str());
+}
+
 std::vector<std::string> computation::get_trimmed_time_space_domain_dimension_names()
 {
     std::vector<std::string> dimensions_names;
@@ -7676,13 +7701,16 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
     int distributed_dimension = this->get_distributed_dimension();
 
     if (distributed_dimension == -1)
-        ERROR("Computation " + this->get_name() + "isn't tagged distributed and called construct_distribution_map.",true);
+        ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
+
+    if(distributed_dimension > 0)
+        ERROR("Generating communication code automatically inner distributed loops is currently not supported",true);
 
     //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
-    tiramisu::expr lower_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, false);
-    tiramisu::expr upper_bound = tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), distributed_dimension, true);
-    int number_of_ranks = upper_bound.get_int_val()-lower_bound.get_int_val()+1;
+    isl_set * it_dom = this->get_trimmed_time_processor_domain();
+    project_out_static_dimensions(it_dom);
+    int number_of_ranks = tiramisu::utility::get_extent(it_dom, distributed_dimension);
 
     std::string dimensions_string = "";
     for (int i = 0; i < dimensions_names.size(); i++)

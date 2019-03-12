@@ -4721,6 +4721,18 @@ public:
     static tiramisu::expr get_bound(isl_set *set, int dim, int upper);
 
     /**
+     * Return the extent of the loop.
+     *
+     * For example:
+     *
+     * [N]->{C[i,j]: 0 <= i < N and N = 10}
+     *
+     * then get_extent(C,0) would return 10.
+     *
+     */
+    static int get_extent(isl_set *set, int dim);
+
+    /**
      * Create a comma separated string that represents the list
      * of the parameters of \p set.
      *
