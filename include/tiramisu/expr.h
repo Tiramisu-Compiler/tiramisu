@@ -69,6 +69,15 @@ private:
 public:
 
     /**
+      * Return a unique buffer name.
+      */
+    static std::string generate_new_buffer_name()
+    {
+        static int counter = 0;
+        return "b" + std::to_string(counter++);
+    }
+
+    /**
       * Return the implicit function created during Tiramisu initialization.
       *
       * When Tiramisu is initialized, an implicit Tiramisu
