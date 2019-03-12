@@ -7704,7 +7704,7 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
         ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
 
     if(distributed_dimension > 0)
-        ERROR("Generating communication code automatically inner distributed loops is currently not supported",true);
+        ERROR("Generating communication code automatically for inner distributed loops is currently not supported.",true);
 
     //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
