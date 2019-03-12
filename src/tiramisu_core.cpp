@@ -2458,19 +2458,15 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
-void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+void computation::between(computation &before_c, int before_dim, computation &after_c, int after_dim)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(before_dim_var.get_name().length() > 0);
-    assert(after_dim_var.get_name().length() > 0);
+    assert(before_dim >= computation::root_dimension);
+    assert(after_dim >= computation::root_dimension);
 
-    std::vector<int> dimensions =
-        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
-    this->check_dimensions_validity(dimensions);
-    int before_dim = dimensions[0];
-    int after_dim = dimensions[1];
+    this->check_dimensions_validity({before_dim, after_dim});
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
                                 before_c.get_name() + " and " + after_c.get_name()));
@@ -2485,6 +2481,25 @@ void computation::between(computation &before_c, tiramisu::var before_dim_var, c
 
     this->after(before_c, before_dim);
     after_c.after(*this, after_dim);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(before_dim_var.get_name().length() > 0);
+    assert(after_dim_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
+    this->check_dimensions_validity(dimensions);
+    int before_dim = dimensions[0];
+    int after_dim = dimensions[1];
+
+    this->between(before_c, before_dim, after_c, after_dim);
 
     DEBUG_INDENT(-4);
 }
@@ -8039,9 +8054,9 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
         //apply schedule to producer
         computation* producer = get_function()->get_computation_by_name(comp_name)[0];
         rhs_access = isl_map_apply_range(rhs_access, isl_map_copy(producer->get_trimmed_union_of_schedules()));
+        //tiramisu::str_dump("rhs_access after applying schedule ");isl_map_dump(rhs_access);
         //apply rhs_access
         isl_set* needed_set = isl_set_apply(isl_set_copy(receiver_to_compute_set), rhs_access);
-
         //check if it should do communication on it
         if(producer->get_distributed_dimension()!=-1){
             if (receiver_needed.find(comp_name) != receiver_needed.end())
@@ -8051,8 +8066,12 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
         }else {
             DEBUG(3, "Computation " + comp_name + "isn't distributed, no communication needed");
         }
-
     }
+
+    for (auto needed_set : receiver_needed) {
+        tiramisu::str_dump(needed_set.first);isl_set_dump(needed_set.second);
+    }
+
 
     //receiver's owned_sets
     std::unordered_map<std::string,isl_set*> receiver_owned;
@@ -8121,8 +8140,10 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
     tiramisu::expr access = tiramisu::expr(op_t::o_access, comp_name,iterators,
     get_function()->get_computation_by_name(comp_name)[0]->get_data_type());
 
+    auto data_type = get_function()->get_computation_by_name(comp_name)[0]->get_data_type();
+
     xfer data_transfer = computation::create_xfer( isl_set_to_str(send_iter_dom), isl_set_to_str(recv_iter_dom), r_rcv, r_snd,
-    xfer_prop(p_uint32, {MPI, BLOCK, ASYNC}), xfer_prop(p_uint32, {MPI, BLOCK, ASYNC}), access, get_function());
+    xfer_prop(data_type, {MPI, BLOCK, ASYNC}), xfer_prop(data_type, {MPI, BLOCK, ASYNC}), access, get_function());
 
     data_transfer.s->tag_distribute_level(r_snd);
     data_transfer.r->tag_distribute_level(r_rcv);
@@ -8135,14 +8156,12 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
 
     //if predecessor
     if(this->get_predecessor() != nullptr) {
-        //get level
+         //get level
         int level = this->get_function()->sched_graph_reversed[this][this->get_predecessor()] ;
         //clear
         computation *pred = this->get_predecessor();
-        this->get_function()->sched_graph_reversed[this].erase(pred);
-        pred->before(*data_transfer.s, computation::root);
-        data_transfer.s->before(*data_transfer.r, computation::root);
-        data_transfer.r->before(*c, computation::root);
+        data_transfer.s->between(*pred, level, *c, level);
+        data_transfer.r->between(*data_transfer.s, level, *c, level);
     }else {
         DEBUG(3, tiramisu::str_dump("Communication of "+ this->get_name()+" has no predecessor"));
         data_transfer.s->before(*data_transfer.r, computation::root);
@@ -8157,11 +8176,13 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
         if(i < iterators.size() - 1) it_string += ',';
     }
 
+    //number of rows that we're treating
     int distributed_dimension = this->get_distributed_dimension();
     //get the extent of the distributed loop
     this->simplify(this->get_iteration_domain());
     isl_set * s= this->get_trimmed_time_processor_domain();
     project_out_static_dimensions(s);
+    s = isl_set_project_out(s, isl_dim_set, distributed_dimension, 1);
     int extent = tiramisu::utility::get_extent(s, distributed_dimension);
 
     //construct string access
@@ -8171,7 +8192,7 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
     access_string += "[" + std::to_string(extent) + "+" +it_string + "]}";
     data_transfer.r->set_access(access_string);
 
-    /***This works onmy for outermost loops***/
+    /***This works only for outermost loops***/
 
     //Important : get_bound doesn't work for dim more than one
     recv_iter_dom = isl_set_project_out(recv_iter_dom, isl_dim_set, 0, 2);

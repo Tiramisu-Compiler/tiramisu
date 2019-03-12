@@ -3146,6 +3146,7 @@ public:
       */
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
 
+    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
     /**
        * \brief Store this computation in \p buff
        *
