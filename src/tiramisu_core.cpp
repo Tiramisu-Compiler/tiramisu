@@ -5003,13 +5003,6 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     return e;
 }
 
-int utility::get_extent(isl_set *set, int dim)
-{
-    tiramisu::expr lower_bound = tiramisu::utility::get_bound(set, dim, false);
-    tiramisu::expr upper_bound = tiramisu::utility::get_bound(set, dim, true);
-    return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
-}
-
 bool computation::separateAndSplit(tiramisu::var L0, int sizeX)
 {
     DEBUG_FCT_NAME(3);
@@ -7814,6 +7807,7 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
     //Find the receiver's needed_sets
     std::vector<isl_map*> rhs_accesses;
     generator::get_rhs_accesses(this->get_function(), this, rhs_accesses, false);
+    
     //map computation name to the receiver needed set of that computation
     std::unordered_map <std::string, isl_set*> receiver_needed;
 
@@ -7827,7 +7821,6 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
         //apply schedule to producer
         computation* producer = get_function()->get_computation_by_name(comp_name)[0];
         rhs_access = isl_map_apply_range(rhs_access, isl_map_copy(producer->get_trimmed_union_of_schedules()));
-        //tiramisu::str_dump("rhs_access after applying schedule ");isl_map_dump(rhs_access);
         //apply rhs_access
         isl_set* needed_set = isl_set_apply(isl_set_copy(receiver_to_compute_set), rhs_access);
         //check if it should do communication on it
@@ -7841,14 +7834,10 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
         }
     }
 
-    for (auto needed_set : receiver_needed) {
-        tiramisu::str_dump(needed_set.first);isl_set_dump(needed_set.second);
-    }
-
-
     //receiver's owned_sets
     std::unordered_map<std::string,isl_set*> receiver_owned;
-    for (auto needed_set : receiver_needed) {
+    for (auto needed_set : receiver_needed)
+    {
         //get computation
         computation* producer = get_function()->get_computation_by_name(needed_set.first)[0];
         //construct distribution map of the receiver
@@ -7902,8 +7891,13 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
 
     auto data_type = get_function()->get_computation_by_name(comp_name)[0]->get_data_type();
 
-    xfer data_transfer = computation::create_xfer( isl_set_to_str(send_iter_dom), isl_set_to_str(recv_iter_dom), r_rcv, r_snd,
-    xfer_prop(data_type, {MPI, BLOCK, ASYNC}), xfer_prop(data_type, {MPI, BLOCK, ASYNC}), access, get_function());
+    xfer data_transfer = computation::create_xfer(
+        isl_set_to_str(send_iter_dom),
+        isl_set_to_str(recv_iter_dom),
+        r_rcv, r_snd,
+        xfer_prop(data_type, {MPI, BLOCK, ASYNC}),
+        xfer_prop(data_type, {MPI, BLOCK, ASYNC}),
+        access, get_function());
 
     data_transfer.s->tag_distribute_level(r_snd);
     data_transfer.r->tag_distribute_level(r_rcv);
@@ -7915,14 +7909,17 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
             "Node has more than one predecessor.");
 
     //if predecessor
-    if(this->get_predecessor() != nullptr) {
+    if(this->get_predecessor() != nullptr)
+    {
          //get level
         int level = this->get_function()->sched_graph_reversed[this][this->get_predecessor()] ;
         //clear
         computation *pred = this->get_predecessor();
         data_transfer.s->between(*pred, level, *c, level);
         data_transfer.r->between(*data_transfer.s, level, *c, level);
-    }else {
+    }
+    else
+    {
         DEBUG(3, tiramisu::str_dump("Communication of "+ this->get_name()+" has no predecessor"));
         data_transfer.s->before(*data_transfer.r, computation::root);
         data_transfer.r->before(*c, computation::root);
@@ -7936,9 +7933,9 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
         if(i < iterators.size() - 1) it_string += ',';
     }
 
-    //number of rows that we're treating
+    //Each rank will process dim_extent/nb_ranks
+    //To fix and test
     int distributed_dimension = this->get_distributed_dimension();
-    //get the extent of the distributed loop
     this->simplify(this->get_iteration_domain());
     isl_set * s= this->get_trimmed_time_processor_domain();
     project_out_static_dimensions(s);
@@ -7953,8 +7950,8 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
     data_transfer.r->set_access(access_string);
 
     /***This works only for outermost loops***/
-
-    //Important : get_bound doesn't work for dim more than one
+    //To do: make it work on any level
+    //Important : get_bound doesn't work for dim more than one, that's why we project out all other dim
     recv_iter_dom = isl_set_project_out(recv_iter_dom, isl_dim_set, 0, 2);
 
     //adapt buffer size
@@ -7970,11 +7967,12 @@ void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_it
 void computation::gen_communication()
 {
     int comm_id = 0;
+
+    //Sets that needs to be exchanged between ranks sender, receiver
     std::unordered_map<std::string, isl_set*>  to_receive_sets = construct_exchange_sets ();
 
     for (auto set : to_receive_sets)
     {
-
         project_out_static_dimensions(set.second);
 
         DEBUG(3, tiramisu::str_dump("To exchange set after project out:"); isl_set_dump(set.second));
