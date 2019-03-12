@@ -5873,22 +5873,24 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
         bool is_bounded = true;
         std::vector<expr> buffer_size;
         for (const auto &var : iterator_variables) {
-            if (var.lower.is_defined() && var.lower.is_integer() &&
-                var.upper.is_defined() && var.upper.is_integer()) {
-                buffer_size.push_back(var.upper.get_int_val() - var.lower.get_int_val());
+            if (var.lower.is_defined() && var.upper.is_defined()) {
+                buffer_size.push_back(var.upper - var.lower);
             } else {
                 is_bounded = false;
                 break;
             }
         }
         if (is_bounded) {
-            std::string buffer_name = "_" + this->name + "_buffer" + std::to_string(id_counter++);
-            this->store_in(new tiramisu::buffer(
-                           buffer_name,
-                           buffer_size,
-                           this->get_data_type(),
-                           a_temporary,
-                           this->get_function()));
+            std::string buffer_name = "_" + this->name + "_" + global::generate_new_buffer_name();
+            // TODO: Memory leak in implicit buffers.
+            this->store_in(new tiramisu::buffer(buffer_name,
+                                                buffer_size,
+                                                this->get_data_type(),
+                                                a_temporary,
+                                                this->get_function()));
+        } else {
+            DEBUG(3, tiramisu::str_dump("The iterators of computation " + name +
+                    " are not bounded. Skipping implicit buffer generation."));
         }
     }
 
@@ -6593,6 +6595,22 @@ void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::expr> i
 
     DEBUG_INDENT(-4);
 }
+
+void computation::store_in(std::vector<expr> mapping, std::vector<expr> sizes) {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::string buffer_name = "_" + this->name + "_" + global::generate_new_buffer_name();
+    buffer *new_buffer = new tiramisu::buffer(buffer_name,
+                                              sizes,
+                                              this->get_data_type(),
+                                              a_temporary,
+                                              this->get_function());
+    this->store_in(new_buffer, mapping);
+
+    DEBUG_INDENT(-4);
+}
+
 void tiramisu::computation::mark_as_let_statement()
 {
     this->is_let = true;

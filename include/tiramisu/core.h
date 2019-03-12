@@ -3135,7 +3135,7 @@ public:
        * C.store_in(&bufC)
        * \endcode
        *
-       * This mans that each computation C(i) will be stored
+       * This means that each computation C(i) will be stored
        * in the buffer location bufC[i].
        *
        * If \p iterators is specified, the \p iterators are used to specify how the
@@ -3180,6 +3180,29 @@ public:
      void store_in(buffer *buff);
      void store_in(buffer *buff, std::vector<expr> iterators);
      // }@
+
+    /**
+      * \brief Resize the implicit buffer and remap the computation.
+      *
+      * \details By default Tiramisu computations are stored in implicit
+      * buffers with one to one mapping. If user wants to store the data in a
+      * different layout (i.e. for reductions), this function should be used to
+      * change the size of the implicit buffer and mapping.
+      *
+      * For example a simple reduction operation would look like this:
+      *
+      * \code
+      * computation C({i, j}, p_float);
+      * C.set_expression(C(i, 0) + B(i, j));
+      * C.store_in({i}, {N});
+      * \endcode
+      *
+      * Note that this function creates a completely new implicit buffer, thus
+      * the old implicit buffer should not be referenced before this operation.
+      */
+    // @{
+    void store_in(std::vector<expr> mapping, std::vector<expr> sizes);
+    // }@
 
     /**
       * This function assumes that \p consumer consumes values produced by
