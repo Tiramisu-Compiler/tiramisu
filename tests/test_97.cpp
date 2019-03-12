@@ -28,8 +28,6 @@ void generate_function_1(std::string name, int size, int val0, int val1)
     tiramisu::buffer buf0("buf0", {size, size}, tiramisu::p_uint8, a_output, &function0);
 
     S0.set_access("{S0[i,j]->buf0[i,j]}");
-    S0.tile(i, j, 2, 2, i0, j0, i1, j1);
-    S0.tag_parallel_level(i0);
 
     function0.set_arguments({&buf0});
     function0.gen_time_space_domain();
@@ -41,7 +39,7 @@ void generate_function_1(std::string name, int size, int val0, int val1)
 
 int main(int argc, char **argv)
 {
-    generate_function_1("big_buffer", 10, 3, 4);
+    generate_function_1("big_buffer", 50000, 3, 4);
 
     return 0;
 }

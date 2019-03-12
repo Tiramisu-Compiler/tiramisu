@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <iostream>
 
-#define NN 10
-#define MM 10
+#define NN 50000
+#define MM 50000
 
 int main(int, char **)
 {
