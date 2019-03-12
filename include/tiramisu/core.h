@@ -1205,8 +1205,8 @@ public:
       * the common case), the function that was created automatically
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
-      * 
-      * \p corr is the name of the cpu buffer corresponding to a gpu buffer. 
+      *
+      * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
       * This field is only set, when we creat a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
@@ -1214,7 +1214,7 @@ public:
       */
     buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
-           tiramisu::function *fct = global::get_implicit_function(), 
+           tiramisu::function *fct = global::get_implicit_function(),
            std::string corr = "");
 
 
@@ -3116,6 +3116,13 @@ public:
       *     - Each other computation should have exactly one computation scheduled before it.
       */
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
+
+    /**
+      * This function is equivalent to void between(computation &before_comp, tiramisu::var before_l,
+      * computation &after_comp, tiramisu::var after_l); except that it uses loop level numbers
+      * (0, 1, 2, ...) instead of using loop variables (tiramisu::var).
+      */
+    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
 
     /**
        * \brief Store this computation in \p buff

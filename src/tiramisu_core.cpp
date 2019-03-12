@@ -2208,19 +2208,15 @@ void computation::before(computation &comp, int dim)
     DEBUG_INDENT(-4);
 }
 
-void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+void computation::between(computation &before_c, int before_dim, computation &after_c, int after_dim)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(before_dim_var.get_name().length() > 0);
-    assert(after_dim_var.get_name().length() > 0);
+    assert(before_dim >= computation::root_dimension);
+    assert(after_dim >= computation::root_dimension);
 
-    std::vector<int> dimensions =
-        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
-    this->check_dimensions_validity(dimensions);
-    int before_dim = dimensions[0];
-    int after_dim = dimensions[1];
+    this->check_dimensions_validity({before_dim, after_dim});
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
                                 before_c.get_name() + " and " + after_c.get_name()));
@@ -2235,6 +2231,24 @@ void computation::between(computation &before_c, tiramisu::var before_dim_var, c
 
     this->after(before_c, before_dim);
     after_c.after(*this, after_dim);
+
+    DEBUG_INDENT(-4);
+}
+
+void computation::between(computation &before_c, tiramisu::var before_dim_var, computation &after_c, tiramisu::var after_dim_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(before_dim_var.get_name().length() > 0);
+    assert(after_dim_var.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({before_dim_var.get_name(), after_dim_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    this->between(before_c, dimensions[0], after_c, dimensions[1]);
 
     DEBUG_INDENT(-4);
 }
@@ -5463,9 +5477,9 @@ std::string str_from_is_null(void *ptr)
 
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
-                         tiramisu::argument_t argt, tiramisu::function *fct, 
+                         tiramisu::argument_t argt, tiramisu::function *fct,
                          std::string corr):
-                         allocated(false), argtype(argt), auto_allocate(true), 
+                         allocated(false), argtype(argt), auto_allocate(true),
                          automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(cuda_ast::memory_location::host)
 {
@@ -5474,14 +5488,14 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
 
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-    if(corr.compare("") != 0)  
+    if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));
       fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
     }
     fct->add_buffer(std::pair<std::string, tiramisu::buffer *>(name, this));
 };
-  
+
 void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 {
     this->automatic_gpu_copy = automatic_gpu_copy;
@@ -6050,7 +6064,7 @@ computation * computation::get_predecessor() {
         return nullptr;
     return reverse_graph.begin()->first;
 }
-  
+
  computation * computation::get_successor() {
     auto &reverse_graph = this->get_function()->sched_graph[this];
     if (reverse_graph.empty())
@@ -7589,7 +7603,7 @@ void tiramisu::buffer::tag_gpu_shared() {
 }
 
 void tiramisu::buffer::tag_gpu_constant() {
-    location = cuda_ast::memory_location::constant;    
+    location = cuda_ast::memory_location::constant;
 }
 
 void tiramisu::buffer::tag_gpu_global() {
