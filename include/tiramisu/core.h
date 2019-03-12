@@ -3142,6 +3142,13 @@ public:
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
 
     /**
+      * This function is equivalent to void between(computation &before_comp, tiramisu::var before_l,
+      * computation &after_comp, tiramisu::var after_l); except that it uses loop level numbers
+      * (0, 1, 2, ...) instead of using loop variables (tiramisu::var).
+      */
+    void between(computation &before_comp, int before_l, computation &after_comp, int after_l);
+    
+    /**
        * \brief Store this computation in \p buff
        *
        * \details
