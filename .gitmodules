@@ -1,7 +1,7 @@
 [submodule "Halide"]
 	path = 3rdParty/Halide
 	url = https://github.com/jrayzero/Halide.git
-	branch = tiramisu_64_bit
+	branch = tiramisu_fresh
 	ignore = all
 [submodule "3rdParty/llvm"]
 	path = 3rdParty/llvm
