@@ -2,8 +2,13 @@
 
 source ../../../configure_paths.sh
 
-echo
+CXXFLAGS="-std=c++11 -O3 -fno-rtti"
+
+INCLUDES="-I${MKL_PREFIX}/include/"
+LIBRARIES=" ${MKL_FLAGS} -lz -lpthread"
+LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX}"
+
 echo "MKLDNN VGG"
 
-g++ -std=c++11 -I${MKL_PREFIX}/include -L${MKL_PREFIX}/lib vgg_block_generator_mkldnn.cpp -lmkldnn -o vggBlock_mkldnn_result
-./vggBlock_mkldnn_result
+g++ ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} vgg_block_generator_mkldnn.cpp ${LIBRARIES_DIR} ${LIBRARIES} -lmkldnn -o vgg_block_mkldnn_result
+LD_LIBRARY_PATH=${MKL_PREFIX}/build/src/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ./vgg_block_mkldnn_result

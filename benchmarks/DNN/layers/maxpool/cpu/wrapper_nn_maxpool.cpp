@@ -91,7 +91,8 @@ int main(int, char **)
               << ": \n";
 
     const std::string in1 = "tiramisu_result.txt";
-    const std::string in2 = "mkldnn_result.txt";
+    const std::string in2 = "mkl_result.txt";
+    //const std::string in2 = "mkldnn_result.txt";
 
     if (compareFiles(in1, in2))
         printf("\t\t\tcorrect\n\n");

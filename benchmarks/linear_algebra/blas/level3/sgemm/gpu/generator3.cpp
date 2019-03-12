@@ -1,4 +1,5 @@
 #include <tiramisu/tiramisu.h>
+#include <tiramisu/block.h>
 
 #include "configuration.h"
 
@@ -89,28 +90,19 @@ int main(int argc, char **argv)
 
     // Scheduling commands
 
-    c_A_shr_dec.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_A_reg_dec.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_acc_dec.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_A_glb_to_shr_pre.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_A_glb_to_shr.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_A_shr_to_reg.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_B_shr_dec.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_B_reg_dec.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_B_glb_to_shr_pre.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_B_glb_to_shr.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_B_shr_to_reg.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
     c_acc_init.tile(i, j, R_BLOCK_I, R_BLOCK_J, i0, j0, i1, j1);
-    c_acc_init.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
     c_acc.tile(i, j, R_BLOCK_I, R_BLOCK_J, i0, j0, i1, j1);
     c_acc.interchange(j1, k);
     c_acc.interchange(i1, k);
     c_acc.split(k, BLOCK, k0, k1);
-    c_acc.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
     c_C.tile(i, j, R_BLOCK_I, R_BLOCK_J, i0, j0, i1, j1);
-    c_C.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_sync1.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
-    c_sync2.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
+
+    block kernel_block({&c_acc_dec, &c_acc_init, &c_acc, &c_C,
+            &c_A_shr_dec, &c_A_reg_dec, &c_B_shr_dec, &c_B_reg_dec,
+            &c_A_glb_to_shr_pre, &c_A_glb_to_shr, &c_A_shr_to_reg,
+            &c_B_glb_to_shr_pre, &c_B_glb_to_shr, &c_B_shr_to_reg,
+            &c_sync1, &c_sync2});
+    kernel_block.gpu_tile(i0, j0, BLOCK, BLOCK, i00, j00, i01, j01);
 
     copy_A_to_device.then(copy_B_to_device, computation::root)
                     .then(copy_C_to_device, computation::root)
