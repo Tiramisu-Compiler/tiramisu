@@ -16,10 +16,10 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<int32_t> Img1(1, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> Img2(1, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> output1(1, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> output2(1, _COLS, _ROWS/NODES + 2);
+    Halide::Buffer<int32_t> Img1(3, _COLS, _ROWS/NODES + 2);
+    Halide::Buffer<int32_t> Img2(3, _COLS, _ROWS/NODES + 2);
+    Halide::Buffer<int32_t> output1(3, _COLS, _ROWS/NODES + 2);
+    Halide::Buffer<int32_t> output2(3, _COLS, _ROWS/NODES + 2);
 
 
     init_buffer(output1, (int32_t) 0);
@@ -28,7 +28,7 @@ int main(int, char**)
     {
         for(int j = 0; j < _COLS; j++)
         {
-            for(int k = 0 ; k < 1; k++) Img1(k,j,i) = 1 + rank;
+            for(int k = 0 ; k < 3; k++) Img1(k,j,i) = 1 + rank;
         }
 
     }
@@ -45,7 +45,7 @@ int main(int, char**)
         {
             for(int j = 0; j < _COLS; j++)
             {
-                for(int k = 0 ; k < 1; k++) Img1(k,j,i) = 1 + rank;
+                for(int k = 0 ; k < 3; k++) Img1(k,j,i) = 1 + rank;
             }
 
         }
@@ -65,7 +65,7 @@ int main(int, char**)
     {
         for(int j = 0; j < _COLS; j++)
         {
-            for(int k = 0 ; k < 1; k++) Img2(k,j,i) = 1 + rank;
+            for(int k = 0 ; k < 3; k++) Img2(k,j,i) = 1 + rank;
         }
 
     }
@@ -79,7 +79,7 @@ int main(int, char**)
         {
             for(int j = 0; j < _COLS; j++)
             {
-                for(int k = 0 ; k < 1; k++) Img2(k,j,i) = 1 + rank;
+                for(int k = 0 ; k < 3; k++) Img2(k,j,i) = 1 + rank;
             }
 
         }

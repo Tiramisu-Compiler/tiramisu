@@ -1,5 +1,5 @@
-#ifndef HALIDE__build___wrapper_edge_o_h
-#define HALIDE__build___wrapper_edge_o_h
+#ifndef HALIDE__build___wrapper_edgedist_o_h
+#define HALIDE__build___wrapper_edgedist_o_h
 
 #include <tiramisu/utils.h>
 #ifdef __cplusplus

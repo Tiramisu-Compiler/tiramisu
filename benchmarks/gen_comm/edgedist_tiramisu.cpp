@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     function* edge = global::get_implicit_function();
     edge->add_context_constraints("[ROWS]->{:ROWS = "+std::to_string(_ROWS)+"}");
 
-    var ir("ir", 0, ROWS-2), jr("jr", 0, COLS-2), c("c", 0, 1), ii("ii"), jj("jj"), kk("kk"), p("p"),q("q"), i1("i1"), i0("i0"), jn("jn", 0, COLS);
+    var ir("ir", 0, ROWS-2), jr("jr", 0, COLS-2), c("c", 0, 3), ii("ii"), jj("jj"), kk("kk"), p("p"),q("q"), i1("i1"), i0("i0"), jn("jn", 0, COLS);
     var in("in", 0, ROWS);
     var iout("iout", 0, ROWS-4), jout("jout", 0, COLS-4);
     var s("s"); var r("r");
@@ -45,8 +45,8 @@ int main(int argc, char* argv[])
     R.drop_rank_iter(i0);
 
     // Layer III
-    buffer b_Img("b_Img", {_ROWS/NODES, _COLS, 1}, p_int32, a_input);
-    buffer   b_R("b_R",   {_ROWS/NODES, _COLS, 1}, p_int32, a_output);
+    buffer b_Img("b_Img", {_ROWS/NODES, _COLS, 3}, p_int32, a_input);
+    buffer   b_R("b_R",   {_ROWS/NODES, _COLS, 3}, p_int32, a_output);
 
     Img.store_in(&b_Img);
     R.store_in(&b_R);
