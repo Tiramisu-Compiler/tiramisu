@@ -2137,9 +2137,15 @@ private:
     void separate(int dim, tiramisu::expr N, int v);
 
     /**
-      * Like separate, but the precise separate points are specified in _separate_points. _max is the loop max.
+      * Like separate, but the precise separate points are specified in loop_separate_points.
       */
-    void separate_at(var level, std::vector<tiramisu::expr> _separate_points, tiramisu::expr _max);
+    void separate_at(var level, std::vector<tiramisu::expr> loop_separate_points, tiramisu::expr loop_max);
+
+    /**
+      * Same as separate_at(var, vector, expr), but renames all the separate computations.
+      */
+    void separate_at(var level, std::vector<tiramisu::expr> loop_separate_points, tiramisu::expr loop_max, 
+		     std::vector<std::string> update_names);
 
     /**
       * Separate then split the loop \p L0
@@ -3347,7 +3353,7 @@ public:
     /**
       * Specify that the rank loop iterator should be removed from linearization.
       */
-    void drop_rank_iter(var level);
+    void drop_rank_iter(var level, bool tag_updates = false);
 
     /**
       * Get the data type of the computation.
@@ -3813,11 +3819,13 @@ public:
     void tag_vector_level(int L, int len);
 
     /**
-      * Tag the loop level \p L to be distributed.
+      * Tag the loop level \p L to be distributed. If tag_updates = true, 
+      * all update computations are tagged as well (if those updates have their own updates,
+      * those are NOT tagged). 
       */
     // @{
-    void tag_distribute_level(tiramisu::var L);
-    void tag_distribute_level(int L);
+    void tag_distribute_level(tiramisu::var L, bool tag_updates = false);
+    void tag_distribute_level(int L, bool tag_updates = false);
     // @}
 
     /**

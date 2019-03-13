@@ -263,6 +263,9 @@ void tiramisu::computation::rename_computation(std::string new_name)
     for (auto &pd : this->get_function()->vector_dimensions)
         if (std::get<0>(pd) == old_name)
             std::get<0>(pd) = new_name;
+    for (auto &pd : this->get_function()->distributed_dimensions)
+        if (std::get<0>(pd) == old_name)
+            std::get<0>(pd) = new_name;
 
     DEBUG_INDENT(-4);
 }
@@ -518,7 +521,7 @@ void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::tag_distribute_level(tiramisu::var L)
+  void tiramisu::computation::tag_distribute_level(tiramisu::var L, bool tag_updates)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -529,12 +532,12 @@ void tiramisu::computation::tag_distribute_level(tiramisu::var L)
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
 
-    this->tag_distribute_level(L0);
+    this->tag_distribute_level(L0, tag_updates);
 
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::tag_distribute_level(int L)
+    void tiramisu::computation::tag_distribute_level(int L, bool tag_updates)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -542,9 +545,14 @@ void tiramisu::computation::tag_distribute_level(int L)
     assert(L >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
-
-    this->get_function()->add_distributed_dimension(this->get_name(), L);
-    this->get_function()->_needs_rank_call = true;
+    if (!tag_updates) {
+      this->get_function()->add_distributed_dimension(this->get_name(), L);
+      this->get_function()->_needs_rank_call = true;
+    } else {
+      for (auto update : get_updates()) {
+	update->tag_distribute_level(L, false);
+      }
+    }
 
     DEBUG_INDENT(-4);
 }
@@ -770,28 +778,29 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::separate_at(var _level, std::vector<tiramisu::expr> _separate_points, tiramisu::expr _max)
+void tiramisu::computation::separate_at(var loop_level, std::vector<tiramisu::expr> loop_separate_points, 
+					tiramisu::expr loop_max)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    DEBUG(3, tiramisu::str_dump("Separating the computation at level " + _level.get_name()));
+    DEBUG(3, tiramisu::str_dump("Separating the computation at level " + loop_level.get_name()));
 
     DEBUG(3, tiramisu::str_dump("Generating the time-space domain."));
     this->gen_time_space_domain();
 
     std::vector<int> dimensions =
-            this->get_loop_level_numbers_from_dimension_names({_level.get_name()});
+            this->get_loop_level_numbers_from_dimension_names({loop_level.get_name()});
     int level = dimensions[0];
 
     //////////////////////////////////////////////////////////////////////////////
 
     std::vector<tiramisu::constant> separate_points;
-    for (auto p : _separate_points) {
+    for (auto p : loop_separate_points) {
         separate_points.push_back(tiramisu::constant("c" + std::to_string(id_counter++), p, p.get_data_type(), true,
                                                      NULL, 0, this->get_function()));
     }
-    tiramisu::constant max("c" + std::to_string(id_counter++), _max, _max.get_data_type(), true, NULL, 0,
+    tiramisu::constant max("c" + std::to_string(id_counter++), loop_max, loop_max.get_data_type(), true, NULL, 0,
                            this->get_function());
 
     // We create the constraint (i < separate_point)
@@ -911,6 +920,16 @@ void tiramisu::computation::separate_at(var _level, std::vector<tiramisu::expr> 
         comp->rename_computation(comp->get_name() + "_" + std::to_string(ctr++));
     }
     DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::separate_at(var level, std::vector<tiramisu::expr> loop_separate_points,
+					tiramisu::expr loop_max, std::vector<std::string> update_names) 
+{
+    assert(loop_separate_points.size() == update_names.size() - 1);
+    separate_at(level, loop_separate_points, loop_max);
+    for (int i = 0; i < update_names.size(); i++) {
+        get_update(i).rename_computation(update_names[i]);
+    }
 }
 
 void tiramisu::computation::set_iteration_domain(isl_set *domain)
@@ -6186,10 +6205,16 @@ void tiramisu::computation::gen_time_space_domain()
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::drop_rank_iter(var level)
+  void tiramisu::computation::drop_rank_iter(var level, bool tag_updates)
 {
+  if (!tag_updates) {
     this->_drop_rank_iter = true;
     this->drop_level = level;
+  } else {
+    for (auto update : get_updates()) {
+      update->drop_rank_iter(level, false);
+    }
+  }
 }
 
 void tiramisu::computation::set_wait_access(std::string access_str) {
