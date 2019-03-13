@@ -8,16 +8,19 @@
 
 using namespace tiramisu;
 int main() {
-    // Set default tiramisu options.
+
     global::set_default_tiramisu_options();
+
     function cvtcolor_dist("cvtcolordist_tiramisu");
+
     cvtcolor_dist.add_context_constraints("[ROWS]->{:ROWS = "+std::to_string(_ROWS)+"}");
+
     constant CHANNELS("CHANNELS", expr(3), p_int32, true, NULL, 0, &cvtcolor_dist);
     constant ROWS("ROWS", expr(_ROWS), p_int32, true, NULL, 0, &cvtcolor_dist);
     constant COLS("COLS", expr(_COLS), p_int32, true, NULL, 0, &cvtcolor_dist);
     var i("i"), j("j"), c("c");
-    computation input("[CHANNELS, ROWS, COLS]->{input[i, j, c]: 0<=c<CHANNELS and 0<=i<ROWS and 0<=j<COLS}",
-                      expr(), false, p_uint8, &cvtcolor_dist);
+
+    computation input("[CHANNELS, ROWS, COLS]->{input[i, j, c]: 0<=c<CHANNELS and 0<=i<ROWS and 0<=j<COLS}", expr(), false, p_uint8, &cvtcolor_dist);
     expr rgb_expr(tiramisu::o_cast,
     tiramisu::p_uint8, (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_uint32,
                     input(i, j, 2)) *

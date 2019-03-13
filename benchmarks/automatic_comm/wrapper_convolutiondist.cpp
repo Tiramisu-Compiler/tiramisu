@@ -31,39 +31,39 @@ int main(int, char**)
 
     init_buffer(output1, (int32_t)0);
     init_buffer(output2, (int32_t)0);
-
-    if(rank == 0){
-        std::cout << "output1" <<"\n";
-        //print data
-        for(int i=0; i < _ROWS/_NODES + 2; i++)
-        {
-            for(int j=0; j < _COLS; j++)
-                {
-                    for(int k=0; k<3;k++)
-                        std::cout <<input(k,j,i) << "";
-                    std::cout <<"\t";
-                }
-                std::cout <<"\n";
-        }
-    }
+    //
+    // if(rank == 0){
+    //     std::cout << "output1" <<"\n";
+    //     //print data
+    //     for(int i=0; i < _ROWS/_NODES + 2; i++)
+    //     {
+    //         for(int j=0; j < _COLS; j++)
+    //             {
+    //                 for(int k=0; k<3;k++)
+    //                     std::cout <<input(k,j,i) << "";
+    //                 std::cout <<"\t";
+    //             }
+    //             std::cout <<"\n";
+    //     }
+    // }
 
     // Warm up
     convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
-
-    if(rank == 0){
-        std::cout << "output1" <<"\n";
-        //print data
-        for(int i=0; i < _ROWS/_NODES + 2; i++)
-        {
-            for(int j=0; j < _COLS; j++)
-                {
-                    for(int k=0; k<3;k++)
-                        std::cout <<input(k,j,i) << "";
-                    std::cout <<"\t";
-                }
-                std::cout <<"\n";
-        }
-    }
+    //
+    // if(rank == 0){
+    //     std::cout << "output1" <<"\n";
+    //     //print data
+    //     for(int i=0; i < _ROWS/_NODES + 2; i++)
+    //     {
+    //         for(int j=0; j < _COLS; j++)
+    //             {
+    //                 for(int k=0; k<3;k++)
+    //                     std::cout <<input(k,j,i) << "";
+    //                 std::cout <<"\t";
+    //             }
+    //             std::cout <<"\n";
+    //     }
+    // }
 
     // // Tiramisu
     // for (int i=0; i<NB_TESTS; i++)
@@ -86,7 +86,8 @@ int main(int, char**)
     //             input(k,j,i) = 3;
     //
     // // Warm up
-    // convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    MPI_Barrier(MPI_COMM_WORLD);
+    convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
     //
     // // Tiramisu
     // for (int i=0; i<NB_TESTS; i++)
@@ -101,7 +102,7 @@ int main(int, char**)
     // }
     // MPI_Barrier(MPI_COMM_WORLD);
     //
-    // //compare_buffers_approximately("convolution rank "+std::to_string(rank) , output1, output2);
+    compare_buffers("convolution rank "+std::to_string(rank) , output1, output2);
     //
     // if(rank == 0)
     // {    print_time("performance_CPU.csv", "convolutiondist",
