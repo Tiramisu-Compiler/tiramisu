@@ -39,6 +39,7 @@ endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
+FILE(STRINGS dist_benchmarks/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)
 FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
 FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
 
@@ -118,6 +119,7 @@ endfunction()
 
 
 parse_list("${TIRAMISU_BENCHMARKS_RAW}" TIRAMISU_BENCHMARKS)
+parse_list("${TIRAMISU_DIST_BENCHMARKS_RAW}" TIRAMISU_DIST_BENCHMARKS)
 parse_list("${TIRAMISU_TESTS_RAW}" TIRAMISU_TESTS)
 parse_list("${TIRAMISU_DEVELOPERS_TUTORIALS_RAW}" TIRAMISU_DEVELOPERS_TUTORIALS)
 parse_list("${TIRAMISU_USERS_TUTORIALS_RAW}" TIRAMISU_USERS_TUTORIALS)
@@ -141,7 +143,7 @@ include_directories("include"
         "build")
 
 if (${USE_MPI})
-    set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
+    set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpic++")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
@@ -285,8 +287,9 @@ foreach(t ${TIRAMISU_TESTS})
     new_test(${t})
 endforeach()
 
-add_custom_target(benchmarks)
+# non-distributed benchmarks
 
+add_custom_target(benchmarks)
 function(new_benchmark descriptor)
     parse_descriptor(${descriptor})
     set(tiramisu_generator_target bench_tiramisu_${id}_generator)
@@ -297,19 +300,40 @@ function(new_benchmark descriptor)
     build_g(${tiramisu_generator_target} benchmarks/halide/${id}_tiramisu.cpp "${obj}")
     build_halide_g(${halide_generator_target} benchmarks/halide/${id}_ref.cpp ${generated_obj_halide})
     build_w(${bench_name} "${obj};${generated_obj_halide}" benchmarks/halide/wrapper_${id}.cpp benchmarks/halide/wrapper_${id}.h)
-    if (NOT ${is_mpi})
-        add_custom_target(run_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-        add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    elseif (${USE_MPI})
-        # configure the options so files are copied on the fly as necessary.
-        add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
-    endif()
+    if (${is_mpi})
+      message(FATAL_ERROR "Cannot have distributed benchmarks in the non-distributed benchmark list." )
+    endif ()
+    add_custom_target(run_benchmark_${id} COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    add_custom_command(TARGET benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
     add_dependencies(run_benchmark_${id} ${bench_name})
 endfunction()
 
 foreach(b ${TIRAMISU_BENCHMARKS})
     new_benchmark(${b})
 endforeach()
+
+# distributed benchmarks
+
+add_custom_target(dist_benchmarks)
+function(new_dist_benchmark descriptor)
+    parse_descriptor(${descriptor})
+    set(tiramisu_generator_target bench_${id}_generator)
+    set_obj("${PROJECT_DIR}/build/generated_fct_${id}.o")
+    set(bench_name bench_${id})
+    build_g(${tiramisu_generator_target} dist_benchmarks/${id}.cpp "${obj}")
+#    build_w(${bench_name} "${obj};${generated_obj_halide}" dist_benchmarks/wrapper_${id}.cpp dist_benchmarks/wrapper_${id}.h)
+    if (${USE_MPI})
+        # configure the options so files are copied on the fly as necessary.
+        add_custom_target(run_benchmark_${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+	add_custom_command(TARGET dist_benchmarks COMMAND ${bench_name} WORKING_DIRECTORY ${PROJECT_DIR})
+    endif()
+#    add_dependencies(run_benchmark_${id} ${bench_name})
+endfunction()
+
+foreach(b ${TIRAMISU_DIST_BENCHMARKS})
+    new_dist_benchmark(${b})
+endforeach()
+
 
 add_custom_target(doc DEPENDS ${PROJECT_DIR}/utils/doc_generation/Doxyfile)
 add_custom_command(TARGET doc COMMAND doxygen utils/doc_generation/Doxyfile WORKING_DIRECTORY ${PROJECT_DIR})
