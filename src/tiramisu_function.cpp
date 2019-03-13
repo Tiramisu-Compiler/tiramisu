@@ -166,7 +166,7 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * outputs of the functions will be copied back to the host at the end.
  * We have two cases copies to constant memory and the default case which is copies to the global memory.
  */
-const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
+void function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2)
 {
     assert(c1 != nullptr && "C1 = NULL ");
     assert(c2 != nullptr && "C2 = NULL ");
@@ -181,44 +181,46 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
     tiramisu::computation* last_cpt = c2;
     for (it = mp.begin(); it != mp.end(); ++it)
     {
-      name = it->first;
-      assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
-      if (it->second->automatic_gpu_copy == true)
+        name = it->first;
+        assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
+        if (it->second->automatic_gpu_copy == true)
         {
             cpt_name= "cpt" + std::to_string(i);
             i++;
             switch (it->second->location)
             {
-                case cuda_ast::memory_location::constant :
+            case cuda_ast::memory_location::constant:
                 if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                        memcpy(*(buff.find(name)->second),(*(it->second))));
                     (*c).then((*first_cpt), computation::root);
                     first_cpt = c;
                 }
                 break;
-                default:
+            default:
                 if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                        memcpy(*(buff.find(name)->second),(*(it->second))));
                     (*c).then((*first_cpt), computation::root);
                     first_cpt = c;
                 }
                 if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy((*(it->second)),*(buff.find(name)->second)));
+                        memcpy((*(it->second)),*(buff.find(name)->second)));
                     (*last_cpt).then((*c), computation::root);
                     last_cpt = c;
                 }
                 break;
             }
-        } else
+        }
+        else
+        {
             DEBUG(3, tiramisu::str_dump("Communication should be done manually !"));
+        }
     }
-    return 0;
 }
 
 // TODO: get_live_in_computations() does not consider the case of "maybe"
@@ -850,6 +852,41 @@ bool function::should_parallelize(const std::string &comp, int lev) const
 }
 
 /**
+* Return the unrolling factor used to unroll the computation \p comp
+* at the loop level \p lev.
+*/
+int function::get_unrolling_factor(const std::string &comp, int lev) const
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(!comp.empty());
+    assert(lev >= 0);
+
+    int unrolling_factor = -1;
+    bool found = false;
+
+    for (const auto &pd : this->unroll_dimensions)
+    {
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+        {
+            unrolling_factor = std::get<2>(pd);
+            found = true;
+        }
+    }
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be unrolled with a factor of " +
+                       std::to_string(unrolling_factor);
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return unrolling_factor;
+}
+
+/**
 * Return the vector length of the computation \p comp at
 * at the loop level \p lev.
 */
@@ -893,6 +930,7 @@ computation * function::get_first_cpt() {
         return cpt;
     } else {
         DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
+        return NULL;
     }
 }
 
@@ -905,6 +943,7 @@ computation * function::get_last_cpt() {
         return cpt;
     } else {
         DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+        return NULL;
     }
 }
 
@@ -1340,7 +1379,7 @@ bool tiramisu::function::should_unroll(const std::string &comp, int lev0) const
     bool found = false;
     for (const auto &pd : this->unroll_dimensions)
     {
-        if ((pd.first == comp) && (pd.second == lev0))
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev0))
         {
             found = true;
         }
@@ -1637,6 +1676,32 @@ void tiramisu::function::dump_schedule() const
 void tiramisu::function::set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec)
 {
     this->function_arguments = buffer_vec;
+    // Implicit buffers are set to type a_temporary by default. Change them to
+    // a_input or a_output, so that they don't get autoallocated.
+    for (auto &buffer : buffer_vec)
+    {
+        assert((buffer != nullptr) && "Buffer argument is null!");
+        if (buffer->get_argument_type() == a_temporary)
+        {
+            // Determine if it's an input function.
+            // If there are any scheduled computation that uses this buffer,
+            // buffer is marked as output.
+            bool is_input = true;
+            for (auto const &comp : this->body)
+            {
+                if (comp->get_buffer() == buffer
+                    && comp->should_schedule_this_computation())
+                {
+                    is_input = false;
+                    break;
+                }
+            }
+            DEBUG(3, tiramisu::str_dump("Setting type of buffer "
+                     + buffer->get_name() + " to "
+                     + (is_input ? "input" : "output")));
+            buffer->set_argument_type(is_input ? a_input : a_output);
+        }
+    }
 }
 
 void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim, int vector_length)
@@ -1663,12 +1728,13 @@ void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_d
     this->parallel_dimensions.push_back({stmt_name, vec_dim});
 }
 
-void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level)
+void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level, int factor)
 {
     assert(level >= 0);
     assert(!stmt_name.empty());
+    assert(factor >= 0);
 
-    this->unroll_dimensions.push_back({stmt_name, level});
+    this->unroll_dimensions.push_back(std::make_tuple(stmt_name, level, factor));
 }
 
 void tiramisu::function::add_gpu_block_dimensions(std::string stmt_name, int dim0,

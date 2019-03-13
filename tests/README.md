@@ -14,10 +14,10 @@ test number `XX` in the file `tests/test_list.txt`.
 - .allocate_at: test_27, 90, 92, 93, 130
 - .allocate_and_map_buffer_automatically: test_49
 - .allocate_and_map_buffers_automatically: test_50
-- .auto_buffer: test_141
 - .between: test_58, 59
 - .before(): test_27
-- .store_in(): 105, 106, 107, 108, 109, 129
+- block: test_143, 153, 154
+- .store_in(): 105, 106, 107, 108, 109, 129, 155
 -  codegen(): 104
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27, 130
@@ -27,6 +27,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .get_last_update(): test_68
 - High level API: 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
     127, 128
+- Implicit buffers: test_141, 142, 155
 - ISL-free API: 110, 111, 112, 113
 - tiramisu::init(): 103, 114, 115, 116
 - let statement: test_04
@@ -46,6 +47,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .then(): test_130
 - .tile(): test_01, 02, 03, 74, 80, 81
 - .vectorize(): test_10, 28, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 74
-- .unroll(): test_12, 74
+- .unroll(): test_12, 74, 144, 145, 146, 147, 148, 149, 150, 151, 152
 - .update() (new way of expressing updates): test_91
 - 64 bit buffers: test_97
+- gen_communication() : 156

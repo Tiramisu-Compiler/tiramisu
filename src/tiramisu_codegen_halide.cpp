@@ -2081,15 +2081,32 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         DEBUG(3, tiramisu::str_dump("Trying to unroll at level ");
                                 tiramisu::str_dump(std::to_string(level)));
 
-                        const Halide::Internal::IntImm *extent =
-                                cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
-                        if (extent) {
-                            fortype = Halide::Internal::ForType::Unrolled;
-                            DEBUG(3, tiramisu::str_dump("Loop unrolled"));
-                        } else {
-                            DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
-                            DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
-                        }
+			int unrolling_factor = fct.get_unrolling_factor(tagged_stmts[tt].first, level);
+
+			// Check if the user provided an unrolling factor. If
+			// unrolling_factor is 0 then the user did not provide
+			// a facor, thus we have to use the loop extent as
+			// factor (which should work in most cases but not
+			// always). If the user provided a factor, we use it.
+			if (unrolling_factor != 0)
+			{
+			    cond_upper_bound_halide_format = Halide::Expr(unrolling_factor);
+			    fortype = Halide::Internal::ForType::Unrolled;
+			    DEBUG(3, tiramisu::str_dump("Loop unrolled"));
+			}
+			else
+			{
+			    const Halide::Internal::IntImm *extent =
+				    cond_upper_bound_halide_format.as<Halide::Internal::IntImm>();
+			    if (extent) {
+				fortype = Halide::Internal::ForType::Unrolled;
+				DEBUG(3, tiramisu::str_dump("Loop unrolled"));
+			    } else {
+				DEBUG(3, tiramisu::str_dump("Loop not unrolled (extent is non constant)"));
+				DEBUG(3, std::cout << cond_upper_bound_halide_format << std::endl);
+				DEBUG(3, tiramisu::str_dump("Please pass the unrolling factor to the unrolling command."));
+			    }
+			}
 
                         // Since this statement is treated, remove it from the list of
                         // tagged statements so that it does not get treated again later.
@@ -3578,11 +3595,22 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 
                         for (int i = 0; i < tiramisu_buffer->get_dim_sizes().size(); i++)
                         {
-                            // Actually any access that does not require
-                            // scheduling is supported but currently we only
-                            // accept literal constants as anything else was not
-                            // needed til now.
-                            assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
+			    // Actually any computation access that does not require
+			    // scheduling is supported.
+			    // Other access that require scheduling should not
+			    // be accepted since we do not schedule them.
+			    // Currently we allow all accesses since we do not have
+			    // a way to check if an iterator is requires scheduling
+			    // or not. But we show a warning if the access is
+			    // not constant.
+			    if (tiramisu_expr.get_access()[i].is_constant() == false)
+			    {
+				DEBUG(3, tiramisu::str_dump("Possible error in code generation because the non-affine access."));
+				DEBUG(3, tiramisu::str_dump("Currently we do not schedule those accesses, but we allow them,"));
+				DEBUG(3, tiramisu::str_dump("therefore they might cause a problem in code generation."));
+
+			    }
+                            // assert(tiramisu_expr.get_access()[i].is_constant() && "Only constant accesses are supported.");
                         }
 
                         if (tiramisu_buffer->has_constant_extents())
