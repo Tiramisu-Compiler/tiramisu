@@ -2364,6 +2364,41 @@ private:
       */
     std::vector<std::string> get_trimmed_time_space_domain_dimension_names();
 
+    /**
+      * \brief Return a unique identifier for the communication based on the type of
+      * ank and a sequential number.
+      *
+      * All communications of a computation c will have the same prefix b_c followed
+      * by the sequential number i and then the type of communication r_snd or r_rcv.
+      *
+      */
+    std::string get_comm_id(rank_t rank_type, int i);
+
+    /**
+      * Return the iteration domain of the communication set which can be either
+      * a send iteration domain or a receive iteration domain.
+      * set is an exchange set which we transform to a recv/send it_dom.
+      */
+    isl_set* construct_comm_set(isl_set* set, rank_t rank_type, int communication_id);
+
+    /**
+      * \brief Return an unordred_map comp_name, set_to_exchange.
+      *
+      * The set to exchange expresses a subset of the iteration domain of the computation comp_name
+      * that needs to be sent by r_sender which owns the data and received by r_receiver
+      * which needs this data.
+      */
+    std::unordered_map<std::string, isl_set*> construct_exchange_sets();
+
+    /**
+      * \brief Generate distributed communication code.
+      *
+      * Given the iteration domain of send and receive, this function creates xfers, schedules them,
+      * and handles the storage of the receives.
+      * Currently, this process works for programs that distribute the outermost loop.
+      */
+    void gen_communication_code(isl_set*recv_it, isl_set* send_it, int communication_id, std::string computation_name);
+
 protected:
 
     /**
@@ -4064,6 +4099,22 @@ public:
     virtual void vectorize(var L, int v);
     virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
+
+    /**
+      * \brief Generate communication code for this computation
+      *
+      * Compute the sets that needs to be exchanged by the ranks, generate the corresponding
+      * xfers, schedule the send, receive at root level if no computation was scheduled before,
+      * map the received data to correct locations and allocate the required extra memory.
+      *
+      */
+    void gen_communication();
+
+    /**
+      * Same as gen_communication(), but schedules send/recv at level l.
+      *
+      */
+    void gen_communication(tiramisu::var l);
 
     /**
       * root_dimension is a number used to specify the dimension level

@@ -7717,11 +7717,12 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 
     int distributed_dimension = this->get_distributed_dimension();
 
+
     if (distributed_dimension == -1)
         ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
 
     if(distributed_dimension > 0)
-        ERROR("Generating communication code automatically inner distributed loops is currently not supported",true);
+        ERROR("Generating communication code automatically for inner distributed loops is currently not supported.",true);
 
     //get the extent of the distributed loop, the number od available ranks should be equal to it
     this->simplify(this->get_iteration_domain());
@@ -7756,4 +7757,255 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 
     return distribution_map;
 }
+
+std::string computation::get_comm_id(rank_t rank_type, int i)
+{
+    return "b_" + this->get_name() + "_" + std::to_string(i) + "_" + get_rank_string_type(rank_type);
+}
+
+isl_set* computation::construct_comm_set(isl_set* set, rank_t rank_type, int comm_id)
+{
+    int dist_dim = this->get_distributed_dimension();
+
+    set = isl_set_insert_dims(set, isl_dim_set, 0, 1);
+    set = isl_set_insert_dims(set, isl_dim_set, 1, 1);
+
+    // If the rank is a receiver, this means that in the set, the iterators will be in
+    // this order: dist_dim, r_receiver, r_sender, iterators
+    if (rank_type == rank_t::r_receiver)
+    {
+        set = isl_set_set_dim_name(set, isl_dim_set, 0, get_rank_string_type(rank_t::r_receiver).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_sender).c_str());
+    }
+    // If the rank is a sender, this means that in the set, the iterators will be in
+    // this order: dist_dim, r_sender, r_receiver, iterators
+    else
+    {
+        set = isl_set_set_dim_name(set, isl_dim_set, 1, get_rank_string_type(rank_t::r_receiver).c_str());
+        set = isl_set_set_dim_name(set, isl_dim_set, 0, get_rank_string_type(rank_t::r_sender).c_str());
+    }
+
+    //Add constraints to create a relation between the dim_params and dim_sets
+    std::vector <std::string> set_parts;
+    split_string(isl_set_to_str(set), "}", set_parts);
+    set_parts[0] += " and " + get_rank_string_type(rank_t::r_sender) + "'=" + get_rank_string_type(rank_t::r_sender);
+    set_parts[0] += " and " + get_rank_string_type(rank_t::r_receiver) + "'=" + get_rank_string_type(rank_t::r_receiver) + "}";
+    set = isl_set_read_from_str(isl_set_get_ctx(set), set_parts[0].c_str());
+
+    //Project out the distributed dimension
+    set = isl_set_project_out(set, isl_dim_set, dist_dim + 2, 1);
+
+    //Project out r_receiver from isl_dim_param
+    int idx_rrcv= 0;
+    while(idx_rrcv < isl_set_dim(set,isl_dim_param) and
+        isl_set_get_dim_name(set,isl_dim_param,idx_rrcv) != get_rank_string_type(rank_t::r_receiver)) idx_rrcv++;
+    set = isl_set_project_out(set, isl_dim_param, idx_rrcv, 1);
+
+    //Project out r_sender from isl_dim_param
+    int idx_rsnd = 0;
+    while(idx_rsnd < isl_set_dim(set,isl_dim_param) and
+        isl_set_get_dim_name(set,isl_dim_param,idx_rsnd) != get_rank_string_type(rank_t::r_sender)) idx_rsnd++;
+    set = isl_set_project_out(set, isl_dim_param, idx_rsnd, 1);
+
+    //Set the name of the set to:
+    //If it's a send --> b_r_snd_compName_seqId
+    //If it's a receiver --> b_r_rcv_compName_seqId
+    return isl_set_set_tuple_name(set, get_comm_id(rank_type, comm_id).c_str());
+}
+
+std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
+{
+    //construct distribution map of the receiver
+    isl_map* receiver_dist_map = construct_distribution_map(rank_t::r_receiver);
+
+    //Find the set that needs to be computed by the receiver
+    isl_set* receiver_to_compute_set = isl_set_apply(isl_set_copy(this->get_trimmed_time_processor_domain()), receiver_dist_map);
+
+    //Find the receiver's needed_sets
+    std::vector<isl_map*> rhs_accesses;
+    generator::get_rhs_accesses(this->get_function(), this, rhs_accesses, false);
+    
+    //map computation name to the receiver needed set of that computation
+    std::unordered_map <std::string, isl_set*> receiver_needed;
+
+    for (isl_map* rhs_access : rhs_accesses) {
+        //an access has the following structure [params]->{consumer[dims]->producer[dims]:constraints}
+        //consumer is the current computation
+        //get the name of the producer
+        std::string comp_name = isl_map_get_tuple_name(rhs_access, isl_dim_out);
+        //apply schedule to consumer
+        rhs_access = isl_map_apply_domain(rhs_access, isl_map_copy(get_trimmed_union_of_schedules()));
+        //apply schedule to producer
+        computation* producer = get_function()->get_computation_by_name(comp_name)[0];
+        rhs_access = isl_map_apply_range(rhs_access, isl_map_copy(producer->get_trimmed_union_of_schedules()));
+        //apply rhs_access
+        isl_set* needed_set = isl_set_apply(isl_set_copy(receiver_to_compute_set), rhs_access);
+        //check if it should do communication on it
+        if(producer->get_distributed_dimension()!=-1){
+            if (receiver_needed.find(comp_name) != receiver_needed.end())
+                receiver_needed[comp_name] = isl_set_coalesce(isl_set_union(receiver_needed[comp_name], needed_set));
+            else
+                receiver_needed.insert({comp_name, needed_set});
+        }else {
+            DEBUG(3, "Computation " + comp_name + "isn't distributed, no communication needed");
+        }
+    }
+
+    //receiver's owned_sets
+    std::unordered_map<std::string,isl_set*> receiver_owned;
+    for (auto needed_set : receiver_needed)
+    {
+        //get computation
+        computation* producer = get_function()->get_computation_by_name(needed_set.first)[0];
+        //construct distribution map of the receiver
+        isl_map* producer_map = producer->construct_distribution_map(rank_t::r_receiver);
+        isl_set* producer_to_compute_set = isl_set_apply(isl_set_copy(producer->get_trimmed_time_processor_domain()), producer_map);
+        receiver_owned.insert({needed_set.first, producer_to_compute_set});
+    }
+
+    //sender's owned set
+    std::unordered_map<std::string,isl_set*> sender_owned;
+    for (auto needed_set : receiver_needed) {
+        //get computation
+        computation* producer = get_function()->get_computation_by_name(needed_set.first)[0];
+        //construct distribution map of the receiver
+        isl_map* producer_map = producer->construct_distribution_map(rank_t::r_sender);
+        isl_set* producer_to_compute_set = isl_set_apply(isl_set_copy(producer->get_trimmed_time_processor_domain()), producer_map);
+        sender_owned.insert({needed_set.first, producer_to_compute_set});
+    }
+
+    //The sets that need to be sent from r_sender -> r_receiver
+    //sender_owned intersect (receiver_needed - receiver_owned)
+    std::unordered_map<std::string, isl_set*> to_exchange_sets;
+    for (auto needed : receiver_needed) {
+        isl_set* missing = isl_set_subtract(needed.second, receiver_owned[needed.first]);
+        to_exchange_sets.insert({needed.first, isl_set_coalesce(isl_set_intersect(missing, sender_owned[needed.first]))});
+    }
+
+    return to_exchange_sets;
+}
+
+void computation::gen_communication_code(isl_set*recv_iter_dom, isl_set* send_iter_dom, int comm_id, std::string comp_name)
+{
+    //creating access_variables
+    var r_snd(get_rank_string_type(rank_t::r_sender).c_str());
+    var r_rcv(get_rank_string_type(rank_t::r_receiver).c_str());
+
+    //creating new iterators
+    std::vector<tiramisu::expr> iterators;
+    int idx = 2;
+    while (idx < isl_set_dim(recv_iter_dom,isl_dim_set) ) {
+        std::string name = generate_new_variable_name();
+        recv_iter_dom = isl_set_set_dim_name(recv_iter_dom, isl_dim_set, idx, name.c_str());
+        send_iter_dom = isl_set_set_dim_name(send_iter_dom, isl_dim_set, idx, name.c_str());
+        iterators.push_back(var(name));
+        idx++;
+    }
+
+    //creating access
+    tiramisu::expr access = tiramisu::expr(op_t::o_access, comp_name,iterators,
+    get_function()->get_computation_by_name(comp_name)[0]->get_data_type());
+
+    auto data_type = get_function()->get_computation_by_name(comp_name)[0]->get_data_type();
+
+    xfer data_transfer = computation::create_xfer(
+        isl_set_to_str(send_iter_dom),
+        isl_set_to_str(recv_iter_dom),
+        r_rcv, r_snd,
+        xfer_prop(data_type, {MPI, BLOCK, ASYNC}),
+        xfer_prop(data_type, {MPI, BLOCK, ASYNC}),
+        access, get_function());
+
+    data_transfer.s->tag_distribute_level(r_snd);
+    data_transfer.r->tag_distribute_level(r_rcv);
+
+    computation *c = get_function()->get_computation_by_name(this->get_name())[0];
+
+    //schedule communications
+    assert(this->get_function()->sched_graph_reversed[this].size() <= 1 &&
+            "Node has more than one predecessor.");
+
+    //if predecessor
+    if(this->get_predecessor() != nullptr)
+    {
+         //get level
+        int level = this->get_function()->sched_graph_reversed[this][this->get_predecessor()] ;
+        //clear
+        computation *pred = this->get_predecessor();
+        data_transfer.s->between(*pred, level, *c, level);
+        data_transfer.r->between(*data_transfer.s, level, *c, level);
+    }
+    else
+    {
+        DEBUG(3, tiramisu::str_dump("Communication of "+ this->get_name()+" has no predecessor"));
+        data_transfer.s->before(*data_transfer.r, computation::root);
+        data_transfer.r->before(*c, computation::root);
+    }
+
+    //create send _access_string
+    std::string it_string = "";
+    for (int i = 0; i < iterators.size(); i++)
+    {
+        it_string += iterators[i].get_name();
+        if(i < iterators.size() - 1) it_string += ',';
+    }
+
+    //Each rank will process dim_extent/nb_ranks
+    //To fix and test
+    int distributed_dimension = this->get_distributed_dimension();
+    this->simplify(this->get_iteration_domain());
+    isl_set * s= this->get_trimmed_time_processor_domain();
+    project_out_static_dimensions(s);
+    s = isl_set_project_out(s, isl_dim_set, distributed_dimension, 1);
+    int extent = tiramisu::utility::get_extent(s, distributed_dimension);
+
+    //construct string access
+    std::string access_string = "{" + get_comm_id(rank_t::r_receiver,comm_id) + "[" + get_rank_string_type(rank_t::r_receiver)
+    + "," + get_rank_string_type(rank_t::r_sender) + "," + it_string + "]->" +
+    isl_map_get_tuple_name(get_function()->get_computation_by_name(comp_name)[0]->get_access_relation(), isl_dim_out);
+    access_string += "[" + std::to_string(extent) + "+" +it_string + "]}";
+    data_transfer.r->set_access(access_string);
+
+    /***This works only for outermost loops***/
+    //To do: make it work on any level
+    //Important : get_bound doesn't work for dim more than one, that's why we project out all other dim
+    recv_iter_dom = isl_set_project_out(recv_iter_dom, isl_dim_set, 0, 2);
+
+    //adapt buffer size
+    int additional_space = tiramisu::utility::get_extent(recv_iter_dom, 0);
+
+    tiramisu::buffer *buff = this->get_function()->get_buffers().find(isl_map_get_tuple_name(
+    get_function()->get_computation_by_name(comp_name)[0]->get_access_relation(), isl_dim_out))->second;
+
+    int size = buff->get_dim_sizes()[0].get_int_val() + additional_space;
+    buff->set_dim_size(0, size);
+}
+
+void computation::gen_communication()
+{
+    int comm_id = 0;
+
+    //Sets that needs to be exchanged between ranks sender, receiver
+    std::unordered_map<std::string, isl_set*>  to_receive_sets = construct_exchange_sets ();
+
+    for (auto set : to_receive_sets)
+    {
+        project_out_static_dimensions(set.second);
+
+        DEBUG(3, tiramisu::str_dump("To exchange set after project out:"); isl_set_dump(set.second));
+
+        if(isl_set_is_empty(set.second)) continue;
+
+        isl_set* recv_iter_dom = construct_comm_set(isl_set_copy(set.second), rank_t::r_receiver, comm_id);
+        isl_set* send_iter_dom = construct_comm_set(set.second, rank_t::r_sender, comm_id);
+
+        DEBUG(3, tiramisu::str_dump("Send iteration domain:"); isl_set_dump(send_iter_dom));
+        DEBUG(3, tiramisu::str_dump("Receive iteration domain:"); isl_set_dump(recv_iter_dom));
+
+        gen_communication_code(recv_iter_dom, send_iter_dom, comm_id, set.first);
+
+        comm_id++;
+    }
+}
+
 }
