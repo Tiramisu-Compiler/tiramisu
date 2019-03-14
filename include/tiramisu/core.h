@@ -2334,27 +2334,6 @@ private:
     bool operator==(tiramisu::computation comp1);
 
     /**
-      * \brief Construct the distribution map of a computation.
-      *
-      * A distribution map partitions a computation across ranks.
-      * Given the type of the rank rank_type which is either r_sender or r_receiver,
-      * the distribution map will specify for each rank the iterations it should execute.
-      *
-      * Example :
-      * \code
-      * c.set_expression(in(i)+in(i-1));
-      * c.tag_distribute_level(i);
-      * /endcode
-      *
-      * If the function is called on c, it will construct the following map:
-      *
-      * \code
-      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
-      * /endcode
-     */
-    isl_map* construct_distribution_map(tiramisu::rank_t rank_type);
-
-    /**
       * Return the distributed dimension of a computation.
       */
     int get_distributed_dimension();
@@ -2379,7 +2358,7 @@ private:
       * a send iteration domain or a receive iteration domain.
       * set is an exchange set which we transform to a recv/send it_dom.
       */
-    isl_set* construct_comm_set(isl_set* set, rank_t rank_type, int communication_id);
+    isl_set* construct_comm_set(isl_set* set, rank_t rank_type, int comm_id);
 
     /**
       * \brief Return an unordred_map comp_name, set_to_exchange.
@@ -2400,6 +2379,27 @@ private:
     void gen_communication_code(isl_set*recv_it, isl_set* send_it, int communication_id, std::string computation_name);
 
 protected:
+
+    /**
+      * \brief Construct the distribution map of a computation.
+      *
+      * A distribution map partitions a computation across ranks.
+      * Given the type of the rank rank_type which is either r_sender or r_receiver,
+      * the distribution map will specify for each rank the iterations it should execute.
+      *
+      * Example :
+      * \code
+      * c.set_expression(in(i)+in(i-1));
+      * c.tag_distribute_level(i);
+      * /endcode
+      *
+      * If the function is called on c, it will construct the following map:
+      *
+      * \code
+      * [r] -> { c[i] -> c[o0] : o0 = i and r >= 0 and r <= 4 and i >= 2r and i <= 1 + 2r }
+      * /endcode
+     */
+    isl_map* construct_distribution_map(tiramisu::rank_t rank_type);
 
     /**
       * True if this computation represents a library call.

@@ -4,16 +4,18 @@
 #include <tiramisu/core.h>
 #include <tiramisu/utils.h>
 #include "halide_image_io.h"
-#include "wrapper_cvtcolordist.h"
+#include "wrapper_cvtcolorautodist.h"
 
 using namespace tiramisu;
 int main() {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
-    function cvtcolor_dist("cvtcolordist_tiramisu");
+    function cvtcolor_dist("cvtcolorautodist_tiramisu");
 
     int _rows = 3520;
     int _cols = 2112;
+
+    cvtcolor_dist.add_context_constraints("[rows]->{:rows = "+std::to_string(_rows)+"}");
 
     constant channels("channels", expr(3), p_int32, true, NULL, 0, &cvtcolor_dist);
     constant rows("rows", expr(_rows), p_int32, true, NULL, 0, &cvtcolor_dist);
@@ -42,10 +44,12 @@ int main() {
     var i1("i1"), i2("i2");
     input.split(i, _rows / NODES, i1, i2);
     input.tag_distribute_level(i1);
+    input.drop_rank_iter(i1);
     RGB2Gray_s0.split(i, _rows / NODES, i1, i2);
     RGB2Gray_s0.tag_distribute_level(i1);
     RGB2Gray_s0.drop_rank_iter(i1);
     RGB2Gray_s0.tag_parallel_level(i2);
+    RGB2Gray_s0.gen_communication();
 
     buffer buff_input("buff_input", {3, rows / NODES, cols}, p_uint8, a_input,
                       &cvtcolor_dist);
@@ -54,7 +58,7 @@ int main() {
     input.set_access("{input[c, i, j]->buff_input[c, i, j]}");
     RGB2Gray_s0.set_access("{RGB2Gray_s0[i,j]->buff_RGB2Gray[i,j]}");
 
-    cvtcolor_dist.codegen({&buff_input, &buff_RGB2Gray}, "build/generated_fct_cvtcolordist.o");
+    cvtcolor_dist.codegen({&buff_input, &buff_RGB2Gray}, "build/generated_fct_cvtcolorautodist.o");
 
     return 0;
 }
