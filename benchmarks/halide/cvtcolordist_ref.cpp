@@ -23,9 +23,10 @@ int main(int argc, char* argv[]) {
 
     RGB2Gray.parallel(y).vectorize(x, 8, Halide::TailStrategy::GuardWithIf);
 
-    RGB2Gray.compile_to_object("build/generated_fct_cvtcolordist_ref.o", {in}, "cvtcolordist_ref");
+    RGB2Gray.compile_to_object("/Users/jray/CLionProjects/tiramisu/build/generated_fct_cvtcolordist_ref.o", {in}, "cvtcolordist_ref");
 
-    RGB2Gray.compile_to_lowered_stmt("build/generated_fct_cvtcolordist_ref.txt", {in}, Text);
+    RGB2Gray.compile_to_lowered_stmt("/Users/jray/CLionProjects/tiramisu/build/generated_fct_cvtcolordist_ref.txt", {in}, Text);
 
     return 0;
 }
+

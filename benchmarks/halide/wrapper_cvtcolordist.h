@@ -4,9 +4,9 @@
 #include <tiramisu/utils.h>
 
 #ifndef NODES
-#define NODES 10
-
+#define NODES 4
 #endif
+
 
 #ifdef __cplusplus
 extern "C" {
