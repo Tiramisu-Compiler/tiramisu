@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     function *f = global::get_implicit_function();
 
     constant SIZE0("COLS", _COLS);
-    constant SIZE1("ROWS", _ROWS/_NODES);
+    constant SIZE1("ROWS", _ROWS);
     constant SIZE2("CHANNELS", _CHANNELS);
     constant NODES("NODES", _NODES);
 
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     data_transfer.s->before(conv, computation::root);
     data_transfer.r->before(*data_transfer.s, computation::root);
 
-    buffer buff_input("buff_input", {_ROWS/_NODES + 2, _COLS, _CHANNELS},  p_int32, a_input);
+    buffer buff_input("buff_input", {_ROWS/_NODES, _COLS, _CHANNELS},  p_int32, a_input);
     buffer buff_kernel("buff_kernel", {kernel_extent_1, kernel_extent_0}, p_float32, a_input);
     buffer buff_convolution("buff_convolution", {_ROWS/_NODES, _COLS-8, _CHANNELS}, p_int32, a_output);
 

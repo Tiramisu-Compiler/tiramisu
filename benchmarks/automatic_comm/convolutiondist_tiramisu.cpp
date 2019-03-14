@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     f->add_context_constraints("[ROWS]->{: ROWS = "+std::to_string(_ROWS)+"}");
 
     constant SIZE0("COLS", _COLS);
-    constant SIZE1("ROWS", _ROWS/_NODES);
+    constant SIZE1("ROWS", _ROWS);
     constant SIZE2("CHANNELS", _CHANNELS);
 
     int kernel_extent_1 = 3;

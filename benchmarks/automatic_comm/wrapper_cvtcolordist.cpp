@@ -1,6 +1,6 @@
 #include "wrapper_cvtcolordist.h"
 #include "../benchmarks.h"
-#include "../../include/tiramisu/mpi_comm.h"
+#include <tiramisu/mpi_comm.h>
 #include "Halide.h"
 #include "tiramisu/utils.h"
 #include <cstdlib>
@@ -11,6 +11,7 @@ int main(int, char**) {
 
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+
     Halide::Buffer<uint8_t> input(3, _COLS, _ROWS/NODES );
     Halide::Buffer<uint8_t> output_ref(_COLS, _ROWS/NODES);
     Halide::Buffer<uint8_t> output(_COLS, _ROWS/NODES);
@@ -26,11 +27,10 @@ int main(int, char**) {
             }
         }
     }
-    // Warm up code.
+
     cvtcolordist_tiramisu(input.raw_buffer(), output.raw_buffer());
 
-    // Tiramisu
-    for (int i=0; i<NB_TESTS; i++)
+    for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start1 = std::chrono::high_resolution_clock::now();
@@ -43,8 +43,7 @@ int main(int, char**) {
 
     cvtcolordist_ref(input.raw_buffer(), output.raw_buffer());
 
-    // Tiramisu
-    for (int i=0; i<NB_TESTS; i++)
+    for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start = std::chrono::high_resolution_clock::now();
@@ -53,9 +52,12 @@ int main(int, char**) {
         std::chrono::duration<double,std::milli> duration = end - start;
         duration_vector_2.push_back(duration);
     }
+
     MPI_Barrier(MPI_COMM_WORLD);
 
     compare_buffers_approximately("CvtColor rank "+std::to_string(rank) , output, output_ref);
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0) {
         print_time("performance_CPU.csv", "cvtcolor",

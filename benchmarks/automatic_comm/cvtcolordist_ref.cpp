@@ -10,6 +10,7 @@ using namespace tiramisu;
 int main() {
 
     global::set_default_tiramisu_options();
+    
     function cvtcolor_dist("cvtcolordist_ref");
 
     constant CHANNELS("CHANNELS", expr(3), p_int32, true, NULL, 0, &cvtcolor_dist);
@@ -43,7 +44,7 @@ int main() {
 
     buffer buff_input("buff_input", {_ROWS / NODES, COLS, 3}, p_uint8, a_input, &cvtcolor_dist);
     buffer buff_RGB2Gray("buff_RGB2Gray", {_ROWS / NODES, COLS}, p_uint8, a_output, &cvtcolor_dist);
-    
+
     input.set_access("{input[i, j, c]->buff_input[i, j, c]}");
     RGB2Gray_s0.set_access("{RGB2Gray_s0[i, j]->buff_RGB2Gray[i, j]}");
 

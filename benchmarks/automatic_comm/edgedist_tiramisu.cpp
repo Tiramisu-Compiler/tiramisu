@@ -20,18 +20,15 @@ int main(int argc, char* argv[])
 
     input Img("Img", {in, jn, c}, p_int32);
 
-    /* Ring blur filter. */
-    computation R("R", {ir, jr, c}, (Img(ir,   jr, c) + Img(ir,   jr+1, c) + Img(ir,   jr+2, c)+
-				   Img(ir+1, jr, c)                    + Img(ir+1, jr+2, c)+
-				   Img(ir+2, jr, c) + Img(ir+2, jr+1, c) + Img(ir+2, jr+2, c))/((int32_t) 8));
+    computation R("R", {ir, jr, c}, (Img(ir, jr, c) + Img(ir, jr+1, c) + Img(ir, jr+2, c) +
+				   Img(ir+1, jr, c) + Img(ir+1, jr+2, c)+ Img(ir+2, jr, c) + Img(ir+2, jr+1, c)
+                   + Img(ir+2, jr+2, c))/((int32_t) 8));
 
-    /* Robert's edge detection filter. */
-    computation Out("Out", {iout, jout, c}, (R(iout+1, jout+1, c)-R(iout+2, jout, c))
-        + (R(iout+2, jout+1, c)-R(iout+1, jout, c)));
+    computation Out("Out", {iout, jout, c}, (R(iout+1, jout+1, c) - R(iout+2, jout, c))
+        + (R(iout+2, jout+1, c) - R(iout+1, jout, c)));
 
     R.before(Out, computation::root);
 
-    // Layer II
     Img.split(in,_ROWS/NODES,i0,i1);
     Out.split(iout,_ROWS/NODES,i0,i1);
     R.split(ir,_ROWS/NODES,i0,i1);
@@ -44,7 +41,6 @@ int main(int argc, char* argv[])
     Out.drop_rank_iter(i0);
     R.drop_rank_iter(i0);
 
-    // Layer III
     buffer b_Img("b_Img", {_ROWS/NODES, _COLS, 3}, p_int32, a_input);
     buffer   b_R("b_R",   {_ROWS/NODES, _COLS, 3}, p_int32, a_output);
 
@@ -54,7 +50,6 @@ int main(int argc, char* argv[])
 
     R.gen_communication();
     Out.gen_communication();
-
 
     tiramisu::codegen({&b_Img, &b_R}, "build/generated_fct_edgedist.o");
 

@@ -6,6 +6,8 @@
 
 #include <tiramisu/utils.h>
 
+#include "../benchmarks.h"
+
 
 #define NB_TESTS 10
 #define CHECK_CORRECTNESS 1
@@ -13,6 +15,7 @@
 int main(int, char**)
 {
     int rank  = tiramisu_MPI_init();
+
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
@@ -24,6 +27,7 @@ int main(int, char**)
 
     init_buffer(output1, (int32_t) 0);
     init_buffer(Img1, (int32_t) 0);
+
     for(int i = 0; i < _ROWS/NODES; i++)
     {
         for(int j = 0; j < _COLS; j++)
@@ -32,13 +36,15 @@ int main(int, char**)
         }
 
     }
+
     edgedist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
-    //Synchro
+
     MPI_Barrier(MPI_COMM_WORLD);
 
-    for (int i = 0; i<NB_TESTS; i++)
+    for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
+
         init_buffer(output1, (int32_t) 0);
         init_buffer(Img1, (int32_t) 0);
         for(int i = 0; i < _ROWS/NODES; i++)
@@ -49,10 +55,14 @@ int main(int, char**)
             }
 
         }
+
         MPI_Barrier(MPI_COMM_WORLD);
+
         auto start1 = std::chrono::high_resolution_clock::now();
         edgedist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
+
         MPI_Barrier(MPI_COMM_WORLD);
+
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
@@ -61,6 +71,7 @@ int main(int, char**)
 
     init_buffer(output2, (int32_t) 0);
     init_buffer(Img2, (int32_t) 0);
+
     for(int i = 0; i < _ROWS/NODES; i++)
     {
         for(int j = 0; j < _COLS; j++)
@@ -69,12 +80,16 @@ int main(int, char**)
         }
 
     }
+
     edgedist_ref(Img2.raw_buffer(), output2.raw_buffer());
-    for (int i = 0; i<NB_TESTS; i++)
+
+    for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
+
         init_buffer(output2, (int32_t) 0);
         init_buffer(Img2, (int32_t) 0);
+
         for(int i = 0; i < _ROWS/NODES; i++)
         {
             for(int j = 0; j < _COLS; j++)
@@ -84,17 +99,25 @@ int main(int, char**)
 
         }
         MPI_Barrier(MPI_COMM_WORLD);
+
         auto start1 = std::chrono::high_resolution_clock::now();
         edgedist_ref(Img2.raw_buffer(), output2.raw_buffer());
+
         MPI_Barrier(MPI_COMM_WORLD);
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
-        duration_vector_1.push_back(duration1);
+        duration_vector_2.push_back(duration1);
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
     compare_buffers_approximately("edgedist rank " + std::to_string(rank), Img1, Img2);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        print_time("performance_CPU.csv", "edgeDetect",
+                   {"Tiramisu auto", "Tiramisu man"},
+                   {median(duration_vector_1), median(duration_vector_2)});
+    }
 
     tiramisu_MPI_cleanup();
 
