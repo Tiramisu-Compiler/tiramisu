@@ -7719,7 +7719,6 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
 
     int distributed_dimension = this->get_distributed_dimension();
 
-
     if (distributed_dimension == -1)
         ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
 
@@ -7853,7 +7852,6 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
             DEBUG(3, "Computation " + comp_name + "isn't distributed, no communication needed");
         }
     }
-
 
     //receiver's owned_sets
     std::unordered_map<std::string,isl_set*> receiver_owned;
@@ -7994,7 +7992,6 @@ void computation::gen_communication()
 
     for (auto set : to_receive_sets)
     {
-
         project_out_static_dimensions(set.second);
 
         DEBUG(3, tiramisu::str_dump("To exchange set after project out:"); isl_set_dump(set.second));
