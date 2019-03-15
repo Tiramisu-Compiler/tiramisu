@@ -27,8 +27,6 @@ int main(int argc, char* argv[])
     computation Out("Out", {iout, jout, c}, (R(iout+1, jout+1, c) - R(iout+2, jout, c))
         + (R(iout+2, jout+1, c) - R(iout+1, jout, c)));
 
-    R.before(Out, computation::root);
-
     Img.split(in,_ROWS/NODES,i0,i1);
     Out.split(iout,_ROWS/NODES,i0,i1);
     R.split(ir,_ROWS/NODES,i0,i1);
@@ -41,6 +39,20 @@ int main(int argc, char* argv[])
     Out.drop_rank_iter(i0);
     R.drop_rank_iter(i0);
 
+    xfer border_comm_Img = computation::create_xfer(
+    "[COLS]->{border_comm_Img_send[s,ii,jj,kk]: 1<=s<10 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    "[COLS]->{border_comm_Img_recv[r,ii,jj,kk]: 0<=r<9 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    s-1,
+    r+1,
+    xfer_prop(p_int32, {MPI, BLOCK, ASYNC}), xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
+    Img(ii, jj, kk), edge);
+
+    border_comm_Img.s->tag_distribute_level(s);
+    border_comm_Img.r->tag_distribute_level(r);
+
+    border_comm_Img.s ->before(*border_comm_Img.r , computation::root);
+    border_comm_Img.r ->before(R, computation::root);
+
     xfer border_comm_R = computation::create_xfer(
     "[COLS]->{border_comm_R_send[s,ii,jj,kk]: 1<=s<10 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
     "[COLS]->{border_comm_R_recv[r,ii,jj,kk]: 0<=r<9 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
@@ -52,9 +64,9 @@ int main(int argc, char* argv[])
     border_comm_R.s->tag_distribute_level(s);
     border_comm_R.r->tag_distribute_level(r);
 
+    R.before(*border_comm_R.s, computation::root);
     border_comm_R.s->before(*border_comm_R.r, computation::root);
-    border_comm_R.r->before(R, computation::root);
-    R.before(Out, computation::root);
+    border_comm_R.r->before(Out, computation::root);
 
     buffer b_Img("b_Img", {_ROWS/NODES + 2, _COLS, 3}, p_int32, a_input);
     buffer   b_R("b_R",   {_ROWS/NODES + 2, _COLS, 3}, p_int32, a_output);
@@ -63,7 +75,8 @@ int main(int argc, char* argv[])
     R.store_in(&b_R);
     Out.store_in(&b_Img);
 
-    border_comm_R.r->set_access("{border_comm_R_recv[r,ii,jj,kk]->b_Img[" + std::to_string(_ROWS/10) + "+ii,jj,kk]}");
+    border_comm_R.r->set_access("{border_comm_R_recv[r,ii,jj,kk]->b_R[" + std::to_string(_ROWS/10) + "+ii,jj,kk]}");
+    border_comm_Img.r->set_access("{border_comm_Img_recv[r,ii,jj,kk]->b_Img[" + std::to_string(_ROWS/10) + "+ii,jj,kk]}");
 
     tiramisu::codegen({&b_Img, &b_R}, "build/generated_fct_edgedist_ref.o");
 
