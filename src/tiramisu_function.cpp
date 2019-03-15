@@ -54,6 +54,36 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
     return map;
 }
 
+/**
+  * Add a buffer to the function.
+  */
+void function::add_buffer(std::pair <std::string, tiramisu::buffer *> buf)
+{
+    assert(!buf.first.empty() && ("Empty buffer name."));
+    assert((buf.second != NULL) && ("Empty buffer."));
+
+    this->buffers_list.insert(buf);
+}
+
+/**
+ * Construct a function with the name \p name.
+ */
+function::function(std::string name)
+{
+    assert(!name.empty() && ("Empty function name"));
+
+    this->name = name;
+    this->halide_stmt = Halide::Internal::Stmt();
+    this->ast = NULL;
+    this->context_set = NULL;
+    this->use_low_level_scheduling_commands = false;
+    this->_needs_rank_call = false;
+
+    // Allocate an ISL context.  This ISL context will be used by
+    // the ISL library calls within Tiramisu.
+    this->ctx = isl_ctx_alloc();
+};
+
 isl_union_map *tiramisu::function::compute_dep_graph() {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -132,11 +162,11 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
  * By default, the data management will be done automatically, and the copies will be inserted
  * in the begining and at the end of the gpu funcion.
- * The inputs of the function will be copied to the device before the computations, and the 
+ * The inputs of the function will be copied to the device before the computations, and the
  * outputs of the functions will be copied back to the host at the end.
  * We have two cases copies to constant memory and the default case which is copies to the global memory.
  */
-const int  &function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2) const
+void function::Automatic_communication(tiramisu::computation* c1, tiramisu::computation* c2)
 {
     assert(c1 != nullptr && "C1 = NULL ");
     assert(c2 != nullptr && "C2 = NULL ");
@@ -146,51 +176,53 @@ const int  &function::Automatic_communication(tiramisu::computation* c1, tiramis
     std::map<std::string, tiramisu::buffer*> mp = this->mapping;
     std::map<std::string, tiramisu::buffer*>::iterator it ;
     std::string name, cpt_name;
-    int i = 1; 
+    int i = 1;
     tiramisu::computation* first_cpt = c1;
     tiramisu::computation* last_cpt = c2;
     for (it = mp.begin(); it != mp.end(); ++it)
     {
-      name = it->first;
-      assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
-      if (it->second->automatic_gpu_copy == true)
+        name = it->first;
+        assert(it->second->get_argument_type() == tiramisu::a_temporary  && "Mapping field should contain a string corresponding to the name of a cpu buffer and a ptr to the corresponding gpu buffer ");
+        if (it->second->automatic_gpu_copy == true)
         {
-            cpt_name= "cpt" + std::to_string(i); 
+            cpt_name= "cpt" + std::to_string(i);
             i++;
             switch (it->second->location)
             {
-                case cuda_ast::memory_location::constant :
-                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input) 
+            case cuda_ast::memory_location::constant:
+                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                        memcpy(*(buff.find(name)->second),(*(it->second))));
                     (*c).then((*first_cpt), computation::root);
                     first_cpt = c;
                 }
                 break;
-                default:  
+            default:
                 if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy(*(buff.find(name)->second),(*(it->second))));
+                        memcpy(*(buff.find(name)->second),(*(it->second))));
                     (*c).then((*first_cpt), computation::root);
-                    first_cpt = c;                
+                    first_cpt = c;
                 }
                 if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
                 {
                     tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                    memcpy((*(it->second)),*(buff.find(name)->second)));
+                        memcpy((*(it->second)),*(buff.find(name)->second)));
                     (*last_cpt).then((*c), computation::root);
                     last_cpt = c;
                 }
                 break;
             }
-        } else 
+        }
+        else
+        {
             DEBUG(3, tiramisu::str_dump("Communication should be done manually !"));
+        }
     }
-    return 0;
 }
-	
+
 // TODO: get_live_in_computations() does not consider the case of "maybe"
 // live-out (non-affine control flow, ...).
 std::vector<tiramisu::computation *> tiramisu::function::get_live_in_computations()
@@ -522,6 +554,150 @@ void tiramisu::function::dump_dep_graph()
     isl_union_map_dump(deps);
 }
 
+void function::dump_halide_stmt() const
+{
+    tiramisu::str_dump("\n\n");
+    tiramisu::str_dump("\nGenerated Halide Low Level IR:\n");
+    std::cout << this->get_halide_stmt();
+    tiramisu::str_dump("\n\n\n\n");
+}
+
+void function::dump_trimmed_time_processor_domain() const
+{
+    // Create time space domain
+
+    if (ENABLE_DEBUG)
+    {
+        tiramisu::str_dump("\n\nTrimmed Time-processor domain:\n");
+
+        tiramisu::str_dump("Function " + this->get_name() + ":\n");
+        for (const auto &comp : this->get_computations())
+        {
+            isl_set_dump(comp->get_trimmed_time_processor_domain());
+        }
+
+        tiramisu::str_dump("\n\n");
+    }
+}
+
+void function::dump_time_processor_domain() const
+{
+    // Create time space domain
+
+    if (ENABLE_DEBUG)
+    {
+        tiramisu::str_dump("\n\nTime-processor domain:\n");
+
+        tiramisu::str_dump("Function " + this->get_name() + ":\n");
+        for (const auto &comp : this->get_computations())
+        {
+            isl_set_dump(comp->get_time_processor_domain());
+        }
+
+        tiramisu::str_dump("\n\n");
+    }
+}
+
+void function::dump_sched_graph_dfs(computation * comp,
+                                    std::unordered_set<computation *> &visited)
+{
+    // Do not visit anything that was already returned
+    if (visited.find(comp) != visited.end())
+        return;
+
+    visited.insert(comp);
+
+    for (auto &edge: this->sched_graph[comp])
+    {
+        const std::string level = ((edge.second == computation::root_dimension) ?
+                                   "root" :
+                                   std::to_string(edge.second));
+
+        DEBUG(3, tiramisu::str_dump(comp->get_unique_name() +
+                                    "=[" + level + "]=>" +
+                                    edge.first->get_unique_name()));
+
+        dump_sched_graph_dfs(edge.first, visited);
+    }
+}
+
+void function::dump_sched_graph()
+{
+    DEBUG(3, tiramisu::str_dump("Number of schedule graph roots is " +
+                                std::to_string(this->starting_computations.size())));
+    DEBUG(3, tiramisu::str_dump("The roots are:"));
+
+    for (auto root: this->starting_computations)
+        DEBUG(3, tiramisu::str_dump(" * " + root->get_unique_name()));
+
+    // Contains all nodes that have been visited
+    std::unordered_set<computation *> visited;
+
+    DEBUG(3, tiramisu::str_dump("Displaying schedule graph"));
+
+    for (auto &comp: this->starting_computations)
+    {
+        dump_sched_graph_dfs(comp, visited);
+    }
+
+    DEBUG(3, tiramisu::str_dump("Finished displaying schedule graph"));
+}
+
+bool function::is_sched_graph_tree_dfs(computation * comp,
+                                       std::unordered_set<computation *> &visited)
+{
+    // Do not visit anything that was already returned
+    if (visited.find(comp) != visited.end())
+        return false;
+
+    visited.insert(comp);
+
+    for (auto &edge: this->sched_graph[comp])
+    {
+        if (!is_sched_graph_tree_dfs(edge.first, visited))
+            return false;
+    }
+
+    return true;
+}
+
+bool function::is_sched_graph_tree()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    if (this->starting_computations.size() != 1)
+    {
+        DEBUG_INDENT(-4);
+        return false;
+    }
+
+    // Contains all nodes that have been visited
+    std::unordered_set<computation *> visited;
+
+    for (auto &comp: this->starting_computations)
+    {
+        if (!is_sched_graph_tree_dfs(comp, visited))
+        {
+            DEBUG_INDENT(-4);
+            return false;
+        }
+    }
+
+    DEBUG_INDENT(-4);
+    return true;
+}
+
+
+/**
+  * Get the arguments of the function.
+  */
+// @{
+const std::vector<tiramisu::buffer *> &function::get_arguments() const {
+    return function_arguments;
+}
+// @}
+
 /**
   * Return a map that represents the buffers of the function.
   * The buffers of the function are buffers that are either passed
@@ -676,6 +852,41 @@ bool function::should_parallelize(const std::string &comp, int lev) const
 }
 
 /**
+* Return the unrolling factor used to unroll the computation \p comp
+* at the loop level \p lev.
+*/
+int function::get_unrolling_factor(const std::string &comp, int lev) const
+{
+    DEBUG_FCT_NAME(10);
+    DEBUG_INDENT(4);
+
+    assert(!comp.empty());
+    assert(lev >= 0);
+
+    int unrolling_factor = -1;
+    bool found = false;
+
+    for (const auto &pd : this->unroll_dimensions)
+    {
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+        {
+            unrolling_factor = std::get<2>(pd);
+            found = true;
+        }
+    }
+
+    std::string str = "Dimension " + std::to_string(lev) +
+                      (found ? " should" : " should not")
+                       + " be unrolled with a factor of " +
+                       std::to_string(unrolling_factor);
+    DEBUG(10, tiramisu::str_dump(str));
+
+    DEBUG_INDENT(-4);
+
+    return unrolling_factor;
+}
+
+/**
 * Return the vector length of the computation \p comp at
 * at the loop level \p lev.
 */
@@ -710,6 +921,31 @@ int function::get_vector_length(const std::string &comp, int lev) const
     return vector_length;
 }
 
+computation * function::get_first_cpt() {
+    if (this->is_sched_graph_tree()) {
+        tiramisu::computation* cpt = this->sched_graph.begin()->first;
+        while (cpt->get_predecessor() != NULL) {
+            cpt = cpt->get_predecessor();
+        }
+        return cpt;
+    } else {
+        DEBUG(3, tiramisu::str_dump(" this->is_sched_graph_tree(): false."));
+        return NULL;
+    }
+}
+
+computation * function::get_last_cpt() {
+    if (this->is_sched_graph_tree()) {
+        tiramisu::computation* cpt = this->sched_graph.begin()->first;
+        while (cpt->get_successor() != NULL) {
+            cpt = cpt->get_successor();
+        }
+        return cpt;
+    } else {
+        DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+        return NULL;
+    }
+}
 
 /**
 * Return true if the computation \p comp should be vectorized
@@ -1143,7 +1379,7 @@ bool tiramisu::function::should_unroll(const std::string &comp, int lev0) const
     bool found = false;
     for (const auto &pd : this->unroll_dimensions)
     {
-        if ((pd.first == comp) && (pd.second == lev0))
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev0))
         {
             found = true;
         }
@@ -1440,6 +1676,32 @@ void tiramisu::function::dump_schedule() const
 void tiramisu::function::set_arguments(const std::vector<tiramisu::buffer *> &buffer_vec)
 {
     this->function_arguments = buffer_vec;
+    // Implicit buffers are set to type a_temporary by default. Change them to
+    // a_input or a_output, so that they don't get autoallocated.
+    for (auto &buffer : buffer_vec)
+    {
+        assert((buffer != nullptr) && "Buffer argument is null!");
+        if (buffer->get_argument_type() == a_temporary)
+        {
+            // Determine if it's an input function.
+            // If there are any scheduled computation that uses this buffer,
+            // buffer is marked as output.
+            bool is_input = true;
+            for (auto const &comp : this->body)
+            {
+                if (comp->get_buffer() == buffer
+                    && comp->should_schedule_this_computation())
+                {
+                    is_input = false;
+                    break;
+                }
+            }
+            DEBUG(3, tiramisu::str_dump("Setting type of buffer "
+                     + buffer->get_name() + " to "
+                     + (is_input ? "input" : "output")));
+            buffer->set_argument_type(is_input ? a_input : a_output);
+        }
+    }
 }
 
 void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim, int vector_length)
@@ -1466,12 +1728,13 @@ void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_d
     this->parallel_dimensions.push_back({stmt_name, vec_dim});
 }
 
-void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level)
+void tiramisu::function::add_unroll_dimension(std::string stmt_name, int level, int factor)
 {
     assert(level >= 0);
     assert(!stmt_name.empty());
+    assert(factor >= 0);
 
-    this->unroll_dimensions.push_back({stmt_name, level});
+    this->unroll_dimensions.push_back(std::make_tuple(stmt_name, level, factor));
 }
 
 void tiramisu::function::add_gpu_block_dimensions(std::string stmt_name, int dim0,
@@ -1709,18 +1972,102 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
     }
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt) 
+void function::gen_ordering_schedules()
 {
-    if (gen_cuda_stmt) 
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    if (this->use_low_level_scheduling_commands)
     {
-	if(!this->mapping.empty())
-	{
-		tiramisu::computation* c1 = this->get_first_cpt();
-		tiramisu::computation* c2 = this->get_last_cpt();
-		Automatic_communication(c1,c2);
+        DEBUG(3, tiramisu::str_dump("Low level scheduling commands were used."));
+        DEBUG(3, tiramisu::str_dump("Discarding high level scheduling commands."));
+        return;
+    }
+
+    this->dump_sched_graph();
+
+    if(this->is_sched_graph_tree())
+    {
+        DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): true."));
+
+        std::priority_queue<int> level_to_check;
+        std::unordered_map<int, std::deque<computation *>> level_queue;
+
+        auto current_comp = *(this->starting_computations.begin());
+
+        auto init_sched = automatically_allocated;
+        init_sched.push_back(current_comp);
+
+        for (auto it = init_sched.begin(); it != init_sched.end() && it + 1 != init_sched.end(); it++)
+            (*(it+1))->after_low_level(**it, computation::root_dimension);
+
+        bool comps_remain = true;
+        while(comps_remain)
+        {
+            for (auto &edge: this->sched_graph[current_comp])
+            {
+                if (level_queue[edge.second].size() == 0)
+                    level_to_check.push(edge.second);
+
+                level_queue[edge.second].push_back(edge.first);
+            }
+
+            comps_remain = level_to_check.size() > 0;
+            // If we haven't exhausted all computations
+            if (comps_remain)
+            {
+                int fuse_level = level_to_check.top();
+                auto next_comp = level_queue[fuse_level].front();
+                level_queue[fuse_level].pop_front();
+
+                // assert(this->get_max_iteration_domains_dim() > fuse_level);
+
+                next_comp->after_low_level((*current_comp), fuse_level);
+
+                current_comp = next_comp;
+                if (level_queue[fuse_level].size() == 0)
+                    level_to_check.pop();
+            }
         }
-	else 
-	     	DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));    
+    }
+    else
+    {
+        DEBUG(3, tiramisu::str_dump("this->is_sched_graph_tree(): false."));
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+void function::gen_time_space_domain()
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    // Generate the ordering based on calls to .after() and .before().
+    this->gen_ordering_schedules();
+
+    this->align_schedules();
+
+    for (auto &comp : this->get_computations())
+    {
+        comp->gen_time_space_domain();
+    }
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+{
+    if (gen_cuda_stmt)
+    {
+        if(!this->mapping.empty())
+        {
+            tiramisu::computation* c1 = this->get_first_cpt();
+            tiramisu::computation* c2 = this->get_last_cpt();
+            Automatic_communication(c1,c2);
+        }
+        else
+            DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));
     }
     this->set_arguments(arguments);
     this->lift_dist_comps();
@@ -1735,13 +2082,13 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const
 {
-	const std::vector<tiramisu::constant> inv = this->get_invariants();
-	std::vector<std::string> inv_str;
+    const std::vector<tiramisu::constant> inv = this->get_invariants();
+    std::vector<std::string> inv_str;
 
-	for (int i = 0; i < inv.size(); i++)
-		inv_str.push_back(inv[i].get_name());
+    for (int i = 0; i < inv.size(); i++)
+        inv_str.push_back(inv[i].get_name());
 
-	return inv_str;
+    return inv_str;
 }
 
 }
