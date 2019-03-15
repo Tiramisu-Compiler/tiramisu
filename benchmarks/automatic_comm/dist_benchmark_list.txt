@@ -1,3 +1,4 @@
 convolutiondist[mpi,10]
 cvtcolordist[mpi,10]
 edgedist[mpi,10]
+blurdist[mpi,10]
