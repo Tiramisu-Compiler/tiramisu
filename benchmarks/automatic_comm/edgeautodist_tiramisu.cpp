@@ -1,11 +1,11 @@
 #include <tiramisu/tiramisu.h>
-#include "wrapper_edgedist.h"
+#include "wrapper_edgeautodist.h"
 
 using namespace tiramisu;
 
 int main(int argc, char* argv[])
 {
-    tiramisu::init("edgedist_tiramisu");
+    tiramisu::init("edgeautodist_tiramisu");
 
     constant COLS("COLS",_COLS);
     constant ROWS("ROWS",_ROWS);
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     R.gen_communication();
     Out.gen_communication();
 
-    tiramisu::codegen({&b_Img, &b_R}, "build/generated_fct_edgedist.o");
+    tiramisu::codegen({&b_Img, &b_R}, "build/generated_fct_edgeautodist.o");
 
   return 0;
 }

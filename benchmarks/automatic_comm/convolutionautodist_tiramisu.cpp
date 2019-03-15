@@ -1,13 +1,13 @@
 #include <tiramisu/tiramisu.h>
 
 #include <Halide.h>
-#include "wrapper_convolutiondist.h"
+#include "wrapper_convolutionautodist.h"
 
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    tiramisu::init("convolutiondist_tiramisu");
+    tiramisu::init("convolutionautodist_tiramisu");
 
     function *f = global::get_implicit_function();
     f->add_context_constraints("[ROWS]->{: ROWS = "+std::to_string(_ROWS)+"}");
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
     conv.gen_communication();
 
-    tiramisu::codegen({&buff_input, &buff_kernel, &buff_convolution} ,"build/generated_fct_convolutiondist.o");
+    tiramisu::codegen({&buff_input, &buff_kernel, &buff_convolution} ,"build/generated_fct_convolutionautodist.o");
 
     return 0;
 }

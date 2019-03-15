@@ -1,4 +1,4 @@
-#include "wrapper_cvtcolordist.h"
+#include "wrapper_cvtcolorautodist.h"
 #include "../benchmarks.h"
 #include <tiramisu/mpi_comm.h>
 #include "Halide.h"
@@ -28,26 +28,26 @@ int main(int, char**) {
         }
     }
 
-    cvtcolordist_tiramisu(input.raw_buffer(), output.raw_buffer());
+    cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
 
     for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start1 = std::chrono::high_resolution_clock::now();
-        cvtcolordist_tiramisu(input.raw_buffer(), output.raw_buffer());
+        cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration1 = end1 - start1;
         duration_vector_1.push_back(duration1);
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    cvtcolordist_ref(input.raw_buffer(), output.raw_buffer());
+    cvtcolorautodist_ref(input.raw_buffer(), output.raw_buffer());
 
     for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start = std::chrono::high_resolution_clock::now();
-        cvtcolordist_ref(input.raw_buffer(), output_ref.raw_buffer());
+        cvtcolorautodist_ref(input.raw_buffer(), output_ref.raw_buffer());
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double,std::milli> duration = end - start;
         duration_vector_2.push_back(duration);

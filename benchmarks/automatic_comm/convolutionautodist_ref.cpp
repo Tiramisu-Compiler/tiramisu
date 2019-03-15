@@ -1,12 +1,12 @@
 #include <tiramisu/tiramisu.h>
 #include <Halide.h>
-#include "wrapper_convolutiondist.h"
+#include "wrapper_convolutionautodist.h"
 
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    tiramisu::init("convolutiondist_ref");
+    tiramisu::init("convolutionautodist_ref");
 
     function *f = global::get_implicit_function();
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     data_transfer.r->set_access("{data_receive[r, x, y, c]->buff_input[x + " + std::to_string(_ROWS/_NODES) + ", y, c]}");
 
-    tiramisu::codegen({&buff_input, &buff_kernel, &buff_convolution} ,"build/generated_fct_convolutiondist_ref.o");
+    tiramisu::codegen({&buff_input, &buff_kernel, &buff_convolution} ,"build/generated_fct_convolutionautodist_ref.o");
 
     return 0;
 }

@@ -1,4 +1,4 @@
-convolutiondist[mpi,10]
-cvtcolordist[mpi,10]
-edgedist[mpi,10]
-blurdist[mpi,10]
+convolutionautodist[mpi,10]
+cvtcolorautodist[mpi,10]
+edgeautodist[mpi,10]
+blurautodist[mpi,10]

@@ -1,4 +1,4 @@
-#include "wrapper_blurdist.h"
+#include "wrapper_blurautodist.h"
 #include "Halide.h"
 
 #include <tiramisu/utils.h>
@@ -29,7 +29,7 @@ int main() {
   init_buffer(output, (uint32_t)0);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  blurdist_tiramisu(input.raw_buffer(), output.raw_buffer());
+  blurautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
 
   MPI_Barrier(MPI_COMM_WORLD);
   init_buffer(input, (uint32_t)0);
@@ -53,14 +53,14 @@ int main() {
 
       MPI_Barrier(MPI_COMM_WORLD);
       auto start1 = std::chrono::high_resolution_clock::now();
-      blurdist_tiramisu(input.raw_buffer(), output.raw_buffer());
+      blurautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
       auto end1 = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration1 = end1 - start1;
       duration_vector_1.push_back(duration1);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  blurdist_ref(input.raw_buffer(), ref.raw_buffer());
+  blurautodist_ref(input.raw_buffer(), ref.raw_buffer());
   for (int i=0; i<NB_TESTS; i++)
   {
       MPI_Barrier(MPI_COMM_WORLD);
@@ -74,20 +74,20 @@ int main() {
 
       MPI_Barrier(MPI_COMM_WORLD);
       auto start1 = std::chrono::high_resolution_clock::now();
-      blurdist_ref(input.raw_buffer(), ref.raw_buffer());
+      blurautodist_ref(input.raw_buffer(), ref.raw_buffer());
       auto end1 = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double,std::milli> duration1 = end1 - start1;
       duration_vector_2.push_back(duration1);
   }
-  
+
   MPI_Barrier(MPI_COMM_WORLD);
 
   if(CHECK_CORRECTNESS){
-      compare_buffers("blurdist_" + std::to_string(rank), output, ref);
+      compare_buffers("blurautodist_" + std::to_string(rank), output, ref);
   }
 
   if(rank == 0) {
-      print_time("performance_CPU.csv", "blurdist",
+      print_time("performance_CPU.csv", "blurautodist",
                  {"auto", "man"},
                  {median(duration_vector_1), median(duration_vector_2)});
   }

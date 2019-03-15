@@ -4,14 +4,14 @@
 #include <tiramisu/core.h>
 #include <tiramisu/utils.h>
 #include "halide_image_io.h"
-#include "wrapper_cvtcolordist.h"
+#include "wrapper_cvtcolorautodist.h"
 
 using namespace tiramisu;
 int main() {
 
     global::set_default_tiramisu_options();
-    
-    function cvtcolor_dist("cvtcolordist_ref");
+
+    function cvtcolor_dist("cvtcolorautodist_ref");
 
     constant CHANNELS("CHANNELS", expr(3), p_int32, true, NULL, 0, &cvtcolor_dist);
     constant ROWS("ROWS", expr(_ROWS), p_int32, true, NULL, 0, &cvtcolor_dist);
@@ -48,7 +48,7 @@ int main() {
     input.set_access("{input[i, j, c]->buff_input[i, j, c]}");
     RGB2Gray_s0.set_access("{RGB2Gray_s0[i, j]->buff_RGB2Gray[i, j]}");
 
-    cvtcolor_dist.codegen({&buff_input, &buff_RGB2Gray}, "build/generated_fct_cvtcolordist_ref.o");
+    cvtcolor_dist.codegen({&buff_input, &buff_RGB2Gray}, "build/generated_fct_cvtcolorautodist_ref.o");
 
     return 0;
 }

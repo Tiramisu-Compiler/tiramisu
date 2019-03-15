@@ -1,4 +1,4 @@
-#include "wrapper_convolutiondist.h"
+#include "wrapper_convolutionautodist.h"
 #include "../benchmarks.h"
 #include "Halide.h"
 #include "tiramisu/utils.h"
@@ -30,7 +30,7 @@ int main(int, char**)
     init_buffer(output2, (int32_t)0);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
+    convolutionautodist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
 
     for (int i = 0; i < NB_TESTS; i++)
     {
@@ -48,7 +48,7 @@ int main(int, char**)
 
         auto start1 = std::chrono::high_resolution_clock::now();
 
-        convolutiondist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
+        convolutionautodist_tiramisu(input.raw_buffer(), kernel.raw_buffer(), output1.raw_buffer());
 
         auto end1 = std::chrono::high_resolution_clock::now();
 
@@ -64,7 +64,7 @@ int main(int, char**)
                 input(k,j,i) = 3;
 
     MPI_Barrier(MPI_COMM_WORLD);
-    convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+    convolutionautodist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
 
     for (int i=0; i<NB_TESTS; i++)
     {
@@ -77,12 +77,12 @@ int main(int, char**)
             for(int j = 0; j < _COLS; j++)
                 for(int k = 0; k < 3; k++)
                     input(k,j,i) = 3;
-                    
+
         MPI_Barrier(MPI_COMM_WORLD);
 
         auto start2 = std::chrono::high_resolution_clock::now();
 
-        convolutiondist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
+        convolutionautodist_ref(input.raw_buffer(), kernel.raw_buffer(), output2.raw_buffer());
 
         auto end2 = std::chrono::high_resolution_clock::now();
 
@@ -95,7 +95,7 @@ int main(int, char**)
     compare_buffers("convolution rank "+std::to_string(rank) , output1, output2);
 
     if(rank == 0)
-    {    print_time("performance_CPU.csv", "convolutiondist",
+    {    print_time("performance_CPU.csv", "convolutionautodist",
             {"Tiramisu auto", "Tiramisu man"},
          {median(duration_vector_1), median(duration_vector_2)});
     }

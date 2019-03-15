@@ -1,4 +1,4 @@
-#include "wrapper_edgedist.h"
+#include "wrapper_edgeautodist.h"
 #include "Halide.h"
 #include <tiramisu/mpi_comm.h>
 #include <cstdlib>
@@ -37,7 +37,7 @@ int main(int, char**)
 
     }
 
-    edgedist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
+    edgeautodist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -59,7 +59,7 @@ int main(int, char**)
         MPI_Barrier(MPI_COMM_WORLD);
 
         auto start1 = std::chrono::high_resolution_clock::now();
-        edgedist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
+        edgeautodist_tiramisu(Img1.raw_buffer(), output1.raw_buffer());
 
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -81,7 +81,7 @@ int main(int, char**)
 
     }
 
-    edgedist_ref(Img2.raw_buffer(), output2.raw_buffer());
+    edgeautodist_ref(Img2.raw_buffer(), output2.raw_buffer());
 
     for (int i = 0; i < NB_TESTS; i++)
     {
@@ -101,7 +101,7 @@ int main(int, char**)
         MPI_Barrier(MPI_COMM_WORLD);
 
         auto start1 = std::chrono::high_resolution_clock::now();
-        edgedist_ref(Img2.raw_buffer(), output2.raw_buffer());
+        edgeautodist_ref(Img2.raw_buffer(), output2.raw_buffer());
 
         MPI_Barrier(MPI_COMM_WORLD);
         auto end1 = std::chrono::high_resolution_clock::now();
@@ -110,7 +110,7 @@ int main(int, char**)
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    compare_buffers_approximately("edgedist rank " + std::to_string(rank), Img1, Img2);
+    compare_buffers_approximately("edgeautodist rank " + std::to_string(rank), Img1, Img2);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
