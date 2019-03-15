@@ -26,6 +26,7 @@ const var computation::root = var("root");
 static int next_dim_name = 0;
 
 std::string generate_new_variable_name();
+void project_out_static_dimensions(isl_set*& set);
 
 tiramisu::expr traverse_expr_and_replace_non_affine_accesses(tiramisu::computation *comp,
                                                              const tiramisu::expr &exp);
@@ -7696,6 +7697,7 @@ int computation::get_distributed_dimension()
     this->gen_time_space_domain();
 
     int number_of_dimensions = isl_set_dim(this->get_trimmed_time_processor_domain(), isl_dim_set);
+
     int distributed_dimension = 0;
 
     while (distributed_dimension < number_of_dimensions and
@@ -7716,7 +7718,6 @@ isl_map* computation::construct_distribution_map(tiramisu::rank_t rank_type)
     std::vector<std::string> dimensions_names = this->get_trimmed_time_space_domain_dimension_names();
 
     int distributed_dimension = this->get_distributed_dimension();
-
 
     if (distributed_dimension == -1)
         ERROR("Computation " + this->get_name() + "isn't tagged distributed and used gen_communication().",true);
@@ -7824,7 +7825,7 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
     //Find the receiver's needed_sets
     std::vector<isl_map*> rhs_accesses;
     generator::get_rhs_accesses(this->get_function(), this, rhs_accesses, false);
-    
+
     //map computation name to the receiver needed set of that computation
     std::unordered_map <std::string, isl_set*> receiver_needed;
 
@@ -7838,6 +7839,7 @@ std::unordered_map<std::string, isl_set*> computation::construct_exchange_sets()
         //apply schedule to producer
         computation* producer = get_function()->get_computation_by_name(comp_name)[0];
         rhs_access = isl_map_apply_range(rhs_access, isl_map_copy(producer->get_trimmed_union_of_schedules()));
+        //tiramisu::str_dump("rhs_access after applying schedule ");isl_map_dump(rhs_access);
         //apply rhs_access
         isl_set* needed_set = isl_set_apply(isl_set_copy(receiver_to_compute_set), rhs_access);
         //check if it should do communication on it

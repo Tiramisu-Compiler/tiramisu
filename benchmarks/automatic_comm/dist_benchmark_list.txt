@@ -1,0 +1,4 @@
+convolutionautodist[mpi,10]
+cvtcolorautodist[mpi,10]
+edgeautodist[mpi,10]
+blurautodist[mpi,10]
