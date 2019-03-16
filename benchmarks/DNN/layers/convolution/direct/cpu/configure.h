@@ -1,8 +1,10 @@
 #ifndef __CONV_CONF_HEADER_
 #define __CONV_CONF_HEADER_
 
-#define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
+#define RUN_DIFFERENT_SIZES 0
+
+#define LARGE_DATA_SET	1
+#define MEDIUM_DATA_SET 0
 #define SMALL_DATA_SET	0
 #define C11 0
 #define C12 0
@@ -29,6 +31,11 @@
 #define C122 0
 #define C123 0
 
+// Size of convolution filter (KxK)
+#define K 5
+
+
+/*
 #if LARGE_DATA_SET || C13 || C23 || C43 || C63 || C73 || C83 || C93 || C103 || C123
 	#define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET || C12 || C22 || C42 || C62 || C72 || C82 || C92 || C102 || C122
@@ -53,9 +60,6 @@
     // Number of features in the output
     #define FOut 16
 #endif
-
-// Size of convolution filter (KxK)
-#define K 5
 
 #if C11 || C12 || C13
     #define N 224
@@ -89,13 +93,13 @@
     #define N 7
     #define FIn 512
     #define FOut 512
-
 #endif
+*/
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
 
-#define NB_TESTS 10
+#define NB_TESTS 5
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
