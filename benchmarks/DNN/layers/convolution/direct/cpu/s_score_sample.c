@@ -210,19 +210,19 @@ static dnnError_t simple_net(int want_groups_conv)
 
     for (int j = 0; j < nb_sizes; j++)
     {
-        int N = sizes[j][0];
-        int BATCH_SIZE = sizes[j][1];
-        int FIn = sizes[j][2];
-        int FOut = sizes[j][3];
+        int C_N = sizes[j][0];
+        int C_BATCH_SIZE = sizes[j][1];
+        int C_FIn = sizes[j][2];
+        int C_FOut = sizes[j][3];
 
-        size_t outputSize[dimension] = {(N - 4), (N - 4), FOut, BATCH_SIZE};
-        size_t outputStrides[dimension] = {1, (N - 4), (N - 4) * (N - 4), (N - 4) * (N - 4) * FOut};
+        size_t outputSize[dimension] = {(C_N - 4), (C_N - 4), C_FOut, C_BATCH_SIZE};
+        size_t outputStrides[dimension] = {1, (C_N - 4), (C_N - 4) * (C_N - 4), (C_N - 4) * (C_N - 4) * C_FOut};
 
-        size_t inputSize[dimension] = {N, N, FIn, BATCH_SIZE};
-        size_t inputStrides[dimension] = {1, N, (N) * (N), (N) * (N)*FIn};
+        size_t inputSize[dimension] = {C_N, C_N, C_FIn, C_BATCH_SIZE};
+        size_t inputStrides[dimension] = {1, C_N, (C_N) * (C_N), (C_N) * (C_N)*C_FIn};
 
-        size_t filterSize[dimension] = {K, K, FIn, FOut};
-        size_t filterStrides[dimension] = {1, K, K * K, K * K * FIn};
+        size_t filterSize[dimension] = {K, K, C_FIn, C_FOut};
+        size_t filterStrides[dimension] = {1, K, K * K, K * K * C_FIn};
 
         size_t convolutionStride[dimension - 2] = {1, 1};
         int inputOffset[dimension - 2] = {0, 0};
