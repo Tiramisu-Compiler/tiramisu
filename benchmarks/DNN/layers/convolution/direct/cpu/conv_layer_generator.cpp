@@ -156,7 +156,7 @@ void generate(int p_N, int p_K, int p_BATCH_SIZE, int p_FIn, int p_FOut)
     computation conv_init("conv_init",{n, z, y, x}, bias(z));
     computation conv("conv",{n, z, y, x, k_z, k_y, k_x }, conv_init(n, z, y, x) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y + k_y, x + k_x));
     
-    global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5}"); // C_FIn%16=0 and C_N%16=0}");
+    global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%" + std::to_string(p_FIn) + "=0 and C_N%" + std::to_string(p_FOut) + "=0}");
 
     // Layer II
     int vec_len;
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
     int nb_sizes;
     int sizes[NB_MAX_SIZES][4];
 
-    fill_sizes_array(sizes, nb_sizes);
+    nb_sizes = fill_sizes_array(sizes, nb_sizes);
 
     int n = sizes[0][0];
     int batch_size = sizes[0][1];

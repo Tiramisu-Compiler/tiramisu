@@ -63,7 +63,7 @@
 // Maxilam size for the sizes[][] array.
 #define NB_MAX_SIZES 100
 
-void fill_sizes_array(int sizes[NB_MAX_SIZES][4], int &nb_sizes)
+int fill_sizes_array(int sizes[NB_MAX_SIZES][4], int nb_sizes)
 {
 	// N
     	// BATCH_SIZE
@@ -314,6 +314,8 @@ void fill_sizes_array(int sizes[NB_MAX_SIZES][4], int &nb_sizes)
 		sizes[nb_sizes][3] = 512;
 		nb_sizes++;
 	}
+
+	return nb_sizes;
 }
 
 #ifdef __cplusplus

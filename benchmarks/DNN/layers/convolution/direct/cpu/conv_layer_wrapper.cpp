@@ -14,7 +14,7 @@ int main(int, char**)
     int nb_sizes;
     int sizes[NB_MAX_SIZES][4];
 
-    fill_sizes_array(sizes, nb_sizes);
+    nb_sizes = fill_sizes_array(sizes, nb_sizes);
 
     for (int j = 0; j < nb_sizes; j++)
     {
