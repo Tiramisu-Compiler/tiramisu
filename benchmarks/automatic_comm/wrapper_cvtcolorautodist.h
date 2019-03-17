@@ -4,7 +4,7 @@
 #include <tiramisu/utils.h>
 
 #ifndef NODES
-#define NODES 10
+#define NODES 16
 #endif
 
 #define _ROWS 1000
