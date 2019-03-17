@@ -5,7 +5,126 @@
 
 using namespace tiramisu;
 
-int main(int argc, char **argv)
+void set_parameters(int &vec_len, int &o_block, int &y_block, int p_N)
+{
+	if (p_N > 32)
+    	{
+            vec_len = 32;
+            y_block = 32;
+    	}
+    	else
+    	{
+            vec_len = std::min(16, p_N);
+            y_block = 8;
+    	}
+
+    	o_block = 4;
+
+	if (C11 || C12)
+	{
+		vec_len = 16;
+		y_block = 6;
+		o_block = 4;
+	}
+	else if (C13)
+	{
+		vec_len = 32;
+		y_block = 6;
+		o_block = 2;
+	}
+	else if (C21)
+	{
+		vec_len = 4;
+		y_block = 12;
+		o_block = 4;
+	}
+	else if (C22)
+	{
+		vec_len = 4;
+		y_block = 6;
+		o_block = 4;
+	}
+	else if (C23)
+	{
+		vec_len = 4;
+		y_block = 3;
+		o_block = 2;
+	}
+	else if (C41)
+	{
+		vec_len = 4;
+		y_block = 6;
+		o_block = 16;
+	}
+	else if (C42)
+	{
+		vec_len = 4;
+		y_block = 6;
+		o_block = 32;
+	}
+	else if (C43)
+	{
+		vec_len = 16;
+		y_block = 6;
+		o_block = 32;
+	}
+	else if (C61)
+	{
+		vec_len = 8;
+		y_block = 16;
+		o_block = 16;
+	}
+	else if (C62 || C63)
+	{
+		vec_len = 8;
+		y_block = 32;
+		o_block = 32;
+	}
+	else if (C71)
+	{
+		vec_len = 8;
+		y_block = 32;
+		o_block = 16;
+	}
+	else if (C72)
+	{
+		vec_len = 8;
+		y_block = 32;
+		o_block = 32;
+	}
+	else if (C73)
+	{
+		vec_len = 8;
+		y_block = 8;
+		o_block = 8;
+	}
+	else if (C91 || C92 || C93)
+	{
+		vec_len = 2;
+		y_block = 32;
+		o_block = 32;
+	}
+	else if (C101)
+	{
+		vec_len = 2;
+		y_block = 32;
+		o_block = 8;
+	}
+	else if (C102)
+	{
+		vec_len = 2;
+		y_block = 32;
+		o_block = 32;
+	}
+	else if (C103)
+	{
+		vec_len = 2;
+		y_block = 64;
+		o_block = 64;
+	}
+}
+
+void generate(int p_N, int p_K, int p_BATCH_SIZE, int p_FIn, int p_FOut)
 {
     init("conv_tiramisu");
 
@@ -15,7 +134,7 @@ int main(int argc, char **argv)
     // FOut: parameters[3]
     // BATCH_SIZE: parameters[4]
 
-    var i("i", 0, 5);
+    var i("i", 0, p_K);
     input parameters("parameters",{i}, p_int32);
 
     constant N_INPUT("N_INPUT", parameters(0) + parameters(1)); // The input is padded, so its size is N + K instead of N.
@@ -44,27 +163,14 @@ int main(int argc, char **argv)
     int y_block;
     int o_block;
 
-    if (LARGE_DATA_SET || MEDIUM_DATA_SET)
-    {
-            vec_len = 32;
-            y_block = 32;
-            o_block = 4;
-    }
-    if (SMALL_DATA_SET)
-    {
-            vec_len = 16;
-            y_block = 8;
-            o_block = 4;
-    }
-
+    set_parameters(vec_len, o_block, y_block, p_N);
+ 
     conv_init.then(conv, y);
 
-    conv_init.tag_parallel_level(n);
+    conv.parallelize(n);
 
-    // 0, 1,   2,   3,   4,   5,     6,
     // n, z,   y,   x, k_z, k_y,   k_x,
     conv.interchange(x, k_z);
-    // n, z,   y, (k_z,   x), k_y, k_x,
     conv.interchange(y, k_z);
     // n, z, (k_z,  y),   x,  k_y, k_x,
 
@@ -73,35 +179,42 @@ int main(int argc, char **argv)
     conv_init.split(z, o_block, z1, z2);
     // n, (z1, z2), k_z,   y,   x, k_y, k_x,
 
-    conv.split(3, y_block);
-    conv.split(6, vec_len);
-////    conv.tag_vector_level(7, vec_len);
+    var k_z1("k_z1"), k_z2("k_z2");
+    conv.split(k_z, y_block, k_z1, k_z2);
+    // n, z1, z2, k_z1, k_z2, y, x, k_y, k_x,
 
-    // n,  z1, z2,  k_z,  (y, y_t), x, k_y, k_x,
-    conv_init.split(4, vec_len);
-////    conv_init.tag_vector_level(5, vec_len);
+    conv.vectorize(x, vec_len);
+    conv_init.vectorize(y, vec_len);
 
-    if (LARGE_DATA_SET)
+    if (p_N > 32)
     {
-////	    conv.tag_unroll_level(8);
-////	    conv.tag_unroll_level(9);
+	    conv.unroll(k_y, p_K);
+	    conv.unroll(k_x, p_K);
     }
 
     // Layer III
-    buffer parameters_buf("parameters_buf", {expr(5)}, p_int32, a_input);
-    buffer input_buf("input_buf", {expr(C_BATCH_SIZE), C_FIn, N_INPUT, N_INPUT}, p_float32, a_input);
     buffer conv_buf("conv_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N), expr(C_N)}, p_float32, a_output);
-    buffer filter_buf("filter_buf", {expr(C_FOut), expr(C_FIn), expr(C_K), expr(C_K)}, p_float32, a_input);
-    buffer bias_buf("bias_buf", {expr(C_FOut)}, p_float32, a_input);
 
-    parameters.store_in(&parameters_buf);
-    c_input.store_in(&input_buf);
-    bias.store_in(&bias_buf);
-    filter.store_in(&filter_buf);
     conv_init.store_in(&conv_buf);
     conv.store_in(&conv_buf,{n, z, y, x});
 
-    tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf},"generated_conv_layer.o");
+    tiramisu::codegen({parameters.get_buffer(), c_input.get_buffer(), filter.get_buffer(), bias.get_buffer(), &conv_buf},"generated_conv_layer.o");
+
+}
+
+int main(int argc, char **argv)
+{
+    int nb_sizes;
+    int sizes[NB_MAX_SIZES][4];
+
+    fill_sizes_array(sizes, nb_sizes);
+
+    int n = sizes[0][0];
+    int batch_size = sizes[0][1];
+    int fin = sizes[0][2];
+    int fout = sizes[0][3];
+
+    generate(n, 5, batch_size, fin, fout);
 
     return 0;
 }
