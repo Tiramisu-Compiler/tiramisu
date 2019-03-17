@@ -137,12 +137,12 @@ void generate(int p_N, int p_K, int p_BATCH_SIZE, int p_FIn, int p_FOut)
     var i("i", 0, p_K);
     input parameters("parameters",{i}, p_int32);
 
-    constant N_INPUT("N_INPUT", parameters(0) + parameters(1)); // The input is padded, so its size is N + K instead of N.
-    constant C_N("C_N", parameters(0));
-    constant C_K("C_K", parameters(1));
-    constant C_FIn("C_FIn", parameters(2));
-    constant C_FOut("C_FOut", parameters(3));
-    constant C_BATCH_SIZE("C_BATCH_SIZE", parameters(4));
+    constant N_INPUT("N_INPUT", SPECIALIZE?(p_N+p_K):(parameters(0)+parameters(1))); // The input is padded, so its size is N + K instead of N.
+    constant C_N("C_N", SPECIALIZE?p_N:parameters(0));
+    constant C_K("C_K", SPECIALIZE?p_K:parameters(1));
+    constant C_FIn("C_FIn", SPECIALIZE?p_FIn:parameters(2));
+    constant C_FOut("C_FOut", SPECIALIZE?p_FOut:parameters(3));
+    constant C_BATCH_SIZE("C_BATCH_SIZE", SPECIALIZE?p_BATCH_SIZE:parameters(4));
 
     var x("x", 0, C_N), y("y", 0, C_N), z("z", 0, C_FOut), n("n", 0, C_BATCH_SIZE ); // Iterators for the conv computations.
     var k_x("k_x", 0, C_K), k_y("k_y", 0, C_K), k_z("k_z", 0, C_FIn); // Iterators for the kernel (filter).
@@ -156,7 +156,12 @@ void generate(int p_N, int p_K, int p_BATCH_SIZE, int p_FIn, int p_FOut)
     computation conv_init("conv_init",{n, z, y, x}, bias(z));
     computation conv("conv",{n, z, y, x, k_z, k_y, k_x }, conv_init(n, z, y, x) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y + k_y, x + k_x));
     
-    global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%" + std::to_string(p_FIn) + "=0 and C_N%" + std::to_string(p_FOut) + "=0}");
+    if (SPECIALIZE)
+	global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{: C_N = " + std::to_string(p_N) + " and C_K = " + std::to_string(p_K) + " and C_FOut = " + std::to_string(p_FOut) + " and C_FIn = " + std::to_string(p_FIn) + " and C_BATCH_SIZE = " + std::to_string(p_BATCH_SIZE) + "}");
+    else
+	global::get_implicit_function()->add_context_constraints("[C_N, C_K, C_FIn, C_FOut, C_BATCH_SIZE]->{:C_N>1 and C_K>1 and C_FOut>1 and C_FIn>0 and C_BATCH_SIZE>1 and C_K=5 and C_FIn%" + std::to_string(p_FIn) + "=0 and C_N%" + std::to_string(p_FOut) + "=0}");
+
+
 
     // Layer II
     int vec_len;
@@ -178,10 +183,6 @@ void generate(int p_N, int p_K, int p_BATCH_SIZE, int p_FIn, int p_FOut)
     conv.split(z, o_block, z1, z2);
     conv_init.split(z, o_block, z1, z2);
     // n, (z1, z2), k_z,   y,   x, k_y, k_x,
-
-    var k_z1("k_z1"), k_z2("k_z2");
-    conv.split(k_z, y_block, k_z1, k_z2);
-    // n, z1, z2, k_z1, k_z2, y, x, k_y, k_x,
 
     conv.vectorize(x, vec_len);
     conv_init.vectorize(y, vec_len);
