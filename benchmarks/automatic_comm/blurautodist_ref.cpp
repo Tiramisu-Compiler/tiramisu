@@ -54,10 +54,10 @@ int main(int argc, char **argv) {
     border_comm.r->before(c_blurx, computation::root);
     c_blurx.before(c_blury, i0);
 
-    buffer b_input("b_input", {tiramisu::expr(_ROWS/10) + 2, tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
-    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
-    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
-    border_comm.r->set_access("{border_recv[q,ii,jj]->b_input[" + std::to_string(_ROWS/10) + "+ii,jj]}");
+    buffer b_input("b_input", {tiramisu::expr(_ROWS/NODES) + 2, tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
+    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/NODES), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
+    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/NODES), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
+    border_comm.r->set_access("{border_recv[q,ii,jj]->b_input[" + std::to_string(_ROWS/NODES) + "+ii,jj]}");
 
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
     c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");

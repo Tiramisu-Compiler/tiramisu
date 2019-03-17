@@ -6,10 +6,8 @@
 
 #include <tiramisu/utils.h>
 
-#include "../benchmarks.h"
-
-
-#define NB_TESTS 10
+#undef NB_TESTS
+#define NB_TESTS 2
 #define CHECK_CORRECTNESS 1
 
 int main(int, char**)
@@ -19,16 +17,16 @@ int main(int, char**)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    Halide::Buffer<int32_t> Img1(3, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> Img2(3, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> output1(3, _COLS, _ROWS/NODES + 2);
-    Halide::Buffer<int32_t> output2(3, _COLS, _ROWS/NODES + 2);
+    Halide::Buffer<int32_t> Img1(3, _COLS, _ROWS/_NODES + 2);
+    Halide::Buffer<int32_t> Img2(3, _COLS, _ROWS/_NODES + 2);
+    Halide::Buffer<int32_t> output1(3, _COLS, _ROWS/_NODES + 2);
+    Halide::Buffer<int32_t> output2(3, _COLS, _ROWS/_NODES + 2);
 
 
     init_buffer(output1, (int32_t) 0);
     init_buffer(Img1, (int32_t) 0);
 
-    for(int i = 0; i < _ROWS/NODES; i++)
+    for(int i = 0; i < _ROWS/_NODES; i++)
     {
         for(int j = 0; j < _COLS; j++)
         {
@@ -47,7 +45,7 @@ int main(int, char**)
 
         init_buffer(output1, (int32_t) 0);
         init_buffer(Img1, (int32_t) 0);
-        for(int i = 0; i < _ROWS/NODES; i++)
+        for(int i = 0; i < _ROWS/_NODES; i++)
         {
             for(int j = 0; j < _COLS; j++)
             {
@@ -72,7 +70,7 @@ int main(int, char**)
     init_buffer(output2, (int32_t) 0);
     init_buffer(Img2, (int32_t) 0);
 
-    for(int i = 0; i < _ROWS/NODES; i++)
+    for(int i = 0; i < _ROWS/_NODES; i++)
     {
         for(int j = 0; j < _COLS; j++)
         {
@@ -90,7 +88,7 @@ int main(int, char**)
         init_buffer(output2, (int32_t) 0);
         init_buffer(Img2, (int32_t) 0);
 
-        for(int i = 0; i < _ROWS/NODES; i++)
+        for(int i = 0; i < _ROWS/_NODES; i++)
         {
             for(int j = 0; j < _COLS; j++)
             {
