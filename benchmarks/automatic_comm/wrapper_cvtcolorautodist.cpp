@@ -31,42 +31,42 @@ int main(int, char**) {
 
     cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
 
-    for (int i = 0; i < NB_TESTS; i++)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-        auto start1 = std::chrono::high_resolution_clock::now();
-        cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration1 = end1 - start1;
-        duration_vector_1.push_back(duration1);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
+    // for (int i = 0; i < NB_TESTS; i++)
+    // {
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    //     auto start1 = std::chrono::high_resolution_clock::now();
+    //     cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
+    //     auto end1 = std::chrono::high_resolution_clock::now();
+    //     std::chrono::duration<double,std::milli> duration1 = end1 - start1;
+    //     duration_vector_1.push_back(duration1);
+    // }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //
+    // cvtcolorautodist_ref(input.raw_buffer(), output.raw_buffer());
+    //
+    // for (int i = 0; i < NB_TESTS; i++)
+    // {
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    //     auto start = std::chrono::high_resolution_clock::now();
+    //     cvtcolorautodist_ref(input.raw_buffer(), output_ref.raw_buffer());
+    //     auto end = std::chrono::high_resolution_clock::now();
+    //     std::chrono::duration<double,std::milli> duration = end - start;
+    //     duration_vector_2.push_back(duration);
+    // }
 
-    cvtcolorautodist_ref(input.raw_buffer(), output.raw_buffer());
-
-    for (int i = 0; i < NB_TESTS; i++)
-    {
-        MPI_Barrier(MPI_COMM_WORLD);
-        auto start = std::chrono::high_resolution_clock::now();
-        cvtcolorautodist_ref(input.raw_buffer(), output_ref.raw_buffer());
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double,std::milli> duration = end - start;
-        duration_vector_2.push_back(duration);
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    compare_buffers_approximately("CvtColor rank "+std::to_string(rank) , output, output_ref);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        print_time("performance_CPU.csv", "cvtcolor",
-                   {"Tiramisu auto", "Tiramisu man"},
-                   {median(duration_vector_1), median(duration_vector_2)});
-
-        std::cout << "Distributed cvtcolor passed" << std::endl;
-    }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //
+    // compare_buffers_approximately("CvtColor rank "+std::to_string(rank) , output, output_ref);
+    //
+    // MPI_Barrier(MPI_COMM_WORLD);
+    //
+    // if (rank == 0) {
+    //     print_time("performance_CPU.csv", "cvtcolor",
+    //                {"Tiramisu auto", "Tiramisu man"},
+    //                {median(duration_vector_1), median(duration_vector_2)});
+    //
+    //     std::cout << "Distributed cvtcolor passed" << std::endl;
+    // }
 
     tiramisu_MPI_cleanup();
     return 0;
