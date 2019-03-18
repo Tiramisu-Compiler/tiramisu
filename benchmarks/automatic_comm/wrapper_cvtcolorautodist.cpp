@@ -27,6 +27,7 @@ int main(int, char**) {
             }
         }
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
 
