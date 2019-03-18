@@ -17,19 +17,19 @@ int main() {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    Halide::Buffer<float> input = Halide::Buffer<float>(NCOLS, NROWS / NNODES + 1);  // middle ranks require two extra rows. Just give everything two extra rows
-    for (int y = 0; y < input.height()-1; y++) {
+    Halide::Buffer<float> input = Halide::Buffer<float>(NCOLS, NROWS / NNODES + 2);  // middle ranks require two extra rows. 
+    for (int y = 0; y < NROWS/NNODES; y++) {
       for (int x = 0; x < input.width(); x++) {
-	input(x,y) = rank+x+y;
+	input(x,1+y) = rank+x+y;
       }
     }
 
     // Generate these on each node as well
-    Halide::Buffer<float> output(input.width(), input.height() - 1);
+    Halide::Buffer<float> output(input.width(), NROWS/NNODES);
     // Run once to get rid of overhead/any extra compilation stuff that needs to happen
     sobel_dist(input.raw_buffer(), output.raw_buffer());
 
-    /*    std::vector<std::chrono::duration<double,std::milli>> duration_vector;
+    std::vector<std::chrono::duration<double,std::milli>> duration_vector;
     for (int i=0; i<50; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start = std::chrono::high_resolution_clock::now();
@@ -38,20 +38,14 @@ int main() {
         auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double,std::milli> duration = end - start;
 	duration_vector.push_back(duration);
-	for (int y = 0; y < input.height()-1; y++) {
-	for (int x = 0; x < input.width(); x++) {
-	if (rank == 0) {
-	input(x,y) = rank+x+y;
-	}
-	}
     }
 
     if (rank == 0) {
-        print_time("performance_CPU.csv", "### sobel_dist", {"Tiramisu_dist"}, {median(duration_vector)});
-	}*/
+      print_time("performance_CPU.csv", "### sobel_dist", {"Tiramisu_dist"}, {median(duration_vector)});
+    }
 
     MPI_Barrier(MPI_COMM_WORLD);
-
+    
 #ifdef COMPARE_TO_HALIDE
     std::string fname = "/data/scratch/jray/oopsla_2019/tiramisu/build/rank_" + std::to_string(rank) + ".txt";
     std::ofstream out_file;
