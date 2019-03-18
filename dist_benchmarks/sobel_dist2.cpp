@@ -65,13 +65,11 @@ int main(int argc, char **argv)
     sobel_x.split(y, ROWS_PER_NODE, y1, y2);
     sobel_y.split(y, ROWS_PER_NODE, y1, y2);
     sobel.split(y, ROWS_PER_NODE, y1, y2);
-    //    sobel_x.vectorize(x, 8);
-    //    sobel_y.vectorize(x, 8);
-    //    sobel.vectorize(x, 8);
-    //    sobel.parallelize(y2);
-    
-    // TODO make sure to match Halide schedule. 
-    
+    sobel_x.vectorize(x, 8);
+    sobel_y.vectorize(x, 8);
+    sobel.vectorize(x, 8);
+    sobel.parallelize(y2);
+       
     xfer exchange_back = 
       computation::create_xfer("[nodes,rank]->{exchange_back_s[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}", 
 			       "[nodes,rank]->{exchange_back_r[q,y,x]: 0<=q<(nodes-1) and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}",
@@ -93,18 +91,19 @@ int main(int argc, char **argv)
     exchange_back.s->tag_distribute_level(q);
     exchange_back.r->tag_distribute_level(q);
     exchange_fwd.s->tag_distribute_level(q);
-    exchange_fwd.r->tag_distribute_level(q);
+    exchange_fwd.r->tag_distribute_level(q);    
     
-    
-    //    exchange_back.s->collapse_many({collapser(1, 0, NCOLS)});
-    //    exchange_back.r->collapse_many({collapser(1, 0, NCOLS)});
+    exchange_back.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_back.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_fwd.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
 
     exchange_fwd.s->before(*exchange_fwd.r, computation::root);
     exchange_fwd.r->before(*exchange_back.s, computation::root);
     exchange_back.s->before(*exchange_back.r, computation::root);
     exchange_back.r->before(sobel_x, computation::root);
-    sobel_x.before(sobel_y, computation::root); // y2
-    sobel_y.before(sobel, computation::root); // y2
+    sobel_x.before(sobel_y, y2);
+    sobel_y.before(sobel, y2);
 
     buffer buff_input("buff_input", {ROWS_PER_NODE+2, NCOLS}, p_float32, a_input, &sobel_dist);
     buffer buff_sobel_x("buff_sobel_x", {ROWS_PER_NODE, NCOLS}, p_float32, a_temporary, &sobel_dist);
