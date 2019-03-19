@@ -1,6 +1,8 @@
 #ifndef __CONV_CONF_HEADER_
 #define __CONV_CONF_HEADER_
 
+#define SPECIALIZE 1
+
 #define LARGE_DATA_SET	1
 #define MEDIUM_DATA_SET	0
 #define SMALL_DATA_SET	0
