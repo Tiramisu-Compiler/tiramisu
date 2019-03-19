@@ -66,6 +66,6 @@ namespace tiramisu
 	g = apply_global_optimzations(g);
 	g = apply_local_optimizations_phase_II(g);
 	apply_computation_ordering(fct, g);
-	fct->computation_graph = g;
+	fct->cg = g;
     }
 }

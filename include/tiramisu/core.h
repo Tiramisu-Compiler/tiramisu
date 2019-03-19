@@ -496,7 +496,7 @@ protected:
       * computations. The final order of computations is derived
       * from this ordered graph of computations.
       */
-    computation_graph computation_graph;
+    computation_graph cg;
 
     /**
       * Get the arguments of the function.
