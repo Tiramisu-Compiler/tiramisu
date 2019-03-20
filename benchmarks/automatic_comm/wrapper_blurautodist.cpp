@@ -15,13 +15,13 @@ int main() {
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
   std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-  Halide::Buffer<uint32_t> input(_COLS + 2, _ROWS/10+2, "input");
-  Halide::Buffer<uint32_t> output(_COLS, _ROWS/10, "output");
-  Halide::Buffer<uint32_t> ref(_COLS, _ROWS/10, "ref");
+  Halide::Buffer<uint32_t> input(_COLS + 2, _ROWS/_NODES+2, "input");
+  Halide::Buffer<uint32_t> output(_COLS, _ROWS/_NODES, "output");
+  Halide::Buffer<uint32_t> ref(_COLS, _ROWS/_NODES, "ref");
 
 
   init_buffer(input, (uint32_t)0);
-  for (int r = 0; r < _ROWS/10; r++) {
+  for (int r = 0; r < _ROWS/_NODES; r++) {
     for (int c = 0; c < _COLS+2; c++) {
       input(c,r) = r + c;
     }
@@ -33,7 +33,7 @@ int main() {
 
   MPI_Barrier(MPI_COMM_WORLD);
   init_buffer(input, (uint32_t)0);
-  for (int r = 0; r < _ROWS/10; r++) {
+  for (int r = 0; r < _ROWS/_NODES; r++) {
     for (int c = 0; c < _COLS+2; c++) {
       input(c,r) = r + c;
     }
@@ -44,7 +44,7 @@ int main() {
   {
       MPI_Barrier(MPI_COMM_WORLD);
       init_buffer(input, (uint32_t)0);
-      for (int r = 0; r < _ROWS/10; r++) {
+      for (int r = 0; r < _ROWS/_NODES; r++) {
         for (int c = 0; c < _COLS+2; c++) {
           input(c,r) = r + c;
         }
@@ -65,7 +65,7 @@ int main() {
   {
       MPI_Barrier(MPI_COMM_WORLD);
       init_buffer(input, (uint32_t)0);
-      for (int r = 0; r < _ROWS/10; r++) {
+      for (int r = 0; r < _ROWS/_NODES; r++) {
         for (int c = 0; c < _COLS+2; c++) {
           input(c,r) = r + c;
         }

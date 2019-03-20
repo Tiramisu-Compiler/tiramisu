@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
 
     constant ROWS("ROWS", expr((int32_t) _ROWS), p_int32, true, nullptr, 0, &blur);
     constant COLS("COLS", expr((int32_t) _COLS), p_int32, true, nullptr, 0, &blur);
+    constant NODES("NODES", expr((int32_t) _NODES), p_int32, true, nullptr, 0, &blur);
 
     computation c_input("[ROWS,COLS]->{c_input[i,j]: 0<=i<ROWS and 0<=j<COLS+2}", expr(), false, p_uint32, &blur);
 
@@ -26,9 +27,9 @@ int main(int argc, char **argv) {
 
     computation c_blury("[ROWS,COLS]->{c_blury[i,j]: 0<=i<ROWS and 0<=j<COLS}", e2, true, p_uint32, &blur);
 
-    c_input.split(i, _ROWS/10, i0, i1);
-    c_blurx.split(i, _ROWS/10, i0, i1);
-    c_blury.split(i, _ROWS/10, i0, i1);
+    c_input.split(i, _ROWS/_NODES, i0, i1);
+    c_blurx.split(i, _ROWS/_NODES, i0, i1);
+    c_blury.split(i, _ROWS/_NODES, i0, i1);
 
     c_input.tag_distribute_level(i0);
     c_blurx.tag_distribute_level(i0);
@@ -39,8 +40,8 @@ int main(int argc, char **argv) {
     c_blury.drop_rank_iter(i0);
 
     xfer border_comm = computation::create_xfer(
-            "[COLS]->{border_send[p,ii,jj]: 1<=p<10 and 0<=ii<2 and 0<=jj<COLS+2}",
-            "[COLS]->{border_recv[q,ii,jj]: 0<=q<9 and 0<=ii<2 and 0<=jj<COLS+2}",
+            "[COLS,NODES]->{border_send[p,ii,jj]: 1<=p<NODES and 0<=ii<2 and 0<=jj<COLS+2}",
+            "[COLS,NODES]->{border_recv[q,ii,jj]: 0<=q<NODES-1 and 0<=ii<2 and 0<=jj<COLS+2}",
             p-1,
             q+1,
             xfer_prop(p_uint32, {MPI, BLOCK, ASYNC}),
@@ -54,10 +55,10 @@ int main(int argc, char **argv) {
     border_comm.r->before(c_blurx, computation::root);
     c_blurx.before(c_blury, i0);
 
-    buffer b_input("b_input", {tiramisu::expr(_ROWS/10) + 2, tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
-    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
-    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
-    border_comm.r->set_access("{border_recv[q,ii,jj]->b_input[" + std::to_string(_ROWS/10) + "+ii,jj]}");
+    buffer b_input("b_input", {tiramisu::expr(_ROWS/_NODES) + 2, tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
+    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/_NODES), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
+    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/_NODES), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
+    border_comm.r->set_access("{border_recv[q,ii,jj]->b_input[" + std::to_string(_ROWS/_NODES) + "+ii,jj]}");
 
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
     c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
