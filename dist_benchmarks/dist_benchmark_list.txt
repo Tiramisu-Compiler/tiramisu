@@ -1,2 +1,3 @@
 sobel_dist[mpi,5]
 cvtcolor_dist[mpi,5]
+blurxy_dist[mpi,5]
