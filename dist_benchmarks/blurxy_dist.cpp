@@ -55,10 +55,10 @@ int main() {
 
     bx.split(y, ROWS_PER_NODE, y1, y2);
     by.split(y, ROWS_PER_NODE, y1, y2);
-    //    bx.vectorize(x, 8);
-    //    by.vectorize(x, 8);
-    //    by.parallelize(y2);
-    //    bx.parallelize(y2);
+    bx.vectorize(x, 8);
+    by.vectorize(x, 8);
+    by.parallelize(y2);
+    bx.parallelize(y2);
 
     xfer exchange_back = 
       computation::create_xfer("[nodes,rank]->{exchange_back_s[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) 
@@ -85,10 +85,10 @@ int main() {
     exchange_fwd.s->tag_distribute_level(q);
     exchange_fwd.r->tag_distribute_level(q);    
     
-    //    exchange_back.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    //    exchange_back.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-//    exchange_fwd.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    //    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_back.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_back.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_fwd.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
     bx.before(*exchange_fwd.s, computation::root);
     exchange_fwd.s->before(*exchange_fwd.r, computation::root);
     exchange_fwd.r->before(*exchange_back.s, computation::root);
