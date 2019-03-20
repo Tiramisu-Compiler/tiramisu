@@ -34,6 +34,19 @@ int main(int, char**) {
     for (int i = 0; i < NB_TESTS; i++)
     {
         MPI_Barrier(MPI_COMM_WORLD);
+        init_buffer(input, (uint8_t) 0);
+        init_buffer(output, (uint8_t) 0);
+        init_buffer(output_ref, (uint8_t) 0);
+
+        for (int chan = 0; chan < 3; chan++) {
+            for (int c = 0; c < _COLS; c++) {
+                for (int r = 0; r < _ROWS/NODES; r++) {
+                    input(chan, c, r) = 3;
+                }
+            }
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
         auto start1 = std::chrono::high_resolution_clock::now();
         cvtcolorautodist_tiramisu(input.raw_buffer(), output.raw_buffer());
         auto end1 = std::chrono::high_resolution_clock::now();
@@ -46,6 +59,20 @@ int main(int, char**) {
 
     for (int i = 0; i < NB_TESTS; i++)
     {
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        init_buffer(input, (uint8_t) 0);
+        init_buffer(output, (uint8_t) 0);
+        init_buffer(output_ref, (uint8_t) 0);
+
+        for (int chan = 0; chan < 3; chan++) {
+            for (int c = 0; c < _COLS; c++) {
+                for (int r = 0; r < _ROWS/NODES; r++) {
+                    input(chan, c, r) = 3;
+                }
+            }
+        }
+        
         MPI_Barrier(MPI_COMM_WORLD);
         auto start = std::chrono::high_resolution_clock::now();
         cvtcolorautodist_ref(input.raw_buffer(), output_ref.raw_buffer());
