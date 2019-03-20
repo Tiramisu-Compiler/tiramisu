@@ -1750,6 +1750,23 @@ private:
     expr upper;
 
 public:
+
+    /**
+      * Return the upper bound of this variable.
+      */
+    expr get_upper()
+    {
+	    return upper;
+    }
+
+    /**
+      * Return the lower bound of this variable.
+      */
+    expr get_lower()
+    {
+	    return lower;
+    }
+
     /**
       * Construct an expression that represents a variable.
       *

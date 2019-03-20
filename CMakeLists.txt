@@ -19,10 +19,12 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
+	include/tiramisu/computation_graph.h
+	include/tiramisu/auto_scheduler.h
         )
 
 # Add CMake cpp files
-set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 
 ### CMAKE FILE INTERNALS ###
