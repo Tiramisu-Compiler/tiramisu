@@ -514,9 +514,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr,
                                                                                         isl_ast_node *node) {
-        DEBUG_FCT_NAME(3);
-        DEBUG_INDENT(4);
-
         isl_ast_op_type op_type = isl_ast_expr_get_op_type(expr.get());
         if (op_type == isl_ast_op_call) {
             auto *comp = get_computation_annotated_in_a_node(node);
@@ -702,8 +699,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 return statement_ptr{new cuda_ast::function_call{type, description.symbol, operands}};
             }
         }
-
-        DEBUG_INDENT(-4);
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
