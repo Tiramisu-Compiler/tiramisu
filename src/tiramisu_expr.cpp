@@ -185,4 +185,23 @@ expr allocate(const buffer &b)
     return expr{o_allocate, b.get_name()};
 }
 
+expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
+                  expr M, expr N, expr K, expr alpha, expr beta)
+{
+    if (A.get_elements_type() != p_float32 ||
+        B.get_elements_type() != p_float32 ||
+        C.get_elements_type() != p_float32) {
+        ERROR("Only float32 type is supported", true);
+    }
+    return expr(o_call, "tiramisu_cublas_sgemm",
+            {
+                var(A.get_name()),
+                var(B.get_name()),
+                var(C.get_name()),
+                M, N, K,
+                alpha, beta
+            },
+            tiramisu::p_uint8);
+}
+
 }

@@ -308,14 +308,14 @@ public:
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
         if (expr0.get_data_type() != expr1.get_data_type())
-	{
-	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
-	    expr0.dump(false);
-	    tiramisu::str_dump(" and ");
-	    expr1.dump(false);
-	    tiramisu::str_dump("\n");
+        {
+            tiramisu::str_dump("Binary operation between two expressions of different types:\n");
+            expr0.dump(false);
+            tiramisu::str_dump(" and ");
+            expr1.dump(false);
+            tiramisu::str_dump("\n");
             ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
-	}
+        }
 
         this->_operator = o;
         this->etype = tiramisu::e_op;
@@ -1956,6 +1956,16 @@ only_integral<T> operator<<(T val, const tiramisu::expr &e)
 
 expr memcpy(const buffer& from, const buffer& to);
 expr allocate(const buffer& b);
+
+/**
+ * Does a GEMM operation on row-major matrices A, B, C using cuBLAS backend.
+ * \p A An MxK matrix
+ * \p B An KxN matrix
+ * \p C An MxN matrix
+ * The result of the operation: C = alpha x A x B + beta x C
+ */
+expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
+                  expr M, expr N, expr K, expr alpha, expr beta);
 
 }
 #endif
