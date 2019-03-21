@@ -57,6 +57,10 @@ int main(int argc, char **argv)
     gaussian.interchange(c, y);
     gaussian_x.split(y, ROWS_PER_NODE, y1, y2);
     gaussian.split(y, ROWS_PER_NODE, y1, y2);    
+    gaussian_x.interchange(c, y2);
+    gaussian.interchange(c, y2);
+    gaussian_x.parallelize(c);
+    gaussian.parallelize(c);
 
     // Need to transfer 4 rows backwards
     xfer exchange_back = 
@@ -73,6 +77,8 @@ int main(int argc, char **argv)
     gaussian.tag_distribute_level(y1);
     exchange_back.s->tag_distribute_level(q);
     exchange_back.r->tag_distribute_level(q);
+    exchange_back.s->collapse_many({collapse_group(3, 0, -1, NCOLS)});
+    exchange_back.r->collapse_many({collapse_group(3, 0, -1, NCOLS)});
 
     gaussian_x.before(*exchange_back.s, computation::root);
     exchange_back.s->before(*exchange_back.r, computation::root);
