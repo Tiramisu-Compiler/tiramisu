@@ -1229,6 +1229,9 @@ tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr 
         }
     }
 
+    DEBUG_NO_NEWLINE(10, tiramisu::str_dump("Output expression: "); output_expr.dump(false));
+    DEBUG_NEWLINE(10);
+
     DEBUG_INDENT(-4);
 
     return output_expr;
@@ -3226,6 +3229,8 @@ tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::v
             return generator::replace_accesses(fct, index_expr, e);
         });
 
+        DEBUG(10, tiramisu::str_dump("Modified expression: "); modified_expr.dump(false));
+
         if (op_type == o_access || op_type == o_address) {
             DEBUG(10, tiramisu::str_dump("op type: o_access or o_address"));
 
@@ -3280,8 +3285,9 @@ tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::v
         result = tiramisu_expr;
     }
 
+    DEBUG(10, tiramisu::str_dump("Output Tiramisu expression: "); result.dump(false));
+
     DEBUG_INDENT(-4);
-    DEBUG_FCT_NAME(10);
 
     return result;
 }
