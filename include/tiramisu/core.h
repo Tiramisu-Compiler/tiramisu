@@ -75,6 +75,7 @@ enum xfer_attr {
     ASYNC,
     BLOCK,
     NONBLOCK,
+    NOWAIT,
     MPI,
     CUDA,
     CPU2CPU,

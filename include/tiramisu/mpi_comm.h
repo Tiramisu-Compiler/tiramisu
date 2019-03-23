@@ -52,6 +52,18 @@ void tiramisu_MPI_Isend_uint64(int count, int dest, int tag, unsigned long *data
 void tiramisu_MPI_Isend_f32(int count, int dest, int tag, float *data, long *reqs);
 void tiramisu_MPI_Isend_f64(int count, int dest, int tag, double *data, long *reqs);
 
+void tiramisu_MPI_Isend_nowait(int count, int dest, int tag, char *data, MPI_Datatype type);
+void tiramisu_MPI_Isend_nowait_int8(int count, int dest, int tag, char *data);
+void tiramisu_MPI_Isend_nowait_int16(int count, int dest, int tag, short *data);
+void tiramisu_MPI_Isend_nowait_int32(int count, int dest, int tag, int *data);
+void tiramisu_MPI_Isend_nowait_int64(int count, int dest, int tag, long *data);
+void tiramisu_MPI_Isend_nowait_uint8(int count, int dest, int tag, unsigned char *data);
+void tiramisu_MPI_Isend_nowait_uint16(int count, int dest, int tag, unsigned short *data);
+void tiramisu_MPI_Isend_nowait_uint32(int count, int dest, int tag, unsigned int *data);
+void tiramisu_MPI_Isend_nowait_uint64(int count, int dest, int tag, unsigned long *data);
+void tiramisu_MPI_Isend_nowait_f32(int count, int dest, int tag, float *data);
+void tiramisu_MPI_Isend_nowait_f64(int count, int dest, int tag, double *data);
+
 void tiramisu_MPI_Issend(int count, int dest, int tag, char *data, MPI_Datatype type, long *reqs);
 void tiramisu_MPI_Issend_int8(int count, int dest, int tag, char *data, long *reqs);
 void tiramisu_MPI_Issend_int16(int count, int dest, int tag, short *data, long *reqs);
@@ -63,6 +75,18 @@ void tiramisu_MPI_Issend_uint32(int count, int dest, int tag, unsigned int *data
 void tiramisu_MPI_Issend_uint64(int count, int dest, int tag, unsigned long *data, long *reqs);
 void tiramisu_MPI_Issend_f32(int count, int dest, int tag, float *data, long *reqs);
 void tiramisu_MPI_Issend_f64(int count, int dest, int tag, double *data, long *reqs);
+
+void tiramisu_MPI_Issend_nowait(int count, int dest, int tag, char *data, MPI_Datatype type);
+void tiramisu_MPI_Issend_nowait_int8(int count, int dest, int tag, char *data);
+void tiramisu_MPI_Issend_nowait_int16(int count, int dest, int tag, short *data);
+void tiramisu_MPI_Issend_nowait_int32(int count, int dest, int tag, int *data);
+void tiramisu_MPI_Issend_nowait_int64(int count, int dest, int tag, long *data);
+void tiramisu_MPI_Issend_nowait_uint8(int count, int dest, int tag, unsigned char *data);
+void tiramisu_MPI_Issend_nowait_uint16(int count, int dest, int tag, unsigned short *data);
+void tiramisu_MPI_Issend_nowait_uint32(int count, int dest, int tag, unsigned int *data);
+void tiramisu_MPI_Issend_nowait_uint64(int count, int dest, int tag, unsigned long *data);
+void tiramisu_MPI_Issend_nowait_f32(int count, int dest, int tag, float *data);
+void tiramisu_MPI_Issend_nowait_f64(int count, int dest, int tag, double *data);
 
 void tiramisu_MPI_Recv(int count, int source, int tag, char *store_in, MPI_Datatype type);
 void tiramisu_MPI_Recv_int8(int count, int source, int tag, char *store_in);

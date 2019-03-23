@@ -3062,7 +3062,6 @@ void computation::create_halide_assignment()
             }
             // Defines writing into the wait buffer when a transfer is initiated (for nonblocking operations)
             if (this->wait_argument_idx != -1) {
-                ERROR("Nonblocking not currently supported", 0);
                 assert((this->is_recv() || this->is_send_recv()) && "This should be a recv or one-sided operation.");
                 assert(this->wait_access_map && "A wait access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
@@ -3141,7 +3140,6 @@ void computation::create_halide_assignment()
                                                                                                this->get_expr(), this);
             }
             if (this->wait_argument_idx != -1) {
-                ERROR("Nonblocking not currently supported", 0);
                 assert(this->is_send() && "This should be a send operation.");
                 assert(this->wait_access_map && "A request access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.

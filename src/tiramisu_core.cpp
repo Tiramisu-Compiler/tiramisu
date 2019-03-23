@@ -7139,14 +7139,21 @@ std::string create_send_func_name(const xfer_prop chan)
 {
     if (chan.contains_attr(MPI)) {
         std::string name = "tiramisu_MPI";
-        if (chan.contains_attr(SYNC) && chan.contains_attr(BLOCK)) {
+        if (chan.contains_attr(BLOCK)) {
+	  if (chan.contains_attr(SYNC)) {
             name += "_Ssend";
-        } else if (chan.contains_attr(SYNC) && chan.contains_attr(NONBLOCK)) {
-            name += "_Issend";
-        } else if (chan.contains_attr(ASYNC) && chan.contains_attr(BLOCK)) {
+	  } else if (chan.contains_attr(ASYNC)) {
             name += "_Send";
-        } else if (chan.contains_attr(ASYNC) && chan.contains_attr(NONBLOCK)) {
-            name += "_Isend";
+	  }
+        } else if (chan.contains_attr(NONBLOCK)) {
+	  if (chan.contains_attr(SYNC)) {
+            name += "_Issend";
+	  } else if (chan.contains_attr(ASYNC)) {
+	    name += "_Isend";
+	  }
+	  if (chan.contains_attr(NOWAIT)) {
+	    name += "_nowait";
+	  }	    
         }
         switch (chan.get_dtype()) {
             case p_uint8:
@@ -7293,9 +7300,11 @@ std::string create_recv_func_name(const xfer_prop chan)
         std::string name = "tiramisu_MPI";
         if (chan.contains_attr(BLOCK)) {
             name += "_Recv";
+        } else if (chan.contains_attr(NONBLOCK) && chan.contains_attr(NOWAIT)) {
+            name += "_Irecv_nowait";
         } else if (chan.contains_attr(NONBLOCK)) {
-            name += "_Irecv";
-        }
+	    name += "_Irecv";
+	}
         switch (chan.get_dtype()) {
             case p_uint8:
                 name += "_uint8";

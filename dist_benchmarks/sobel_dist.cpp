@@ -74,16 +74,18 @@ int main(int argc, char **argv)
       computation::create_xfer("[nodes,rank]->{exchange_back_s[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}", 
 			       "[nodes,rank]->{exchange_back_r[q,y,x]: 0<=q<(nodes-1) and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}",
 			       q-1, q+1, 
-			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), 
-			       xfer_prop(p_float32, {SYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
+			       xfer_prop(p_float32, {ASYNC, NONBLOCK, MPI, NOWAIT}), 
+			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
 
     xfer exchange_fwd = 
       computation::create_xfer("[nodes,rank]->{exchange_fwd_s[q,y,x]: 0<=q<(nodes-1) and ((rank+1)*" + S(ROWS_PER_NODE) + "-1)<=y<((rank+1)*" + S(ROWS_PER_NODE) + ") and 0<=x<" + S(NCOLS) + "}", 
 			       "[nodes,rank]->{exchange_fwd_r[q,y,x]: 1<=q<nodes and ((rank+1)*" + S(ROWS_PER_NODE) + "-1)<=y<((rank+1)*" + S(ROWS_PER_NODE) + ") and 0<=x<" + S(NCOLS) + "}",
 			       q+1, q-1, 
-			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), 
-			       xfer_prop(p_float32, {SYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
+			       xfer_prop(p_float32, {ASYNC, NONBLOCK, MPI, NOWAIT}), 
+			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
 			       
+    //    wait wait_on_back("[nodes,rank]->{wait_back[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<1}", );
+    //    wait wait_on_fwd("", );
 
     sobel_x.tag_distribute_level(y1);
     sobel_y.tag_distribute_level(y1);

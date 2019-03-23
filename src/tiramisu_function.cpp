@@ -1934,7 +1934,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         send *s = static_cast<send *>(comp);
         tiramisu::expr num_elements(s->get_num_elements());
         tiramisu::expr send_type(s->get_xfer_props().get_dtype());
-        bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK);
+        bool isnonblock = s->get_xfer_props().contains_attr(NONBLOCK) && !s->get_xfer_props().contains_attr(NOWAIT); // check if nonblocking and has a wait call
         // Determine the appropriate number of function args and set ones that we can already know
         s->rhs_argument_idx = 3;
         s->library_call_args.resize(isnonblock ? 5 : 4);
@@ -1950,7 +1950,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
         send *s = r->get_matching_send();
         tiramisu::expr num_elements(r->get_num_elements());
         tiramisu::expr recv_type(s->get_xfer_props().get_dtype());
-        bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK);
+        bool isnonblock = r->get_xfer_props().contains_attr(NONBLOCK) && !r->get_xfer_props().contains_attr(NOWAIT);
         // Determine the appropriate number of function args and set ones that we can already know
         r->lhs_argument_idx = 3;
         r->library_call_args.resize(isnonblock ? 5 : 4);
