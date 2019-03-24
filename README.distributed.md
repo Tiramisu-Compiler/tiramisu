@@ -59,7 +59,8 @@ You can get the job number from running `squeue`.
 ## Running Distributed Tests on your Local Machine
 
 Most likely, you don't have slurm on your local machine, nor do you have multiple nodes, so the steps are a little different.
-You still need to have OpenMPI installed on your local machine.
+You still need to have OpenMPI installed on your local machine. You will want to add the `--oversubscribe` to the mpirun command,
+which you can do by putting it in the environment variable `ADDT_MPIRUN_FLAGS`. This lets you run more than one MPI process on a single node.
 Note that performance will likely be terrible, not just because you only have one node, but because OpenMPI doesn't particularly
 like when you oversubscribe a node (i.e. run more MPI processes than the machine has processors). But since you're not benchmarking on
 your local machine, and the tests are short, it shouldn't be a problem.
