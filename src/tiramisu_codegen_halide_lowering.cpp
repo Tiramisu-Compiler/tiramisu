@@ -187,7 +187,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
     }
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
-    s = inject_hexagon_rpc(s, t, result_module);
+    //    s = inject_hexagon_rpc(s, t, result_module);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
 
@@ -196,6 +196,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // We're about to drop the environment and outputs vector, which
     // contain the only strong refs to Functions that may still be
     // pointed to by the IR. So make those refs strong.
+    DEBUG(3, tiramisu::str_dump("Strengthening...\n"));
     class StrengthenRefs : public IRMutator {
         using IRMutator::visit;
         void visit(const Call *c) {
@@ -212,7 +213,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
         }
     };
     s = StrengthenRefs().mutate(s);
-
+    DEBUG(3, tiramisu::str_dump("Strengthened...\n"));
     LoweredFunc main_func(pipeline_name, public_args, s, linkage_type);
 
     result_module.append(main_func);
@@ -226,7 +227,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     // Also append any wrappers for extern stages that expect the old buffer_t
     wrap_legacy_extern_stages(result_module);
-
+    DEBUG(3, tiramisu::str_dump("Done lowering...\n"));
     return result_module;
 }
 

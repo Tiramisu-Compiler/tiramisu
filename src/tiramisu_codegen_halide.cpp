@@ -2168,7 +2168,25 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
         {
             if (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_allocate)
             {
-                ERROR("Allocate node should not appear as a user ISL AST node. It should only appear with block construction (because of its scope).", true);
+	      // JESS removed this error statement
+	      //                ERROR("Allocate node should not appear as a user ISL AST node. It should only appear with block construction (because of its scope).", true);
+                tiramisu::computation *comp = get_computation_annotated_in_a_node(node);
+                std::string buffer_name = comp->get_expr().get_name();
+                tiramisu::buffer *buf = comp->get_function()->get_buffers().find(buffer_name)->second;
+                std::vector<Halide::Expr> halide_dim_sizes;
+                for (int i = buf->get_dim_sizes().size() - 1; i >= 0; --i)
+                {
+                    const auto sz = buf->get_dim_sizes()[i];
+                    std::vector<isl_ast_expr *> ie = {};
+                    tiramisu::expr dim_sz = replace_original_indices_with_transformed_indices(sz, comp->get_iterators_map());
+                    halide_dim_sizes.push_back(generator::halide_expr_from_tiramisu_expr(NULL, ie, dim_sz, comp));
+                }
+		if (!result.defined()) {
+		  // make a fake block 
+		  result = Halide::Internal::Evaluate::make(0);
+		}
+	      result = generator::make_buffer_alloc(buf, halide_dim_sizes, result);	      
+	      buf->mark_as_allocated();
             }
             else
             {
