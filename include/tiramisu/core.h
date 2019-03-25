@@ -1029,6 +1029,12 @@ public:
     void gen_time_space_domain();
 
     /**
+      * Return the invariant of the function that has
+      * the name \p str.
+      */
+    constant* get_invariant_by_name(std::string str) const;
+
+    /**
       * Set the arguments of the function.
       * The arguments of the function are provided as a vector of
       * pointers to buffers. Each buffer represents an argument

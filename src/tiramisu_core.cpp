@@ -121,6 +121,36 @@ isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
     return result;
 }
 
+constant* function::get_invariant_by_name(std::string name) const
+{
+    assert(!name.empty());
+
+    DEBUG(10, tiramisu::str_dump("Searching invariant " + name));
+
+    tiramisu::constant *res;
+    tiramisu::constant *comp;
+
+    for (int i = 0; i < this->get_invariants().size(); i++)
+    {
+	comp = (constant *) &(this->get_invariants()[i]);
+        if (name == comp->get_name())
+        {
+            res = comp;
+        }
+    }
+
+    if (res == NULL)
+    {
+        DEBUG(10, tiramisu::str_dump("Invariant not found."));
+    }
+    else
+    {
+        DEBUG(10, tiramisu::str_dump("Invariant found."));
+    }
+
+    return res;
+}
+
 bool tiramisu::computation::has_multiple_definitions()
 {
     bool is_update = false;

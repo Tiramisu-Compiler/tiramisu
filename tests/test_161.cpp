@@ -6,7 +6,9 @@ void gen(std::string name, int size, int val0, int val1)
 {
     tiramisu::init(name);
 
-    tiramisu::var i("i", 0, size), j("j", 0, size);
+    constant c0("c0", 10);
+
+    tiramisu::var i("i", 0, c0), j("j", 0, size);
 
     tiramisu::computation S0({i, j}, tiramisu::expr((uint8_t) (val0 + val1)));
 
@@ -14,7 +16,9 @@ void gen(std::string name, int size, int val0, int val1)
     S0.store_in(&buf0, {i ,j});
 
     // extracting the max value of the iterator i
-    int val = i.get_upper().get_int32_value();
+    std::string constant_name = i.get_upper().get_name();
+    constant *c = global::get_implicit_function()->get_invariant_by_name(constant_name);
+    int val = c->get_expr().get_int32_value();
     assert(val == size);
 
     std::cout << std::endl << "Upper bound for i is " << val << std::endl;
