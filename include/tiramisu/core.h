@@ -1679,14 +1679,6 @@ private:
     bool buffer_already_allocated();
 
     /**
-      * Identical to
-      *     void before(computation &consumer, tiramisu::var L);
-      * Except that the loop level in this case is identified using its number. This is
-      * used mainly internally by Tiramisu while the other is designed to be user friendly.
-      */
-    void before(computation &consumer, int L);
-
-    /**
       * Check that the \p dimensions are valid:
       * - The dimension numbers are within the bounds of accepted dimensions
       * (i.e., between computation::root_dimension and the maximal dimension
@@ -3134,6 +3126,13 @@ public:
       */
     // @{
     void before(computation &consumer, tiramisu::var L);
+    /**
+      * Identical to
+      *     void before(computation &consumer, tiramisu::var L);
+      * Except that the loop level in this case is identified using its number. This is
+      * used mainly internally by Tiramisu while the other is designed to be user friendly.
+      */
+    void before(computation &consumer, int L);
     // @}
 
     /**
