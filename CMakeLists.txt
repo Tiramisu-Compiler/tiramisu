@@ -35,7 +35,7 @@ if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
     add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
-    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES})
+    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
     target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
 endif()
 

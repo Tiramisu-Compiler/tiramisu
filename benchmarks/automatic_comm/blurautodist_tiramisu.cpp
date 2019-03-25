@@ -26,9 +26,9 @@ int main(int argc, char **argv) {
 
     computation c_blury("[ROWS,COLS]->{c_blury[i,j]: 0<=i<ROWS and 0<=j<COLS}", e2, true, p_uint32, &blur);
 
-    c_input.split(i, _ROWS/10, i0, i1);
-    c_blurx.split(i, _ROWS/10, i0, i1);
-    c_blury.split(i, _ROWS/10, i0, i1);
+    c_input.split(i, _ROWS/_NODES, i0, i1);
+    c_blurx.split(i, _ROWS/_NODES, i0, i1);
+    c_blury.split(i, _ROWS/_NODES, i0, i1);
 
     c_input.tag_distribute_level(i0);
     c_blurx.tag_distribute_level(i0);
@@ -40,9 +40,9 @@ int main(int argc, char **argv) {
 
     c_blurx.before(c_blury, i0);
 
-    buffer b_input("b_input", {tiramisu::expr(_ROWS/10) , tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
-    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
-    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/10), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
+    buffer b_input("b_input", {tiramisu::expr(_ROWS/_NODES) , tiramisu::expr(_COLS) + 2}, p_uint32, a_input, &blur);
+    buffer b_blurx("b_blurx", {tiramisu::expr(_ROWS/_NODES), tiramisu::expr(_COLS) + 2}, p_uint32, a_temporary, &blur);
+    buffer b_blury("b_blury", {tiramisu::expr(_ROWS/_NODES), tiramisu::expr(_COLS)}, p_uint32, a_output, &blur);
 
     c_input.set_access("{c_input[i,j]->b_input[i,j]}");
     c_blurx.set_access("{c_blurx[i,j]->b_blurx[i,j]}");
