@@ -7,7 +7,6 @@
 #include "Halide.h"
 #include "halide_image_io.h"
 
-#define COMPARE_TO_HALIDE
 #define REQ MPI_THREAD_MULTIPLE
 
 int main() {
@@ -26,14 +25,18 @@ int main() {
 
     // Generate these on each node as well
     Halide::Buffer<float> output(input.width(), NROWS/NNODES);
+    Halide::Buffer<float> sobel_x(input.width(), NROWS/NNODES);
+    Halide::Buffer<float> sobel_y(input.width(), NROWS/NNODES);
     // Run once to get rid of overhead/any extra compilation stuff that needs to happen
-    sobel_dist(input.raw_buffer(), output.raw_buffer());
+    sobel_dist(input.raw_buffer(), /*sobel_x.raw_buffer(), sobel_y.raw_buffer(),*/ output.raw_buffer());
 
     std::vector<std::chrono::duration<double,std::milli>> duration_vector;
     for (int i=0; i<50; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         auto start = std::chrono::high_resolution_clock::now();
-	sobel_dist(input.raw_buffer(), output.raw_buffer());
+	//	Halide::Buffer<float> sobel_x(input.width(), NROWS/NNODES);
+	//	Halide::Buffer<float> sobel_y(input.width(), NROWS/NNODES);
+	sobel_dist(input.raw_buffer(), /*sobel_x.raw_buffer(), sobel_y.raw_buffer(),*/ output.raw_buffer());
         MPI_Barrier(MPI_COMM_WORLD);
         auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double,std::milli> duration = end - start;

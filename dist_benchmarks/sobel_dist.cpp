@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     sobel_y.vectorize(x, 8);
     sobel.vectorize(x, 8);
     sobel.parallelize(y2);
-       
+           
     xfer exchange_back = 
       computation::create_xfer("[nodes,rank]->{exchange_back_s[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}", 
 			       "[nodes,rank]->{exchange_back_r[q,y,x]: 0<=q<(nodes-1) and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<" + S(NCOLS) + "}",
@@ -83,10 +83,7 @@ int main(int argc, char **argv)
 			       q+1, q-1, 
 			       xfer_prop(p_float32, {ASYNC, NONBLOCK, MPI, NOWAIT}), 
 			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
-			       
-    //    wait wait_on_back("[nodes,rank]->{wait_back[q,y,x]: 1<=q<nodes and (rank*" + S(ROWS_PER_NODE) + ")<=y<(rank*" + S(ROWS_PER_NODE) + "+1) and 0<=x<1}", );
-    //    wait wait_on_fwd("", );
-
+    			       
     sobel_x.tag_distribute_level(y1);
     sobel_y.tag_distribute_level(y1);
     sobel.tag_distribute_level(y1);
@@ -98,28 +95,36 @@ int main(int argc, char **argv)
     exchange_back.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
     exchange_back.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
     exchange_fwd.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
+    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});    
+
+    buffer buff_input("buff_input", {ROWS_PER_NODE+2, NCOLS}, p_float32, a_input, &sobel_dist);
+    buffer buff_sobel_x("buff_sobel_x", {NCOLS}, p_float32, a_temporary, &sobel_dist);
+    buffer buff_sobel_y("buff_sobel_y", {NCOLS}, p_float32, a_temporary, &sobel_dist);
+    buffer buff_sobel("buff_sobel", {ROWS_PER_NODE, NCOLS}, p_float32, a_output, &sobel_dist);
+
+    auto *c1 = buff_sobel_x.allocate_at(sobel_x, 1);
+    auto *c2 = buff_sobel_y.allocate_at(sobel_y, 1);
 
     exchange_fwd.s->before(*exchange_fwd.r, computation::root);
     exchange_fwd.r->before(*exchange_back.s, computation::root);
     exchange_back.s->before(*exchange_back.r, computation::root);
-    exchange_back.r->before(sobel_x, computation::root);
+    exchange_back.r->before(*c1, computation::root);
+    c1->before(*c2, 1);
+    c2->before(sobel_x, 1);
     sobel_x.before(sobel_y, y2);
     sobel_y.before(sobel, y2);
+    //    sobel_x.compute_at(sobel, y2);
+    //    sobel_y.compute_at(sobel, y2);
 
-    buffer buff_input("buff_input", {ROWS_PER_NODE+2, NCOLS}, p_float32, a_input, &sobel_dist);
-    buffer buff_sobel_x("buff_sobel_x", {ROWS_PER_NODE, NCOLS}, p_float32, a_temporary, &sobel_dist);
-    buffer buff_sobel_y("buff_sobel_y", {ROWS_PER_NODE, NCOLS}, p_float32, a_temporary, &sobel_dist);
-    buffer buff_sobel("buff_sobel", {ROWS_PER_NODE, NCOLS}, p_float32, a_output, &sobel_dist);
 
     input.set_access("[rank]->{input[y,x]->buff_input[t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank)+1)}");
-    sobel_x.set_access("[rank]->{sobel_x[y,x]->buff_sobel_x[t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
-    sobel_y.set_access("[rank]->{sobel_y[y,x]->buff_sobel_y[t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
+    sobel_x.set_access("[rank]->{sobel_x[y,x]->buff_sobel_x[x]}");//: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
+    sobel_y.set_access("[rank]->{sobel_y[y,x]->buff_sobel_y[x]}");//: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
     sobel.set_access("[rank]->{sobel[y,x]->buff_sobel[t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
     exchange_back.r->set_access("{exchange_back_r[q,y,x]->buff_input[" + S(ROWS_PER_NODE) + "+1,x]}"); 
     exchange_fwd.r->set_access("{exchange_fwd_r[q,y,x]->buff_input[0,x]}"); 
 
-    sobel_dist.codegen({&buff_input, &buff_sobel}, "build/generated_fct_sobel_dist.o");
+    sobel_dist.codegen({&buff_input, /*&buff_sobel_x, &buff_sobel_y,*/ &buff_sobel}, "build/generated_fct_sobel_dist.o");
     sobel_dist.dump_halide_stmt();
 
     return 0;
