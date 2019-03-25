@@ -2008,6 +2008,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         // Currently we assume that when vectorization is used,
                         // then the original loop extent is > vector_length.
                         cond_upper_bound_halide_format = Halide::Expr(vector_length);
+			cond_upper_bound_halide_format = 
+			  Halide::Internal::Cast::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), cond_upper_bound_halide_format);
                         fortype = Halide::Internal::ForType::Vectorized;
                         DEBUG(3, tiramisu::str_dump("Loop vectorized"));
 
