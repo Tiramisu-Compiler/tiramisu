@@ -23,44 +23,48 @@ using namespace tiramisu;
 #define S(s) std::to_string(s)
 #define MIN(bound, actual) expr(o_min, bound, actual)
 #define MAX(bound, actual) expr(o_max, bound, actual)
-
+#define LOOP_TYPE p_int64
+#define T(val) expr(o_cast, LOOP_TYPE, val)
+#define VAR(name) var name(LOOP_TYPE, #name)
 // Current format: assumes data is already pre-distributed. Communication is only needed to transfer over shared zones
+
 
 int main(int argc, char **argv)
 {
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
+    global::set_loop_iterator_type(p_int64);
 
     tiramisu::function sobel_dist("sobel_dist");
 
-    int ROWS_PER_NODE = NROWS / NNODES;
+    int64_t ROWS_PER_NODE = NROWS / NNODES;
 
-    var x("x"), y("y");
+    VAR(x); VAR(y);
     computation input("{input[y,x]: 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}", expr(), false, 
 		      tiramisu::p_float32, &sobel_dist);
     computation sobel_x("{sobel_x[y,x]: 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}",
-                        E(-1.0f) * input(expr(o_max, 0, y-1), expr(o_max, 0, x-1)) +
-			input(MIN(NROWS-1, y+1), MAX(0, x-1)) - 
-			E(2.0f) * input(MAX(0, y-1), x) + 
-			E(2.0f) * input(MIN(NROWS-1, y+1), x) - 
-			E(1.0f) * input(MAX(0, y-1), MIN(NCOLS-1, x+1)) + 
-			input(MIN(NROWS-1, y+1), MIN(NCOLS-1, x+1)),
+                        E(-1.0f) * input(expr(o_max, T(0), y-T(1)), expr(o_max, T(0), x-T(1))) +
+			input(MIN(T(NROWS-1), y+T(1)), MAX(T(0), x-T(1))) - 
+			E(2.0f) * input(MAX(T(0), y-T(1)), x) + 
+			E(2.0f) * input(MIN(T(NROWS-1), y+T(1)), x) - 
+			E(1.0f) * input(MAX(T(0), y-T(1)), MIN(T(NCOLS-1), x+T(1))) + 
+			input(MIN(T(NROWS-1),y+T(1)), MIN(T(NCOLS-1), x+T(1))),
 			true, tiramisu::p_float32, &sobel_dist);
     computation sobel_y("{sobel_y[y,x]: 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}",
-                        E(-1.0f) * input(MAX(0,y-1), MAX(0,x-1)) -
-			E(2.0f) * input(y, MAX(0,x-1)) - 
-			E(1.0f) * input(MIN(NROWS-1, y+1), MAX(0,x-1)) + 
-			input(MAX(0, y-1), MIN(NCOLS-1,x+1)) + 
-			E(2.0f) * input(y, MIN(NCOLS-1,x+1)) + 
-			input(MIN(NROWS-1, y+1), MIN(NCOLS-1,x+1)),
+                        E(-1.0f) * input(MAX(T(0),y-T(1)), MAX(T(0),x-T(1))) -
+			E(2.0f) * input(y, MAX(T(0),x-T(1))) - 
+			E(1.0f) * input(MIN(T(NROWS-1), y+1), MAX(T(0),x-T(1))) + 
+			input(MAX(T(0), y-T(1)), MIN(T(NCOLS-1),x+T(1))) + 
+			E(2.0f) * input(y, MIN(T(NCOLS-1),x+T(1))) + 
+			input(MIN(T(NROWS-1), y+T(1)), MIN(T(NCOLS-1),x+T(1))),
                         true, tiramisu::p_float32, &sobel_dist);
     computation sobel("{sobel[y,x]: 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}",
                       expr(tiramisu::o_sqrt, sobel_x(y,x) * sobel_x(y,x) + sobel_y(y,x) * 
 			   sobel_y(y,x)), true, tiramisu::p_float32, &sobel_dist);
     
-    constant nodes("nodes", expr(NNODES), p_int32, true, NULL, 0, &sobel_dist);
+    constant nodes("nodes", expr((int64_t)NNODES), LOOP_TYPE /*This doesn't seem to actually do anything*/, true, NULL, 0, &sobel_dist);
 
-    var y1("y1"), y2("y2"), d("d"), q("q");
+    VAR(y1); VAR(y2); VAR(d); VAR(q);
     // split out the loop to distribute (y->y1)
     sobel_x.split(y, ROWS_PER_NODE, y1, y2);
     sobel_y.split(y, ROWS_PER_NODE, y1, y2);
@@ -83,7 +87,7 @@ int main(int argc, char **argv)
 			       q+1, q-1, 
 			       xfer_prop(p_float32, {ASYNC, NONBLOCK, MPI, NOWAIT}), 
 			       xfer_prop(p_float32, {ASYNC, BLOCK, MPI}), input(y,x), &sobel_dist);
-    			       
+    
     sobel_x.tag_distribute_level(y1);
     sobel_y.tag_distribute_level(y1);
     sobel.tag_distribute_level(y1);
@@ -92,30 +96,35 @@ int main(int argc, char **argv)
     exchange_fwd.s->tag_distribute_level(q);
     exchange_fwd.r->tag_distribute_level(q);    
     
-    exchange_back.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    exchange_back.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    exchange_fwd.s->collapse_many({collapse_group(2, 0, -1, NCOLS)});
-    exchange_fwd.r->collapse_many({collapse_group(2, 0, -1, NCOLS)});    
+    exchange_back.s->collapse_many({collapse_group(2, (int64_t)0, -1, (int64_t)NCOLS)});
+    exchange_back.r->collapse_many({collapse_group(2, (int64_t)0, -1, (int64_t)NCOLS)});
+    exchange_fwd.s->collapse_many({collapse_group(2, (int64_t)0, -1, (int64_t)NCOLS)});
+    exchange_fwd.r->collapse_many({collapse_group(2, (int64_t)0, -1, (int64_t)NCOLS)});
 
-    buffer buff_input("buff_input", {ROWS_PER_NODE+2, NCOLS}, p_float32, a_input, &sobel_dist);
-    buffer buff_sobel_x("buff_sobel_x", {NCOLS}, p_float32, a_temporary, &sobel_dist);
-    buffer buff_sobel_y("buff_sobel_y", {NCOLS}, p_float32, a_temporary, &sobel_dist);
-    buffer buff_sobel("buff_sobel", {ROWS_PER_NODE, NCOLS}, p_float32, a_output, &sobel_dist);
+    buffer buff_input("buff_input", {(int64_t)ROWS_PER_NODE+2, (int64_t)NCOLS}, p_float32, a_input, &sobel_dist);
+    buffer buff_sobel_x("buff_sobel_x", {(int64_t)NCOLS}, p_float32, a_temporary, &sobel_dist);
+    buffer buff_sobel_y("buff_sobel_y", {(int64_t)NCOLS}, p_float32, a_temporary, &sobel_dist);
+    buffer buff_sobel("buff_sobel", {(int64_t)ROWS_PER_NODE, (int64_t)NCOLS}, p_float32, a_output, &sobel_dist);
 
-    auto *c1 = buff_sobel_x.allocate_at(sobel_x, 1);
-    auto *c2 = buff_sobel_y.allocate_at(sobel_y, 1);
+    computation c1("{c1[y]: 0<=y<" + S(NROWS) + " }", expr(o_allocate, buff_sobel_x.get_name()), true, 
+		   tiramisu::p_none, &sobel_dist);
+    computation c2("{c2[y]: 0<=y<" + S(NROWS) + " }", expr(o_allocate, buff_sobel_y.get_name()), true, 
+		   tiramisu::p_none, &sobel_dist);
+    buff_sobel_x.set_auto_allocate(false);
+    buff_sobel_y.set_auto_allocate(false);
+    c1.split(y, ROWS_PER_NODE, y1, y2);
+    c2.split(y, ROWS_PER_NODE, y1, y2);
+    c1.tag_distribute_level(y1);
+    c2.tag_distribute_level(y1);
 
     exchange_fwd.s->before(*exchange_fwd.r, computation::root);
     exchange_fwd.r->before(*exchange_back.s, computation::root);
     exchange_back.s->before(*exchange_back.r, computation::root);
-    exchange_back.r->before(*c1, computation::root);
-    c1->before(*c2, 1);
-    c2->before(sobel_x, 1);
+    exchange_back.r->before(c1, computation::root);
+    c1.before(c2, y2);
+    c2.before(sobel_x, y2);
     sobel_x.before(sobel_y, y2);
     sobel_y.before(sobel, y2);
-    //    sobel_x.compute_at(sobel, y2);
-    //    sobel_y.compute_at(sobel, y2);
-
 
     input.set_access("[rank]->{input[y,x]->buff_input[t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank)+1)}");
     sobel_x.set_access("[rank]->{sobel_x[y,x]->buff_sobel_x[x]}");//: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
