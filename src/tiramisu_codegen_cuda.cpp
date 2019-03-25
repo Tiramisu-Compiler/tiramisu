@@ -365,10 +365,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             case e_val:
                 return statement_ptr{new cuda_ast::value{tiramisu_expr}};
             case e_var:
-            {
                 return get_scalar_from_name(tiramisu_expr.get_name());
-            }
-
             case e_none:
                 assert(false);
             case e_op: {
@@ -607,10 +604,16 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     return statement_ptr {new cuda_ast::declaration{buffer}};
                 else
                     return statement_ptr {new cuda_ast::allocate{buffer}};
-            } else if (comp->get_expr().get_op_type() == o_free)
-            {
+            } else if (comp->get_expr().get_op_type() == o_free) {
                 auto buffer = get_buffer(comp->get_expr().get_name());
                 return statement_ptr {new cuda_ast::free{buffer}};
+            } else if (comp->get_expr().get_op_type() == o_call) {
+                const tiramisu::expr &e = comp->get_expr();
+                std::vector<statement_ptr> arguments;
+                for (const auto &arg : e.get_arguments()) {
+                    arguments.push_back(parse_tiramisu(arg));
+                }
+                return statement_ptr{new cuda_ast::function_call{e.get_data_type(), e.get_name(), arguments}};
             } else {
                 auto &associated_lets = comp->get_associated_let_stmts();
                 for (auto &statement: associated_lets)
@@ -696,7 +699,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 return statement_ptr{new cuda_ast::function_call{type, description.symbol, operands}};
             }
         }
-
     }
 
     cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
@@ -1586,15 +1588,12 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         m_rhs->print(ss, base);
     }
 
-    cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name)
-    {
-        auto it = this->gpu_iterators.find(name);
-        if (it != this->gpu_iterators.end())
-        {
+    cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name) {
+        if (this->gpu_iterators.find(name) != this->gpu_iterators.end()) {
+            auto it = this->gpu_iterators.find(name);
             return statement_ptr {new cuda_ast::gpu_iterator_read{it->second}};
-        } else {
+        } else if (this->m_scalar_data.find(name) != this->m_scalar_data.end()) {
             auto data_it = m_scalar_data.find(name);
-            assert(data_it != m_scalar_data.end() && "Unknown name");
             auto const &data = data_it->second;
             scalar_ptr used_scalar{new cuda_ast::scalar{data.first, name, data.second}};
             if (this->in_kernel)
@@ -1620,6 +1619,12 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     this->current_kernel->add_used_scalar(used_scalar);
             }
             return used_scalar;
+        } else if (this->m_buffers.find(name) != this->m_buffers.end()) {
+            // Buffers might be var arguments in the case of external function calls.
+            cuda_ast::buffer *b = this->m_buffers.find(name)->second.get();
+            return scalar_ptr{new cuda_ast::scalar{b->get_type(), b->get_name(), b->get_location()}};
+        } else {
+            ERROR("Scalar not found: " + name, true);
         }
     }
 
