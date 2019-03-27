@@ -44,15 +44,19 @@ int main(int argc, char **argv)
     computation sum_z_init({m, l, k, i}, b_z(l, i));
     computation sum_o_init({m, l, k, i}, b_o(l, i));
     computation sum_f_init({m, l, k, i}, b_f(l, i));
-    computation sum_i({m, l, k, i, j}, sum_i_init(m, l, k, i) + R_i(l, i, j) * h(m - 1, l, k, j) + W_i(l, i, j) * h(m, l - 1, k, j));
-    computation sum_z({m, l, k, i, j}, sum_z_init(m, l, k, i) + R_z(l, i, j) * h(m - 1, l, k, j) + W_z(l, i, j) * h(m, l - 1, k, j));
-    computation sum_o({m, l, k, i, j}, sum_o_init(m, l, k, i) + R_o(l, i, j) * h(m - 1, l, k, j) + W_o(l, i, j) * h(m, l - 1, k, j));
-    computation sum_f({m, l, k, i, j}, sum_f_init(m, l, k, i) + R_f(l, i, j) * h(m - 1, l, k, j) + W_f(l, i, j) * h(m, l - 1, k, j));
+    computation sum_i1({m, l, k, i, j}, sum_i_init(m, l, k, i) + R_i(l, i, j) * h(m - 1, l, k, j));
+    computation sum_i2({m, l, k, i, j}, sum_i_init(m, l, k, i) + W_i(l, i, j) * h(m, l - 1, k, j));
+    computation sum_z1({m, l, k, i, j}, sum_z_init(m, l, k, i) + R_z(l, i, j) * h(m - 1, l, k, j));
+    computation sum_z2({m, l, k, i, j}, sum_z_init(m, l, k, i) + W_z(l, i, j) * h(m, l - 1, k, j));
+    computation sum_o1({m, l, k, i, j}, sum_o_init(m, l, k, i) + R_o(l, i, j) * h(m - 1, l, k, j));
+    computation sum_o2({m, l, k, i, j}, sum_o_init(m, l, k, i) + W_o(l, i, j) * h(m, l - 1, k, j));
+    computation sum_f1({m, l, k, i, j}, sum_f_init(m, l, k, i) + R_f(l, i, j) * h(m - 1, l, k, j));
+    computation sum_f2({m, l, k, i, j}, sum_f_init(m, l, k, i) + W_f(l, i, j) * h(m, l - 1, k, j));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
-    computation sig_i({m, l, k, i}, sigmoid(sum_i(m, l, k, i, 0)));
-    computation tnh_z({m, l, k, i}, expr(o_tanh, sum_z(m, l, k, i, 0)));
-    computation sig_o({m, l, k, i}, sigmoid(sum_o(m, l, k, i, 0)));
-    computation sig_f({m, l, k, i}, sigmoid(sum_f(m, l, k, i, 0)));
+    computation sig_i({m, l, k, i}, sigmoid(sum_i2(m, l, k, i, 0)));
+    computation tnh_z({m, l, k, i}, expr(o_tanh, sum_z2(m, l, k, i, 0)));
+    computation sig_o({m, l, k, i}, sigmoid(sum_o2(m, l, k, i, 0)));
+    computation sig_f({m, l, k, i}, sigmoid(sum_f2(m, l, k, i, 0)));
     computation mul_iz({m, l, k, i}, sig_i(m, l, k, i) * tnh_z(m, l, k, i));
     computation mul_fc({m, l, k, i}, sig_f(m, l, k, i) * c(m - 1, l, k, i));
     c.set_expression(mul_iz(m, l, k, i) + mul_fc(m, l, k, i));
@@ -72,10 +76,14 @@ int main(int argc, char **argv)
           .then(sum_z_init, l)
           .then(sum_o_init, l)
           .then(sum_f_init, l)
-          .then(sum_i, l)
-          .then(sum_z, l)
-          .then(sum_o, l)
-          .then(sum_f, l)
+          .then(sum_i1, l)
+          .then(sum_i2, l)
+          .then(sum_z1, l)
+          .then(sum_z2, l)
+          .then(sum_o1, l)
+          .then(sum_o2, l)
+          .then(sum_f1, l)
+          .then(sum_f2, l)
           .then(sig_i, l)
           .then(tnh_z, l)
           .then(sig_o, l)
@@ -122,10 +130,14 @@ int main(int argc, char **argv)
     sum_z_init.store_in(&buf_tmp_z, {k, i});
     sum_o_init.store_in(&buf_tmp_o, {k, i});
     sum_f_init.store_in(&buf_tmp_f, {k, i});
-    sum_i.store_in(&buf_tmp_i, {k, i});
-    sum_z.store_in(&buf_tmp_z, {k, i});
-    sum_o.store_in(&buf_tmp_o, {k, i});
-    sum_f.store_in(&buf_tmp_f, {k, i});
+    sum_i1.store_in(&buf_tmp_i, {k, i});
+    sum_i2.store_in(&buf_tmp_i, {k, i});
+    sum_z1.store_in(&buf_tmp_z, {k, i});
+    sum_z2.store_in(&buf_tmp_z, {k, i});
+    sum_o1.store_in(&buf_tmp_o, {k, i});
+    sum_o2.store_in(&buf_tmp_o, {k, i});
+    sum_f1.store_in(&buf_tmp_f, {k, i});
+    sum_f2.store_in(&buf_tmp_f, {k, i});
     sig_i.store_in(&buf_tmp_i, {k, i});
     tnh_z.store_in(&buf_tmp_z, {k, i});
     sig_o.store_in(&buf_tmp_o, {k, i});

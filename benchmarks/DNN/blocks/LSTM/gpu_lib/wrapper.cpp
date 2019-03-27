@@ -55,8 +55,15 @@ int main(int argc, char *argv[])
     for (int i = 0; i < SEQ_LENGTH; i++) {
         for (int j = 0; j < BATCH_SIZE; j++) {
             for (int k = 0; k < FEATURE_SIZE; k++) {
-                if (buf_y(k, j, i) != buf_ref_y(k, j, i) && nn++ < 100) {
-                    std::cout << i << " " << j << " " << k << " " << buf_y(k, j, i) << " " << buf_ref_y(k, j, i) << std::endl;
+                float res = buf_y(k, j, i);
+                float ref = buf_ref_y(k, j, i);
+                float err = std::abs(ref - res);
+                // Relative error:
+                float rel_err = err / std::max(std::abs(res), std::abs(ref));
+                if (err > 0 && nn++ < 100) {
+                    std::cout << i << " " << j << " " << k << ": "
+                              << res << " " << ref << ", "
+                              << err << " " << rel_err << std::endl;
                 }
             }
         }
