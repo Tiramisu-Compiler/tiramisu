@@ -1,7 +1,7 @@
 set(benchmark_name benchmark_lstm_gpu_lib)
 set(generator_name ${benchmark_name}_generator)
 set(wrapper_name ${benchmark_name}_wrapper)
-set(object_files lstm.o)# lstm.o_gpu.o lstm.o_cpu.o)
+set(object_files lstm.o lstm.o_gpu.o lstm.o_cpu.o)
 set(ref_generator_name ${benchmark_name}_ref_generator)
 set(ref_object_files lstm_ref.o)
 set(cudnn_location /data/scratch/akkas/cudnn7) # Change with the cudnn library location
