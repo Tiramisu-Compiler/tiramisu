@@ -8,7 +8,6 @@
 #include "halide_image_io.h"
 #include <cmath>
 
-#define COMPARE_TO_HALIDE
 #define REQ MPI_THREAD_MULTIPLE
 
 int main() {
@@ -17,23 +16,23 @@ int main() {
   assert(provided == REQ && "Did not get the appropriate MPI thread requirement.");
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  Halide::Buffer<int> input = Halide::Buffer<int>(NCOLS, NROWS / NNODES + 2, 3);
-  for (int y = 0; y < NROWS/NNODES; y++) {
-    for (int x = 0; x < input.width(); x++) {
-      for (int c = 0; c < input.channels(); c++) {
+  Halide::Buffer<int> input = Halide::Buffer<int>(NCOLS, NROWS / NUM_MPI_RANKS + 2, 3);
+  for (int64_t y = 0; y < NROWS/NUM_MPI_RANKS; y++) {
+    for (int64_t x = 0; x < input.width(); x++) {
+      for (int64_t c = 0; c < input.channels(); c++) {
 	input(x, y, c) = (x+y+c)*rank;
+	
       }
     }
   }
-
   // Generate these on each node as well
-  Halide::Buffer<int> output(input.width(), NROWS/NNODES, 3);
+  Halide::Buffer<int> output(input.width(), NROWS/NUM_MPI_RANKS, 3);
   // Run once to get rid of overhead/any extra compilation stuff that needs to happen
   convolution_dist(input.raw_buffer(), output.raw_buffer());
     
-  /*  std::vector<std::chrono::duration<double,std::milli>> duration_vector;
-  for (int i=0; i<50; i++) {
+  std::vector<std::chrono::duration<double,std::milli>> duration_vector;
+  for (int i=0; i<15; i++) {
+    if (rank == 0) std::cerr << i << std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
     auto start = std::chrono::high_resolution_clock::now();
     convolution_dist(input.raw_buffer(), output.raw_buffer());
@@ -45,7 +44,7 @@ int main() {
 
   if (rank == 0) {
     print_time("performance_CPU.csv", "### convolution_dist", {"Tiramisu_dist"}, {median(duration_vector)});
-    }*/
+  }
 
   MPI_Barrier(MPI_COMM_WORLD);
     
@@ -64,6 +63,6 @@ int main() {
 #endif
 
   MPI_Finalize();
-
+  
   return 0;
 }

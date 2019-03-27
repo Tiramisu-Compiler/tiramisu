@@ -9,16 +9,22 @@ using namespace tiramisu;
 #define S(s) std::to_string(s)
 #define MIN(bound, actual) expr(o_min, bound, actual)
 #define MAX(bound, actual) expr(o_max, bound, actual)
+#define LOOP_TYPE p_int64
+#define C_TYPE int64_t
+#define T(val) expr(o_cast, LOOP_TYPE, val)
+#define TC(val) (C_TYPE)val
+#define VAR(name) var name(LOOP_TYPE, #name)
 
 int main(int argc, char **argv)
 {
 
     // Set default tiramisu options.
     global::set_default_tiramisu_options();
+    global::set_loop_iterator_type(LOOP_TYPE);
 
     tiramisu::function convolution_dist("convolution_dist");
 
-    int ROWS_PER_NODE = NROWS / NNODES;
+    int64_t ROWS_PER_NODE = NROWS / NUM_MPI_RANKS;
 
     int32_t kernel[3][3] = {{2, 1, 2},
 			    {1, 1, 1},
@@ -27,25 +33,26 @@ int main(int argc, char **argv)
     computation input("{input[c,y,x]: 0<=c<3 and 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}", expr(), false, 
 		      p_int32, &convolution_dist);
 
-    var x("x"), y("y"), c("c");
+    VAR(x); VAR(y); VAR(c);
 
     expr e = 0;
-    for (int j = 0; j < 3; j++) {
-        for (int i = 0; i < 3; i++) {
-	  e = e + input(c, MIN(NROWS-1, y + j), MIN(NCOLS-1, x + i)) * kernel[i][j];
+    for (int64_t j = 0; j < 3; j++) {
+        for (int64_t i = 0; i < 3; i++) {
+	  e = e + input(c, MIN(T(NROWS-1), y + j), MIN(T(NCOLS-1), x + i)) * kernel[i][j];
         }
     }
 
-    constant nodes("nodes", expr(NNODES), p_int32, true, NULL, 0, &convolution_dist);
+    constant nodes("nodes", expr(o_cast, LOOP_TYPE, NUM_MPI_RANKS), LOOP_TYPE, true, NULL, 0, &convolution_dist);
+    constant channels("channels", expr(o_cast, LOOP_TYPE, 3), LOOP_TYPE, true, NULL, 0, &convolution_dist);
     computation convolution("{convolution[c,y,x]: 0<=c<3 and 0<=y<" + S(NROWS) + " and 0<=x<" + S(NCOLS) + "}", e, true, p_int32, 
 			    &convolution_dist);
 
-    var y1("y1"), y2("y2"), q("q");
+    VAR(y1); VAR(y2); VAR(q);
     convolution.interchange(c, y);
     convolution.split(y, ROWS_PER_NODE, y1, y2);
     convolution.interchange(c, y2);
-    //    convolution.vectorize(x, 8);
-    //    convolution.parallelize(c);
+    convolution.vectorize(x, 8);
+    convolution.parallelize(c);
 
     xfer exchange_back = 
       computation::create_xfer("[nodes,rank]->{exchange_back_s[q,c,y,x]: 1<=q<nodes and 0<=c<3 and (rank*" +
@@ -60,13 +67,13 @@ int main(int argc, char **argv)
     convolution.tag_distribute_level(y1);
     exchange_back.s->tag_distribute_level(q);
     exchange_back.r->tag_distribute_level(q);
-    //    exchange_back.s->collapse_many({collapse_group(3, 0, -1, NCOLS)});
-    //    exchange_back.r->collapse_many({collapse_group(3, 0, -1, NCOLS)});
+    exchange_back.s->collapse_many({collapse_group(3, TC(0), -1, TC(NCOLS))});
+    exchange_back.r->collapse_many({collapse_group(3, TC(0), -1, TC(NCOLS))});
     exchange_back.s->before(*exchange_back.r, computation::root);
     exchange_back.r->before(convolution, computation::root);
 
-    tiramisu::buffer buff_input("buff_input", {3, ROWS_PER_NODE+2, NCOLS}, tiramisu::p_int32, tiramisu::a_input, &convolution_dist);
-    tiramisu::buffer buff_convolution("buff_convolution", {3, ROWS_PER_NODE, NCOLS}, tiramisu::p_int32, tiramisu::a_output, &convolution_dist);
+    tiramisu::buffer buff_input("buff_input", {channels, TC(ROWS_PER_NODE+2), TC(NCOLS)}, tiramisu::p_int32, tiramisu::a_input, &convolution_dist);
+    tiramisu::buffer buff_convolution("buff_convolution", {channels, TC(ROWS_PER_NODE), TC(NCOLS)}, tiramisu::p_int32, tiramisu::a_output, &convolution_dist);
     
     input.set_access("[rank]->{input[c, y, x]->buff_input[c,t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");
     convolution.set_access("[rank]->{convolution[c,y,x]->buff_convolution[c,t,x]: t=(y-(" + S(ROWS_PER_NODE) + "*rank))}");

@@ -3,10 +3,8 @@
 
 #include <tiramisu/utils.h>
 
-#define NCOLS 1000
-#define NROWS 1000
-#define NNODES 5
-
+#define NROWS 100000
+#define NCOLS 50000
 
 #ifdef __cplusplus
 extern "C" {
