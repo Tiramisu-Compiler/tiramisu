@@ -365,6 +365,14 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             case e_val:
                 return statement_ptr{new cuda_ast::value{tiramisu_expr}};
             case e_var:
+                // o_call might get buffer as input parameter, in which case the
+                // buffer is interpreted as a var. If so, create scalar_ptr for
+                // the buffer.
+                if (this->m_fct.get_buffers().find(tiramisu_expr.get_name()) != this->m_fct.get_buffers().end()) {
+                    cuda_ast::buffer *b = this->get_buffer(tiramisu_expr.get_name()).get();
+                    return scalar_ptr{new cuda_ast::scalar{b->get_type(), b->get_name(), b->get_location()}};
+                }
+                // Otherwise expr must be a scalar.
                 return get_scalar_from_name(tiramisu_expr.get_name());
             case e_none:
                 assert(false);
@@ -611,7 +619,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 const tiramisu::expr &e = comp->get_expr();
                 std::vector<statement_ptr> arguments;
                 for (const auto &arg : e.get_arguments()) {
-                    arguments.push_back(parse_tiramisu(arg));
+                    arguments.push_back(parse_tiramisu(replace_original_indices_with_transformed_indices(arg, comp->get_iterators_map())));
                 }
                 return statement_ptr{new cuda_ast::function_call{e.get_data_type(), e.get_name(), arguments}};
             } else {
@@ -1619,10 +1627,6 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     this->current_kernel->add_used_scalar(used_scalar);
             }
             return used_scalar;
-        } else if (this->m_buffers.find(name) != this->m_buffers.end()) {
-            // Buffers might be var arguments in the case of external function calls.
-            cuda_ast::buffer *b = this->m_buffers.find(name)->second.get();
-            return scalar_ptr{new cuda_ast::scalar{b->get_type(), b->get_name(), b->get_location()}};
         } else {
             ERROR("Scalar not found: " + name, true);
         }

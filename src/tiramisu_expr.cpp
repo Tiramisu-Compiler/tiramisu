@@ -192,6 +192,11 @@ expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
                   expr offsetA, expr offsetB, expr offsetC,
                   expr transposeA, expr transposeB)
 {
+    if (A.get_location() != cuda_ast::memory_location::global ||
+        B.get_location() != cuda_ast::memory_location::global ||
+        C.get_location() != cuda_ast::memory_location::global) {
+        ERROR("Buffers must be on GPU global memory", true);
+    }
     if (A.get_elements_type() != p_float32 ||
         B.get_elements_type() != p_float32 ||
         C.get_elements_type() != p_float32) {

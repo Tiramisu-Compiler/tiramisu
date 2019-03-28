@@ -52,15 +52,30 @@ int main(int argc, char *argv[])
          buf_ref_y.raw_buffer());
 
     int nn = 0;
+    float max_err = 0;
+    float max_rel_err = 0;
+    std::cout << "Comparing against the reference:" << std::endl;
     for (int i = 0; i < SEQ_LENGTH; i++) {
         for (int j = 0; j < BATCH_SIZE; j++) {
             for (int k = 0; k < FEATURE_SIZE; k++) {
-                if (buf_y(k, j, i) != buf_ref_y(k, j, i) && nn++ < 100) {
-                    std::cout << i << " " << j << " " << k << " " << buf_y(k, j, i) << " " << buf_ref_y(k, j, i) << std::endl;
+                float res = buf_y(k, j, i);
+                float ref = buf_ref_y(k, j, i);
+                float err = std::abs(ref - res);
+                // Relative error:
+                float rel_err = err / std::max(std::abs(res), std::abs(ref));
+                max_err = std::max(max_err, err);
+                max_rel_err = std::max(max_rel_err, rel_err);
+                if (err > 0.01 && nn++ < 10) {
+                    std::cout << i << " " << j << " " << k << ": "
+                              << res << " " << ref << ", "
+                              << err << " " << rel_err << std::endl;
                 }
             }
         }
     }
+
+    std::cout << "Max error: " << max_err << std::endl;
+    std::cout << "Max relative error: " << max_rel_err << std::endl;
 
     return 0;
     /*
