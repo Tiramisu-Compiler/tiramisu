@@ -62,8 +62,24 @@ int main(int argc, char **argv)
     computation c_init({l, k, i}, expr(float(0)));
     computation h_copy_x({m, k, i}, x(m, k, i));
     computation sum_init({m, l, k, i_merged}, b(l, i_merged));
-    computation sum1({m, l, k, i_merged, j}, sum_init(m, l, k, i_merged) + R(l, i_merged, j) * h(m - 1, l, k, j));
-    computation sum2({m, l, k, i_merged, j}, sum_init(m, l, k, i_merged) + W(l, i_merged, j) * h(m, l - 1, k, j));
+    computation sum1({m, l},
+        cublas_sgemm(buf_h, buf_Weights, buf_tmp,
+                     BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
+                     1, 1,  // alpha, beta
+                     0, 0, 0,  // ldABC
+                     (m * (NUM_LAYERS + 1) + l + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     0,  // offsetC
+                     false, true));
+    computation sum2({m, l},
+        cublas_sgemm(buf_h, buf_Weights, buf_tmp,
+                     BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
+                     1, 1,  // alpha, beta
+                     0, 0, 0,  // ldABC
+                     ((m + 1) * (NUM_LAYERS + 1) + l) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     0,  // offsetC
+                     false, true));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
     computation sig_i({m, l, k, i}, sigmoid(sum_init(m, l, k, i)));
     computation tnh_z({m, l, k, i}, expr(o_tanh, sum_init(m, l, k, i + FEATURE_SIZE)));
@@ -88,7 +104,7 @@ int main(int argc, char **argv)
 
     block({&h_init, &c_init, &h_copy_x, &sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz,
            &mul_fc, &c, &tnh_c, &h, &y}).gpu_tile(k, i, 16, 16, k0, i0, k1, i1);
-    block({&sum_init, &sum1, &sum2}).gpu_tile(k, i_merged, 16, 16, k0, i0, k1, i1);
+    sum_init.gpu_tile(k, i_merged, 16, 16, k0, i0, k1, i1);
 
     // Scheduling commands
     copy_Weights_to_device
@@ -123,8 +139,6 @@ int main(int argc, char **argv)
     x.store_in(&buf_x);
     y.store_in(&buf_y);
     sum_init.store_in(&buf_tmp, {k, i_merged});
-    sum1.store_in(&buf_tmp, {k, i_merged});
-    sum2.store_in(&buf_tmp, {k, i_merged});
     sig_i.store_in(&buf_tmp_i, {k, i});
     tnh_z.store_in(&buf_tmp_z, {k, i});
     sig_o.store_in(&buf_tmp_o, {k, i});

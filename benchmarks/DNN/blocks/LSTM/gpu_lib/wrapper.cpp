@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
     int nn = 0;
     float max_err = 0;
     float max_rel_err = 0;
+    std::cout << "Comparing against the reference:" << std::endl;
     for (int i = 0; i < SEQ_LENGTH; i++) {
         for (int j = 0; j < BATCH_SIZE; j++) {
             for (int k = 0; k < FEATURE_SIZE; k++) {
