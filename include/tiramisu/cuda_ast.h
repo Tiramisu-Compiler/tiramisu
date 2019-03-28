@@ -35,54 +35,57 @@
 
 namespace tiramisu
 {
-    struct isl_ast_expr_deleter
-    {
-        void operator()(isl_ast_expr * p) const {isl_ast_expr_free(p);}
-    };
-    typedef std::unique_ptr<isl_ast_expr, isl_ast_expr_deleter> isl_ast_expr_ptr;
 
-    struct isl_id_deleter
-    {
-        void operator()(isl_id * p) const {isl_id_free(p);}
-    };
-    typedef std::unique_ptr<isl_id, isl_id_deleter> isl_id_ptr;
+struct isl_ast_expr_deleter
+{
+    void operator()(isl_ast_expr * p) const {isl_ast_expr_free(p);}
+};
+typedef std::unique_ptr<isl_ast_expr, isl_ast_expr_deleter> isl_ast_expr_ptr;
 
-    struct isl_ast_node_list_deleter
-    {
-        void operator()(isl_ast_node_list * p) const {isl_ast_node_list_free(p);}
-    };
-    typedef std::unique_ptr<isl_ast_node_list, isl_ast_node_list_deleter> isl_ast_node_list_ptr;
+struct isl_id_deleter
+{
+    void operator()(isl_id * p) const {isl_id_free(p);}
+};
+typedef std::unique_ptr<isl_id, isl_id_deleter> isl_id_ptr;
 
-    struct isl_val_deleter
-    {
-        void operator()(isl_val * p) const {isl_val_free(p);}
-    };
-    typedef std::unique_ptr<isl_val, isl_val_deleter> isl_val_ptr;
+struct isl_ast_node_list_deleter
+{
+    void operator()(isl_ast_node_list * p) const {isl_ast_node_list_free(p);}
+};
+typedef std::unique_ptr<isl_ast_node_list, isl_ast_node_list_deleter> isl_ast_node_list_ptr;
 
-    class function;
+struct isl_val_deleter
+{
+    void operator()(isl_val * p) const {isl_val_free(p);}
+};
+typedef std::unique_ptr<isl_val, isl_val_deleter> isl_val_ptr;
+
+class function;
+
 namespace cuda_ast
 {
-    struct op_data_t
-    {
-        op_data_t() {}
-        op_data_t(bool infix, int arity, std::string && symbol) : infix(infix), arity(arity), symbol(symbol) {}
-        op_data_t(bool infix, int arity, std::string && symbol, std::string && next_symbol) : infix(infix), arity(arity), symbol(symbol), next_symbol(next_symbol) {}
-        op_data_t(bool infix, int arity, std::string && symbol, primitive_t type) : infix(infix), arity(arity), symbol(symbol), type_preserving(
-                false), type(type) {}
-        op_data_t(bool infix, int arity, std::string && symbol, std::string && next_symbol, primitive_t type) : infix(infix), arity(arity), symbol(symbol), next_symbol(next_symbol), type_preserving(
-                false), type(type) {}
 
-        bool operator==(const op_data_t &rhs) const;
+struct op_data_t
+{
+    op_data_t() {}
+    op_data_t(bool infix, int arity, std::string && symbol) : infix(infix), arity(arity), symbol(symbol) {}
+    op_data_t(bool infix, int arity, std::string && symbol, std::string && next_symbol) : infix(infix), arity(arity), symbol(symbol), next_symbol(next_symbol) {}
+    op_data_t(bool infix, int arity, std::string && symbol, primitive_t type) : infix(infix), arity(arity), symbol(symbol), type_preserving(
+            false), type(type) {}
+    op_data_t(bool infix, int arity, std::string && symbol, std::string && next_symbol, primitive_t type) : infix(infix), arity(arity), symbol(symbol), next_symbol(next_symbol), type_preserving(
+            false), type(type) {}
 
-        bool operator!=(const op_data_t &rhs) const;
+    bool operator==(const op_data_t &rhs) const;
 
-        bool infix;
-        int arity;
-        std::string symbol;
-        std::string next_symbol = "";
-        bool type_preserving = true;
-        primitive_t type = p_none;
-    };
+    bool operator!=(const op_data_t &rhs) const;
+
+    bool infix;
+    int arity;
+    std::string symbol;
+    std::string next_symbol = "";
+    bool type_preserving = true;
+    primitive_t type = p_none;
+};
 
 const op_data_t tiramisu_operation_description(tiramisu::op_t op);
 
@@ -157,7 +160,7 @@ const op_data_t isl_operation_description(isl_ast_op_type op);
 //        BINARY_TYPED(isl_ast_op_gt, ">", p_boolean),
 //    };
 
-    const std::string tiramisu_type_to_cuda_type(tiramisu::primitive_t t);
+const std::string tiramisu_type_to_cuda_type(tiramisu::primitive_t t);
 
 
 //    const std::unordered_map <tiramisu::primitive_t, std::string> tiramisu_type_to_cuda_type = {
@@ -185,15 +188,12 @@ enum class memory_location
 };
 
 class abstract_node {
-
 };
 
-    class statement;
-    typedef std::shared_ptr<statement> statement_ptr;
+class statement;
+typedef std::shared_ptr<statement> statement_ptr;
+struct gpu_iterator;
 
-
-
-    struct gpu_iterator;
 class statement : public abstract_node {
 public:
     primitive_t get_type() const;
@@ -262,7 +262,8 @@ private:
 public:
 
 };
-    typedef std::shared_ptr<abstract_identifier> abstract_identifier_ptr;
+
+typedef std::shared_ptr<abstract_identifier> abstract_identifier_ptr;
 
 class buffer : public abstract_identifier
 {
@@ -540,9 +541,8 @@ public:
     void print(std::stringstream &ss, const std::string &base) override;
 };
 
-
-        class kernel_call;
-        class kernel_definition;
+class kernel_call;
+class kernel_definition;
 
 class return_statement : public statement
 {
@@ -552,6 +552,7 @@ public:
     explicit return_statement(statement_ptr return_value);
     void print(std::stringstream &ss, const std::string &base) override;
 };
+
 class host_function : public statement
 {
 public:
@@ -596,8 +597,8 @@ public:
     void add_used_scalar(scalar_ptr scalar);
     void add_used_buffer(buffer_ptr buffer);
     std::vector<abstract_identifier_ptr> get_arguments();
-
 };
+
 typedef std::shared_ptr<kernel> kernel_ptr;
 
 class kernel_call : public statement
@@ -631,7 +632,6 @@ private:
     buffer_ptr from, to;
 };
 
-
 class allocate : public statement
 {
 public:
@@ -651,7 +651,6 @@ public:
 private:
     buffer_ptr b;
 };
-
 
 class generator
 {
@@ -700,36 +699,36 @@ public:
 
 namespace {
 
-    struct exec_result {
-        bool exec_succeeded;
-        int result;
-        std::string std_out;
-        std::string std_err;
+struct exec_result {
+    bool exec_succeeded;
+    int result;
+    std::string std_out;
+    std::string std_err;
 
-        bool fail();
+    bool fail();
 
-        bool succeed();
-    };
-
-}
-
-    class compiler
-    {
-        std::string code;
-
-        bool compile_cpu_obj(const std::string &filename, const std::string &obj_name) const;
-        bool compile_gpu_obj(const std::string &obj_name) const;
-        static exec_result exec(const std::string &cmd);
-
-    public:
-        std::string get_cpu_obj(const std::string &obj_name) const;
-        std::string get_gpu_obj(const std::string &obj_name) const;
-        explicit compiler(const std::string &code);
-        bool compile(const std::string &obj_name) const;
-    };
+    bool succeed();
+};
 
 }
 
-}
+class compiler
+{
+    std::string code;
+
+    bool compile_cpu_obj(const std::string &filename, const std::string &obj_name) const;
+    bool compile_gpu_obj(const std::string &obj_name) const;
+    static exec_result exec(const std::string &cmd);
+
+public:
+    std::string get_cpu_obj(const std::string &obj_name) const;
+    std::string get_gpu_obj(const std::string &obj_name) const;
+    explicit compiler(const std::string &code);
+    bool compile(const std::string &obj_name) const;
+};
+
+}  // namespace cuda_ast
+
+}  // namespace tiramisu
 
 #endif //TIRAMISU_CUDA_AST_H
