@@ -3040,10 +3040,15 @@ void computation::create_halide_assignment()
                     if (this->lhs_access_type == tiramisu::o_lin_index) { // pass in the index directly
                         result = index;
                     } else { // pass in LHS index and buffer into address_of extern function
-                        result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                                  tiramisu_buffer->get_name() + ".buffer");
+		      bool is_temp = tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+		      result = 
+			Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+							   Halide::type_of<struct halide_buffer_t *>(),
+							   tiramisu_buffer->get_name() + 
+							   (is_temp ? "" : ".buffer"));
                         result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
-                                                              "tiramisu_address_of_" +
+							      (is_temp ? "tiramisu_address_of_raw_" :
+							       "tiramisu_address_of_") +
                                                               str_from_tiramisu_type_primitive(tiramisu_buffer->get_elements_type()),
                                                               {result, index},
                                                               Halide::Internal::Call::Extern);
@@ -3657,13 +3662,6 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                     }
                     else if (tiramisu_buffer->get_argument_type() == tiramisu::a_input)
                     {
-                        /*Halide::Buffer<> buffer = Halide::Buffer<>(
-                                                      type,
-                                                      tiramisu_buffer->get_data(),
-                                                      tiramisu_buffer->get_dim_sizes().size(),
-                                                      shape,
-                                                      tiramisu_buffer->get_name());*/
-
                         Halide::Internal::Parameter param =
                                 Halide::Internal::Parameter(halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type()),
                                                             true,
@@ -3687,26 +3685,33 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                     }
                     else
                     {
-                        if (tiramisu_expr.get_op_type() != tiramisu ::o_address_of) {
-                            result = Halide::Internal::Load::make(
-                                    type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
-                        } else {
-                            result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                                      tiramisu_buffer->get_name() + ".buffer");
-                            result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
-                                                                  "tiramisu_address_of_" +
-                                                                  str_from_tiramisu_type_primitive(tiramisu_buffer->get_elements_type()),
-                                                                  {result, index},
-                                                                  Halide::Internal::Call::Extern);
+		      if (tiramisu_expr.get_op_type() != tiramisu ::o_address_of) {
+			result = Halide::Internal::Load::make(
+							      type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
+							      Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+		      } else {
+			bool is_temp = tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+			result = Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+							   Halide::type_of<struct halide_buffer_t *>(),
+							   tiramisu_buffer->get_name() + 
+							   (is_temp ? "" : ".buffer"));
+                        result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
+							      (is_temp ? "tiramisu_address_of_raw_" :
+							       "tiramisu_address_of_") +
+                                                              str_from_tiramisu_type_primitive(tiramisu_buffer->get_elements_type()),
+                                                              {result, index},
+                                                              Halide::Internal::Call::Extern);
                         }
                     }
                 }
                 else if (tiramisu_expr.get_op_type() == tiramisu::o_address)
                 {
-                    // Create a pointer to Halide buffer.
-                    result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                              tiramisu_buffer->get_name() + ".buffer");
+		  // Create a pointer to Halide buffer, or allocation space.
+		  bool is_temp = tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+		  result = Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+							    Halide::type_of<struct halide_buffer_t *>(),
+							    tiramisu_buffer->get_name() + 
+							   (is_temp ? "" : ".buffer"));
                 }
                 delete[] shape;
             }

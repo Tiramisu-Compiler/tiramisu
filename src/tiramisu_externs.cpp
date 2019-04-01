@@ -45,6 +45,46 @@ double *tiramisu_address_of_float64(halide_buffer_t *buffer, unsigned long index
     return &(((double*)(buffer->host))[index]);
 }
 
+int8_t *tiramisu_address_of_raw_int8(void *buffer, unsigned long index) {
+    return &(((int8_t*)(buffer))[index]);
+}
+
+int16_t *tiramisu_address_of_raw_int16(void *buffer, unsigned long index) {
+    return &(((int16_t*)(buffer))[index]);
+}
+
+int32_t *tiramisu_address_of_raw_int32(void *buffer, unsigned long index) {
+    return &(((int32_t*)(buffer))[index]);
+}
+
+int64_t *tiramisu_address_of_raw_int64(void *buffer, unsigned long index) {
+    return &(((int64_t*)(buffer))[index]);
+}
+
+uint8_t *tiramisu_address_of_raw_uint8(void *buffer, unsigned long index) {
+    return &(((uint8_t*)(buffer))[index]);
+}
+
+uint16_t *tiramisu_address_of_raw_uint16(void *buffer, unsigned long index) {
+    return &(((uint16_t*)(buffer))[index]);
+}
+
+uint32_t *tiramisu_address_of_raw_uint32(void *buffer, unsigned long index) {
+    return &(((uint32_t*)(buffer))[index]);
+}
+
+uint64_t *tiramisu_address_of_raw_uint64(void *buffer, unsigned long index) {
+    return &(((uint64_t*)(buffer))[index]);
+}
+
+float *tiramisu_address_of_raw_float32(void *buffer, unsigned long index) {
+    return &(((float*)(buffer))[index]);
+}
+
+double *tiramisu_address_of_raw_float64(void *buffer, unsigned long index) {
+    return &(((double*)(buffer))[index]);
+}
+
 #ifdef WITH_MPI
 void *tiramisu_address_of_wait(halide_buffer_t *buffer, unsigned long index) {
   return &(((MPI_Request*)(buffer->host))[index]);
