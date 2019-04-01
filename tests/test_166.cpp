@@ -21,8 +21,8 @@ void generate_function_1(std::string name) {
 
     sr.s->tag_distribute_level(q);
     sr.r->tag_distribute_level(p);
-    tiramisu::wait wait_send(sr.s->operator()(q,x,y), xfer_prop(p_wait_ptr, {MPI}), &function0);
-    tiramisu::wait wait_recv(sr.r->operator()(p,x,y), xfer_prop(p_wait_ptr, {MPI}), &function0);
+    local_wait wait_send = local_wait(sr.s->operator()(p,x,y), xfer_prop(p_wait, {MPI}), &function0);
+    local_wait wait_recv = local_wait(sr.r->operator()(q,x,y), xfer_prop(p_wait, {MPI}), &function0);
     wait_send.tag_distribute_level(q);
     wait_recv.tag_distribute_level(p);
     
@@ -38,8 +38,8 @@ void generate_function_1(std::string name) {
     buffer buff_input("buff_input", {100, 100}, p_int32 , a_input, &function0);
     buffer buff_temp("buff_temp", {100, 100}, p_int32 , a_temporary, &function0);
     buffer buff("buff", {100, 100}, p_int32 , a_output, &function0);
-    buffer buff_wait_send("buff_wait_send", {100, 100}, p_wait_ptr, a_temporary, &function0);
-    buffer buff_wait_recv("buff_wait_recv", {100, 100}, p_wait_ptr, a_temporary, &function0);
+    buffer buff_wait_send("buff_wait_send", {100, 100}, p_wait, a_temporary, &function0);
+    buffer buff_wait_recv("buff_wait_recv", {100, 100}, p_wait, a_temporary, &function0);
     input.set_access("{input[x,y]->buff_input[x,y]}");
     sr.r->set_access("{recv[q,x,y]->buff_temp[x,y]}");
     comp1.set_access("{comp1[x,y]->buff_temp[x,y]}");

@@ -1964,7 +1964,7 @@ void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
           r->wait_argument_idx = 4;
         }
     } else if (comp->is_wait()) {
-        wait *w = static_cast<wait *>(comp);
+        local_wait *w = static_cast<local_wait *>(comp);
         // Determine the appropriate number of function args and set ones that we can already know
         w->rhs_argument_idx = 0;
         w->library_call_args.resize(1);

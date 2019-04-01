@@ -38,7 +38,7 @@ class computation_tester;
 class send;
 class recv;
 class send_recv;
-class wait;
+class local_wait;
 class sync;
 class xfer_prop;
 class auto_scheduler;
@@ -138,7 +138,7 @@ class function
     friend computation;
     friend constant;
     friend generator;
-    friend tiramisu::wait;
+    friend tiramisu::local_wait;
     friend cuda_ast::generator;
     friend auto_scheduler;
 
@@ -1422,7 +1422,7 @@ class computation
     friend computation_tester;
     friend send;
     friend recv;
-    friend tiramisu::wait;
+    friend tiramisu::local_wait;
     friend cuda_ast::generator;
 
 private:
@@ -5003,24 +5003,24 @@ public:
 
 };
 
-class wait : public communicator {
+class local_wait : public communicator {
 private:
 
     tiramisu::expr rhs;
 
 public:
 
-    wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct);
+    local_wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct);
 
-    wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop, bool schedule_this,
-         tiramisu::function *fct);
-
+    local_wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop, bool schedule_this,
+	       tiramisu::function *fct);
+    
     virtual bool is_wait() const override;
-
+    
     virtual void add_definitions(std::string iteration_domain_str, tiramisu::expr e,
                                  bool schedule_this_computation, tiramisu::primitive_t t,
                                  tiramisu::function *fct) override;
-
+    
     std::vector<tiramisu::computation *> get_op_to_wait_on() const;
 
 };

@@ -5540,7 +5540,7 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         return "float64";
     case tiramisu::p_boolean:
         return "bool";
-    case tiramisu::p_wait_ptr:
+    case tiramisu::p_wait:
         return "wait";
     default:
         ERROR("Tiramisu type not supported.", true);
@@ -5709,7 +5709,7 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
     case tiramisu::p_boolean:
         t = Halide::Bool();
         break;
-    case tiramisu::p_wait_ptr:
+    case tiramisu::p_wait:
         t = Halide::Handle();
         break;
     default:
@@ -5966,7 +5966,7 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
     is_let = false;
 
     // Allocate implicit buffer if possible
-    if (t != p_none && t != p_async && t != p_wait_ptr) {
+    if (t != p_none && t != p_async && t != p_wait) {
         bool is_bounded = true;
         std::vector<expr> buffer_size;
         for (const auto &var : iterator_variables) {
@@ -7469,7 +7469,7 @@ bool tiramisu::send_recv::is_send_recv() const
     return true;
 }
 
-tiramisu::wait::wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct)
+tiramisu::local_wait::local_wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct)
         : communicator(), rhs(rhs) {
     assert(rhs.get_op_type() == tiramisu::o_access && "The RHS expression for a wait should be an access!");
     tiramisu::computation *op = fct->get_computation_by_name(rhs.get_name())[0];
@@ -7481,7 +7481,7 @@ tiramisu::wait::wait(tiramisu::expr rhs, xfer_prop prop, tiramisu::function *fct
     this->prop = prop;
 }
 
-tiramisu::wait::wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop,
+tiramisu::local_wait::local_wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_prop prop,
                      bool schedule_this,
                      tiramisu::function *fct) : communicator(iteration_domain_str, rhs, schedule_this, tiramisu::p_async, fct), rhs(rhs) {
     _is_library_call = true;
@@ -7490,21 +7490,21 @@ tiramisu::wait::wait(std::string iteration_domain_str, tiramisu::expr rhs, xfer_
     comp->_is_nonblock_or_async = true;
 }
 
-std::vector<tiramisu::computation *> tiramisu::wait::get_op_to_wait_on() const {
+std::vector<tiramisu::computation *> tiramisu::local_wait::get_op_to_wait_on() const {
     std::string op_name = this->get_expr().get_name();
     return this->get_function()->get_computation_by_name(op_name);
 }
 
-bool tiramisu::wait::is_wait() const
+bool tiramisu::local_wait::is_wait() const
 {
     return true;
 }
 
-void tiramisu::wait::add_definitions(std::string iteration_domain_str,
+void tiramisu::local_wait::add_definitions(std::string iteration_domain_str,
                                      tiramisu::expr e, bool schedule_this_computation, tiramisu::primitive_t t,
                                      tiramisu::function *fct)
 {
-    tiramisu::computation *new_c = new tiramisu::wait(iteration_domain_str, e, this->prop, schedule_this_computation,
+    tiramisu::computation *new_c = new tiramisu::local_wait(iteration_domain_str, e, this->prop, schedule_this_computation,
                                                       fct);
     new_c->is_first = false;
     new_c->first_definition = this;
