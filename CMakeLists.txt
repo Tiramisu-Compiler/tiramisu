@@ -281,7 +281,7 @@ function(new_test descriptor)
         # configure the options so files are copied on the fly as necessary. 
         set_source_files_properties(tests/test_${id}/tutorial_${id}.cpp PROPERTIES COMPILE_FLAGS "-DNUM_MPI_RANKS=${NUM_MPI_RANKS}")
         set_source_files_properties(tests/test_${id}/wrapper_test_${id}.cpp PROPERTIES COMPILE_FLAGS "-DNUM_MPI_RANKS=${NUM_MPI_RANKS}")
-        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun $ENV{ADDT_MPIRUN_FLAGS} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun $ENV{ADDT_MPIRUN_FLAGS} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ --oversubscribe -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
