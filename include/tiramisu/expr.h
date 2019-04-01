@@ -1963,9 +1963,35 @@ expr allocate(const buffer& b);
  * \p B An KxN matrix
  * \p C An MxN matrix
  * The result of the operation: C = alpha x A x B + beta x C
+ *
+ * ld{A,B,C} (leading dimension) parameters specify the stride between rows in
+ * the case of submatrix multiplication. The default value 0 can be used for
+ * tight packing.
+ *
+ * offset{A,B,C} specifies the offset where the submatrices start within the
+ * input buffers.
+ *
+ * transpose{A-B} can be enabled if submatrix is transposed. Tight packing via
+ * ld{A,B,C} = 0 handles transposition as well.
+ *
+ * For example, to multiply matrices A and B of sizes MxK and NxK as in
+ * "C[i, j] = A[i, k] * B[j, k]", one can do:
+ *
+ * \code
+ * cublas_sgemm(A, B, C,
+ *              M, N, K,
+ *              1, 0,
+ *              0, 0, 0,
+ *              0, 0, 0,
+ *              false, true);
+ * \endcode
  */
 expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
-                  expr M, expr N, expr K, expr alpha, expr beta);
+                  expr M, expr N, expr K,
+                  expr alpha = 1, expr beta = 0,
+                  expr ldA = 0, expr ldB = 0, expr ldC = 0,
+                  expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
+                  expr transposeA = false, expr transposeB = false);
 
 }
 #endif

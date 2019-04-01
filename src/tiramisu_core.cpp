@@ -5600,6 +5600,11 @@ tiramisu::argument_t buffer::get_argument_type() const
     return argtype;
 }
 
+cuda_ast::memory_location buffer::get_location() const
+{
+    return this->location;
+}
+
 /**
   * Return the name of the buffer.
   */

@@ -1325,6 +1325,11 @@ public:
     tiramisu::argument_t get_argument_type() const;
 
     /**
+     * Return the memory location of the buffer.
+     */
+    cuda_ast::memory_location get_location() const;
+
+    /**
       * Return the name of the buffer.
       */
     const std::string &get_name() const;
