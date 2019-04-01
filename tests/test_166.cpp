@@ -21,8 +21,8 @@ void generate_function_1(std::string name) {
 
     sr.s->tag_distribute_level(q);
     sr.r->tag_distribute_level(p);
-    local_wait wait_send = local_wait(sr.s->operator()(p,x,y), xfer_prop(p_wait, {MPI}), &function0);
-    local_wait wait_recv = local_wait(sr.r->operator()(q,x,y), xfer_prop(p_wait, {MPI}), &function0);
+    local_wait wait_send = local_wait(sr.s->operator()(q,x,y), xfer_prop(p_wait, {MPI}), &function0);
+    local_wait wait_recv = local_wait(sr.r->operator()(p,x,y), xfer_prop(p_wait, {MPI}), &function0);
     wait_send.tag_distribute_level(q);
     wait_recv.tag_distribute_level(p);
     
