@@ -3132,13 +3132,16 @@ void computation::create_halide_assignment()
                                                                        wait_strides_vector, this->wait_index_expr);
                 }
                 // Finally, index into the buffer
-                Halide::Expr result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                          wait_tiramisu_buffer->get_name() + ".buffer");
-                result = Halide::Internal::Call::make(Halide::Handle(1, type.handle_type),
-                                                      "tiramisu_address_of_" +
-                                                      str_from_tiramisu_type_primitive(wait_tiramisu_buffer->get_elements_type()),
-                                                      {result, wait_index},
-                                                      Halide::Internal::Call::Extern);
+		bool is_temp = wait_tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+                Halide::Expr result = 	Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+									 Halide::type_of<struct halide_buffer_t *>(),
+									 wait_tiramisu_buffer->get_name() + 
+									 (is_temp ? "" : ".buffer"));
+		result = Halide::Internal::Call::make(Halide::Handle(),
+						      (is_temp ? "tiramisu_address_of_raw_wait" :
+						       "tiramisu_address_of_wait"),
+						      {result, wait_index},
+						      Halide::Internal::Call::Extern);
                 // We now have an index into the request buffer so that we can write to it with the operation,
                 // which is either a send or a receive
                 halide_call_args[wait_argument_idx] = result;
@@ -3194,14 +3197,16 @@ void computation::create_halide_assignment()
                 Halide::Expr req_index = tiramisu::generator::linearize_access(req_buf_dims, req_shape,
                                                                                this->wait_index_expr);
                 // Finally, index into the buffer
-                Halide::Type req_type = halide_type_from_tiramisu_type(p_wait_ptr);
-                Halide::Expr result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                                       req_tiramisu_buffer->get_name() + ".buffer");
-                result = Halide::Internal::Call::make(Halide::Handle(1, req_type.handle_type),
-                                                      "tiramisu_address_of_" +
-                                                      str_from_tiramisu_type_primitive(req_tiramisu_buffer->get_elements_type()),
-                                                      {result, req_index},
-                                                      Halide::Internal::Call::Extern);
+		bool is_temp = req_tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+                Halide::Expr result = 	Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+									 Halide::type_of<struct halide_buffer_t *>(),
+									 req_tiramisu_buffer->get_name() + 
+									 (is_temp ? "" : ".buffer"));
+		result = Halide::Internal::Call::make(Halide::Handle(),
+						      (is_temp ? "tiramisu_address_of_raw_wait" :
+						       "tiramisu_address_of_wait"),
+						      {result, req_index},
+						      Halide::Internal::Call::Extern);
                 // We now have an index into the request buffer so that we can write to it with the operation,
                 // which is either a send or a receive
                 halide_call_args[wait_argument_idx] = result;

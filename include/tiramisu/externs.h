@@ -47,6 +47,8 @@ double *tiramisu_address_of_raw_float64(void *buffer, unsigned long index);
 
 #ifdef WITH_MPI
 void *tiramisu_address_of_wait(halide_buffer_t *buffer, unsigned long index);
+
+void *tiramisu_address_of_raw_wait(void *buffer, unsigned long index);
 #endif
 
 }
