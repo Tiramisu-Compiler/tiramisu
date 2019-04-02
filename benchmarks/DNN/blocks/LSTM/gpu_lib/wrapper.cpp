@@ -12,11 +12,28 @@ typedef std::chrono::duration<double,std::milli> duration_t;
 
 int main(int argc, char *argv[])
 {
+    int check_correctness = 0;
     int testN_tiramisu = 100;
     int testN_cudnn = 100;
     int warmupN = 10;
 
-    bool correctness_check = false;
+    if (argc > 1) {
+        testN_tiramisu = atoi(argv[1]);
+    }
+    if (argc > 2) {
+        testN_cudnn = atoi(argv[2]);
+    }
+    if (argc > 3) {
+        warmupN = atoi(argv[3]);
+    }
+    if (argc > 4) {
+        check_correctness = atoi(argv[4]);
+    }
+    if (check_correctness) {
+        testN_tiramisu = 0;
+        testN_cudnn = 0;
+        warmupN = 0;
+    }
 
     // Raw inputs
     float *raw_Weights = (float*) malloc(FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(float));
@@ -31,7 +48,7 @@ int main(int argc, char *argv[])
     Halide::Buffer<float> buf_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
     Halide::Buffer<float> buf_ref_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
 
-    if (correctness_check) {
+    if (check_correctness) {
         std::srand(0);
         for (int i = 0; i < NUM_LAYERS; i++)
             for (int j = 0; j < 2; j++)
