@@ -39,8 +39,7 @@ cudnnFilterDescriptor_t wDesc;
 void *workspace;
 size_t workSize;
 
-void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size,
-        float *raw_Weights, float *raw_biases, float *raw_x) {
+void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size) {
     seqLength = _seqLength;
     int hiddenSize = feature_size;
     int inputSize = hiddenSize;
@@ -163,7 +162,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudnnErrCheck(cudnnGetRNNParamsSize(cudnnHandle, rnnDesc, xDesc[0], &weightsSize, CUDNN_DATA_FLOAT));
 
     int dimW[3];
-    dimW[0] =  weightsSize / sizeof(float);
+    dimW[0] = weightsSize / sizeof(float);
     dimW[1] = 1;
     dimW[2] = 1;
 
@@ -247,8 +246,15 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     }
 }
 
-float run_cudnn() {
+float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_y) {
     cudaErrCheck(cudaDeviceSynchronize());
+
+    // Copy values. Note that since we don't compare the results, we don't care about layout.
+    cudaMemcpy(x, raw_x, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
+    cudaMemcpy(w, raw_Weights, FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
+    cudaMemcpy(w, raw_biases, 4 * FEATURE_SIZE * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
+
+    cudaDeviceSynchronize();
 
     cudaEvent_t start, stop;
     float timeForward;
@@ -282,6 +288,10 @@ float run_cudnn() {
     cudaErrCheck(cudaEventElapsedTime(&timeForward, start, stop));
 
     // Make double-sure everything is finished before we copy for result checking.
+    cudaDeviceSynchronize();
+
+    cudaMemcpy(y, raw_y, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyDeviceToHost);
+
     cudaDeviceSynchronize();
 
     return timeForward;
