@@ -37,7 +37,8 @@ namespace tiramisu
   };
 
   struct Rank {
-    int rank;
+    int linear_rank; // everything boils down to a linear rank
+    std::vector<int> rank; // since could have different ranks in different communicators, these are basically mapping dimensions
     Node node;
     Socket socket;
     Proc proc;
@@ -45,9 +46,13 @@ namespace tiramisu
     Rank(int rank, Node node);
     Rank(int rank, Node node, Socket socket);
     Rank(int rank, Node node, Socket socket, Proc proc);
+    Rank(int linear_rank, std::vector<int> rank, Node node);
+    Rank(int linear_rank, std::vector<int> rank, Node node, Socket socket);
+    Rank(int linear_rank, std::vector<int> rank, Node node, Socket socket, Proc proc);
   };
 
   struct TopoMap {
+    bool defined = false;
     std::vector<Rank> ranks;
     TopoMap();
     TopoMap(std::vector<Rank> ranks);

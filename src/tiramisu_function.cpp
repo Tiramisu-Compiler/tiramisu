@@ -987,7 +987,7 @@ bool function::should_vectorize(const std::string &comp, int lev) const
     return found;
 }
 
-bool function::should_distribute(const std::string &comp, int lev) const
+std::pair<bool, int> function::should_distribute(const std::string &comp, int lev) const
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
@@ -1000,14 +1000,16 @@ bool function::should_distribute(const std::string &comp, int lev) const
     DEBUG(10, tiramisu::str_dump("Checking if the computation " + comp +
                                  " should be distributed" +
                                  " at the loop level " + std::to_string(lev)));
-
+    int offset = 0;
     for (const auto &pd : this->distributed_dimensions)
     {
         DEBUG(10, tiramisu::str_dump("Comparing " + comp + " to " + std::get<0>(pd)));
         DEBUG(10, tiramisu::str_dump(std::get<0>(pd) + " is marked for distribution at level " + std::to_string(std::get<1>(pd))));
 
-        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev))
+        if ((std::get<0>(pd) == comp) && (std::get<1>(pd) == lev)) {
             found = true;
+	    offset = std::get<2>(pd);
+	}
     }
 
     std::string str = "Dimension " + std::to_string(lev) +
@@ -1017,7 +1019,7 @@ bool function::should_distribute(const std::string &comp, int lev) const
 
     DEBUG_INDENT(-4);
 
-    return found;
+    return std::make_pair(found, offset);
 }
 
 bool tiramisu::function::needs_rank_call() const
@@ -1712,12 +1714,12 @@ void tiramisu::function::add_vector_dimension(std::string stmt_name, int vec_dim
     this->vector_dimensions.push_back(std::make_tuple(stmt_name, vec_dim, vector_length));
 }
 
-void tiramisu::function::add_distributed_dimension(std::string stmt_name, int dim)
+void tiramisu::function::add_distributed_dimension(std::string stmt_name, int dim, int rank_offset)
 {
     assert(dim >= 0);
     assert(!stmt_name.empty());
 
-    this->distributed_dimensions.push_back({stmt_name, dim});
+    this->distributed_dimensions.push_back(std::make_tuple(stmt_name, dim, rank_offset));
 }
 
 void tiramisu::function::add_parallel_dimension(std::string stmt_name, int vec_dim)
@@ -2079,6 +2081,13 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
 }
+
+  void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, TopoMap topo_map)
+{
+  this->topo_map = topo_map;
+  this->codegen(arguments, obj_filename, false);
+}
+
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const
 {

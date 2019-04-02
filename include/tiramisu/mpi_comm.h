@@ -12,7 +12,11 @@ extern "C" {
 
 inline void check_MPI_error(int ret_val);
 
-int tiramisu_MPI_Comm_rank(int offset);
+int tiramisu_MPI_Comm_rank_world();
+
+int tiramisu_MPI_Comm_rank(void *communicator);
+ 
+void *tiramisu_MPI_Comm_split(void *orig_comm, int color, int key);
 
 void tiramisu_MPI_Wait(void *request);
 

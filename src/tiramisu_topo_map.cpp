@@ -62,16 +62,30 @@ namespace tiramisu {
 
   //  Rank::Rank(int rank) : rank(rank) { }
 
-  Rank::Rank(int rank, Node node) : rank(rank), node(node) { }
+  Rank::Rank(int rank, Node node) : linear_rank(rank), node(node) { 
+    this->rank.push_back(rank);
+  }
 
-  Rank::Rank(int rank, Node node, Socket socket) : rank(rank), node(node), socket(socket) { }
-
+  Rank::Rank(int rank, Node node, Socket socket) : linear_rank(rank), node(node), socket(socket) { 
+    this->rank.push_back(rank);
+  }
+  
   Rank::Rank(int rank, Node node, Socket socket, Proc proc) : 
-    rank(rank), node(node), socket(socket), proc(proc) { }
+    linear_rank(rank), node(node), socket(socket), proc(proc) { 
+    this->rank.push_back(rank);
+  }
+
+  Rank::Rank(int linear_rank, std::vector<int> rank, Node node) : linear_rank(linear_rank), rank(rank), node(node) { } 
+
+  Rank::Rank(int linear_rank, std::vector<int> rank, Node node, Socket socket) :
+    linear_rank(linear_rank), rank(rank), node(node), socket(socket) { } 
+
+  Rank::Rank(int linear_rank, std::vector<int> rank, Node node, Socket socket, Proc proc) : 
+    linear_rank(linear_rank), rank(rank), node(node), socket(socket), proc(proc) { }
 
   TopoMap::TopoMap() { }
   
-  TopoMap::TopoMap(std::vector<Rank> ranks) : ranks(ranks) { }
+  TopoMap::TopoMap(std::vector<Rank> ranks) : defined(true), ranks(ranks) { }
 
   void TopoMap::print_mapping() {
 
@@ -82,7 +96,7 @@ namespace tiramisu {
     std::ofstream rank_file;
     rank_file.open(fn + ".rank_file.txt");
     for (auto rank : ranks) {
-      rank_file << "rank " << rank.rank << "=" << rank.node.phys_name << " slot=";
+      rank_file << "rank " << rank.linear_rank << "=" << rank.node.phys_name << " slot=";
       // get the proc ids
       if (rank.socket.defined) {
 	// use just the CPUs defined in this socket

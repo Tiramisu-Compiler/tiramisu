@@ -1972,6 +1972,8 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             // current level was marked as such.
             size_t tt = 0;
             bool convert_to_conditional = false;
+	    int rank_offset = 0;
+	    int rank_idx = 0;
             while (tt < tagged_stmts.size()) {
                 if (tagged_stmts[tt].first != "") {
                     if (tagged_stmts[tt].second == "parallelize" &&
@@ -2118,11 +2120,13 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                         tagged_stmts[tt].first = "";
                         break;
                     } else if (tagged_stmts[tt].second == "distribute" &&
-                               fct.should_distribute(tagged_stmts[tt].first, level)) {
+                               fct.should_distribute(tagged_stmts[tt].first, level).first) {
                         // Change this loop into an if statement instead
-                        convert_to_conditional = true;
-                        tagged_stmts[tt].first = "";
-                        break;
+		      if (convert_to_conditional == false) rank_idx = 0;
+		      convert_to_conditional = true;
+		      rank_offset = fct.should_distribute(tagged_stmts[tt].first, level).second;
+		      tagged_stmts[tt].first = "";
+		      break;
                     }
                 }
                 tt++;
@@ -2133,12 +2137,13 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(10, tiramisu::str_dump(""));
 
             if (convert_to_conditional) {
+	      convert_to_conditional = false;
                 DEBUG(3, tiramisu::str_dump("Converting for loop into a rank conditional."));
                 Halide::Expr rank_var =
-                        Halide::Internal::Variable::make(
-                                halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank");
-                Halide::Expr condition = rank_var >= init_expr;
-                condition = condition && (rank_var < cond_upper_bound_halide_format);
+                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank_dim_" + std::to_string(rank_idx));
+		rank_idx++;
+                Halide::Expr condition = rank_var >= (init_expr + rank_offset);
+                condition = condition && (rank_var < (cond_upper_bound_halide_format + rank_offset));
                 Halide::Internal::Stmt else_s;
                 // We need a reference still to this iterator name, so set it equal to the rank
                 halide_body = Halide::Internal::LetStmt::make(iterator_str, rank_var, halide_body);
@@ -2223,7 +2228,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "map_to_gpu_thread"));
                 if (fct.should_unroll(computation_name, l))
                     tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "unroll"));
-                if (fct.should_distribute(computation_name, l))
+                if (fct.should_distribute(computation_name, l).first)
                     tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "distribute"));
 
                 DEBUG(10, tiramisu::str_dump("The full list of tagged statements is now"));
@@ -2435,14 +2440,36 @@ void function::gen_halide_stmt()
     }
 
     if (this->_needs_rank_call) {
-        // add a call to MPI rank to the beginning of the function
-        Halide::Expr mpi_rank_var =
-                Halide::Internal::Variable::make(halide_type_from_tiramisu_type(tiramisu::p_int32), "rank");
-        Halide::Expr mpi_rank = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
-                                             Halide::Internal::Call::make(Halide::Int(32), "tiramisu_MPI_Comm_rank",
-                                                                          {this->rank_offset},
+        Halide::Expr mpi_world_rank_var =
+	  Halide::Internal::Variable::make(halide_type_from_tiramisu_type(tiramisu::p_int32), "rank_world");
+      if (this->topo_map.defined) {
+	// TODO check for custom vs predefined mappings
+	// Go thru each topology and do the mapping appropriately
+	std::map<int, Halide::Expr> select_map;
+	for (int i = 0; i < this->_num_distributed_dims; i++) {
+	  Halide::Expr select_expr = Halide::Internal::Select::make(-1 == mpi_world_rank_var, -1, -1); // should never actually be called
+	  select_map.emplace(i, select_expr);
+	}
+	for (auto rank : this->topo_map.ranks) {
+	  Halide::Expr lin_rank = rank.linear_rank;
+	  for (int i = 0; i < rank.rank.size() /* dims in this rank*/; i++) {
+	    Halide::Expr select_expr = select_map[i];
+	    select_expr = Halide::Internal::Select::make(lin_rank == mpi_world_rank_var, rank.rank[i], select_expr);
+	    select_map.erase(i);
+	    select_map.emplace(i, select_expr);
+	  }
+	}
+	for (int i = 0; i < this->_num_distributed_dims; i++) {
+	  stmt = Halide::Internal::LetStmt::make("rank_dim_" + std::to_string(i), select_map[i], stmt);
+	}
+      } else {
+	assert(this->_num_distributed_dims == 1); // currently, only have default for linear distribution pattern
+      }
+        Halide::Expr mpi_world_rank = Halide::cast(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()),
+                                             Halide::Internal::Call::make(Halide::Int(32), "tiramisu_MPI_Comm_rank_world",
+                                                                          {},
                                                                           Halide::Internal::Call::Extern));
-        stmt = Halide::Internal::LetStmt::make("rank", mpi_rank, stmt);
+        stmt = Halide::Internal::LetStmt::make("rank_world", mpi_world_rank, stmt);
     }
 
     // Add producer tag

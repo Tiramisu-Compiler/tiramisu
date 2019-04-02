@@ -23,6 +23,7 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
 #include <tiramisu/computation_graph.h>
+#include <tiramisu/topo_map.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -155,10 +156,17 @@ private:
      */
     bool _needs_rank_call;
 
+    TopoMap topo_map;
+
+    /**
+     * The number of dimensions we distribute
+     */
+    int _num_distributed_dims = 0;
+
     /**
      * Offset the rank by this amount.
      */
-    int rank_offset = 0;
+    //    int rank_offset = 0;
 
     /**
       * Function arguments. These are the buffers or scalars that are
@@ -215,7 +223,7 @@ private:
       * (i.e. the outermost loop) around the computation S0
       * should be distributed.
       */
-    std::vector<std::pair<std::string, int>> distributed_dimensions;
+    std::vector<std::tuple<std::string, int, int>> distributed_dimensions;
 
     /**
       * A vector representing the GPU block dimensions around
@@ -314,7 +322,7 @@ private:
       * The dimension 0 represents the outermost loop level (it
       * corresponds to the leftmost dimension in the iteration space).
       */
-    void add_distributed_dimension(std::string computation_name, int dim);
+    void add_distributed_dimension(std::string computation_name, int dim, int rank_offset);
 
     /**
       * Tag the loop level \p L of the computation
@@ -728,7 +736,7 @@ protected:
       * Return true if the computation \p comp should be distributed
       * at the loop level \p lev.
       */
-    bool should_distribute(const std::string &comp, int lev) const;
+    std::pair<bool, int> should_distribute(const std::string &comp, int lev) const;
 
     /**
       * This computation requires a call to the MPI_Comm_rank function.
@@ -1051,6 +1059,8 @@ public:
      * tiramisu program.
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, TopoMap topo_map);
 
     /**
      * \brief Set the context of the function.
@@ -1426,6 +1436,8 @@ class computation
     friend cuda_ast::generator;
 
 private:
+
+    int _num_distributed_dimensions = 0;
 
     /**
       * Access function.  A map indicating how each computation should be stored
@@ -3914,8 +3926,8 @@ public:
       * those are NOT tagged). 
       */
     // @{
-    void tag_distribute_level(tiramisu::var L, bool tag_updates = false);
-    void tag_distribute_level(int L, bool tag_updates = false);
+    void tag_distribute_level(tiramisu::var L, int rank_offset = 0, bool tag_updates = false);
+    void tag_distribute_level(int L, int rank_offset = 0, bool tag_updates = false);
     // @}
 
     /**

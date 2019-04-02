@@ -551,7 +551,7 @@ void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
     DEBUG_INDENT(-4);
 }
 
-  void tiramisu::computation::tag_distribute_level(tiramisu::var L, bool tag_updates)
+  void tiramisu::computation::tag_distribute_level(tiramisu::var L, int rank_offset, bool tag_updates)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -562,12 +562,12 @@ void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
 
-    this->tag_distribute_level(L0, tag_updates);
+    this->tag_distribute_level(L0, rank_offset, tag_updates);
 
     DEBUG_INDENT(-4);
 }
 
-    void tiramisu::computation::tag_distribute_level(int L, bool tag_updates)
+  void tiramisu::computation::tag_distribute_level(int L, int rank_offset, bool tag_updates)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -575,12 +575,14 @@ void tiramisu::computation::tag_vector_level(tiramisu::var L0_var, int v)
     assert(L >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
+    this->_num_distributed_dimensions++;    
     if (!tag_updates) {
-      this->get_function()->add_distributed_dimension(this->get_name(), L);
+      this->get_function()->add_distributed_dimension(this->get_name(), L, rank_offset);
       this->get_function()->_needs_rank_call = true;
+      this->get_function()->_num_distributed_dims = std::max(this->_num_distributed_dimensions, this->get_function()->_num_distributed_dims);
     } else {
       for (auto update : get_updates()) {
-	update->tag_distribute_level(L, false);
+	update->tag_distribute_level(L, rank_offset, false);
       }
     }
 
@@ -7759,7 +7761,7 @@ int computation::get_distributed_dimension()
     int distributed_dimension = 0;
 
     while (distributed_dimension < number_of_dimensions and
-         !this->get_function()->should_distribute(this->get_name(), distributed_dimension))
+         !this->get_function()->should_distribute(this->get_name(), distributed_dimension).first)
         distributed_dimension++;
 
     if (distributed_dimension < number_of_dimensions)

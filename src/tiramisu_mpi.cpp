@@ -89,13 +89,26 @@ inline void check_MPI_error(int ret_val)
     }
 }
 
-int tiramisu_MPI_Comm_rank(int offset) 
+int tiramisu_MPI_Comm_rank(void *communicator) 
+{
+    int rank;
+    check_MPI_error(MPI_Comm_rank(*((MPI_Comm*)communicator), &rank));
+    return rank;
+}
+
+int tiramisu_MPI_Comm_rank_world() 
 {
     int rank;
     check_MPI_error(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-    return rank + offset;
+    return rank;
 }
 
+void *tiramisu_MPI_Comm_split_from_world(int color, int key) {
+  MPI_Comm *new_comm = (MPI_Comm*)malloc(sizeof(MPI_Comm));
+  MPI_Comm_split(MPI_COMM_WORLD, color, key, new_comm);
+  return new_comm;
+}
+  
 void tiramisu_MPI_Wait(void *request) 
 {
     MPI_Status status;
