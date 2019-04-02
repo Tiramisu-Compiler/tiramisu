@@ -83,39 +83,44 @@ namespace tiramisu {
   Rank::Rank(int linear_rank, std::vector<int> rank, Node node, Socket socket, Proc proc) : 
     linear_rank(linear_rank), rank(rank), node(node), socket(socket), proc(proc) { }
 
-  TopoMap::TopoMap() { }
+  MultiTopo::MultiTopo() { }
   
-  TopoMap::TopoMap(std::vector<Rank> ranks) : defined(true), ranks(ranks) { }
+  MultiTopo::MultiTopo(std::vector<Topo *> topos) : defined(true), topos(topos) { }
 
-  void TopoMap::print_mapping() {
+  void MultiTopo::print_mapping() {
 
   }
 
-  void TopoMap::generate_run_script(std::string fn) {
+  void MultiTopo::generate_run_script(std::string fn) {
     // currently ignoring Socket id in rank file because they aren't supported in a physical rank file 
     std::ofstream rank_file;
     rank_file.open(fn + ".rank_file.txt");
-    for (auto rank : ranks) {
-      rank_file << "rank " << rank.linear_rank << "=" << rank.node.phys_name << " slot=";
-      // get the proc ids
-      if (rank.socket.defined) {
-	// use just the CPUs defined in this socket
-	// first, make sure this socket is actually part of this node though
-	assert(rank.node.contains_socket(rank.socket));
-	std::string procs = rank.socket.to_string(false);
-	rank_file << procs << std::endl;
-      } else {
-	// use all procs in the node's sockets
-	int i = 0;
-	for (auto socket : rank.node.sockets) {
-	  if (i != 0) {
-	    rank_file << ",";
+    int total_ranks = 0;
+    // TODO check that we don't have the same rank appearing in multiple topographies
+    for (auto topo : topos) {
+      for (auto rank : topo->ranks) {
+	total_ranks++;
+	rank_file << "rank " << rank.linear_rank << "=" << rank.node.phys_name << " slot=";
+	// get the proc ids
+	if (rank.socket.defined) {
+	  // use just the CPUs defined in this socket
+	  // first, make sure this socket is actually part of this node though
+	  assert(rank.node.contains_socket(rank.socket));
+	  std::string procs = rank.socket.to_string(false);
+	  rank_file << procs << std::endl;
+	} else {
+	  // use all procs in the node's sockets
+	  int i = 0;
+	  for (auto socket : rank.node.sockets) {
+	    if (i != 0) {
+	      rank_file << ",";
+	    }
+	    rank_file << socket.to_string(false);	  
+	    i++;
 	  }
-	  rank_file << socket.to_string(false);	  
-	  i++;
-	}
-	rank_file << std::endl;
-      }      
+	  rank_file << std::endl;
+	}      
+      }
     }
     rank_file.close();
     
@@ -123,7 +128,7 @@ namespace tiramisu {
     script.open(fn + ".bash");
     script << "#!/bin/bash" << std::endl;
     
-    std::string cmd = MPI_RUN_CMD" --nooversubscribe --mca btl_openib_allow_ib 1 --mca rmaps_rank_file_physical 1 --rankfile " + fn + ".rank_file.txt -np " + std::to_string(ranks.size()) + " $1";
+    std::string cmd = MPI_RUN_CMD" --nooversubscribe --mca btl_openib_allow_ib 1 --mca rmaps_rank_file_physical 1 --rankfile " + fn + ".rank_file.txt -np " + std::to_string(total_ranks) + " $1";
     
     script << "echo " << cmd << std::endl;
     script << cmd << std::endl;    

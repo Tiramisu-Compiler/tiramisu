@@ -2082,7 +2082,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->gen_halide_obj(obj_filename);
 }
 
-  void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, TopoMap topo_map)
+  void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, MultiTopo topo_map)
 {
   this->topo_map = topo_map;
   this->codegen(arguments, obj_filename, false);

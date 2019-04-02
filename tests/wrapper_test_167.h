@@ -14,7 +14,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  int dist_topo_mapping(halide_buffer_t *, halide_buffer_t *);
+  int dist_topo_mapping(halide_buffer_t *, halide_buffer_t *, halide_buffer_t *, halide_buffer_t *);
 
 extern const struct halide_filter_metadata_t halide_pipeline_aot_metadata;
 #ifdef __cplusplus

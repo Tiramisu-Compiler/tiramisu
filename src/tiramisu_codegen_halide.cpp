@@ -1611,10 +1611,12 @@ Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Inte
     }
 }
 
+  static bool last_was_distributed = false;
+
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                               bool is_a_child_block)
+                                               bool is_a_child_block, int dist_level)
 {
     assert(node != NULL);
     assert(level >= 0);
@@ -1736,7 +1738,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             {
                 DEBUG(3, tiramisu::str_dump("Generating block."));
                 // Generate a child block
-                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true);
+                block = tiramisu::generator::halide_stmt_from_isl_node(fct, child, level, tagged_stmts, true, dist_level);
             }
             isl_ast_node_free(child);
 
@@ -1964,7 +1966,9 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Upper bound expression: ");
                     std::cout << cond_upper_bound_halide_format);
             Halide::Internal::Stmt halide_body =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, tagged_stmts, false);
+	      tiramisu::generator::halide_stmt_from_isl_node(fct, body, level + 1, 
+							     tagged_stmts, false, dist_level + (last_was_distributed ? 1 : 0));
+
             Halide::Internal::ForType fortype = Halide::Internal::ForType::Serial;
             Halide::DeviceAPI dev_api = Halide::DeviceAPI::Host;
 
@@ -1973,7 +1977,6 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             size_t tt = 0;
             bool convert_to_conditional = false;
 	    int rank_offset = 0;
-	    int rank_idx = 0;
             while (tt < tagged_stmts.size()) {
                 if (tagged_stmts[tt].first != "") {
                     if (tagged_stmts[tt].second == "parallelize" &&
@@ -2122,10 +2125,10 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     } else if (tagged_stmts[tt].second == "distribute" &&
                                fct.should_distribute(tagged_stmts[tt].first, level).first) {
                         // Change this loop into an if statement instead
-		      if (convert_to_conditional == false) rank_idx = 0;
 		      convert_to_conditional = true;
 		      rank_offset = fct.should_distribute(tagged_stmts[tt].first, level).second;
 		      tagged_stmts[tt].first = "";
+		      last_was_distributed = true;
 		      break;
                     }
                 }
@@ -2137,11 +2140,9 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(10, tiramisu::str_dump(""));
 
             if (convert_to_conditional) {
-	      convert_to_conditional = false;
                 DEBUG(3, tiramisu::str_dump("Converting for loop into a rank conditional."));
                 Halide::Expr rank_var =
-                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank_dim_" + std::to_string(rank_idx));
-		rank_idx++;
+                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank_dim_" + std::to_string(dist_level));
                 Halide::Expr condition = rank_var >= (init_expr + rank_offset);
                 condition = condition && (rank_var < (cond_upper_bound_halide_format + rank_offset));
                 Halide::Internal::Stmt else_s;
@@ -2310,7 +2311,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             DEBUG(3, tiramisu::str_dump("Generating code for the if branch."));
 
             Halide::Internal::Stmt if_s =
-                    tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false);
+	      tiramisu::generator::halide_stmt_from_isl_node(fct, if_stmt, level, tagged_stmts, false, dist_level);
 
             DEBUG(10, tiramisu::str_dump("If branch: "); std::cout << if_s);
 
@@ -2331,7 +2332,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                 else
                 {
                     DEBUG(3, tiramisu::str_dump("Generating code for the else branch."));
-                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false);
+                    else_s = tiramisu::generator::halide_stmt_from_isl_node(fct, else_stmt, level, tagged_stmts, false, dist_level);
                     DEBUG(10, tiramisu::str_dump("Else branch: "); std::cout << else_s);
                 }
             }
@@ -2450,13 +2451,15 @@ void function::gen_halide_stmt()
 	  Halide::Expr select_expr = Halide::Internal::Select::make(-1 == mpi_world_rank_var, -1, -1); // should never actually be called
 	  select_map.emplace(i, select_expr);
 	}
-	for (auto rank : this->topo_map.ranks) {
-	  Halide::Expr lin_rank = rank.linear_rank;
-	  for (int i = 0; i < rank.rank.size() /* dims in this rank*/; i++) {
-	    Halide::Expr select_expr = select_map[i];
-	    select_expr = Halide::Internal::Select::make(lin_rank == mpi_world_rank_var, rank.rank[i], select_expr);
-	    select_map.erase(i);
-	    select_map.emplace(i, select_expr);
+	for (auto topo : this->topo_map.topos) {
+	  for (auto rank : topo->ranks) {
+	    Halide::Expr lin_rank = rank.linear_rank;
+	    for (int i = 0; i < rank.rank.size() /* dims in this rank*/; i++) {
+	      Halide::Expr select_expr = select_map[i];
+	      select_expr = Halide::Internal::Select::make(lin_rank == mpi_world_rank_var, rank.rank[i], select_expr);
+	      select_map.erase(i);
+	      select_map.emplace(i, select_expr);
+	    }
 	  }
 	}
 	for (int i = 0; i < this->_num_distributed_dims; i++) {

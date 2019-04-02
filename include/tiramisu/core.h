@@ -156,7 +156,7 @@ private:
      */
     bool _needs_rank_call;
 
-    TopoMap topo_map;
+    MultiTopo topo_map;
 
     /**
      * The number of dimensions we distribute
@@ -1060,7 +1060,7 @@ public:
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
 
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, TopoMap topo_map);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, MultiTopo topo_map);
 
     /**
      * \brief Set the context of the function.
@@ -4699,7 +4699,7 @@ protected:
     static Halide::Internal::Stmt halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node,
                                                             int level,
                                                             std::vector<std::pair<std::string, std::string>> &tagged_stmts,
-                                                            bool is_a_child_block);
+                                                            bool is_a_child_block, int dist_level = 0);
 
     // TODO doc
     static Halide::Internal::Stmt make_halide_block(const Halide::Internal::Stmt &first,
