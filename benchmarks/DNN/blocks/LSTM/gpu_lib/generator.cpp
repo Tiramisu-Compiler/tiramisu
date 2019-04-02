@@ -27,8 +27,8 @@ int main(int argc, char **argv)
 
     buffer buf_Weights_cpu("buf_Weights_cpu", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, p_float32, a_input);
     buffer buf_Weights("buf_Weights", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_h("buf_h", {SEQ_LENGTH + 1, NUM_LAYERS + 1, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp("buf_tmp", {BATCH_SIZE, 4 * FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_h("buf_h", {NUM_LAYERS + 1, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_tmp("buf_tmp", {SEQ_LENGTH, BATCH_SIZE, 4 * FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_biases_cpu("buf_biases_cpu", {NUM_LAYERS, 4 * FEATURE_SIZE}, p_float32, a_input);
     buffer buf_x_cpu("buf_x_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_input);
     buffer buf_y_cpu("buf_y_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_output);
@@ -67,18 +67,18 @@ int main(int argc, char **argv)
                      BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                      1, 1,  // alpha, beta
                      0, 0, 0,  // ldABC
-                     (m * (NUM_LAYERS + 1) + l + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     ((l + 1) * (SEQ_LENGTH + 1) + m) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
                      (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-                     0,  // offsetC
+                     m * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     computation sum2({m, l},
         cublas_sgemm(buf_h, buf_Weights, buf_tmp,
                      BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                      1, 1,  // alpha, beta
                      0, 0, 0,  // ldABC
-                     ((m + 1) * (NUM_LAYERS + 1) + l) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     (l * (SEQ_LENGTH + 1) + m + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
                      (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-                     0,  // offsetC
+                     m * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
     computation sig_i({m, l, k, i}, sigmoid(sum_init(m, l, k, i)));
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     b.store_in(&buf_biases, {l, i_merged});
     x.store_in(&buf_x);
     y.store_in(&buf_y);
-    sum_init.store_in(&buf_tmp, {k, i_merged});
+    sum_init.store_in(&buf_tmp, {m, k, i_merged});
     sig_i.store_in(&buf_tmp_i, {k, i});
     tnh_z.store_in(&buf_tmp_z, {k, i});
     sig_o.store_in(&buf_tmp_o, {k, i});
@@ -146,11 +146,11 @@ int main(int argc, char **argv)
     mul_iz.store_in(&buf_tmp_i, {k, i});
     mul_fc.store_in(&buf_tmp_f, {k, i});
     tnh_c.store_in(&buf_tmp_i, {k, i});
-    h.store_in(&buf_h, {m + 1, l + 1, k, i});
+    h.store_in(&buf_h, {l + 1, m + 1, k, i});
     c.store_in(&buf_c, {m + 1, l, k, i});
-    h_init.store_in(&buf_h, {0, l + 1, k, i});
+    h_init.store_in(&buf_h, {l + 1, 0, k, i});
     c_init.store_in(&buf_c, {0, l, k, i});
-    h_copy_x.store_in(&buf_h, {m + 1, 0, k, i});
+    h_copy_x.store_in(&buf_h, {0, m + 1, k, i});
 
     // -------------------------------------------------------
     // Code Generation
