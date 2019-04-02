@@ -19,12 +19,13 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
+	include/tiramisu/topo_map.h
 	include/tiramisu/computation_graph.h
 	include/tiramisu/auto_scheduler.h
         )
 
 # Add CMake cpp files
-set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs topo_map)
 
 
 ### CMAKE FILE INTERNALS ###
@@ -149,7 +150,7 @@ include_directories("include"
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpic++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
+    add_definitions(-DWITH_MPI -DMPI_RUN_CMD=\"${MPI_BUILD_DIR}/bin/mpirun\" -DMPI_LIBRARY_PATH=\"$ENV{LD_LIBRARY_PATH}\")
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
@@ -257,7 +258,7 @@ function(parse_descriptor descriptor)
     set(is_gpu ${is_gpu} PARENT_SCOPE)
     list(GET descriptor 2 is_mpi)
     set(is_mpi ${is_mpi} PARENT_SCOPE)
-    list(GET descriptor 3 NUM_MPI_RANKS)
+    list(GET descriptor 3 NUM_MPI_RANKS) # if 0, it means we should be using a TopoMap
     set(NUM_MPI_RANKS ${NUM_MPI_RANKS} PARENT_SCOPE)
 endfunction()
 
@@ -281,7 +282,11 @@ function(new_test descriptor)
         # configure the options so files are copied on the fly as necessary. 
         set_source_files_properties(tests/test_${id}/tutorial_${id}.cpp PROPERTIES COMPILE_FLAGS "-DNUM_MPI_RANKS=${NUM_MPI_RANKS}")
         set_source_files_properties(tests/test_${id}/wrapper_test_${id}.cpp PROPERTIES COMPILE_FLAGS "-DNUM_MPI_RANKS=${NUM_MPI_RANKS}")
-        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun $ENV{ADDT_MPIRUN_FLAGS} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ --oversubscribe -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+	if (${NUM_MPI_RANKS} EQUAL 0) 
+          add_test(NAME ${id} COMMAND bash ${PROJECT_DIR}/build/${test_name}_run.bash ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+	else ()
+          add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun $ENV{ADDT_MPIRUN_FLAGS} -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ --oversubscribe -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --mca btl_openib_allow_ib 1 ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+	endif ()
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
