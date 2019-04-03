@@ -2142,7 +2142,7 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
             if (convert_to_conditional) {
                 DEBUG(3, tiramisu::str_dump("Converting for loop into a rank conditional."));
                 Halide::Expr rank_var =
-                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), "rank_dim_" + std::to_string(dist_level));
+		  Halide::Internal::Variable::make(halide_type_from_tiramisu_type(global::get_loop_iterator_data_type()), fct.topo_map.defined ? "rank_dim_" + std::to_string(dist_level) : "rank");
                 Halide::Expr condition = rank_var >= (init_expr + rank_offset);
                 condition = condition && (rank_var < (cond_upper_bound_halide_format + rank_offset));
                 Halide::Internal::Stmt else_s;
@@ -2442,8 +2442,10 @@ void function::gen_halide_stmt()
 
     if (this->_needs_rank_call) {
         Halide::Expr mpi_world_rank_var =
-	  Halide::Internal::Variable::make(halide_type_from_tiramisu_type(tiramisu::p_int32), "rank_world");
+	  Halide::Internal::Variable::make(halide_type_from_tiramisu_type(tiramisu::p_int32), "rank");
       if (this->topo_map.defined) {
+        mpi_world_rank_var =
+	  Halide::Internal::Variable::make(halide_type_from_tiramisu_type(tiramisu::p_int32), "rank_world");
 	// TODO check for custom vs predefined mappings
 	// Go thru each topology and do the mapping appropriately
 	std::map<int, Halide::Expr> select_map;
@@ -2472,7 +2474,10 @@ void function::gen_halide_stmt()
                                              Halide::Internal::Call::make(Halide::Int(32), "tiramisu_MPI_Comm_rank_world",
                                                                           {},
                                                                           Halide::Internal::Call::Extern));
-        stmt = Halide::Internal::LetStmt::make("rank_world", mpi_world_rank, stmt);
+	if (this->topo_map.defined) 
+	  stmt = Halide::Internal::LetStmt::make("rank_world", mpi_world_rank, stmt);
+	else 
+	  stmt = Halide::Internal::LetStmt::make("rank", mpi_world_rank, stmt);
     }
 
     // Add producer tag

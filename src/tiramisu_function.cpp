@@ -1918,20 +1918,20 @@ isl_union_map *tiramisu::function::get_trimmed_schedule() const
     return result;
 }
 
-void tiramisu::function::lift_dist_comps() {
+void tiramisu::function::lower_dist_comps() {
     for (std::vector<tiramisu::computation *>::iterator comp = body.begin(); comp != body.end(); comp++) {
         if ((*comp)->is_send() || (*comp)->is_recv() || (*comp)->is_wait() || (*comp)->is_send_recv()) {
             xfer_prop chan = static_cast<tiramisu::communicator *>(*comp)->get_xfer_props();
             if (chan.contains_attr(MPI)) {
-                lift_mpi_comp(*comp);
+                lower_mpi_comp(*comp);
             } else {
-                ERROR("Can only lift MPI library calls", 0);
+                ERROR("Can only lower MPI library calls", 0);
             }
         }
     }
 }
 
-void tiramisu::function::lift_mpi_comp(tiramisu::computation *comp) {
+void tiramisu::function::lower_mpi_comp(tiramisu::computation *comp) {
     if (comp->is_send()) {
         send *s = static_cast<send *>(comp);
         tiramisu::expr num_elements(s->get_num_elements());
@@ -2072,7 +2072,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
             DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));
     }
     this->set_arguments(arguments);
-    this->lift_dist_comps();
+    this->lower_dist_comps();
     this->gen_time_space_domain();
     this->gen_isl_ast();
     if (gen_cuda_stmt) {

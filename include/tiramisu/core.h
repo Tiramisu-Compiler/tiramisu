@@ -744,14 +744,14 @@ protected:
     bool needs_rank_call() const;
 
     /**
-      * Lift certain computations for distributed execution to function calls.
+      * Lower certain computations for distributed execution to function calls.
       */
-    void lift_mpi_comp(tiramisu::computation *comp);
+    void lower_mpi_comp(tiramisu::computation *comp);
 
     /**
-      * Lift certain computations for distributed execution to function calls.
+      * Lower certain computations for distributed execution to function calls.
       */
-    void lift_dist_comps();
+    void lower_dist_comps();
 
     /**
       * The set of all computations that have no computation scheduled before them.
@@ -2648,6 +2648,7 @@ protected:
       * Collapse all the iterations of a loop into one single iteration.
       */
     void full_loop_level_collapse(int level, tiramisu::expr collapse_from_iter);
+
     /**
       * \overload
       */
@@ -3928,6 +3929,7 @@ public:
     // @{
     void tag_distribute_level(tiramisu::var L, int rank_offset = 0, bool tag_updates = false);
     void tag_distribute_level(int L, int rank_offset = 0, bool tag_updates = false);
+    void distribute(tiramisu::var L, int rank_offset = 0);
     // @}
 
     /**

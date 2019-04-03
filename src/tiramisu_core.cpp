@@ -406,6 +406,10 @@ void tiramisu::computation::parallelize(tiramisu::var par_dim_var)
     DEBUG_INDENT(-4);
 }
 
+void tiramisu::computation::distribute(var L, int rank_offset)
+{
+    tag_distribute_level(L, rank_offset);
+}
 
 void tiramisu::computation::tag_parallel_level(int par_dim)
 {
