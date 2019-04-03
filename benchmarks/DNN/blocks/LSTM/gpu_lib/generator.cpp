@@ -20,15 +20,14 @@ int main(int argc, char **argv)
     // Outer dimensions
     var l("l", 0, NUM_LAYERS), s("s", 0, SEQ_LENGTH);
 
-    input R("R", {l, i_merged, j}, p_float32);
-    input W("W", {l, i_merged, j}, p_float32);
     input b("b", {l, i_merged}, p_float32);
-    input x({s, k, i}, p_float32);
+    input x("x", {s, k, i}, p_float32);
+    input tmp("tmp", {s, k, i_merged}, p_float32);
+    tmp.get_buffer()->tag_gpu_global();
 
     buffer buf_Weights_cpu("buf_Weights_cpu", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, p_float32, a_input);
     buffer buf_Weights("buf_Weights", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_h("buf_h", {NUM_LAYERS + 1, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp("buf_tmp", {SEQ_LENGTH, BATCH_SIZE, 4 * FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_biases_cpu("buf_biases_cpu", {NUM_LAYERS, 4 * FEATURE_SIZE}, p_float32, a_input);
     buffer buf_x_cpu("buf_x_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_input);
     buffer buf_y_cpu("buf_y_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_output);
@@ -42,7 +41,6 @@ int main(int argc, char **argv)
     buffer buf_c("buf_c", {NUM_LAYERS, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
     buf_Weights.tag_gpu_global();
     buf_h.tag_gpu_global();
-    buf_tmp.tag_gpu_global();
     buf_biases.tag_gpu_global();
     buf_x.tag_gpu_global();
     buf_y.tag_gpu_global();
@@ -61,19 +59,18 @@ int main(int argc, char **argv)
     computation h_init({l, k, i}, expr(float(0)));
     computation c_init({l, k, i}, expr(float(0)));
     computation h_copy_x({s, k, i}, x(s, k, i));
-    computation sum_init({l, s, k, i_merged}, b(l, i_merged));
     // Multiplication from input is 2xbatched:
     computation sum1({l, s},
-        cublas_sgemm(buf_h, buf_Weights, buf_tmp,
+        cublas_sgemm(buf_h, buf_Weights, *tmp.get_buffer(),
                      BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
-                     1, 1,  // alpha, beta
+                     1, 0,  // alpha, beta
                      0, 0, 0,  // ldABC
                      ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
                      (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
                      s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     computation sum2({l, s},
-        cublas_sgemm(buf_h, buf_Weights, buf_tmp,
+        cublas_sgemm(buf_h, buf_Weights, *tmp.get_buffer(),
                      BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                      1, 1,  // alpha, beta
                      0, 0, 0,  // ldABC
@@ -82,10 +79,10 @@ int main(int argc, char **argv)
                      s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
-    computation sig_i({l, s, k, i}, sigmoid(sum_init(l, s, k, i)));
-    computation tnh_z({l, s, k, i}, expr(o_tanh, sum_init(l, s, k, i + FEATURE_SIZE)));
-    computation sig_o({l, s, k, i}, sigmoid(sum_init(l, s, k, i + 2 * FEATURE_SIZE)));
-    computation sig_f({l, s, k, i}, sigmoid(sum_init(l, s, k, i + 3 * FEATURE_SIZE)));
+    computation sig_i({l, s, k, i},      sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + b(l, i + 0 * FEATURE_SIZE)));
+    computation tnh_z({l, s, k, i}, expr(o_tanh, tmp(s, k, i + 1 * FEATURE_SIZE) + b(l, i + 1 * FEATURE_SIZE)));
+    computation sig_o({l, s, k, i},      sigmoid(tmp(s, k, i + 2 * FEATURE_SIZE) + b(l, i + 2 * FEATURE_SIZE)));
+    computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + b(l, i + 3 * FEATURE_SIZE)));
     computation mul_iz({l, s, k, i}, sig_i(l, s, k, i) * tnh_z(l, s, k, i));
     computation mul_fc({l, s, k, i}, sig_f(l, s, k, i) * c(l, s - 1, k, i));
     c.set_expression(mul_iz(l, s, k, i) + mul_fc(l, s, k, i));
@@ -105,7 +102,6 @@ int main(int argc, char **argv)
 
     block({&h_init, &c_init, &h_copy_x, &sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz,
            &mul_fc, &c, &tnh_c, &h, &y}).gpu_tile(k, i, 16, 16, k0, i0, k1, i1);
-    sum_init.gpu_tile(k, i_merged, 16, 16, k0, i0, k1, i1);
 
     // Scheduling commands
     copy_Weights_to_device
@@ -114,8 +110,7 @@ int main(int argc, char **argv)
             .then(h_init, computation::root)
             .then(c_init, computation::root)
             .then(h_copy_x, computation::root)
-            .then(sum_init, computation::root)
-            .then(sum1, s)
+            .then(sum1, computation::root)
             .then(sum2, s)
             .then(sig_i, s)
             .then(tnh_z, i1)
@@ -134,12 +129,9 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Weights and biases are packed
-    R.store_in(&buf_Weights, {l, 0, i_merged, j});
-    W.store_in(&buf_Weights, {l, 1, i_merged, j});
     b.store_in(&buf_biases, {l, i_merged});
     x.store_in(&buf_x);
     y.store_in(&buf_y);
-    sum_init.store_in(&buf_tmp, {s, k, i_merged});
     sig_i.store_in(&buf_tmp_i, {k, i});
     tnh_z.store_in(&buf_tmp_z, {k, i});
     sig_o.store_in(&buf_tmp_o, {k, i});
