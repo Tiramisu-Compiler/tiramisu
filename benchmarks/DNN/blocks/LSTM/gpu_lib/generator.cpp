@@ -2,6 +2,8 @@
 
 #include "configuration.h"
 
+#define GEMM_BATCH 10
+
 using namespace tiramisu;
 
 int main(int argc, char **argv)
@@ -19,6 +21,7 @@ int main(int argc, char **argv)
     var i0("i0"), i1("i1"), k0("k0"), k1("k1");
     // Outer dimensions
     var l("l", 0, NUM_LAYERS), s("s", 0, SEQ_LENGTH);
+    var s0("s0", 0, SEQ_LENGTH / GEMM_BATCH), s1("s1", 0, GEMM_BATCH);
 
     input b("b", {l, i_merged}, p_float32);
     input x("x", {s, k, i}, p_float32);
@@ -60,22 +63,22 @@ int main(int argc, char **argv)
     computation c_init({l, k, i}, expr(float(0)));
     computation h_copy_x({s, k, i}, x(s, k, i));
     // Multiplication from input is 2xbatched:
-    computation sum1({l, s},
+    computation sum1({l, s0},
         cublas_sgemm(buf_h, buf_Weights, *tmp.get_buffer(),
-                     BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
+                     GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                      1, 0,  // alpha, beta
                      0, 0, 0,  // ldABC
-                     ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-                     s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
+                     (l * (SEQ_LENGTH + 1) + s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     computation sum2({l, s},
         cublas_sgemm(buf_h, buf_Weights, *tmp.get_buffer(),
                      BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                      1, 1,  // alpha, beta
                      0, 0, 0,  // ldABC
-                     (l * (SEQ_LENGTH + 1) + s + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
                      s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, true));
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
@@ -100,8 +103,11 @@ int main(int argc, char **argv)
     // Layer II
     // -------------------------------------------------------
 
-    block({&h_init, &c_init, &h_copy_x, &sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz,
-           &mul_fc, &c, &tnh_c, &h, &y}).gpu_tile(k, i, 16, 16, k0, i0, k1, i1);
+    block nonlinear_block({&sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz, &mul_fc, &c,
+                           &tnh_c, &h});
+    block({&sum2, &nonlinear_block}).split(s, GEMM_BATCH, s0, s1);
+    block({&h_init, &c_init, &h_copy_x, &nonlinear_block, &y})
+            .gpu_tile(k, i, 16, 16, k0, i0, k1, i1);
 
     // Scheduling commands
     copy_Weights_to_device
@@ -111,8 +117,8 @@ int main(int argc, char **argv)
             .then(c_init, computation::root)
             .then(h_copy_x, computation::root)
             .then(sum1, computation::root)
-            .then(sum2, s)
-            .then(sig_i, s)
+            .then(sum2, s0)
+            .then(sig_i, s1)
             .then(tnh_z, i1)
             .then(sig_o, i1)
             .then(sig_f, i1)
