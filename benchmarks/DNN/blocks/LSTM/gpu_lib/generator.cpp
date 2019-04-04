@@ -106,8 +106,9 @@ int main(int argc, char **argv)
     block nonlinear_block({&sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz, &mul_fc, &c,
                            &tnh_c, &h});
     block({&sum2, &nonlinear_block}).split(s, GEMM_BATCH, s0, s1);
-    block({&h_init, &c_init, &h_copy_x, &nonlinear_block, &y})
-            .gpu_tile(k, i, 16, 16, k0, i0, k1, i1);
+    block ki_block({&h_init, &c_init, &h_copy_x, &nonlinear_block, &y});
+    ki_block.interchange(k, i);
+    ki_block.gpu_tile(i, k, 16, 16, i0, k0, i1, k1);
 
     // Scheduling commands
     copy_Weights_to_device
@@ -119,14 +120,14 @@ int main(int argc, char **argv)
             .then(sum1, computation::root)
             .then(sum2, s0)
             .then(sig_i, s1)
-            .then(tnh_z, i1)
-            .then(sig_o, i1)
-            .then(sig_f, i1)
-            .then(mul_iz, i1)
-            .then(mul_fc, i1)
-            .then(c, i1)
-            .then(tnh_c, i1)
-            .then(h, i1)
+            .then(tnh_z, k1)
+            .then(sig_o, k1)
+            .then(sig_f, k1)
+            .then(mul_iz, k1)
+            .then(mul_fc, k1)
+            .then(c, k1)
+            .then(tnh_c, k1)
+            .then(h, k1)
             .then(y, computation::root)
             .then(copy_y_to_host, computation::root);
 
