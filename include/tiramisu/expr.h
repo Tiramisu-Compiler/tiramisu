@@ -91,7 +91,7 @@ public:
         return global::implicit_fct;
     }
 
-    /**
+  /**
       * Set the implicit function to the function given as an argument.
       *
       * All the computations and buffers created later are added by deafult
@@ -308,14 +308,14 @@ public:
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
         if (expr0.get_data_type() != expr1.get_data_type())
-        {
-            tiramisu::str_dump("Binary operation between two expressions of different types:\n");
-            expr0.dump(false);
-            tiramisu::str_dump(" and ");
-            expr1.dump(false);
-            tiramisu::str_dump("\n");
+	{
+	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
+	    expr0.dump(false);
+	    tiramisu::str_dump(" and ");
+	    expr1.dump(false);
+	    tiramisu::str_dump("\n");
             ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
-        }
+	}
 
         this->_operator = o;
         this->etype = tiramisu::e_op;
@@ -658,7 +658,7 @@ public:
     {
         assert(this->get_expr_type() == tiramisu::e_val);
 
-        double result = 0;
+          double result = 0;
 
         if (this->get_data_type() == tiramisu::p_float32)
         {
@@ -820,44 +820,44 @@ public:
     /**
       * Return true if \p e is identical to this expression.
       */
-    bool is_equal(tiramisu::expr e) const
-    {
-        bool equal = true;
-
-        if ((this->_operator != e._operator) ||
-            (this->op.size() != e.op.size()) ||
-            (this->access_vector.size()   != e.access_vector.size())   ||
-            (this->argument_vector.size() != e.argument_vector.size()) ||
-            (this->defined != e.defined)     ||
-            (this->name != e.name)           ||
-            (this->dtype != e.dtype)         ||
-            (this->etype != e.etype))
+        bool is_equal(tiramisu::expr e) const
         {
-            equal = false;
+            bool equal = true;
+
+            if ((this->_operator != e._operator) ||
+                (this->op.size() != e.op.size()) ||
+                (this->access_vector.size()   != e.access_vector.size())   ||
+                (this->argument_vector.size() != e.argument_vector.size()) ||
+                (this->defined != e.defined)     ||
+                (this->name != e.name)           ||
+                (this->dtype != e.dtype)         ||
+                (this->etype != e.etype))
+            {
+                    equal = false;
+                    return equal;
+            }
+
+            for (int i = 0; i < this->access_vector.size(); i++)
+                equal = equal && this->access_vector[i].is_equal(e.access_vector[i]);
+
+            for (int i = 0; i < this->op.size(); i++)
+                equal = equal && this->op[i].is_equal(e.op[i]);
+
+            for (int i = 0; i < this->argument_vector.size(); i++)
+                equal = equal && this->argument_vector[i].is_equal(e.argument_vector[i]);
+
+            if ((this->etype == e_val) && (e.etype == e_val))
+            {
+                if (this->get_int_val() != e.get_int_val())
+                        equal = false;
+                if ((this->get_data_type() == tiramisu::p_float32) ||
+                    (this->get_data_type() == tiramisu::p_float64))
+                    if (this->get_double_val() != e.get_double_val())
+                        equal = false;
+            }
+
             return equal;
         }
-
-        for (int i = 0; i < this->access_vector.size(); i++)
-            equal = equal && this->access_vector[i].is_equal(e.access_vector[i]);
-
-        for (int i = 0; i < this->op.size(); i++)
-            equal = equal && this->op[i].is_equal(e.op[i]);
-
-        for (int i = 0; i < this->argument_vector.size(); i++)
-            equal = equal && this->argument_vector[i].is_equal(e.argument_vector[i]);
-
-        if ((this->etype == e_val) && (e.etype == e_val))
-        {
-            if (this->get_int_val() != e.get_int_val())
-                equal = false;
-            if ((this->get_data_type() == tiramisu::p_float32) ||
-                (this->get_data_type() == tiramisu::p_float64))
-                if (this->get_double_val() != e.get_double_val())
-                    equal = false;
-        }
-
-        return equal;
-    }
 
     /**
       * Return true if the expression is an integer value.
@@ -878,7 +878,9 @@ public:
     /**
       * Addition.
       */
+
     expr operator+(tiramisu::expr other) const;
+
 
     /**
       * Subtraction.
@@ -957,7 +959,7 @@ public:
         return tiramisu::expr(tiramisu::o_ne, *this, e1);
     }
     // @}
-
+     
     /**
       * Less than operator.
       */
@@ -1239,7 +1241,7 @@ public:
                     case tiramisu::o_lt:
                         return *this;
                     case tiramisu::o_ge:
-                        return *this;
+                        return *this; 
                     case tiramisu::o_gt:
                         return *this;
                     case tiramisu::o_logical_not:
@@ -1731,7 +1733,11 @@ private:
       * constructor has no effect on the creation of future var objects.
       */
     var(std::string name, bool save);
+    /**
+      * This has the same as the var(name,save), except that the bounds of the variable are saved too.
+      */
 
+    var(std::string name, bool save,expr lower_bound, expr upper_bound);
     /**
       * This has the same as the var(type, name), except that if \p save is false, then whatever
       * variable is created, it is not stored in declared_vars, and therefore calling this
@@ -1805,7 +1811,7 @@ public:
      * \endcode
      *
      */
-    var(std::string name, expr lower_bound, expr upper_bound) : var(name, true)
+     var(std::string name, expr lower_bound, expr upper_bound) : var(name, true)
     {
         lower = lower_bound;
         upper = upper_bound;
@@ -1818,7 +1824,7 @@ public:
      */
     var(): var(generate_new_variable_name(), true) {}
 };
-
+   
 /**
   * Convert a Tiramisu expression into a Halide expression.
   */
