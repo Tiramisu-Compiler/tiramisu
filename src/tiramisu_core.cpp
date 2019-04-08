@@ -84,6 +84,15 @@ void init()
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
 {
     function *fct = global::get_implicit_function();
+    // write computation features in csv file 
+     if (AUTOMAT_MODE){
+    std::vector<tiramisu::computation *> comput = fct->get_computation_by_name("comp0"); 
+     if (comput.size() > 0)
+     {     
+       comput[0]->computation_features_to_csvfile();
+         
+     }
+     }
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
 }
 
@@ -132,7 +141,7 @@ constant* function::get_invariant_by_name(std::string name) const
 
     for (int i = 0; i < this->get_invariants().size(); i++)
     {
-	comp = (constant *) &(this->get_invariants()[i]);
+    comp = (constant *) &(this->get_invariants()[i]);
         if (name == comp->get_name())
         {
             res = comp;
@@ -279,7 +288,7 @@ void tiramisu::computation::rename_computation(std::string new_name)
 
     // Rename parallel, unroll, vectorize and gpu vectors
     for (auto &pd : this->get_function()->unroll_dimensions)
-        if (std::get<0>(pd) == old_name)
+             if (std::get<0>(pd) == old_name)
             std::get<0>(pd) = new_name;
     for (auto &pd : this->get_function()->parallel_dimensions)
         if (pd.first == old_name)
@@ -398,9 +407,13 @@ void tiramisu::computation::parallelize(tiramisu::var par_dim_var)
     this->check_dimensions_validity(dimensions);
 
     int par_dim = dimensions[0];
-    this->tag_parallel_level(par_dim);
+    this->tag_parallel_level(par_dim);   
 
-    DEBUG_INDENT(-4);
+     if (AUTOMAT_MODE){
+    // Add the parallelization features to the prellelized loop level features
+    this->update_parallelize_features(par_dim);
+     }
+    DEBUG_INDENT(-4);  
 }
 
 
@@ -611,14 +624,14 @@ void tiramisu::computation::tag_unroll_level(tiramisu::var L0_var, int factor)
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
 
-    this->tag_unroll_level(L0, factor);
+     this->tag_unroll_level(L0, factor);
 
     DEBUG_INDENT(-4);
 }
 
 void tiramisu::computation::tag_unroll_level(int level)
-{
-	this->tag_unroll_level(level, 0);
+{	
+    this->tag_unroll_level(level, 0);
 }
 
 void tiramisu::computation::tag_unroll_level(int level, int factor)
@@ -629,9 +642,9 @@ void tiramisu::computation::tag_unroll_level(int level, int factor)
     assert(level >= 0);
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
-    assert(factor >= 0);
+     assert(factor >= 0);
 
-    this->get_function()->add_unroll_dimension(this->get_name(), level, factor);
+  this->get_function()->add_unroll_dimension(this->get_name(), level, factor);
 
     DEBUG_INDENT(-4);
 }
@@ -1036,7 +1049,7 @@ std::vector<tiramisu::expr> computation::compute_buffer_size()
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    std::vector<tiramisu::expr> dim_sizes;
+   std::vector<tiramisu::expr> dim_sizes;
 
     // If the computation has an update, we first compute the union of all the
     // updates, then we compute the bounds of the union.
@@ -1056,7 +1069,7 @@ std::vector<tiramisu::expr> computation::compute_buffer_size()
         tiramisu::expr diff = (upper - lower + 1);
 
         DEBUG(3, tiramisu::str_dump("Buffer dimension size (dim = " + std::to_string(i) + ") : "); diff.dump(false));
-        dim_sizes.push_back(diff);
+         dim_sizes.push_back(diff);
     }
 
     DEBUG_INDENT(-4);
@@ -1205,13 +1218,20 @@ void tiramisu::computation::vectorize(tiramisu::var L0_var, int v, tiramisu::var
     {
         this->get_update(0).tag_vector_level(L0, v);
         this->set_loop_level_names({L0}, {L0_outer.get_name()});
-
-        // Replace the original dimension name with two new dimension names
-        this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
-    }
-
+  
+    // Replace the original dimension name with two new dimension names
+    this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
+     }
+     
     this->get_function()->align_schedules();
 
+     if (AUTOMAT_MODE){
+    // update the schedule features structure
+    this->update_vectorise_features(L0,v);
+    std::vector<int> factors(1,v);
+    std::vector<int> levels(1,L0);
+    this->update_schedule_features("vectorize",factors,levels);
+    }
     DEBUG_INDENT(-4);
 }
 
@@ -1269,19 +1289,19 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
     {
         // Tag the inner loop after splitting to be unrolled. That loop
         // is supposed to have a constant extent.
-        this->get_update(0).tag_unroll_level(L0 + 1, v);
+       this->get_update(0).tag_unroll_level(L0 + 1, v);
 
         // Replace the original dimension name with two new dimension names
         this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
-    }
+      }
     else
     {
-        this->get_update(0).tag_unroll_level(L0, v);
+         this->get_update(0).tag_unroll_level(L0, v);
         this->set_loop_level_names({L0}, {L0_outer.get_name()});
-
-        // Replace the original dimension name with two new dimension names
-        this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
-    }
+    
+    // Replace the original dimension name with two new dimension names
+   this->update_names(original_loop_level_names, {L0_inner.get_name()}, L0, 1);
+   }
 
     this->get_function()->align_schedules();
 
@@ -2114,7 +2134,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
 
     // If we reach this point, that means that no buffer has been allocated
     // for this computation or for the other definitions of this computation.
-    std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
+     std::vector<tiramisu::expr> dim_sizes = this->compute_buffer_size();
 
     tiramisu::buffer *buff = NULL;
 
@@ -2130,7 +2150,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
             std::string buff_name;
             buff_name = "_" + this->name + "_buffer";
             buff = new tiramisu::buffer(buff_name,
-                                dim_sizes,
+                               dim_sizes,
                                 this->get_data_type(),
                                 type,
                                 this->get_function());
@@ -2151,7 +2171,7 @@ void tiramisu::computation::allocate_and_map_buffer_automatically(tiramisu::argu
             std::string buff_name;
             buff_name = "_" + this->get_first_definition()->name + "_buffer";
             buff = new tiramisu::buffer(buff_name,
-                                dim_sizes,
+                                 dim_sizes,
                                 this->get_data_type(),
                                 type,
                                 this->get_function());
@@ -2265,7 +2285,7 @@ void computation::between(computation &before_c, int before_dim, computation &af
     assert(before_dim >= computation::root_dimension);
     assert(after_dim >= computation::root_dimension);
 
-    this->check_dimensions_validity({before_dim, after_dim});
+  this->check_dimensions_validity({before_dim, after_dim});
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " between " +
                                 before_c.get_name() + " and " + after_c.get_name()));
@@ -2523,12 +2543,17 @@ void computation::tile(int L0, int L1, int sizeX, int sizeY)
     assert(this->get_iteration_domain() != NULL);
     this->check_dimensions_validity({L0, L1});
 
+     if (AUTOMAT_MODE){
+    //update the features iterators structure after tiling
+    update_tile_features(L0, L1, sizeX, sizeY);
+     }
     this->split(L0, sizeX);
     this->split(L1 + 1, sizeY);
 
     this->interchange(L0 + 1, L1 + 1);
-
+   
     DEBUG_INDENT(-4);
+
 }
 
 std::vector<int> computation::get_loop_level_numbers_from_dimension_names(
@@ -2730,11 +2755,29 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
     DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
                                 L2.get_name() + " is " + std::to_string(dimensions[2])));
 
+    if (AUTOMAT_MODE){
+   // update iterators names and spans 
+      update_tile_features(dimensions[0], dimensions[1], dimensions[2], L0_outer.get_name(), L1_outer.get_name(), L2_outer.get_name(),
+                                                  L0_inner.get_name(), L1_inner.get_name(), L2_inner.get_name());
+    }                                           
+
     this->tile(dimensions[0], dimensions[1], dimensions[2],
                sizeX, sizeY, sizeZ);
 
     this->update_names(original_loop_level_names, {L0_outer.get_name(), L1_outer.get_name(), L2_outer.get_name(),
                                                    L0_inner.get_name(), L1_inner.get_name(), L2_inner.get_name()}, dimensions[0], 3);
+      if (AUTOMAT_MODE){
+    //update schedule features structure 
+     std::vector<int> factors;
+     factors.push_back(sizeX);
+     factors.push_back(sizeY);
+     factors.push_back(sizeZ);
+     std::vector<int> levels;
+     levels.push_back(dimensions[0]);
+     levels.push_back(dimensions[1]);
+     levels.push_back(dimensions[2]);
+    update_schedule_features("tile", factors, levels);     
+      }                                      
 
     DEBUG_INDENT(-4);
 }
@@ -2769,10 +2812,24 @@ void computation::tile(tiramisu::var L0, tiramisu::var L1,
     DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
                                 L1.get_name() + " is " + std::to_string(dimensions[1])));
 
+       if (AUTOMAT_MODE){
+    update_tile_features(dimensions[0], dimensions[1],L0_outer.get_name(), L1_outer.get_name(), L0_inner.get_name(), L1_inner.get_name());
+       }
     this->tile(dimensions[0], dimensions[1], sizeX, sizeY);
 
     // Replace the original dimension name with new dimension names
     this->update_names(original_loop_level_names, {L0_outer.get_name(), L1_outer.get_name(), L0_inner.get_name(), L1_inner.get_name()}, dimensions[0], 2);
+   if (AUTOMAT_MODE){
+    // update schedule features structure 
+
+    std::vector<int> factors;
+     factors.push_back(sizeX);
+     factors.push_back(sizeY);
+     std::vector<int> levels;
+     levels.push_back(dimensions[0]);
+     levels.push_back(dimensions[1]);
+    update_schedule_features("tile", factors, levels);  
+   }
 
     DEBUG_INDENT(-4);
 }
@@ -2790,6 +2847,10 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     assert(this->get_iteration_domain() != NULL);
 
     this->check_dimensions_validity({L0, L1, L2});
+    if (AUTOMAT_MODE){
+    //update the features iterators structure after tiling
+     update_tile_features(L0, L1,L2, sizeX, sizeY,sizeZ);
+    }
 
     //  Original loops
     //  L0
@@ -2866,7 +2927,7 @@ void computation::tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ)
     //        L0_prime
     //          L1_prime
     //            L2_prime
-
+ 
     DEBUG_INDENT(-4);
 }
 
@@ -3018,6 +3079,10 @@ void computation::interchange(int L0, int L1)
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
 
     this->set_schedule(schedule);
+    if (AUTOMAT_MODE){
+      // update the iterators levels features for the interchanged levels
+     this->update_interchange_features(L0,L1);
+    }
 
     DEBUG_INDENT(-4);
 }
@@ -3309,8 +3374,8 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
 }
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
-		       int factor,
-		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
+               int factor,
+               tiramisu::var new_L0_var, tiramisu::var new_L1_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3335,13 +3400,23 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
     this->skew(L0, L1, factor);
 
     this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
+    if (AUTOMAT_MODE){
+     // update schedule features structure 
+   // TODO: update iterators names and spans 
+     std::vector<int> factors;
+     factors.push_back(factor);
+     std::vector<int> levels;
+     levels.push_back(dimensions[0]);
+     levels.push_back(dimensions[1]);
+    update_schedule_features("skew", factors, levels);   
+    }  
 
     DEBUG_INDENT(-4);
 }
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var,
-		       int factor,
-		       tiramisu::var new_L0_var, tiramisu::var new_L1_var, tiramisu::var new_L2_var)
+               int factor,
+               tiramisu::var new_L0_var, tiramisu::var new_L1_var, tiramisu::var new_L2_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3369,13 +3444,24 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var
     this->skew(L0, L1, L2, factor);
 
     this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name(), new_L2_var.get_name()}, dimensions[0], 3);
+     if (AUTOMAT_MODE){
+    // update schedule features structure 
+   // TODO: update iterators names and spans 
+     std::vector<int> factors;
+     factors.push_back(factor);
+     std::vector<int> levels;
+     levels.push_back(dimensions[0]);
+     levels.push_back(dimensions[1]);
+     levels.push_back(dimensions[2]);
+    update_schedule_features("skew", factors, levels);  
+     }
 
     DEBUG_INDENT(-4);
 }
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var, tiramisu::var L3_var,
-		       int factor,
-		       tiramisu::var new_L0_var, tiramisu::var new_L1_var, tiramisu::var new_L2_var, tiramisu::var new_L3_var)
+               int factor,
+               tiramisu::var new_L0_var, tiramisu::var new_L1_var, tiramisu::var new_L2_var, tiramisu::var new_L3_var)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3391,13 +3477,13 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var
     assert(factor >= 1);
 
     this->assert_names_not_assigned({new_L0_var.get_name(), new_L1_var.get_name(),
-				     new_L2_var.get_name(), new_L3_var.get_name()});
+                     new_L2_var.get_name(), new_L3_var.get_name()});
 
     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
 
     std::vector<int> dimensions =
         this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name(),
-							   L2_var.get_name(), L3_var.get_name()});
+                               L2_var.get_name(), L3_var.get_name()});
 
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
@@ -3408,7 +3494,19 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var
     this->skew(L0, L1, L2, L3, factor);
 
     this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name(),
-						   new_L2_var.get_name(), new_L3_var.get_name()}, dimensions[0], 4);
+                           new_L2_var.get_name(), new_L3_var.get_name()}, dimensions[0], 4);
+    if (AUTOMAT_MODE){
+    // update schedule features structure 
+   // TODO: update iterators names and spans 
+     std::vector<int> factors;
+     factors.push_back(factor);
+     std::vector<int> levels;
+     levels.push_back(dimensions[0]);
+     levels.push_back(dimensions[1]);
+     levels.push_back(dimensions[2]);
+     levels.push_back(dimensions[3]);
+    update_schedule_features("skew", factors, levels);  
+    }                       
 
     DEBUG_INDENT(-4);
 }
@@ -3431,7 +3529,7 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, int factor)
 }
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var,
-		       int factor)
+               int factor)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3451,7 +3549,7 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var
 }
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
-		       tiramisu::var L2_var, tiramisu::var L3_var, int factor)
+               tiramisu::var L2_var, tiramisu::var L3_var, int factor)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3479,7 +3577,7 @@ void computation::skew(int L0, int L1, int factor)
 
     if (L0 + 1 != L1)
     {
-	ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
+    ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
     }
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
@@ -3625,7 +3723,7 @@ void computation::skew(int L0, int L1, int L2, int factor)
 
     if (L0 + 1 != L1 || L1 + 1 != L2)
     {
-	ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
+    ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
     }
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
@@ -3749,9 +3847,9 @@ void computation::skew(int L0, int L1, int L2, int factor)
     }
 
     map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID)
-	+ " and " + outDim1_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim1_str + ")"
-	+ " and " + outDim2_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim2_str + ")"
-	+ "}";
+    + " and " + outDim1_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim1_str + ")"
+    + " and " + outDim2_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim2_str + ")"
+    + "}";
 
     DEBUG(3, tiramisu::str_dump("Transformation map (string format) : " + map));
 
@@ -3786,7 +3884,7 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
 
     if (L0 + 1 != L1 || L1 + 1 != L2 || L2 + 1 != L3)
     {
-	ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
+    ERROR("Loop levels passed to skew() should be consecutive. The first argument to skew() should be the outer loop level.", true);
     }
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
@@ -3923,10 +4021,10 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
     }
 
     map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID)
-	+ " and " + outDim1_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim1_str + ")"
-	+ " and " + outDim2_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim2_str + ")"
-	+ " and " + outDim3_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim3_str + ")"
-	+ "}";
+    + " and " + outDim1_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim1_str + ")"
+    + " and " + outDim2_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim2_str + ")"
+    + " and " + outDim3_str + " = (" + std::to_string(factor) + "*" + inDim0_str + "+" + inDim3_str + ")"
+    + "}";
 
     DEBUG(3, tiramisu::str_dump("Transformation map (string format) : " + map));
 
@@ -4739,8 +4837,8 @@ int compute_recursively_max_AST_depth(isl_ast_node *node)
 
     int result = -1;
 
-    DEBUG(10, tiramisu::str_dump("Computing maximal AST depth from the following ISL AST node "););
-    DEBUG(10, tiramisu::str_dump("\n"); tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
+ DEBUG(10, tiramisu::str_dump("Computing maximal AST depth from the following ISL AST node "););
+ DEBUG(10, tiramisu::str_dump("\n"); tiramisu::str_dump(std::string(isl_ast_node_to_C_str(node))));
 
     if (isl_ast_node_get_type(node) == isl_ast_node_block)
     {
@@ -4766,7 +4864,7 @@ int compute_recursively_max_AST_depth(isl_ast_node *node)
     else if (isl_ast_node_get_type(node) == isl_ast_node_user)
     {
         DEBUG(10, tiramisu::str_dump("Reached a user node."));
-        result = 1;
+       result = 1;
     }
     else if (isl_ast_node_get_type(node) == isl_ast_node_if)
     {
@@ -5069,13 +5167,13 @@ bool computation::separateAndSplit(int L0, int v)
     // Compute the depth before any scheduling.
     int original_depth = this->compute_maximal_AST_depth();
 
-    DEBUG(3, tiramisu::str_dump("Computing upper bound at loop level " + std::to_string(L0)));
+  DEBUG(3, tiramisu::str_dump("Computing upper bound at loop level " + std::to_string(L0)));
 
     tiramisu::expr loop_upper_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
                        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, true));
 
-    DEBUG(3, tiramisu::str_dump("Computing lower bound at loop level " + std::to_string(L0)));
+ DEBUG(3, tiramisu::str_dump("Computing lower bound at loop level " + std::to_string(L0)));
 
     tiramisu::expr loop_lower_bound =
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
@@ -5117,17 +5215,17 @@ bool computation::separateAndSplit(int L0, int v)
 
     bool split_happened = false;
     if (depth == original_depth)
-    {
+    { 
         DEBUG(3, tiramisu::str_dump("Split did not happen."));
         split_happened = false;
-
+      
 	DEBUG(3, tiramisu::str_dump("Cancel splitting."));
 	this->set_schedule(sc);
     }
     else
     {
          split_happened = true;
-         DEBUG(3, tiramisu::str_dump("Split happenned."));
+            DEBUG(3, tiramisu::str_dump("Split happenned."));
     }
 
     this->get_function()->align_schedules();
@@ -5176,7 +5274,7 @@ void computation::split(tiramisu::var L0_var, int sizeX)
     tiramisu::var L0_outer = tiramisu::var(generate_new_variable_name());
     tiramisu::var L0_inner = tiramisu::var(generate_new_variable_name());
     this->split(L0_var, sizeX, L0_outer, L0_inner);
-
+    
     DEBUG_INDENT(-4);
 }
 
@@ -5197,9 +5295,17 @@ void computation::split(tiramisu::var L0_var, int sizeX,
     int L0 = dimensions[0];
     this->assert_names_not_assigned({L0_outer.get_name(), L0_inner.get_name()});
 
+   // update iterators structure 
+   // update_split_features(L0, L0_inner.get_name(), L0_outer.get_name());
     this->split(L0, sizeX);
 
     this->update_names(original_loop_level_names, {L0_outer.get_name(), L0_inner.get_name()}, L0, 1);
+  if (AUTOMAT_MODE){
+    //  update schedule features structure 
+      std::vector<int> factors(1,sizeX);
+      std::vector<int> levels(1,L0);
+      update_schedule_features("split", factors, levels);
+       }
 
     DEBUG_INDENT(-4);
 }
@@ -5342,6 +5448,7 @@ void computation::split(int L0, int sizeX)
 
     this->set_schedule(schedule);
 
+   // update_split_features(L0,sizeX);
     DEBUG_INDENT(-4);
 }
 
@@ -5547,7 +5654,7 @@ tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes
 
     // Check that the buffer does not already exist.
     assert((fct->get_buffers().count(name) == 0) && ("Buffer already exists"));
-    if(corr.compare("") != 0)
+  if(corr.compare("") != 0)
     {
       assert((fct->get_buffers().count(corr) != 0) && ("No corresponding cpu beffer"));
       fct->add_mapping(std::pair<std::string ,tiramisu::buffer *>(corr,this));
@@ -5826,6 +5933,9 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     }
 
     this->updates.push_back(this);
+    // extract computation feature if the AUTOMAT_MODE is  true
+    if (AUTOMAT_MODE)
+    this->extract_computation_features();
 
     DEBUG_INDENT(-4);
 }
@@ -5840,7 +5950,7 @@ tiramisu::computation::computation()
     this->stmt = Halide::Internal::Stmt();
     this->time_processor_domain = NULL;
     this->duplicate_number = 0;
-
+  
     this->schedule_this_computation = false;
     this->data_type = p_none;
     this->expression = tiramisu::expr();
@@ -5922,8 +6032,8 @@ tiramisu::computation::computation()
   * TODO: copy ISL format for sets.
   */
 computation::computation(std::string iteration_domain_str, tiramisu::expr e,
-                         bool schedule_this_computation, tiramisu::primitive_t t,
-                         tiramisu::function *fct)
+                                   bool schedule_this_computation, tiramisu::primitive_t t,
+                                   tiramisu::function *fct)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -6167,7 +6277,7 @@ isl_map *tiramisu::computation::get_trimmed_union_of_schedules() const
  */
 bool tiramisu::computation::is_let_stmt() const
 {
-    return this->is_let;
+  return this->is_let;
 }
 
 bool tiramisu::computation::is_library_call() const
@@ -6484,6 +6594,31 @@ int computation::get_duplicates_number() const
     return this->duplicate_number;
 }
 
+std::vector<tiramisu::var> computation::get_iterator_variables()
+{
+    return this->iterator_variables;
+}
+
+void  tiramisu::computation::set_iterator_variables(std::vector<tiramisu::var> it_variables)
+{
+    this->iterator_variables= it_variables;
+}
+
+void tiramisu::computation::set_computation_features(computation_features_struct comp_features)
+{
+    this->computation_features= comp_features;
+}
+
+void tiramisu::computation::extract_computation_features()
+{   features_extractor fe; 
+    computation_features_struct comp_features;
+    comp_features= fe.computation_features_extractor(this);
+    set_computation_features(comp_features);
+}
+computation_features_struct tiramisu::computation::get_computation_features()
+{
+ return this->computation_features;
+}
 isl_map *computation::get_schedule() const
 {
     return this->schedule;
@@ -6688,6 +6823,251 @@ void tiramisu::computation::mark_as_library_call()
     this->_is_library_call = true;
 }
 
+void tiramisu::computation::update_schedule_features(std::string optimization, std::vector<int> factors, std::vector<int> levels)
+{   computation_features_struct comp_features = this->get_computation_features();
+    std::map<std::string,std::vector<local_schedule_features>> temp; 
+    temp= comp_features.local_schedule;
+    std::map<std::string,std::vector<local_schedule_features>>::iterator it = temp.find(optimization);
+    // construct the new optimization features structure 
+    local_schedule_features lsf;
+    lsf.factors=factors;
+    lsf.levels=levels;
+      if (it != temp.end()){
+           it->second.push_back(lsf);
+      }else{
+          std::vector<local_schedule_features> v_lsf;
+          v_lsf.push_back(lsf);
+          temp.insert(std::pair<std::string,std::vector<local_schedule_features>>(optimization,v_lsf));    
+      } 
+     comp_features.local_schedule=temp; 
+     this->set_computation_features(comp_features);
+}
+
+ void tiramisu::computation::update_parallelize_features(int level){
+    computation_features_struct comp_features = this->get_computation_features();
+    comp_features.iterators[level].parallelized= true;
+    this->set_computation_features(comp_features);
+ }
+ void tiramisu::computation::update_vectorise_features(int level, int factor){
+    computation_features_struct comp_features = this->get_computation_features();
+    comp_features.iterators[level].vectorization_factor= factor;
+    this->set_computation_features(comp_features);
+ }
+ void tiramisu::computation::update_interchange_features(int level1, int level2){
+    computation_features_struct comp_features = this->get_computation_features();
+    iterator_features temp= comp_features.iterators[level2];
+    comp_features.iterators[level1].it_level= level2;
+    comp_features.iterators[level2]= comp_features.iterators[level1];
+    temp.it_level= level1;
+    comp_features.iterators[level1]=temp;
+    this->set_computation_features(comp_features);
+ }
+ 
+ void tiramisu::computation::update_split_features(int level, int size){
+    computation_features_struct comp_features = this->get_computation_features();
+   
+   iterator_features initial= comp_features.iterators[level+2];
+    comp_features.iterators.erase(comp_features.iterators.begin()+level+2);
+    // update new inner iterator 
+    comp_features.iterators[level+1].it_level=level+1;
+    comp_features.iterators[level+1].lower_bound=0;
+    comp_features.iterators[level+1].upper_bound=size;
+    comp_features.iterators[level+1].parallelized= initial.parallelized;
+    comp_features.iterators[level+1].vectorization_factor= initial.vectorization_factor;
+    // update new outer iterator
+    comp_features.iterators[level].it_level=level;
+    comp_features.iterators[level].lower_bound= initial.lower_bound;
+    comp_features.iterators[level].upper_bound= floor(initial.upper_bound/size);
+    comp_features.iterators[level].parallelized= initial.parallelized;
+    comp_features.iterators[level].vectorization_factor= initial.vectorization_factor;
+    comp_features.iterators[level].dependencies_lower= initial.dependencies_lower;
+    comp_features.iterators[level].dependencies_upper= initial.dependencies_upper;
+
+    // update iterators levels
+    for(int i=level+2; i<comp_features.iterators.size();i++){
+        comp_features.iterators[i].it_level=i;
+    }
+    // update nbr of computation levels
+    comp_features.loop_levels= comp_features.loop_levels++;  
+    // update the operation loop level
+    comp_features.operations_features[0].op_loop_level= comp_features.loop_levels;
+    this->set_computation_features(comp_features);
+ }
+ void tiramisu::computation::update_split_features(int level, std::string name_inner, std::string name_outer){
+    computation_features_struct comp_features = this->get_computation_features();
+    iterator_features inner;
+    iterator_features outer;
+    // Set new iterators names 
+    outer.it_name=name_outer;
+    inner.it_name=name_outer;
+    comp_features.iterators.insert(comp_features.iterators.begin()+level, outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level+1, inner);
+    this->set_computation_features(comp_features);
+ } 
+  void tiramisu::computation::update_tile_features(int level1,int level2,int level3, std::string L0_outer_name, std::string L1_outer_name, std::string L2_outer_name,
+                                                   std::string L0_inner_name, std::string L1_inner_name, std::string L2_inner_name){
+
+    computation_features_struct comp_features = this->get_computation_features();
+    iterator_features L0_outer;
+    iterator_features L1_outer;
+    iterator_features L2_outer;
+    iterator_features L0_inner;
+    iterator_features L1_inner;
+    iterator_features L2_inner;
+    // Set new iterators names 
+    L0_outer.it_name=L0_outer_name;
+    L1_outer.it_name=L1_outer_name;
+    L2_outer.it_name=L2_outer_name;
+    L0_inner.it_name=L0_inner_name;
+    L1_inner.it_name=L1_inner_name;
+    L2_inner.it_name=L2_inner_name;
+     comp_features.iterators.insert(comp_features.iterators.begin()+level1, L0_outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level1+1, L0_inner);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level2, L1_outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level2+1, L1_inner);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level3, L2_outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level3+1, L2_inner);   
+
+    this->set_computation_features(comp_features);
+ }
+ void tiramisu::computation::update_tile_features(int level1,int level2,int level3, int sizeX, int sizeY, int sizeZ){
+   computation_features_struct comp_features = this->get_computation_features();
+   iterator_features initial1= comp_features.iterators[level1+6];
+   iterator_features initial2= comp_features.iterators[level1+7];
+   iterator_features initial3= comp_features.iterators[level1+8];
+   comp_features.iterators.erase(comp_features.iterators.begin()+level1+6);
+   comp_features.iterators.erase(comp_features.iterators.begin()+level1+6);
+    comp_features.iterators.erase(comp_features.iterators.begin()+level1+6);
+
+     // update new outer iterator
+    comp_features.iterators[level1].it_level=level1;
+    comp_features.iterators[level1].lower_bound= initial1.lower_bound;
+    comp_features.iterators[level1].upper_bound= floor(initial1.upper_bound/sizeX);
+    comp_features.iterators[level1].parallelized= initial1.parallelized;
+    comp_features.iterators[level1].vectorization_factor= initial1.vectorization_factor;
+    comp_features.iterators[level1].dependencies_lower= initial1.dependencies_lower;
+    comp_features.iterators[level1].dependencies_upper= initial1.dependencies_upper;
+
+    comp_features.iterators[level2+1].it_level=level2+1;
+    comp_features.iterators[level2+1].lower_bound= initial2.lower_bound;
+    comp_features.iterators[level2+1].upper_bound= floor(initial2.upper_bound/sizeY);
+    comp_features.iterators[level2+1].parallelized= initial2.parallelized;
+    comp_features.iterators[level2+1].vectorization_factor= initial2.vectorization_factor;
+    comp_features.iterators[level2+1].dependencies_lower= initial2.dependencies_lower;
+    comp_features.iterators[level2+1].dependencies_upper= initial2.dependencies_upper;
+
+    comp_features.iterators[level3+2].it_level=level3+2;
+    comp_features.iterators[level3+2].lower_bound= initial3.lower_bound;
+    comp_features.iterators[level3+2].upper_bound= floor(initial3.upper_bound/sizeZ);
+    comp_features.iterators[level3+2].parallelized= initial3.parallelized;
+    comp_features.iterators[level3+2].vectorization_factor= initial3.vectorization_factor;
+    comp_features.iterators[level3+2].dependencies_lower= initial3.dependencies_lower;
+    comp_features.iterators[level3+2].dependencies_upper= initial3.dependencies_upper;
+
+    // update new iterators 
+    comp_features.iterators[level1+1].it_level=level1+1;
+    comp_features.iterators[level1+1].lower_bound=0;
+    comp_features.iterators[level1+1].upper_bound=sizeX;
+    comp_features.iterators[level1+1].parallelized= initial1.parallelized;
+    comp_features.iterators[level1+1].vectorization_factor= initial1.vectorization_factor;
+
+    comp_features.iterators[level2+2].it_level=level2+2;
+    comp_features.iterators[level2+2].lower_bound=0;
+    comp_features.iterators[level2+2].upper_bound=sizeY;
+    comp_features.iterators[level2+2].parallelized= initial2.parallelized;
+    comp_features.iterators[level2+2].vectorization_factor= initial2.vectorization_factor;
+
+    comp_features.iterators[level3+3].it_level=level3+3;
+    comp_features.iterators[level3+3].lower_bound=0;
+    comp_features.iterators[level3+3].upper_bound=sizeZ;
+    comp_features.iterators[level3+3].parallelized= initial3.parallelized;
+    comp_features.iterators[level3+3].vectorization_factor= initial3.vectorization_factor;
+
+    // update iterators levels
+    for(int i=level1+6; i<comp_features.iterators.size();i++){
+        comp_features.iterators[i].it_level=i;
+    }
+    // update nbr of computation levels
+    comp_features.loop_levels= comp_features.loop_levels+3;  
+    // update the operation loop level
+    comp_features.operations_features[0].op_loop_level= comp_features.loop_levels-1;
+    this->set_computation_features(comp_features);
+    
+ }
+   void tiramisu::computation::update_tile_features(int level1,int level2, std::string L0_outer_name, std::string L1_outer_name,
+                                                   std::string L0_inner_name, std::string L1_inner_name){
+
+    computation_features_struct comp_features = this->get_computation_features();
+    iterator_features L0_outer;
+    iterator_features L1_outer;
+    iterator_features L0_inner;
+    iterator_features L1_inner;
+ 
+    // Set new iterators names 
+    L0_outer.it_name=L0_outer_name;
+    L1_outer.it_name=L1_outer_name;
+    L0_inner.it_name=L0_inner_name;
+    L1_inner.it_name=L1_inner_name;
+
+    comp_features.iterators.insert(comp_features.iterators.begin()+level1, L0_outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level1+1, L0_inner);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level2+1, L1_outer);
+    comp_features.iterators.insert(comp_features.iterators.begin()+level2+2, L1_inner);
+
+    this->set_computation_features(comp_features);
+ }
+
+ void tiramisu::computation::update_tile_features(int level1,int level2, int sizeX, int sizeY){
+    computation_features_struct comp_features = this->get_computation_features();
+   
+   iterator_features initial1= comp_features.iterators[level1+4];
+   iterator_features initial2= comp_features.iterators[level1+5];
+   comp_features.iterators.erase(comp_features.iterators.begin()+level1+4);
+   comp_features.iterators.erase(comp_features.iterators.begin()+level1+4);
+
+     // update new outer iterator
+    comp_features.iterators[level1].it_level=level1;
+    comp_features.iterators[level1].lower_bound= initial1.lower_bound;
+    comp_features.iterators[level1].upper_bound= floor(initial1.upper_bound/sizeX);
+    comp_features.iterators[level1].parallelized= initial1.parallelized;
+    comp_features.iterators[level1].vectorization_factor= initial1.vectorization_factor;
+    comp_features.iterators[level1].dependencies_lower= initial1.dependencies_lower;
+    comp_features.iterators[level1].dependencies_upper= initial1.dependencies_upper;
+
+    comp_features.iterators[level2+1].it_level=level2+1;
+    comp_features.iterators[level2+1].lower_bound= initial2.lower_bound;
+    comp_features.iterators[level2+1].upper_bound= floor(initial2.upper_bound/sizeY);
+    comp_features.iterators[level2+1].parallelized= initial2.parallelized;
+    comp_features.iterators[level2+1].vectorization_factor= initial2.vectorization_factor;
+    comp_features.iterators[level2+1].dependencies_lower= initial2.dependencies_lower;
+    comp_features.iterators[level2+1].dependencies_upper= initial2.dependencies_upper;
+
+    // update new iterators 
+    comp_features.iterators[level1+1].it_level=level1+1;
+    comp_features.iterators[level1+1].lower_bound=0;
+    comp_features.iterators[level1+1].upper_bound=sizeX;
+    comp_features.iterators[level1+1].parallelized= initial1.parallelized;
+    comp_features.iterators[level1+1].vectorization_factor= initial1.vectorization_factor;
+
+    comp_features.iterators[level2+2].it_level=level2+2;
+    comp_features.iterators[level2+2].lower_bound=0;
+    comp_features.iterators[level2+2].upper_bound=sizeY;
+    comp_features.iterators[level2+2].parallelized= initial2.parallelized;
+    comp_features.iterators[level2+2].vectorization_factor= initial2.vectorization_factor;
+
+    
+
+    // update iterators levels
+    for(int i=level1+4; i<comp_features.iterators.size();i++){
+        comp_features.iterators[i].it_level=i;
+    }
+    // update nbr of computation levels
+    comp_features.loop_levels= comp_features.loop_levels+2;  
+    // update the operation loop level
+    comp_features.operations_features[0].op_loop_level= comp_features.loop_levels-1;
+    this->set_computation_features(comp_features);
+    
+ }
 /****************************************************************************
  ****************************************************************************
  ***************************** Constant class *******************************
@@ -6720,6 +7100,66 @@ tiramisu::constant::constant(
     DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The computation representing the assignment:"); this->dump(true));
 
     DEBUG_INDENT(-4);
+}
+
+tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation)
+{
+     this->set_iterator_variables(iterator_variables);
+    
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
+    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
+    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+    init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, e.get_data_type());
+    is_let = false;
+
+    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+    DEBUG_INDENT(-4);
+}
+//overloaded
+tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+{
+    this->set_iterator_variables(iterator_variables);
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
+    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
+    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+    init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, t);
+    is_let = false;
+
+    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+    DEBUG_INDENT(-4);
+}
+
+tiramisu::computation::computation(std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation):
+        computation(generate_new_computation_name(), iterator_variables, e, schedule_this_computation)
+{
+}
+
+tiramisu::computation::computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e)
+{   this->set_iterator_variables(iterator_variables);
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
+    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
+
+    init_computation(iteration_space_str, global::get_implicit_function(), e, true, e.get_data_type());
+    is_let = false;
+
+    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
+    DEBUG_INDENT(-4);
+}
+
+tiramisu::computation::computation(std::vector<var> iterator_variables, tiramisu::expr e):
+        computation(generate_new_computation_name(), iterator_variables, e)
+{
 }
 
 std::string tiramisu::computation::construct_iteration_domain(std::string name, std::vector<var> iterator_variables)
@@ -7672,7 +8112,7 @@ void tiramisu::buffer::tag_gpu_register() {
     bool is_single_val = this->get_n_dims() == 1 && this->get_dim_sizes()[0].get_expr_type() == e_val && this->get_dim_sizes()[0].get_int_val() == 1;
     assert(is_single_val && "Buffer needs to correspond to a single value to be in register");
     location = cuda_ast::memory_location::reg;
-    set_auto_allocate(false);
+    set_auto_allocate(false);   
 }
 
 std::string get_rank_string_type(tiramisu::rank_t rank_type)
@@ -8033,5 +8473,593 @@ void computation::gen_communication()
         comm_id++;
     }
 }
-
+void tiramisu::computation::dump_computation_features_structure(){
+ computation_features_struct nest_features= this->get_computation_features();
+  std::cout << "-----------------Dumping computation features structure-------------------------------------"<< std::endl;
+  std::cout << "Computation_ID  " <<  nest_features.coputation_name << std::endl;
+  std::cout << "Predicate before the computation  " <<  nest_features.is_pedicate << std::endl;
+  std::cout << "Number of loop levels  " <<  nest_features.loop_levels << std::endl;
+  std::cout << "Number of intern dependencies between loop levels  " <<  nest_features.nb_dependencies_intern << std::endl;
+  std::cout << "--------Itrerators----------"<< std::endl; 
+  for(int i=0; i<nest_features.iterators.size();i++){
+    std::cout << "--------------------"<< std::endl; 
+   std::cout << "iterator name " <<  nest_features.iterators[i].it_name << std::endl;
+   std::cout << "iterator level " <<  nest_features.iterators[i].it_level << std::endl;
+   std::cout << "iterator lower bound " <<  nest_features.iterators[i].lower_bound << std::endl;
+   std::cout << "iterator upper bound " <<  nest_features.iterators[i].upper_bound << std::endl;
+   std::cout << "Is the loop level prallelized " <<  nest_features.iterators[i].parallelized << std::endl;
+   std::cout << "the loop level vectorization factor " <<  nest_features.iterators[i].vectorization_factor << std::endl;
+    std::cout << "loop level dpendencies lower bound "<< std::endl; 
+    for(int j=0;j<nest_features.iterators[i].dependencies_lower.size();j++){
+        std::cout << nest_features.iterators[i].dependencies_lower[j]<< std::endl;
+            }
+     std::cout << "loop level dpendencies upper bound"<< std::endl;
+    for(int j=0;j<nest_features.iterators[i].dependencies_upper.size();j++){
+        std::cout << nest_features.iterators[i].dependencies_upper[j]<< std::endl;
+    } 
+   std::cout << "--------------------"<< std::endl; 
+  }
+   std::cout << "--------operation----------"<< std::endl; 
+     for(int i=0; i<nest_features.operations_features.size();i++){
+     std::cout << "operation loop levels  " <<  nest_features.operations_features[i].op_loop_level<< std::endl;
+     std::cout << "operation rank  " <<  nest_features.operations_features[i].op_rank<< std::endl;
+     std::cout << "Number of operands  " <<  nest_features.operations_features[i].nb_operands<< std::endl;
+     std::cout << "Number of variables  " <<  nest_features.operations_features[i].nb_var<< std::endl;
+     std::cout << "Number of constants  " <<  nest_features.operations_features[i].nb_constant<< std::endl;
+     std::cout << "Number of libraries calls  " <<  nest_features.operations_features[i].nb_library_call<< std::endl;
+     std::cout << "-----int ops histogram------"<< std::endl; 
+     for(int j=0;j<nest_features.operations_features[i].hitograme_int_ops.size();j++){
+     std::cout  <<  nest_features.operations_features[i].hitograme_int_ops[j]<< std::endl;
+     }
+     std::cout << "-----float ops histogram------"<< std::endl; 
+     for(int j=0;j<nest_features.operations_features[i].hitograme_double_ops.size();j++){
+     std::cout  <<  nest_features.operations_features[i].hitograme_double_ops[j]<< std::endl;
+     }
+    std::cout << "--------------------"<< std::endl; 
+     std::cout  << "Number of int loads  "<< nest_features.operations_features[i].histograme_loads[0]<< std::endl;
+     std::cout  << "Number of int o_access operations  "<< nest_features.operations_features[i].histograme_loads[4]<< std::endl;
+     std::cout  << "Number of floats loads  "<< nest_features.operations_features[i].histograme_loads[1]<< std::endl;
+     std::cout  << "Number of float o_access operations  "<< nest_features.operations_features[i].histograme_loads[5]<< std::endl;
+     std::cout  << "Number of int stores  "<< nest_features.operations_features[i].histograme_stores[0]<< std::endl;
+    std::cout  << "Number of float stores  "<< nest_features.operations_features[i].histograme_stores[1]<< std::endl;
+     }
+     std::cout << "--------schedule----------"<< std::endl; 
+     std::map<std::string,std::vector<local_schedule_features>>::iterator it = nest_features.local_schedule.find("tile");
+     if (it != nest_features.local_schedule.end()){
+          std::cout  << "tile " << std::endl;
+        for(int j=0; j< it->second.size();j++){
+           std::cout  << "levels " << std::endl;
+          for(int i=0; i< it->second[j].levels.size();i++)
+           std::cout  <<  it->second[j].levels[i] << std::endl;    
+            std::cout  << "factors " << std::endl;
+          for(int i=0; i< it->second[j].factors.size();i++)
+          std::cout  <<  it->second[j].factors[i] << std::endl;
+        } //tile max deux fois 
+        }
+       it = nest_features.local_schedule.find("skew");
+     if (it != nest_features.local_schedule.end()){
+          std::cout  << "skew " << std::endl;
+        for(int j=0; j< it->second.size();j++){
+           std::cout  << "levels " << std::endl;
+          for(int i=0; i< it->second[j].levels.size();i++)
+            std::cout  <<  it->second[j].levels[i]<< std::endl;
+            std::cout  << "factors " << std::endl;
+          for(int i=0; i< it->second[j].factors.size();i++)
+             std::cout  <<  it->second[j].factors[i]<< std::endl;
+        }
+        }
+       it = nest_features.local_schedule.find("split");
+     if (it != nest_features.local_schedule.end()){
+          std::cout  << "split " << std::endl;
+        for(int j=0; j< it->second.size();j++){
+           std::cout  << "levels " << std::endl;
+          for(int i=0; i< it->second[j].levels.size();i++)
+            std::cout  <<  it->second[j].levels[i] << std::endl;
+            std::cout  << "factors " << std::endl;
+          for(int i=0; i< it->second[j].factors.size();i++)
+            std::cout  <<  it->second[j].factors[i] << std::endl;
+        }
+        }
+          it = nest_features.local_schedule.find("vectorize");
+     if (it != nest_features.local_schedule.end()){
+          std::cout  << "vectorize " << std::endl;
+        for(int j=0; j< it->second.size();j++){
+           std::cout  << "levels " << std::endl;
+          for(int i=0; i< it->second[j].levels.size();i++)
+           std::cout  <<   it->second[j].levels[i] << std::endl ;
+            std::cout  << "factors " << std::endl;
+          for(int i=0; i< it->second[j].factors.size();i++)
+           std::cout  <<   it->second[j].factors[i] << std::endl ;
+        }
+       } 
 }
+
+void tiramisu::computation::computation_features_to_csvfile(){
+
+ std::string line="";
+ std::string delimiter = ",";
+ std::string additive_iterators = "NULL,NULL,NULL,";
+ std::string additive_iterators_last = "NULL,NULL,NULL";
+ int max_iterators=10;
+ 
+ std::ofstream fcsv;
+ fcsv.open(CSV_FILE_PATH, std::ios_base::app);
+ if (fcsv.is_open()){
+ computation_features_struct nest_features= this->get_computation_features();
+  // first colomn contains the real line column ( this is important for masking data while training)
+  int mask=17+ 3* nest_features.iterators.size();
+  line = line+std::to_string(mask)+delimiter;
+  //--------Computation features----------" 
+  // DataSet doesn't contain this case 
+ // line = line+ std::to_string(nest_features.is_pedicate) +delimiter; 
+  line = line+std::to_string(nest_features.loop_levels)+delimiter;
+  // DataSet doesn't contain this case 
+ // line = line+std::to_string(nest_features.nb_dependencies_intern)+delimiter;
+  //-------operation----------
+     for(int i=0; i<nest_features.operations_features.size();i++){
+     // operation loop level is correlated with the loop_levels (operation loop level=loop_levels - 1)
+     //  line = line+ std::to_string(nest_features.operations_features[i].op_loop_level)+delimiter;
+       // TODO: op_rank will be use in multiple computations case 
+      // line = line+ std::to_string(nest_features.operations_features[i].op_rank +delimiter;
+       line = line+ std::to_string(nest_features.operations_features[i].nb_operands)+delimiter;
+       line = line+ std::to_string(nest_features.operations_features[i].nb_var)+delimiter;
+       line = line+ std::to_string(nest_features.operations_features[i].nb_constant)+delimiter;
+       //Data set doesn't contain any library call yet
+       //line = line+ std::to_string(nest_features.operations_features[i].nb_library_call)+delimiter;
+      //-----int ops histogram------
+      for(int j=0;j<nest_features.operations_features[i].hitograme_int_ops.size()-3;j++){
+        // + - x : ( min max mod  are not used in in the data set) 
+       line = line+ std::to_string(nest_features.operations_features[i].hitograme_int_ops[j])+delimiter;
+       }
+      //-----float ops histogram------
+       for(int j=0;j<nest_features.operations_features[i].hitograme_double_ops.size()-3;j++){
+       line = line+ std::to_string(nest_features.operations_features[i].hitograme_double_ops[j])+delimiter;
+       }
+      //-----load and stors-----------
+       // number of total int loads 
+      line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[0])+delimiter;
+
+       //int o_access operations 
+       line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[4])+delimiter;
+
+       // total float loads
+       line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[1])+delimiter;
+
+       //Number of float o_access operations 
+       line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[5])+delimiter;
+       //Number of int stores ( one store in the case of one computation) 
+      // line = line+ std::to_string(nest_features.operations_features[i].histograme_stores[0])+delimiter;
+       //Number of float stores 
+      // line = line+ std::to_string(nest_features.operations_features[i].histograme_stores[1]);
+     }
+ //--------Itrerators----------" 
+  for(int i=0; i<nest_features.iterators.size();i++){
+  // line = line+ std::to_string(nest_features.iterators[i].it_level)+delimiter;
+   line = line+ std::to_string(nest_features.iterators[i].lower_bound)+delimiter;
+   line = line+ std::to_string(nest_features.iterators[i].upper_bound)+delimiter;
+   line = line+ std::to_string(nest_features.iterators[i].parallelized)+delimiter;
+  // line = line+ std::to_string(nest_features.iterators[i].vectorization_factor)+delimiter;
+   /* TODO: verify the influence of factors dependencies in regression
+   //loop level dpendencies lower bound 
+    for(int j=0;j<nest_features.iterators[i].dependencies_lower.size();j++){
+
+       line = line+ std::to_string(nest_features.iterators[i].dependencies_lower[j])+delimiter;
+    }
+    //loop level dpendencies upper bound
+    for(int j=0;j<nest_features.iterators[i].dependencies_upper.size();j++){
+      line = line+ std::to_string(nest_features.iterators[i].dependencies_upper[j])+delimiter;
+    } 
+    */
+  }
+  // add the additive iterators to have a fixed features size for each computation
+  for(int i=nest_features.iterators.size();i< max_iterators;i++){
+      if (i== max_iterators -1){
+          line = line+additive_iterators_last;
+      }
+      else{
+        line = line+additive_iterators;
+      }
+   
+  }
+   
+     // -------schedule----------
+       /* 
+       // the iterators structure is updated after Tile application  
+        std::map<std::string,std::vector<local_schedule_features>>::iterator it = nest_features.local_schedule.find("tile");
+      if (it != nest_features.local_schedule.end()){
+         //tile 
+        for(int j=0; j< it->second.size();j++){
+          //levels 
+          for(int i=0; i< it->second[j].levels.size();i++)
+            line = line+ std::to_string(it->second[j].levels[i])+delimiter;
+           //factors 
+          for(int i=0; i< it->second[j].factors.size();i++)
+           line = line+ std::to_string(it->second[j].factors[i])+delimiter;
+        } 
+        }
+     //The DataSet schedules for the moment doesn't contain any case of split optimization
+          it = nest_features.local_schedule.find("split");
+          if (it != nest_features.local_schedule.end()){
+          //split 
+          for(int j=0; j< it->second.size();j++){
+            //"levels 
+          for(int i=0; i< it->second[j].levels.size();i++)
+            line = line+ std::to_string(it->second[j].levels[i] )+delimiter;
+          //factors 
+          for(int i=0; i< it->second[j].factors.size();i++)
+            line = line+ std::to_string(it->second[j].factors[i] )+delimiter;
+        }
+        }
+
+      //The DataSet schedules for the moment doesn't contain any case of skew optimization
+       it = nest_features.local_schedule.find("skew");
+       if (it != nest_features.local_schedule.end()){
+         for(int j=0; j< it->second.size();j++){
+          //levels 
+          for(int i=0; i< it->second[j].levels.size();i++)
+          line = line+ std::to_string(it->second[j].levels[i])+delimiter;
+          //factors 
+          for(int i=0; i< it->second[j].factors.size();i++)
+            line = line+ std::to_string(it->second[j].factors[i])+delimiter;
+         }
+        }
+     
+        it = nest_features.local_schedule.find("vectorize");
+        if (it != nest_features.local_schedule.end()){
+          //vectorize 
+          for(int j=0; j< it->second.size();j++){
+          //levels 
+          for(int i=0; i< it->second[j].levels.size();i++)
+           line = line+ std::to_string(it->second[j].levels[i])+delimiter;
+           //factors 
+          for(int i=0; i< it->second[j].factors.size();i++)
+          line = line+ std::to_string(it->second[j].factors[i] )+delimiter;
+        }
+       }
+       */
+      line = line+"\n";
+      fcsv << line;
+      fcsv.close();
+   }
+}
+
+/****************************************************************************
+ ****************************************************************************
+ ******************* features_extractor class *******************************
+ ****************************************************************************
+ ****************************************************************************/
+
+computation_features_struct features_extractor::computation_features_extractor(computation* comp){
+     computation_features_struct nest_features;
+     nest_features.coputation_name = comp->get_name();
+     nest_features.loop_levels = comp->get_loop_levels_number();
+     nest_features.iterators = features_extractor::iterator_features_extractor(comp->get_iterator_variables(),nest_features.nb_dependencies_intern);
+     nest_features.operations_features.push_back(features_extractor::operation_features_extractor(comp));
+      if(comp->get_predicate().is_defined()){
+        nest_features.is_pedicate=1;
+      }else{
+        nest_features.is_pedicate= 0;
+      } 
+     //nest_features.local_schedule = comp->get_computation_features().local_schedule;
+     //nest_features.global_schedule = comp->get_computation_features().global_schedule;
+    return nest_features;
+}
+
+std::vector<iterator_features> features_extractor::iterator_features_extractor(std::vector<var> list_vars, int & nb_dependencies){
+std::vector<iterator_features> lists_features;
+iterator_features list_features;
+expr upper_expr;
+expr lower_expr;
+nb_dependencies=0;
+ for(int i = 0; i < list_vars.size(); i++)
+ {  
+    iterator_features_initializer(& list_features);
+    list_features.it_level=i;
+    list_features.it_name=list_vars[i].get_name();
+    lower_expr= list_vars[i].get_lower(); 
+    upper_expr= list_vars[i].get_upper();
+
+     if( lower_expr.get_expr_type() == e_val){
+         list_features.lower_bound=lower_expr.get_int_val();
+      
+      }else{ 
+          if (lower_expr.get_expr_type() == e_var){
+          std::string constant_c = lower_expr.get_name();
+          constant *cc = global::get_implicit_function()->get_invariant_by_name(constant_c);
+          list_features.lower_bound = cc->get_expr().get_int32_value();
+         }       
+          // TODO: bounds extimation 
+           // if (lower_expr.get_expr_type() == e_var || lower_expr.get_expr_type() == e_op){
+           // features_extractor::iterator_dependencies(lower_expr,list_vars,list_features.dependencies_lower,nb_dependencies);
+          
+         } 
+     if( upper_expr.get_expr_type() == e_val){
+         list_features.upper_bound=upper_expr.get_int_val();
+     }else{
+         if (upper_expr.get_expr_type() == e_var){
+          std::string constant_name = upper_expr.get_name();
+          constant *c = global::get_implicit_function()->get_invariant_by_name(constant_name);
+         list_features.upper_bound = c->get_expr().get_int32_value();
+         }
+          // TODO: bounds extimation
+         //  if (upper_expr.get_expr_type() == e_var || upper_expr.get_expr_type() == e_op){
+        //  features_extractor::iterator_dependencies(upper_expr,list_vars,list_features.dependencies_upper,nb_dependencies);
+           //list_features.lower_bound=lower_expr.simplify().get_int_val();
+         // }
+        } 
+        
+    lists_features.push_back(list_features); 
+  }  
+  return lists_features;
+}
+
+operation_features features_extractor::operation_features_extractor(computation* comp){
+    operation_features op_features;
+    expr e = comp->get_expr();
+    operation_features_initializer(&op_features); 
+    features_extractor::re_expr_features_extractor(e, &op_features); 
+     // initially (before scheduling) the operation is assigned to the innermost loop level
+     op_features.op_loop_level=comp->get_loop_levels_number()-1;
+    if(is_int(e.get_data_type())){
+        // 0 index for int stores
+       op_features.histograme_stores[0]=1;
+    }else if(is_float(e.get_data_type())){ 
+       // 1 index for int stores
+      op_features.histograme_stores[1]=1;  
+    } 
+    // initialy (before scheduling) the computation contains one operation
+    op_features.op_rank=1;
+  return op_features;
+}
+
+ void features_extractor::re_expr_features_extractor(expr e, operation_features * op_features) 
+    {
+        if (e.get_expr_type() != e_none)
+        {
+                if (e.is_defined())
+                {  
+                        
+                    switch (e.get_expr_type())
+                    {
+                    case tiramisu::e_op:
+                    {   // Calculate the number of operands 
+                       if (e.get_n_arg() > 0)
+                       {  
+                         op_features->nb_operands= op_features->nb_operands+e.get_n_arg(); 
+                            
+                           for (int i = 0; i < e.get_n_arg(); i++)
+                            {
+                                features_extractor::re_expr_features_extractor(e.get_operand(i),op_features);
+                            }   
+                          if( is_int(e.get_data_type()) ){
+                          // creat the histogram of operations 
+                          switch (e.get_op_type()){
+                           case tiramisu::o_add: // index 0 of hitograme_int_ops for addition operation 
+                            {
+                             op_features->hitograme_int_ops[0]=op_features->hitograme_int_ops[0]+ 1;
+                             break;
+                            }
+                           case tiramisu::o_sub: // index 1 of hitograme_int_ops for subtraction
+                           {
+                            op_features->hitograme_int_ops[1]=op_features->hitograme_int_ops[1]+1;  
+                            break; 
+                           }
+                           case tiramisu::o_mul:
+                           {   
+                            op_features->hitograme_int_ops[2]=op_features->hitograme_int_ops[2]+1;   
+                            break;
+                           }
+                           case tiramisu::o_div:
+                           {
+                            op_features->hitograme_int_ops[3]=op_features->hitograme_int_ops[3]+1;      
+                            break; 
+                           }
+                           case tiramisu::o_min:
+                           {
+                            op_features->hitograme_int_ops[4]=op_features->hitograme_int_ops[4]+1;      
+                            break; 
+                           }
+                           case tiramisu::o_max:
+                           {
+                            op_features->hitograme_int_ops[5]=op_features->hitograme_int_ops[5]+1;      
+                            break; 
+                           }
+                           case tiramisu::o_mod:
+                            {
+                            op_features->hitograme_int_ops[6]=op_features->hitograme_int_ops[6]+1;       
+                            break; 
+                            }  
+                            default:
+                             // All other operations 
+                             op_features->hitograme_int_ops[7]=op_features->hitograme_int_ops[7]+1;          
+                          }
+                         }else{
+                          if(is_float(e.get_data_type())){ 
+                           switch (e.get_op_type()){
+                           case tiramisu::o_add:
+                            { 
+                            op_features->hitograme_double_ops[0]=op_features->hitograme_double_ops[0]+1;
+                            break;
+                            }
+                           case tiramisu::o_sub:
+                           {
+                            op_features->hitograme_double_ops[1]=op_features->hitograme_double_ops[1]+1;   
+                            break; 
+                           }
+                           case tiramisu::o_mul:
+                           {   
+                            op_features->hitograme_double_ops[2]=op_features->hitograme_double_ops[2]+1;   
+                            break;
+                           }
+                           case tiramisu::o_div:
+                           {
+                            op_features->hitograme_double_ops[3]=op_features->hitograme_double_ops[3]+1;   
+                            break; 
+                           }
+                           case tiramisu::o_min:
+                           {
+                            op_features->hitograme_double_ops[4]=op_features->hitograme_double_ops[4]+1;   
+                            break; 
+                           }
+                           case tiramisu::o_max:
+                           {
+                            op_features->hitograme_double_ops[5]=op_features->hitograme_double_ops[5]+1;   
+                            break; 
+                           }
+                           case tiramisu::o_mod:
+                           {
+                            op_features->hitograme_double_ops[6]=op_features->hitograme_double_ops[6]+1;   
+                            break; 
+                           }
+                           default:
+                             // All other operations 
+                             op_features->hitograme_double_ops[7]=op_features->hitograme_double_ops[7]+1;
+                          }
+                         } 
+                        
+                        }  
+                     }
+                     // Creat the histogram of access
+                     //TODO: loads unit
+                     if ((e.get_op_type() == tiramisu::o_access))
+                        {     // temporary variables used to sum o_access operations
+                              op_features->histograme_loads[2]=1; // for int type access 
+                              op_features->histograme_loads[3]=1;  // for float type access 
+                              int upper=0; 
+                              int lower=0;
+                              for (const auto &ex : e.get_access())
+                              {    // TODO: ex.get_expr_type() == e_op
+                                  if (ex.get_expr_type() == e_var) 
+                                 {      tiramisu::var iterator =  tiramisu::var::get_declared_vars().find(ex.get_name())->first;
+                                        if (iterator.is_defined()){
+                                           if (iterator.get_upper().get_expr_type() == e_val){
+                                              upper=iterator.get_upper().get_int_val();
+                                           }
+                                           if (iterator.get_upper().get_expr_type() == e_var){
+                                                std::string constant_name = iterator.get_upper().get_name();
+                                                constant *c = global::get_implicit_function()->get_invariant_by_name(constant_name);
+                                                 upper = c->get_expr().get_int32_value();
+                                            }
+                                            // TODO : special case when iterator bounds must be estimated 
+                                           if (iterator.get_upper().get_expr_type() == e_op ){
+                                              upper=0;
+                                            }
+                                           if (iterator.get_lower().get_expr_type() == e_val){
+                                               lower =iterator.get_lower().get_int_val(); 
+                                           }
+                                           if (iterator.get_lower().get_expr_type() == e_var){
+                                                std::string constant_c = iterator.get_lower().get_name();
+                                                constant *cc = global::get_implicit_function()->get_invariant_by_name(constant_c);
+                                                lower = cc->get_expr().get_int32_value();
+                                              
+                                           }
+                                            // TODO : special case when iterator bounds must be estimated 
+                                            if (iterator.get_lower().get_expr_type() == e_var){
+                                               lower =0;
+                                           }
+
+                                           int span= upper - lower; 
+                                           if(is_int(e.get_data_type())){
+                                             op_features->histograme_loads[2]=op_features->histograme_loads[2]*span;
+                                          } else if(is_float(e.get_data_type())){ 
+                                            op_features->histograme_loads[3]=op_features->histograme_loads[3]*span;
+                                           } 
+                                     }
+                                  } 
+                                  
+                                 features_extractor::re_expr_features_extractor(ex,op_features); 
+                              }  
+                               if(is_int(e.get_data_type())){
+                                   // update number of int loads 
+                                    op_features->histograme_loads[0]=op_features->histograme_loads[0]+op_features->histograme_loads[2];
+                                    // update the number of o_access operation for int type 
+                                     op_features->histograme_loads[4]= op_features->histograme_loads[4]+1; 
+                                } else if(is_float(e.get_data_type())){  
+                                    // update number of float loads 
+                                            op_features->histograme_loads[1]=op_features->histograme_loads[1]+op_features->histograme_loads[3];
+                                     // update the number of o_access operation for float type        
+                                             op_features->histograme_loads[5]= op_features->histograme_loads[5]+1; 
+                                           } 
+                               
+                                                                             
+                         }
+                    
+                      // Number of libraries calls     
+                     if ((e.get_op_type() == tiramisu::o_call))
+                        {
+                            op_features->nb_library_call= op_features->nb_library_call+1;    
+                            for (const auto &ex : e.get_arguments())
+                            {
+                                features_extractor::re_expr_features_extractor(ex,op_features);
+                            }
+                        }
+                    break;   
+                    }
+                   // Number of constants 
+                    case (tiramisu::e_val):
+                    {
+                        op_features->nb_constant++;
+                        break;
+                    }
+                    // Number of variables 
+                    case (tiramisu::e_var):
+                    {
+                        op_features->nb_var++;
+                        break;
+                    }
+                     default: {} // other expression types are not used as operation features
+                                           
+                  }
+                }
+        }
+    }
+
+   
+ void features_extractor::operation_features_initializer(operation_features * op_features){
+    op_features->op_loop_level=0;
+    op_features->op_rank=1;
+    op_features->nb_library_call=0;
+    op_features->nb_operands=0;
+    op_features->nb_var=0;
+    op_features->nb_constant=0;
+    op_features->hitograme_int_ops.insert(op_features->hitograme_int_ops.end(), { 0, 0,0, 0,0,0,0});
+    op_features->hitograme_double_ops.insert(op_features->hitograme_double_ops.end(), { 0, 0,0, 0,0,0,0 });
+    op_features->histograme_loads.insert(op_features->histograme_loads.end(), { 0, 0,0, 0,0,0 });
+    op_features->histograme_stores.insert(op_features->histograme_stores.end(), { 0, 0,0, 0,0,0 });
+}
+void features_extractor::iterator_features_initializer(iterator_features * it){
+    std::vector<int> v(10,-1);
+    it->it_level=-1;
+    it->it_name="";
+    it->lower_bound=-1;
+    it->upper_bound=-1;
+    it->dependencies_lower=v;
+    it->dependencies_upper=v;
+    it->parallelized= false;
+    it->vectorization_factor=0;
+}
+   
+
+ void features_extractor::iterator_dependencies(expr e, std::vector<var> list_vars, std::vector<int>& vec,int & nb_dependencies){
+        if (e.get_expr_type() != e_none){
+          if(e.get_expr_type()==e_var){
+           //get the  iterator index
+           std::vector<var>::iterator it = std::find(list_vars.begin(), list_vars.end(),e);
+           
+           if(it != list_vars.end()){
+            auto index= std::distance(list_vars.begin(),it);
+             vec.push_back(index);
+              nb_dependencies++;
+             }
+          }else{
+               if (e.get_expr_type() == e_op){
+                   for (int i = 0; i < e.get_n_arg(); i++){
+                      features_extractor::iterator_dependencies(e.get_operand(i),list_vars,vec,nb_dependencies);
+
+                    }
+                }
+           }
+       }
+
+    }
+}    
