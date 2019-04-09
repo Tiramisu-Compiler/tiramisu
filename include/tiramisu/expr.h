@@ -40,7 +40,7 @@ class global;
 template <typename T>
 using only_integral = typename std::enable_if<std::is_integral<T>::value, expr>::type;
 
-/**
+/** 
   * A class that holds all the global variables necessary for Tiramisu.
   * It also holds Tiramisu options.
   */
@@ -1823,6 +1823,13 @@ public:
      * tiramisu::var t;
      */
     var(): var(generate_new_variable_name(), true) {}
+
+    /**
+    *  Return the declared_vars: mapping from the name of the variable to the variable object 
+    */
+    static std::unordered_map<std::string, var> get_declared_vars();
+    
+    bool operator==(tiramisu::expr e) const { return this->get_name() == e.get_name() ;}
 };
    
 /**
