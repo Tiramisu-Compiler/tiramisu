@@ -8819,7 +8819,7 @@ operation_features features_extractor::operation_features_extractor(computation*
                           if(is_float(e.get_data_type())){ 
                            switch (e.get_op_type()){
                            case tiramisu::o_add:
-                            { 
+                            { 
                             op_features->hitograme_double_ops[0]=op_features->hitograme_double_ops[0]+1;
                             break;
                             }
