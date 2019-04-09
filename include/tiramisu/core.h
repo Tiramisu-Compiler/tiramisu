@@ -1,6 +1,7 @@
 #ifndef _H_TIRAMISU_CORE_
 #define _H_TIRAMISU_CORE_
-#define CSV_FILE_PATH "./utils/code_generator-unrolling/cmake-build-debug/samples/data.csv" // Path to the features extracted file 
+#define CSV_FILE_PATH "/data/scratch/b_asma/tiramisu_extract/tiramisu/utils/code_generator-unrolling/cmake-build-debug/samples/data.csv"
+ // Path to the features extracted file 
 #define AUTOMAT_MODE 1 // set to 1 if the automatic scheduling is allowed 
 
 #include <isl/set.h>
@@ -524,11 +525,7 @@ protected:
       */
     const std::vector<computation *> &get_computations() const;
 
-    /**
-      * Return the computation of the function that has
-      * the name \p str.
-      */
-    std::vector<computation *> get_computation_by_name(std::string str) const;    
+     
 
     /**
       * Return a string representing the name of the GPU block iterator at
@@ -931,6 +928,12 @@ public:
       * this function.
       */
     void dump_halide_stmt() const;
+
+    /**
+      * Return the computation of the function that has
+      * the name \p str.
+      */
+    std::vector<computation *> get_computation_by_name(std::string str) const;   
 
     /**
       * \brief Dump the iteration domain of the function.
