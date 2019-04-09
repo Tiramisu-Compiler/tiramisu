@@ -84,6 +84,7 @@ void init()
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
 {
     function *fct = global::get_implicit_function();
+    
     // write computation features in csv file 
      if (AUTOMAT_MODE){
     std::vector<tiramisu::computation *> comput = fct->get_computation_by_name("comp0"); 
@@ -5936,7 +5937,6 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
     // extract computation feature if the AUTOMAT_MODE is  true
     if (AUTOMAT_MODE)
     this->extract_computation_features();
-
     DEBUG_INDENT(-4);
 }
 
@@ -6046,13 +6046,14 @@ computation::computation(std::string iteration_domain_str, tiramisu::expr e,
 
 computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
 {
+    
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
     std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
     DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
-
+    this->set_iterator_variables(iterator_variables);
     init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, t);
     is_let = false;
 
@@ -6091,6 +6092,7 @@ computation::computation(std::string name, std::vector<var> iterator_variables, 
 
 computation::computation(std::vector<var> iterator_variables, expr e, bool schedule_this_computation)
         : computation(generate_new_computation_name(), iterator_variables, e, schedule_this_computation) {}
+
 
 computation::computation(std::string name, std::vector<var> iterator_variables, expr e)
         : computation(name, iterator_variables, e, true, e.get_data_type()) {}
@@ -7100,66 +7102,6 @@ tiramisu::constant::constant(
     DEBUG_NO_NEWLINE(10, tiramisu::str_dump("The computation representing the assignment:"); this->dump(true));
 
     DEBUG_INDENT(-4);
-}
-
-tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation)
-{
-     this->set_iterator_variables(iterator_variables);
-    
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
-    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
-    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
-
-    init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, e.get_data_type());
-    is_let = false;
-
-    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
-    DEBUG_INDENT(-4);
-}
-//overloaded
-tiramisu::computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
-{
-    this->set_iterator_variables(iterator_variables);
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
-    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
-    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
-
-    init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, t);
-    is_let = false;
-
-    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
-    DEBUG_INDENT(-4);
-}
-
-tiramisu::computation::computation(std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation):
-        computation(generate_new_computation_name(), iterator_variables, e, schedule_this_computation)
-{
-}
-
-tiramisu::computation::computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e)
-{   this->set_iterator_variables(iterator_variables);
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-
-    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
-    DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
-
-    init_computation(iteration_space_str, global::get_implicit_function(), e, true, e.get_data_type());
-    is_let = false;
-
-    DEBUG(3, tiramisu::str_dump("Constructed computation: "); this->dump());
-    DEBUG_INDENT(-4);
-}
-
-tiramisu::computation::computation(std::vector<var> iterator_variables, tiramisu::expr e):
-        computation(generate_new_computation_name(), iterator_variables, e)
-{
 }
 
 std::string tiramisu::computation::construct_iteration_domain(std::string name, std::vector<var> iterator_variables)
