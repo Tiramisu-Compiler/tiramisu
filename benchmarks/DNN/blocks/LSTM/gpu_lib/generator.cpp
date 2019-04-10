@@ -22,6 +22,8 @@ int main(int argc, char **argv)
     // Outer dimensions
     var l("l", 0, NUM_LAYERS), s("s", 0, SEQ_LENGTH);
     var s0("s0", 0, SEQ_LENGTH / GEMM_BATCH), s1("s1", 0, GEMM_BATCH);
+    // After skewing
+    var l_s("l_s"), s_s("s_s");
 
     input b("b", {l, i_merged}, p_float32);
     input x("x", {s, k, i}, p_float32);
@@ -37,10 +39,10 @@ int main(int argc, char **argv)
     buffer buf_biases("buf_biases", {NUM_LAYERS, 4 * FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_x("buf_x", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_y("buf_y", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp_i("buf_tmp_i", {BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp_z("buf_tmp_z", {BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp_o("buf_tmp_o", {BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
-    buffer buf_tmp_f("buf_tmp_f", {BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_tmp_i("buf_tmp_i", {NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_tmp_z("buf_tmp_z", {NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_tmp_o("buf_tmp_o", {NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
+    buffer buf_tmp_f("buf_tmp_f", {NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
     buffer buf_c("buf_c", {NUM_LAYERS, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
     buf_Weights.tag_gpu_global();
     buf_h.tag_gpu_global();
@@ -91,6 +93,7 @@ int main(int argc, char **argv)
     c.set_expression(mul_iz(l, s, k, i) + mul_fc(l, s, k, i));
     computation tnh_c({l, s, k, i}, expr(o_tanh, c(l, s, k, i)));
     h.set_expression(tnh_c(l, s, k, i) * sig_o(l, s, k, i));
+    computation stream_sync({l, s0}, cuda_stream_synchronize());
     // Output is the last layer
     computation y({s, k, i}, h(NUM_LAYERS - 1, s, k, i));
     // Copies
@@ -105,10 +108,19 @@ int main(int argc, char **argv)
 
     block nonlinear_block({&sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz, &mul_fc, &c,
                            &tnh_c, &h});
+    // Batch Input GEMMs
     block({&sum2, &nonlinear_block}).split(s, GEMM_BATCH, s0, s1);
     block ki_block({&h_init, &c_init, &h_copy_x, &nonlinear_block, &y});
+    // Interchange to get better locality
     ki_block.interchange(k, i);
     ki_block.gpu_tile(i, k, 16, 16, i0, k0, i1, k1);
+    block lstm_block({&sum1, &sum2, &nonlinear_block, &stream_sync});
+    // Skew and interchange to get diagonal traversal
+    lstm_block.skew(l, s0, 1, l_s, s_s);
+    lstm_block.interchange(l_s, s_s);
+    // Parallelize diagonal traversal
+    // Due to a bug in tagging system we only need to parallelize one computation
+    sum1.parallelize(l_s);
 
     // Scheduling commands
     copy_Weights_to_device
@@ -118,7 +130,7 @@ int main(int argc, char **argv)
             .then(c_init, computation::root)
             .then(h_copy_x, computation::root)
             .then(sum1, computation::root)
-            .then(sum2, s0)
+            .then(sum2, l_s)
             .then(sig_i, s1)
             .then(tnh_z, k1)
             .then(sig_o, k1)
@@ -128,6 +140,7 @@ int main(int argc, char **argv)
             .then(c, k1)
             .then(tnh_c, k1)
             .then(h, k1)
+            .then(stream_sync, l_s)
             .then(y, computation::root)
             .then(copy_y_to_host, computation::root);
 
@@ -139,13 +152,13 @@ int main(int argc, char **argv)
     b.store_in(&buf_biases, {l, i_merged});
     x.store_in(&buf_x);
     y.store_in(&buf_y);
-    sig_i.store_in(&buf_tmp_i, {k, i});
-    tnh_z.store_in(&buf_tmp_z, {k, i});
-    sig_o.store_in(&buf_tmp_o, {k, i});
-    sig_f.store_in(&buf_tmp_f, {k, i});
-    mul_iz.store_in(&buf_tmp_i, {k, i});
-    mul_fc.store_in(&buf_tmp_f, {k, i});
-    tnh_c.store_in(&buf_tmp_i, {k, i});
+    sig_i.store_in(&buf_tmp_i, {l, k, i});
+    tnh_z.store_in(&buf_tmp_z, {l, k, i});
+    sig_o.store_in(&buf_tmp_o, {l, k, i});
+    sig_f.store_in(&buf_tmp_f, {l, k, i});
+    mul_iz.store_in(&buf_tmp_i, {l, k, i});
+    mul_fc.store_in(&buf_tmp_f, {l, k, i});
+    tnh_c.store_in(&buf_tmp_i, {l, k, i});
     h.store_in(&buf_h, {l + 1, s + 1, k, i});
     c.store_in(&buf_c, {l, s + 1, k, i});
     h_init.store_in(&buf_h, {l + 1, 0, k, i});
