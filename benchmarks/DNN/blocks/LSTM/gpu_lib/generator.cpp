@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     computation h_init({l, k, i}, expr(float(0)));
     computation c_init({l, k, i}, expr(float(0)));
     computation h_copy_x({s, k, i}, x(s, k, i));
-    // Multiplication from input is 2xbatched:
+    // Multiplication from input is batched:
     computation sum1({l, s0},
         cublas_sgemm(buf_h, *weights_T.get_buffer(), *tmp.get_buffer(),
                      GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
@@ -108,6 +108,20 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
+
+    // Fuse kernels by moving gpu iterators out
+    weights_T.interchange(w_t_i, j);
+    weights_T.interchange(w_t_i, i_merged);
+    weights_T.interchange(l, j);
+    weights_T.interchange(l, i_merged);
+    h_init.interchange(l, k);
+    h_init.interchange(l, i);
+    c_init.interchange(l, k);
+    c_init.interchange(l, i);
+    h_copy_x.interchange(s, k);
+    h_copy_x.interchange(s, i);
+    y.interchange(s, k);
+    y.interchange(s, i);
 
     weights_T.gpu_tile(j, i_merged, 16, 16);
     block nonlinear_block({&sig_i, &tnh_z, &sig_o, &sig_f, &mul_iz, &mul_fc, &c,
