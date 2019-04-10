@@ -10,6 +10,14 @@
 
 typedef std::chrono::duration<double,std::milli> duration_t;
 
+// Helper function to record GPU time from inside the function
+extern "C"
+float get_time(int32_t dummy)
+{
+    static auto t0 = std::chrono::high_resolution_clock::now();
+    return duration_t(std::chrono::high_resolution_clock::now() - t0).count();
+}
+
 int main(int argc, char *argv[])
 {
     int check_correctness = 0;
@@ -47,6 +55,8 @@ int main(int argc, char *argv[])
     Halide::Buffer<float> buf_x(raw_x, {FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH});
     Halide::Buffer<float> buf_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
     Halide::Buffer<float> buf_ref_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
+    Halide::Buffer<float> time_start(1);
+    Halide::Buffer<float> time_end(1);
 
     if (check_correctness) {
         std::srand(0);
@@ -66,7 +76,9 @@ int main(int argc, char *argv[])
         lstm(buf_Weights.raw_buffer(),
              buf_biases.raw_buffer(),
              buf_x.raw_buffer(),
-             buf_y.raw_buffer());
+             buf_y.raw_buffer(),
+             time_start.raw_buffer(),
+             time_end.raw_buffer());
 
         lstm_ref(buf_Weights.raw_buffer(),
              buf_biases.raw_buffer(),
@@ -102,11 +114,14 @@ int main(int argc, char *argv[])
 
     setup_cudnn(SEQ_LENGTH, NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE);
 
+    // Warmup
     for (int i = 0; i < warmupN; i++) {
         lstm(buf_Weights.raw_buffer(),
              buf_biases.raw_buffer(),
              buf_x.raw_buffer(),
-             buf_y.raw_buffer());
+             buf_y.raw_buffer(),
+             time_start.raw_buffer(),
+             time_end.raw_buffer());
         run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
     }
 
@@ -116,23 +131,21 @@ int main(int argc, char *argv[])
 
     std::vector<duration_t> durations;
     for (int i = 0; i < testN_tiramisu; i++) {
-        auto t1 = std::chrono::high_resolution_clock::now();
         lstm(buf_Weights.raw_buffer(),
              buf_biases.raw_buffer(),
              buf_x.raw_buffer(),
-             buf_y.raw_buffer());
-        auto t2 = std::chrono::high_resolution_clock::now();
-        durations.push_back(t2 - t1);
+             buf_y.raw_buffer(),
+             time_start.raw_buffer(),
+             time_end.raw_buffer());
+        durations.push_back(duration_t(time_end(0) - time_start(0)));
     }
 
     std::cout << "LSTM done" << std::endl;
 
     std::vector<duration_t> cudnn_durations;
     for (int i = 0; i < testN_cudnn; i++) {
-        auto t1 = std::chrono::high_resolution_clock::now();
-        run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
-        auto t2 = std::chrono::high_resolution_clock::now();
-        cudnn_durations.push_back(t2 - t1);
+        float t = run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
+        cudnn_durations.push_back(duration_t(t));
     }
 
     free_cudnn();

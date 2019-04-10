@@ -105,6 +105,10 @@ int main(int argc, char **argv)
     computation copy_x_to_device({}, memcpy(buf_x_cpu, buf_x));
     computation copy_y_to_host({}, memcpy(buf_y, buf_y_cpu));
 
+    computation final_stream_sync({var("dummy", 0, 1)}, cuda_stream_synchronize());
+    computation time_start({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+    computation time_end({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -144,6 +148,7 @@ int main(int argc, char **argv)
     copy_Weights_to_device
             .then(copy_biases_to_device, computation::root)
             .then(copy_x_to_device, computation::root)
+            .then(time_start, computation::root)
             .then(weights_T, computation::root)
             .then(h_init, computation::root)
             .then(c_init, computation::root)
@@ -161,6 +166,8 @@ int main(int argc, char **argv)
             .then(h, k1)
             .then(stream_sync, l_s)
             .then(y, computation::root)
+            .then(final_stream_sync, computation::root)
+            .then(time_end, computation::root)
             .then(copy_y_to_host, computation::root);
 
     // -------------------------------------------------------
@@ -193,6 +200,8 @@ int main(int argc, char **argv)
             &buf_biases_cpu,
             &buf_x_cpu,
             &buf_y_cpu,
+            time_start.get_buffer(),
+            time_end.get_buffer(),
         }, "lstm.o", true);
 
     return 0;
