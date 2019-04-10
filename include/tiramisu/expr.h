@@ -311,8 +311,10 @@ public:
         {
             tiramisu::str_dump("Binary operation between two expressions of different types:\n");
             expr0.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr0.get_data_type()) + ")");
             tiramisu::str_dump(" and ");
             expr1.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr1.get_data_type()) + ")");
             tiramisu::str_dump("\n");
             ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
         }
@@ -1993,5 +1995,11 @@ expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
                   expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
                   expr transposeA = false, expr transposeB = false);
 
+/**
+ * TODO: Documentation
+ */
+expr cuda_stream_synchronize();
+
 }
+
 #endif

@@ -177,7 +177,7 @@ expr tiramisu::expr::operator<<(tiramisu::expr other) const {
 }
 
 expr memcpy(const buffer &from, const buffer &to) {
-    return expr(o_memcpy, var(from.get_name()), var(to.get_name()));
+    return expr(o_memcpy, var(p_void_ptr, from.get_name()), var(p_void_ptr, to.get_name()));
 }
 
 expr allocate(const buffer &b)
@@ -204,9 +204,9 @@ expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
     }
     return expr(o_call, "tiramisu_cublas_sgemm",
             {
-                var(A.get_name()),
-                var(B.get_name()),
-                var(C.get_name()),
+                var(p_void_ptr, A.get_name()),
+                var(p_void_ptr, B.get_name()),
+                var(p_void_ptr, C.get_name()),
                 cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K),
                 cast(p_float32, alpha), cast(p_float32, beta),
                 cast(p_uint64, ldA), cast(p_uint64, ldB), cast(p_uint64, ldC),
@@ -214,6 +214,11 @@ expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
                 cast(p_boolean, transposeA), cast(p_boolean, transposeB)
             },
             tiramisu::p_uint8);
+}
+
+expr cuda_stream_synchronize()
+{
+    return expr(o_call, "tiramisu_cuda_stream_synchronize", {int32_t(0)}, tiramisu::p_int32);
 }
 
 }
