@@ -1996,7 +1996,9 @@ expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
                   expr transposeA = false, expr transposeB = false);
 
 /**
- * TODO: Documentation
+ * Synchronize CUDA streams of current thread. This should be used whenever CUDA
+ * kernels are run in parallel to make sure all kernel calls are done before
+ * destroying the thread.
  */
 expr cuda_stream_synchronize();
 
