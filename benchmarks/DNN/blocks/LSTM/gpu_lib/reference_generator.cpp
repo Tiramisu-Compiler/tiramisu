@@ -112,18 +112,18 @@ int main(int argc, char **argv)
     buffer buf_c("buf_c", {SEQ_LENGTH + 1, NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_temporary);
 
     // store_in workaround
-    R_i.store_in(&buf_Weights, {l, 0, i + 0 * FEATURE_SIZE, j});
-    R_z.store_in(&buf_Weights, {l, 0, i + 1 * FEATURE_SIZE, j});
-    R_o.store_in(&buf_Weights, {l, 0, i + 2 * FEATURE_SIZE, j});
-    R_f.store_in(&buf_Weights, {l, 0, i + 3 * FEATURE_SIZE, j});
-    W_i.store_in(&buf_Weights, {l, 1, i + 0 * FEATURE_SIZE, j});
-    W_z.store_in(&buf_Weights, {l, 1, i + 1 * FEATURE_SIZE, j});
-    W_o.store_in(&buf_Weights, {l, 1, i + 2 * FEATURE_SIZE, j});
-    W_f.store_in(&buf_Weights, {l, 1, i + 3 * FEATURE_SIZE, j});
+    W_i.store_in(&buf_Weights, {l, 0, i + 0 * FEATURE_SIZE, j});
+    W_f.store_in(&buf_Weights, {l, 0, i + 1 * FEATURE_SIZE, j});
+    W_z.store_in(&buf_Weights, {l, 0, i + 2 * FEATURE_SIZE, j});
+    W_o.store_in(&buf_Weights, {l, 0, i + 3 * FEATURE_SIZE, j});
+    R_i.store_in(&buf_Weights, {l, 1, i + 0 * FEATURE_SIZE, j});
+    R_f.store_in(&buf_Weights, {l, 1, i + 1 * FEATURE_SIZE, j});
+    R_z.store_in(&buf_Weights, {l, 1, i + 2 * FEATURE_SIZE, j});
+    R_o.store_in(&buf_Weights, {l, 1, i + 3 * FEATURE_SIZE, j});
     b_i.store_in(&buf_biases, {l, i + 0 * FEATURE_SIZE});
-    b_z.store_in(&buf_biases, {l, i + 1 * FEATURE_SIZE});
-    b_o.store_in(&buf_biases, {l, i + 2 * FEATURE_SIZE});
-    b_f.store_in(&buf_biases, {l, i + 3 * FEATURE_SIZE});
+    b_f.store_in(&buf_biases, {l, i + 1 * FEATURE_SIZE});
+    b_z.store_in(&buf_biases, {l, i + 2 * FEATURE_SIZE});
+    b_o.store_in(&buf_biases, {l, i + 3 * FEATURE_SIZE});
     x.store_in(&buf_x);
     y.store_in(&buf_y);
     sum_i_init.store_in(&buf_tmp_i, {k, i});

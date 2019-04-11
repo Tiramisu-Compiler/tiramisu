@@ -67,7 +67,7 @@ int main(int argc, char **argv)
                      1, 0,  // alpha, beta
                      0, 0, 0,  // ldABC
                      (l * (SEQ_LENGTH + 1) + s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
                      s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, false));
     computation sum2({l, s},
@@ -76,15 +76,15 @@ int main(int argc, char **argv)
                      1, 1,  // alpha, beta
                      0, 0, 0,  // ldABC
                      ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
                      s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                      false, false));
     // Nonlinear operations as well as biases
     #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
     computation sig_i({l, s, k, i},      sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + biases(l, i + 0 * FEATURE_SIZE)));
-    computation tnh_z({l, s, k, i}, expr(o_tanh, tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
-    computation sig_o({l, s, k, i},      sigmoid(tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
-    computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + biases(l, i + 3 * FEATURE_SIZE)));
+    computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
+    computation tnh_z({l, s, k, i}, expr(o_tanh, tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
+    computation sig_o({l, s, k, i},      sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + biases(l, i + 3 * FEATURE_SIZE)));
     // Update cells
     c.set_expression(sig_i(l, s, k, i) * tnh_z(l, s, k, i) + sig_f(l, s, k, i) * c(l, s - 1, k, i));
     h.set_expression(expr(o_tanh, c(l, s, k, i)) * sig_o(l, s, k, i));
@@ -149,9 +149,9 @@ int main(int argc, char **argv)
             .then(sum1, computation::root)
             .then(sum2, l_s)
             .then(sig_i, s1)
+            .then(sig_f, k1)
             .then(tnh_z, k1)
             .then(sig_o, k1)
-            .then(sig_f, k1)
             .then(c, k1)
             .then(h, k1)
             .then(stream_sync, l_s)
@@ -165,9 +165,9 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     sig_i.store_in(tmp.get_buffer(), {s, k, i + 0 * FEATURE_SIZE});
-    tnh_z.store_in(tmp.get_buffer(), {s, k, i + 1 * FEATURE_SIZE});
-    sig_o.store_in(tmp.get_buffer(), {s, k, i + 2 * FEATURE_SIZE});
-    sig_f.store_in(tmp.get_buffer(), {s, k, i + 3 * FEATURE_SIZE});
+    sig_f.store_in(tmp.get_buffer(), {s, k, i + 1 * FEATURE_SIZE});
+    tnh_z.store_in(tmp.get_buffer(), {s, k, i + 2 * FEATURE_SIZE});
+    sig_o.store_in(tmp.get_buffer(), {s, k, i + 3 * FEATURE_SIZE});
     h_init.store_in(h.get_buffer(), {l + 1, 0, k, i});
     c_init.store_in(c.get_buffer(), {l, 0, k, i});
     h_copy_x.store_in(h.get_buffer(), {0, s + 1, k, i});
