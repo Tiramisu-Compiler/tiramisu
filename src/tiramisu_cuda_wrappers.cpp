@@ -101,6 +101,7 @@ int tiramisu_cublas_sgemm(float *A, float *B, float *C,
     // transposes the output again: cublas(A, B) = ((A^T)x(B^T))^T = BxA
     // So it is actually equivalent to row-major GEMM with inputs swapped.
     // We need to reorder the size parameters as well to make it work:
+    cublasSetStream(handle, cudaStreamPerThread);
     handle_cublas_error(
         cublasSgemm(handle,
                     transposeB ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -111,3 +112,11 @@ int tiramisu_cublas_sgemm(float *A, float *B, float *C,
          __FUNCTION__);
     return 0;
 }
+
+extern "C"
+int32_t tiramisu_cuda_stream_synchronize(int32_t dummy)
+{
+    cudaStreamSynchronize(0);
+    return 0;
+}
+

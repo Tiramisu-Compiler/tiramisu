@@ -39,6 +39,7 @@ enum primitive_t
     p_boolean,
     p_async,
     p_wait_ptr,
+    p_void_ptr,  // Used for raw buffers in cuda_ast
     p_none
 };
 

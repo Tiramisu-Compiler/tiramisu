@@ -1611,6 +1611,75 @@ Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Inte
     }
 }
 
+void tiramisu::generator::extract_tags_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
+                                                     std::vector<std::pair<std::string, std::string>> &tagged_stmts)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    if (isl_ast_node_get_type(node) == isl_ast_node_block)
+    {
+        isl_ast_node_list *list = isl_ast_node_block_get_children(node);
+        for (int i = isl_ast_node_list_n_ast_node(list) - 1; i >= 0; i--)
+        {
+            isl_ast_node *child = isl_ast_node_list_get_ast_node(list, i);
+            extract_tags_from_isl_node(fct, child, level, tagged_stmts);
+            isl_ast_node_free(child);
+        }
+        isl_ast_node_list_free(list);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_for)
+    {
+        isl_ast_node *body = isl_ast_node_for_get_body(node);
+        extract_tags_from_isl_node(fct, body, level + 1, tagged_stmts);
+        isl_ast_node_free(body);
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_user)
+    {
+        isl_ast_expr *expr = isl_ast_node_user_get_expr(node);
+        isl_ast_expr *arg = isl_ast_expr_get_op_arg(expr, 0);
+        isl_id *id = isl_ast_expr_get_id(arg);
+        isl_ast_expr_free(expr);
+        isl_ast_expr_free(arg);
+        std::string computation_name(isl_id_get_name(id));
+        isl_id_free(id);
+
+        for (int l = 0; l < level; l++)
+        {
+            if (fct.should_parallelize(computation_name, l))
+                tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "parallelize"));
+            if (fct.should_vectorize(computation_name, l))
+                tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "vectorize"));
+            // Don't get these tags as we are using cuda backend now:
+            // if (fct.should_map_to_gpu_block(computation_name, l))
+            //    tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "map_to_gpu_block"));
+            // if (fct.should_map_to_gpu_thread(computation_name, l))
+            //     tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "map_to_gpu_thread"));
+            if (fct.should_unroll(computation_name, l))
+                tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "unroll"));
+            if (fct.should_distribute(computation_name, l))
+                tagged_stmts.push_back(std::pair<std::string, std::string>(computation_name, "distribute"));
+        }
+    }
+    else if (isl_ast_node_get_type(node) == isl_ast_node_if)
+    {
+        isl_ast_node *if_stmt = isl_ast_node_if_get_then(node);
+        isl_ast_node *else_stmt = isl_ast_node_if_get_else(node);
+
+        extract_tags_from_isl_node(fct, if_stmt, level, tagged_stmts);
+
+        if (else_stmt != NULL)
+        {
+            extract_tags_from_isl_node(fct, else_stmt, level, tagged_stmts);
+        }
+
+        isl_ast_node_free(if_stmt);
+        isl_ast_node_free(else_stmt);
+    }
+
+    DEBUG_INDENT(-4);
+}
+
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                std::vector<std::pair<std::string, std::string>> &tagged_stmts,
@@ -1888,19 +1957,26 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
         {
             auto k = it_kernel->second;
             std::vector<Halide::Expr> args;
-            std::vector<isl_ast_expr *> ie;
-            for (auto &id: k->get_arguments())
+            for (const auto &id : k->get_arguments())
             {
-                args.push_back(
-                        Halide::Internal::Variable::make(halide_type_from_tiramisu_type(id->get_type()), id->get_name())
-                );
+                Halide::Type t;
+                if (id->is_buffer()) {
+                    // For buffers use void* to make it compatible with cuda_malloc
+                    t = Halide::type_of<void *>();
+                } else {
+                    t = halide_type_from_tiramisu_type(id->get_type());
+                }
+                args.push_back(Halide::Internal::Variable::make(t, id->get_name()));
             }
-
 
             result = Halide::Internal::Evaluate::make(
                     Halide::Internal::Call::make(
                             halide_type_from_tiramisu_type(cuda_ast::kernel::wrapper_return_type),
                             k->get_wrapper_name(), args, Halide::Internal::Call::Extern));
+
+            // The body of the for loop will not be traversed. Extract tags of
+            // computations inside:
+            extract_tags_from_isl_node(fct, node, level, tagged_stmts);
         } else {
 
             isl_ast_expr *init = isl_ast_node_for_get_init(node);

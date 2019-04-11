@@ -1658,6 +1658,8 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
 
         stringstream command;
         command << NVCC_PATH;
+        // Basic streaming for parallelization
+        command << " --default-stream per-thread";
         // Say that this is actually cuda code
         command << " -x cu";
         // Create a .o file
@@ -1689,6 +1691,8 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
 
         stringstream command;
         command << NVCC_PATH;
+        // Basic streaming for parallelization
+        command << " --default-stream per-thread";
         // Link device object code
         command << " -dlink";
         // Specify input file name
