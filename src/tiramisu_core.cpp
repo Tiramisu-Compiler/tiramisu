@@ -8458,6 +8458,7 @@ void tiramisu::computation::dump_computation_features_structure(){
      std::cout  <<  nest_features.operations_features[i].hitograme_double_ops[j]<< std::endl;
      }
     std::cout << "--------------------"<< std::endl; 
+    std::cout  << "Operation Data type   "<< nest_features.operations_features[i].data_type<< std::endl;
      std::cout  << "Number of int loads  "<< nest_features.operations_features[i].histograme_loads[0]<< std::endl;
      std::cout  << "Number of int o_access operations  "<< nest_features.operations_features[i].histograme_loads[4]<< std::endl;
      std::cout  << "Number of floats loads  "<< nest_features.operations_features[i].histograme_loads[1]<< std::endl;
@@ -8517,19 +8518,24 @@ void tiramisu::computation::dump_computation_features_structure(){
 }
 
 void tiramisu::computation::computation_features_to_csvfile(){
-
+/**
+ * mask,loop_levels,nb_operands,nb_var,nb_constant,data_type,
+ * nb_add_int,nb_sub_int,nb_mul_int,nb_div_int,total_access_int,nb_access_int, 
+ * or
+ * nb_add_float,nb_sub_float,nb_mul_float,nb_div_float,total_access_float,nb_access_float,
+ *  lower_bound,upper_bound,parallelized (repeated  "max_iterators" times  )
+ **/ 
  std::string line="";
  std::string delimiter = ",";
  std::string additive_iterators = "NULL,NULL,NULL,";
  std::string additive_iterators_last = "NULL,NULL,NULL";
  int max_iterators=10;
- 
  std::ofstream fcsv;
  fcsv.open(CSV_FILE_PATH, std::ios_base::app);
  if (fcsv.is_open()){
  computation_features_struct nest_features= this->get_computation_features();
   // first colomn contains the real line column ( this is important for masking data while training)
-  int mask=17+ 3* nest_features.iterators.size();
+  int mask=12+ 3* nest_features.iterators.size();
   line = line+std::to_string(mask)+delimiter;
   //--------Computation features----------" 
   // DataSet doesn't contain this case 
@@ -8548,14 +8554,15 @@ void tiramisu::computation::computation_features_to_csvfile(){
        line = line+ std::to_string(nest_features.operations_features[i].nb_constant)+delimiter;
        //Data set doesn't contain any library call yet
        //line = line+ std::to_string(nest_features.operations_features[i].nb_library_call)+delimiter;
+
+       // Data_type ( int or float )
+       line = line+ std::to_string(nest_features.operations_features[i].data_type)+delimiter;
+       if(nest_features.operations_features[i].data_type==0 ){
+
       //-----int ops histogram------
       for(int j=0;j<nest_features.operations_features[i].hitograme_int_ops.size()-3;j++){
         // + - x : ( min max mod  are not used in in the data set) 
        line = line+ std::to_string(nest_features.operations_features[i].hitograme_int_ops[j])+delimiter;
-       }
-      //-----float ops histogram------
-       for(int j=0;j<nest_features.operations_features[i].hitograme_double_ops.size()-3;j++){
-       line = line+ std::to_string(nest_features.operations_features[i].hitograme_double_ops[j])+delimiter;
        }
       //-----load and stors-----------
        // number of total int loads 
@@ -8564,15 +8571,22 @@ void tiramisu::computation::computation_features_to_csvfile(){
        //int o_access operations 
        line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[4])+delimiter;
 
-       // total float loads
+       }else{
+      //-----float ops histogram------
+       for(int j=0;j<nest_features.operations_features[i].hitograme_double_ops.size()-3;j++){
+       line = line+ std::to_string(nest_features.operations_features[i].hitograme_double_ops[j])+delimiter;
+       }
+        // total float loads
        line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[1])+delimiter;
 
        //Number of float o_access operations 
        line = line+ std::to_string(nest_features.operations_features[i].histograme_loads[5])+delimiter;
+
+       }   
        //Number of int stores ( one store in the case of one computation) 
       // line = line+ std::to_string(nest_features.operations_features[i].histograme_stores[0])+delimiter;
        //Number of float stores 
-      // line = line+ std::to_string(nest_features.operations_features[i].histograme_stores[1]);
+      // line = line+ std::to_string(nest_features.operations_features[i].histograme_stores[1])+delimiter;
      }
  //--------Itrerators----------" 
   for(int i=0; i<nest_features.iterators.size();i++){
@@ -8744,10 +8758,12 @@ operation_features features_extractor::operation_features_extractor(computation*
      op_features.op_loop_level=comp->get_loop_levels_number()-1;
     if(is_int(e.get_data_type())){
         // 0 index for int stores
+        op_features.data_type=0;
        op_features.histograme_stores[0]=1;
     }else if(is_float(e.get_data_type())){ 
        // 1 index for int stores
       op_features.histograme_stores[1]=1;  
+      op_features.data_type=1;
     } 
     // initialy (before scheduling) the computation contains one operation
     op_features.op_rank=1;
