@@ -39,19 +39,20 @@ int main(int argc, char *argv[])
     }
 
     // Raw inputs
-    float *raw_Weights = (float*) malloc(FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(float));
-    float *raw_biases = (float*) malloc(4 * FEATURE_SIZE * NUM_LAYERS * sizeof(float));
-    float *raw_x = (float*) malloc(FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float));
-    float *raw_y = (float*) malloc(FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float));
+    DATA_TYPE *raw_Weights = (DATA_TYPE*) malloc(FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(DATA_TYPE));
+    DATA_TYPE *raw_biases = (DATA_TYPE*) malloc(4 * FEATURE_SIZE * NUM_LAYERS * sizeof(DATA_TYPE));
+    DATA_TYPE *raw_x = (DATA_TYPE*) malloc(FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(DATA_TYPE));
+    DATA_TYPE *raw_y = (DATA_TYPE*) malloc(FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(DATA_TYPE));
 
     // Note that indices are flipped (see tutorial 2)
-    Halide::Buffer<float> buf_Weights(raw_Weights, {FEATURE_SIZE, 4 * FEATURE_SIZE, 2, NUM_LAYERS});
-    Halide::Buffer<float> buf_biases(raw_biases, {4 * FEATURE_SIZE, NUM_LAYERS});
-    Halide::Buffer<float> buf_x(raw_x, {FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH});
-    Halide::Buffer<float> buf_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
+    Halide::Buffer<DATA_TYPE> buf_Weights(raw_Weights, {FEATURE_SIZE, 4 * FEATURE_SIZE, 2, NUM_LAYERS});
+    Halide::Buffer<DATA_TYPE> buf_biases(raw_biases, {4 * FEATURE_SIZE, NUM_LAYERS});
+    Halide::Buffer<DATA_TYPE> buf_x(raw_x, {FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH});
+    Halide::Buffer<DATA_TYPE> buf_y(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
     Halide::Buffer<float> time_start(1);
     Halide::Buffer<float> time_end(1);
 
+    // Initialize weights
     std::srand(0);
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int j = 0; j < 2; j++)
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
             for (int k = 0; k < FEATURE_SIZE; k++)
                 buf_x(k, j, i) = (std::rand() % 200 - 100) / 100.;
 
-    std::cout << "initalization done" << std::endl;
+    std::cout << "Initalization done" << std::endl;
 
     setup_cudnn(SEQ_LENGTH, NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE);
 
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
         run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
     }
 
-    std::cout << "warmup done" << std::endl;
+    std::cout << "Warmup done" << std::endl;
 
     cudaProfilerStart();
 
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
 
     std::vector<duration_t> cudnn_durations;
     for (int i = 0; i < testN_cudnn; i++) {
-        float t = run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
+        DATA_TYPE t = run_cudnn(raw_Weights, raw_biases, raw_x, raw_y);
         cudnn_durations.push_back(duration_t(t));
     }
 
@@ -120,12 +121,12 @@ int main(int argc, char *argv[])
     if (check_correctness && testN_tiramisu > 0 && testN_cudnn > 0) {
         std::cout << "Testing cudnn-Tiramisu result difference" << std::endl;
         for (int i = 0; i < SEQ_LENGTH; i++) {
-            float max_error = 0;
+            DATA_TYPE max_error = 0;
             for (int j = 0; j < BATCH_SIZE; j++) {
                 for (int k = 0; k < FEATURE_SIZE; k++) {
-                    float res = buf_y(k, j, i);
-                    float cuda_res = raw_y[(i * BATCH_SIZE + j) * FEATURE_SIZE + k];
-                    float error = res - cuda_res;
+                    DATA_TYPE res = buf_y(k, j, i);
+                    DATA_TYPE cuda_res = raw_y[(i * BATCH_SIZE + j) * FEATURE_SIZE + k];
+                    DATA_TYPE error = res - cuda_res;
                     if (error > max_error) {
                         max_error = error;
                     }

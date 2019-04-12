@@ -25,16 +25,16 @@ int main(int argc, char **argv)
     var l_s("l_s"), s_s("s_s");
 
     // Input-output CPU buffers
-    buffer buf_Weights_cpu("buf_Weights_cpu", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, p_float32, a_input);
-    buffer buf_biases_cpu("buf_biases_cpu", {NUM_LAYERS, 4 * FEATURE_SIZE}, p_float32, a_input);
-    buffer buf_x_cpu("buf_x_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_input);
-    buffer buf_y_cpu("buf_y_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, p_float32, a_output);
+    buffer buf_Weights_cpu("buf_Weights_cpu", {NUM_LAYERS, 2, 4 * FEATURE_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_input);
+    buffer buf_biases_cpu("buf_biases_cpu", {NUM_LAYERS, 4 * FEATURE_SIZE}, DATA_TYPE_P, a_input);
+    buffer buf_x_cpu("buf_x_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_input);
+    buffer buf_y_cpu("buf_y_cpu", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_output);
 
     // GPU buffers
-    input x("x", {s, k, i}, p_float32);
-    input weights("weights", {l, var("w_i", 0, 2), i_merged, j}, p_float32);
-    input biases("biases", {l, i_merged}, p_float32);
-    input tmp("tmp", {s, k, i_merged}, p_float32);
+    input x("x", {s, k, i}, DATA_TYPE_P);
+    input weights("weights", {l, var("w_i", 0, 2), i_merged, j}, DATA_TYPE_P);
+    input biases("biases", {l, i_merged}, DATA_TYPE_P);
+    input tmp("tmp", {s, k, i_merged}, DATA_TYPE_P);
     x.get_buffer()->tag_gpu_global();
     weights.get_buffer()->tag_gpu_global();
     biases.get_buffer()->tag_gpu_global();
@@ -49,38 +49,38 @@ int main(int argc, char **argv)
     // which takes h(l, s - 1) and h(l - 1, s) as inputs
     // Initial hidden states are h(l, -1) and c(l, -1)
     // Input x is copied to h(-1, s)
-    computation h({l, s, k, i}, p_float32);
-    computation c({l, s, k, i}, p_float32);
+    computation h({l, s, k, i}, DATA_TYPE_P);
+    computation c({l, s, k, i}, DATA_TYPE_P);
     // Pad buffers to make room for edges
     h.store_in({l + 1, s + 1, k, i}, {NUM_LAYERS + 1, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE});
     c.store_in({l, s + 1, k, i}, {NUM_LAYERS, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE});
     h.get_buffer()->tag_gpu_global();
     c.get_buffer()->tag_gpu_global();
     // Initial sets and stores
-    computation h_init({l, k, i}, expr(float(0)));
-    computation c_init({l, k, i}, expr(float(0)));
+    computation h_init({l, k, i}, expr(DATA_TYPE(0)));
+    computation c_init({l, k, i}, expr(DATA_TYPE(0)));
     computation h_copy_x({s, k, i}, x(s, k, i));
     // Multiplication from input is batched
     computation sum1({l, s0},
-        cublas_sgemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
-                     GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
-                     1, 0,  // alpha, beta
-                     0, 0, 0,  // ldABC
-                     (l * (SEQ_LENGTH + 1) + s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-                     s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
-                     false, false));
+        cublas_gemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
+                    GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
+                    1, 0,  // alpha, beta
+                    0, 0, 0,  // ldABC
+                    (l * (SEQ_LENGTH + 1) + s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                    (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                    s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
+                    false, false));
     computation sum2({l, s},
-        cublas_sgemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
-                     BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
-                     1, 1,  // alpha, beta
-                     0, 0, 0,  // ldABC
-                     ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-                     (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-                     s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
-                     false, false));
+        cublas_gemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
+                    BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
+                    1, 1,  // alpha, beta
+                    0, 0, 0,  // ldABC
+                    ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
+                    (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
+                    s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
+                    false, false));
     // Nonlinear operations as well as biases
-    #define sigmoid(x) expr(float(1)) / (1 + expr(o_expo, -(x)))
+    #define sigmoid(x) expr(DATA_TYPE(1)) / (1 + expr(o_expo, -(x)))
     computation sig_i({l, s, k, i},      sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + biases(l, i + 0 * FEATURE_SIZE)));
     computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
     computation tnh_z({l, s, k, i}, expr(o_tanh, tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
