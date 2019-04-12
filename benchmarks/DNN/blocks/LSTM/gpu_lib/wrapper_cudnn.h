@@ -179,21 +179,22 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudnnErrCheck(cudnnGetRNNWorkspaceSize(cudnnHandle, rnnDesc, seqLength, xDesc, &workSize));
     cudaErrCheck(cudaMalloc((void**)&workspace, workSize));
 
-    // *********************************************************************************************************
+}
+
+float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_y) {
+    cudaErrCheck(cudaDeviceSynchronize());
+
     // Initialise inputs
-    // *********************************************************************************************************
-    // initGPUData((float*)x, seqLength * inputSize * miniBatch, 1.f);
+    cudaMemcpy(x, raw_x, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float),
+               cudaMemcpyKind::cudaMemcpyHostToDevice);
 
-    // Weights
-    int numLinearLayers = 8;
-
-    for (int layer = 0; layer < numLayers; layer++) {
-        for (int linLayerID = 0; linLayerID < numLinearLayers; linLayerID++) {
+    for (int layer = 0; layer < NUM_LAYERS; layer++) {
+        for (int linLayerID = 0; linLayerID < 8; linLayerID++) {
             cudnnFilterDescriptor_t linLayerMatDesc;
             cudnnErrCheck(cudnnCreateFilterDescriptor(&linLayerMatDesc));
             float *linLayerMat;
 
-            cudnnErrCheck(cudnnGetRNNLinLayerMatrixParams( cudnnHandle,
+            cudnnErrCheck(cudnnGetRNNLinLayerMatrixParams(cudnnHandle,
                         rnnDesc,
                         layer,
                         xDesc[0],
@@ -214,7 +215,8 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
                         &nbDims,
                         filterDimA));
 
-            // initGPUData(linLayerMat, filterDimA[0] * filterDimA[1] * filterDimA[2], 1.f / (float)(filterDimA[0] * filterDimA[1] * filterDimA[2]));
+            cudaMemcpy(linLayerMat, raw_Weights + FEATURE_SIZE * FEATURE_SIZE * (linLayerID + 8 * layer),
+                       FEATURE_SIZE * FEATURE_SIZE * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
 
             cudnnErrCheck(cudnnDestroyFilterDescriptor(linLayerMatDesc));
 
@@ -222,7 +224,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
             cudnnErrCheck(cudnnCreateFilterDescriptor(&linLayerBiasDesc));
             float *linLayerBias;
 
-            cudnnErrCheck(cudnnGetRNNLinLayerBiasParams( cudnnHandle,
+            cudnnErrCheck(cudnnGetRNNLinLayerBiasParams(cudnnHandle,
                         rnnDesc,
                         layer,
                         xDesc[0],
@@ -239,22 +241,21 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
                         &nbDims,
                         filterDimA));
 
-            // initGPUData(linLayerBias, filterDimA[0] * filterDimA[1] * filterDimA[2], 1.f);
+            // We use merged bias
+            if (linLayerID < 4) {
+                cudaMemcpy(linLayerBias,
+                           raw_biases + FEATURE_SIZE * (linLayerID + 4 * layer),
+                           FEATURE_SIZE * sizeof(float),
+                           cudaMemcpyKind::cudaMemcpyHostToDevice);
+            } else {
+                cudaMemset(linLayerBias, 0, FEATURE_SIZE * sizeof(float));
+            }
 
             cudnnErrCheck(cudnnDestroyFilterDescriptor(linLayerBiasDesc));
         }
     }
-}
 
-float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_y) {
     cudaErrCheck(cudaDeviceSynchronize());
-
-    // Copy values. Note that since we don't compare the results, we don't care about layout.
-    cudaMemcpy(x, raw_x, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-    cudaMemcpy(w, raw_Weights, FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-    cudaMemcpy(w, raw_biases, 4 * FEATURE_SIZE * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-
-    cudaDeviceSynchronize();
 
     cudaEvent_t start, stop;
     float timeForward;
@@ -290,7 +291,8 @@ float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_
     // Make double-sure everything is finished before we copy for result checking.
     cudaDeviceSynchronize();
 
-    cudaMemcpy(y, raw_y, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyDeviceToHost);
+    cudaMemcpy(raw_y, y, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float),
+               cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
     cudaDeviceSynchronize();
 
