@@ -237,6 +237,7 @@ struct operation_features{
        int op_rank;   // the rank of this operation
        int nb_var; // Number of variables
        int nb_constant; // Number of constantes in the 
+       int data_type; // 0 for int type and 1 for float type
        int nb_operands; // Number of operands of the operatiion ( including direct values)
        std::vector<int>  histograme_loads ; // Number of load ops. i.e. acces to inputs per type
        std::vector<int>  histograme_stores;  // Number of store ops. i.e. write in inputs per type 
@@ -265,7 +266,7 @@ struct computation_features_struct{
     std::map<std::string,std::vector<local_schedule_features>> local_schedule;// features describing the optimizations applied on the computation vectorize(1); split(3); tile(4) ; skew(5); ---> local optimizations
     //TODO:  after  before  compute_at  store_at fuse  ---> global computations 
     std::map<std::string,std::vector<global_schedule_features>> global_schedule; 
-     
+    
 }; 
 
 #endif
