@@ -5,10 +5,10 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-    tiramisu::init("test_164");
+    tiramisu::init("test_166");
 
     input sizes("sizes", {"s_i"}, {12}, p_int32);
-    input params("params", {"p_i"}, {2}, p_float32);
+    input params("params", {"p_i"}, {2}, p_float64);
     input transposes("transposes", {"t_i"}, {2}, p_boolean);
 
     constant M("M", sizes(0));
@@ -28,13 +28,13 @@ int main(int argc, char **argv)
     constant transposeA("transposeA", transposes(0));
     constant transposeB("transposeB", transposes(1));
 
-    input A("A", {"A_i", "A_j"}, {rowsA, colsA}, p_float32);
-    input B("B", {"B_i", "B_j"}, {rowsB, colsB}, p_float32);
-    input C("C", {"C_i", "C_j"}, {rowsC, colsC}, p_float32);
+    input A("A", {"A_i", "A_j"}, {rowsA, colsA}, p_float64);
+    input B("B", {"B_i", "B_j"}, {rowsB, colsB}, p_float64);
+    input C("C", {"C_i", "C_j"}, {rowsC, colsC}, p_float64);
 
-    buffer b_A_glb("b_A_glb", {rowsA, colsA}, p_float32, a_temporary);
-    buffer b_B_glb("b_B_glb", {rowsB, colsB}, p_float32, a_temporary);
-    buffer b_C_glb("b_C_glb", {rowsC, colsC}, p_float32, a_temporary);
+    buffer b_A_glb("b_A_glb", {rowsA, colsA}, p_float64, a_temporary);
+    buffer b_B_glb("b_B_glb", {rowsB, colsB}, p_float64, a_temporary);
+    buffer b_C_glb("b_C_glb", {rowsC, colsC}, p_float64, a_temporary);
     b_A_glb.tag_gpu_global();
     b_B_glb.tag_gpu_global();
     b_C_glb.tag_gpu_global();
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
     tiramisu::codegen({sizes.get_buffer(), params.get_buffer(), transposes.get_buffer(),
                        A.get_buffer(), B.get_buffer(), C.get_buffer()},
-                      "build/generated_fct_test_164.o", true);
+                      "build/generated_fct_test_166.o", true);
 
     return 0;
 }

@@ -185,30 +185,43 @@ expr allocate(const buffer &b)
     return expr{o_allocate, b.get_name()};
 }
 
-expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
-                  expr M, expr N, expr K,
-                  expr alpha, expr beta,
-                  expr ldA, expr ldB, expr ldC,
-                  expr offsetA, expr offsetB, expr offsetC,
-                  expr transposeA, expr transposeB)
+expr cublas_gemm(const buffer &A, const buffer &B, buffer &C,
+                 expr M, expr N, expr K,
+                 expr alpha, expr beta,
+                 expr ldA, expr ldB, expr ldC,
+                 expr offsetA, expr offsetB, expr offsetC,
+                 expr transposeA, expr transposeB)
 {
     if (A.get_location() != cuda_ast::memory_location::global ||
         B.get_location() != cuda_ast::memory_location::global ||
         C.get_location() != cuda_ast::memory_location::global) {
         ERROR("Buffers must be on GPU global memory", true);
     }
-    if (A.get_elements_type() != p_float32 ||
-        B.get_elements_type() != p_float32 ||
-        C.get_elements_type() != p_float32) {
-        ERROR("Only float32 type is supported", true);
+    std::string fname;
+    expr alpha_expr;
+    expr beta_expr;
+    if (A.get_elements_type() == p_float32 &&
+        B.get_elements_type() == p_float32 &&
+        C.get_elements_type() == p_float32) {
+        fname = "tiramisu_cublas_sgemm";
+        alpha_expr = cast(p_float32, alpha);
+        beta_expr = cast(p_float32, beta);
+    } else if (A.get_elements_type() == p_float64 &&
+               B.get_elements_type() == p_float64 &&
+               C.get_elements_type() == p_float64) {
+        fname = "tiramisu_cublas_dgemm";
+        alpha_expr = cast(p_float64, alpha);
+        beta_expr = cast(p_float64, beta);
+    } else {
+        ERROR("All input buffers should be of same type and either p_float32 or p_float64", true);
     }
-    return expr(o_call, "tiramisu_cublas_sgemm",
+    return expr(o_call, fname,
             {
                 var(p_void_ptr, A.get_name()),
                 var(p_void_ptr, B.get_name()),
                 var(p_void_ptr, C.get_name()),
                 cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K),
-                cast(p_float32, alpha), cast(p_float32, beta),
+                alpha_expr, beta_expr,
                 cast(p_uint64, ldA), cast(p_uint64, ldB), cast(p_uint64, ldC),
                 cast(p_uint64, offsetA), cast(p_uint64, offsetB), cast(p_uint64, offsetC),
                 cast(p_boolean, transposeA), cast(p_boolean, transposeB)
