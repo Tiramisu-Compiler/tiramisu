@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     }
 
     if (check_correctness && testN_tiramisu > 0 && testN_cudnn > 0) {
-        std::cout << "Testing cudnn-Tiramisu result difference" << std::endl;
+        std::cout << "Testing cudnn-Tiramisu output difference" << std::endl;
         for (int i = 0; i < SEQ_LENGTH; i++) {
             DATA_TYPE max_error = 0;
             for (int j = 0; j < BATCH_SIZE; j++) {
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-            std::cout << "Sequence #" << i << " max error: " << max_error << std::endl;
+            std::cout << "Sequence #" << i << " max difference: " << max_error << std::endl;
         }
     }
 

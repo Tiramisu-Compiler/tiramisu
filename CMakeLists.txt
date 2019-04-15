@@ -37,6 +37,10 @@ if (${USE_GPU})
     add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
     target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
     target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
+    if (${USE_CUDNN})
+        find_library(CUDNN_LIBRARIES cudnn PATHS ${CUDNN_LOCATION}/lib64 NO_DEFAULT_PATH)
+        set(CUDNN_INCLUDE_DIRECTORY ${CUDNN_LOCATION}/include)
+    endif()
 endif()
 
 
