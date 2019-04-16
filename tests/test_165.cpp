@@ -30,12 +30,12 @@ int main(int argc, char **argv)
     computation copy_C_to_host({}, memcpy(b_C_glb, *C.get_buffer()));
 
     computation gemm({var("dummy", 0, 1)},
-        cublas_sgemm(b_A_glb, b_B_glb, b_C_glb,
-                     M, N, K,
-                     1, 0,
-                     0, 0, 0,
-                     0, 0, 0,
-                     false, true));
+        cublas_gemm(b_A_glb, b_B_glb, b_C_glb,
+                    M, N, K,
+                    1, 0,
+                    0, 0, 0,
+                    0, 0, 0,
+                    false, true));
 
     copy_A_to_device.then(copy_B_to_device, computation::root)
                     .then(copy_C_to_device, computation::root)

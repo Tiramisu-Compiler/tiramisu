@@ -1,9 +1,10 @@
 if (${USE_GPU})
     add_subdirectory(linear_algebra/blas/level3/sgemm/gpu)
     add_subdirectory(linear_algebra/chain_mm/gpu)
-    # Disabled by default since it requires cudnn
-    # add_subdirectory(DNN/blocks/LSTM/gpu)
-    # add_subdirectory(DNN/blocks/LSTM/gpu_lib)
+    if (${USE_CUDNN})
+        add_subdirectory(DNN/blocks/LSTM/gpu)
+        add_subdirectory(DNN/blocks/LSTM/gpu_lib)
+    endif()
 endif()
 add_subdirectory(DNN/layers/convolution/direct/cpu)
 add_subdirectory(DNN/layers/bn/cpu)

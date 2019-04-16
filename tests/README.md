@@ -21,7 +21,7 @@ test number `XX` in the file `tests/test_list.txt`.
 -  codegen(): 104
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27, 130
-- cublas_sgemm: test_162, 164, 165
+- cublas_gemm: test_162, 164, 165, 166
 - Dynamic buffer size (buffer size unknown at compile time): test_87, 88, 92
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
