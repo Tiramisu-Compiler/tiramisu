@@ -144,9 +144,9 @@ int main(int argc, char **argv)
     c_A_shr_to_reg.store_in(&b_A_reg, {0});
     // Note that we use a transposed mapping to assure memory coalescing
     // This requires R_BLOCK_J to be equal to BLOCK
-    c_B_glb.store_in(&b_B_glb, {k0 * BLOCK + j1, j0 * R_BLOCK_J + i0 % BLOCK});
-    c_B_glb_to_shr_pre.store_in(&b_B_shr, {0, j1, j0 % BLOCK * R_BLOCK_J + i0 % BLOCK});
-    c_B_glb_to_shr.store_in(&b_B_shr, {(k0_skiplast + 1) % 2, j1, j0 % BLOCK * R_BLOCK_J + i0 % BLOCK});
+    c_B_glb.store_in(&b_B_glb, {k0 * BLOCK + j1, (j0 - j0 % BLOCK + i0 % BLOCK) * R_BLOCK_J + j0 % BLOCK});
+    c_B_glb_to_shr_pre.store_in(&b_B_shr, {0, j1, i0 % BLOCK * R_BLOCK_J + j0 % BLOCK});
+    c_B_glb_to_shr.store_in(&b_B_shr, {(k0_skiplast + 1) % 2, j1, i0 % BLOCK * R_BLOCK_J + j0 % BLOCK});
     c_B_shr.store_in(&b_B_shr, {k0 % 2, k1, j0 % BLOCK * R_BLOCK_J + j1});
     c_B_shr_to_reg.store_in(&b_B_reg, {j1});
     c_A.store_in(&b_A_reg, {i % R_BLOCK_I});
