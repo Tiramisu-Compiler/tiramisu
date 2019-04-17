@@ -84,6 +84,11 @@ int main(int argc, char **argv)
     computation copy_C_to_device({}, memcpy(b_C, b_C_glb));
     computation copy_C_to_host({}, memcpy(b_C_glb, b_C));
 
+    computation time_start({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+    computation time_end({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+    // Synchronize before timing
+    computation final_sync({var("dummy", 0, 1)}, cuda_stream_synchronize());
+
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -106,6 +111,7 @@ int main(int argc, char **argv)
 
     copy_A_to_device.then(copy_B_to_device, computation::root)
                     .then(copy_C_to_device, computation::root)
+                    .then(time_start, computation::root)
                     .then(c_A_shr_dec, computation::root)
                     .then(c_B_shr_dec, j01)
                     .then(c_A_reg_dec, j01)
@@ -122,6 +128,8 @@ int main(int argc, char **argv)
                     .then(c_acc, i1)
                     .then(c_sync2, k0)
                     .then(c_C, j01)
+                    .then(final_sync, computation::root)
+                    .then(time_end, computation::root)
                     .then(copy_C_to_host, computation::root);
 
     // -------------------------------------------------------
@@ -153,7 +161,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Generate object files. Last argument triggers cuda compilation.
-    tiramisu::codegen({&b_Consts, &b_A, &b_B, &b_C}, "fct.o", true);
+    tiramisu::codegen({&b_Consts, &b_A, &b_B, &b_C, time_start.get_buffer(), time_end.get_buffer()}, "fct.o", true);
 
     return 0;
 }
