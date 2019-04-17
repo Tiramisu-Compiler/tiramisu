@@ -6,3 +6,9 @@ GPU Implementation of gemm. From the build directory:
 Since cublas is column-major by default, we swap inputs to get C in row major
 format. This assures that the operations are exactly same between Tiramisu and
 cuBLAS.
+
+There are two different schedules implemented in files `generator1.cpp` and
+`generator2.cpp`. `generator1` uses alternates between two shared memory buffer
+spaces at each iteration, while `generator2` uses two step global->shared copy
+with single shared buffer as explained in the Diesel paper. You can switch
+between implementations via `CMakeLists.txt` file.
