@@ -136,10 +136,10 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
 
-    c_A_glb.store_in(&b_A_glb, {(i0 - i0 % BLOCK + j0 % BLOCK) * R_BLOCK_I + i1, k0 * BLOCK + i0 % BLOCK});
+    c_A_glb.store_in(&b_A_glb, {i0 * R_BLOCK_I + i1, k0 * BLOCK + j0 % BLOCK});
     // Note the transpose:
-    c_A_glb_to_shr_pre.store_in(&b_A_shr, {0, i0 % BLOCK, j0 % BLOCK * R_BLOCK_I + i1});
-    c_A_glb_to_shr.store_in(&b_A_shr, {(k0_skiplast + 1) % 2, i0 % BLOCK, j0 % BLOCK * R_BLOCK_I + i1});
+    c_A_glb_to_shr_pre.store_in(&b_A_shr, {0, j0 % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
+    c_A_glb_to_shr.store_in(&b_A_shr, {(k0_skiplast + 1) % 2, j0 % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr.store_in(&b_A_shr, {k0 % 2, k1, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr_to_reg.store_in(&b_A_reg, {0});
     // Note that we use a transposed mapping to assure memory coalescing

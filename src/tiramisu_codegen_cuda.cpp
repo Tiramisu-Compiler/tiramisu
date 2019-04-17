@@ -516,21 +516,26 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
                     if (comp_gpu_pair.first == comp->get_name()) {
                         int level;
                         this->in_kernel = true;
-                        if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
+                        // We are assigning x, y, z from inner to outer loop:
+                        gpu_iterator::dimension_t dims[] = { gpu_iterator::dimension_t::x,
+                                                             gpu_iterator::dimension_t::y,
+                                                             gpu_iterator::dimension_t::z };
+                        int dim_ctr = 0;
+                        if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
                             this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
-                                                                                           gpu_iterator::dimension_t::x,
+                                                                                           dims[dim_ctr++],
                                                                                            iterator_lower_bound[level],
                                                                                            iterator_upper_bound[level]);
                         }
                         if ((level = std::get<1>(comp_gpu_pair.second)) != -1) {
                             this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
-                                                                                           gpu_iterator::dimension_t::y,
+                                                                                           dims[dim_ctr++],
                                                                                            iterator_lower_bound[level],
                                                                                            iterator_upper_bound[level]);
                         }
-                        if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
+                        if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
                             this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(gpu_iterator::type_t::BLOCK,
-                                                                                           gpu_iterator::dimension_t::z,
+                                                                                           dims[dim_ctr++],
                                                                                            iterator_lower_bound[level],
                                                                                            iterator_upper_bound[level]);
                         }
@@ -543,24 +548,29 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
                     for (auto &comp_gpu_pair : this->m_fct.gpu_thread_dimensions) {
                         if (comp_gpu_pair.first == comp->get_name()) {
                             int level;
-                            if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
+                            // We are assigning x, y, z from inner to outer loop:
+                            gpu_iterator::dimension_t dims[] = { gpu_iterator::dimension_t::x,
+                                                                 gpu_iterator::dimension_t::y,
+                                                                 gpu_iterator::dimension_t::z };
+                            int dim_ctr = 0;
+                            if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
                                 this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
                                         gpu_iterator::type_t::THREAD,
-                                        gpu_iterator::dimension_t::x,
+                                        dims[dim_ctr++],
                                         iterator_lower_bound[level],
                                         iterator_upper_bound[level]);
                             }
                             if ((level = std::get<1>(comp_gpu_pair.second)) != -1) {
                                 this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
                                         gpu_iterator::type_t::THREAD,
-                                        gpu_iterator::dimension_t::y,
+                                        dims[dim_ctr++],
                                         iterator_lower_bound[level],
                                         iterator_upper_bound[level]);
                             }
-                            if ((level = std::get<2>(comp_gpu_pair.second)) != -1) {
+                            if ((level = std::get<0>(comp_gpu_pair.second)) != -1) {
                                 this->gpu_iterators[iterator_stack[level]] = get_gpu_condition(
                                         gpu_iterator::type_t::THREAD,
-                                        gpu_iterator::dimension_t::z,
+                                        dims[dim_ctr++],
                                         iterator_lower_bound[level],
                                         iterator_upper_bound[level]);
                             }
