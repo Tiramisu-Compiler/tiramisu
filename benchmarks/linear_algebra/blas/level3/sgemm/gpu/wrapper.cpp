@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     }
 
     if (testN > 0) {
-        std::cout << "GPU matmul done: " << median(durations1) << "ms" << std::endl << std::flush;
+        std::cout << "Tiramisu matmul done: " << median(durations1) << "ms" << std::endl << std::flush;
     }
 
     // CUBLAS SGEMM

@@ -6,8 +6,6 @@
 // REGISTER BLOCK
 #define R_BLOCK_I 16
 #define R_BLOCK_J 6
-// R_BLOCK_J needs to be equal to BLOCK because of
-// the way we copy B from global to shared
 
 // Dimensions need to be multiples of blocksize
 #define M 3072

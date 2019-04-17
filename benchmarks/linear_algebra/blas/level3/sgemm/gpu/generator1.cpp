@@ -9,6 +9,7 @@ int main(int argc, char **argv)
 {
     // Double tiling with Register and Shared memory
     // Fused A_reg and non-square tiling
+    // Alternating shared memory buffer space
 
     tiramisu::init("matmul");
 
