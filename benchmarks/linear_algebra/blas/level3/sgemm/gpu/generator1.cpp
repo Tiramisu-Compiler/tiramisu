@@ -9,6 +9,7 @@ int main(int argc, char **argv)
 {
     // Double tiling with Register and Shared memory
     // Fused A_reg and non-square tiling
+    // Alternating shared memory buffer space
 
     tiramisu::init("matmul");
 
@@ -84,6 +85,11 @@ int main(int argc, char **argv)
     computation copy_C_to_device({}, memcpy(b_C, b_C_glb));
     computation copy_C_to_host({}, memcpy(b_C_glb, b_C));
 
+    computation time_start({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+    computation time_end({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
+    // Synchronize before timing
+    computation final_sync({var("dummy", 0, 1)}, cuda_stream_synchronize());
+
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -106,6 +112,7 @@ int main(int argc, char **argv)
 
     copy_A_to_device.then(copy_B_to_device, computation::root)
                     .then(copy_C_to_device, computation::root)
+                    .then(time_start, computation::root)
                     .then(c_A_shr_dec, computation::root)
                     .then(c_B_shr_dec, j01)
                     .then(c_A_reg_dec, j01)
@@ -122,23 +129,23 @@ int main(int argc, char **argv)
                     .then(c_acc, i1)
                     .then(c_sync2, k0)
                     .then(c_C, j01)
+                    .then(final_sync, computation::root)
+                    .then(time_end, computation::root)
                     .then(copy_C_to_host, computation::root);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
 
-    c_A_glb.store_in(&b_A_glb, {(i0 - i0 % BLOCK + j0 % BLOCK) * R_BLOCK_I + i1, k0 * BLOCK + i0 % BLOCK});
+    c_A_glb.store_in(&b_A_glb, {i0 * R_BLOCK_I + i1, k0 * BLOCK + j0 % BLOCK});
     // Note the transpose:
-    c_A_glb_to_shr_pre.store_in(&b_A_shr, {0, i0 % BLOCK, j0 % BLOCK * R_BLOCK_I + i1});
-    c_A_glb_to_shr.store_in(&b_A_shr, {(k0_skiplast + 1) % 2, i0 % BLOCK, j0 % BLOCK * R_BLOCK_I + i1});
+    c_A_glb_to_shr_pre.store_in(&b_A_shr, {0, j0 % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
+    c_A_glb_to_shr.store_in(&b_A_shr, {(k0_skiplast + 1) % 2, j0 % BLOCK, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr.store_in(&b_A_shr, {k0 % 2, k1, i0 % BLOCK * R_BLOCK_I + i1});
     c_A_shr_to_reg.store_in(&b_A_reg, {0});
-    // Note that we use a transposed mapping to assure memory coalescing
-    // This requires R_BLOCK_J to be equal to BLOCK
-    c_B_glb.store_in(&b_B_glb, {k0 * BLOCK + j1, j0 * R_BLOCK_J + i0 % BLOCK});
-    c_B_glb_to_shr_pre.store_in(&b_B_shr, {0, j1, j0 % BLOCK * R_BLOCK_J + i0 % BLOCK});
-    c_B_glb_to_shr.store_in(&b_B_shr, {(k0_skiplast + 1) % 2, j1, j0 % BLOCK * R_BLOCK_J + i0 % BLOCK});
+    c_B_glb.store_in(&b_B_glb, {k0 * BLOCK + i0 % BLOCK, (j0 - j0 % BLOCK) * R_BLOCK_J + j1 * BLOCK + j0 % BLOCK});
+    c_B_glb_to_shr_pre.store_in(&b_B_shr, {0, i0 % BLOCK, j1 * BLOCK + j0 % BLOCK});
+    c_B_glb_to_shr.store_in(&b_B_shr, {(k0_skiplast + 1) % 2, i0 % BLOCK, j1 * BLOCK + j0 % BLOCK});
     c_B_shr.store_in(&b_B_shr, {k0 % 2, k1, j0 % BLOCK * R_BLOCK_J + j1});
     c_B_shr_to_reg.store_in(&b_B_reg, {j1});
     c_A.store_in(&b_A_reg, {i % R_BLOCK_I});
@@ -153,7 +160,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     // Generate object files. Last argument triggers cuda compilation.
-    tiramisu::codegen({&b_Consts, &b_A, &b_B, &b_C}, "fct.o", true);
+    tiramisu::codegen({&b_Consts, &b_A, &b_B, &b_C, time_start.get_buffer(), time_end.get_buffer()}, "fct.o", true);
 
     return 0;
 }
