@@ -5,6 +5,8 @@
 
 namespace tiramisu {
 
+class computation;
+
 /**
   * A class that represents a group of computations that share schedules up to
   * a level. This class is used for convenience when a set of scheduling

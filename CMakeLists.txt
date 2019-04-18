@@ -19,10 +19,12 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
+	include/tiramisu/computation_graph.h
+	include/tiramisu/auto_scheduler.h
         )
 
 # Add CMake cpp files
-set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 
 ### CMAKE FILE INTERNALS ###
@@ -33,8 +35,12 @@ if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
     add_library(cuda_wrapper STATIC "src/tiramisu_cuda_wrappers.cpp")
-    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES})
+    target_link_libraries(cuda_wrapper ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES})
     target_include_directories(cuda_wrapper PUBLIC ${CUDA_INCLUDE_DIRS})
+    if (${USE_CUDNN})
+        find_library(CUDNN_LIBRARIES cudnn PATHS ${CUDNN_LOCATION}/lib64 NO_DEFAULT_PATH)
+        set(CUDNN_INCLUDE_DIRECTORY ${CUDNN_LOCATION}/include)
+    endif()
 endif()
 
 
@@ -389,17 +395,5 @@ foreach(t ${TIRAMISU_USERS_TUTORIALS})
     new_users_tutorial(${t})
 endforeach()
 
-if (${USE_GPU})
-    add_subdirectory(benchmarks/linear_algebra/blas/level3/sgemm/gpu)
-    add_subdirectory(benchmarks/linear_algebra/chain_mm/gpu)
-    # Disable by default since it requires cudnn
-    # add_subdirectory(benchmarks/DNN/blocks/LSTM/gpu)
-endif()
-add_subdirectory(benchmarks/DNN/layers/convolution/direct/cpu)
-add_subdirectory(benchmarks/DNN/layers/bn/cpu)
-add_subdirectory(benchmarks/DNN/layers/relu/cpu)
-add_subdirectory(benchmarks/DNN/layers/maxpool/cpu)
-add_subdirectory(benchmarks/DNN/blocks/conv2)
-add_subdirectory(benchmarks/DNN/blocks/LSTM/cpu)
-add_subdirectory(benchmarks/DNN/blocks/vggBlock)
-add_subdirectory(benchmarks/DNN/blocks/fusedresNet)
+# Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
+add_subdirectory(benchmarks)

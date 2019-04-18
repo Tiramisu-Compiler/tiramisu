@@ -9,7 +9,7 @@
 #define BENCHMARKS_BENCHMARKS_H_
 
 
-#define NB_TESTS 60
+#define NB_TESTS 20
 #define CHECK_CORRECTNESS 1
 #define PRINT_OUTPUT 0 
 #define SIZE_IS_MULTIPLE_OF_TILE 1

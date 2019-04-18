@@ -30,11 +30,11 @@
 #include <memory>
 
 namespace tiramisu {
-    tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,
-                                                                     std::map<std::string, isl_ast_expr *> iterators_map);
-namespace cuda_ast {
 
-const tiramisu::cuda_ast::op_data_t tiramisu_operation_description(tiramisu::op_t op) {
+tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,
+                                                                 std::map<std::string, isl_ast_expr *> iterators_map);
+
+const cuda_ast::op_data_t cuda_ast::tiramisu_operation_description(tiramisu::op_t op) {
     switch (op) {
         UNARY2(tiramisu::o_minus, "-")
         FN_CALL2(tiramisu::o_floor, "floor", 1)
@@ -79,11 +79,11 @@ const tiramisu::cuda_ast::op_data_t tiramisu_operation_description(tiramisu::op_
         FN_CALL2(tiramisu::o_lerp, "lerp", 3)
         default:
             assert(false);
-            return tiramisu::cuda_ast::op_data_t();
+            return cuda_ast::op_data_t();
     }
 }
 
-const tiramisu::cuda_ast::op_data_t isl_operation_description(isl_ast_op_type op) {
+const cuda_ast::op_data_t cuda_ast::isl_operation_description(isl_ast_op_type op) {
     switch (op) {
         BINARY_TYPED2(isl_ast_op_and, "&&", tiramisu::p_boolean)
         BINARY_TYPED2(isl_ast_op_and_then, "&&", tiramisu::p_boolean)
@@ -109,12 +109,12 @@ const tiramisu::cuda_ast::op_data_t isl_operation_description(isl_ast_op_type op
         BINARY_TYPED2(isl_ast_op_gt, ">", tiramisu::p_boolean)
         default: {
             assert(false);
-            return tiramisu::cuda_ast::op_data_t();
+            return cuda_ast::op_data_t();
         }
     }
 }
 
-const std::string tiramisu_type_to_cuda_type(tiramisu::primitive_t t) {
+const std::string cuda_ast::tiramisu_type_to_cuda_type(tiramisu::primitive_t t) {
     switch (t) {
         case tiramisu::p_none:
             return "void";
@@ -147,52 +147,47 @@ const std::string tiramisu_type_to_cuda_type(tiramisu::primitive_t t) {
     }
 }
 
+cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_from_isl_node(isl_ast_node *node) {
+    isl_ast_node_type type = isl_ast_node_get_type(node);
+
+    switch (type) {
+        case isl_ast_node_for:
+            return cuda_stmt_handle_isl_for(node);
+        case isl_ast_node_block:
+            return cuda_stmt_handle_isl_block(node);
+        case isl_ast_node_if:
+            return cuda_stmt_handle_isl_if(node);
+        case isl_ast_node_mark: DEBUG(3, tiramisu::str_dump("mark"));
+            return nullptr;
+        case isl_ast_node_user:
+            return cuda_stmt_handle_isl_user(node);
+        default: DEBUG(3, tiramisu::str_dump("default"));
+            return nullptr;
+    }
 }
-}
 
-namespace tiramisu {
+cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_node *node) {
+    isl_ast_node *then_body = isl_ast_node_if_get_then(node);
+    isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node)};
 
-cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(isl_ast_node *node) {
-        isl_ast_node_type type = isl_ast_node_get_type(node);
-
-        switch (type) {
-            case isl_ast_node_for:
-                return cuda_stmt_handle_isl_for(node);
-            case isl_ast_node_block:
-                return cuda_stmt_handle_isl_block(node);
-            case isl_ast_node_if:
-                return cuda_stmt_handle_isl_if(node);
-            case isl_ast_node_mark: DEBUG(3, tiramisu::str_dump("mark"));
-                return nullptr;
-            case isl_ast_node_user:
-                return cuda_stmt_handle_isl_user(node);
-            default: DEBUG(3, tiramisu::str_dump("default"));
-                return nullptr;
-        }
+    statement_ptr then_body_stmt{cuda_stmt_from_isl_node(then_body)};
+    statement_ptr else_body_stmt;
+    if (isl_ast_node_if_has_else(node)) {
+        isl_ast_node *else_body = isl_ast_node_if_get_else(node);
+        else_body_stmt = cuda_stmt_from_isl_node(else_body);
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_node *node) {
-        isl_ast_node *then_body = isl_ast_node_if_get_then(node);
-        isl_ast_expr_ptr condition{isl_ast_node_if_get_cond(node)};
+    statement_ptr condition_stmt{cuda_stmt_handle_isl_expr(condition, node)};
 
-        statement_ptr then_body_stmt{cuda_stmt_from_isl_node(then_body)};
-        statement_ptr else_body_stmt;
-        if (isl_ast_node_if_has_else(node)) {
-            isl_ast_node *else_body = isl_ast_node_if_get_else(node);
-            else_body_stmt = cuda_stmt_from_isl_node(else_body);
-        }
-
-        statement_ptr condition_stmt{cuda_stmt_handle_isl_expr(condition, node)};
-
-        if (else_body_stmt) {
-            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt, else_body_stmt}};
-        } else {
-            return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt}};
-        }
-
+    if (else_body_stmt) {
+        return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt, else_body_stmt}};
+    } else {
+        return statement_ptr{new cuda_ast::if_condition{condition_stmt, then_body_stmt}};
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_block(isl_ast_node *node) {
+}
+
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_block(isl_ast_node *node) {
         isl_ast_node_list_ptr children_list{isl_ast_node_block_get_children(node)};
         const int block_length = isl_ast_node_list_n_ast_node(children_list.get());
         auto *b = new block;
@@ -204,7 +199,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     }
 
     void
-    tiramisu::cuda_ast::generator::cuda_stmt_foreach_isl_expr_list(isl_ast_expr *node,
+    cuda_ast::generator::cuda_stmt_foreach_isl_expr_list(isl_ast_expr *node,
                                                                    const std::function<void(int, isl_ast_expr *)> &fn,
                                                                    int start) {
         int n = isl_ast_expr_get_op_n_arg(node);
@@ -213,8 +208,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node *node)
-    {
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_val_from_for_condition(isl_ast_expr_ptr &expr, isl_ast_node *node) {
         // TODO this is potentially a hack
         assert(isl_ast_expr_get_type(expr.get()) == isl_ast_expr_type::isl_ast_expr_op);
         auto expr_type = isl_ast_expr_get_op_type(expr.get());
@@ -234,7 +228,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_for(isl_ast_node *node) {
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_for(isl_ast_node *node) {
         isl_ast_expr_ptr iterator{isl_ast_node_for_get_iterator(node)};
         isl_id_ptr iterator_id{isl_ast_expr_get_id(iterator.get())};
         std::string iterator_name(isl_id_get_name(iterator_id.get()));
@@ -266,12 +260,10 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         // Check if GPU
         auto gpu_it = gpu_iterators.find(iterator_name);
-        if (gpu_it != gpu_iterators.end())
-        {
+        if (gpu_it != gpu_iterators.end()) {
             current_kernel->set_dimension(gpu_it->second);
             gpu_iterators.erase(gpu_it);
-            if (gpu_iterators.empty())
-            {
+            if (gpu_iterators.empty()) {
                 auto * final_body = new cuda_ast::block;
                 for (auto &dec : kernel_simplified_vars)
                     final_body->add_statement(dec);
@@ -298,9 +290,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             } else {
                 result = body_statement;
             }
-        }
-        else
-        {
+        } else {
             auto it = std::static_pointer_cast<cuda_ast::scalar>(cuda_stmt_handle_isl_expr(iterator, node));
             auto initializer_statement = statement_ptr{new declaration{
                     assignment_ptr{new scalar_assignment{it, initializer_stmt}}}};
@@ -327,7 +317,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return result;
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_expr(isl_ast_expr_ptr &expr,
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_expr(isl_ast_expr_ptr &expr,
                                                                                      isl_ast_node *node) {
         isl_ast_expr_type type = isl_ast_expr_get_type(expr.get());
         switch (type) {
@@ -350,8 +340,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-
-    cuda_ast::value_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_val(isl_val_ptr &node) {
+    cuda_ast::value_ptr cuda_ast::generator::cuda_stmt_handle_isl_val(isl_val_ptr &node) {
         // TODO handle infinity
         long num = isl_val_get_num_si(node.get());
         long den = isl_val_get_den_si(node.get());
@@ -359,16 +348,20 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return value_ptr{new cuda_ast::value{value_cast(global::get_loop_iterator_data_type(), num)}};
     }
 
-
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::parse_tiramisu(const tiramisu::expr &tiramisu_expr) {
+    cuda_ast::statement_ptr cuda_ast::generator::parse_tiramisu(const tiramisu::expr &tiramisu_expr) {
         switch (tiramisu_expr.get_expr_type()) {
             case e_val:
                 return statement_ptr{new cuda_ast::value{tiramisu_expr}};
             case e_var:
-            {
+                // o_call might get buffer as input parameter, in which case the
+                // buffer is interpreted as a var. If so, create scalar_ptr for
+                // the buffer.
+                if (this->m_fct.get_buffers().find(tiramisu_expr.get_name()) != this->m_fct.get_buffers().end()) {
+                    cuda_ast::buffer *b = this->get_buffer(tiramisu_expr.get_name()).get();
+                    return scalar_ptr{new cuda_ast::scalar{b->get_type(), b->get_name(), b->get_location()}};
+                }
+                // Otherwise expr must be a scalar.
                 return get_scalar_from_name(tiramisu_expr.get_name());
-            }
-
             case e_none:
                 assert(false);
             case e_op: {
@@ -398,8 +391,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                             return parse_tiramisu(tiramisu_expr.get_operand(0));
                         }
                     }
-                    case o_allocate:
-                    {
+                    case o_allocate: {
                         auto buffer = get_buffer(tiramisu_expr.get_name());
                         if (buffer->get_location() == memory_location::shared
                                 || buffer->get_location() == memory_location::local
@@ -455,12 +447,12 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-    cuda_ast::buffer_ptr tiramisu::cuda_ast::generator::get_buffer(const std::string &name) {
+    cuda_ast::buffer_ptr cuda_ast::generator::get_buffer(const std::string &name) {
         auto it = m_buffers.find(name);
         cuda_ast::buffer_ptr buffer;
-        if (it != m_buffers.end())
+        if (it != m_buffers.end()) {
             buffer = it->second;
-        else {
+        } else {
             auto tiramisu_buffer = this->m_fct.get_buffers().at(name);
             std::vector<cuda_ast::statement_ptr> sizes;
             for (auto &dim : tiramisu_buffer->get_dim_sizes()) {
@@ -471,8 +463,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                                                      tiramisu_buffer->location, sizes}};
             m_buffers[name] = buffer;
         }
-        if (in_kernel && gpu_local.find(name) == gpu_local.end())
-        {
+        if (in_kernel && gpu_local.find(name) == gpu_local.end()) {
             current_kernel->add_used_buffer(buffer);
         }
         return buffer;
@@ -483,8 +474,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                                                                       cuda_ast::statement_ptr upper_bound) {
         auto min_cap = upper_bound->extract_min_cap();
         statement_ptr actual_bound;
-        if (min_cap.first)
-        {
+        if (min_cap.first) {
             actual_bound = min_cap.first;
         } else {
             actual_bound = upper_bound;
@@ -515,7 +505,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return result;
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr,
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_op_expr(isl_ast_expr_ptr &expr,
                                                                                         isl_ast_node *node) {
         isl_ast_op_type op_type = isl_ast_expr_get_op_type(expr.get());
         if (op_type == isl_ast_op_call) {
@@ -592,13 +582,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             }
             if (comp->get_expr().get_expr_type() == e_sync) {
                 return statement_ptr{new cuda_ast::sync};
-            }
-            else if (comp->get_expr().get_op_type() == o_memcpy)
-            {
+            } else if (comp->get_expr().get_op_type() == o_memcpy) {
                 return statement_ptr{parse_tiramisu(comp->get_expr())};
-            }
-            else if (comp->get_expr().get_op_type() == o_allocate)
-            {
+            } else if (comp->get_expr().get_op_type() == o_allocate) {
                 this->gpu_local.insert(comp->get_expr().get_name());
                 auto buffer = get_buffer(comp->get_expr().get_name());
                 if (buffer->get_location() == memory_location::shared
@@ -607,31 +593,33 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     return statement_ptr {new cuda_ast::declaration{buffer}};
                 else
                     return statement_ptr {new cuda_ast::allocate{buffer}};
-            } else if (comp->get_expr().get_op_type() == o_free)
-            {
+            } else if (comp->get_expr().get_op_type() == o_free) {
                 auto buffer = get_buffer(comp->get_expr().get_name());
                 return statement_ptr {new cuda_ast::free{buffer}};
+            } else if (comp->get_expr().get_op_type() == o_call) {
+                const tiramisu::expr &e = comp->get_expr();
+                std::vector<statement_ptr> arguments;
+                for (const auto &arg : e.get_arguments()) {
+                    arguments.push_back(parse_tiramisu(replace_original_indices_with_transformed_indices(arg, comp->get_iterators_map())));
+                }
+                return statement_ptr{new cuda_ast::function_call{e.get_data_type(), e.get_name(), arguments}};
             } else {
                 auto &associated_lets = comp->get_associated_let_stmts();
-                for (auto &statement: associated_lets)
-                {
+                for (auto &statement: associated_lets) {
                     this->m_scalar_data.insert(std::make_pair(statement.first, std::make_pair(statement.second.get_data_type(), memory_location::reg)));
                 }
                 if (index_exprs.find(comp) == index_exprs.end())
                     index_exprs[comp] = comp->index_expr;
                 auto result = comp->create_tiramisu_assignment(index_exprs[comp]);
                 statement_ptr asgmnt;
-                if (result.first.get_expr_type() == e_var)
-                {
+                if (result.first.get_expr_type() == e_var) {
                     cuda_ast::scalar_ptr s = scalar_ptr{new scalar{result.first.get_data_type(), result.first.get_name(), memory_location::reg, true}};
                     // TODO associated let statement doesn't work well with declaration
                     asgmnt = statement_ptr{new declaration{assignment_ptr{new scalar_assignment{s, parse_tiramisu(result.second)}}}};
                     // TODO remove once done
                     m_scalar_data.insert(std::make_pair(result.first.get_name(), std::make_pair(result.first.get_data_type(), memory_location::reg)));
                     gpu_local.insert(result.first.get_name());
-                }
-                else
-                {
+                } else {
                     cuda_ast::buffer_ptr b = this->get_buffer(result.first.get_name());
                     asgmnt = statement_ptr{new buffer_assignment{b, parse_tiramisu(result.first.get_access()[0]),
                                                                   parse_tiramisu(result.second)}};
@@ -696,10 +684,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 return statement_ptr{new cuda_ast::function_call{type, description.symbol, operands}};
             }
         }
-
     }
 
-    cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
+    cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
         isl_ast_expr_ptr expr{isl_ast_node_user_get_expr(node)};
         return cuda_stmt_handle_isl_expr(expr, node);
     }
@@ -715,8 +702,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         auto *body = new cuda_ast::block;
         auto main_body = generator.cuda_stmt_from_isl_node(this->get_isl_ast());
 
-        for (auto &kernel : generator.kernels)
-        {
+        for (auto &kernel : generator.kernels) {
             body->add_statement(cuda_ast::statement_ptr{new cuda_ast::kernel_definition{kernel}});
         }
         auto function_body = new cuda_ast::block;
@@ -750,8 +736,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
                 buf->mark_as_allocated();
 
-                if (buf->location == cuda_ast::memory_location::constant)
-                {
+                if (buf->location == cuda_ast::memory_location::constant) {
                     const_buffer_declaration.push_back(declaration);
                     auto hf = new cuda_ast::host_function{p_none, buf->get_name() + "_get_symbol", {},
                                             cuda_ast::statement_ptr{new cuda_ast::return_statement{std::static_pointer_cast<cuda_ast::statement>(cuda_ast_buffer)}}};
@@ -779,8 +764,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             resulting_file->add_statement(s);
 
 
-        for (auto &kernel: generator.kernels)
-        {
+        for (auto &kernel: generator.kernels) {
             resulting_file->add_statement(cuda_ast::statement_ptr{new cuda_ast::kernel_definition{kernel}});
 
             std::shared_ptr<cuda_ast::block> wrapper_block{new cuda_ast::block};
@@ -809,14 +793,13 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         DEBUG_INDENT(-4);
     }
 
-    tiramisu::cuda_ast::generator::generator(tiramisu::function &fct) : m_fct(fct) {
+    cuda_ast::generator::generator(tiramisu::function &fct) : m_fct(fct) {
         for (const tiramisu::constant &invariant : fct.get_invariants()) {
             m_scalar_data.insert(std::make_pair(invariant.get_name(),
                                                 std::make_pair(invariant.get_data_type(),
                                                                cuda_ast::memory_location::reg)));
         }
     }
-
 
     cuda_ast::statement::statement(primitive_t type) : type(type) {}
 
@@ -977,15 +960,13 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         }
     }
 
-
     void cuda_ast::scalar::print(std::stringstream &ss, const std::string &base) {std::string name;
         statement_ptr body;
         ss << get_name();
     }
 
     void cuda_ast::value::print(std::stringstream &ss, const std::string &base) {
-        switch (get_type())
-        {
+        switch (get_type()) {
             case p_uint8:
             ss << +u8_val;
                 break;
@@ -1144,8 +1125,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     void cuda_ast::buffer::print_declaration(std::stringstream &ss, const std::string &base) {
         ss << tiramisu_type_to_cuda_type(get_type()) << " ";
-        if (this->get_location() == memory_location::global || this->get_location() == memory_location::host)
-        {
+        if (this->get_location() == memory_location::global || this->get_location() == memory_location::host) {
             ss << "*" << get_name();
         } else if (this->get_location() == memory_location::reg) {
             ss << get_name();
@@ -1186,8 +1166,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
 
     void cuda_ast::kernel::dim3d_t::set(gpu_iterator::dimension_t dim, statement_ptr size) {
-        switch (dim)
-        {
+        switch (dim) {
             case gpu_iterator::dimension_t::x:
                 this->x.swap(size);
                 break;
@@ -1246,11 +1225,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
             arguments.push_back(c.second);
         for (auto &b: kernel->used_buffers)
             arguments.push_back(b.second);
-        for (auto it = arguments.begin(); it != arguments.end();)
-        {
+        for (auto it = arguments.begin(); it != arguments.end();) {
             (*it)->print(ss, base);
-            if (++it != arguments.end())
-            {
+            if (++it != arguments.end()) {
                 ss << ", ";
             }
         }
@@ -1275,11 +1252,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     void cuda_ast::kernel_definition::print(std::stringstream &ss, const std::string &base) {
         ss << "static __global__ void " << kernel->get_name() << "(";
         auto arguments = kernel->get_arguments();
-        for (auto it = arguments.begin(); it != arguments.end();)
-        {
+        for (auto it = arguments.begin(); it != arguments.end();) {
             (*it)->print_declaration(ss, base);
-            if (++it != arguments.end())
-            {
+            if (++it != arguments.end()) {
                 ss << ", ";
             }
         }
@@ -1292,11 +1267,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     cuda_ast::gpu_iterator_read::gpu_iterator_read(gpu_iterator it, bool simplified) : statement(global::get_loop_iterator_data_type()), it(it), simplified(simplified){}
 
     void cuda_ast::gpu_iterator_read::print(std::stringstream &ss, const std::string &base) {
-        if (simplified)
-        {
+        if (simplified) {
             ss << it.simplified_name();
-        }
-        else {
+        } else {
             switch (it.type) {
                 case gpu_iterator::type_t::BLOCK:
                     ss << "blockIdx";
@@ -1340,11 +1313,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         if (pointer_return)
             ss << "*";
         ss << " " << name << "(";
-        for (int i = 0; i < arguments.size();)
-        {
+        for (int i = 0; i < arguments.size();) {
             arguments[i]->print_declaration(ss, base);
-            if (++i < arguments.size())
-            {
+            if (++i < arguments.size()) {
                 ss << ", ";
             }
         }
@@ -1353,8 +1324,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     }
 
     cuda_ast::memcpy::memcpy(buffer_ptr from, buffer_ptr to) : statement(p_none), from(from), to(to) {}
-    void cuda_ast::memcpy::print(std::stringstream &ss, const std::string &base)
-    {
+
+    void cuda_ast::memcpy::print(std::stringstream &ss, const std::string &base) {
         ss << "cudaMemcpy(" << to->get_name() << ", ";
         ss << from->get_name() << ", ";
         to->print_size(ss, base, " * ");
@@ -1370,8 +1341,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     cuda_ast::free::free(buffer_ptr b) : statement(p_none), b(b){}
 
     void cuda_ast::allocate::print(std::stringstream &ss, const std::string &base) {
-        switch(b->get_location())
-        {
+        switch(b->get_location()) {
             case memory_location::host:
                 ss << b->get_name() << " = (" << tiramisu_type_to_cuda_type(b->get_type()) << "*)malloc(";
                 break;
@@ -1385,8 +1355,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         ss << " * sizeof(" << tiramisu_type_to_cuda_type(b->get_type()) << "))";
     }
     void cuda_ast::free::print(std::stringstream &ss, const std::string &base) {
-        switch(b->get_location())
-        {
+        switch(b->get_location()) {
             case memory_location::host:
                 ss << "free";
                 break;
@@ -1442,8 +1411,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     std::unordered_set<std::string> cuda_ast::function_call::extract_scalars() {
         std::unordered_set<std::string> result;
-        for (auto &arg: arguments)
-        {
+        for (auto &arg: arguments) {
             auto subresult = arg->extract_scalars();
             result.insert(subresult.begin(), subresult.end());
         }
@@ -1470,8 +1438,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     std::unordered_set<std::string> cuda_ast::op::extract_scalars() {
         std::unordered_set<std::string> result;
-        for (auto &op: m_operands)
-        {
+        for (auto &op: m_operands) {
             auto subresult = op->extract_scalars();
             result.insert(subresult.begin(), subresult.end());
         }
@@ -1489,8 +1456,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
     }
 
     cuda_ast::value_ptr cuda_ast::value::copy() {
-        switch (get_type())
-        {
+        switch (get_type()) {
             case p_uint8:
                 return value_ptr{new value{u8_val}};
                 break;
@@ -1540,8 +1506,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     std::unordered_set<std::string> cuda_ast::buffer_access::extract_scalars() {
         std::unordered_set<std::string> result;
-        for (auto &index: this->access)
-        {
+        for (auto &index: this->access) {
             auto subresult = index->extract_scalars();
             result.insert(subresult.begin(), subresult.end());
         }
@@ -1549,11 +1514,9 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
     }
 
-
     std::string cuda_ast::gpu_iterator::simplified_name() {
         std::string result = "__";
-        switch (type)
-        {
+        switch (type) {
             case type_t::THREAD :
                 result += "t";
                 break;
@@ -1561,8 +1524,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                 result += "b";
                 break;
         }
-        switch (dimension)
-        {
+        switch (dimension) {
             case dimension_t::x :
                 result += "x";
                 break;
@@ -1586,32 +1548,24 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         m_rhs->print(ss, base);
     }
 
-    cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name)
-    {
-        auto it = this->gpu_iterators.find(name);
-        if (it != this->gpu_iterators.end())
-        {
+    cuda_ast::statement_ptr cuda_ast::generator::get_scalar_from_name(std::string name) {
+        if (this->gpu_iterators.find(name) != this->gpu_iterators.end()) {
+            auto it = this->gpu_iterators.find(name);
             return statement_ptr {new cuda_ast::gpu_iterator_read{it->second}};
-        } else {
+        } else if (this->m_scalar_data.find(name) != this->m_scalar_data.end()) {
             auto data_it = m_scalar_data.find(name);
-            assert(data_it != m_scalar_data.end() && "Unknown name");
             auto const &data = data_it->second;
             scalar_ptr used_scalar{new cuda_ast::scalar{data.first, name, data.second}};
-            if (this->in_kernel)
-            {
+            if (this->in_kernel) {
                 // Check if it was defined inside
                 bool defined_inside = gpu_local.find(name) != gpu_local.end();
-                if (!defined_inside)
-                {
-                    for (auto it = iterator_stack.rbegin(); it != iterator_stack.rend(); it++)
-                    {
-                        if (name == *it)
-                        {
+                if (!defined_inside) {
+                    for (auto it = iterator_stack.rbegin(); it != iterator_stack.rend(); it++) {
+                        if (name == *it) {
                             defined_inside = true;
                             break;
                         }
-                        if (gpu_iterators.find(name) != gpu_iterators.end())
-                        {
+                        if (gpu_iterators.find(name) != gpu_iterators.end()) {
                             break;
                         }
                     }
@@ -1620,12 +1574,13 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
                     this->current_kernel->add_used_scalar(used_scalar);
             }
             return used_scalar;
+        } else {
+            ERROR("Scalar not found: " + name, true);
         }
     }
 
     cuda_ast::value::value(const tiramisu::expr &expr) : statement(expr.get_data_type()) {
-        switch (get_type())
-        {
+        switch (get_type()) {
             case p_uint8:
                 u8_val = expr.get_uint8_value();
                 break;
@@ -1688,8 +1643,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         FILE * file{popen(cmd.c_str(), "r")};
         if (!file)
             return exec_result{false, -1, "", ""};
-        while (!feof(file))
-        {
+        while (!feof(file)) {
             if (fgets(buffer.data(), 128, file) != nullptr)
                 out << buffer.data();
         }
@@ -1704,6 +1658,8 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         stringstream command;
         command << NVCC_PATH;
+        // Basic streaming for parallelization
+        command << " --default-stream per-thread";
         // Say that this is actually cuda code
         command << " -x cu";
         // Create a .o file
@@ -1719,8 +1675,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         auto result = exec(command.str());
 
-        if (result.fail())
-        {
+        if (result.fail()) {
             ERROR("Failed to compile the CPU object for the GPU code.", false);
         }
 
@@ -1729,14 +1684,15 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return result.succeed();
     }
 
-    bool cuda_ast::compiler::compile_gpu_obj(const std::string &obj_name) const
-    {
+    bool cuda_ast::compiler::compile_gpu_obj(const std::string &obj_name) const {
         using namespace std;
         DEBUG_FCT_NAME(3);
         DEBUG_INDENT(4);
 
         stringstream command;
         command << NVCC_PATH;
+        // Basic streaming for parallelization
+        command << " --default-stream per-thread";
         // Link device object code
         command << " -dlink";
         // Specify input file name
@@ -1748,8 +1704,7 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
 
         auto result = exec(command.str());
 
-        if (result.fail())
-        {
+        if (result.fail()) {
             ERROR("Failed to compile the GPU object for the GPU code.", false);
         }
 
@@ -1788,24 +1743,24 @@ cuda_ast::statement_ptr tiramisu::cuda_ast::generator::cuda_stmt_from_isl_node(i
         return compile_cpu_obj(filename, obj_name) && compile_gpu_obj(obj_name);
     }
 
-    bool cuda_ast::abstract_identifier::is_buffer() const {
-        return false;
-    }
+bool cuda_ast::abstract_identifier::is_buffer() const {
+    return false;
+}
 
-    bool cuda_ast::buffer::is_buffer() const {
-        return true;
-    }
+bool cuda_ast::buffer::is_buffer() const {
+    return true;
+}
 
-    cuda_ast::return_statement::return_statement(statement_ptr return_value) : statement(p_none), return_value(return_value){}
+cuda_ast::return_statement::return_statement(statement_ptr return_value) : statement(p_none), return_value(return_value){}
 
-    void cuda_ast::return_statement::print(std::stringstream &ss, const std::string &base) {
-        ss << "return ";
-        return_value->print(ss, base);
-    }
+void cuda_ast::return_statement::print(std::stringstream &ss, const std::string &base) {
+    ss << "return ";
+    return_value->print(ss, base);
+}
 
-    void cuda_ast::host_function::set_pointer_return(bool val) {
-        pointer_return = val;
-    }
+void cuda_ast::host_function::set_pointer_return(bool val) {
+    pointer_return = val;
+}
 
-};
+}  // namespace tiramisu
 

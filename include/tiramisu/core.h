@@ -22,6 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
+#include <tiramisu/computation_graph.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -40,6 +41,7 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
+class auto_scheduler;
 
 
 struct HalideCodegenOutput
@@ -137,6 +139,7 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend auto_scheduler;
 
 private:
     /**
@@ -482,6 +485,18 @@ protected:
       * {C[0] -> D[1]; C[0]->D[2]}
       */
     isl_union_map *compute_dep_graph();
+
+    /**
+      * The Tiramisu autoscheduler starts by creating an initial
+      * ordered graph of computations. This graph represents the
+      * original computations and the order defined based on
+      * dependencens between these computations.
+      * Computations of the initial graph are then fused to form
+      * blocks. Each block is the result of fusing multiple
+      * computations. The final order of computations is derived
+      * from this ordered graph of computations.
+      */
+    computation_graph cg;
 
     /**
       * Get the arguments of the function.
@@ -1014,6 +1029,12 @@ public:
     void gen_time_space_domain();
 
     /**
+      * Return the invariant of the function that has
+      * the name \p str.
+      */
+    constant* get_invariant_by_name(std::string str) const;
+
+    /**
       * Set the arguments of the function.
       * The arguments of the function are provided as a vector of
       * pointers to buffers. Each buffer represents an argument
@@ -1301,6 +1322,11 @@ public:
       *  deallocated at the exit of the function).
       */
     tiramisu::argument_t get_argument_type() const;
+
+    /**
+     * Return the memory location of the buffer.
+     */
+    cuda_ast::memory_location get_location() const;
 
     /**
       * Return the name of the buffer.
@@ -4635,6 +4661,13 @@ protected:
                                                      int coeff,
                                                      const tiramisu::function *fct);
 
+    /**
+     * Extract tags from the ISL ast node at given level. This is a helper
+     * function meant to be used from halide_stmt_from_isl_node. Traverses
+     * the ISL ast tree and fills the tagged_stmts vector.
+     */
+    static void extract_tags_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
+                                           std::vector<std::pair<std::string, std::string>> &tagged_stmts);
 
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast

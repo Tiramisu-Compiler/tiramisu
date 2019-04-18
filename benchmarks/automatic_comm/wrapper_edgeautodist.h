@@ -6,10 +6,10 @@
 extern "C" {
 #endif
 
-#define _ROWS 1500
+#define _ROWS 1600
 #define _COLS 1000
 
-#define NODES 10
+#define _NODES 16
 
 int edgeautodist_tiramisu(halide_buffer_t *, halide_buffer_t *);
 int edgeautodist_ref(halide_buffer_t *, halide_buffer_t *);

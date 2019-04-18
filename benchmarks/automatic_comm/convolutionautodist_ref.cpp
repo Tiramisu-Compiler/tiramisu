@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     data_transfer.r->tag_distribute_level(r);
 
     data_transfer.s->before(conv, computation::root);
-    data_transfer.r->before(*data_transfer.s, computation::root);
+    data_transfer.s->before(*data_transfer.r, computation::root);
 
     buffer buff_input("buff_input", {_ROWS/_NODES, _COLS, _CHANNELS},  p_int32, a_input);
     buffer buff_kernel("buff_kernel", {kernel_extent_1, kernel_extent_0}, p_float32, a_input);

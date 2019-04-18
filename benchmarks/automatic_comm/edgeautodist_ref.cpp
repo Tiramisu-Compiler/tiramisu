@@ -9,6 +9,7 @@ int main(int argc, char* argv[])
 
     constant COLS("COLS",_COLS);
     constant ROWS("ROWS",_ROWS);
+    constant NODES("NODES",_NODES);
 
     function* edge = global::get_implicit_function();
     edge->add_context_constraints("[ROWS]->{:ROWS = "+std::to_string(_ROWS)+"}");
@@ -27,9 +28,9 @@ int main(int argc, char* argv[])
     computation Out("Out", {iout, jout, c}, (R(iout+1, jout+1, c) - R(iout+2, jout, c))
         + (R(iout+2, jout+1, c) - R(iout+1, jout, c)));
 
-    Img.split(in,_ROWS/NODES,i0,i1);
-    Out.split(iout,_ROWS/NODES,i0,i1);
-    R.split(ir,_ROWS/NODES,i0,i1);
+    Img.split(in,_ROWS/_NODES,i0,i1);
+    Out.split(iout,_ROWS/_NODES,i0,i1);
+    R.split(ir,_ROWS/_NODES,i0,i1);
 
     Img.tag_distribute_level(i0);
     Out.tag_distribute_level(i0);
@@ -40,8 +41,8 @@ int main(int argc, char* argv[])
     R.drop_rank_iter(i0);
 
     xfer border_comm_Img = computation::create_xfer(
-    "[COLS]->{border_comm_Img_send[s,ii,jj,kk]: 1<=s<10 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
-    "[COLS]->{border_comm_Img_recv[r,ii,jj,kk]: 0<=r<9 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    "[NODES,COLS]->{border_comm_Img_send[s,ii,jj,kk]: 1<=s<NODES and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    "[NODES,COLS]->{border_comm_Img_recv[r,ii,jj,kk]: 0<=r<NODES-1 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
     s-1,
     r+1,
     xfer_prop(p_int32, {MPI, BLOCK, ASYNC}), xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
@@ -54,8 +55,8 @@ int main(int argc, char* argv[])
     border_comm_Img.r ->before(R, computation::root);
 
     xfer border_comm_R = computation::create_xfer(
-    "[COLS]->{border_comm_R_send[s,ii,jj,kk]: 1<=s<10 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
-    "[COLS]->{border_comm_R_recv[r,ii,jj,kk]: 0<=r<9 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    "[NODES,COLS]->{border_comm_R_send[s,ii,jj,kk]: 1<=s<NODES and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
+    "[NODES,COLS]->{border_comm_R_recv[r,ii,jj,kk]: 0<=r<NODES-1 and 0<=ii<2 and 0<=jj<COLS and 0<=kk<3}",
     s-1,
     r+1,
     xfer_prop(p_int32, {MPI, BLOCK, ASYNC}), xfer_prop(p_int32, {MPI, BLOCK, ASYNC}),
@@ -68,15 +69,15 @@ int main(int argc, char* argv[])
     border_comm_R.s->before(*border_comm_R.r, computation::root);
     border_comm_R.r->before(Out, computation::root);
 
-    buffer b_Img("b_Img", {_ROWS/NODES + 2, _COLS, 3}, p_int32, a_input);
-    buffer   b_R("b_R",   {_ROWS/NODES + 2, _COLS, 3}, p_int32, a_output);
+    buffer b_Img("b_Img", {_ROWS/_NODES + 2, _COLS, 3}, p_int32, a_input);
+    buffer   b_R("b_R",   {_ROWS/_NODES + 2, _COLS, 3}, p_int32, a_output);
 
     Img.store_in(&b_Img);
     R.store_in(&b_R);
     Out.store_in(&b_Img);
 
-    border_comm_R.r->set_access("{border_comm_R_recv[r,ii,jj,kk]->b_R[" + std::to_string(_ROWS/10) + "+ii,jj,kk]}");
-    border_comm_Img.r->set_access("{border_comm_Img_recv[r,ii,jj,kk]->b_Img[" + std::to_string(_ROWS/10) + "+ii,jj,kk]}");
+    border_comm_R.r->set_access("{border_comm_R_recv[r,ii,jj,kk]->b_R[" + std::to_string(_ROWS/_NODES) + "+ii,jj,kk]}");
+    border_comm_Img.r->set_access("{border_comm_Img_recv[r,ii,jj,kk]->b_Img[" + std::to_string(_ROWS/_NODES) + "+ii,jj,kk]}");
 
     tiramisu::codegen({&b_Img, &b_R}, "build/generated_fct_edgeautodist_ref.o");
 
