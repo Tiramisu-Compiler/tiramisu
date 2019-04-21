@@ -5,7 +5,7 @@
 #include <random>
 #include <cstdlib>
 
-#define CODES_FROM 0
+//#define CODES_FROM 25
 
 using namespace std;
 
@@ -17,8 +17,8 @@ void read_inputs(int *nb_codes, int *nb_stages, string *default_type_tiramisu, s
 
 
 int main() {
-
-
+    int CODES_FROM;
+    cin >> CODES_FROM; 
     string fpath = "samples";
     mkdir(fpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
