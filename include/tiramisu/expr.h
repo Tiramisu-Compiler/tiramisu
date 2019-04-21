@@ -308,15 +308,16 @@ public:
     expr(tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1)
     {
         if (expr0.get_data_type() != expr1.get_data_type())
-	{
-	    tiramisu::str_dump("Binary operation between two expressions of different types:\n");
-	    expr0.dump(false);
-	    tiramisu::str_dump(" and ");
-	    expr1.dump(false);
-	    tiramisu::str_dump("\n");
+        {
+            tiramisu::str_dump("Binary operation between two expressions of different types:\n");
+            expr0.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr0.get_data_type()) + ")");
+            tiramisu::str_dump(" and ");
+            expr1.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr1.get_data_type()) + ")");
+            tiramisu::str_dump("\n");
             ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
-	}
-
+        }
         this->_operator = o;
         this->etype = tiramisu::e_op;
         this->dtype = expr0.get_data_type();
