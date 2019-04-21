@@ -1,5 +1,6 @@
 #ifndef _H_TIRAMISU_CORE_
 #define _H_TIRAMISU_CORE_
+#define AUTOMAT_MODE 1 // set to 1 if the automatic scheduling is allowed 
 
 #include <isl/set.h>
 #include <isl/map.h>
@@ -41,6 +42,7 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
+class features_extractor;
 class auto_scheduler;
 
 
@@ -247,7 +249,7 @@ private:
       * around the computation S0 should be unrolled with an unrolling
       * factor of 8.
       */
-    std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
+     std::vector<std::tuple<std::string, int, int>> unroll_dimensions;
 
     /**
       * Body of the function (a vector of computations).
@@ -521,11 +523,7 @@ protected:
       */
     const std::vector<computation *> &get_computations() const;
 
-    /**
-      * Return the computation of the function that has
-      * the name \p str.
-      */
-    std::vector<computation *> get_computation_by_name(std::string str) const;
+     
 
     /**
       * Return a string representing the name of the GPU block iterator at
@@ -642,7 +640,7 @@ protected:
      */
     int get_vector_length(const std::string &comp, int lev) const;
 
-    /**
+/**
      * If the computation \p comp is unrolled at the loop level \p lev,
      * return its unrolling factor.
      */
@@ -758,7 +756,7 @@ protected:
      */
     bool use_low_level_scheduling_commands;
 
-    /**
+/**
      * \brief Generates the automatic communication CPU/GPU.
      * \details This fucntion takes two pointers to the first and the last computation
      *  of the fucntion.
@@ -825,6 +823,7 @@ public:
       * This call intersects the set \p new_context
       * (input) with the context of the function.
       */
+  
     void add_context_constraints(const std::string &new_context);
 
     /**
@@ -929,6 +928,12 @@ public:
     void dump_halide_stmt() const;
 
     /**
+      * Return the computation of the function that has
+      * the name \p str.
+      */
+    std::vector<computation *> get_computation_by_name(std::string str) const;   
+
+    /**
       * \brief Dump the iteration domain of the function.
       * \details This is mainly useful for debugging.
       */
@@ -1028,7 +1033,7 @@ public:
       */
     void gen_time_space_domain();
 
-    /**
+      /**
       * Return the invariant of the function that has
       * the name \p str.
       */
@@ -1071,6 +1076,7 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
+
 };
 
 
@@ -1164,10 +1170,10 @@ protected:
       */
     bool get_auto_allocate();
 
-    /**
+   /**
       * Return whether the copy should be done automatically.
       */
-    bool get_automatic_gpu_copy();
+    bool get_automatic_gpu_copy();  
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1227,13 +1233,13 @@ public:
       * during Tiramisu initialization will be used (we call that
       * function the "implicit function").
       *
-      * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
+* \p corr is the name of the cpu buffer corresponding to a gpu buffer.
       * This field is only set, when we creat a gpu buffer.
-      *
-      * Buffer names should not start with _ (an underscore).
+      * 
+      *  Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
       */
-    buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
+        buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
            tiramisu::primitive_t type, tiramisu::argument_t argt,
            tiramisu::function *fct = global::get_implicit_function(),
            std::string corr = "");
@@ -1323,7 +1329,7 @@ public:
       */
     tiramisu::argument_t get_argument_type() const;
 
-    /**
+ /**
      * Return the memory location of the buffer.
      */
     cuda_ast::memory_location get_location() const;
@@ -1353,7 +1359,7 @@ public:
       */
     void set_auto_allocate(bool auto_allocation);
 
-    /**
+   /**
       * Set whether the GPU copy should be done automatically.
       */
     void set_automatic_gpu_copy(bool automatic_gpu_copy);
@@ -1423,6 +1429,7 @@ class computation
     friend recv;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend features_extractor;
 
 private:
 
@@ -1432,6 +1439,17 @@ private:
       * and which element of the buffer exactly it should be stored.
       */
     isl_map *access;
+
+   /**
+      * List of initial iterators. 
+      */
+    std::vector<var> iterator_variables;
+
+    /**
+      * Features of the computation. 
+      * list of characteristcs used to describe the computation as  features vector for automatic scheduling 
+      */
+     computation_features_struct computation_features;
 
     /**
       * A vector that contains the list of let statements associated
@@ -1893,6 +1911,17 @@ private:
       * the duplicate() function.
       */
     int get_duplicates_number() const;
+
+    /**
+      * Return the initial list of the computation iterators.
+      */
+    std::vector<var> get_iterator_variables();
+
+    /**
+      * set the initial list of the computation iterators.
+      */
+    void set_iterator_variables(std::vector<tiramisu::var> it_variables);
+
 
     /**
       * If has_multiple_definitions() is true, then this function returns the
@@ -2451,7 +2480,7 @@ protected:
       * Compute the size of the buffer allocated automatically to hold the
       * results of this computation.
       */
-    std::vector<tiramisu::expr> compute_buffer_size();
+     std::vector<tiramisu::expr> compute_buffer_size();
 
     /**
       * Return the context of the computations.
@@ -2642,6 +2671,8 @@ protected:
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
 
+
+
 public:
 
     /**
@@ -2745,12 +2776,13 @@ public:
       * \p schedule_this_computation indicates whether this computation should to
       * be scheduled.
       */
-    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
 
-    /**
-      * \overload
-      */
-    computation(std::vector<var> iterator_variables, tiramisu::expr e);
+   /**
+     * \overload
+     */
+   computation(std::vector<var> iterator_variables, tiramisu::expr e);
+
 
     /**
       * \brief Constructor for computations.
@@ -2797,12 +2829,13 @@ public:
       * reductions.
       *
       */
-    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
+   computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
 
-    /**
-      * \overload
-      */
-    computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+   /**
+     * \overload
+     */
+   computation(std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation);
+
 
     /**
       * \overload
@@ -2828,14 +2861,15 @@ public:
       * This can be used a wrapper on a buffer buf[20, 30] where the buffer elements
       * are of type uint8.
       */
-    computation(std::string name, std::vector<var> iterator_variables, primitive_t t)
+      computation(std::string name, std::vector<var> iterator_variables, primitive_t t)
             : computation(name, iterator_variables, expr(t)) {}
 
     /**
       * \overload
       */
-    computation(std::vector<var> iterator_variables, primitive_t t)
+ computation(std::vector<var> iterator_variables, primitive_t t)
             : computation(iterator_variables, expr(t)) {}
+   
 
     virtual bool is_send() const;
 
@@ -2984,6 +3018,7 @@ public:
       *     - Each other computation should have exactly one computation scheduled before it.
       *
       */
+     
     void after(computation &comp, tiramisu::var iterator);
 
     /**
@@ -3136,7 +3171,7 @@ public:
       */
     buffer* auto_buffer();
 
-    /**
+      /**
       * \brief Schedule this computation to run before the computation \p consumer
       * at the loop level \p L.
       *
@@ -3176,7 +3211,7 @@ public:
       */
     void between(computation &before_comp, tiramisu::var before_l, computation &after_comp, tiramisu::var after_l);
 
-    /**
+/**
       * This function is equivalent to void between(computation &before_comp, tiramisu::var before_l,
       * computation &after_comp, tiramisu::var after_l); except that it uses loop level numbers
       * (0, 1, 2, ...) instead of using loop variables (tiramisu::var).
@@ -3247,7 +3282,7 @@ public:
      void store_in(buffer *buff, std::vector<expr> iterators);
      // }@
 
-    /**
+  /**
       * \brief Resize the implicit buffer and remap the computation.
       *
       * \details By default Tiramisu computations are stored in implicit
@@ -3445,6 +3480,7 @@ public:
       */
     primitive_t get_data_type() const;
 
+
     /**
       * Return the Tiramisu expression associated with the computation.
       */
@@ -3460,7 +3496,7 @@ public:
     /**
       * Get the last update of a computation.
       */
-    computation &get_last_update();
+       computation &get_last_update();
 
     /**
       * Search the time-space domain (the range of the schedule) and
@@ -3483,7 +3519,7 @@ public:
       * Returns a pointer to the computation scheduled immediately before this computation,
       * or a null pointer if none exist.
       */
-    computation *get_predecessor();
+     computation *get_predecessor();
 
     /**
       * Returns a pointer to the computation scheduled immediately after this computation,
@@ -3518,7 +3554,7 @@ public:
       * are the names of the new dimensions created after tiling.
       */
     // @{
-    virtual void gpu_tile(var L0, var L1, int sizeX, int sizeY);
+       virtual void gpu_tile(var L0, var L1, int sizeX, int sizeY);
     virtual void gpu_tile(var L0, var L1, int sizeX, int sizeY,
                           var L0_outer, var L1_outer,
                           var L0_inner, var L1_inner);
@@ -3529,18 +3565,18 @@ public:
     // @}
 
     /**
-      * Return the buffer that was allocated automatically using
-      * high level data mapping functions.
-      * If no automatic buffer was allocated, this function returns NULL.
-      */
+     * Return the buffer that was allocated automatically using
+     * high level data mapping functions.
+     * If no automatic buffer was allocated, this function returns NULL.
+     */
     buffer *get_automatically_allocated_buffer();
 
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */
-    virtual void interchange(var L0, var L1);
+     virtual void interchange(var L0, var L1);
 
-    /**
+   /**
       * Identical to
       *     void interchange(var L0, var L1);
       */
@@ -3556,14 +3592,14 @@ public:
       */
     void mark_as_library_call();
 
-    /**
+   /**
       * Tag the loop level \p L to be parallelized.
       *
       * This function is equivalent to the function \ref tiramisu::computation::tag_parallel_level() .
       * There is no difference between the two.
       *
       */
-    virtual void parallelize(var L);
+     virtual void parallelize(var L);
 
     /**
        * Set the access relation of the computation.
@@ -3590,7 +3626,80 @@ public:
        * Set the expression of the computation.
        */
      void set_expression(const tiramisu::expr &e);
+    /**
+       * Set the features structure of the computation.
+       */
+     void set_computation_features(computation_features_struct comp_features);
+      /**
+       * extract the features and set the features structure of the computation.
+       */
+     void extract_computation_features();
+      /**
+       * get the features structure of the computation.
+       */
+     computation_features_struct get_computation_features();
 
+     /**
+       * update the schedule features structure by adding the new optimization features
+       */
+     void update_schedule_features(std::string optimization, std::vector<int> factors, std::vector<int> levels);
+
+     /**
+       * update the iterator names in the features structure after spletting the iterator (level) 
+       */
+    void update_split_features(int level, std::string name_inner, std::string name_outer);
+
+     /**
+       * update the iterator structure after spletting the iterator (level) 
+       */
+     void update_split_features(int level, int size);
+      
+     /**
+       * update the iterator names in the features structure after tiling the iterator (level1,level2,level3) 
+       */
+     
+     void update_tile_features(int level1,int level2,int level3, std::string L0_outer_name, std::string L1_outer_name, std::string L2_outer_name,
+                                                   std::string L0_inner_name, std::string L1_inner_name, std::string L2_inner_name);
+      /**
+       * update the iterator structure after tiling the iterator (level1,level2,level3) 
+       */
+
+     void update_tile_features(int level1,int level2,int level3, int sizeX, int sizeY, int sizeZ);     
+
+      /**
+       *  update the iterator names in the features structure after tiling the iterator (level1,level2)
+       */
+     void update_tile_features(int level1,int level2, std::string L0_outer_name, std::string L1_outer_name,
+                                                   std::string L0_inner_name, std::string L1_inner_name);
+      /**
+       * update the iterator structure after tiling the iterator (level1,level2) 
+       */
+     void update_tile_features(int level1,int level2, int sizeX, int sizeY);
+     /**
+      *  update the parallelized level features
+      */
+     void update_parallelize_features(int level);
+
+      /**
+      *  update the parallelized level features
+      */
+     void update_vectorise_features(int level, int factor);
+
+      /**
+      *  update the interchanged levels in the iterators features structure
+      */
+     void update_interchange_features(int level1, int level2);
+
+     /**
+      *  function to dump the features computation structure
+      */
+     void dump_computation_features_structure();
+
+     /**
+      *  function to add the computation features  csvfile conatining the dataset
+      */
+     void computation_features_to_csvfile();
+     
      /**
        * Sets whether the computation is inline or not, based on the value of \p is_inline.
        * If a computation is inline, accesses to the computation return the expression of that
@@ -3599,6 +3708,7 @@ public:
        * then S(i + 1, j * i) returns the expression i + 1 + j * i.
        * If \p is_inline is not provided, the computation is set to be inline.
        */
+
      void set_inline(bool is_inline = true);
 
      /**
@@ -3756,7 +3866,7 @@ public:
       * and apply
 
       \code
-        a.skew(i, j, 1, ni, nj);
+	a.skew(i, j, 1, ni, nj);
       \endcode
 
       * you would get
@@ -3768,7 +3878,7 @@ public:
       \endcode
 
       */
-    virtual void skew(var i, var j, int f, var ni, var nj);
+     virtual void skew(var i, var j, int f, var ni, var nj);
 
     /**
       * Apply loop skewing on the loop levels \p i, \p j and \p k with a skewing factor of \p f.
@@ -3776,7 +3886,7 @@ public:
       *
       * This command transforms the loop (i, j, k) into the loop (i, f*i+j, f*i+k).
       */
-    virtual void skew(var i, var j, var k, int factor,
+        virtual void skew(var i, var j, var k, int factor,
                       var ni, var nj, var nk);
 
     /**
@@ -3785,13 +3895,13 @@ public:
       *
       * This command transforms the loop (i, j, k, l) into the loop (i, f*i+j, f*i+k, f*i+l).
       */
-    virtual void skew(var i, var j, var k, var l, int factor,
+        virtual void skew(var i, var j, var k, var l, int factor,
                       var ni, var nj, var nk, var nl);
 
     /**
       * \overload
       */
-    virtual void skew(var i, var j, int factor);
+        virtual void skew(var i, var j, int factor);
 
     /**
       * \overload
@@ -3801,17 +3911,17 @@ public:
     /**
       * \overload
       */
-    virtual void skew(var i, var j, var k, var l, int factor);
+     virtual void skew(var i, var j, var k, var l, int factor);
 
     /**
       * \overload
       */
-    virtual void skew(int i, int j, int factor);
+      virtual void skew(int i, int j, int factor);
 
     /**
       * \overload
       */
-    virtual void skew(int i, int j, int k, int factor);
+     virtual void skew(int i, int j, int k, int factor);
 
     /**
       * \overload
@@ -3835,13 +3945,13 @@ public:
       * Identical to
       *     void split(var L0, int sizeX);
       */
-    virtual void split(int L0, int sizeX);
+     virtual void split(int L0, int sizeX);
 
     /**
      * Fold the storage of the computation.
      * Fold the loop level \p dim by a factor \p f.
      */
-    virtual void storage_fold(var dim, int f);
+      virtual void storage_fold(var dim, int f);
 
     /**
      * Allocate the storage of this computation in the loop level \p L0.
@@ -3858,7 +3968,7 @@ public:
      * The function returns the computation (operation) that allocates
      * the buffer.  The allocated buffer is not returned.
      */
-    computation *store_at(computation &comp, var L0);
+     computation *store_at(computation &comp, var L0);
 
     /**
       * Tag the loop level \p L0 and \p L1 to be mapped to GPU.
@@ -3917,7 +4027,7 @@ public:
       */
     void tag_unroll_level(tiramisu::var L);
 
-    /**
+  /**
       * Tag the loop level \p L to be unrolled with an unrolling
       * factor \p F.
       *
@@ -3971,7 +4081,7 @@ public:
       * are the names of the new dimensions created after tiling.
       */
     // @{
-    virtual void tile(var L0, var L1, int sizeX, int sizeY);
+   virtual void tile(var L0, var L1, int sizeX, int sizeY);
     virtual void tile(var L0, var L1, int sizeX, int sizeY,
                       var L0_outer, var L1_outer, var L0_inner, var L1_inner);
     virtual void tile(var L0, var L1, var L2, int sizeX, int sizeY, int sizeZ);
@@ -3988,7 +4098,7 @@ public:
       * \p L0 > \p L1.
       */
     // @{
-    virtual void tile(int L0, int L1, int sizeX, int sizeY);
+   virtual void tile(int L0, int L1, int sizeX, int sizeY);
     virtual void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ);
     // @}
 
@@ -4122,7 +4232,7 @@ public:
       * assigned.
       */
     // @{
-    virtual void vectorize(var L, int v);
+     virtual void vectorize(var L, int v);
     virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
 
@@ -4228,19 +4338,19 @@ public:
         // TODO move to cpp
         std::vector<tiramisu::expr> access_expressions{std::forward<Args>(args)...};
         if (access_expressions.size() != this->number_of_dims)
-        {
-            tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
-            for (int i = 0; i < access_expressions.size(); i++)
-            {
-                tiramisu::expr e = access_expressions[i];
-                e.dump(false);
-                if (i != access_expressions.size() - 1)
-                    tiramisu::str_dump(", ");
-            }
-            tiramisu::str_dump(").\n");
-            tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
-            exit(1);
-        }
+	{
+	    tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+	    for (int i = 0; i < access_expressions.size(); i++)
+	    {
+		tiramisu::expr e = access_expressions[i];
+		e.dump(false);
+		if (i != access_expressions.size() - 1)
+		    tiramisu::str_dump(", ");
+	    }
+	    tiramisu::str_dump(").\n");
+	    tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+	    exit(1);
+	}
 
         if (this->is_inline_computation()) {
             std::vector<std::pair<var, expr>> substitutions;
@@ -4267,6 +4377,7 @@ public:
 
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
+    
 };
 
 class input: public computation
@@ -4280,22 +4391,22 @@ private:
       * and var("random_name_1", 0, 20.
       */
     static std::vector<var>
-    compute_iterators_from_sizes(std::vector<std::string> dimension_names,
-            std::vector<tiramisu::expr> dimension_sizes)
-    {
-        assert(dimension_sizes.size() != 0);
+	compute_iterators_from_sizes(std::vector<std::string> dimension_names,
+				     std::vector<tiramisu::expr> dimension_sizes)
+	{
+	    assert(dimension_sizes.size() != 0);
 
-        std::vector<var> iterator_variables;
+	    std::vector<var> iterator_variables;
 
-        for (int i = 0; i < dimension_sizes.size(); i++)
-        {
-            tiramisu::var *v = new
-                tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
-            iterator_variables.push_back(*v);
-        }
+	    for (int i = 0; i < dimension_sizes.size(); i++)
+	    {
+		tiramisu::var *v = new
+		    tiramisu::var(dimension_names[i], 0, dimension_sizes[i]);
+		    iterator_variables.push_back(*v);
+	    }
 
-        return iterator_variables;
-    }
+	    return iterator_variables;
+	}
 
 public:
     /**
@@ -4336,7 +4447,7 @@ public:
       *
      */
     input(std::string name, std::vector<var> iterator_variables, primitive_t t):
-	    computation(name, iterator_variables, expr(t), false)
+	      computation(name, iterator_variables, expr(t), false)
     {
     }
 
@@ -4827,6 +4938,7 @@ public:
      * this function returns the string "N,M,K".
      */
     static std::string get_parameters_list(isl_set *set);
+
 };
 
 // TODO Jess: add doc comments
@@ -5046,6 +5158,50 @@ int loop_level_into_static_dimension(int level);
   * - Order the functions in the class computations (get functions then update functions ordered in alphabetical order),
   * - Clean/document expr.h and type.h
   */
+class features_extractor{ 
+   friend computation;
+   friend expr;
+   friend var;
+
+  /** 
+   * Extract instruction (operation) features of the computation comp
+   */
+    operation_features operation_features_extractor(computation* comp);
+
+  /** 
+   * Recursive function to extract features of an instruction  (operation) 
+   */
+    void re_expr_features_extractor(expr e, operation_features * op_features); 
+
+   /**
+    *  Extract features of the list of itertors
+    */
+    std::vector<iterator_features> iterator_features_extractor(std::vector<var> list_vars,int & nb_dependencies);
+
+   /**
+   *  Extract features of a loop nest (the computation)
+   */
+   computation_features_struct computation_features_extractor(computation* comp);
+  
+
+private:
+  /**
+   * Return a vector containing the iterators indicies on which the bounds of the iterator e depend
+   */ 
+    void  iterator_dependencies(expr e, std::vector<var> list_vars, std::vector<int>& vec,int & nb_dependencies);
+
+  /**
+   * initialize an operation_features structure
+   */ 
+   void  operation_features_initializer(operation_features * op_features);
+
+  /** 
+   * initialize iterator_features structure
+   */
+   void iterator_features_initializer(iterator_features * it);
+
+   
+};
 
 }
 
