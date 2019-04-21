@@ -8523,18 +8523,33 @@ void tiramisu::computation::computation_features_to_csvfile(){
  * nb_add_int,nb_sub_int,nb_mul_int,nb_div_int,total_access_int,nb_access_int, 
  * or
  * nb_add_float,nb_sub_float,nb_mul_float,nb_div_float,total_access_float,nb_access_float,
- *  lower_bound,upper_bound,parallelized (repeated  "max_iterators" times  )
+ *  lower_bound,upper_bound,parallelized, (repeated  "max_iterators" times  )
  **/ 
  std::string line="";
  std::string delimiter = ",";
  std::string additive_iterators = "NULL,NULL,NULL,";
  std::string additive_iterators_last = "NULL,NULL,NULL";
  int max_iterators=10;
+ // configurating the features file creation 
  std::ofstream fcsv;
- fcsv.open(CSV_FILE_PATH, std::ios_base::app);
+ std::string file_name;
+ std::string file_name_csv="/data.csv";
+ char cwd[1024];
+ char cwd2[1024];
+ // get the current directory 
+ getcwd(cwd, sizeof(cwd));
+ // back to the directory where file.csv must be created
+ chdir("../../../..");
+ getcwd(cwd2, sizeof(cwd));
+ chdir(cwd);
+ // file name configuration
+ file_name.append(cwd2);
+ file_name.append(file_name_csv);
+ //file creation
+ fcsv.open(file_name, std::ios_base::app);
  if (fcsv.is_open()){
  computation_features_struct nest_features= this->get_computation_features();
-  // first colomn contains the real line column ( this is important for masking data while training)
+// first colomn contains the real line column ( this is important for masking data while training)
   int mask=12+ 3* nest_features.iterators.size();
   line = line+std::to_string(mask)+delimiter;
   //--------Computation features----------" 
