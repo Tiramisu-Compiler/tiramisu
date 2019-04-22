@@ -54,9 +54,9 @@ void generate_function_1(std::string name) {
     comp1.split(x, 50, x1, x2); 
     comp2.split(y, 50, y1, y2); 
     comp1.interchange(x1, y2);
-    comp1.tag_distribute_level(y1);
-    comp1.tag_distribute_level(x1);
-    comp2.tag_distribute_level(y1, 4 /*rank offset*/, false);
+    comp1.distribute(y1);
+    comp1.distribute(x1);
+    comp2.distribute(y1, 4 /*rank offset*/);
     comp1.before(comp2, computation::root);
 
     buffer buff_input1("buff_input1", {50, 50}, p_int32 , a_input, &function0);

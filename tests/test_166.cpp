@@ -30,10 +30,10 @@ void generate_function_1(std::string name) {
     // we are testing here.
 
     comp1.before(*sr.s, computation::root);
-    sr.s->before(*sr.r, computation::root);
+    sr.s->before(wait_send, computation::root);
+    wait_send.before(*sr.r, computation::root);
     sr.r->before(wait_recv, computation::root);
     wait_recv.before(comp2, computation::root);
-    comp2.before(wait_send, computation::root);
 
     buffer buff_input("buff_input", {100, 100}, p_int32 , a_input, &function0);
     buffer buff_temp("buff_temp", {100, 100}, p_int32 , a_temporary, &function0);
