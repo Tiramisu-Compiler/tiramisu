@@ -4,13 +4,13 @@ set(CMAKE_BUILD_TYPE DEBUG)
 set(USE_GPU FALSE)
 
 # Set to TRUE if you wish to use MPI
-set(USE_MPI FALSE)
+set(USE_MPI TRUE)
 
 # Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
-set(USE_LIBPNG FALSE)
+set(USE_LIBPNG TRUE)
 
 # Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
-set(USE_LIBJPEG FALSE)
+set(USE_LIBJPEG TRUE)
 
 # If USE_MPI is true, you need to the MPI_BUILD_DIR and MPI_NODES path
 # Note: This assumes you are using your own installed version of MPI. If your system already
@@ -19,8 +19,8 @@ set(USE_LIBJPEG FALSE)
 # Examples:
 #set(MPI_BUILD_DIR "/data/scratch/jray/Repositories/tiramisu/3rdParty/openmpi-3.1.2/build/")
 #set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka06,lanka12,lanka13,lanka14,lanka15")
-set(MPI_BUILD_DIR "")
-set(MPI_NODES "")
+set(MPI_BUILD_DIR "/data/scratch/shinde/openmpi-4.0.1/")
+set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka09,lanka10,lanka12,lanka13,lanka14,lanka15,lanka19,lanka20,lanka21,lanka22,lanka23,lanka24")
 
 # Intel MKL library path. The specified folder should contain the folders
 # include and lib.
@@ -32,8 +32,8 @@ set(MKL_PREFIX "")
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/")
 
 # ISL paths
-set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
-set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/")
+set(ISL_INCLUDE_DIRECTORY "/data/scratch/shinde/cross-tools/include/")
+set(ISL_LIB_DIRECTORY "/data/scratch/shinde/cross-tools/lib/")
 
 # Halide Paths
 set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide")

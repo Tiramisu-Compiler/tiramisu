@@ -277,7 +277,7 @@ function(new_test descriptor)
         add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
         # configure the options so files are copied on the fly as necessary.
-        add_test(NAME ${id} COMMAND ${MPI_BUILD_DIR}/bin/mpirun -x LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:/tmp/ -np ${NUM_MPI_RANKS} -host ${MPI_NODES} --map-by node --oversubscribe --wdir /tmp/ --preload-files ${PROJECT_DIR}/build/libtiramisu.${LIB_SUF},${PROJECT_DIR}/3rdParty/isl/.libs/libisl.${LIB_SUF} --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
+        add_test(NAME ${id} COMMAND salloc -A commit -p research --ntasks ${NUM_MPI_RANKS} ${MPI_BUILD_DIR}/bin/mpirun --mca pml ucx --mca btl ^openib -np ${NUM_MPI_RANKS} --map-by node --set-cwd-to-session-dir --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR}/build/)
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
