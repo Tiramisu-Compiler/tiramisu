@@ -45,6 +45,10 @@ int main(int argc, char **argv) {
   
   Halide::Buffer<int64_t> buf_a(num_tasks_a, "buf_a");
   Halide::Buffer<int64_t> buf_b(num_tasks_b, "buf_b");
+  Halide::Buffer<void *>  buf_wait_a_send(num_tasks_a, "buf_wait_a_send");
+  Halide::Buffer<void *>  buf_wait_a_recv(num_tasks_c, "buf_wait_a_recv");
+  Halide::Buffer<void *>  buf_wait_b_send(num_tasks_b, "buf_wait_b_send");
+  Halide::Buffer<void *>  buf_wait_b_recv(num_tasks_c, "buf_wait_b_recv");
   Halide::Buffer<int64_t> buf_a_local(num_tasks_c, "buf_a_local");
   Halide::Buffer<int64_t> buf_b_local(num_tasks_c, "buf_b_local");
   Halide::Buffer<int64_t> buf_c(num_tasks_c, "buf_c");
@@ -77,7 +81,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  spmm(buf_a.raw_buffer(), buf_b.raw_buffer(), buf_a_local.raw_buffer(), buf_b_local.raw_buffer(), buf_c.raw_buffer());
+  spmm(buf_a.raw_buffer(), buf_b.raw_buffer(), buf_wait_a_send.raw_buffer(), buf_wait_a_recv.raw_buffer(), buf_wait_b_send.raw_buffer(), buf_wait_b_recv.raw_buffer(), buf_a_local.raw_buffer(), buf_b_local.raw_buffer(), buf_c.raw_buffer());
 
   MPI_Barrier(MPI_COMM_WORLD);
 
