@@ -281,7 +281,7 @@ function(new_test descriptor)
         add_test(NAME ${id} COMMAND ${test_name} WORKING_DIRECTORY ${PROJECT_DIR})
     elseif (${USE_MPI}) # This is an MPI test (sanity check that we want to use MPI though)
         # configure the options so files are copied on the fly as necessary.
-        add_test(NAME ${id} COMMAND salloc -A commit -p research --ntasks ${NUM_MPI_RANKS} ${MPI_BUILD_DIR}/bin/mpirun --mca pml ucx --mca btl ^openib -np ${NUM_MPI_RANKS} --map-by node --set-cwd-to-session-dir --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR}/build/)
+        add_test(NAME ${id} COMMAND salloc -A commit -p research --exclusive --ntasks-per-core 1 --ntasks ${NUM_MPI_RANKS} ${MPI_BUILD_DIR}/bin/mpirun --mca pml ucx --mca btl ^openib -np ${NUM_MPI_RANKS} --map-by node --bind-to core --set-cwd-to-session-dir --preload-binary ${PROJECT_DIR}/build/${test_name} WORKING_DIRECTORY ${PROJECT_DIR}/build/)
     endif()
     set_tests_properties(${id} PROPERTIES DEPENDS ${id}_build)
 endfunction()
