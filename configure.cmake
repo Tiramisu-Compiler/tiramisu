@@ -12,6 +12,12 @@ set(USE_LIBPNG TRUE)
 # Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
 set(USE_LIBJPEG TRUE)
 
+# Set to TRUE if you wish to use cuDNN for benchmark comparisons
+set(USE_CUDNN FALSE)
+
+# Change with the cudnn library location
+set(CUDNN_LOCATION /data/scratch/akkas/cudnn7)
+
 # If USE_MPI is true, you need to the MPI_BUILD_DIR and MPI_NODES path
 # Note: This assumes you are using your own installed version of MPI. If your system already
 # has a version of openmpi installed, you will have to read the docs to see what the appropriate

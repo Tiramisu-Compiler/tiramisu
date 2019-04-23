@@ -5523,6 +5523,8 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         return "bool";
     case tiramisu::p_wait_ptr:
         return "wait";
+    case tiramisu::p_void_ptr:
+        return "void *";
     default:
         ERROR("Tiramisu type not supported.", true);
         return "";
@@ -5692,6 +5694,9 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
         break;
     case tiramisu::p_wait_ptr:
         t = Halide::Handle();
+        break;
+    case tiramisu::p_void_ptr:
+        t = Halide::type_of<void *>();
         break;
     default:
         ERROR("Tiramisu type cannot be translated to Halide type.", true);
@@ -5947,7 +5952,7 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
     is_let = false;
 
     // Allocate implicit buffer if possible
-    if (t != p_none && t != p_async && t != p_wait_ptr) {
+    if (t != p_none && t != p_async && t != p_wait_ptr && t != p_void_ptr) {
         bool is_bounded = true;
         std::vector<expr> buffer_size;
         for (const auto &var : iterator_variables) {

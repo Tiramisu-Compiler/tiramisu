@@ -53,8 +53,8 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     // -------------------------
     // Set up inputs and outputs
     // -------------------------
-    cudaErrCheck(cudaMalloc((void**)&x, seqLength * inputSize * miniBatch * sizeof(float)));
-    cudaErrCheck(cudaMalloc((void**)&y, seqLength * hiddenSize * miniBatch * sizeof(float)));
+    cudaErrCheck(cudaMalloc((void**)&x, seqLength * inputSize * miniBatch * sizeof(DATA_TYPE)));
+    cudaErrCheck(cudaMalloc((void**)&y, seqLength * hiddenSize * miniBatch * sizeof(DATA_TYPE)));
 
     xDesc = (cudnnTensorDescriptor_t*)malloc(seqLength * sizeof(cudnnTensorDescriptor_t));
     yDesc = (cudnnTensorDescriptor_t*)malloc(seqLength * sizeof(cudnnTensorDescriptor_t));
@@ -74,7 +74,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
         strideA[1] = dimA[2];
         strideA[2] = 1;
 
-        cudnnErrCheck(cudnnSetTensorNdDescriptor(xDesc[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
+        cudnnErrCheck(cudnnSetTensorNdDescriptor(xDesc[i], DATA_TYPE_CUDNN, 3, dimA, strideA));
 
         dimA[0] = miniBatch;
         dimA[1] = hiddenSize;
@@ -84,7 +84,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
         strideA[1] = dimA[2];
         strideA[2] = 1;
 
-        cudnnErrCheck(cudnnSetTensorNdDescriptor(yDesc[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
+        cudnnErrCheck(cudnnSetTensorNdDescriptor(yDesc[i], DATA_TYPE_CUDNN, 3, dimA, strideA));
     }
 
 
@@ -101,10 +101,10 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudnnErrCheck(cudnnCreateTensorDescriptor(&hyDesc));
     cudnnErrCheck(cudnnCreateTensorDescriptor(&cyDesc));
 
-    cudnnErrCheck(cudnnSetTensorNdDescriptor(hxDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    cudnnErrCheck(cudnnSetTensorNdDescriptor(cxDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    cudnnErrCheck(cudnnSetTensorNdDescriptor(hyDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
-    cudnnErrCheck(cudnnSetTensorNdDescriptor(cyDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA));
+    cudnnErrCheck(cudnnSetTensorNdDescriptor(hxDesc, DATA_TYPE_CUDNN, 3, dimA, strideA));
+    cudnnErrCheck(cudnnSetTensorNdDescriptor(cxDesc, DATA_TYPE_CUDNN, 3, dimA, strideA));
+    cudnnErrCheck(cudnnSetTensorNdDescriptor(hyDesc, DATA_TYPE_CUDNN, 3, dimA, strideA));
+    cudnnErrCheck(cudnnSetTensorNdDescriptor(cyDesc, DATA_TYPE_CUDNN, 3, dimA, strideA));
 
     // -------------------------
     // Set up the dropout descriptor (needed for the RNN descriptor)
@@ -147,7 +147,7 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
                 CUDNN_UNIDIRECTIONAL,
                 RNNMode,
                 RNNAlgo,
-                CUDNN_DATA_FLOAT));
+                DATA_TYPE_CUDNN));
 
 
     // -------------------------
@@ -159,14 +159,14 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudnnErrCheck(cudnnCreateFilterDescriptor(&wDesc));
 
     size_t weightsSize;
-    cudnnErrCheck(cudnnGetRNNParamsSize(cudnnHandle, rnnDesc, xDesc[0], &weightsSize, CUDNN_DATA_FLOAT));
+    cudnnErrCheck(cudnnGetRNNParamsSize(cudnnHandle, rnnDesc, xDesc[0], &weightsSize, DATA_TYPE_CUDNN));
 
     int dimW[3];
-    dimW[0] = weightsSize / sizeof(float);
+    dimW[0] = weightsSize / sizeof(DATA_TYPE);
     dimW[1] = 1;
     dimW[2] = 1;
 
-    cudnnErrCheck(cudnnSetFilterNdDescriptor(wDesc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, 3, dimW));
+    cudnnErrCheck(cudnnSetFilterNdDescriptor(wDesc, DATA_TYPE_CUDNN, CUDNN_TENSOR_NCHW, 3, dimW));
 
     cudaErrCheck(cudaMalloc((void**)&w,  weightsSize));
 
@@ -179,21 +179,22 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
     cudnnErrCheck(cudnnGetRNNWorkspaceSize(cudnnHandle, rnnDesc, seqLength, xDesc, &workSize));
     cudaErrCheck(cudaMalloc((void**)&workspace, workSize));
 
-    // *********************************************************************************************************
+}
+
+float run_cudnn(DATA_TYPE *raw_Weights, DATA_TYPE *raw_biases, DATA_TYPE *raw_x, DATA_TYPE *raw_y) {
+    cudaErrCheck(cudaDeviceSynchronize());
+
     // Initialise inputs
-    // *********************************************************************************************************
-    // initGPUData((float*)x, seqLength * inputSize * miniBatch, 1.f);
+    cudaMemcpy(x, raw_x, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(DATA_TYPE),
+               cudaMemcpyKind::cudaMemcpyHostToDevice);
 
-    // Weights
-    int numLinearLayers = 8;
-
-    for (int layer = 0; layer < numLayers; layer++) {
-        for (int linLayerID = 0; linLayerID < numLinearLayers; linLayerID++) {
+    for (int layer = 0; layer < NUM_LAYERS; layer++) {
+        for (int linLayerID = 0; linLayerID < 8; linLayerID++) {
             cudnnFilterDescriptor_t linLayerMatDesc;
             cudnnErrCheck(cudnnCreateFilterDescriptor(&linLayerMatDesc));
-            float *linLayerMat;
+            DATA_TYPE *linLayerMat;
 
-            cudnnErrCheck(cudnnGetRNNLinLayerMatrixParams( cudnnHandle,
+            cudnnErrCheck(cudnnGetRNNLinLayerMatrixParams(cudnnHandle,
                         rnnDesc,
                         layer,
                         xDesc[0],
@@ -214,15 +215,16 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
                         &nbDims,
                         filterDimA));
 
-            // initGPUData(linLayerMat, filterDimA[0] * filterDimA[1] * filterDimA[2], 1.f / (float)(filterDimA[0] * filterDimA[1] * filterDimA[2]));
+            cudaMemcpy(linLayerMat, raw_Weights + FEATURE_SIZE * FEATURE_SIZE * (linLayerID + 8 * layer),
+                       FEATURE_SIZE * FEATURE_SIZE * sizeof(DATA_TYPE), cudaMemcpyKind::cudaMemcpyHostToDevice);
 
             cudnnErrCheck(cudnnDestroyFilterDescriptor(linLayerMatDesc));
 
             cudnnFilterDescriptor_t linLayerBiasDesc;
             cudnnErrCheck(cudnnCreateFilterDescriptor(&linLayerBiasDesc));
-            float *linLayerBias;
+            DATA_TYPE *linLayerBias;
 
-            cudnnErrCheck(cudnnGetRNNLinLayerBiasParams( cudnnHandle,
+            cudnnErrCheck(cudnnGetRNNLinLayerBiasParams(cudnnHandle,
                         rnnDesc,
                         layer,
                         xDesc[0],
@@ -239,22 +241,21 @@ void setup_cudnn(int _seqLength, int numLayers, int batch_size, int feature_size
                         &nbDims,
                         filterDimA));
 
-            // initGPUData(linLayerBias, filterDimA[0] * filterDimA[1] * filterDimA[2], 1.f);
+            // We use merged bias
+            if (linLayerID < 4) {
+                cudaMemcpy(linLayerBias,
+                           raw_biases + FEATURE_SIZE * (linLayerID + 4 * layer),
+                           FEATURE_SIZE * sizeof(DATA_TYPE),
+                           cudaMemcpyKind::cudaMemcpyHostToDevice);
+            } else {
+                cudaMemset(linLayerBias, 0, FEATURE_SIZE * sizeof(DATA_TYPE));
+            }
 
             cudnnErrCheck(cudnnDestroyFilterDescriptor(linLayerBiasDesc));
         }
     }
-}
 
-float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_y) {
     cudaErrCheck(cudaDeviceSynchronize());
-
-    // Copy values. Note that since we don't compare the results, we don't care about layout.
-    cudaMemcpy(x, raw_x, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-    cudaMemcpy(w, raw_Weights, FEATURE_SIZE * 4 * FEATURE_SIZE * 2 * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-    cudaMemcpy(w, raw_biases, 4 * FEATURE_SIZE * NUM_LAYERS * sizeof(float), cudaMemcpyKind::cudaMemcpyHostToDevice);
-
-    cudaDeviceSynchronize();
 
     cudaEvent_t start, stop;
     float timeForward;
@@ -290,7 +291,8 @@ float run_cudnn(float *raw_Weights, float *raw_biases, float *raw_x, float *raw_
     // Make double-sure everything is finished before we copy for result checking.
     cudaDeviceSynchronize();
 
-    cudaMemcpy(y, raw_y, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(float), cudaMemcpyKind::cudaMemcpyDeviceToHost);
+    cudaMemcpy(raw_y, y, FEATURE_SIZE * BATCH_SIZE * SEQ_LENGTH * sizeof(DATA_TYPE),
+               cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
     cudaDeviceSynchronize();
 

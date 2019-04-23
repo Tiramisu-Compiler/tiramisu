@@ -4661,6 +4661,13 @@ protected:
                                                      int coeff,
                                                      const tiramisu::function *fct);
 
+    /**
+     * Extract tags from the ISL ast node at given level. This is a helper
+     * function meant to be used from halide_stmt_from_isl_node. Traverses
+     * the ISL ast tree and fills the tagged_stmts vector.
+     */
+    static void extract_tags_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
+                                           std::vector<std::pair<std::string, std::string>> &tagged_stmts);
 
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast
