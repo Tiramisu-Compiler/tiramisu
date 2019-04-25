@@ -29,6 +29,7 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   constant NUM_TASKS_A("NUM_TASKS_A", expr(((MAP_A_SIZE - 1) / NUM_RANKS) + 1));
   constant NUM_TASKS_B("NUM_TASKS_B", expr(((MAP_B_SIZE - 1) / NUM_RANKS) + 1));
 
+
   // Create vars for distributing computation of C.
   var j("j", expr((int32_t) 0), expr(J));
   var map_c("map_c", expr((int32_t) 0), expr(MAP_C_SIZE)), rnk_c("rnk_c"), tsk_c("tsk_c");
@@ -169,9 +170,9 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   // Make buffers long enough to store each task separately.
   buffer buf_a_in("buf_a_in", {expr(NUM_TASKS_A)}, p_int64, a_input);
   buffer buf_b_in("buf_b_in", {expr(NUM_TASKS_B)}, p_int64, a_input);
-  buffer buf_wait_a_send("buf_wait_a_send", {expr(NUM_TASKS_A)}, p_wait_ptr, a_input);
+  buffer buf_wait_a_send("buf_wait_a_send", {expr(K), expr(NUM_TASKS_A)}, p_wait_ptr, a_input);
   buffer buf_wait_a_recv("buf_wait_a_recv", {expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
-  buffer buf_wait_b_send("buf_wait_b_send", {expr(NUM_TASKS_B)}, p_wait_ptr, a_input);
+  buffer buf_wait_b_send("buf_wait_b_send", {expr(I), expr(NUM_TASKS_B)}, p_wait_ptr, a_input);
   buffer buf_wait_b_recv("buf_wait_b_recv", {expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
   buffer buf_a_local("buf_a_local", {expr(NUM_TASKS_C)}, p_int64, a_input);
   buffer buf_b_local("buf_b_local", {expr(NUM_TASKS_C)}, p_int64, a_input);
@@ -182,16 +183,18 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   b_in.store_in(&buf_b_in, {expr(map_b / num_ranks)});
   comm_a.r->store_in(&buf_a_local, {expr(map_c / num_ranks)});
   comm_b.r->store_in(&buf_b_local, {expr(map_c / num_ranks)});
-  //comm_a.s->set_wait_access("[J,K,NUM_RANKS]->{a_send[j,map_c,rnk_a]->buf_wait_a_send[ [([map_c/K]*J+j)/NUM_RANKS] ]}");
+  //comm_a.s->set_wait_access("[J,K,NUM_RANKS]->{a_send[j,map_c,rnk_a]->buf_wait_a_send[ map_c%NUM_RANKS , [([map_c/K]*J+j)/NUM_RANKS] ]}");
   //comm_a.r->set_wait_access("[NUM_RANKS]->{a_recv[j,map_c]->buf_wait_a_recv[ [map_c/NUM_RANKS] ]}");
-  //comm_b.s->set_wait_access("[K,NUM_RANKS]->{b_send[j,map_c,rnk_b]->buf_wait_b_send[ [(j*K+(map_c%K))/NUM_RANKS] ]}");
+  //comm_b.s->set_wait_access("[K,NUM_RANKS]->{b_send[j,map_c,rnk_b]->buf_wait_b_send[ [map_c/NUM_RANKS] , [(j*K+(map_c%K))/NUM_RANKS] ]}");
   //comm_b.r->set_wait_access("[NUM_RANKS]->{b_recv[j,map_c]->buf_wait_b_recv[ [map_c/NUM_RANKS] ]}");
   std::string tsk_a_str("[(" + map_a_str + ")/" + std::to_string(num_ranks) + "]");
   std::string tsk_b_str("[(" + map_b_str + ")/" + std::to_string(num_ranks) + "]");
   std::string tsk_c_str("[map_c/" + std::to_string(num_ranks) + "]");
-  comm_a.s->set_wait_access("{a_send[j,map_c,rnk_a]->buf_wait_a_send[(" + tsk_a_str + ")]}");
+  std::string i_str("[map_c/" + std::to_string(k_dim_size) + "]");
+  std::string k_str("map_c%" + std::to_string(k_dim_size));
+  comm_a.s->set_wait_access("{a_send[j,map_c,rnk_a]->buf_wait_a_send[(" + k_str + "), (" + tsk_a_str + ")]}");
   comm_a.r->set_wait_access("{a_recv[j,map_c]->buf_wait_a_recv[(" + tsk_c_str + ")]}");
-  comm_b.s->set_wait_access("{b_send[j,map_c,rnk_b]->buf_wait_b_send[(" + tsk_b_str + ")]}");
+  comm_b.s->set_wait_access("{b_send[j,map_c,rnk_b]->buf_wait_b_send[(" + i_str + "), (" + tsk_b_str + ")]}");
   comm_b.r->set_wait_access("{b_recv[j,map_c]->buf_wait_b_recv[(" + tsk_c_str + ")]}");
   a_local.store_in(&buf_a_local, {expr(map_c / num_ranks)});
   b_local.store_in(&buf_b_local, {expr(map_c / num_ranks)});
@@ -271,6 +274,7 @@ int main(int argc, char **argv)
 
 
 
+
   /*
   std::string map_a_str("[map_c/" + std::to_string(k_dim_size) + "]*" + std::to_string(j_dim_size) + "+j");
   std::string rnk_c_derived_str("map_c%" + std::to_string(num_ranks));
@@ -301,8 +305,9 @@ int main(int argc, char **argv)
 
 
 
-  // Manually form iteration domain point-wise for B block MPI send/recv.
+
   /*
+  // Manually form iteration domain point-wise for B block MPI send/recv.
   std::string b_iter;
   for (uint64_t j_str = 0; j_str < j_dim_size; j_str++) {
     for (uint64_t map_c_str = 0; map_c_str < i_dim_size * k_dim_size; map_c_str++) {
@@ -365,3 +370,31 @@ int main(int argc, char **argv)
       b_in(map_b),
       fn0);
   */
+
+
+
+
+
+/*
+// Binary GCD, adapted from Daniel Lemire's blog. Assumes non-zero inputs.
+static inline uint32_t gcd(uint32_t x, uint32_t y)
+{
+  uint32_t shift = __builtin_ctz(x | y);
+  x >>= __builtin_ctz(x);
+  do {
+    y >>= __builtin_ctz(y);
+    if (x > y) {
+      uint32_t swap = x;
+      x = y;
+      y = swap;
+    }
+    y -= x;
+  } while (y != 0);
+  return x << shift;
+}
+
+static inline uint32_t lcm(uint32_t x, uint32_t y) {
+  if (x == 0 || y == 0) return 0;
+  return (x * y) / gcd(x, y);
+}
+*/

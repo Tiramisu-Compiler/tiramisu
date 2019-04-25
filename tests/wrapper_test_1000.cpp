@@ -45,9 +45,9 @@ int main(int argc, char **argv) {
   
   Halide::Buffer<int64_t> buf_a(num_tasks_a, "buf_a");
   Halide::Buffer<int64_t> buf_b(num_tasks_b, "buf_b");
-  Halide::Buffer<void *>  buf_wait_a_send(num_tasks_a, "buf_wait_a_send");
+  Halide::Buffer<void *>  buf_wait_a_send(num_tasks_a, k_dim_size, "buf_wait_a_send");
   Halide::Buffer<void *>  buf_wait_a_recv(num_tasks_c, "buf_wait_a_recv");
-  Halide::Buffer<void *>  buf_wait_b_send(num_tasks_b, "buf_wait_b_send");
+  Halide::Buffer<void *>  buf_wait_b_send(num_tasks_b, i_dim_size, "buf_wait_b_send");
   Halide::Buffer<void *>  buf_wait_b_recv(num_tasks_c, "buf_wait_b_recv");
   Halide::Buffer<int64_t> buf_a_local(num_tasks_c, "buf_a_local");
   Halide::Buffer<int64_t> buf_b_local(num_tasks_c, "buf_b_local");
@@ -145,8 +145,6 @@ uint64_t encode_point_round(char name, uint32_t i, uint32_t j, uint32_t round) {
   return bit_pack.bits;
 }
 
-
-
 void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uint32_t *round) {
   union {
     struct {
@@ -166,8 +164,6 @@ void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uin
   *j = bit_unpack.j;
   *round = bit_unpack.round1 * 1024 + bit_unpack.round2;
 }
-
-
 
 #define DECODE_POINT_ROUND(__bits, __name, __i, __j, __round)           \
   do {                                                                  \
@@ -252,6 +248,8 @@ void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uin
 
 
 
+
+
 /*
 #define make_Send(suffix, c_datatype, mpi_datatype)                     \
   void tiramisu_MPI_Send_##suffix(int count, int dest, int tag, c_datatype *data) \
@@ -271,7 +269,6 @@ void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uin
                                                                         \
     check_MPI_error(MPI_Send(data, count, mpi_datatype, dest, tag, MPI_COMM_WORLD)); \
   }
-
 
 #define make_Recv(suffix, c_datatype, mpi_datatype)                     \
   void tiramisu_MPI_Recv_##suffix(int count, int source, int tag, c_datatype *store_in) \
@@ -301,6 +298,74 @@ void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uin
     printf("\n");                                                       \
   }
 */
+
+
+
+
+
+/*
+#define make_Isend(suffix, c_datatype, mpi_datatype)                    \
+void tiramisu_MPI_Isend_##suffix(int count, int dest, int tag, c_datatype *data, long *reqs) \
+{                                                                       \
+    int src = -1;                                                       \
+    MPI_Comm_rank(MPI_COMM_WORLD, &src);                                \
+                                                                        \
+    uint64_t bits = *((uint64_t *)data);                                \
+    char name = 0;                                                      \
+    uint32_t i = 0, j = 0, round = 0;                                   \
+    DECODE_POINT_ROUND(bits, &name, &i, &j, &round);                    \
+                                                                        \
+    ((MPI_Request**)reqs)[0] = (MPI_Request*)malloc(sizeof(MPI_Request)); \
+    check_MPI_error(MPI_Isend(data, count, mpi_datatype, dest, tag, MPI_COMM_WORLD, ((MPI_Request**)reqs)[0])); \
+                                                                        \
+    printf("RANK %02d: WAIT(%016" PRIxPTR "): ROUND %02" PRIu32 ": SEND(%02d, %02d): %c(%02" PRIu32 ", %02" PRIu32 ")" , \
+           src, (uintptr_t)(((MPI_Request**)reqs)[0]), round, dest, tag, name, i, j); \
+    printf("\n");                                                       \
+}
+
+#define make_Irecv(suffix, c_datatype, mpi_datatype)                    \
+void tiramisu_MPI_Irecv_##suffix(int count, int source, int tag,        \
+                                 c_datatype *store_in, long *reqs)      \
+{                                                                       \
+    int dst = -1;                                                       \
+    MPI_Comm_rank(MPI_COMM_WORLD, &dst);                                \
+                                                                        \
+    uint64_t bits = *((uint64_t *)store_in);                            \
+    char name = 0;                                                      \
+    uint32_t i = 0, j = 0, round = 0;                                   \
+    DECODE_POINT_ROUND(bits, &name, &i, &j, &round);                    \
+                                                                        \
+    ((MPI_Request**)reqs)[0] = (MPI_Request*)malloc(sizeof(MPI_Request)); \
+    check_MPI_error(MPI_Irecv(store_in, count, mpi_datatype, source, tag, MPI_COMM_WORLD, \
+                              ((MPI_Request**)reqs)[0]));               \
+                                                                        \
+    uint64_t bits_recv = *((uint64_t *)store_in);                       \
+    char name_recv = 0;                                                 \
+    uint32_t i_recv = 0, j_recv = 0, round_recv = 0;                    \
+    DECODE_POINT_ROUND(bits_recv, &name_recv, &i_recv, &j_recv, &round_recv); \
+                                                                        \
+    printf("RANK %02d: WAIT(%016" PRIxPTR "): ROUND %02" PRIu32 ": RECV(%02d, %02d): %c(%02" PRIu32 ", %02" PRIu32 ") = %c(%02" PRIu32 ", %02" PRIu32 ")" , \
+           dst, (uintptr_t)(((MPI_Request**)reqs)[0]), round, source, tag, name, i, j, name_recv, i_recv, j_recv); \
+    if (round != round_recv) {                                          \
+      printf(" (ROUND %02" PRIu32 ")", round_recv);                     \
+    }                                                                   \
+    printf("\n");                                                       \
+}
+
+void tiramisu_MPI_Wait(void *request)
+{
+    int rnk = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rnk);
+
+    MPI_Status status;
+    check_MPI_error(MPI_Wait((MPI_Request*)request, &status));
+    free(request);
+
+    printf("RANK %02d: WAIT(%016" PRIxPTR "): COMPLETION" , rnk, (uintptr_t) request);
+    printf("\n");
+}
+ */
+
 
 
 
@@ -394,6 +459,11 @@ void decode_point_round(uint64_t bits, char *name, uint32_t *i, uint32_t *j, uin
     }
   }
 */
+
+
+
+
+
 /*
   {
     uint64_t tsk_c = 0;
