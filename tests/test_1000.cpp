@@ -143,11 +143,11 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   wait_b_recv.tag_distribute_level(rnk_c);
 
   // Order computations and communication
-  c_local_init.before(*comm_a.s, computation::root);
-  comm_a.s->before(*comm_b.s, j);
-  comm_b.s->before(*comm_a.r, j);
+  c_local_init.before(*comm_a.r, computation::root);
   comm_a.r->before(*comm_b.r, rnk_c);
-  comm_b.r->before(wait_a_recv, rnk_c);
+  comm_b.r->before(*comm_a.s, j);
+  comm_a.s->before(*comm_b.s, j);
+  comm_b.s->before(wait_a_recv, j);
   wait_a_recv.before(wait_b_recv, rnk_c);
   wait_b_recv.before(c_local, rnk_c);
   c_local.before(wait_a_send, j);
@@ -157,7 +157,11 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   // comm_a.s->before(*comm_b.s, j);
   // comm_b.s->before(*comm_a.r, j);
   // comm_a.r->before(*comm_b.r, rnk_c);
-  // comm_b.r->before(c_local, rnk_c);
+  // comm_b.r->before(wait_a_recv, rnk_c);
+  // wait_a_recv.before(wait_b_recv, rnk_c);
+  // wait_b_recv.before(c_local, rnk_c);
+  // c_local.before(wait_a_send, j);
+  // wait_a_send.before(wait_b_send, j);
 
 
 
