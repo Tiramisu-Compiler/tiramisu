@@ -86,6 +86,7 @@ void tiramisu_MPI_Wait(void *request)
 {
     MPI_Status status;
     check_MPI_error(MPI_Wait((MPI_Request*)request, &status));
+    free(request);
 }
 
 void tiramisu_MPI_Send(int count, int dest, int tag, char *data, MPI_Datatype type) 
