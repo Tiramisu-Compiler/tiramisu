@@ -1169,7 +1169,7 @@ void function::gen_isl_ast()
     }
 
     isl_options_set_ast_build_atomic_upper_bound(ctx, 1);
-    isl_options_get_ast_build_exploit_nested_bounds(ctx);
+    isl_options_set_ast_build_exploit_nested_bounds(ctx, 1);
     isl_options_set_ast_build_group_coscheduled(ctx, 1);
 
     ast_build = isl_ast_build_set_after_each_for(ast_build, &tiramisu::for_code_generator_after_for,
