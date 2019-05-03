@@ -1,21 +1,40 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
+#define SMALL_BARYON_DATA_SET 0
+#define LARGE_BARYON_DATA_SET 1
+
+#if SMALL_BARYON_DATA_SET
+
 #define Nq 3
 #define Nc 3
 #define Ns 2
-
 #define Nw 9
 #define twoNw 81
 #define Nperms 36
-
 #define Lt 2
 #define Vsrc 2
 #define Vsnk 4
 #define Nsrc 2
 #define Nsnk 2
-
 #define mq 1.0
+
+#elif LARGE_BARYON_DATA_SET
+
+#define Nq 3
+#define Nc 3
+#define Ns 2
+#define Nw 54
+#define twoNw 81
+#define Nperms 36
+#define Lt 2
+#define Vsrc 2
+#define Vsnk 4
+#define Nsrc 2
+#define Nsnk 2
+#define mq 1.0
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -38,7 +57,9 @@ int tiramisu_generated_code(halide_buffer_t *,
 			    halide_buffer_t *,
 	   		    halide_buffer_t *,
 			    halide_buffer_t *,
-	   		    halide_buffer_t *);
+	   		    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *);
 
 int tiramisu_generated_code_argv(void **args);
 
