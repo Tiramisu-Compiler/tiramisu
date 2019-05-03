@@ -7,13 +7,11 @@
 using namespace tiramisu;
 
 /* Implementation log:
-    - Sum: 135mn.
-    - Started from 22:45 to 
+    - Sum: 5h 15mn.
+    - From 8:50 to 10:00. 
+    - From 11:30 to 12:20. 
+    - From 12:40 to 1:00.
  */
-
-// TODO:
-// I need to make the initialization of array to
-// random so that I catch errors.
 
 /*
  * The goal is to generate code that implements the reference.
@@ -30,7 +28,10 @@ void generate_function(std::string name)
 	jSprime("jSprime", 0, Ns),
 	kCprime("kCprime", 0, Nc),
 	kSprime("kSprime", 0, Ns),
+	lCprime("lCprime", 0, Nc),
+	lSprime("lSprime", 0, Ns),
 	x("x", 0, Vsnk),
+	x2("x2", 0, Vsnk),
 	t("t", 0, Lt),
 	wnum("wnum", 0, Nw),
 	y("y", 0, Vsrc),
@@ -51,10 +52,10 @@ void generate_function(std::string name)
 
     computation iC("iC", {wnum}, color_weights(wnum, 0));
     computation iS("iS", {wnum}, spin_weights(wnum, 0));
-    computation jC("iC", {wnum}, color_weights(wnum, 1));
-    computation jS("iS", {wnum}, spin_weights(wnum, 1));
-    computation kC("iC", {wnum}, color_weights(wnum, 2));
-    computation kS("iS", {wnum}, spin_weights(wnum, 2));
+    computation jC("jC", {wnum}, color_weights(wnum, 1));
+    computation jS("jS", {wnum}, spin_weights(wnum, 1));
+    computation kC("kC", {wnum}, color_weights(wnum, 2));
+    computation kS("kS", {wnum}, spin_weights(wnum, 2));
 
     computation Blocal_r_update("Blocal_r_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
     Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_r(n, y) * (prop_r(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y) * prop_r(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y) - prop_r(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y) * prop_r(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y)) * prop_r(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y));
@@ -62,10 +63,41 @@ void generate_function(std::string name)
     computation Blocal_i_update("Blocal_i_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
     Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y)) * prop_i(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y));
 
+    computation Q_r_init("Q_r_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
+    computation Q_i_init("Q_i_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
+
+    computation Bsingle_r_init("Bsingle_r_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
+    computation Bsingle_i_init("Bsingle_i_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
+
+    computation iC2("iC2", {wnum}, color_weights(wnum, 0));
+    computation iS2("iS2", {wnum}, spin_weights(wnum, 0));
+    computation jC2("jC2", {wnum}, color_weights(wnum, 1));
+    computation jS2("jS2", {wnum}, spin_weights(wnum, 1));
+    computation kC2("kC2", {wnum}, color_weights(wnum, 2));
+    computation kS2("kS2", {wnum}, spin_weights(wnum, 2));
+
+    computation Q_r_update("Q_r_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
+			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum) /** psi_r(n, y) * (prop_r(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_r(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)))*/);
+    Q_r_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
+
+    computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
+			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum) * psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)));
+
+    computation Bsingle_r_update("Bsingle_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
+	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y) /* * prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y)*/);
+
+    computation Bsingle_i_update("Bsingle_i_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
+	    Bsingle_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y) * prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
+
+
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
     Blocal_r_init.then(Blocal_i_init, t)
+		 .then(Q_r_init, computation::root)
+		 .then(Q_i_init, y)
+		 .then(Bsingle_r_init, computation::root)
+		 .then(Bsingle_i_init, t)
 	         .then(iC, computation::root)
 		 .then(iS, wnum)
 		 .then(jC, wnum)
@@ -73,7 +105,17 @@ void generate_function(std::string name)
 		 .then(kC, wnum)
 		 .then(kS, wnum)
 		 .then(Blocal_r_update, wnum)
-		 .then(Blocal_i_update, y);
+		 .then(Blocal_i_update, y)
+	         .then(iC2, computation::root)
+		 .then(iS2, wnum)
+		 .then(jC2, wnum)
+		 .then(jS2, wnum)
+		 .then(kC2, wnum)
+		 .then(kS2, wnum)
+		 .then(Q_r_update, wnum)
+		 .then(Q_i_update, y)
+		 .then(Bsingle_r_update, computation::root)
+		 .then(Bsingle_i_update, y);
 
     //Blocal_r_update.tag_parallel_level(n);
     Blocal_r_update.vectorize(t, Lt);
@@ -86,6 +128,10 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     buffer buf_Blocal_r("buf_Blocal_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt}, p_float64, a_output);
     buffer buf_Blocal_i("buf_Blocal_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt}, p_float64, a_output);
+    buffer buf_Q_r("buf_Q_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_temporary);
+    buffer buf_Q_i("buf_Q_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_temporary);
+    buffer buf_Bsingle_r("buf_Bsingle_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk, Lt}, p_float64, a_output);
+    buffer buf_Bsingle_i("buf_Bsingle_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk, Lt}, p_float64, a_output);
 
     Blocal_r.store_in(&buf_Blocal_r);
     Blocal_i.store_in(&buf_Blocal_i);
@@ -94,10 +140,22 @@ void generate_function(std::string name)
     Blocal_r_update.store_in(&buf_Blocal_r, {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t});
     Blocal_i_update.store_in(&buf_Blocal_i, {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t});
 
+    Q_r_init.store_in(&buf_Q_r);
+    Q_i_init.store_in(&buf_Q_i);
+
+    Q_r_update.store_in(&buf_Q_r, {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y});
+    Q_i_update.store_in(&buf_Q_i, {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y});
+
+    Bsingle_r_init.store_in(&buf_Bsingle_r);
+    Bsingle_i_init.store_in(&buf_Bsingle_i);
+
+    Bsingle_r_update.store_in(&buf_Bsingle_r, {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t});
+    Bsingle_i_update.store_in(&buf_Bsingle_i, {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t});
+
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), weights.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), color_weights.get_buffer(), spin_weights.get_buffer()}, "generated_baryon.o");
+    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), weights.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), color_weights.get_buffer(), spin_weights.get_buffer(), Bsingle_r_update.get_buffer(), Bsingle_i_update.get_buffer()}, "generated_baryon.o");
 }
 
 int main(int argc, char **argv)
