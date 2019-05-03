@@ -7,10 +7,7 @@
 using namespace tiramisu;
 
 /* Implementation log:
-    - Sum: 5h 15mn.
-    - From 8:50 to 10:00. 
-    - From 11:30 to 12:20. 
-    - From 12:40 to 1:00.
+    - Sum: 7h 35mn.
  */
 
 /*
@@ -77,17 +74,21 @@ void generate_function(std::string name)
     computation kS2("kS2", {wnum}, spin_weights(wnum, 2));
 
     computation Q_r_update("Q_r_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum) /** psi_r(n, y) * (prop_r(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_r(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)))*/);
+			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum));
+			//* psi_r(n, y) * (prop_r(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_r(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y))));
     Q_r_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
 
     computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum) * psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)));
+			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum));
+		        //* psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)));
 
     computation Bsingle_r_update("Bsingle_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
-	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y) /* * prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y)*/);
+	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
+            // * prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
 
     computation Bsingle_i_update("Bsingle_i_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
-	    Bsingle_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y) * prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
+	    Bsingle_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
+	    // * prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
 
 
     // -------------------------------------------------------

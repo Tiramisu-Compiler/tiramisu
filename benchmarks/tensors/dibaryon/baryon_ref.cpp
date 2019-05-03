@@ -146,7 +146,8 @@ void make_single_block(std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                      for (t=0; t<Lt; t++) {
                         for (y=0; y<Vsrc; y++) {
                            for (n=0; n<Nsrc; n++) {
-                              Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x][t][y] += weights[wnum] /** psi[n][y] * ( prop[0][iCprime][iSprime][iC][iS][x][t][y] * prop[2][kCprime][kSprime][kC][kS][x][t][y] - prop[0][kCprime][kSprime][iC][iS][x][t][y] * prop[2][iCprime][iSprime][kC][kS][x][t][y] )*/;
+                              Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x][t][y] += weights[wnum];
+			      //* psi[n][y] * ( prop[0][iCprime][iSprime][iC][iS][x][t][y] * prop[2][kCprime][kSprime][kC][kS][x][t][y] - prop[0][kCprime][kSprime][iC][iS][x][t][y] * prop[2][iCprime][iSprime][kC][kS][x][t][y] );
                            }
                         }
                      }
@@ -168,9 +169,10 @@ void make_single_block(std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                            for (t=0; t<Lt; t++) {
                               for (y=0; y<Vsrc; y++) {
                                  for (jC=0; jC<Nc; jC++) {
-                                    for (jS=0; jS<Ns; jS++) {
-                                       for (n=0; n<Nsrc; n++) {
-                                          Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] += Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x1][t][y] /** prop[1][jCprime][jSprime][jC][jS][x2][t][y]*/;
+                                   for (jS=0; jS<Ns; jS++) {
+                                    for (n=0; n<Nsrc; n++) {
+                                     Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] += Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x1][t][y];
+					  //* prop[1][jCprime][jSprime][jC][jS][x2][t][y]*/;
                                        }
                                     }
                                  }
