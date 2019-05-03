@@ -8,7 +8,7 @@ using namespace tiramisu;
 
 /* Implementation log:
     - Sum: 135mn.
-    - Started from 22:30 to 
+    - Started from 22:45 to 
  */
 
 // TODO:
@@ -75,8 +75,11 @@ void generate_function(std::string name)
 		 .then(Blocal_r_update, wnum)
 		 .then(Blocal_i_update, y);
 
-    //Res0.tag_vector_level(i3, BARYON_N);
-    //Res2.tag_parallel_level(t);
+    //Blocal_r_update.tag_parallel_level(n);
+    Blocal_r_update.vectorize(t, Lt);
+    //Blocal_r_update.unroll(y, Vsrc);
+    //Blocal_r_update.unroll(x, Vsnk);
+
 
     // -------------------------------------------------------
     // Layer III

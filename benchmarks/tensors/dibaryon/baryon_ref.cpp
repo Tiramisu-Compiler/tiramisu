@@ -72,7 +72,7 @@ void make_local_block(std::complex<double> Blocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][
    }
    time (&end);
    dif = difftime (end,start);
-   printf("built local baryon block in seconds %5.3f\n",dif);
+   //printf("built local baryon block in seconds %5.3f\n",dif);
 }
 
 void make_single_block(std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt], 
