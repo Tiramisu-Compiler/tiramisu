@@ -119,6 +119,10 @@ int main(int argc, char **argv) {
     // Distribute the communication
     border_comm.s->tag_distribute_level(p);
     border_comm.r->tag_distribute_level(q);
+    border_comm.s->collapse(2, 0, -1, COLS+2);
+    border_comm.s->collapse(1, 0, -1, 2);
+    border_comm.r->collapse(2, 0, -1, COLS+2);
+    border_comm.r->collapse(1, 0, -1, 2);
 
     // Order computations and communication
     border_comm.s->before(*border_comm.r, computation::root);
