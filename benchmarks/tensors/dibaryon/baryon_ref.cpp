@@ -28,7 +28,7 @@ void make_local_block(std::complex<double> Blocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][
                   for (kSprime=0; kSprime<Ns; kSprime++) {
                      for (x=0; x<Vsnk; x++) {
                         for (t=0; t<Lt; t++) {
-                           for (n=0; n<Nsrc; n++) {
+			    for (n=0; n<Nsrc; n++) {
                               Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t] = 0.0 + 0i;
                            }
                         }
@@ -233,8 +233,8 @@ void make_double_block(std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
             for (jSprime=0; jSprime<Ns; jSprime++) {
                for (kCprime=0; kCprime<Nc; kCprime++) {
                   for (kSprime=0; kSprime<Ns; kSprime++) {
-                     for (x1=0; x<Vsnk; x++) {
-                        for (x2=0; x<Vsnk; x++) {
+                     for (x1=0; x1<Vsnk; x1++) {
+                        for (x2=0; x2<Vsnk; x2++) {
                            for (t=0; t<Lt; t++) {
                               for (n=0; n<Nsrc; n++) {
                                  Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] = 0.0 + 0i;
