@@ -6,10 +6,6 @@
 
 using namespace tiramisu;
 
-/* Implementation log:
-    - Sum: 7h 35mn.
- */
-
 /*
  * The goal is to generate code that implements the reference.
  * baryon_ref.cpp
@@ -81,6 +77,7 @@ void generate_function(std::string name)
     computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
 			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum));
 		        //* psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)));
+    Q_i_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
 
     computation Bsingle_r_update("Bsingle_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
 	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
@@ -119,10 +116,19 @@ void generate_function(std::string name)
 		 .then(Bsingle_i_update, y);
 
     //Blocal_r_update.tag_parallel_level(n);
+    Blocal_r_init.vectorize(t, Lt);
     Blocal_r_update.vectorize(t, Lt);
     //Blocal_r_update.unroll(y, Vsrc);
     //Blocal_r_update.unroll(x, Vsnk);
 
+    Q_r_init.vectorize(y, Vsrc);
+
+    Bsingle_r_init.vectorize(t, Lt);
+
+    Q_r_update.vectorize(y, Vsrc);
+
+    //Bsingle_r_update.tag_parallel_level(n);
+    Bsingle_r_update.vectorize(t, Lt);
 
     // -------------------------------------------------------
     // Layer III
