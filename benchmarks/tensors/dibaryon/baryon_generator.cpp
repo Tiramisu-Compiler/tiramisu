@@ -6,20 +6,16 @@
 
 using namespace tiramisu;
 
-// Multiply two imaginary numbers and return the real part.
-// r1 and i1 are the real and imaginary parts of the first
-// imaginary number and r2, i1 correspond to the second number.
-expr mul_r(expr r1, expr i1, expr r2, expr i2)
+// Multiply the two imaginary numbers p1 and p2 and return the real part.
+expr mul_r(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
 {
-    return ((r1 * r2) - (i1 * i2));
+    return ((p1.first * p2.first) - (p1.second * p2.second));
 }
 
-// Multiply two imaginary numbers and return the imaginary part.
-// r1 and i1 are the real and imaginary parts of the first
-// imaginary number and r2, i1 correspond to the second number.
-expr mul_i(expr r1, expr i1, expr r2, expr i2)
+// Multiply the two imaginary numbers p1 and p2 and return the imaginary part.
+expr mul_i(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
 {
-    return ((r1 * i2) + (i1 * r2));
+    return ((p1.first * p2.second) + (p1.second * p2.first));
 }
 
 /*
@@ -66,22 +62,29 @@ void generate_function(std::string name)
     computation kC("kC", {wnum}, color_weights(wnum, 2));
     computation kS("kS", {wnum}, spin_weights(wnum, 2));
 
-    expr prop_r_0  = prop_r(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y);
-    expr prop_r_2  = prop_r(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y);
-    expr prop_r_0p = prop_r(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y);
-    expr prop_r_2p = prop_r(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y);
-    expr prop_r_1  = prop_r(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
-    expr prop_i_0  = prop_i(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y);
-    expr prop_i_2  = prop_i(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y);
-    expr prop_i_0p = prop_i(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y);
-    expr prop_i_2p = prop_i(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y);
-    expr prop_i_1  = prop_i(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
+    std::pair<expr, expr> prop_0(prop_r(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y), prop_i(0, iCprime, iSprime, iC(wnum), iS(wnum), x, t, y));
+    std::pair<expr, expr> prop_2(prop_r(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y), prop_i(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y));
+    std::pair<expr, expr> prop_0p(prop_r(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y), prop_i(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y));
+    std::pair<expr, expr> prop_2p(prop_r(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y), prop_i(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y));
+    expr prop_r_1 = prop_r(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
+    expr prop_i_1 = prop_i(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
+    std::pair<expr, expr> prop_1(prop_r_1, prop_i_1);
+    std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
+
+    expr m1_r = mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p);
+    expr m1_i = mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p);
+    std::pair<expr, expr> m1(m1_r, m1_i);
+    expr m2_r = mul_r(psi, m1);
+    expr m2_i = mul_i(psi, m1);
+    std::pair<expr, expr> m2(m2_r, m2_i);
+    expr m3_r = mul_r(m2, prop_1);
+    expr m3_i = mul_i(m2, prop_1);
 
     computation Blocal_r_update("Blocal_r_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
-    Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_r(n, y) * (prop_r_0 * prop_r_2 - prop_r_0p * prop_r_2p) * prop_r_1);
+    Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_r(n, y) * m1_r * prop_r_1);
 
     computation Blocal_i_update("Blocal_i_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
-    Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_i(n, y) * (prop_i_0 * prop_i_2 - prop_i_0p * prop_i_2p) * prop_i_1);
+    Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_i(n, y) * m1_i * prop_i_1);
 
     computation Q_r_init("Q_r_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
     computation Q_i_init("Q_i_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
