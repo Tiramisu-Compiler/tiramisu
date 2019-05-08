@@ -24,15 +24,15 @@
 #define Nq 3
 #define Nc 3
 #define Ns 2
-#define Nw 54
+#define Nw 9
 #define twoNw 81
 #define Nperms 36
-#define Lt 2
-#define Vsrc 2
-#define Vsnk 4
-#define Nsrc 2
-#define Nsnk 2
-#define mq 1.0
+#define Lt 2 // 1..32
+#define Vsrc 2 //8, 64, 512
+#define Vsnk 4 //8, 64, 512
+#define Nsrc 2 //6
+#define Nsnk 2 //6
+#define mq 1.0 // Complex
 
 #endif
 
