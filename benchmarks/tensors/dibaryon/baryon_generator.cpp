@@ -1,22 +1,8 @@
 #include <tiramisu/tiramisu.h>
-
 #include <string.h>
-
 #include "baryon_wrapper.h"
 
 using namespace tiramisu;
-
-// Multiply the two imaginary numbers p1 and p2 and return the real part.
-expr mul_r(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
-{
-    return ((p1.first * p2.first) - (p1.second * p2.second));
-}
-
-// Multiply the two imaginary numbers p1 and p2 and return the imaginary part.
-expr mul_i(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
-{
-    return ((p1.first * p2.second) + (p1.second * p2.first));
-}
 
 /*
  * The goal is to generate code that implements the reference.
