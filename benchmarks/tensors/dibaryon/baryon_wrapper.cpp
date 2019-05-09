@@ -52,9 +52,9 @@ int main(int, char **)
    for (int n=0; n<Nsrc; n++)
      for (int y=0; y<Vsrc; y++)
      {
-	double v1 = rand()%10;
-	psi[n][y] = v1 + 2i ;
-	psi_r(y, n) = v1;
+	double v = rand()%10;
+	psi[n][y] = v + 2i ;
+	psi_r(y, n) = v;
 	psi_i(y, n) = 2;
      }
 
@@ -67,9 +67,10 @@ int main(int, char **)
                       for (int t=0; t<Lt; t++)
 		        for (int y=0; y<Vsrc; y++)
 			{
-			    double v = rand();
-			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = v;
+			    double v = rand()%10;
+			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = v + 5i;
 			    prop_r(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v;
+			    prop_i(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = 5;
  		        }
 
    for (int wnum=0; wnum<Nw; wnum++)
@@ -118,6 +119,17 @@ int main(int, char **)
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
 
+    for (int n=0; n<Nsrc; n++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+        for (int iSprime=0; iSprime<Ns; iSprime++)
+           for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                       for (int x=0; x<Vsnk; x++)
+                          for (int t=0; t<Lt; t++)
+			     std::cout << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << "  ///  " << Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
+
 
     // Compare outputs.
     for (int n=0; n<Nsrc; n++)
@@ -130,7 +142,7 @@ int main(int, char **)
                        for (int x=0; x<Vsnk; x++)
                           for (int t=0; t<Lt; t++)
                               if (std::abs(Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-				  Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
+						Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
 			      {
 				  std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
 				  exit(1);
