@@ -9,7 +9,9 @@ using namespace tiramisu;
   */
 expr mul_r(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
 {
-    return ((p1.first * p2.first) - (p1.second * p2.second));
+    expr e1 = (p1.first * p2.first);
+    expr e2 = (p1.second * p2.second);
+    return (e1 - e2);
 }
 
 /**
@@ -17,7 +19,9 @@ expr mul_r(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
   */
 expr mul_i(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
 {
-    return ((p1.first * p2.second) + (p1.second * p2.first));
+    expr e1 = (p1.first * p2.second);
+    expr e2 = (p1.second * p2.first);
+    return (e1 + e2);
 }
 
 /*
