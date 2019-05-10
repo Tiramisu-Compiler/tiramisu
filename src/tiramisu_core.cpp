@@ -261,13 +261,16 @@ void tiramisu::computation::rename_computation(std::string new_name)
         this->time_processor_domain = dom;
     }
 
-    if (this->get_access_relation() != NULL)
+    if (this->get_data_type() != p_byte_obj)
     {
-        // Rename the access relation of the computation.
-        isl_map *access = this->get_access_relation();
-        access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
-        DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
-        this->set_access(access);
+        if (this->get_access_relation() != NULL)
+        {
+            // Rename the access relation of the computation.
+            isl_map *access = this->get_access_relation();
+            access = isl_map_set_tuple_name(access, isl_dim_in, new_name.c_str());
+            DEBUG(10, tiramisu::str_dump("Setting the access relation to ", isl_map_to_str(access)));
+            this->set_access(access);
+        }
     }
 
     // Rename the schedule
@@ -651,6 +654,7 @@ tiramisu::computation *tiramisu::computation::copy()
     new_c->set_schedule(isl_map_copy(this->get_schedule()));
 
     new_c->access = isl_map_copy(this->access);
+    new_c->object_buffer_name = this->object_buffer_name;
     new_c->is_let = this->is_let;
 
     DEBUG_INDENT(-4);
@@ -781,14 +785,29 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
         isl_map *new_schedule = isl_map_copy(this->get_schedule());
         this->get_last_update().set_schedule(new_schedule);
 
-        // Create the access relation of the separated computation.
-        if (this->get_access_relation() != NULL)
+        if (this->get_data_type() != p_byte_obj)
         {
-            DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
-            this->get_last_update().set_access(isl_map_copy(this->get_access_relation()));
+            // Create the access relation of the separated computation.
+            if (this->get_access_relation() != NULL)
+            {
+                DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
+                this->get_last_update().set_access(isl_map_copy(this->get_access_relation()));
 
-            DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
-                                        isl_map_to_str(this->get_last_update().get_access_relation())));
+                DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
+                                            isl_map_to_str(this->get_last_update().get_access_relation())));
+            }
+        }
+        else
+        {
+            // Set the object buffer for the separated computation.
+            if (!this->get_object_buffer().empty())
+            {
+                DEBUG(3, tiramisu::str_dump("Setting the object buffer for the separated computation.\n"));
+                this->get_last_update().set_object_buffer(this->get_object_buffer());
+
+                DEBUG(3, tiramisu::str_dump("Object buffer of the separated computation:" +
+                                            this->get_last_update().get_object_buffer()));
+            }
         }
 
         this->get_last_update().add_schedule_constraint("", constraint2.c_str());
@@ -923,14 +942,26 @@ void tiramisu::computation::separate_at(var _level, std::vector<tiramisu::expr> 
             isl_map *new_schedule = isl_map_copy(this->get_schedule());
             this->get_update(last_update_computation).set_schedule(new_schedule);
 
-            // Create the access relation of the separated computation (by replacing its name).
-            if (this->get_access_relation() != NULL) {
-                DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
-                this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
 
-                DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
-                                            isl_map_to_str(
+            if (this->get_data_type() != p_byte_obj) {
+                // Create the access relation of the separated computation (by replacing its name).
+                if (this->get_access_relation() != NULL) {
+                    DEBUG(3, tiramisu::str_dump("Creating the access function of the separated computation.\n"));
+                    this->get_update(last_update_computation).set_access(isl_map_copy(this->get_access_relation()));
+
+                    DEBUG(3, tiramisu::str_dump("Access of the separated computation:",
+                                                isl_map_to_str(
                                                     this->get_update(last_update_computation).get_access_relation())));
+                }
+            } else {
+                // Set the object buffer for the separated computation.
+                if (!this->get_object_buffer().empty()) {
+                    DEBUG(3, tiramisu::str_dump("Setting the object buffer for the separated computation.\n"));
+                    this->get_update(last_update_computation).set_object_buffer(this->get_object_buffer());
+
+                    DEBUG(3, tiramisu::str_dump("Object buffer of the separated computation:" +
+                                                this->get_update(last_update_computation).get_object_buffer()));
+                }
             }
 
             this->get_update(last_update_computation).add_schedule_constraint("", cons.c_str());
@@ -1328,16 +1359,16 @@ void computation::dump() const
         std::cout << std::endl; std::flush(std::cout);
 
         if (this->get_data_type() != p_byte_obj) {
-          std::cout << "Access relation of the computation : "; std::flush(std::cout);
-          isl_map_dump(this->get_access_relation());
-          if (this->get_access_relation() == NULL)
-          {
-            std::cout << "\n";
-          }
-          std::flush(std::cout);
+            std::cout << "Access relation of the computation : "; std::flush(std::cout);
+            isl_map_dump(this->get_access_relation());
+            if (this->get_access_relation() == NULL)
+            {
+                std::cout << "\n";
+            }
+            std::flush(std::cout);
         } else {
-          std::cout << "Object buffer of the computation : " << this->get_object_buffer() << std::endl;
-          std::flush(std::cout);
+            std::cout << "Object buffer of the computation : " << this->get_object_buffer() << std::endl;
+            std::flush(std::cout);
         }
 
         if (this->get_time_processor_domain() != NULL)
@@ -6067,6 +6098,9 @@ isl_map *tiramisu::computation::get_access_relation_adapted_to_time_processor_do
 
     DEBUG(10, tiramisu::str_dump("Getting the access of the computation " + this->get_name() +
                                  " adapted to time-space."));
+    if (this->get_data_type() == p_byte_obj) {
+        ERROR("Object computations can't have access relations.", true);
+    }
     assert((this->has_accesses() == true) && ("This computation must have accesses."));
 
     isl_map *access = isl_map_copy(this->get_access_relation());
@@ -6975,6 +7009,10 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
+    if (this->get_data_type() != p_byte_obj) {
+        ERROR("Cannot fold storage for object computations.", true);
+    }
 
     assert(L0_var.get_name().length() > 0);
     std::vector<int> loop_dimensions =
