@@ -1434,6 +1434,14 @@ private:
     isl_map *access;
 
     /**
+      * Buffer used for passing state in object computations. For non-object
+      * computations, this is unused/empty string. This buffer is different from
+      * an access relation buffer in the sense that it's opaque to Tiramisu; only
+      * user-defined functions understand how to manipulate the buffer's data.
+      */
+    std::string object_buffer_name;
+
+    /**
       * A vector that contains the list of let statements associated
       * with this computation.
       *
@@ -1866,6 +1874,11 @@ private:
       * access function is returned.
       */
     isl_map *get_access_relation_adapted_to_time_processor_domain() const;
+
+    /**
+      * Return the buffer of the object computation.
+      */
+    std::string get_object_buffer() const;
 
     /**
       * Return vector of associated let statements.
@@ -3585,6 +3598,17 @@ public:
 
     void set_wait_access(std::string access_str);
     void set_wait_access(isl_map *access);
+
+    /**
+      * Set the buffer of the object computation.
+      *
+      * Object computations do not have access relations since users are responsible
+      * for managing their memory and indexing. However, Tiramisu maintains a state
+      * buffer for each object computation that gets passed to user-defined functions
+      * that use those computations.
+      */
+    void set_object_buffer(std::string buff_name);
+    void set_object_buffer(tiramisu::buffer *buff);
 
      /**
        * Set the expression of the computation.

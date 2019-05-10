@@ -40,6 +40,7 @@ enum primitive_t
     p_async,
     p_wait_ptr,
     p_void_ptr,  // Used for raw buffers in cuda_ast
+    p_byte_obj,
     p_none
 };
 

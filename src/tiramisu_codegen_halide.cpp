@@ -668,32 +668,36 @@ void generator::traverse_expr_and_extract_accesses(const tiramisu::function *fct
 
         if (return_buffer_accesses)
         {
-            isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
+            // Access relations don't exist for object types.
+            if (access_op_comp->get_data_type() != p_byte_obj) {
+                isl_map *access_to_buff = isl_map_copy(access_op_comp->get_access_relation());
 
-            DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before re-adapting its domain into the domain of the current access) : ",
-                                        isl_map_to_str(access_to_buff)));
-
-            access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), access_to_buff);
-            DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:",
-                                        isl_map_to_str(access_to_buff)));
-
-            // Run the following block (i.e. apply the schedule on the access function) only if
-            // we are looking for the buffer access functions (i.e. return_buffer_accesses == true)
-            // otherwise return the access function that is not transformed into time-processor space
-            // this is mainly because the function that calls this function expects the access function
-            // to be in the iteration domain.
-            if (global::is_auto_data_mapping_set())
-            {
-                DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:",
+                DEBUG(3, tiramisu::str_dump("The access of this computation to buffers (before re-adapting its domain into the domain of the current access) : ",
                                             isl_map_to_str(access_to_buff)));
-                DEBUG(3, tiramisu::str_dump("Trimmed schedule:",
-                                            isl_map_to_str(comp->get_trimmed_union_of_schedules())));
-                access_to_buff = isl_map_apply_domain(access_to_buff,
-                                                      isl_map_copy(comp->get_trimmed_union_of_schedules()));
-                DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_to_buff)));
+
+                access_to_buff = isl_map_apply_range(isl_map_copy(access_to_comp), access_to_buff);
+                DEBUG(3, tiramisu::str_dump("Applying access function on the range of transformation function:",
+                                            isl_map_to_str(access_to_buff)));
+
+                // Run the following block (i.e. apply the schedule on the access function) only if
+                // we are looking for the buffer access functions (i.e. return_buffer_accesses == true)
+                // otherwise return the access function that is not transformed into time-processor space
+                // this is mainly because the function that calls this function expects the access function
+                // to be in the iteration domain.
+                if (global::is_auto_data_mapping_set())
+                {
+                    DEBUG(3, tiramisu::str_dump("Apply the schedule on the domain of the access function. Access functions:",
+                                                isl_map_to_str(access_to_buff)));
+                    DEBUG(3, tiramisu::str_dump("Trimmed schedule:",
+                                                isl_map_to_str(comp->get_trimmed_union_of_schedules())));
+                    access_to_buff = isl_map_apply_domain(access_to_buff,
+                                                          isl_map_copy(comp->get_trimmed_union_of_schedules()));
+                    DEBUG(3, tiramisu::str_dump("Result: ", isl_map_to_str(access_to_buff)));
+                }
+
+                accesses.push_back(access_to_buff);
             }
 
-            accesses.push_back(access_to_buff);
             isl_map_free(access_to_comp);
         }
         else
@@ -3612,23 +3616,29 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 // but may have different access relations.
                 tiramisu::computation *access_comp = computations_vector[0];
                 assert((access_comp != NULL) && "Accessed computation is NULL.");
-                if (comp && comp->is_wait()) {
-                    // swap
-                    // use operations_vector[0] instead of access_comp because we need it to be non-const
-                    isl_map *orig = computations_vector[0]->get_access_relation();
-                    computations_vector[0]->set_access(computations_vector[0]->wait_access_map);
-                    computations_vector[0]->wait_access_map = orig;
-                }
-                isl_map *acc = access_comp->get_access_relation_adapted_to_time_processor_domain();
-                if (comp && comp->is_wait()) {
-                    // swap back
-                    isl_map *orig = computations_vector[0]->get_access_relation();
-                    computations_vector[0]->set_access(computations_vector[0]->wait_access_map);
-                    computations_vector[0]->wait_access_map = orig;
-                }
-                const char *buffer_name = isl_space_get_tuple_name(
+                const char *buffer_name = NULL;
+                if (access_comp->get_data_type() != p_byte_obj) {
+                    if (comp && comp->is_wait()) {
+                        // swap
+                        // use operations_vector[0] instead of access_comp because we need it to be non-const
+                        isl_map *orig = computations_vector[0]->get_access_relation();
+                        computations_vector[0]->set_access(computations_vector[0]->wait_access_map);
+                        computations_vector[0]->wait_access_map = orig;
+                    }
+                    isl_map *acc = access_comp->get_access_relation_adapted_to_time_processor_domain();
+                    if (comp && comp->is_wait()) {
+                        // swap back
+                        isl_map *orig = computations_vector[0]->get_access_relation();
+                        computations_vector[0]->set_access(computations_vector[0]->wait_access_map);
+                        computations_vector[0]->wait_access_map = orig;
+                    }
+                    buffer_name = isl_space_get_tuple_name(
                         isl_map_get_space(acc),
                         isl_dim_out);
+                } else {
+                    // Use state buffers for object computations.
+                    buffer_name = access_comp->get_object_buffer().c_str();
+                }
                 assert(buffer_name != NULL);
                 DEBUG(10, tiramisu::str_dump("Name of the associated buffer: "); tiramisu::str_dump(buffer_name));
 
@@ -3637,6 +3647,10 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 
                 const auto &tiramisu_buffer = buffer_entry->second;
 
+                if (access_comp->get_data_type() == p_byte_obj &&
+                    tiramisu_buffer->get_elements_type() != p_byte_obj) {
+                    ERROR("Object computations cannot use non-object buffers.", true);
+                }
                 Halide::Type type = halide_type_from_tiramisu_type(tiramisu_buffer->get_elements_type());
 
                 // Tiramisu buffer is from outermost to innermost, whereas Halide buffer is from innermost
@@ -3675,6 +3689,10 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                     tiramisu_expr.get_op_type() == tiramisu::o_address_of ||
                     tiramisu_expr.get_op_type() == tiramisu::o_lin_index)
                 {
+                    if (tiramisu_expr.get_data_type() == p_byte_obj) {
+                        ERROR("Object computations can't have access relations, and accordingly cannot be indexed into.", true);
+                    }
+
                     Halide::Expr index;
 
                     // If index_expr is empty, and since tiramisu_expr is
@@ -3881,11 +3899,26 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                 break;
             case tiramisu::o_call:
             {
+                std::vector<tiramisu::expr> flattened_args;
+                for (const auto &e : tiramisu_expr.get_arguments()) {
+                    // Flatten object o_access to o_address plus args
+                    if (e.get_expr_type() == tiramisu::e_op &&
+                        e.get_op_type() == tiramisu::o_access &&
+                        e.get_data_type() == tiramisu::p_byte_obj) {
+                        flattened_args.push_back(
+                            tiramisu::expr(tiramisu::o_address, tiramisu::var(p_byte_obj, e.get_name())));
+                        const auto &a = e.get_access();
+                        flattened_args.insert(flattened_args.end(), a.begin(), a.end());
+                    } else {
+                        flattened_args.push_back(e);
+                    }
+                }
                 std::vector<Halide::Expr> vec;
-                for (const auto &e : tiramisu_expr.get_arguments())
+                for (const auto &e : flattened_args)
                 {
                     Halide::Expr he = generator::halide_expr_from_tiramisu_expr(fct, index_expr, e, comp);
                     vec.push_back(he);
+
                 }
                 result = Halide::Internal::Call::make(halide_type_from_tiramisu_type(tiramisu_expr.get_data_type()),
                                                       tiramisu_expr.get_name(),

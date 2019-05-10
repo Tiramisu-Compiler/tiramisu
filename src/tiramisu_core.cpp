@@ -1327,13 +1327,18 @@ void computation::dump() const
         this->get_expr().dump(false);
         std::cout << std::endl; std::flush(std::cout);
 
-        std::cout << "Access relation of the computation : "; std::flush(std::cout);
-        isl_map_dump(this->get_access_relation());
-        if (this->get_access_relation() == NULL)
-        {
+        if (this->get_data_type() != p_byte_obj) {
+          std::cout << "Access relation of the computation : "; std::flush(std::cout);
+          isl_map_dump(this->get_access_relation());
+          if (this->get_access_relation() == NULL)
+          {
             std::cout << "\n";
+          }
+          std::flush(std::cout);
+        } else {
+          std::cout << "Object buffer of the computation : " << this->get_object_buffer() << std::endl;
+          std::flush(std::cout);
         }
-        std::flush(std::cout);
 
         if (this->get_time_processor_domain() != NULL)
         {
@@ -5525,6 +5530,8 @@ std::string str_from_tiramisu_type_primitive(tiramisu::primitive_t type)
         return "wait";
     case tiramisu::p_void_ptr:
         return "void *";
+    case tiramisu::p_byte_obj:
+        return "object";
     default:
         ERROR("Tiramisu type not supported.", true);
         return "";
@@ -5698,6 +5705,9 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
     case tiramisu::p_void_ptr:
         t = Halide::type_of<void *>();
         break;
+    case tiramisu::p_byte_obj:
+        t = Halide::UInt(8);
+        break;
     default:
         ERROR("Tiramisu type cannot be translated to Halide type.", true);
     }
@@ -5841,6 +5851,7 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 tiramisu::computation::computation()
 {
     this->access = NULL;
+    this->object_buffer_name = "";
     this->schedule = NULL;
     this->stmt = Halide::Internal::Stmt();
     this->time_processor_domain = NULL;
@@ -5952,7 +5963,7 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
     is_let = false;
 
     // Allocate implicit buffer if possible
-    if (t != p_none && t != p_async && t != p_wait_ptr && t != p_void_ptr) {
+    if (t != p_none && t != p_async && t != p_wait_ptr && t != p_void_ptr && t != p_byte_obj) {
         bool is_bounded = true;
         std::vector<expr> buffer_size;
         for (const auto &var : iterator_variables) {
@@ -6011,7 +6022,23 @@ bool tiramisu::computation::should_schedule_this_computation() const
   */
 isl_map *tiramisu::computation::get_access_relation() const
 {
+    if (this->get_data_type() == p_byte_obj) {
+        ERROR("Object computations can't have access relations.", true);
+    }
+
     return access;
+}
+
+/**
+  * Return the buffer of the object computation.
+  */
+std::string tiramisu::computation::get_object_buffer() const
+{
+    if (this->get_data_type() != p_byte_obj) {
+        ERROR("Non-object computations can't have object buffers.", true);
+    }
+
+    return object_buffer_name;
 }
 
 buffer *computation::get_buffer() const
@@ -6342,6 +6369,10 @@ void tiramisu::computation::set_access(std::string access_str)
 
     DEBUG(3, tiramisu::str_dump("Setting access " + access_str + " for computation " + this->get_name()));
 
+    if (this->get_data_type() == p_byte_obj) {
+        ERROR("Object computations can't have access relations.", true);
+    }
+
     this->access = isl_map_read_from_str(this->ctx, access_str.c_str());
 
     /**
@@ -6372,6 +6403,39 @@ void tiramisu::computation::set_access(std::string access_str)
         }
 
     assert(this->access != nullptr && "Set access failed");
+
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::set_object_buffer(tiramisu::buffer *buff)
+{
+    assert(buff != NULL);
+
+    this->set_object_buffer(buff->get_name());
+}
+
+/**
+ * Set the buffer of the object computation.
+ *
+ * Object computations do not have access relations since users are responsible
+ * for managing their memory and indexing. However, Tiramisu maintains a state
+ * buffer for each object computation that gets passed to user-defined functions
+ * that use those computations.
+ */
+void tiramisu::computation::set_object_buffer(std::string buff_name)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!buff_name.empty());
+
+    DEBUG(3, tiramisu::str_dump("Setting object buffer " + buff_name + " for computation " + this->get_name()));
+
+    if (this->get_data_type() != p_byte_obj) {
+        ERROR("Cannot set object buffer for non-object computation.", true);
+    }
+
+    this->object_buffer_name = buff_name;
 
     DEBUG_INDENT(-4);
 }
