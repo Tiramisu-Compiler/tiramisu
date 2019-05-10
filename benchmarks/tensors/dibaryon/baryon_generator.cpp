@@ -99,23 +99,21 @@ void generate_function(std::string name)
     computation kS2("kS2", {wnum}, spin_weights(wnum, 2));
 
     computation Q_r_update("Q_r_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum));
-			//* psi_r(n, y) * (prop_r(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_r(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_r(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y))));
+			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum) * mul_r(psi, m1));
     Q_r_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
 
     computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum));
-		        //* psi_i(n, y) * (prop_i(0, iCprime, iSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, kCprime, kSprime, kC2(wnum), kS2(wnum), x, t, y) - prop_i(0, kCprime, kSprime, iC2(wnum), iS2(wnum), x, t, y) * prop_i(2, iCprime, iSprime, kC2(wnum), kS2(wnum), x, t, y)));
+			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum) * mul_i(psi, m1));
     Q_i_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
 
+    std::pair<expr, expr> Q_update(Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y), Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
+    std::pair<expr, expr> prop_1p(prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y), prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
+
     computation Bsingle_r_update("Bsingle_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
-	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
-            // * prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
+	    Bsingle_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + mul_r(Q_update, prop_1p));
 
     computation Bsingle_i_update("Bsingle_i_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
-	    Bsingle_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
-	    // * prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
-
+	    Bsingle_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t) + mul_i(Q_update, prop_1p));
 
     // -------------------------------------------------------
     // Layer II
@@ -144,15 +142,20 @@ void generate_function(std::string name)
 		 .then(Bsingle_r_update, computation::root)
 		 .then(Bsingle_i_update, y);
 
-    Blocal_r_update.tag_parallel_level(n);
+    /*
+    Blocal_r_init.tag_parallel_level(n);
+    Q_r_init.tag_parallel_level(n);
+    Bsingle_r_init.tag_parallel_level(n);
+    */
+
     Blocal_r_init.vectorize(t, Lt);
+    Q_r_init.vectorize(y, Vsrc);
+    Bsingle_r_init.vectorize(t, Lt);
+
+    Blocal_r_update.tag_parallel_level(n);
     Blocal_r_update.vectorize(t, Lt);
     //Blocal_r_update.unroll(y, Vsrc);
     //Blocal_r_update.unroll(x, Vsnk);
-
-    Q_r_init.vectorize(y, Vsrc);
-
-    Bsingle_r_init.vectorize(t, Lt);
 
     Q_r_update.vectorize(y, Vsrc);
 
