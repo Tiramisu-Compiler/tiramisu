@@ -72,25 +72,26 @@ void generate_function(std::string name)
     std::pair<expr, expr> prop_2(prop_r(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y), prop_i(2, kCprime, kSprime, kC(wnum), kS(wnum), x, t, y));
     std::pair<expr, expr> prop_0p(prop_r(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y), prop_i(0, kCprime, kSprime, iC(wnum), iS(wnum), x, t, y));
     std::pair<expr, expr> prop_2p(prop_r(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y), prop_i(2, iCprime, iSprime, kC(wnum), kS(wnum), x, t, y));
+    computation m1_r("m1_r", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p));
+    computation m1_i("m1_i", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
+
+    std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
+    std::pair<expr, expr> m1(m1_r(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y), m1_i(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y));
+    computation m2_r("m2_r", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_r(psi, m1));
+    computation m2_i("m2_i", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_i(psi, m1));
+
+    std::pair<expr, expr> m2(m2_r(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y), m2_i(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y));
     expr prop_r_1 = prop_r(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
     expr prop_i_1 = prop_i(1, jCprime, jSprime, jC(wnum), jS(wnum), x, t, y);
     std::pair<expr, expr> prop_1(prop_r_1, prop_i_1);
-    std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
-
-    expr m1_r = mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p);
-    expr m1_i = mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p);
-    std::pair<expr, expr> m1(m1_r, m1_i);
-    expr m2_r = mul_r(psi, m1);
-    expr m2_i = mul_i(psi, m1);
-    std::pair<expr, expr> m2(m2_r, m2_i);
-    expr m3_r = mul_r(m2, prop_1);
-    expr m3_i = mul_i(m2, prop_1);
+    computation m3_r("m3_r", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_r(m2, prop_1));
+    computation m3_i("m3_i", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, mul_i(m2, prop_1));
 
     computation Blocal_r_update("Blocal_r_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
-    Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_r(n, y) * m1_r * prop_r_1);
+    Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * m3_r(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y));
 
     computation Blocal_i_update("Blocal_i_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
-    Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * psi_i(n, y) * m1_i * prop_i_1);
+    Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * m3_i(wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y));
 
     computation Q_r_init("Q_r_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
     computation Q_i_init("Q_i_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
@@ -138,7 +139,13 @@ void generate_function(std::string name)
 		 .then(jS, wnum)
 		 .then(kC, wnum)
 		 .then(kS, wnum)
-		 .then(Blocal_r_update, wnum)
+		 .then(m1_r, wnum)
+		 .then(m1_i, y)
+		 .then(m2_r, y)
+		 .then(m2_i, y)
+		 .then(m3_r, y)
+		 .then(m3_i, y)
+		 .then(Blocal_r_update, y)
 		 .then(Blocal_i_update, y)
 	         .then(iC2, computation::root)
 		 .then(iS2, wnum)

@@ -52,10 +52,12 @@ int main(int, char **)
    for (int n=0; n<Nsrc; n++)
      for (int y=0; y<Vsrc; y++)
      {
-	double v = rand()%10;
-	psi[n][y] = v + 2i ;
-	psi_r(y, n) = v;
-	psi_i(y, n) = 2;
+	double v1 = rand()%10;
+	double v2 = rand()%10;
+	std::complex<double> c(v1, v2);
+	psi[n][y] = c;
+	psi_r(y, n) = v1;
+	psi_i(y, n) = v2;
      }
 
    for (int tri=0; tri<Nq; tri++)
@@ -67,10 +69,12 @@ int main(int, char **)
                       for (int t=0; t<Lt; t++)
 		        for (int y=0; y<Vsrc; y++)
 			{
-			    double v = rand()%10;
-			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = v + 5i;
-			    prop_r(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v;
-			    prop_i(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = 5;
+			    double v1 = rand()%10;
+			    double v2 = rand()%10;
+			    std::complex<double> c(v1, v2);
+			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = c;
+			    prop_r(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v1;
+			    prop_i(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v2;
  		        }
 
    for (int wnum=0; wnum<Nw; wnum++)
@@ -118,18 +122,6 @@ int main(int, char **)
 
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
-
-    for (int n=0; n<Nsrc; n++)
-      for (int iCprime=0; iCprime<Nc; iCprime++)
-        for (int iSprime=0; iSprime<Ns; iSprime++)
-           for (int jCprime=0; jCprime<Nc; jCprime++)
-              for (int jSprime=0; jSprime<Ns; jSprime++)
-                 for (int kCprime=0; kCprime<Nc; kCprime++)
-                    for (int kSprime=0; kSprime<Ns; kSprime++)
-                       for (int x=0; x<Vsnk; x++)
-                          for (int t=0; t<Lt; t++)
-			     std::cout << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << "  ///  " << Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
-
 
     // Compare outputs.
     for (int n=0; n<Nsrc; n++)
