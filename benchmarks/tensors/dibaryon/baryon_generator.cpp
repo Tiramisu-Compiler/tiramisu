@@ -158,7 +158,7 @@ void generate_function(std::string name)
 		 .then(Bsingle_r_update, computation::root)
 		 .then(Bsingle_i_update, y);
 
-    //Blocal_r_update.tag_parallel_level(n);
+    Blocal_r_update.tag_parallel_level(n);
     Blocal_r_init.vectorize(t, Lt);
     Blocal_r_update.vectorize(t, Lt);
     //Blocal_r_update.unroll(y, Vsrc);
