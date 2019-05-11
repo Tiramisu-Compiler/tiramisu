@@ -1,8 +1,8 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
-#define SMALL_BARYON_DATA_SET 0
-#define LARGE_BARYON_DATA_SET 1
+#define SMALL_BARYON_DATA_SET 1
+#define LARGE_BARYON_DATA_SET 0
 
 #if SMALL_BARYON_DATA_SET
 
@@ -14,7 +14,7 @@
 #define Nperms 36
 #define Lt 2
 #define Vsrc 2
-#define Vsnk 4
+#define Vsnk 2 //4
 #define Nsrc 2
 #define Nsnk 2
 #define mq 1.0
@@ -58,6 +58,12 @@ int tiramisu_generated_code(halide_buffer_t *,
 	   		    halide_buffer_t *,
 			    halide_buffer_t *,
 	   		    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+	   		    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *);
 

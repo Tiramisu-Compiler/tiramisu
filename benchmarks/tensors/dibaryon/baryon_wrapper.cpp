@@ -14,7 +14,10 @@ int main(int, char **)
 
     std::complex<double> Blocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt];
     std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
+    std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
     std::complex<double> prop[Nq][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
+    std::complex<double> O[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
+    std::complex<double> P[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
     int color_weights[Nw][Nq];
     int spin_weights[Nw][Nq];
     double weights[Nw];
@@ -40,6 +43,14 @@ int main(int, char **)
 
     Halide::Buffer<double> Bsingle_r(Lt, Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_r");
     Halide::Buffer<double> Bsingle_i(Lt, Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_i");
+
+    Halide::Buffer<double> O_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_r");
+    Halide::Buffer<double> O_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_i");
+    Halide::Buffer<double> P_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "P_r");
+    Halide::Buffer<double> P_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "P_i");
+
+    Halide::Buffer<double> Bdouble_r(Lt, Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bdouble_r");
+    Halide::Buffer<double> Bdouble_i(Lt, Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bdouble_i");
 
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
@@ -86,13 +97,13 @@ int main(int, char **)
 		spin_weights_t(tri, wnum) = 0; //tri
 	}
 
-
     for (int i = 0; i < NB_TESTS; i++)
     {
 	    auto start2 = std::chrono::high_resolution_clock::now();
 
 	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
 	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi);
+	    make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
@@ -113,7 +124,13 @@ int main(int, char **)
 				    color_weights_t.raw_buffer(),
 				    spin_weights_t.raw_buffer(),
 				    Bsingle_r.raw_buffer(),
-				    Bsingle_i.raw_buffer());
+				    Bsingle_i.raw_buffer(),
+				    Bdouble_r.raw_buffer(),
+				    Bdouble_i.raw_buffer(),
+				    O_r.raw_buffer(),
+				    O_i.raw_buffer(),
+				    P_r.raw_buffer(),
+				    P_i.raw_buffer());
 
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -155,6 +172,59 @@ int main(int, char **)
 			      {
 				  std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
 				std::cout << "Position: (" << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ", " << t << ")" << std::endl;
+				  exit(1);
+			      }
+
+    for (int jCprime=0; jCprime<Nc; jCprime++)
+      for (int jSprime=0; jSprime<Ns; jSprime++)
+         for (int kCprime=0; kCprime<Nc; kCprime++)
+            for (int kSprime=0; kSprime<Ns; kSprime++)
+               for (int jC=0; jC<Nc; jC++)
+                  for (int jS=0; jS<Ns; jS++)
+                     for (int x=0; x<Vsnk; x++)
+                        for (int t=0; t<Lt; t++)
+                           for (int y=0; y<Vsrc; y++)
+                              for (int n=0; n<Nsrc; n++)
+				      if (std::abs(O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
+							O_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n)) >= 0.01)
+				      {
+				  		std::cout << "Error: different computed values for O! Ref = " << O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
+							<< " - Tiramisu = " << O_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n) << std::endl;
+				  		exit(1);
+				      }
+
+    for (int jCprime=0; jCprime<Nc; jCprime++)
+      for (int jSprime=0; jSprime<Ns; jSprime++)
+         for (int kCprime=0; kCprime<Nc; kCprime++)
+            for (int kSprime=0; kSprime<Ns; kSprime++)
+               for (int jC=0; jC<Nc; jC++)
+                  for (int jS=0; jS<Ns; jS++)
+                     for (int x=0; x<Vsnk; x++)
+                        for (int t=0; t<Lt; t++)
+                           for (int y=0; y<Vsrc; y++)
+                              for (int n=0; n<Nsrc; n++)
+				      if (std::abs(P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
+							P_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n)) >= 0.01)
+				      {
+				  		std::cout << "Error: different computed values for P! Ref = " << P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
+							<< " - Tiramisu = " << P_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n) << std::endl;
+				  		exit(1);
+				      }
+    for (int n=0; n<Nsrc; n++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+        for (int iSprime=0; iSprime<Ns; iSprime++)
+           for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                       for (int x=0; x<Vsnk; x++)
+		         for (int x2=0; x2<Vsnk; x2++)
+			     for (int t=0; t<Lt; t++)
+                             if (std::abs(Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
+					 Bdouble_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
+			      {
+				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
+				  std::cout << "Position: (" << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ", " << t << ")" << std::endl;
 				  exit(1);
 			      }
 

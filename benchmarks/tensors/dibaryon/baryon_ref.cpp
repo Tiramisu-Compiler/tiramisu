@@ -194,11 +194,11 @@ void make_double_block(std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
     const int color_weights[Nw][Nq], 
     const int spin_weights[Nw][Nq], 
     const double weights[Nw],
-    const std::complex<double> psi[Nsrc][Vsrc]) {
+    const std::complex<double> psi[Nsrc][Vsrc],
+    std::complex<double> O[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc],
+    std::complex<double> P[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]) {
    /* indices */
    int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, x, x1, x2, t, y, wnum, n;
-   std::complex<double> O[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
-   std::complex<double> P[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
    time_t start,end;
    time (&start);
    double dif;
@@ -310,7 +310,7 @@ void make_double_block(std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
    }
    time (&end);
    dif = difftime(end,start);
-   printf("built double exchange baryon block in seconds %5.3f\n",dif);
+   //printf("built double exchange baryon block in seconds %5.3f\n",dif);
 }
 
 void make_pion_correlator(std::complex<double> correlator[Lt],
@@ -564,12 +564,14 @@ void make_dibaryon_from_props(std::complex<double> C_pi[Lt],
    std::complex<double> G1g_r2_BLocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt];
    std::complex<double> G1g_r2_BSingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
    std::complex<double> G1g_r2_BDouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
+   std::complex<double> O[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
+   std::complex<double> P[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
    make_local_block(G1g_r1_BLocal, prop, B1_G1g_r1_color_weights, B1_G1g_r1_spin_weights, B1_G1g_r1_weights, psi);
    make_single_block(G1g_r1_BSingle, prop, B1_G1g_r1_color_weights, B1_G1g_r1_spin_weights, B1_G1g_r1_weights, psi);
-   make_double_block(G1g_r1_BDouble, prop, B1_G1g_r1_color_weights, B1_G1g_r1_spin_weights, B1_G1g_r1_weights, psi);
+   make_double_block(G1g_r1_BDouble, prop, B1_G1g_r1_color_weights, B1_G1g_r1_spin_weights, B1_G1g_r1_weights, psi, O, P);
    make_local_block(G1g_r2_BLocal, prop, B1_G1g_r2_color_weights, B1_G1g_r2_spin_weights, B1_G1g_r2_weights, psi);
    make_single_block(G1g_r2_BSingle, prop, B1_G1g_r2_color_weights, B1_G1g_r2_spin_weights, B1_G1g_r2_weights, psi);
-   make_double_block(G1g_r2_BDouble, prop, B1_G1g_r2_color_weights, B1_G1g_r2_spin_weights, B1_G1g_r2_weights, psi);
+   make_double_block(G1g_r2_BDouble, prop, B1_G1g_r2_color_weights, B1_G1g_r2_spin_weights, B1_G1g_r2_weights, psi, O, P);
    /* create pion */
    make_pion_correlator(C_pi, prop);
    /* create baryon and test dibaryon blocks */
