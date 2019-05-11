@@ -91,20 +91,13 @@ void generate_function(std::string name)
     computation Bsingle_r_init("Bsingle_r_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
     computation Bsingle_i_init("Bsingle_i_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
 
-    computation iC2("iC2", {wnum}, color_weights(wnum, 0));
-    computation iS2("iS2", {wnum}, spin_weights(wnum, 0));
-    computation jC2("jC2", {wnum}, color_weights(wnum, 1));
-    computation jS2("jS2", {wnum}, spin_weights(wnum, 1));
-    computation kC2("kC2", {wnum}, color_weights(wnum, 2));
-    computation kS2("kS2", {wnum}, spin_weights(wnum, 2));
-
     computation Q_r_update("Q_r_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y) + weights(wnum) * mul_r(psi, m1));
-    Q_r_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
+			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, jC(wnum), jS(wnum), x, t, y) + weights(wnum) * mul_r(psi, m1));
+    Q_r_update.add_predicate((jCprime == jC(wnum)) && (jSprime == jS(wnum)));
 
     computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
-			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC2(wnum), jS2(wnum), x, t, y) + weights(wnum) * mul_i(psi, m1));
-    Q_i_update.add_predicate((jCprime == jC2(wnum)) && (jSprime == jS2(wnum)));
+			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, jC(wnum), jS(wnum), x, t, y) + weights(wnum) * mul_i(psi, m1));
+    Q_i_update.add_predicate((jCprime == jC(wnum)) && (jSprime == jS(wnum)));
 
     std::pair<expr, expr> Q_update(Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y), Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
     std::pair<expr, expr> prop_1p(prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y), prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
@@ -131,13 +124,7 @@ void generate_function(std::string name)
 		 .then(kS, wnum)
 		 .then(Blocal_r_update, wnum)
 		 .then(Blocal_i_update, y)
-	         .then(iC2, computation::root)
-		 .then(iS2, wnum)
-		 .then(jC2, wnum)
-		 .then(jS2, wnum)
-		 .then(kC2, wnum)
-		 .then(kS2, wnum)
-		 .then(Q_r_update, wnum)
+		 .then(Q_r_update, y)
 		 .then(Q_i_update, y)
 		 .then(Bsingle_r_update, computation::root)
 		 .then(Bsingle_i_update, y);
