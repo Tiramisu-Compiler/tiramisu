@@ -45,6 +45,8 @@ int main(int, char **)
     Halide::Buffer<double> Bsingle_r(Lt, Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_r");
     Halide::Buffer<double> Bsingle_i(Lt, Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_i");
 
+    Halide::Buffer<double> Q_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Q_r");
+    Halide::Buffer<double> Q_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Q_i");
     Halide::Buffer<double> O_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_r");
     Halide::Buffer<double> O_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_i");
     Halide::Buffer<double> P_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "P_r");
@@ -131,7 +133,9 @@ int main(int, char **)
 				    O_r.raw_buffer(),
 				    O_i.raw_buffer(),
 				    P_r.raw_buffer(),
-				    P_i.raw_buffer());
+				    P_i.raw_buffer(),
+				    Q_r.raw_buffer(),
+				    Q_i.raw_buffer());
 
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
