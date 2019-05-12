@@ -162,8 +162,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after fuzzing floating point stores:\n", s)));
     }
 
-    DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
-    s = common_subexpression_elimination(s);
+    //DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
+    //s = common_subexpression_elimination(s);
 
     if (t.has_feature(Target::OpenGL))
     {
