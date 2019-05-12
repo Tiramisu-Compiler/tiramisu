@@ -212,8 +212,8 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     buffer buf_Blocal_r("buf_Blocal_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt}, p_float64, a_output);
     buffer buf_Blocal_i("buf_Blocal_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt}, p_float64, a_output);
-    buffer buf_Q_r("buf_Q_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_temporary);
-    buffer buf_Q_i("buf_Q_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_temporary);
+    buffer buf_Q_r("buf_Q_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_output);
+    buffer buf_Q_i("buf_Q_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_output);
     buffer buf_O_r("buf_O_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_output);
     buffer buf_O_i("buf_O_i", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_output);
     buffer buf_P_r("buf_P_r", {Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Lt, Vsnk}, p_float64, a_output);
@@ -260,7 +260,7 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), weights.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), color_weights.get_buffer(), spin_weights.get_buffer(), Bsingle_r_update.get_buffer(), Bsingle_i_update.get_buffer(), Bdouble_r_init.get_buffer(), Bdouble_i_init.get_buffer(), &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i}, "generated_baryon.o");
+    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), weights.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), color_weights.get_buffer(), spin_weights.get_buffer(), Bsingle_r_update.get_buffer(), Bsingle_i_update.get_buffer(), Bdouble_r_init.get_buffer(), Bdouble_i_init.get_buffer(), &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i}, "generated_baryon.o");
 }
 
 int main(int argc, char **argv)
