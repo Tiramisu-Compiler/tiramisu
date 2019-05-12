@@ -12,12 +12,13 @@ int main(int, char **)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    std::complex<double> Blocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt];
-    std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
-    std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt];
-    std::complex<double> prop[Nq][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
-    std::complex<double> O[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
-    std::complex<double> P[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc];
+    std::complex<double> (*Blocal) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt]);
+    std::complex<double> (*Bsingle) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*Bdouble) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*prop) [Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nq][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*Q) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*O) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*P) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
     int color_weights[Nw][Nq];
     int spin_weights[Nw][Nq];
     double weights[Nw];
@@ -102,7 +103,7 @@ int main(int, char **)
 	    auto start2 = std::chrono::high_resolution_clock::now();
 
 	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
-	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi);
+	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi, Q);
 	    make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
@@ -210,6 +211,7 @@ int main(int, char **)
 							<< " - Tiramisu = " << P_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n) << std::endl;
 				  		exit(1);
 				      }
+
     for (int n=0; n<Nsrc; n++)
       for (int iCprime=0; iCprime<Nc; iCprime++)
         for (int iSprime=0; iSprime<Ns; iSprime++)
