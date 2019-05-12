@@ -156,15 +156,15 @@ void generate_function(std::string name)
     // Layer II
     // -------------------------------------------------------
     Blocal_r_init.then(Blocal_i_init, t)
-		 .then(Q_r_init, computation::root)
+		 .then(Q_r_init, t)
 		 .then(Q_i_init, y)
 		 .then(Bsingle_r_init, computation::root)
 		 .then(Bsingle_i_init, t)
-		 .then(Bdouble_r_init, computation::root)
+		 .then(Bdouble_r_init, t)
 		 .then(Bdouble_i_init, t)
 		 .then(O_r_init, computation::root)
 		 .then(O_i_init, y)
-		 .then(P_r_init, computation::root)
+		 .then(P_r_init, y)
 		 .then(P_i_init, y)
 	         .then(iC, computation::root)
 		 .then(iS, wnum)
@@ -182,20 +182,19 @@ void generate_function(std::string name)
 		 .then(P_i_update, y)
 		 .then(Bsingle_r_update, computation::root)
 		 .then(Bsingle_i_update, y)
-		 .then(Bdouble_r_update0, computation::root)
+		 .then(Bdouble_r_update0, y)
 		 .then(Bdouble_i_update0, y)
 		 .then(Bdouble_r_update1, y)
 		 .then(Bdouble_i_update1, y);
 
-    /*
+
     Blocal_r_init.tag_parallel_level(n);
-    Q_r_init.tag_parallel_level(n);
     Bsingle_r_init.tag_parallel_level(n);
-    */
+    O_r_init.tag_parallel_level(n);
 
     Blocal_r_init.vectorize(t, Lt);
-    Q_r_init.vectorize(y, Vsrc);
     Bsingle_r_init.vectorize(t, Lt);
+    O_r_init.vectorize(y, Vsrc);
 
     Blocal_r_update.tag_parallel_level(n);
     Blocal_r_update.vectorize(t, Lt);
@@ -204,7 +203,7 @@ void generate_function(std::string name)
 
     Q_r_update.vectorize(y, Vsrc);
 
-    //Bsingle_r_update.tag_parallel_level(n);
+    Bsingle_r_update.tag_parallel_level(n);
     Bsingle_r_update.vectorize(t, Lt);
 
     // -------------------------------------------------------
