@@ -958,7 +958,9 @@ void generator::get_rhs_accesses(const tiramisu::function *func, const tiramisu:
         isl_map *orig = isl_map_copy(waitee->get_access_relation());
         waitee->set_access(waitee->wait_access_map);
         generator::traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
-        waitee->set_access(orig);
+        if (orig) {
+            waitee->set_access(orig);
+        }
     } else {
         generator::traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
     }
@@ -1333,12 +1335,18 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
         // This requires some type of wait on an asynchronous or non-blocking operation.
         isl_map *req_access = nullptr;
         if (comp->wait_access_map) {
-            // This has a special LHS access into the request buffer
-            isl_map *acc_copy = comp->get_access_relation() ? isl_map_copy(comp->get_access_relation()) : nullptr;
-            comp->set_access(comp->wait_access_map);
-            req_access = comp->get_access_relation_adapted_to_time_processor_domain();
-            if (acc_copy) {
-                comp->set_access(acc_copy);
+            if (comp->wait_access_map) {
+                req_access = isl_map_copy(comp->wait_access_map);
+                if (global::is_auto_data_mapping_set())
+                {
+                    if (access != NULL)
+                    {
+                        assert(comp->get_trimmed_union_of_schedules() != NULL);
+                        req_access = isl_map_apply_domain(
+                            isl_map_copy(req_access),
+                            isl_map_copy(comp->get_trimmed_union_of_schedules()));
+                    }
+                }
             }
         }
 
