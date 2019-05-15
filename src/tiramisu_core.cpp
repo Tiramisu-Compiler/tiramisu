@@ -8052,7 +8052,8 @@ void computation::gen_communication()
 
 computation *computation::cache_shared(computation &inp, const var &level,
                   const std::vector<int> buffer_shape,
-                  const std::vector<expr> copy_offsets)
+                  const std::vector<expr> copy_offsets,
+                  bool pad_buffer)
 {
     assert(inp.access_variables.size() == buffer_shape.size() &&
            "Buffer shape should be same as input!");
@@ -8082,9 +8083,12 @@ computation *computation::cache_shared(computation &inp, const var &level,
 
     // Create shared buffer
     std::string name_prefix = "_" + this->get_name() + "_" + inp.get_name();
+    std::vector<expr> buff_shape(buffer_shape.begin(), buffer_shape.end());
+    if (pad_buffer) {
+        buff_shape[buff_shape.size() - 1] = buff_shape[buff_shape.size() - 1] + 1;
+    }
     buffer *buff = new buffer(name_prefix + "_shared",
-            std::vector<expr>(buffer_shape.begin(), buffer_shape.end()),
-            inp.get_data_type(), a_temporary, fn);
+            buff_shape, inp.get_data_type(), a_temporary, fn);
     buff->tag_gpu_shared();
 
     // Create new access computation and replace mapping

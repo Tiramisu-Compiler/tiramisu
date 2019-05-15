@@ -3299,6 +3299,9 @@ public:
      * \p copy_offsets is the offset of the values that should be copied
      * from input computation at iteration of each \p level.
      *
+     * If \p pad_buffer is true, the innermost dimension of shared memory buffer
+     * is padded by 1 which might help reduce the shared memory bank conflicts.
+     *
      * Returns the new access computation for input.
      *
      * An example use case for GEMM:
@@ -3314,7 +3317,8 @@ public:
      */
     computation *cache_shared(computation &inp, const var &level,
                       const std::vector<int> buffer_shape,
-                      const std::vector<expr> copy_offsets);
+                      const std::vector<expr> copy_offsets,
+                      bool pad_buffer=false);
 
     /**
       * This function assumes that \p consumer consumes values produced by
