@@ -6,6 +6,7 @@
 
 // Number of MPI ranks.
 #define _NUM_RANKS  10
+#define _SHIFT_AMOUNT 3
 
 #include <tiramisu/utils.h>
 
