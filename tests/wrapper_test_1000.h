@@ -5,10 +5,10 @@
 #define TEST_NUMBER_STR     "1000"
 
 // Number of MPI ranks, matrix dimension sizes, and j-loop shift for overlapping communication with computation.
-#define _NUM_RANKS  4
-#define _I_DIM_SIZE 6
-#define _J_DIM_SIZE 6
-#define _K_DIM_SIZE 6
+#define _NUM_RANKS  72
+#define _I_DIM_SIZE 50
+#define _J_DIM_SIZE 50
+#define _K_DIM_SIZE 50
 #define _COMM_SHIFT 3
 
 #include <tiramisu/utils.h>

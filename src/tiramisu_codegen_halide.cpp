@@ -962,7 +962,9 @@ void generator::get_rhs_accesses(const tiramisu::function *func, const tiramisu:
         isl_map *orig = isl_map_copy(waitee->get_access_relation());
         waitee->set_access(waitee->wait_access_map);
         generator::traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
-        waitee->set_access(orig);
+        if (orig) {
+            waitee->set_access(orig);
+        }
     } else {
         generator::traverse_expr_and_extract_accesses(func, comp, rhs, accesses, return_buffer_accesses);
     }
@@ -1337,12 +1339,16 @@ isl_ast_node *generator::stmt_code_generator(isl_ast_node *node, isl_ast_build *
         // This requires some type of wait on an asynchronous or non-blocking operation.
         isl_map *req_access = nullptr;
         if (comp->wait_access_map) {
-            // This has a special LHS access into the request buffer
-            isl_map *acc_copy = comp->get_access_relation() ? isl_map_copy(comp->get_access_relation()) : nullptr;
-            comp->set_access(comp->wait_access_map);
-            req_access = comp->get_access_relation_adapted_to_time_processor_domain();
-            if (acc_copy) {
-                comp->set_access(acc_copy);
+            req_access = isl_map_copy(comp->wait_access_map);
+            if (global::is_auto_data_mapping_set())
+            {
+                if (req_access != NULL)
+                {
+                    assert(comp->get_trimmed_union_of_schedules() != NULL);
+                    req_access = isl_map_apply_domain(
+                        isl_map_copy(req_access),
+                        isl_map_copy(comp->get_trimmed_union_of_schedules()));
+                }
             }
         }
 
@@ -3228,54 +3234,58 @@ void computation::create_halide_assignment()
             if (this->wait_argument_idx != -1) {
                 ERROR("Nonblocking not currently supported", 0);
                 assert(this->is_send() && "This should be a send operation.");
-                assert(this->wait_access_map && "A request access map must be provided.");
+                // TODO the rest of the code in this block is an exact duplicate of what recv's do. Extract into separate
+                // function
+                assert(this->wait_access_map && "A wait access map must be provided.");
                 // We treat this like another LHS access, so we'll recompute the LHS access using the req access map.
                 // First, find the request buffer.
-                const auto &req_buffer_entry = this->fct->get_buffers().find(
+                const auto &wait_buffer_entry = this->fct->get_buffers().find(
                         isl_map_get_tuple_name(this->wait_access_map, isl_dim_out));
-                assert(req_buffer_entry != this->fct->get_buffers().end());
-                const auto &req_tiramisu_buffer = req_buffer_entry->second;
+                assert(wait_buffer_entry != this->fct->get_buffers().end());
+                const auto &wait_tiramisu_buffer = wait_buffer_entry->second;
                 // Now, compute the index into the buffer
-                halide_dimension_t *req_shape = new halide_dimension_t[req_tiramisu_buffer->get_dim_sizes().size()];
-                int req_stride = 1;
-                int req_buf_dims = req_tiramisu_buffer->get_dim_sizes().size();
-                std::vector<Halide::Expr> req_strides_vector;
-                if (req_tiramisu_buffer->has_constant_extents()) {
-                    for (int i = 0; i < req_buf_dims; i++) {
-                        req_shape[i].min = 0;
-                        int dim_idx = req_tiramisu_buffer->get_dim_sizes().size() - i - 1;
-                        req_shape[i].extent = (int) req_tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
-                        req_shape[i].stride = req_stride;
-                        req_stride *= (int) req_tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                halide_dimension_t *wait_shape = new halide_dimension_t[wait_tiramisu_buffer->get_dim_sizes().size()];
+                int wait_stride = 1;
+                int wait_buf_dims = wait_tiramisu_buffer->get_dim_sizes().size();
+                std::vector<Halide::Expr> wait_strides_vector;
+                if (wait_tiramisu_buffer->has_constant_extents()) {
+                    for (int i = 0; i < wait_buf_dims; i++) {
+                        wait_shape[i].min = 0;
+                        int dim_idx = wait_tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                        wait_shape[i].extent = (int) wait_tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
+                        wait_shape[i].stride = wait_stride;
+                        wait_stride *= (int) wait_tiramisu_buffer->get_dim_sizes()[dim_idx].get_int_val();
                     }
                 } else {
                     std::vector<isl_ast_expr *> empty_index_expr;
                     Halide::Expr stride_expr = Halide::Expr(1);
-                    for (int i = 0; i < req_tiramisu_buffer->get_dim_sizes().size(); i++) {
-                        int dim_idx = req_tiramisu_buffer->get_dim_sizes().size() - i - 1;
-                        req_strides_vector.push_back(stride_expr);
+                    for (int i = 0; i < wait_tiramisu_buffer->get_dim_sizes().size(); i++) {
+                        int dim_idx = wait_tiramisu_buffer->get_dim_sizes().size() - i - 1;
+                        wait_strides_vector.push_back(stride_expr);
                         stride_expr = stride_expr * generator::halide_expr_from_tiramisu_expr(fct, empty_index_expr,
-                                                                                              req_tiramisu_buffer->get_dim_sizes()[dim_idx], this);
+                                                                                              wait_tiramisu_buffer->get_dim_sizes()[dim_idx], this);
                     }
                 }
 
                 assert(this->wait_index_expr != NULL);
-                Halide::Expr req_index;
-                if (req_tiramisu_buffer->has_constant_extents()) {
-                    req_index = tiramisu::generator::linearize_access(req_buf_dims, req_shape,
-                                                                      this->wait_index_expr);
+                Halide::Expr wait_index;
+                if (wait_tiramisu_buffer->has_constant_extents()) {
+                    wait_index = tiramisu::generator::linearize_access(wait_buf_dims, wait_shape,
+                                                                       this->wait_index_expr);
                 } else {
-                    req_index = tiramisu::generator::linearize_access(req_tiramisu_buffer->get_dim_sizes().size(),
-                                                                      req_strides_vector, this->wait_index_expr);
+                    wait_index = tiramisu::generator::linearize_access(wait_tiramisu_buffer->get_dim_sizes().size(),
+                                                                       wait_strides_vector, this->wait_index_expr);
                 }
                 // Finally, index into the buffer
-                Halide::Type req_type = halide_type_from_tiramisu_type(p_wait_ptr);
-                Halide::Expr result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
-                                                                       req_tiramisu_buffer->get_name() + ".buffer");
-                result = Halide::Internal::Call::make(Halide::Handle(1, req_type.handle_type),
-                                                      "tiramisu_address_of_" +
-                                                      str_from_tiramisu_type_primitive(req_tiramisu_buffer->get_elements_type()),
-                                                      {result, req_index},
+                bool is_temp = wait_tiramisu_buffer->get_argument_type() == tiramisu::a_temporary;
+                Halide::Expr result = Halide::Internal::Variable::make(is_temp ? Halide::type_of<void*>() :
+                                                                       Halide::type_of<struct halide_buffer_t *>(),
+                                                                       wait_tiramisu_buffer->get_name() + 
+                                                                       (is_temp ? "" : ".buffer"));
+                result = Halide::Internal::Call::make(Halide::Handle(),
+                                                      (is_temp ? "tiramisu_address_of_raw_wait" :
+                                                       "tiramisu_address_of_wait"),
+                                                      {result, wait_index},
                                                       Halide::Internal::Call::Extern);
                 // We now have an index into the request buffer so that we can write to it with the operation,
                 // which is either a send or a receive

@@ -60,8 +60,9 @@ void gen(std::string name, int num_ranks) {
   // which was given in the create_xfer command, it uses
   // (3*i + j)
   // which is in the wait access relation for the send.
-  comm.r->shift(round, -3);
-  comm.s->shift(round, -3);
+  int32_t shift_amount = _SHIFT_AMOUNT;
+  comm.r->shift(round, -shift_amount);
+  comm.s->shift(round, -shift_amount);
 
   // -------------------------------------------------------
   // Layer III
@@ -69,13 +70,13 @@ void gen(std::string name, int num_ranks) {
 
   buffer buf_input ("buf_input",  {expr(NUM_RANKS)}, p_int64, a_input);
   buffer buf_output("buf_output", {expr(NUM_RANKS)}, p_int64, a_output);
-  buffer buf_wait_send("buf_wait_send", {expr(NUM_RANKS)}, p_wait_ptr, a_input);
-  buffer buf_wait_recv("buf_wait_recv", {expr(NUM_RANKS)}, p_wait_ptr, a_input);
+  buffer buf_wait_send("buf_wait_send", {expr(shift_amount+1), expr(NUM_RANKS)}, p_wait_ptr, a_input);
+  buffer buf_wait_recv("buf_wait_recv", {expr(shift_amount+1), expr(NUM_RANKS)}, p_wait_ptr, a_input);
 
   input.store_in(&buf_input);
   comm.r->store_in(&buf_output, {expr((2*j+i) % num_ranks)});
-  comm.s->set_wait_access("{send[round,i,j]->buf_wait_send[(3*i + j) % " + std::to_string(num_ranks) + "]}");
-  comm.r->set_wait_access("{recv[round,i,j]->buf_wait_recv[(4*j + i) % " + std::to_string(num_ranks) + "]}");
+  comm.s->set_wait_access("{send[round,i,j]->buf_wait_send[round % " + std::to_string(shift_amount+1) + ", (3*i + j) % " + std::to_string(num_ranks) + "]}");
+  comm.r->set_wait_access("{recv[round,i,j]->buf_wait_recv[round % " + std::to_string(shift_amount+1) + ", (4*j + i) % " + std::to_string(num_ranks) + "]}");
 
   tiramisu::codegen({&buf_input, &buf_output, &buf_wait_send, &buf_wait_recv}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");
   fn0->dump_halide_stmt();

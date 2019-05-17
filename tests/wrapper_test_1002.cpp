@@ -10,11 +10,12 @@ int main(int argc, char **argv) {
   int rank = tiramisu_MPI_init();
 
   int num_ranks = _NUM_RANKS;
+  int shift_amount = _SHIFT_AMOUNT;
 
   Halide::Buffer<int64_t> buf_input(num_ranks, "buf_input");
   Halide::Buffer<int64_t> buf_output(num_ranks, "buf_output");
-  Halide::Buffer<void *>  buf_wait_send(num_ranks, "buf_wait_send");
-  Halide::Buffer<void *>  buf_wait_recv(num_ranks, "buf_wait_recv");
+  Halide::Buffer<void *>  buf_wait_send(num_ranks, shift_amount+1, "buf_wait_send");
+  Halide::Buffer<void *>  buf_wait_recv(num_ranks, shift_amount+1, "buf_wait_recv");
 
   init_buffer(buf_output, (int64_t) 0);
   for (int r = 0; r < num_ranks; r++) {
