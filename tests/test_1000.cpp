@@ -40,8 +40,8 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   var map_b("map_b", expr((int32_t) 0), expr(MAP_B_SIZE)), rnk_b("rnk_b"), tsk_b("tsk_b");
 
   // Create computation for original input blocks (srcs of MPI send).
-  input a_in("a_in", {j, map_a}, p_int64);
-  input b_in("b_in", {j, map_b}, p_int64);
+  input a_in("a_in", {map_a}, p_int64);
+  input b_in("b_in", {map_b}, p_int64);
 
   // Create computation for local input blocks (dsts of MPI recv).
   input a_local("a_local", {j, map_c}, p_int64);
@@ -70,7 +70,7 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
       expr(((map_c / K) * J + j) % NUM_RANKS),
       xfer_prop(p_int64, {MPI, NONBLOCK, ASYNC}),
       xfer_prop(p_int64, {MPI, NONBLOCK, ASYNC}),
-      a_in(j, (map_c / K) * J + j),
+      a_in((map_c / K) * J + j),
       fn0);
 
   // Create waits for MPI send/recv for A blocks.
@@ -92,7 +92,7 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
       expr((j * K + (map_c % K)) % NUM_RANKS),
       xfer_prop(p_int64, {MPI, NONBLOCK, ASYNC}),
       xfer_prop(p_int64, {MPI, NONBLOCK, ASYNC}),
-      b_in(j, j * K + (map_c % K)),
+      b_in(j * K + (map_c % K)),
       fn0);
 
   // Create waits for MPI send/recv for B blocks.
@@ -179,48 +179,37 @@ void gen(std::string name, int num_ranks, uint64_t i_dim_size, uint64_t j_dim_si
   // -------------------------------------------------------
 
   // Make buffers long enough to store each task separately.
-  buffer buf_a_in("buf_a_in", {expr(J), expr(NUM_TASKS_A)}, p_int64, a_input);
-  buffer buf_b_in("buf_b_in", {expr(J), expr(NUM_TASKS_B)}, p_int64, a_input);
-  // buffer buf_wait_a_send("buf_wait_a_send", {expr(COMM_SHIFT + 1), expr(K), expr(NUM_TASKS_A)}, p_wait_ptr, a_input);
-  // buffer buf_wait_a_recv("buf_wait_a_recv", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
-  // buffer buf_wait_b_send("buf_wait_b_send", {expr(COMM_SHIFT + 1), expr(I), expr(NUM_TASKS_B)}, p_wait_ptr, a_input);
-  // buffer buf_wait_b_recv("buf_wait_b_recv", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
-  // buffer buf_a_local("buf_a_local", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_int64, a_input);
-  // buffer buf_b_local("buf_b_local", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_int64, a_input);
-  buffer buf_wait_a_send("buf_wait_a_send", {expr(J), expr(K), expr(NUM_TASKS_A)}, p_wait_ptr, a_input);
-  buffer buf_wait_a_recv("buf_wait_a_recv", {expr(J), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
-  buffer buf_wait_b_send("buf_wait_b_send", {expr(J), expr(I), expr(NUM_TASKS_B)}, p_wait_ptr, a_input);
-  buffer buf_wait_b_recv("buf_wait_b_recv", {expr(J), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
-  buffer buf_a_local("buf_a_local", {expr(J), expr(NUM_TASKS_C)}, p_int64, a_input);
-  buffer buf_b_local("buf_b_local", {expr(J), expr(NUM_TASKS_C)}, p_int64, a_input);
+  buffer buf_a_in("buf_a_in", {expr(NUM_TASKS_A)}, p_int64, a_input);
+  buffer buf_b_in("buf_b_in", {expr(NUM_TASKS_B)}, p_int64, a_input);
+  buffer buf_wait_a_send("buf_wait_a_send", {expr(COMM_SHIFT + 1), expr(K), expr(NUM_TASKS_A)}, p_wait_ptr, a_input);
+  buffer buf_wait_a_recv("buf_wait_a_recv", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
+  buffer buf_wait_b_send("buf_wait_b_send", {expr(COMM_SHIFT + 1), expr(I), expr(NUM_TASKS_B)}, p_wait_ptr, a_input);
+  buffer buf_wait_b_recv("buf_wait_b_recv", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_wait_ptr, a_input);
+  buffer buf_a_local("buf_a_local", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_int64, a_input);
+  buffer buf_b_local("buf_b_local", {expr(COMM_SHIFT + 1), expr(NUM_TASKS_C)}, p_int64, a_input);
   buffer buf_c_local("buf_c_local", {expr(NUM_TASKS_C)}, p_int64, a_output);
 
   // Map computations to buffers.
-  a_in.store_in(&buf_a_in, {expr(j), expr(map_a / num_ranks)});
-  b_in.store_in(&buf_b_in, {expr(j), expr(map_b / num_ranks)});
-  // comm_a.r->store_in(&buf_a_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
-  // comm_b.r->store_in(&buf_b_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
-  comm_a.r->store_in(&buf_a_local, {expr(j), expr(map_c / num_ranks)});
-  comm_b.r->store_in(&buf_b_local, {expr(j), expr(map_c / num_ranks)});
-  //comm_a.s->set_wait_access("[J,K,NUM_RANKS]->{a_send[j,map_c,rnk_a]->buf_wait_a_send[ map_c%NUM_RANKS , [([map_c/K]*J+j)/NUM_RANKS] ]}");
-  //comm_a.r->set_wait_access("[NUM_RANKS]->{a_recv[j,map_c]->buf_wait_a_recv[ [map_c/NUM_RANKS] ]}");
-  //comm_b.s->set_wait_access("[K,NUM_RANKS]->{b_send[j,map_c,rnk_b]->buf_wait_b_send[ [map_c/NUM_RANKS] , [(j*K+(map_c%K))/NUM_RANKS] ]}");
-  //comm_b.r->set_wait_access("[NUM_RANKS]->{b_recv[j,map_c]->buf_wait_b_recv[ [map_c/NUM_RANKS] ]}");
+  a_in.store_in(&buf_a_in, {expr(map_a / num_ranks)});
+  b_in.store_in(&buf_b_in, {expr(map_b / num_ranks)});
+  comm_a.r->store_in(&buf_a_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
+  comm_b.r->store_in(&buf_b_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
+  //comm_a.s->set_wait_access("[J,K,NUM_RANKS,COMM_SHIFT]->{a_send[j,map_c,rnk_a]->buf_wait_a_send[j%(COMM_SHIFT+1), map_c%NUM_RANKS, [([map_c/K]*J+j)/NUM_RANKS]]}");
+  //comm_a.r->set_wait_access("[NUM_RANKS,COMM_SHIFT]->{a_recv[j,map_c]->buf_wait_a_recv[j%(COMM_SHIFT+1), [map_c/NUM_RANKS]]}");
+  //comm_b.s->set_wait_access("[K,NUM_RANKS,COMM_SHIFT]->{b_send[j,map_c,rnk_b]->buf_wait_b_send[j%(COMM_SHIFT+1), [map_c/NUM_RANKS], [(j*K+(map_c%K))/NUM_RANKS]]}");
+  //comm_b.r->set_wait_access("[NUM_RANKS,COMM_SHIFT]->{b_recv[j,map_c]->buf_wait_b_recv[j%(COMM_SHIFT+1), [map_c/NUM_RANKS]]}");
   std::string tsk_a_str("[(" + map_a_str + ")/" + std::to_string(num_ranks) + "]");
   std::string tsk_b_str("[(" + map_b_str + ")/" + std::to_string(num_ranks) + "]");
   std::string tsk_c_str("[map_c/" + std::to_string(num_ranks) + "]");
   std::string i_str("[map_c/" + std::to_string(k_dim_size) + "]");
   std::string k_str("map_c%" + std::to_string(k_dim_size));
-  // std::string comm_shift_str("j%" + std::to_string(comm_shift + 1));
-  std::string comm_shift_str("j");
+  std::string comm_shift_str("j%" + std::to_string(comm_shift + 1));
   comm_a.s->set_wait_access("{a_send[j,map_c,rnk_a]->buf_wait_a_send[(" + comm_shift_str + "), (" + k_str + "), (" + tsk_a_str + ")]}");
   comm_a.r->set_wait_access("{a_recv[j,map_c]->buf_wait_a_recv[(" + comm_shift_str + "), (" + tsk_c_str + ")]}");
   comm_b.s->set_wait_access("{b_send[j,map_c,rnk_b]->buf_wait_b_send[(" + comm_shift_str + "), (" + i_str + "), (" + tsk_b_str + ")]}");
   comm_b.r->set_wait_access("{b_recv[j,map_c]->buf_wait_b_recv[(" + comm_shift_str + "), (" + tsk_c_str + ")]}");
-  // a_local.store_in(&buf_a_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
-  // b_local.store_in(&buf_b_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
-  a_local.store_in(&buf_a_local, {expr(j), expr(map_c / num_ranks)});
-  b_local.store_in(&buf_b_local, {expr(j), expr(map_c / num_ranks)});
+  a_local.store_in(&buf_a_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
+  b_local.store_in(&buf_b_local, {expr(j % ((int32_t) comm_shift + 1)), expr(map_c / num_ranks)});
   c_local_init.store_in(&buf_c_local, {expr(map_c / num_ranks)});
   c_local.store_in(&buf_c_local, {expr(map_c / num_ranks)});
 
