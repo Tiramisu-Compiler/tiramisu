@@ -38,8 +38,13 @@ set(MKL_PREFIX "")
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/")
 
 # ISL paths
-set(ISL_INCLUDE_DIRECTORY "/data/scratch/shinde/cross-tools/include/")
-set(ISL_LIB_DIRECTORY "/data/scratch/shinde/cross-tools/lib/")
+if(TRAVIS)
+    set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
+    set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/")
+else()
+    set(ISL_INCLUDE_DIRECTORY "/data/scratch/shinde/cross-tools/include/")
+    set(ISL_LIB_DIRECTORY "/data/scratch/shinde/cross-tools/lib/")
+endif()
 
 # Halide Paths
 set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide")

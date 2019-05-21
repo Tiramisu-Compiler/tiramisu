@@ -29,6 +29,8 @@ set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_gra
 
 ### CMAKE FILE INTERNALS ###
 
+set(TRAVIS $CACHE{TRAVIS})
+unset(TRAVIS CACHE)
 include(configure.cmake)
 
 if (${USE_GPU})

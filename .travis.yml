@@ -17,6 +17,6 @@ install:
 script:
   - mkdir build
   - cd build
-  - cmake ..
+  - cmake -DTRAVIS=1 ..
   - make -j tiramisu
   - make test
