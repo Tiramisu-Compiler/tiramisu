@@ -3,14 +3,25 @@ set(CMAKE_BUILD_TYPE DEBUG)
 # Set to TRUE if you wish to use GPU
 set(USE_GPU FALSE)
 
-# Set to TRUE if you wish to use MPI
-set(USE_MPI TRUE)
+if(TRAVIS)
+    # Set to TRUE if you wish to use MPI
+    set(USE_MPI FALSE)
 
-# Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
-set(USE_LIBPNG TRUE)
+    # Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
+    set(USE_LIBPNG FALSE)
 
-# Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
-set(USE_LIBJPEG TRUE)
+    # Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
+    set(USE_LIBJPEG FALSE)
+else()
+    # Set to TRUE if you wish to use MPI
+    set(USE_MPI TRUE)
+
+    # Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
+    set(USE_LIBPNG TRUE)
+
+    # Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
+    set(USE_LIBJPEG TRUE)
+endif()
 
 # Set to TRUE if you wish to use cuDNN for benchmark comparisons
 set(USE_CUDNN FALSE)
@@ -25,8 +36,13 @@ set(CUDNN_LOCATION /data/scratch/akkas/cudnn7)
 # Examples:
 #set(MPI_BUILD_DIR "/data/scratch/jray/Repositories/tiramisu/3rdParty/openmpi-3.1.2/build/")
 #set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka06,lanka12,lanka13,lanka14,lanka15")
-set(MPI_BUILD_DIR "/data/scratch/shinde/openmpi-4.0.1/")
-set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka09,lanka10,lanka12,lanka13,lanka14,lanka15,lanka19,lanka20,lanka21,lanka22,lanka23,lanka24")
+if(TRAVIS)
+    set(MPI_BUILD_DIR "")
+    set(MPI_NODES "")
+else()
+    set(MPI_BUILD_DIR "/data/scratch/shinde/openmpi-4.0.1/")
+    set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka09,lanka10,lanka12,lanka13,lanka14,lanka15,lanka19,lanka20,lanka21,lanka22,lanka23,lanka24")
+endif()
 
 # Intel MKL library path. The specified folder should contain the folders
 # include and lib.
