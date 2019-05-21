@@ -7021,7 +7021,7 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    if (this->get_data_type() != p_byte_obj) {
+    if (this->get_data_type() == p_byte_obj) {
         ERROR("Cannot fold storage for object computations.", true);
     }
 
