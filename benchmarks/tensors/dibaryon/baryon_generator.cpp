@@ -72,10 +72,10 @@ void generate_function(std::string name)
     expr prop_i_1 = prop_i(1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, t, y);
     std::pair<expr, expr> prop_1(prop_r_1, prop_i_1);
 
-    computation Blocal_r_update("Blocal_r_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
+    computation Blocal_r_update("Blocal_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y, wnum}, p_float64);
     Blocal_r_update.set_expression(Blocal_r_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * mul_r(m2, prop_1));
 
-    computation Blocal_i_update("Blocal_i_update", {wnum, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y}, p_float64);
+    computation Blocal_i_update("Blocal_i_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t, y, wnum}, p_float64);
     Blocal_i_update.set_expression(Blocal_i_init(n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, t) + weights(wnum) * mul_i(m2, prop_1));
 
     computation Q_r_init("Q_r_init", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y}, expr((double) 0));
@@ -84,15 +84,15 @@ void generate_function(std::string name)
     computation Bsingle_r_init("Bsingle_r_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
     computation Bsingle_i_init("Bsingle_i_init", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2, t}, expr((double) 0));
 
-    computation Q_r_update("Q_r_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
+    computation Q_r_update("Q_r_update", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y, wnum},
 			Q_r_init(n, iCprime, iSprime, kCprime, kSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, t, y) + weights(wnum) * mul_r(psi, m1));
     Q_r_update.add_predicate((jCprime == color_weights(wnum, 1)) && (jSprime == spin_weights(wnum, 1)));
 
-    computation Q_i_update("Q_i_update", {wnum, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y},
+    computation Q_i_update("Q_i_update", {n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, t, y, wnum},
 			Q_i_init(n, iCprime, iSprime, kCprime, kSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, t, y) + weights(wnum) * mul_i(psi, m1));
     Q_i_update.add_predicate((jCprime == color_weights(wnum, 1)) && (jSprime == spin_weights(wnum, 1)));
 
-    std::pair<expr, expr> Q_update(Q_r_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y), Q_i_update(0, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
+    std::pair<expr, expr> Q_update(Q_r_update(n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum), Q_i_update(n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum));
     std::pair<expr, expr> prop_1p(prop_r(1, jCprime, jSprime, lCprime, lSprime, x2, t, y), prop_i(1, jCprime, jSprime, lCprime, lSprime, x2, t, y));
 
     computation Bsingle_r_update("Bsingle_r_update", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
@@ -111,25 +111,25 @@ void generate_function(std::string name)
     computation P_i_init("P_i_init", {n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y}, expr((double) 0));
 
     std::pair<expr, expr> m3(mul_r(psi, prop_1), mul_i(psi, prop_1));
-    computation O_r_update("O_r_update", {wnum, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y},
+    computation O_r_update("O_r_update", {n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y, wnum},
 			O_r_init(n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, t, y) + weights(wnum) * mul_r(m3, prop_2));
     O_r_update.add_predicate((iCprime == color_weights(wnum, 0)) && (iSprime == spin_weights(wnum, 0)));
 
-    computation O_i_update("O_i_update", {wnum, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y},
+    computation O_i_update("O_i_update", {n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y, wnum},
 			O_i_init(n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, t, y) + weights(wnum) * mul_i(m3, prop_2));
     O_i_update.add_predicate((iCprime == color_weights(wnum, 0)) && (iSprime == spin_weights(wnum, 0)));
 
     std::pair<expr, expr> m4(mul_r(psi, prop_0p), mul_i(psi, prop_0p));
-    computation P_r_update("P_r_update", {wnum, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y},
+    computation P_r_update("P_r_update", {n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y, wnum},
 			P_r_init(n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, t, y) + weights(wnum) * mul_r(m4, prop_1));
     P_r_update.add_predicate((iCprime == color_weights(wnum, 2)) && (iSprime == spin_weights(wnum, 2)));
 
-    computation P_i_update("P_i_update", {wnum, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y},
+    computation P_i_update("P_i_update", {n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, t, y, wnum},
 			P_i_init(n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, t, y) + weights(wnum) * mul_i(m4, prop_1));
     P_i_update.add_predicate((iCprime == color_weights(wnum, 2)) && (iSprime == spin_weights(wnum, 2)));
 
-    std::pair<expr, expr> O_update(O_r_update(0, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y), O_i_update(0, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
-    std::pair<expr, expr> P_update(P_r_update(0, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y), P_i_update(0, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y));
+    std::pair<expr, expr> O_update(O_r_update(n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum), O_i_update(n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum));
+    std::pair<expr, expr> P_update(P_r_update(n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum), P_i_update(n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, t, y, wnum));
     std::pair<expr, expr> prop_0pp(prop_r(0, iCprime, iSprime, lCprime, lSprime, x2, t, y), prop_i(0, iCprime, iSprime, lCprime, lSprime, x2, t, y));
 
     computation Bdouble_r_update0("Bdouble_r_update0", {n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, t, y},
@@ -160,13 +160,13 @@ void generate_function(std::string name)
 		 .then(P_r_init, y)
 		 .then(P_i_init, y)
 		 .then(Blocal_r_update, computation::root)
-		 .then(Blocal_i_update, y)
-		 .then(Q_r_update, y)
-		 .then(Q_i_update, y)
-		 .then(O_r_update, y)
-		 .then(O_i_update, y)
-		 .then(P_r_update, y)
-		 .then(P_i_update, y)
+		 .then(Blocal_i_update, wnum)
+		 .then(Q_r_update, wnum)
+		 .then(Q_i_update, wnum)
+		 .then(O_r_update, wnum)
+		 .then(O_i_update, wnum)
+		 .then(P_r_update, wnum)
+		 .then(P_i_update, wnum)
 		 .then(Bsingle_r_update, computation::root)
 		 .then(Bsingle_i_update, y)
 		 .then(Bdouble_r_update0, y)
@@ -184,7 +184,6 @@ void generate_function(std::string name)
     O_r_init.vectorize(y, Vsrc);
 
     Blocal_r_update.tag_parallel_level(n);
-    Blocal_r_update.vectorize(t, Lt);
     //Blocal_r_update.unroll(y, Vsrc);
     //Blocal_r_update.unroll(x, Vsnk);
 
