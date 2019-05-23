@@ -311,8 +311,10 @@ public:
         {
             tiramisu::str_dump("Binary operation between two expressions of different types:\n");
             expr0.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr0.get_data_type()) + ")");
             tiramisu::str_dump(" and ");
             expr1.dump(false);
+            tiramisu::str_dump(" (" + str_from_tiramisu_type_primitive(expr1.get_data_type()) + ")");
             tiramisu::str_dump("\n");
             ERROR("\nThe two expressions should be of the same type. Use casting to elevate the type of one expression to the other.\n", true);
         }
@@ -1963,9 +1965,43 @@ expr allocate(const buffer& b);
  * \p B An KxN matrix
  * \p C An MxN matrix
  * The result of the operation: C = alpha x A x B + beta x C
+ * Buffers should have same type and only p_float32 and p_float64 are supported.
+ *
+ * ld{A,B,C} (leading dimension) parameters specify the stride between rows in
+ * the case of submatrix multiplication. The default value 0 can be used for
+ * tight packing.
+ *
+ * offset{A,B,C} specifies the offset where the submatrices start within the
+ * input buffers.
+ *
+ * transpose{A-B} can be enabled if submatrix is transposed. Tight packing via
+ * ld{A,B,C} = 0 handles transposition as well.
+ *
+ * For example, to multiply matrices A and B of sizes MxK and NxK as in
+ * "C[i, j] = A[i, k] * B[j, k]", one can do:
+ *
+ * \code
+ * cublas_gemm(A, B, C,
+ *             M, N, K,
+ *             1, 0,
+ *             0, 0, 0,
+ *             0, 0, 0,
+ *             false, true);
+ * \endcode
  */
-expr cublas_sgemm(const buffer &A, const buffer &B, buffer &C,
-                  expr M, expr N, expr K, expr alpha, expr beta);
+expr cublas_gemm(const buffer &A, const buffer &B, buffer &C,
+                 expr M, expr N, expr K,
+                 expr alpha = 1, expr beta = 0,
+                 expr ldA = 0, expr ldB = 0, expr ldC = 0,
+                 expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
+                 expr transposeA = false, expr transposeB = false);
+
+/**
+ * Synchronize CUDA streams of current thread. This should be used whenever CUDA
+ * kernels are run in parallel to make sure all kernel calls are done before
+ * destroying the thread.
+ */
+expr cuda_stream_synchronize();
 
 }
 

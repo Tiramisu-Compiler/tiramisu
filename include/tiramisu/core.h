@@ -1324,6 +1324,11 @@ public:
     tiramisu::argument_t get_argument_type() const;
 
     /**
+     * Return the memory location of the buffer.
+     */
+    cuda_ast::memory_location get_location() const;
+
+    /**
       * Return the name of the buffer.
       */
     const std::string &get_name() const;
@@ -1610,6 +1615,12 @@ private:
       * specified.
       */
     isl_set *time_processor_domain;
+
+    /**
+     * The shape of the thread block that this computation is mapped to in case
+     * a gpu_tile operation is done.
+     */
+    std::vector<int> thread_block_shape;
 
     /**
       * True if the computation is executed in a nonblocking or asynchronous way.
@@ -3266,6 +3277,50 @@ public:
     // }@
 
     /**
+     * Utilize shared memory layer when accessing the input computation.
+     *
+     * Whenever the threads of the same block are accessing the same global
+     * memory location (or same cache line), copying values to shared memory
+     * first and accessing values from there gives significant performance
+     * benefits.
+     *
+     * This is a helper function to generate necessary buffers and
+     * copy computations to achieve this indirection. The function is
+     * half-manual as user needs to provide the area that needs to be copied
+     * and ensure correctness by making sure the access area under the
+     * \p level is covered by the shared memory cache.
+     *
+     * \p level is the level after which the accesses will be cached.
+     *
+     * \p buffer_shape is the shape of the shared memory buffer to be used.
+     * It should be able fit device shared memory (usually 48KB total).
+     * It should have the same dimensionality as the input computation.
+     *
+     * \p copy_offsets is the offset of the values that should be copied
+     * from input computation at iteration of each \p level.
+     *
+     * If \p pad_buffer is true, the innermost dimension of shared memory buffer
+     * is padded by 1 which might help reduce the shared memory bank conflicts.
+     *
+     * Returns the new access computation for input.
+     *
+     * An example use case for GEMM:
+     *
+     * \code
+     * computation C({i, j, k}, C(i, j) + A(i, k) * B(k, j));
+     * C.gpu_tile(i, j, 16, 16, i0, j0, i1, j1);
+     * C.split(k, 32, k0, k1);
+     * C.cache_shared(A, k0, {16, 32}, {i0 * 16, k0 * 32});
+     * C.cache_shared(B, k0, {32, 16}, {k0 * 32, j0 * 16});
+     * \endcode
+     *
+     */
+    computation *cache_shared(computation &inp, const var &level,
+                      const std::vector<int> buffer_shape,
+                      const std::vector<expr> copy_offsets,
+                      bool pad_buffer=false);
+
+    /**
       * This function assumes that \p consumer consumes values produced by
       * this computation (which is the producer).
       *
@@ -4656,6 +4711,13 @@ protected:
                                                      int coeff,
                                                      const tiramisu::function *fct);
 
+    /**
+     * Extract tags from the ISL ast node at given level. This is a helper
+     * function meant to be used from halide_stmt_from_isl_node. Traverses
+     * the ISL ast tree and fills the tagged_stmts vector.
+     */
+    static void extract_tags_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
+                                           std::vector<std::pair<std::string, std::string>> &tagged_stmts);
 
     /**
       * Generate a Halide statement from an ISL ast node object in the ISL ast

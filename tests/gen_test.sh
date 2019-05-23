@@ -1,5 +1,9 @@
 # Generates a new test out of an old test
 # Example: ./gen_test.sh 10 143 "test 141 added"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: ./gen_test old_num new_num [commit_message]"
+    exit 1
+fi
 export OLD=$1
 export NEW=$2
 if [ -f test_$NEW.cpp ]; then

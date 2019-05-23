@@ -18,10 +18,11 @@ test number `XX` in the file `tests/test_list.txt`.
 - .before(): test_27
 - block: test_143, 153, 154
 - .store_in(): 105, 106, 107, 108, 109, 129, 155
+- .cache_shared(): 167, 168, 169, 170, 171
 -  codegen(): 104
 - .compute_at(): test_14, 32, 33, 34, 35, 36, 37, 38, 82, 83
 - .compute_bounds(): test_86, 22, 23, 24, 25, 27, 130
-- cublas_sgemm: test_162
+- cublas_gemm: test_162, 164, 165, 166
 - Dynamic buffer size (buffer size unknown at compile time): test_87, 88, 92
 - floor operator: test_08
 - .fuse_after(): test_13, 29, 30, 31
