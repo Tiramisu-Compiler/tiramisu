@@ -10,5 +10,6 @@ cuBLAS.
 There are two different schedules implemented in files `generator1.cpp` and
 `generator2.cpp`. `generator1` uses alternates between two shared memory buffer
 spaces at each iteration, while `generator2` uses two step global->shared copy
-with single shared buffer as explained in the Diesel paper. You can switch
-between implementations via `CMakeLists.txt` file.
+with single shared buffer as explained in the Diesel paper. There is also a
+simple implementation that uses `cache_shared` API in `generator3`. You can
+switch between implementations via `CMakeLists.txt` file.

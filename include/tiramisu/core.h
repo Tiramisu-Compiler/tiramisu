@@ -4010,7 +4010,7 @@ public:
       *     scheduled after that computation at all levels lower than L.
       */
     // @{
-    computation &then(computation &next_computation, tiramisu::var L);
+    computation &then(computation &next_computation, var L=computation::root);
     // @}
 
     /**
