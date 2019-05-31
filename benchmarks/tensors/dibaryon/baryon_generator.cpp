@@ -2,6 +2,9 @@
 #include <string.h>
 #include "baryon_wrapper.h"
 
+#define FUSE 1
+#define DEEP_FUSION 0
+
 using namespace tiramisu;
 
 /**
@@ -148,6 +151,21 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
+    block Bsingle_blk({&Bsingle_r_update, &Bsingle_i_update, &Bdouble_r_update0,
+			&Bdouble_i_update0, &Bdouble_r_update1, &Bdouble_i_update1});
+
+#if FUSE
+    Bsingle_blk.interchange(iCprime, jCprime);
+    Bsingle_blk.interchange(iSprime, jSprime);
+    Bsingle_blk.interchange(iCprime, kCprime);
+    Bsingle_blk.interchange(iSprime, kSprime);
+#if DEEP_FUSION
+    Bsingle_blk.interchange(x2, t);
+    Bsingle_blk.interchange(iCprime, x);
+    Bsingle_blk.interchange(iSprime, t);
+#endif
+#endif
+
     Blocal_r_init.then(Blocal_i_init, t)
 		 .then(Q_r_init, t)
 		 .then(Q_i_init, y)
@@ -167,7 +185,15 @@ void generate_function(std::string name)
 		 .then(O_i_update, wnum)
 		 .then(P_r_update, wnum)
 		 .then(P_i_update, wnum)
+#if FUSE
+		 #if DEEP_FUSION
+		 .then(Bsingle_r_update, t)
+		 #else
+		 .then(Bsingle_r_update, kSprime)
+		 #endif
+#else
 		 .then(Bsingle_r_update, computation::root)
+#endif
 		 .then(Bsingle_i_update, y)
 		 .then(Bdouble_r_update0, y)
 		 .then(Bdouble_i_update0, y)
@@ -176,21 +202,23 @@ void generate_function(std::string name)
 
 
     Blocal_r_init.tag_parallel_level(n);
-    Bsingle_r_init.tag_parallel_level(n);
-    O_r_init.tag_parallel_level(n);
-
     Blocal_r_init.vectorize(t, Lt);
     Bsingle_r_init.vectorize(t, Lt);
-    O_r_init.vectorize(y, Vsrc);
+    O_r_init.vectorize(t, Lt);
 
     Blocal_r_update.tag_parallel_level(n);
-    //Blocal_r_update.unroll(y, Vsrc);
-    //Blocal_r_update.unroll(x, Vsnk);
-
     Q_r_update.vectorize(y, Vsrc);
 
     Bsingle_r_update.tag_parallel_level(n);
+#if FUSE
+    #if DEEP_FUSION
+    Bsingle_r_update.vectorize(iSprime, Ns);
+    #else
     Bsingle_r_update.vectorize(t, Lt);
+    #endif
+#else
+    Bsingle_r_update.vectorize(t, Lt);
+#endif
 
     // -------------------------------------------------------
     // Layer III

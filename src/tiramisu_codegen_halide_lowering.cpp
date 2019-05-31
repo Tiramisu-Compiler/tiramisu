@@ -187,8 +187,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     }
 
     DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
-    s = inject_hexagon_rpc(s, t, result_module);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
+//    s = inject_hexagon_rpc(s, t, result_module);
+//    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
 
     vector<Argument> public_args = args;
