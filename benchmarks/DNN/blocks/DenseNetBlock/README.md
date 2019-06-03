@@ -25,5 +25,5 @@ To run this benchmark:
         ./wrapper_nn_block_densenet
     
     execution results could be found in the text files : 
-        mkldnn_result.txt
+        mkl_result.txt
         tiramisu_result.txt
