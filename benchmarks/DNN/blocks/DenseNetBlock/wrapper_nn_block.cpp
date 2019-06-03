@@ -22,7 +22,7 @@ int main()
 
     Halide::Buffer<double> output(N, N, GR, BATCH_SIZE);
 
-    // Initialized buffers
+    // Initialize buffers
     for (int z = 0; z < 4*GR; ++z) {
         bn_scale(z) = ((double)(rand()%256)) / 255.f;
         if (bn_scale(z) == 0.f)
