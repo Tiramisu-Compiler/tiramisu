@@ -34,11 +34,11 @@ int main()
     input bn_shift("bn_shift", {z}, p_float64);
 
     // Compute the sum over the features dimension (z)
-	computation input_sum_init("input_sum_init", {z}, cast(p_float64, expr(0)));
+    computation input_sum_init("input_sum_init", {z}, cast(p_float64, expr(0)));
     computation input_sum("input_sum", {n, z, y, x}, input_sum_init(z) + c_input(n, z, y, x));
 
     // Compute the sum of squares over the features dimension (z)
-	computation input_sum_squares_init("input_sum_squares_init", {z}, cast(p_float64, expr(0)));
+    computation input_sum_squares_init("input_sum_squares_init", {z}, cast(p_float64, expr(0)));
     computation input_sum_squares("input_sum_squares", {n, z, y, x}, input_sum_squares_init(z) + c_input(n, z, y, x) * c_input(n, z, y, x));
 
     computation input_mean("input_mean", {z}, input_sum(C_BATCH_SIZE - 1, z, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS));
@@ -132,6 +132,8 @@ int main()
     relu.store_in(&workspace_buf, {n, z, y + 1, x + 1});
     relu_padded.store_in(&workspace_buf);
 
+    // We map these calculations to the workspace buffer
+    // in order to fill the padding region with zeros.
     pad_top.store_in(&workspace_buf, {n, z, pad_iter, 0});
     pad_bottom.store_in(&workspace_buf, {n, z, pad_iter, C_N + 1});
     pad_left.store_in(&workspace_buf, {n, z, 0, pad_iter});
