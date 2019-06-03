@@ -74,7 +74,7 @@ int main()
     // -------------------------------------------------------
     input_sum_squares_init.after(input_sum_init, z);
     
- 	input_sum.after(input_sum_squares_init, computation::root);
+    input_sum.after(input_sum_squares_init, computation::root);
     input_sum_squares.after(input_sum, x);
 
     input_mean.after(input_sum, computation::root);
@@ -117,12 +117,12 @@ int main()
     bn_shift.store_in(&bn_shift_buf);
     conv_filter.store_in(&conv_filter_buf);
     conv_bias.store_in(&conv_bias_buf);
-
-	input_sum_init.store_in(&input_mean_buf);
+    
+    input_sum_init.store_in(&input_mean_buf);
     input_sum.store_in(&input_mean_buf, {z});
     input_mean.store_in(&input_mean_buf);
-
-	input_sum_squares_init.store_in(&input_sd_buf);
+    
+    input_sum_squares_init.store_in(&input_sd_buf);
     input_sum_squares.store_in(&input_sd_buf, {z});
     input_sd.store_in(&input_sd_buf);
 
