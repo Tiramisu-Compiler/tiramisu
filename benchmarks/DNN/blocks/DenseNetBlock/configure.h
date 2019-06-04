@@ -14,7 +14,7 @@
 #endif
 
 // DenseNet blocks are numbered from 1 to 4
-#define BLOCK_NUMBER 1
+#define BLOCK_NUMBER 2
 
 // Growth Rate of the block (see the original DenseNet paper for a definition)
 // This block receives an input tensor of size NxNx4*GR and outputs a tensor of size NxNxGR
@@ -40,7 +40,7 @@
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
-#define NB_TESTS 1
+#define NB_TESTS 11
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
