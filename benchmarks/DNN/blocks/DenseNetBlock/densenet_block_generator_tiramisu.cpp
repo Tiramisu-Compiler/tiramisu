@@ -46,6 +46,7 @@ int main()
 
     computation input_mean("input_mean", {z}, input_sum(C_BATCH_SIZE - 1, z, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS));
     computation input_sd("input_sd", {z}, expr(o_sqrt, input_sum_squares(C_BATCH_SIZE - 1, z, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS) - input_mean(z) * input_mean(z) + EPSILON));
+    
     computation bn("bn", {n, z, y, x}, bn_scale(z) * ((c_input(n, z, y, x) - input_mean(z)) / input_sd(z)) + bn_shift(z));
 
     // ReLU computation
@@ -75,6 +76,9 @@ int main()
                   .then(init_output, computation::root)
                   .then(conv, fout);
 
+    if (BLOCK_NUMBER == 1 || LARGE_DATA_SET == 1)
+        bn.tag_parallel_level(n);
+
     conv.tag_parallel_level(n);
 
     conv.interchange(x, fk);
@@ -92,8 +96,8 @@ int main()
     }
 
     else if (BLOCK_NUMBER == 2) {
-        init_output.split(fout, 8);
-        conv.split(fout, 8);
+        init_output.split(fout, 4);
+        conv.split(fout, 4);
 
         init_output.vectorize(x, 4);
         conv.vectorize(x, 4);
