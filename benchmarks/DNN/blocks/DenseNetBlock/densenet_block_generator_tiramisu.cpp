@@ -38,18 +38,19 @@ int main()
 
     // Compute the sum over the features dimension (z)
     computation input_sum_init("input_sum_init", {z}, cast(p_float64, expr(0)));
-    computation input_sum("input_sum", {z, n, y, x}, input_sum_init(z) + c_input(n, z, y, x));
+    computation input_sum("input_sum", {n, z, y, x}, input_sum_init(z) + c_input(n, z, y, x));
 
     // Compute the sum of squares over the features dimension (z)
     computation input_sum_squares_init("input_sum_squares_init", {z}, cast(p_float64, expr(0)));
-    computation input_sum_squares("input_sum_squares", {z, n, y, x}, input_sum_squares_init(z) + c_input(n, z, y, x) * c_input(n, z, y, x));
+    computation input_sum_squares("input_sum_squares", {n, z, y, x}, input_sum_squares_init(z) + c_input(n, z, y, x) * c_input(n, z, y, x));
 
-    computation input_mean("input_mean", {z}, input_sum(z, C_BATCH_SIZE - 1, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS));
-    computation input_sd("input_sd", {z}, expr(o_sqrt, input_sum_squares(z, C_BATCH_SIZE - 1, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS) - input_mean(z) * input_mean(z) + EPSILON));
-    computation bn("bn", {z, n, y, x}, bn_scale(z) * ((c_input(n, z, y, x) - input_mean(z)) / input_sd(z)) + bn_shift(z));
+    computation input_mean("input_mean", {z}, input_sum(C_BATCH_SIZE - 1, z, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS));
+    computation input_sd("input_sd", {z}, expr(o_sqrt, input_sum_squares(C_BATCH_SIZE - 1, z, C_N - 1, C_N - 1) / cast(p_float64, C_NB_ELEMENTS) - input_mean(z) * input_mean(z) + EPSILON));
+    
+    computation bn("bn", {n, z, y, x}, bn_scale(z) * ((c_input(n, z, y, x) - input_mean(z)) / input_sd(z)) + bn_shift(z));
 
     // ReLU computation
-    computation relu("relu", {z, n, y, x}, expr(o_max, cast(p_float64, 0), bn(z, n, y, x)));
+    computation relu("relu", {n, z, y, x}, expr(o_max, cast(p_float64, 0), bn(n, z, y, x)));
     computation relu_padded("relu_padded", {n, z, y_pad, x_pad}, p_float64, false);
 
     // Convolution computation
@@ -64,24 +65,48 @@ int main()
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    input_sum_init.after(init_workspace, computation::root);
-    input_sum_squares_init.after(input_sum_init, z);
-    
-    input_sum.after(input_sum_squares_init, z);
-    input_sum_squares.after(input_sum, x);
+    init_workspace.then(input_sum_init, computation::root)
+                  .then(input_sum_squares_init, z)
+                  .then(input_sum, computation::root)
+                  .then(input_sum_squares, x)
+                  .then(input_mean, computation::root)
+                  .then(input_sd, z)
+                  .then(bn, computation::root)
+                  .then(relu, x)
+                  .then(init_output, computation::root)
+                  .then(conv, fout);
 
-    input_mean.after(input_sum, z);
-    input_sd.after(input_mean, z);
+    if (BLOCK_NUMBER == 1 || LARGE_DATA_SET == 1)
+        bn.tag_parallel_level(n);
 
-    bn.after(input_sd, z);
-    relu.after(bn, x);
-    relu.tag_parallel_level(z);
+    conv.tag_parallel_level(n);
 
-    init_output.after(relu, computation::root);
-    conv.after(init_output, x);
+    conv.interchange(x, fk);
+    conv.interchange(y, fk);
 
-    conv.tag_unroll_level(fw);
-    conv.tag_parallel_level(fout);
+    if (BLOCK_NUMBER == 1) {
+        init_output.split(fout, 8);
+        conv.split(fout, 8);
+
+        init_output.vectorize(x, 8);
+        conv.vectorize(x, 8);
+
+        conv.tag_unroll_level(fw);
+        conv.tag_unroll_level(fh);
+    }
+
+    else if (BLOCK_NUMBER == 2) {
+        init_output.split(fout, 4);
+        conv.split(fout, 4);
+
+        init_output.vectorize(x, 4);
+        conv.vectorize(x, 4);
+    }
+
+    else {
+        init_output.vectorize(x, 2);
+        conv.vectorize(x, 2);
+    }
 
     // -------------------------------------------------------
     // Layer III
