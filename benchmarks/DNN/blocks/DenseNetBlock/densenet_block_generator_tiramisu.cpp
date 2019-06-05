@@ -103,7 +103,7 @@ int main()
         conv.vectorize(x, 4);
     }
 
-    else if (BLOCK_NUMBER == 3) {
+    else {
         init_output.vectorize(x, 2);
         conv.vectorize(x, 2);
     }
