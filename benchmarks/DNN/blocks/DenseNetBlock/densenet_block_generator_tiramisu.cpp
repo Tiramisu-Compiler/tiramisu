@@ -54,18 +54,18 @@ int main()
     computation relu_padded("relu_padded", {n, z, y_pad, x_pad}, p_float64, false);
 
     // Convolution computation
-    var k_x("k_x", 0, K_X), k_y("k_y", 0, K_Y), fin("fin", 0, 4*GR), fout("fout", 0, GR);
-    input conv_filter("conv_filter", {fout, fin, k_y, k_x}, p_float64);
+    var k_x("k_x", 0, K_X), k_y("k_y", 0, K_Y), fout("fout", 0, GR);
+    input conv_filter("conv_filter", {z, fout, k_y, k_x}, p_float64);
     input conv_bias("conv_bias", {fout}, p_float64);
 
-    var fh("fh", 0, K_Y), fw("fw", 0, K_X), fk("fk", 0, 4*GR);
     computation init_output("init_output", {n, fout, y, x}, conv_bias(fout));
-    computation conv("conv", {n, fout, y, x, fk, fh, fw}, init_output(n, fout, y, x) + relu_padded(n, fk, y + fh, x + fw)*conv_filter(fout, fk, fh, fw));
+    computation conv("conv", {n, fout, y, x, z, k_y, k_x}, init_output(n, fout, y, x) + relu_padded(n, z, y + k_y, x + k_x)*conv_filter(z, fout, k_y, k_x));
     
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    init_workspace.then(input_sum_init, computation::root)
+    init_workspace.then(init_output, computation::root)
+                  .then(input_sum_init, computation::root)
                   .then(input_sum_squares_init, z)
                   .then(input_sum, computation::root)
                   .then(input_sum_squares, x)
@@ -73,38 +73,31 @@ int main()
                   .then(input_sd, z)
                   .then(bn, computation::root)
                   .then(relu, x)
-                  .then(init_output, computation::root)
-                  .then(conv, fout);
+                  .then(conv, computation::root);
 
-    if (BLOCK_NUMBER == 1 || LARGE_DATA_SET == 1)
+    if (BLOCK_NUMBER != 4)
         bn.tag_parallel_level(n);
-
+        
     conv.tag_parallel_level(n);
-
-    conv.interchange(x, fk);
-    conv.interchange(y, fk);
+    conv.interchange(fout, z);
 
     if (BLOCK_NUMBER == 1) {
-        init_output.split(fout, 8);
-        conv.split(fout, 8);
-
-        init_output.vectorize(x, 8);
         conv.vectorize(x, 8);
 
-        conv.tag_unroll_level(fw);
-        conv.tag_unroll_level(fh);
+        conv.tag_unroll_level(k_x);
+        conv.tag_unroll_level(k_y);
     }
 
     else if (BLOCK_NUMBER == 2) {
-        init_output.split(fout, 4);
-        conv.split(fout, 4);
+        conv.vectorize(x, 4);
+        conv.tag_unroll_level(k_x);
+    }
 
-        init_output.vectorize(x, 4);
+    else if (BLOCK_NUMBER == 3) {
         conv.vectorize(x, 4);
     }
 
     else {
-        init_output.vectorize(x, 2);
         conv.vectorize(x, 2);
     }
 
@@ -115,7 +108,7 @@ int main()
     buffer input_buf("input_buf", {C_BATCH_SIZE, 4*GR, C_N, C_N}, p_float64, a_input);
     buffer bn_scale_buf("bn_scale_buf", {4*GR}, p_float64, a_input);
     buffer bn_shift_buf("bn_shift_buf", {4*GR}, p_float64, a_input);
-    buffer conv_filter_buf("conv_filter_buf", {GR, 4*GR, K_Y, K_X}, p_float64, a_input);
+    buffer conv_filter_buf("conv_filter_buf", {4*GR, GR, K_Y, K_X}, p_float64, a_input);
     buffer conv_bias_buf("conv_bias_buf", {GR}, p_float64, a_input);
 
     buffer input_mean_buf("input_mean_buf", {4*GR}, p_float64, a_temporary);

@@ -17,7 +17,7 @@ int main()
     Halide::Buffer<int> parameters(2);
     Halide::Buffer<double> input(N, N, 4*GR, BATCH_SIZE);
     Halide::Buffer<double> bn_scale(4*GR), bn_shift(4*GR);
-    Halide::Buffer<double> conv_filter(K_X, K_Y, 4*GR, GR);
+    Halide::Buffer<double> conv_filter(K_X, K_Y, GR, 4*GR);
     Halide::Buffer<double> conv_bias(GR);
 
     Halide::Buffer<double> output(N, N, GR, BATCH_SIZE);
@@ -35,7 +35,7 @@ int main()
         for (int fin = 0; fin < 4*GR; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_filter(k_x, k_y, fin, fout) = ((double)(rand()%256 - 128)) / 127.f;
+                    conv_filter(k_x, k_y, fout, fin) = ((double)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < GR; ++fout)
         conv_bias(fout) = ((double)(rand()%256 - 128)) / 127.f;
