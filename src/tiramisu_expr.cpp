@@ -3,6 +3,11 @@
 
 namespace tiramisu
 {
+bool global::auto_data_mapping = false;
+primitive_t global::loop_iterator_type = p_int32;
+function *global::implicit_fct;
+std::unordered_map<std::string, var> var::declared_vars;
+const var computation::root = var("root");
 
 tiramisu::expr& tiramisu::expr::operator=(tiramisu::expr const & e)
 {
@@ -138,9 +143,6 @@ tiramisu::expr tiramisu::expr::copy() const
 {
     return (*this);
 }
-
-
-std::unordered_map<std::string, var> tiramisu::var::declared_vars;
 
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
