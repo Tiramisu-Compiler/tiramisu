@@ -11,6 +11,10 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
+#ifdef _WIN32
+#include <iso646.h>
+#endif
+
 namespace tiramisu
 {
 bool global::auto_data_mapping;
