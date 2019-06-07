@@ -55,19 +55,19 @@ int main()
     size_t conv_strides[] = {1, 1};
     int conv_offset[] = {-1, -1};
 
-    for (int i = 0; i < 4*GR; ++i) {
-        bn_scale_shift[i] = ((double)(rand()%256)) / 255.f;
-        if (bn_scale_shift[i] == 0.f)
-            bn_scale_shift[i] = 1.f;
+    for (int z = 0; z < 4*GR; ++z) {
+        bn_scale_shift[z] = ((double)(rand()%256)) / 255.f;
+        if (bn_scale_shift[z] == 0.f)
+            bn_scale_shift[z] = 1.f;
 
-        bn_scale_shift[i + 4*GR] = ((double)(rand()%256 - 128)) / 127.f;
+        bn_scale_shift[z + 4*GR] = ((double)(rand()%256 - 128)) / 127.f;
     }
 
     for (int fout = 0; fout < GR; ++fout)
-        for (int fin = 0; fin < 4*GR; ++fin)
+        for (int z = 0; z < 4*GR; ++z)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_filter_param[fout][fin][k_y][k_x] = ((double)(rand()%256 - 128)) / 127.f;
+                    conv_filter_param[fout][z][k_y][k_x] = ((double)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < GR; ++fout)
         conv_bias_param[fout] = ((double)(rand()%256 - 128)) / 127.f;
@@ -153,5 +153,6 @@ int main()
     dnnDelete_F64(bn_primitive);
     dnnPrimitiveAttributesDestroy_F64(attributes);
     dnnLayoutDelete_F64(input_layout);
+    
     return 0;
 }
