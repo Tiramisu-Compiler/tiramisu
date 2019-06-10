@@ -23,6 +23,12 @@ std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
 int id_counter = 0;
 static int next_dim_name = 0;
 
+bool global::auto_data_mapping = false;
+primitive_t global::loop_iterator_type = p_int32;
+function *global::implicit_fct;
+std::unordered_map<std::string, var> var::declared_vars;
+const var computation::root = var("root");
+
 std::string generate_new_variable_name();
 void project_out_static_dimensions(isl_set*& set);
 
