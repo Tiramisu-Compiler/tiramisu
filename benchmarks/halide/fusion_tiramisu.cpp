@@ -86,10 +86,10 @@ int main(int argc, char **argv)
     h_s0.tag_parallel_level(tiramisu::var("h_s0_y"));
     k_s0.tag_parallel_level(tiramisu::var("k_s0_c"));
     k_s0.tag_parallel_level(tiramisu::var("k_s0_y"));
-    //f_s0.vectorize(tiramisu::var("f_s0_x"), 8);
-    //g_s0.vectorize(tiramisu::var("g_s0_x"), 8);
-    //h_s0.vectorize(tiramisu::var("h_s0_x"), 8);
-    //k_s0.vectorize(tiramisu::var("k_s0_x"), 8);
+    f_s0.vectorize(tiramisu::var("f_s0_x"), 8);
+    g_s0.vectorize(tiramisu::var("g_s0_x"), 8);
+    h_s0.vectorize(tiramisu::var("h_s0_x"), 8);
+    k_s0.vectorize(tiramisu::var("k_s0_x"), 8);
 
     fusion_tiramisu.set_arguments({&buff_input, &buff_f, &buff_g, &buff_h, &buff_k});
     fusion_tiramisu.gen_time_space_domain();
