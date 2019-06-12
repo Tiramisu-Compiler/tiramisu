@@ -44,12 +44,12 @@ int main(int, char **)
     // Blocal
     // Blocal_r: tiramisu real part of Blocal.
     // Blocal_i: tiramisu imaginary part of Blocal.
-    Halide::Buffer<double> Blocal_r(Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Blocal_r");
-    Halide::Buffer<double> Blocal_i(Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Blocal_i");
+    Halide::Buffer<double> Blocal_r(Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Blocal_r");
+    Halide::Buffer<double> Blocal_i(Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Blocal_i");
 
     // prop
-    Halide::Buffer<double> prop_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Nq, "prop_r");
-    Halide::Buffer<double> prop_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Nq, "prop_i");
+    Halide::Buffer<double> prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Nq, Lt, "prop_r");
+    Halide::Buffer<double> prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Nq, Lt, "prop_i");
 
     // psi
     Halide::Buffer<double> psi_r(Vsrc, Nsrc, "psi_r");
@@ -59,18 +59,18 @@ int main(int, char **)
     Halide::Buffer<int> spin_weights_t(Nq, Nw, "spin_weights_t");
     Halide::Buffer<double> weights_t(Nw, "weights_t");
 
-    Halide::Buffer<double> Bsingle_r(Lt, Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_r");
-    Halide::Buffer<double> Bsingle_i(Lt, Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bsingle_i");
+    Halide::Buffer<double> Bsingle_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Bsingle_r");
+    Halide::Buffer<double> Bsingle_i(Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Bsingle_i");
 
-    Halide::Buffer<double> Q_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Q_r");
-    Halide::Buffer<double> Q_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Q_i");
-    Halide::Buffer<double> O_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_r");
-    Halide::Buffer<double> O_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "O_i");
-    Halide::Buffer<double> P_r(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "P_r");
-    Halide::Buffer<double> P_i(Vsrc, Lt, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "P_i");
+    Halide::Buffer<double> Q_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_r");
+    Halide::Buffer<double> Q_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_i");
+    Halide::Buffer<double> O_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "O_r");
+    Halide::Buffer<double> O_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "O_i");
+    Halide::Buffer<double> P_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_r");
+    Halide::Buffer<double> P_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_i");
 
-    Halide::Buffer<double> Bdouble_r(Lt, Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bdouble_r");
-    Halide::Buffer<double> Bdouble_i(Lt, Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, "Bdouble_i");
+    Halide::Buffer<double> Bdouble_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Bdouble_r");
+    Halide::Buffer<double> Bdouble_i(Vsnk, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Bdouble_i");
 
     std::cout << "Start data initialization." <<  std::endl;
 
@@ -106,8 +106,8 @@ int main(int, char **)
 			    double v2 = rand()%10;
 			    std::complex<double> c(v1, v2);
 			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = c;
-			    prop_r(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v1;
-			    prop_i(y, t, x, jSprime, jCprime, iSprime, iCprime, tri) = v2;
+			    prop_r(y, x, jSprime, jCprime, iSprime, iCprime, tri, t) = v1;
+			    prop_i(y, x, jSprime, jCprime, iSprime, iCprime, tri, t) = v2;
  		        }
 
    for (int wnum=0; wnum<Nw; wnum++)
@@ -121,7 +121,7 @@ int main(int, char **)
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
 
-   int nb_tests = 3;
+   int nb_tests = 1;
 
    std::cout << "Start reference C code." <<  std::endl;
 
@@ -189,9 +189,9 @@ int main(int, char **)
 			   for (int x=0; x<Vsnk; x++)
 			      for (int t=0; t<Lt; t++)
 				  if (std::abs(Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-						    Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
+						    Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(t, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
+				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
 				      exit(1);
 				  }
 
@@ -206,10 +206,10 @@ int main(int, char **)
 			     for (int x2=0; x2<Vsnk; x2++)
 				 for (int t=0; t<Lt; t++)
 				 if (std::abs(Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					     Bsingle_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
+					     Bsingle_r(x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
-				    std::cout << "Position: (" << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ", " << t << ")" << std::endl;
+				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
+				    std::cout << "Position: (" << t << ", " << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ")" << std::endl;
 				      exit(1);
 				  }
 
@@ -224,10 +224,10 @@ int main(int, char **)
 			       for (int y=0; y<Vsrc; y++)
 				  for (int n=0; n<Nsrc; n++)
 					  if (std::abs(O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
-							    O_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n)) >= 0.01)
+							    O_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t)) >= 0.01)
 					  {
 						    std::cout << "Error: different computed values for O! Ref = " << O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
-							    << " - Tiramisu = " << O_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n) << std::endl;
+							    << " - Tiramisu = " << O_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
 						    exit(1);
 					  }
 
@@ -242,10 +242,10 @@ int main(int, char **)
 			       for (int y=0; y<Vsrc; y++)
 				  for (int n=0; n<Nsrc; n++)
 					  if (std::abs(P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
-							    P_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n)) >= 0.01)
+							    P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t)) >= 0.01)
 					  {
 						    std::cout << "Error: different computed values for P! Ref = " << P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
-							    << " - Tiramisu = " << P_r(y, t, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n) << std::endl;
+							    << " - Tiramisu = " << P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
 						    exit(1);
 					  }
     }
@@ -261,10 +261,10 @@ int main(int, char **)
 		         for (int x2=0; x2<Vsnk; x2++)
 			     for (int t=0; t<Lt; t++)
                              if (std::abs(Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					 Bdouble_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n)) >= 0.01)
+					 Bdouble_r(x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t)) >= 0.01)
 			      {
-				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n) << std::endl;
-				  std::cout << "Position: (" << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ", " << t << ")" << std::endl;
+				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
+				  std::cout << "Position: (" << t << ", " << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ")" << std::endl;
 				  exit(1);
 			      }
 
