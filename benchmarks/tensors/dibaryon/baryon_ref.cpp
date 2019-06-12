@@ -28,7 +28,7 @@ void make_local_block(std::complex<double> Blocal[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][
                      for (x=0; x<Vsnk; x++) {
                         for (t=0; t<Lt; t++) {
 			    for (n=0; n<Nsrc; n++) {
-                              Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t] = 0.0 + 0i;
+                              Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t] = 0.0;
                            }
                         }
                      }
@@ -97,7 +97,7 @@ void make_single_block(std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                         for (t=0; t<Lt; t++) {
                            for (y=0; y<Vsrc; y++) {
                               for (n=0; n<Nsrc; n++) {
-                                 Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0 + 0i;
+                                 Q[n][iCprime][iSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0;
                               }
                            }
                         }
@@ -118,7 +118,7 @@ void make_single_block(std::complex<double> Bsingle[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                         for (x2=0; x2<Vsnk; x2++) {
                            for (t=0; t<Lt; t++) {
                               for (n=0; n<Nsrc; n++) {
-                                 Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] = 0.0 + 0i;
+                                 Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] = 0.0;
                               }
                            }
                         }
@@ -212,8 +212,8 @@ void make_double_block(std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                         for (t=0; t<Lt; t++) {
                            for (y=0; y<Vsrc; y++) {
                               for (n=0; n<Nsrc; n++) {
-                                 O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0 + 0i;
-                                 P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0 + 0i;
+                                 O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0;
+                                 P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y] = 0.0;
                               }
                            }
                         }
@@ -234,7 +234,7 @@ void make_double_block(std::complex<double> Bdouble[Nsrc][Nc][Ns][Nc][Ns][Nc][Ns
                         for (x2=0; x2<Vsnk; x2++) {
                            for (t=0; t<Lt; t++) {
                               for (n=0; n<Nsrc; n++) {
-                                 Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] = 0.0 + 0i;
+                                 Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x1][x2][t] = 0.0;
                               }
                            }
                         }
@@ -657,15 +657,15 @@ int main_baryon() {
    printf("starting block code\n");
    std::complex<double> C_pi[Lt];
    for (t=0; t<Lt; t++) {
-      C_pi[t] = 0.0 + 0.0i;
+      C_pi[t] = 0.0;
    }
    std::complex<double> C_B1_G1g_r1[Nsrc][Nsnk][Lt];
    std::complex<double> C_B1_G1g_r2[Nsrc][Nsnk][Lt];
    for (n=0; n<Nsrc; n++) {
       for (m=0; m<Nsnk; m++) {
          for (t=0; t<Lt; t++) {
-            C_B1_G1g_r1[n][m][t] = 0.0 + 0.0i;
-            C_B1_G1g_r2[n][m][t] = 0.0 + 0.0i;
+            C_B1_G1g_r1[n][m][t] = 0.0;
+            C_B1_G1g_r2[n][m][t] = 0.0;
          }
       }
    }
@@ -676,10 +676,10 @@ int main_baryon() {
    for (n=0; n<Nsrc; n++) {
       for (m=0; m<Nsnk; m++) {
          for (t=0; t<Lt; t++) {
-            C_B2_A1g[n][m][t] = 0.0 + 0.0i;
-            C_B2_T1g_r1[n][m][t] = 0.0 + 0.0i;
-            C_B2_T1g_r2[n][m][t] = 0.0 + 0.0i;
-            C_B2_T1g_r3[n][m][t] = 0.0 + 0.0i;
+            C_B2_A1g[n][m][t] = 0.0;
+            C_B2_T1g_r1[n][m][t] = 0.0;
+            C_B2_T1g_r2[n][m][t] = 0.0;
+            C_B2_T1g_r3[n][m][t] = 0.0;
          }
       }
    }
