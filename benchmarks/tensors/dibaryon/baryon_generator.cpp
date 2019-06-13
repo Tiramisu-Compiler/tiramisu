@@ -68,7 +68,11 @@ void generate_function(std::string name)
     std::pair<expr, expr> prop_2(prop_r(t, 2, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y), prop_i(t, 2, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y));
     std::pair<expr, expr> prop_0p(prop_r(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y), prop_i(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y));
     std::pair<expr, expr> prop_2p(prop_r(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y), prop_i(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y));
-    std::pair<expr, expr> m1(mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p), mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
+
+    computation p0_r("p0_r", {t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p));
+    computation p0_i("p0_i", {t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
+
+    std::pair<expr, expr> m1(p0_r(t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum), p0_i(t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum));
     std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
     std::pair<expr, expr> m2(mul_r(psi, m1), mul_i(psi, m1));
     expr prop_r_1 = prop_r(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
@@ -155,6 +159,8 @@ void generate_function(std::string name)
 		&Bsingle_r_init, &Bsingle_i_init, &Bdouble_r_init, &Bdouble_i_init,
 		&O_r_init, &O_i_init, &P_r_init, &P_i_init});
 
+    block p0_blk({&p0_r, &p0_i});
+
     block Blocal_blk({&Blocal_r_update, &Blocal_i_update, &Q_r_update, &Q_i_update,
 		 &O_r_update, &O_i_update, &P_r_update, &P_i_update});
 
@@ -172,7 +178,6 @@ void generate_function(std::string name)
 #endif
 #endif
 
-
     Blocal_r_init.then(Blocal_i_init, x)
 		 .then(Q_r_init, computation::root)
 		 .then(Q_i_init, y)
@@ -184,6 +189,8 @@ void generate_function(std::string name)
 		 .then(O_i_init, y)
 		 .then(P_r_init, y)
 		 .then(P_i_init, y)
+		 .then(p0_r, computation::root)
+		 .then(p0_i, y)
 		 .then(Blocal_r_update, computation::root)
 		 .then(Blocal_i_update, wnum)
 		 .then(Q_r_update, wnum)
@@ -211,6 +218,9 @@ void generate_function(std::string name)
     Blocal_r_init.tag_parallel_level(t);
     Blocal_r_init.vectorize(x, Vsnk);
     Q_r_init.vectorize(y, Vsrc);
+
+    p0_r.tag_parallel_level(t);
+    p0_r.vectorize(y, Vsrc);
 
     Blocal_r_update.tag_parallel_level(t);
     Q_r_update.vectorize(y, Vsrc);
