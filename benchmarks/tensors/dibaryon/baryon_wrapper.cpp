@@ -121,7 +121,7 @@ int main(int, char **)
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
 
-   int nb_tests = 3;
+   int nb_tests = 1;
 
    std::cout << "Start reference C code." <<  std::endl;
 

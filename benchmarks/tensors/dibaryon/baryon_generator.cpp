@@ -3,7 +3,6 @@
 #include "baryon_wrapper.h"
 
 #define FUSE 1
-#define DEEP_FUSION 0
 
 using namespace tiramisu;
 
@@ -36,6 +35,7 @@ void generate_function(std::string name)
     tiramisu::init(name);
 
     var n("n", 0, Nsrc),
+	n0("n0", 0, 1),
 	iCprime("iCprime", 0, Nc),
 	iSprime("iSprime", 0, Ns),
 	jCprime("jCprime", 0, Nc),
@@ -69,10 +69,10 @@ void generate_function(std::string name)
     std::pair<expr, expr> prop_0p(prop_r(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y), prop_i(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y));
     std::pair<expr, expr> prop_2p(prop_r(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y), prop_i(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y));
 
-    computation p0_r("p0_r", {t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p));
-    computation p0_i("p0_i", {t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
+    computation p0_r("p0_r", {t, n0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p));
+    computation p0_i("p0_i", {t, n0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
 
-    std::pair<expr, expr> m1(p0_r(t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum), p0_i(t, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum));
+    std::pair<expr, expr> m1(p0_r(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum), p0_i(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum));
     std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
     std::pair<expr, expr> m2(mul_r(psi, m1), mul_i(psi, m1));
     expr prop_r_1 = prop_r(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
@@ -172,10 +172,6 @@ void generate_function(std::string name)
     Bsingle_blk.interchange(iSprime, jSprime);
     Bsingle_blk.interchange(iCprime, kCprime);
     Bsingle_blk.interchange(iSprime, kSprime);
-#if DEEP_FUSION
-    Bsingle_blk.interchange(lCprime, x);
-    Bsingle_blk.interchange(lSprime, x2);
-#endif
 #endif
 
     Blocal_r_init.then(Blocal_i_init, x)
@@ -190,8 +186,8 @@ void generate_function(std::string name)
 		 .then(P_r_init, y)
 		 .then(P_i_init, y)
 		 .then(p0_r, computation::root)
-		 .then(p0_i, y)
-		 .then(Blocal_r_update, computation::root)
+		 .then(p0_i, wnum)
+		 .then(Blocal_r_update, wnum)
 		 .then(Blocal_i_update, wnum)
 		 .then(Q_r_update, wnum)
 		 .then(Q_i_update, wnum)
@@ -200,11 +196,7 @@ void generate_function(std::string name)
 		 .then(P_r_update, wnum)
 		 .then(P_i_update, wnum)
 #if FUSE
-		 #if DEEP_FUSION
-		 .then(Bsingle_r_update, x2)
-		 #else
 		 .then(Bsingle_r_update, kSprime)
-		 #endif
 #else
 		 .then(Bsingle_r_update, computation::root)
 #endif
@@ -219,22 +211,11 @@ void generate_function(std::string name)
     Blocal_r_init.vectorize(x, Vsnk);
     Q_r_init.vectorize(y, Vsrc);
 
-    p0_r.tag_parallel_level(t);
-    p0_r.vectorize(y, Vsrc);
-
     Blocal_r_update.tag_parallel_level(t);
     Q_r_update.vectorize(y, Vsrc);
 
     Bsingle_r_update.tag_parallel_level(t);
-#if FUSE
-    #if DEEP_FUSION
     Bsingle_r_update.vectorize(x2, Vsnk);
-    #else
-    Bsingle_r_update.vectorize(x2, Vsnk);
-    #endif
-#else
-    Bsingle_r_update.vectorize(x2, Vsnk);
-#endif
 
     // -------------------------------------------------------
     // Layer III
