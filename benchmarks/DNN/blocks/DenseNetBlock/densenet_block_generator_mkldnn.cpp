@@ -56,44 +56,6 @@ void densenet_block()
                 for (int x = 0; x < N; ++x)
                     input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
-    // Create BN fused with ReLU primitive
-
-    // Create memory objects first
-    auto bn_scale_md = memory::desc(
-        {2, 4*GR},
-        memory::data_type::f32,
-        memory::format_tag::nc
-    );
-
-    auto input_md = memory::desc(
-        {BATCH_SIZE, 4*GR, N, N},
-        memory::data_type::f32,
-        memory::format_tag::nchw
-    );
-
-    auto bn_scale_mem = memory(bn_scale_md, cpu_engine, bn_scale_shift_buf.data());
-    auto input_mem = memory(input_md, cpu_engine, input_buf.data());
-    auto bn_mem = memory(input_md, cpu_engine);
-
-    // Create the primitive
-    auto bn_d = batch_normalization_forward::desc(
-        prop_kind::forward_inference,
-        input_md,
-        EPSILON,
-        batch_normalization_flags::use_scale_shift | batch_normalization_flags::fuse_bn_relu
-    );
-
-    auto bn_pd = batch_normalization_forward::primitive_desc(
-        bn_d, cpu_engine
-    );
-
-    net.push_back(batch_normalization_forward(bn_pd));
-    net_args.push_back({
-        {MKLDNN_ARG_SRC, input_mem},
-        {MKLDNN_ARG_SCALE_SHIFT, bn_scale_mem},
-        {MKLDNN_ARG_DST, bn_mem}
-    });
-
     // Create convolution primitive
 
     // Create memory objects with user data format
@@ -156,17 +118,43 @@ void densenet_block()
         cpu_engine
     );
 
-    // Edit user data format if needed
-    auto conv_src_mem = bn_mem;
-    if (conv_pd.src_desc() != bn_mem.get_desc()) {
-        conv_src_mem = memory(conv_pd.src_desc(), cpu_engine);
+    auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
 
-        net.push_back(reorder(bn_mem, conv_src_mem));
-        net_args.push_back({
-            {MKLDNN_ARG_FROM, bn_mem},
-            {MKLDNN_ARG_TO, conv_src_mem}
-        });
-    }
+    // Create BN fused with ReLU primitive
+
+    // Create memory objects first
+    auto bn_scale_md = memory::desc(
+        {2, 4*GR},
+        memory::data_type::f32,
+        memory::format_tag::nc
+    );
+
+    auto input_usr_md = memory::desc(
+        {BATCH_SIZE, 4*GR, N, N},
+        memory::data_type::f32,
+        memory::format_tag::nchw
+    );
+
+    auto bn_scale_mem = memory(bn_scale_md, cpu_engine, bn_scale_shift_buf.data());
+    auto input_usr_mem = memory(input_usr_md, cpu_engine, input_buf.data());
+    auto bn_mem = memory(conv_pd.src_desc(), cpu_engine);
+
+    // Create the primitive
+    auto bn_d = batch_normalization_forward::desc(
+        prop_kind::forward_inference,
+        conv_pd.src_desc(),
+        EPSILON,
+        batch_normalization_flags::use_scale_shift | batch_normalization_flags::fuse_bn_relu
+    );
+
+    auto bn_pd = batch_normalization_forward::primitive_desc(
+        bn_d, cpu_engine
+    );
+
+    // Edit user data format
+    auto input_mem = memory(conv_pd.src_desc(), cpu_engine);
+    reorder(input_usr_mem, input_mem)
+        .execute(cpu_stream, input_usr_mem, input_mem);
 
     auto conv_weights_mem = conv_weights_usr_mem;
     if (conv_pd.weights_desc() != conv_weights_usr_mem.get_desc()) {
@@ -175,11 +163,17 @@ void densenet_block()
             .execute(cpu_stream, conv_weights_usr_mem, conv_weights_mem);
     }
 
-    auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
+    // Create the network
+    net.push_back(batch_normalization_forward(bn_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, input_mem},
+        {MKLDNN_ARG_SCALE_SHIFT, bn_scale_mem},
+        {MKLDNN_ARG_DST, bn_mem}
+    });
 
     net.push_back(convolution_forward(conv_pd));
     net_args.push_back({
-        {MKLDNN_ARG_SRC, conv_src_mem},
+        {MKLDNN_ARG_SRC, bn_mem},
         {MKLDNN_ARG_WEIGHTS, conv_weights_mem},
         {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
         {MKLDNN_ARG_DST, conv_dst_mem}

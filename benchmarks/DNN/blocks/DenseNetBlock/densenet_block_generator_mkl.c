@@ -18,23 +18,6 @@
 
 #define TENSOR_DIMENSION 4
 
-dnnError_t init_conversion(dnnPrimitive_t *cv, double **ptr_out,
-                           dnnLayout_t lt_pr, dnnLayout_t lt_us, double *ptr_us)
-{
-    dnnError_t err;
-    *ptr_out = NULL;
-
-    if (!dnnLayoutCompare_F32(lt_pr, lt_us)) {
-        CHECK_ERR(dnnConversionCreate_F32(cv, lt_us, lt_pr), err);
-        CHECK_ERR(dnnAllocateBuffer_F32((void**)ptr_out, lt_pr), err);
-    }
-
-    else
-        *ptr_out = ptr_us;
-
-    return E_SUCCESS;
-}
-
 int main()
 {
     srand(1);
