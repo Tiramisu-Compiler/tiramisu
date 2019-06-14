@@ -73,17 +73,21 @@ void generate_function(std::string name)
     computation p0_i("p0_i", {t, n0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
 
     std::pair<expr, expr> m1(p0_r(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum), p0_i(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum));
-    std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
-    std::pair<expr, expr> m2(mul_r(psi, m1), mul_i(psi, m1));
+
     expr prop_r_1 = prop_r(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
     expr prop_i_1 = prop_i(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
     std::pair<expr, expr> prop_1(prop_r_1, prop_i_1);
+    computation p1_r("p1_r", {t, n0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_r(m1, prop_1));
+    computation p1_i("p1_i", {t, n0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, mul_i(m1, prop_1));
+
+    std::pair<expr, expr> p1(p1_r(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum), p1_i(t, 0, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum));
+    std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
 
     computation Blocal_r_update("Blocal_r_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, p_float64);
-    Blocal_r_update.set_expression(Blocal_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_r(m2, prop_1));
+    Blocal_r_update.set_expression(Blocal_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_r(psi, p1));
 
     computation Blocal_i_update("Blocal_i_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, p_float64);
-    Blocal_i_update.set_expression(Blocal_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_i(m2, prop_1));
+    Blocal_i_update.set_expression(Blocal_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_i(psi, p1));
 
     computation Q_r_init("Q_r_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y}, expr((double) 0));
     computation Q_i_init("Q_i_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y}, expr((double) 0));
@@ -159,7 +163,7 @@ void generate_function(std::string name)
 		&Bsingle_r_init, &Bsingle_i_init, &Bdouble_r_init, &Bdouble_i_init,
 		&O_r_init, &O_i_init, &P_r_init, &P_i_init});
 
-    block p0_blk({&p0_r, &p0_i});
+    block p0_blk({&p0_r, &p0_i, &p1_r, &p1_i});
 
     block Blocal_blk({&Blocal_r_update, &Blocal_i_update, &Q_r_update, &Q_i_update,
 		 &O_r_update, &O_i_update, &P_r_update, &P_i_update});
@@ -187,6 +191,8 @@ void generate_function(std::string name)
 		 .then(P_i_init, y)
 		 .then(p0_r, computation::root)
 		 .then(p0_i, wnum)
+		 .then(p1_r, wnum)
+		 .then(p1_i, wnum)
 		 .then(Blocal_r_update, wnum)
 		 .then(Blocal_i_update, wnum)
 		 .then(Q_r_update, wnum)
