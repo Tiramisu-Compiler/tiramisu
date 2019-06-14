@@ -95,11 +95,11 @@ int main()
                   .then(relu, zz)
                   .then(init_output, computation::root)
                   .then(conv, n);
-
-	input_sum.vectorize(zz, Z_BLOCKING);
-
-	bn.tag_parallel_level(n);
-	bn.vectorize(zz, Z_BLOCKING);
+                  
+    input_sum.vectorize(zz, Z_BLOCKING);
+    
+    bn.tag_parallel_level(n);
+    bn.vectorize(zz, Z_BLOCKING);
 
     //n, z_b, fout_b, y, x, k_y, k_x, ffout, zz
     conv.interchange(x, k_y);
