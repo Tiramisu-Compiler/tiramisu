@@ -17,23 +17,89 @@ int main()
     var z_b("z_b", 0, Z_NB_BLOCKS), zz("zz", 0, Z_BLOCKING);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
 
-    input c_input("c_input", {n, z_b, y_pad, x_pad, zz}, p_float32);
+    input c_input("c_input", {n, z_b, y, x, zz}, p_float32);
+    input bn_scale("bn_scale", {z_b, zz}, p_float32);
+    input bn_shift("bn_shift", {z_b, zz}, p_float32);
+
+    input conv_filter("conv_filter", {z_b, fout_b, k_y, k_x, ffout, zz}, p_float32);
+    input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
+
+    // Batch normalization followed by ReLU
+    // Compute the sum over the features dimension (z)
+    computation input_sum_init("input_sum_init", {z_b, zz}, cast(p_float32, 0));
+    computation input_sum(
+        "input_sum", 
+        {n, z_b, y, x, zz}, 
+        input_sum_init(z_b, zz) + c_input(n, z_b, y, x, zz)
+    );
+
+    // Compute the sum of squares over the features dimension (z)
+    computation input_sum_squares_init("input_sum_squares_init", {z_b, zz}, cast(p_float32, 0));
+    computation input_sum_squares(
+        "input_sum_squares", 
+        {n, z_b, y, x, zz}, 
+        input_sum_squares_init(z_b, zz) + c_input(n, z_b, y, x, zz) * c_input(n, z_b, y, x, zz)
+    );
+
+    computation input_mean(
+        "input_mean", 
+        {z_b, zz}, 
+        input_sum(BATCH_SIZE - 1, z_b, N - 1, N - 1, zz) / cast(p_float32, BATCH_SIZE*N*N)
+    );
+
+    computation input_sd(
+        "input_sd", 
+        {z_b, zz}, 
+        expr(
+            o_sqrt, 
+            input_sum_squares(BATCH_SIZE - 1, z_b, N - 1, N - 1, zz) / cast(p_float32, BATCH_SIZE*N*N) - input_mean(z_b, zz) * input_mean(z_b, zz) + cast(p_float32, EPSILON)
+        )
+    );
+    
+    computation init_workspace("init_workspace", {n, z_b, y_pad, x_pad, zz}, cast(p_float32, 0));
+    computation bn(
+        "bn", 
+        {n, z_b, y, x, zz}, 
+        bn_scale(z_b, zz) * ((c_input(n, z_b, y, x, zz) - input_mean(z_b, zz)) / input_sd(z_b, zz)) + bn_shift(z_b, zz)
+    );
+
+    computation relu(
+        "relu", 
+        {n, z_b, y, x, zz}, 
+        expr(
+            o_max, 
+            cast(p_float32, 0), bn(n, z_b, y, x, zz)
+        )
+    );
+
+    view relu_padded("relu_padded", {n, z_b, y_pad, x_pad, zz}, p_float32);
 
     // Convolution computation
-    input conv_filter("conv_filter", {z_b, fout_b, k_y, k_x, ffout, zz}, p_float32);
-    input conv_bias("conv_bias", {fout}, p_float32);
-
-    computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b*FOUT_BLOCKING + ffout));
+    computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
         {n, z_b, fout_b, y, x, k_y, k_x, ffout, zz}, 
-        init_output(n, fout_b, y, x, ffout) + c_input(n, z_b, y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz)
+        init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz)
     );
     
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    init_output.then(conv, n);
+    input_sum_init.then(input_sum_squares_init, zz)
+                  .then(input_sum, computation::root)
+                  .then(input_sum_squares, zz)
+                  .then(input_mean, computation::root)
+                  .then(input_sd, zz)
+                  .then(init_workspace, computation::root)
+                  .then(bn, z_b)
+                  .then(relu, zz)
+                  .then(init_output, computation::root)
+                  .then(conv, n);
+
+	input_sum.vectorize(zz, Z_BLOCKING);
+
+	bn.tag_parallel_level(n);
+	bn.vectorize(zz, Z_BLOCKING);
 
     //n, z_b, fout_b, y, x, k_y, k_x, ffout, zz
     conv.interchange(x, k_y);
@@ -51,7 +117,35 @@ int main()
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer output_buf("output_buf", {BATCH_SIZE, GR/FOUT_BLOCKING, N, N, FOUT_BLOCKING}, p_float32, a_output);
+    buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
+
+    buffer input_mean_buf("input_mean_buf", {Z_NB_BLOCKS, Z_BLOCKING}, p_float32, a_temporary);
+    buffer input_sd_buf("input_sd_buf", {Z_NB_BLOCKS, Z_BLOCKING}, p_float32, a_temporary);
+
+    // We use this buffer as a temporary buffer to store BN and ReLU results
+    // This buffer is padded (its width and height are C_N + 2) so as to prepare it for convolution
+    buffer workspace_buf(
+        "workspace_buf", 
+        {BATCH_SIZE, Z_NB_BLOCKS, N + 2, N + 2, Z_BLOCKING}, 
+        p_float32, 
+        a_temporary
+    );
+    
+    init_workspace.store_in(&workspace_buf);
+
+    input_sum_init.store_in(&input_mean_buf);
+    input_sum.store_in(&input_mean_buf, {z_b, zz});
+    input_mean.store_in(&input_mean_buf);
+    
+    input_sum_squares_init.store_in(&input_sd_buf);
+    input_sum_squares.store_in(&input_sd_buf, {z_b, zz});
+    input_sd.store_in(&input_sd_buf);
+
+    // We shift the BN and ReLU computations, so as to avoid to
+    // compute on the padding region of workspace_buf.
+    bn.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
+    relu.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
+    relu_padded.store_in(&workspace_buf);
 
     init_output.store_in(&output_buf);
     conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
@@ -61,6 +155,8 @@ int main()
     // -------------------------------------------------------
     codegen({
         c_input.get_buffer(),
+        bn_scale.get_buffer(), 
+        bn_shift.get_buffer(),
         conv_filter.get_buffer(), 
         conv_bias.get_buffer(), 
         &output_buf

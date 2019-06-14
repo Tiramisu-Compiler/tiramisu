@@ -19,19 +19,27 @@ void densenet_block()
     engine cpu_engine(engine::kind::cpu, 0);
     stream cpu_stream(cpu_engine);
 
+    std::vector<primitive> net;
+    std::vector<std::unordered_map<int, memory>> net_args;
+
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
     memory::dims conv_padding = {1, 1};
 
     std::vector<float> input_buf(BATCH_SIZE*4*GR*N*N);
+    std::vector<float> bn_buf(BATCH_SIZE*4*GR*N*N);
+
+    std::vector<float> bn_scale_shift_buf(2*4*GR);
     std::vector<float> conv_weights_buf(GR*4*GR*K_Y*K_X);
     std::vector<float> conv_bias_buf(GR);
 
-    for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < 4*GR; ++z)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+    for (int z = 0; z < 4*GR; ++z) {
+        bn_scale_shift_buf[z] = ((float)(rand()%256)) / 255.f;
+        if (bn_scale_shift_buf[z] == 0.f)
+            bn_scale_shift_buf[z] = 1.f;
+
+        bn_scale_shift_buf[z + 4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+    }
 
     for (int fout = 0; fout < GR; ++fout)
         for (int z = 0; z < 4*GR; ++z)
@@ -42,15 +50,53 @@ void densenet_block()
     for (int fout = 0; fout < GR; ++fout)
         conv_bias_buf[fout] = ((float)(rand()%256 - 128)) / 127.f;
 
-    // Create convolution primitive
+    for (int n = 0; n < BATCH_SIZE; ++n)
+        for (int z = 0; z < 4*GR; ++z)
+            for (int y = 0; y < N; ++y)
+                for (int x = 0; x < N; ++x)
+                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
-    // Create memory objects with user data format
+    // Create BN fused with ReLU primitive
+
+    // Create memory objects first
+    auto bn_scale_md = memory::desc(
+        {2, 4*GR},
+        memory::data_type::f32,
+        memory::format_tag::nc
+    );
+
     auto input_md = memory::desc(
         {BATCH_SIZE, 4*GR, N, N},
         memory::data_type::f32,
         memory::format_tag::nchw
     );
 
+    auto bn_scale_mem = memory(bn_scale_md, cpu_engine, bn_scale_shift_buf.data());
+    auto input_mem = memory(input_md, cpu_engine, input_buf.data());
+    auto bn_mem = memory(input_md, cpu_engine);
+
+    // Create the primitive
+    auto bn_d = batch_normalization_forward::desc(
+        prop_kind::forward_inference,
+        input_md,
+        EPSILON,
+        batch_normalization_flags::use_scale_shift | batch_normalization_flags::fuse_bn_relu
+    );
+
+    auto bn_pd = batch_normalization_forward::primitive_desc(
+        bn_d, cpu_engine
+    );
+
+    net.push_back(batch_normalization_forward(bn_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, input_mem},
+        {MKLDNN_ARG_SCALE_SHIFT, bn_scale_mem},
+        {MKLDNN_ARG_DST, bn_mem}
+    });
+
+    // Create convolution primitive
+
+    // Create memory objects with user data format
     auto conv_weights_usr_md = memory::desc(
         {GR, 4*GR, K_Y, K_X},
         memory::data_type::f32,
@@ -63,7 +109,6 @@ void densenet_block()
         memory::format_tag::x
     );
 
-    auto input_mem = memory(input_md, cpu_engine, input_buf.data());
     auto conv_weights_usr_mem = memory(conv_weights_usr_md, cpu_engine, conv_weights_buf.data());
     auto conv_bias_usr_mem = memory(conv_bias_usr_md, cpu_engine, conv_bias_buf.data());
 
@@ -112,12 +157,15 @@ void densenet_block()
     );
 
     // Edit user data format if needed
-    auto conv_src_mem = input_mem;
-    if (conv_pd.src_desc() != input_mem.get_desc()) {
+    auto conv_src_mem = bn_mem;
+    if (conv_pd.src_desc() != bn_mem.get_desc()) {
         conv_src_mem = memory(conv_pd.src_desc(), cpu_engine);
 
-        reorder(input_mem, conv_src_mem)
-            .execute(cpu_stream, input_mem, conv_src_mem);
+        net.push_back(reorder(bn_mem, conv_src_mem));
+        net_args.push_back({
+            {MKLDNN_ARG_FROM, bn_mem},
+            {MKLDNN_ARG_TO, conv_src_mem}
+        });
     }
 
     auto conv_weights_mem = conv_weights_usr_mem;
@@ -129,17 +177,20 @@ void densenet_block()
 
     auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
 
-    auto conv = convolution_forward(conv_pd);
+    net.push_back(convolution_forward(conv_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, conv_src_mem},
+        {MKLDNN_ARG_WEIGHTS, conv_weights_mem},
+        {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
+        {MKLDNN_ARG_DST, conv_dst_mem}
+    });
 
     // Execute the network
     for (int i = 0; i < NB_TESTS; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
-        conv.execute(cpu_stream, {
-            {MKLDNN_ARG_SRC, conv_src_mem},
-            {MKLDNN_ARG_WEIGHTS, conv_weights_mem},
-            {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
-            {MKLDNN_ARG_DST, conv_dst_mem}
-        });
+        
+        for (size_t j = 0; j < net.size(); ++j)
+            net[j].execute(cpu_stream, net_args[j]);
 
         cpu_stream.wait();
 
