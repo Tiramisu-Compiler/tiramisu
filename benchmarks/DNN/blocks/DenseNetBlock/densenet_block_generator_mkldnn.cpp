@@ -57,6 +57,7 @@ void densenet_block()
                     input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create convolution primitive
+    // We start by creating convolution in order to get its data layout
 
     // Create memory objects with user data format
     auto conv_weights_usr_md = memory::desc(
