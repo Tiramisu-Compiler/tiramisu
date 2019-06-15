@@ -1,0 +1,1 @@
+rm -rf densenet_block_generator_tiramisu densenet_block_tiramisu.o densenet_block_tiramisu.o.h wrapper_nn_block_densenet densenet_block_mkl mkl_result.txt tiramisu_result.txt
