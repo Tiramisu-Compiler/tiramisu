@@ -16,6 +16,12 @@
 // DenseNet blocks are numbered from 1 to 4
 #define BLOCK_NUMBER 2
 
+#define Z_BLOCKING 8
+#define FOUT_BLOCKING 8
+
+#define Z_NB_BLOCKS (4*GR)/Z_BLOCKING
+#define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
+
 // Growth Rate of the block (see the original DenseNet paper for a definition)
 // This block receives an input tensor of size NxNx4*GR and outputs a tensor of size NxNxGR
 #define GR 32
