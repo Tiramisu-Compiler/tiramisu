@@ -25,7 +25,7 @@ At the directory build/benchmarks/DNN/layers/bn/cpu execute
 
 wrapper_nn_bn executable will be created in the current directory. 
 
-to compare the result of tiramisu with MKL DNN execute :
+To compare the result of tiramisu with MKL DNN execute :
     ./compile_and_run_mkldnn.sh
 then 
     ./wrapper_nn_bn
