@@ -88,14 +88,14 @@ void bn_mkldnn()
               << ": " << median(duration_vector) << "; " << std::endl;
 
     ofstream resultfile;
-    resultfile.open("mkldnn_result.txt");
+    resultfile.open("mkl_result.txt");
 
     float *bnres = (float *)dst_memory.get_data_handle();
     for (size_t i = 0; i < BATCH_SIZE; ++i)
         for (size_t j = 0; j < FIn; ++j)
             for (size_t k = 0; k < N; ++k)
                 for (size_t l = 0; l < N; ++l)
-                    resultfile << (float)((int)(bnres[i * FIn * N * N + j * N * N + k * N + l] * 100) / 100.0);
+                    resultfile << (float)((int)(bnres[i * FIn * N * N + j * N * N + k * N + l] * 100) / 100.0) << std::endl;
 
     resultfile.close();
 }
