@@ -29,6 +29,14 @@
 #include <fstream>
 #include <memory>
 
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+
+#include <direct.h>
+#define getcwd _getcwd
+#endif
+
 namespace tiramisu {
 
 tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,

@@ -11,19 +11,23 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
+#ifdef _WIN32
+#include <iso646.h>
+#endif
+
 namespace tiramisu
 {
-bool global::auto_data_mapping;
-function *global::implicit_fct;
-
-primitive_t global::loop_iterator_type = p_int32;
-
+int send::next_msg_tag = 0;
+std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
 // Used for the generation of new variable names.
 int id_counter = 0;
-
-const var computation::root = var("root");
-
 static int next_dim_name = 0;
+
+bool global::auto_data_mapping = false;
+primitive_t global::loop_iterator_type = p_int32;
+function *global::implicit_fct;
+std::unordered_map<std::string, var> var::declared_vars;
+const var computation::root = var("root");
 
 std::string generate_new_variable_name();
 void project_out_static_dimensions(isl_set*& set);
@@ -7035,8 +7039,6 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
-std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
-
 tiramisu::xfer_prop::xfer_prop() { }
 
 tiramisu::xfer_prop::xfer_prop(tiramisu::primitive_t dtype,
@@ -7223,8 +7225,6 @@ std::string create_send_func_name(const xfer_prop chan)
     assert(false && "Communication must be either MPI or CUDA!");
     return "";
 }
-
-int send::next_msg_tag = 0;
 
 tiramisu::send::send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs,
                      xfer_prop prop, bool schedule_this, std::vector<expr> dims, tiramisu::function *fct) :
