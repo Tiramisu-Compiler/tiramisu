@@ -21,7 +21,7 @@ int main()
     input bn_scale("bn_scale", {z_b, zz}, p_float32);
     input bn_shift("bn_shift", {z_b, zz}, p_float32);
 
-    input conv_filter("conv_filter", {z_b, fout_b, k_y, k_x, ffout, zz}, p_float32);
+    input conv_filter("conv_filter", {fout_b, z_b, k_y, k_x, zz, ffout}, p_float32);
     input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
 
     // Batch normalization followed by ReLU
@@ -78,8 +78,8 @@ int main()
     computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
-        {n, z_b, fout_b, y, x, k_y, k_x, ffout, zz}, 
-        init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz)
+        {n, fout_b, z_b, y, x, k_y, k_x, zz, ffout}, 
+        init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(fout_b, z_b, k_y, k_x, zz, ffout)
     );
     
     // -------------------------------------------------------
@@ -94,22 +94,20 @@ int main()
                   .then(bn, z_b)
                   .then(relu, zz)
                   .then(init_output, computation::root)
-                  .then(conv, n);
+                  .then(conv, fout_b);
                   
     input_sum.vectorize(zz, Z_BLOCKING);
     
     bn.tag_parallel_level(n);
     bn.vectorize(zz, Z_BLOCKING);
 
-    //n, z_b, fout_b, y, x, k_y, k_x, ffout, zz
+    //n, fout_b, z_b, y, x, k_y, k_x, zz, ffout
     conv.interchange(x, k_y);
     conv.interchange(x, k_x);
-    conv.interchange(x, ffout);
 
     conv.interchange(y, k_y);
     conv.interchange(y, k_x);
-    conv.interchange(y, ffout);
-    //n, z_b, fout_b, k_y, k_x, ffout, y, x, zz
+    //n, fout_b, z_b, k_y, k_x, y, x, zz, ffout
     
     conv.tag_parallel_level(n);
     conv.vectorize(ffout, FOUT_BLOCKING);
