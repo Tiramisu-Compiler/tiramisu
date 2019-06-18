@@ -289,12 +289,12 @@ void resnetBlock()
         std::chrono::duration<double, std::milli> duration = end1 - start1;
         duration_vector_2.push_back(duration);
     }
-    std::cout << "\t\tMKL-DNN convolution duration"
+    std::cout << "\t\tMKL-DNN ResNet block duration "
               << ": " << median(duration_vector_2) << "; " << std::endl;
 
     printf("writing result in file\n");
     ofstream resultfile;
-    resultfile.open("mkldnn_result.txt");
+    resultfile.open("mkl_result.txt");
 
     float *output = (float *)bn2_dst_memory.get_data_handle();
     for (size_t i = 0; i < BATCH_SIZE; ++i)

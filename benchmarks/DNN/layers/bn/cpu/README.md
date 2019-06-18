@@ -3,6 +3,7 @@ The files in this folder are organized as follows:
 General
     clean.sh : remove some useless files.
     compile_and_run_mkldnn.sh : compile mkldnn code and run it. 
+    compile_and_run_mkl.sh : compile MKL code and run it. 
     configure.h: define size of input matrices.
 
 Tiramisu
@@ -14,16 +15,26 @@ Wrapper
 Intel MKLDNN
     bn_layer_generator_mkldnn.cpp: code that calls Intel MKL DNN batch normalization. 
 
+Intel MKL
+    bn_layer_generator_mkl.c: code that calls Intel MKL batch normalization.
+
 To run this benchmark:
 
-At the directory build/benchmarks/DNN/layers/bn execute 
+At the directory build/benchmarks/DNN/layers/bn/cpu execute 
     make 
 
-wrapper_nn_bn executable will be created in the current directory. to compare the result of tiramisu with MKL DNN execute :
+wrapper_nn_bn executable will be created in the current directory. 
+
+To compare the result of tiramisu with MKL DNN execute :
     ./compile_and_run_mkldnn.sh
 then 
     ./wrapper_nn_bn
 
+To compare the result of tiramisu with MKL execute :
+    ./compile_and_run_mkl.sh
+then 
+    ./wrapper_nn_block_densenet
+
 Execution results could be found in the text files : 
-    mkldnn_result.txt
+    mkl_result.txt (same for Intel MKL and Intel MKL-DNN)
     tiramisu_result.txt
