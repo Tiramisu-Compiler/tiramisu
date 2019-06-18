@@ -1,14 +1,11 @@
-
 #include "generated_gemv.o.h"
-
 #include "Halide.h"
 #include <tiramisu/utils.h>
-
 #include <iostream>
 #include "benchmarks.h"
 
-#define M_DIM 2000
-#define N_DIM 1000
+#define M_DIM M
+#define N_DIM N
 
 int gemv_ref(
     const int MM,const int NN,
@@ -46,12 +43,9 @@ int main(int argc, char** argv)
     const char* env_tira = std::getenv("RUN_TIRAMISU");
     if ((env_tira != NULL) && (env_tira[0] == '1'))
 	     run_tiramisu = true;
-
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
-
-
     Halide::Buffer<int> SIZES(2);
     SIZES(0) = M_DIM;
     SIZES(1) = N_DIM;
@@ -77,8 +71,6 @@ int main(int argc, char** argv)
         - y a size M Vector of ones
         - alpha,beta scalars equal to one
     */
-
-
     //REFERENCE
     {
         for (int i = 0; i < NB_TESTS; i++)
@@ -93,7 +85,6 @@ int main(int argc, char** argv)
         }
     }
 
-
     //TIRAMISU
     {
         for (int i = 0; i < NB_TESTS; ++i)
@@ -101,19 +92,17 @@ int main(int argc, char** argv)
             auto start = std::chrono::high_resolution_clock::now();
 
             if (run_tiramisu)
-	             gemv(SIZES.raw_buffer(), b_A.raw_buffer(), b_x.raw_buffer(), b_y.raw_buffer(), b_alpha.raw_buffer(), b_beta.raw_buffer(), b_result.raw_buffer());
+	             gemv(b_A.raw_buffer(), b_x.raw_buffer(), b_y.raw_buffer(), b_alpha.raw_buffer(), b_beta.raw_buffer(), b_result.raw_buffer());
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_2.push_back(end - start);
         }
     }
-
     print_time("performance_CPU.csv", "gemv",
                {"Ref", "Tiramisu"},
                {median(duration_vector_1), median(duration_vector_2)});
 
-
     if (run_ref && run_tiramisu)
-        compare_buffers("gemv", b_result_ref, b_result);
-
+        compare_buffers("gemv", b_result, b_result_ref);
+   
     return 0;
 }
