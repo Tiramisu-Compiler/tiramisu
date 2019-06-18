@@ -86,7 +86,7 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"
 if [ "${USE_LIBJPEG}" = "0" ]; then
-    echo_and_run_cmd "make TEST_CXX_FLAGS=\"-D_GLIBCXX_USE_CXX11_ABI=0\" CXXFLAGS=\"-DHALIDE_NO_JPEG -D_GLIBCXX_USE_CXX11_ABI=0\" -j $CORES"
+    echo_and_run_cmd "TEST_CXX_FLAGS=\"-D_GLIBCXX_USE_CXX11_ABI=0\" CXXFLAGS=\"-DHALIDE_NO_JPEG -D_GLIBCXX_USE_CXX11_ABI=0\" make -j $CORES"
 else
     echo_and_run_cmd "make clean"
     echo_and_run_cmd "TEST_CXX_FLAGS=\"-D_GLIBCXX_USE_CXX11_ABI=0\" CXXFLAGS=\"-D_GLIBCXX_USE_CXX11_ABI=0\" make -j $CORES"
