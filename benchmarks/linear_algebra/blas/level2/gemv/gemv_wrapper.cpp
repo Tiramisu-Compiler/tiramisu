@@ -7,24 +7,25 @@
 #define M_DIM M
 #define N_DIM N
 
-int gemv_ref(
-    const int MM,const int NN,
+int gemv_ref(const int MM,
+    const int NN,
     const double * A,
     const double * x,
     const double * y,
     const double * alpha,
     const double * beta,
-    double * result)
+          double * result)
 {
-  int i=0,j=0;
-  int tmp=0;
-  for(i=0;i<MM; i++){
+  int tmp;
+  for(int i = 0; i<MM; i++)
+  {
     tmp=0;
-    for(j=0;j<NN;j++){
-      tmp+= A[i*NN+j]*x[j];
+    for(int j = 0; j<NN; j++)
+    {
+      tmp += A[i * NN + j] * x[j];
     }
-    tmp*=alpha[0];
-    result[i]= tmp + beta[0]*y[i];
+    tmp *= alpha[0];
+    result[i]= tmp + beta[0] * y[i];
   }
   return 0;
 }
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
 
     Halide::Buffer<double> b_x(N_DIM);
     init_buffer(b_x, (double) 1);
-    Halide::Buffer<double> b_alpha(1),b_beta(1);
+    Halide::Buffer<double> b_alpha(1), b_beta(1);
     init_buffer(b_alpha, (double) 1);
     init_buffer(b_beta, (double) 1);
 
@@ -74,7 +75,7 @@ int main(int argc, char** argv)
     //REFERENCE
     {
         for (int i = 0; i < NB_TESTS; i++)
-	{
+	      {
             init_buffer(b_result_ref, (double)0);
       	    auto start1 = std::chrono::high_resolution_clock::now();
       	    if (run_ref)
@@ -103,6 +104,6 @@ int main(int argc, char** argv)
 
     if (run_ref && run_tiramisu)
         compare_buffers("gemv", b_result, b_result_ref);
-   
+
     return 0;
 }
