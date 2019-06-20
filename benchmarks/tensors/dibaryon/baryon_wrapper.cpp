@@ -130,9 +130,9 @@ int main(int, char **)
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start2 = std::chrono::high_resolution_clock::now();
 
-	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
+	    //make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
 	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi, Q);
-	    make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
+	    //make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
@@ -176,6 +176,7 @@ int main(int, char **)
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
 
+#if 0
     // Compare outputs.
 	for (int n=0; n<Nsrc; n++)
 	  for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -192,6 +193,7 @@ int main(int, char **)
 				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
 				      exit(1);
 				  }
+#endif
 
 	for (int n=0; n<Nsrc; n++)
 	  for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -211,6 +213,7 @@ int main(int, char **)
 				      exit(1);
 				  }
 
+#if 0
 	for (int jCprime=0; jCprime<Nc; jCprime++)
 	  for (int jSprime=0; jSprime<Ns; jSprime++)
 	     for (int kCprime=0; kCprime<Nc; kCprime++)
@@ -264,6 +267,7 @@ int main(int, char **)
 				  std::cout << "Position: (" << t << ", " << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ")" << std::endl;
 				  exit(1);
 			      }
+#endif
 
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
 
