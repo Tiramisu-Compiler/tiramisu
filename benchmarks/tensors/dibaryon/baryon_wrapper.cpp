@@ -113,10 +113,10 @@ int main(int, char **)
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = 0; // tri
-		color_weights_t(tri, wnum) = 0; //tri
-		spin_weights[wnum][tri] = 0; //tri
-		spin_weights_t(tri, wnum) = 0; //tri
+		color_weights[wnum][tri] = test_color_weights[wnum][tri]; // tri
+		color_weights_t(tri, wnum) = test_color_weights[wnum][tri]; //tri
+		spin_weights[wnum][tri] = test_spin_weights[wnum][tri]; //tri
+		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri]; //tri
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
