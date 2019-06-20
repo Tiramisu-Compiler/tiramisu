@@ -51,7 +51,7 @@ int main(int, char **)
         for (int z = 0; z < FIn; ++z)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                    resultfile << (float)((int)(output(x, y, z, n) * 100) / 100.0) << std::endl;
+                    resultfile << setprecision(10) << output(x, y, z, n) << std::endl;
 
     resultfile.close();
 
@@ -69,7 +69,7 @@ int main(int, char **)
         f1 = std::stof(line1);
         f2 = std::stof(line2);
 
-        if (abs(f1 - f2) < 0.02)
+        if (abs(f1 - f2) <= 0.0001)
             corr += 1;
     }
 

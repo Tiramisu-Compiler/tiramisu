@@ -3,6 +3,7 @@
 #include "baryon_wrapper.h"
 
 #define FUSE 1
+#define PARALLEL 0
 
 using namespace tiramisu;
 
@@ -179,13 +180,13 @@ void generate_function(std::string name)
 		 .then(P_r_init, y)
 		 .then(P_i_init, y)
 		 .then(Blocal_r_update, computation::root)
-		 .then(Blocal_i_update, y)
-		 .then(Q_r_update, y)
-		 .then(Q_i_update, y)
-		 .then(O_r_update, y)
-		 .then(O_i_update, y)
-		 .then(P_r_update, y)
-		 .then(P_i_update, y)
+		 .then(Blocal_i_update, wnum)
+		 .then(Q_r_update, jSprime)
+		 .then(Q_i_update, wnum)
+		 .then(O_r_update, wnum)
+		 .then(O_i_update, wnum)
+		 .then(P_r_update, wnum)
+		 .then(P_i_update, wnum)
 		 .then(Bsingle_r_update, n)
 		 .then(Bsingle_i_update, y)
 		 .then(Bdouble_r_update0, y)
@@ -194,14 +195,19 @@ void generate_function(std::string name)
 		 .then(Bdouble_i_update1, y);
 
 
-    Blocal_r_init.tag_parallel_level(t);
+    if (PARALLEL)
+    {
+        Blocal_r_init.tag_parallel_level(t);
+        Blocal_r_update.tag_parallel_level(t);
+        Bsingle_r_update.tag_parallel_level(t);
+    }
+
     Blocal_r_init.vectorize(x, Vsnk);
     Q_r_init.vectorize(y, Vsrc);
 
-    Blocal_r_update.tag_parallel_level(t);
-    //Q_r_update.vectorize(y, Vsrc);
+    Blocal_r_update.vectorize(x, Vsnk);
+    Q_r_update.vectorize(y, Vsrc);
 
-    Bsingle_r_update.tag_parallel_level(t);
     Bsingle_r_update.vectorize(x2, Vsnk);
 
     // -------------------------------------------------------
