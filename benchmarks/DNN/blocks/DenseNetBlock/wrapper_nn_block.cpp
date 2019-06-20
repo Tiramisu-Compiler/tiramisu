@@ -48,6 +48,7 @@ int main()
 
     std::cout << "\t\tBuffers initialized" << std::endl;
 
+    // Execute Tiramisu code
     for (int i = 0; i < NB_TESTS; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
         densenet_block(
@@ -85,21 +86,23 @@ int main()
     // Compare results with Intel MKL
     std::ifstream mkl_result("mkl_result.txt");
     float tmp;
-    int nb_errors = 0;
+    float file_count = 0, corr = 0;
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fout = 0; fout < GR; ++fout)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x) {
                     mkl_result >> tmp;
-                    if (abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) > 0.01)
-                        nb_errors++;
+
+                    file_count++;
+                    if (abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.01)
+                        corr++;
                 }
 
     std::cout << "\t\tResult"
               << ":\n\n";
 
-    cout << "\t\tPercentage of correctness " << 100.f - ((double)nb_errors)/BATCH_SIZE*GR*N*N << "%" << endl << endl;
+    cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
 
     return 0;
 }

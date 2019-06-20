@@ -171,7 +171,7 @@ int main()
         for (int z = 0; z < GR; ++z)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                    fprintf(f, "%.17g\n", output_buf[x + y*N + z*N*N + n*N*N*GR]);
+                    fprintf(f, "%.10g\n", output_buf[x + y*N + z*N*N + n*N*N*GR]);
 
     fclose(f);
     
@@ -196,6 +196,5 @@ int main()
     dnnReleaseBuffer_F32(res_conv[dnnResourceFilter]);
     dnnReleaseBuffer_F32(res_conv[dnnResourceDst]);
 
-    
     return 0;
 }
