@@ -95,7 +95,7 @@ void bn_mkldnn()
         for (size_t j = 0; j < FIn; ++j)
             for (size_t k = 0; k < N; ++k)
                 for (size_t l = 0; l < N; ++l)
-                    resultfile << (float)((int)(bnres[i * FIn * N * N + j * N * N + k * N + l] * 100) / 100.0) << std::endl;
+                    resultfile << setprecision(10) << bnres[i * FIn * N * N + j * N * N + k * N + l] << std::endl;
 
     resultfile.close();
 }
