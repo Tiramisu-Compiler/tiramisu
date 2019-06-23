@@ -186,18 +186,19 @@ void generate_function(std::string name)
           mul_i(q, prop_1p));
       expr init_r = Bsingle_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
       expr init_i = Bsingle_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
+      // iterators of Q { t, iCprime, iSprime, kCprime, kSprime, x, y },
       auto *real = new computation(
           // name
           str_fmt("bsingle_update_%d_%d_r", jc, js),
           // iterator
-          {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, x2, y},
+          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
           // definition
           init_r + mul_r(mul_with_prop1, psi));
       auto *imag = new computation(
           // name
           str_fmt("bsingle_update_%d_%d_i", jc, js),
           // iterator
-          {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, x2, y},
+          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
           // definition
           init_i + mul_i(mul_with_prop1, psi));
       Bsingle_updates.push_back({real, imag});
@@ -345,12 +346,15 @@ void generate_function(std::string name)
     //    .then(*real, y)
     //    .then(*imag, y);
     //}
+
+    // TODO: batch every 3 qs together
     for (auto edge : q2singleEdges) {
       handle = &(handle
         ->then(*edge.q_r, computation::root)
-        .then(*edge.q_i, computation::root)
-        .then(*edge.bs_r, computation::root)
-        .then(*edge.bs_i, computation::root));
+        .then(*edge.q_i, y)
+        //.then(*edge.bs_r, computation::root)
+        .then(*edge.bs_r, x)
+        .then(*edge.bs_i, y));
     }
 #define VECTOR_WIDTH 4
     for (auto edge : q2singleEdges) {
@@ -440,10 +444,28 @@ void generate_function(std::string name)
 #endif
 
     for (auto edge : q2singleEdges) {
-      auto *buf_q_r = new buffer(str_fmt("buf_%s", edge.q_r->get_name().c_str()), { Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk }, tiramisu::p_float64, a_temporary);
-      auto *buf_q_i = new buffer(str_fmt("buf_%s", edge.q_i->get_name().c_str()), { Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk }, tiramisu::p_float64, a_temporary);
-       edge.q_r->store_in(buf_q_r);
-       edge.q_i->store_in(buf_q_i);
+      auto *buf_q_r = new buffer(
+          // name
+          str_fmt("buf_%s", edge.q_r->get_name().c_str()),
+          // dimensions
+          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
+          {Vsnk},
+          // type
+          tiramisu::p_float64, 
+          // usage/source
+          a_temporary);
+      auto *buf_q_i = new buffer(
+          // name
+          str_fmt("buf_%s", edge.q_i->get_name().c_str()),
+          // dimensions
+          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
+          {Vsnk},
+          // type
+          tiramisu::p_float64, 
+          // usage/source
+          a_temporary);
+       edge.q_r->store_in(buf_q_r, {y});
+       edge.q_i->store_in(buf_q_i, {y});
     }
 
     for (auto computations: Bsingle_updates) {
