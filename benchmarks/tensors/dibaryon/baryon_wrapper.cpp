@@ -129,7 +129,7 @@ int main(int, char **)
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start2 = std::chrono::high_resolution_clock::now();
 
-	    //make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
+	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
 	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi, Q);
 	    //make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
 
@@ -178,7 +178,6 @@ int main(int, char **)
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
 
-#if 0
     // Compare outputs.
 	for (int n=0; n<Nsrc; n++)
 	  for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -195,7 +194,6 @@ int main(int, char **)
 				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
 				      exit(1);
 				  }
-#endif
 
 	for (int n=0; n<Nsrc; n++)
 	  for (int iCprime=0; iCprime<Nc; iCprime++)

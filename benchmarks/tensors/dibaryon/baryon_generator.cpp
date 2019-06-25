@@ -36,6 +36,48 @@ std::string str_fmt( const std::string& format, Args ... args )
   return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
+// replace all occurence of `target` with `replacement` in `e`
+expr replace(expr e, expr target, expr replacement) {
+  if (e.is_equal(target)) {
+    return replacement;
+  }
+
+  auto recur_on_operand = [&target, &replacement](const expr &operand) -> expr {
+    replace(operand, target, replacement);
+  };
+
+  expr ep = e.apply_to_operands(recur_on_operand);
+  return ep;
+}
+
+// given a list of potentially redundant loads:
+// replace use of these loads with lets,
+//
+// return the lets introduced, which are not scheduled (the user should schedule it)
+std::vector<computation *> eliminate_redundant_loads(
+    std::map<std::string, expr> loads,/* loads that are potentially redundant */
+    std::vector<computation *> computations/* computations that we want to optimize */,
+    int loop_level) {
+  assert(!computations.empty());
+  std::vector<computation *> let_stmts;
+  for (auto &nameAndLoad : loads) {
+    std::string name;
+    expr load;
+    std::tie(name, load) = nameAndLoad;
+    auto *let_stmt = new constant(
+        name, load, load.get_data_type(),
+        false/*whether invariant across whole function*/,
+        computations[0]/*compute this constant with this*/,
+        loop_level);
+    for (auto *user : computations) {
+      expr new_user_expr = replace(user->get_expr(), load, *let_stmt);
+      user->set_expression(new_user_expr);
+    }
+    let_stmts.push_back(let_stmt);
+  }
+  return let_stmts;
+}
+
 /*
  * The goal is to generate code that implements the reference.
  * baryon_ref.cpp
@@ -69,12 +111,11 @@ void generate_function(std::string name)
     //input    color_weights("color_weights",    {wnum, tri}, p_int32);
     //input    spin_weights("spin_weights",    {wnum, tri}, p_int32);
 
-#if 0
     computation Blocal_r_init("Blocal_r_init", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, expr((double) 0));
     computation Blocal_i_init("Blocal_i_init", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, expr((double) 0));
-#endif
 
     ////////////////// BEGIN TOM's STUFF   //////////////////
+    std::map<std::string, expr> prop_loads;
     std::map<std::pair<int,int>, std::pair<expr, expr>> Q2_exprs;
     for (int ii = 0; ii < Nw; ii++) {
       int ic = test_color_weights[ii][0];
@@ -95,6 +136,16 @@ void generate_function(std::string name)
       std::pair<expr, expr> prop_2p(
           prop_r(t, 2, iCprime, iSprime, kc, ks, x, y),
           prop_i(t, 2, iCprime, iSprime, kc, ks, x, y));
+      // remember which loads we are doing.
+      // later we will elimnate redundant loads within the inner loop body
+      prop_loads[str_fmt("prop_r_load_0_%d_%d_i", ic, is)] = prop_0.first;
+      prop_loads[str_fmt("prop_i_load_0_%d_%d_i", ic, is)] = prop_0.second;
+      prop_loads[str_fmt("prop_r_load_2_%d_%d_k", kc, ks)] = prop_2.first;
+      prop_loads[str_fmt("prop_i_load_2_%d_%d_k", kc, ks)] = prop_2.second;
+      prop_loads[str_fmt("prop_r_load_0_%d_%d_k", ic, is)] = prop_0p.first;
+      prop_loads[str_fmt("prop_i_load_0_%d_%d_k", ic, is)] = prop_0p.second;
+      prop_loads[str_fmt("prop_r_load_2_%d_%d_i", kc, ks)] = prop_2p.first;
+      prop_loads[str_fmt("prop_i_load_2_%d_%d_i", kc, ks)] = prop_2p.second;
       
       expr real = (mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p)) * test_weights[ii];
       expr imag = (mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p)) * test_weights[ii];
@@ -128,6 +179,8 @@ void generate_function(std::string name)
           { t, iCprime, iSprime, kCprime, kSprime, x, y },
           // definition
           imag);
+      //realComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
+      //imagComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
       Q2[{jc,js}].first = realComputation;
       Q2[{jc,js}].second = imagComputation;
     }
@@ -159,11 +212,13 @@ void generate_function(std::string name)
     computation Bsingle_i_init("Bsingle_i_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, x2}, expr((double) 0));
 
     std::vector<std::pair<computation *, computation *>> Bsingle_updates;
-    struct Q2SingleEdge {
+    std::vector<std::pair<computation *, computation *>> Blocal_updates;
+    struct Q2UserEdge {
       computation *q_r, *q_i,
-                  *bs_r, *bs_i;
+                  *bs_r, *bs_i,
+                  *bl_r, *bl_i;
     };
-    std::vector<Q2SingleEdge> q2singleEdges;
+    std::vector<Q2UserEdge> q2userEdges;
     for (auto &jAndComp : Q2) {
       int jc, js;
       computation *q_real;
@@ -171,9 +226,6 @@ void generate_function(std::string name)
       std::tie(jc, js) = jAndComp.first;
       std::tie(q_real, q_imag) = jAndComp.second;
 
-      std::pair<expr, expr> prop_1p(
-          prop_r(t, 1, jCprime, jSprime, jc, js, x2, y),
-          prop_i(t, 1, jCprime, jSprime, jc, js, x2, y));
       // iterators : { t, iCprime, iSprime, kCprime, kSprime, x, y },
       std::pair<expr, expr> q(
           (*q_real)(t, iCprime, iSprime, kCprime, kSprime, x, y),
@@ -181,29 +233,82 @@ void generate_function(std::string name)
       //std::pair<expr, expr> q(
       //    q_real->get_expr().copy(),
       //    q_imag->get_expr().copy());
-      std::pair<expr, expr> mul_with_prop1(
-          mul_r(q, prop_1p),
-          mul_i(q, prop_1p));
-      expr init_r = Bsingle_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
-      expr init_i = Bsingle_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
+
+      // NOTE
       // iterators of Q { t, iCprime, iSprime, kCprime, kSprime, x, y },
-      auto *real = new computation(
+      //
+
+      // ------ COMPUTE BSINGLE ------
+      std::pair<expr, expr> prop1_x2(
+          prop_r(t, 1, jCprime, jSprime, jc, js, x2, y),
+          prop_i(t, 1, jCprime, jSprime, jc, js, x2, y));
+      std::pair<expr, expr> mul_with_prop1_x2(
+          mul_r(q, prop1_x2),
+          mul_i(q, prop1_x2));
+      expr bsingle_init_r = Bsingle_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
+      expr bsingle_init_i = Bsingle_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2);
+      expr bsingle_update_r = bsingle_init_r + mul_r(mul_with_prop1_x2, psi);
+      expr bsingle_update_i = bsingle_init_i + mul_i(mul_with_prop1_x2, psi);
+      auto *bsingle_r = new computation(
           // name
           str_fmt("bsingle_update_%d_%d_r", jc, js),
           // iterator
           {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
           // definition
-          init_r + mul_r(mul_with_prop1, psi));
-      auto *imag = new computation(
+          bsingle_update_r);
+      auto *bsingle_i = new computation(
           // name
           str_fmt("bsingle_update_%d_%d_i", jc, js),
           // iterator
           {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
           // definition
-          init_i + mul_i(mul_with_prop1, psi));
-      Bsingle_updates.push_back({real, imag});
-      Q2SingleEdge edge {q_real, q_imag, real, imag};
-      q2singleEdges.push_back(edge);
+          bsingle_update_i);
+      bsingle_r->add_predicate(iCprime != kCprime || iSprime != kSprime);
+      bsingle_i->add_predicate(iCprime != kCprime || iSprime != kSprime);
+      Bsingle_updates.push_back({bsingle_r, bsingle_i});
+
+      // ------- COMPUTE BLOCAL ---------
+      std::pair<expr, expr> prop1_x(
+          prop_r(t, 1, jCprime, jSprime, jc, js, x, y),
+          prop_i(t, 1, jCprime, jSprime, jc, js, x, y));
+      std::pair<expr, expr> mul_with_prop1_x(
+          mul_r(q, prop1_x),
+          mul_i(q, prop1_x));
+      expr blocal_init_r = Blocal_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x);
+      expr blocal_init_i = Blocal_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x);
+      expr blocal_update_r = blocal_init_r + mul_r(mul_with_prop1_x, psi);
+      expr blocal_update_i = blocal_init_i + mul_i(mul_with_prop1_x, psi);
+      auto *blocal_r = new computation(
+          // name
+          str_fmt("blocal_update_%d_%d_r", jc, js),
+          // iterator
+          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
+          // definition
+          blocal_update_r);
+      auto *blocal_i = new computation(
+          // name
+          str_fmt("blocal_update_%d_%d_i", jc, js),
+          // iterator
+          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
+          // definition
+          blocal_update_i);
+      Blocal_updates.push_back({blocal_r, blocal_i});
+      blocal_r->add_predicate(iCprime != kCprime || iSprime != kSprime);
+      blocal_i->add_predicate(iCprime != kCprime || iSprime != kSprime);
+
+      Q2UserEdge edge {q_real, q_imag, bsingle_r, bsingle_i, blocal_r, blocal_i};
+      q2userEdges.push_back(edge);
+    }
+
+#define BLOCK_SIZE 3
+    // block every 3 together
+    std::vector<std::vector<Q2UserEdge>> blocked_q2userEdges;
+    for (int ii = 0; ii < q2userEdges.size(); ii += BLOCK_SIZE) {
+      std::vector<Q2UserEdge> blocked_edge;
+      for (int i = ii; i < q2userEdges.size() && i < ii+BLOCK_SIZE; i++) {
+        blocked_edge.push_back(q2userEdges[i]);
+      }
+      blocked_q2userEdges.push_back(blocked_edge);
     }
 
 #if 0
@@ -336,8 +441,11 @@ void generate_function(std::string name)
     //  .then(Bsingle_r_update, n)
     //  .then(Bsingle_i_update, y);
 
-    computation *handle = &(Bsingle_r_init
-      .then(Bsingle_i_init, computation::root));
+    computation *handle = &(
+        Blocal_r_init
+        .then(Blocal_i_init, computation::root)
+        .then(Bsingle_r_init, computation::root)
+        .then(Bsingle_i_init, computation::root));
     //for (auto computations: Bsingle_updates) {
     //  computation *real;
     //  computation *imag;
@@ -347,21 +455,40 @@ void generate_function(std::string name)
     //    .then(*imag, y);
     //}
 
-    // TODO: batch every 3 qs together
-    for (auto edge : q2singleEdges) {
-      handle = &(handle
-        ->then(*edge.q_r, computation::root)
-        .then(*edge.q_i, y)
-        //.then(*edge.bs_r, computation::root)
-        .then(*edge.bs_r, x)
-        .then(*edge.bs_i, y));
+    var it = computation::root; 
+    for (auto edges : blocked_q2userEdges) {
+      // remove redundant loads
+      for (auto edge : edges) {
+        handle = &(handle
+            ->then(*edge.q_r, it)
+            .then(*edge.q_i, y));
+        it = y;
+      }
+      it = x;
+      for (auto edge : edges) {
+        handle = &(handle
+            ->then(*edge.bl_r, it)
+            .then(*edge.bl_i, y));
+        it = y;
+      }
+      it = x;
+      for (auto edge : edges) {
+        handle = &(handle
+            ->then(*edge.bs_r, it)
+            .then(*edge.bs_i, y));
+        it = y;
+      }
+      it = x;
     }
+    // vectorize
 #define VECTOR_WIDTH 4
-    for (auto edge : q2singleEdges) {
+    for (auto edge : q2userEdges) {
       edge.q_r->vectorize(y, VECTOR_WIDTH);
       edge.q_i->vectorize(y, VECTOR_WIDTH);
       edge.bs_r->vectorize(x2, VECTOR_WIDTH);
       edge.bs_i->vectorize(x2, VECTOR_WIDTH);
+      //edge.bl_r->vectorize(x, VECTOR_WIDTH);
+      //edge.bl_i->vectorize(x, VECTOR_WIDTH);
     }
 
     if (PARALLEL)
@@ -402,11 +529,11 @@ void generate_function(std::string name)
     buffer buf_Bdouble_r("buf_Bdouble_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bdouble_i("buf_Bdouble_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
 
-#if 0
     Blocal_r.store_in(&buf_Blocal_r);
     Blocal_i.store_in(&buf_Blocal_i);
     Blocal_r_init.store_in(&buf_Blocal_r);
     Blocal_i_init.store_in(&buf_Blocal_i);
+#if 0
     Blocal_r_update.store_in(&buf_Blocal_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
     Blocal_i_update.store_in(&buf_Blocal_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
 #endif
@@ -443,7 +570,7 @@ void generate_function(std::string name)
     Bdouble_i_update1.store_in(&buf_Bdouble_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
 #endif
 
-    for (auto edge : q2singleEdges) {
+    for (auto edge : q2userEdges) {
       auto *buf_q_r = new buffer(
           // name
           str_fmt("buf_%s", edge.q_r->get_name().c_str()),
@@ -474,6 +601,13 @@ void generate_function(std::string name)
       std::tie(real, imag) = computations;
       real->store_in(&buf_Bsingle_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
       imag->store_in(&buf_Bsingle_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
+    }
+    for (auto computations: Blocal_updates) {
+      computation *real;
+      computation *imag;
+      std::tie(real, imag) = computations;
+      real->store_in(&buf_Blocal_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
+      imag->store_in(&buf_Blocal_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
     }
 
     // -------------------------------------------------------
