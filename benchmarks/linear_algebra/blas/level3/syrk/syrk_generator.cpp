@@ -2,10 +2,12 @@
 
 #include "benchmarks.h"
 
+#define UNROLL_FACTOR 32
+
 using namespace tiramisu;
 
 /**
-*	Benchmark for BLAS SYRK
+*  Benchmark for BLAS SYRK
 *     out = alpha * A * A' + beta * C
 *
 *     A : a N by K matrix
@@ -69,6 +71,14 @@ int main(int argc, char **argv)
 	mult_alpha.after(mat_mul, i);
 	mat_mul.after(result_init, i);
 	
+#if TIRAMISU_LARGE
+	mat_mul.unroll(k, UNROLL_FACTOR);
+#endif
+
+	//Parallelization
+	mat_mul.parallelize(i);
+	copy_symmetric_part.parallelize(i);
+
 	// -------------------------------------------------------
 	// Layer III
 	// -------------------------------------------------------
