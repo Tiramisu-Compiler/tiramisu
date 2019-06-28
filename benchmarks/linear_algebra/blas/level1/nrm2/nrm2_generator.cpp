@@ -6,25 +6,11 @@
 /*
   IMPLEMENTATION OF THE NMR2 FUNCTION IN TIRAMISU 
   
-   out = 
+   out = sqrt(x*'x) 
 
    where : 
-   A : is a NxM matrix
-   x : is a size N vector 
-   y : is a size M vector ( y**T : transpose of y) 
-   a : scalar 
+   x : is a size N vector and 'x is the transpose of x 
    
-   THE C CODE OF THIS FUNCTION IS AS FOLLOW : 
-   
-    for(int i=0; i<N:i++){
-
-        for(int j=0; j<M; j++){
-
-	        A[i,j] += a*x[i]*y[j]; 
-        }
-      }
-   
-
 */
 
 
