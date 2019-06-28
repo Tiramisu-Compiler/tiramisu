@@ -62,9 +62,9 @@ int main(int argc, char **argv)
     mult_alpha.after(sum_row, i);
     sum_row.after(result_init, i);
 	
-	//Unrolling
+    //Unrolling
     sum_row.unroll(j, UNROLL_FACTOR);
-	//Parallelization
+    //Parallelization
     sum_row.parallelize(i);
 	
     // -------------------------------------------------------
