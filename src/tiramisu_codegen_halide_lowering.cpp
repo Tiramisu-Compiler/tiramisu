@@ -147,9 +147,9 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = simplify(s);
     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after partitioning loops:\n", s)));
 
-    DEBUG(3, tiramisu::str_dump("Trimming loops to the region over which they do something...\n"));
-    s = trim_no_ops(s);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after loop trimming:\n", s)));
+    //DEBUG(3, tiramisu::str_dump("Trimming loops to the region over which they do something...\n"));
+    //s = trim_no_ops(s);
+    //DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after loop trimming:\n", s)));
 
     DEBUG(3, tiramisu::str_dump("Injecting early frees...\n"));
     s = inject_early_frees(s);
@@ -186,9 +186,9 @@ Module lower_halide_pipeline(const string &pipeline_name,
         std::flush(std::cout);
     }
 
-    DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
-    s = inject_hexagon_rpc(s, t, result_module);
-    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
+//    DEBUG(3, tiramisu::str_dump("Splitting off Hexagon offload...\n"));
+//    s = inject_hexagon_rpc(s, t, result_module);
+//    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
 
     vector<Argument> public_args = args;

@@ -139,9 +139,6 @@ tiramisu::expr tiramisu::expr::copy() const
     return (*this);
 }
 
-
-std::unordered_map<std::string, var> tiramisu::var::declared_vars;
-
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
         return e;

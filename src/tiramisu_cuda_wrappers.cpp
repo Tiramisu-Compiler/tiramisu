@@ -5,6 +5,7 @@
 #include <cuda_runtime.h>
 #include <cstdint>
 #include <iostream>
+#include <sstream>
 #include "cublas_v2.h"
 
 using size_type = uint64_t;

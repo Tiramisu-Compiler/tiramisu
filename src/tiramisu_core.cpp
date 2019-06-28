@@ -11,19 +11,23 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
+#ifdef _WIN32
+#include <iso646.h>
+#endif
+
 namespace tiramisu
 {
-bool global::auto_data_mapping;
-function *global::implicit_fct;
-
-primitive_t global::loop_iterator_type = p_int32;
-
+int send::next_msg_tag = 0;
+std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
 // Used for the generation of new variable names.
 int id_counter = 0;
-
-const var computation::root = var("root");
-
 static int next_dim_name = 0;
+
+bool global::auto_data_mapping = false;
+primitive_t global::loop_iterator_type = p_int32;
+function *global::implicit_fct;
+std::unordered_map<std::string, var> var::declared_vars;
+const var computation::root = var("root");
 
 std::string generate_new_variable_name();
 void project_out_static_dimensions(isl_set*& set);
@@ -2339,6 +2343,8 @@ void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, int sizeX
     this->tile(L0, L1, sizeX, sizeY);
     this->tag_gpu_block_level(L0, L1);
     this->tag_gpu_thread_level(L0 + 2, L1 + 2);
+    this->thread_block_shape.push_back(sizeX);
+    this->thread_block_shape.push_back(sizeY);
 }
 
 void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int sizeY,
@@ -2347,6 +2353,8 @@ void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, int sizeX, int si
 {
     this->tile(L0, L1, sizeX, sizeY, L0_outer, L1_outer, L0_inner, L1_inner);
     this->tag_gpu_level(L0_outer, L1_outer, L0_inner, L1_inner);
+    this->thread_block_shape.push_back(sizeX);
+    this->thread_block_shape.push_back(sizeY);
 }
 
 void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu::var L2_var, int sizeX, int sizeY, int sizeZ)
@@ -2377,6 +2385,9 @@ void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, tiramisu:
     this->tile(L0, L1, L2, sizeX, sizeY, sizeZ);
     this->tag_gpu_block_level(L0, L1, L2);
     this->tag_gpu_thread_level(L0 + 3, L1 + 3, L2 + 3);
+    this->thread_block_shape.push_back(sizeX);
+    this->thread_block_shape.push_back(sizeY);
+    this->thread_block_shape.push_back(sizeZ);
 }
 
 void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
@@ -2386,6 +2397,9 @@ void computation::gpu_tile(tiramisu::var L0, tiramisu::var L1, tiramisu::var L2,
 {
     this->tile(L0, L1, L2, sizeX, sizeY, sizeZ, L0_outer, L1_outer, L2_outer, L0_inner, L1_inner, L2_inner);
     this->tag_gpu_level(L0_outer, L1_outer, L2_outer, L0_inner, L1_inner, L2_inner);
+    this->thread_block_shape.push_back(sizeX);
+    this->thread_block_shape.push_back(sizeY);
+    this->thread_block_shape.push_back(sizeZ);
 }
 
 void computation::assert_names_not_assigned(
@@ -6629,7 +6643,8 @@ void tiramisu::computation::store_in(buffer *buff, std::vector<tiramisu::expr> i
 
     assert(buff != NULL);
 
-    std::string map_str = "{" + this->get_name() + "[";
+    std::string map_str = "[" + utility::get_parameters_list(this->get_iteration_domain()) + "] -> ";
+    map_str += "{" + this->get_name() + "[";
     std::vector<std::string> iter_names =
         this->get_iteration_domain_dimension_names();
     for (int i = 0; i < iter_names.size(); i++)
@@ -7024,8 +7039,6 @@ void tiramisu::computation::storage_fold(tiramisu::var L0_var, int factor)
     DEBUG_INDENT(-4);
 }
 
-std::set<int> tiramisu::xfer_prop::xfer_prop_ids;
-
 tiramisu::xfer_prop::xfer_prop() { }
 
 tiramisu::xfer_prop::xfer_prop(tiramisu::primitive_t dtype,
@@ -7212,8 +7225,6 @@ std::string create_send_func_name(const xfer_prop chan)
     assert(false && "Communication must be either MPI or CUDA!");
     return "";
 }
-
-int send::next_msg_tag = 0;
 
 tiramisu::send::send(std::string iteration_domain_str, tiramisu::computation *producer, tiramisu::expr rhs,
                      xfer_prop prop, bool schedule_this, std::vector<expr> dims, tiramisu::function *fct) :
@@ -7699,7 +7710,7 @@ void project_out_static_dimensions(isl_set*& set)
         i++;
     }
 
-    isl_set_set_tuple_name(set, tuple_name.c_str());
+    set = isl_set_set_tuple_name(set, tuple_name.c_str());
 }
 
 std::vector<std::string> computation::get_trimmed_time_space_domain_dimension_names()
@@ -8037,6 +8048,245 @@ void computation::gen_communication()
 
         comm_id++;
     }
+}
+
+computation *computation::cache_shared(computation &inp, const var &level,
+                  const std::vector<int> buffer_shape,
+                  const std::vector<expr> copy_offsets,
+                  bool pad_buffer)
+{
+    assert(inp.access_variables.size() == buffer_shape.size() &&
+           "Buffer shape should be same as input!");
+    assert(inp.access_variables.size() == copy_offsets.size() &&
+           "Copy offsets should be same size as input!");
+
+    function *fn = this->get_function();
+
+    // Copy level dimension
+    std::vector<int> dimensions = this->get_loop_level_numbers_from_dimension_names({level.get_name()});
+    assert(dimensions.size() == 1);
+    int copy_level = dimensions[0];
+
+    // Find block/thread dimensions
+    std::tuple<int, int, int> block_dims(-1, -1, -1), thread_dims;
+    for (const auto &dims : fn->gpu_block_dimensions) {
+        if (dims.first == this->get_name()) {
+            block_dims = dims.second;
+        }
+    }
+    for (const auto &dims : fn->gpu_thread_dimensions) {
+        if (dims.first == this->get_name()) {
+            thread_dims = dims.second;
+        }
+    }
+    assert(std::get<0>(block_dims) != -1 && "Computation is not mapped to GPU!");
+
+    // Create shared buffer
+    std::string name_prefix = "_" + this->get_name() + "_" + inp.get_name();
+    std::vector<expr> buff_shape(buffer_shape.begin(), buffer_shape.end());
+    if (pad_buffer) {
+        buff_shape[buff_shape.size() - 1] = buff_shape[buff_shape.size() - 1] + 1;
+    }
+    buffer *buff = new buffer(name_prefix + "_shared",
+            buff_shape, inp.get_data_type(), a_temporary, fn);
+    buff->tag_gpu_shared();
+
+    // Create new access computation and replace mapping
+    std::vector<var> access_variables;
+    std::vector<expr> access_exprs;
+    for (int i = 0; i < inp.access_variables.size(); i++) {
+        var v = var(inp.access_variables[i].second, false);
+        access_variables.push_back(v);
+        access_exprs.push_back(v % buffer_shape[i]);
+    }
+    input *new_access = new input(name_prefix + "_access", access_variables, inp.get_data_type());
+    new_access->store_in(buff, access_exprs);
+    this->set_expression(this->expression.substitute_access(inp.get_name(), new_access->get_name()));
+
+    // Find the level after which kernel starts
+    int gpu_level = std::get<0>(thread_dims);
+    if (std::get<2>(thread_dims) != -1) {
+        gpu_level = std::get<2>(thread_dims);
+    } else if (std::get<1>(thread_dims) != -1) {
+        gpu_level = std::get<1>(thread_dims);
+    }
+
+    // Declare buffer
+    isl_set *dec_domain = isl_map_range(isl_map_copy(this->get_schedule()));
+    // Project out redundancy dimension
+    dec_domain = isl_set_project_out(dec_domain, isl_dim_set, 0, 1);
+    std::string dec_name = name_prefix + "_dec";
+    dec_domain = isl_set_set_tuple_name(dec_domain, dec_name.c_str());
+    project_out_static_dimensions(dec_domain);
+    // Project out levels inside kernel
+    dec_domain = isl_set_project_out(dec_domain, isl_dim_set, gpu_level + 1,
+            isl_set_dim(dec_domain, isl_dim_set) - gpu_level - 1);
+    dec_domain = isl_set_set_tuple_name(dec_domain, dec_name.c_str());
+    std::string iteration_domain_str = isl_set_to_str(dec_domain);
+    DEBUG(3, tiramisu::str_dump("Generated iteration domain for declaration: " + iteration_domain_str));
+    computation *buf_dec = new computation(iteration_domain_str, allocate(*buff), true, p_none, fn);
+    fn->gpu_block_dimensions.push_back(std::make_pair(buf_dec->get_name(), block_dims));
+    fn->gpu_thread_dimensions.push_back(std::make_pair(buf_dec->get_name(), thread_dims));
+    isl_set_free(dec_domain);
+
+    // Find number of data points we need to copy and number of threads
+    int buffer_size = buffer_shape[0];
+    for (int i = 1; i < buffer_shape.size(); i++) {
+        buffer_size = buffer_size * buffer_shape[i];
+    }
+    int thread_pool_size = 1;
+    for (int i = 0; i < this->thread_block_shape.size(); i++) {
+        thread_pool_size *= this->thread_block_shape[i];
+    }
+
+    // Construct iteration domain for copy
+    isl_set *copy_domain = isl_map_range(isl_map_copy(this->get_schedule()));
+    // Project out redundancy dimension
+    copy_domain = isl_set_project_out(copy_domain, isl_dim_set, 0, 1);
+    copy_domain = isl_set_set_tuple_name(copy_domain, (name_prefix + "_copy").c_str());
+    project_out_static_dimensions(copy_domain);
+    // Project out dimensions under copy_level
+    copy_domain = isl_set_project_out(copy_domain, isl_dim_set, copy_level + 1,
+            isl_set_dim(copy_domain, isl_dim_set) - copy_level - 1);
+    isl_set *sync_domain = isl_set_copy(copy_domain);
+    // Add a new iterator to the domain in case each thread copies more than one value
+    copy_domain = isl_set_add_dims(copy_domain, isl_dim_set, 1);
+    std::string copy_iter_name = name_prefix + "_copy_iter";
+    copy_domain = isl_set_set_dim_name(copy_domain, isl_dim_set,
+            isl_set_dim(copy_domain, isl_dim_set) - 1, copy_iter_name.c_str());
+    // Add constraints for the new iterator
+    isl_constraint *cst1 = isl_constraint_alloc_inequality(isl_local_space_from_space(isl_set_get_space(copy_domain)));
+    cst1 = isl_constraint_set_coefficient_si(cst1, isl_dim_set, copy_level + 1, 1);
+    //cst1 = isl_constraint_set_constant_si(cst1, 0);
+    copy_domain = isl_set_add_constraint(copy_domain, cst1);
+    isl_constraint *cst2 = isl_constraint_alloc_inequality(isl_local_space_from_space(isl_set_get_space(copy_domain)));
+    cst2 = isl_constraint_set_coefficient_si(cst2, isl_dim_set, copy_level + 1, -1);
+    cst2 = isl_constraint_set_constant_si(cst2, (buffer_size - 1) / thread_pool_size);
+    copy_domain = isl_set_add_constraint(copy_domain, cst2);
+    copy_domain = isl_set_set_tuple_name(copy_domain, (name_prefix + "_copy").c_str());
+
+    // Find copy index
+    expr copy_index = var(isl_set_get_dim_name(copy_domain, isl_dim_set, std::get<0>(thread_dims)), false);
+    if (std::get<1>(thread_dims) != -1) {
+        std::string dim_name = isl_set_get_dim_name(copy_domain, isl_dim_set, std::get<1>(thread_dims));
+        copy_index = copy_index * this->thread_block_shape[1] + var(dim_name, false);
+    }
+    if (std::get<2>(thread_dims) != -1) {
+        std::string dim_name = isl_set_get_dim_name(copy_domain, isl_dim_set, std::get<2>(thread_dims));
+        copy_index = copy_index * this->thread_block_shape[2] + var(dim_name, false);
+    }
+    copy_index = var(copy_iter_name, false) * thread_pool_size + copy_index;
+
+    // Assign copy indices to temporary registers. This is a workaround since
+    // using copy_index directly for indexing doesn't seem to work
+    std::vector<computation *> copy_index_regs;
+    std::vector<computation *> copy_index_decs;
+    int denominator = 1;
+    for (int i = buffer_shape.size() - 1; i >= 0; i--) {
+        isl_set *domain = isl_set_copy(copy_domain);
+        domain = isl_set_set_tuple_name(domain, (name_prefix + "_copy_comp" + std::to_string(i)).c_str());
+        computation *copy_index_reg = new computation(
+                isl_set_to_str(domain),
+                copy_index / denominator % buffer_shape[i], true, p_int32, fn);
+        copy_index_reg->store_in({expr(0)}, {1});
+        copy_index_reg->get_buffer()->tag_gpu_register();
+        domain = isl_set_set_tuple_name(domain, (name_prefix + "_copy_dec" + std::to_string(i)).c_str());
+        computation *copy_index_dec = new computation(
+                isl_set_to_str(domain),
+                allocate(*copy_index_reg->get_buffer()), true, p_none, fn);
+        isl_set_free(domain);
+        denominator *= buffer_shape[i];
+        copy_index_regs.insert(copy_index_regs.begin(), copy_index_reg);
+        copy_index_decs.insert(copy_index_decs.begin(), copy_index_dec);
+        fn->gpu_block_dimensions.push_back(std::make_pair(copy_index_reg->get_name(), block_dims));
+        fn->gpu_thread_dimensions.push_back(std::make_pair(copy_index_reg->get_name(), thread_dims));
+        fn->gpu_block_dimensions.push_back(std::make_pair(copy_index_dec->get_name(), block_dims));
+        fn->gpu_thread_dimensions.push_back(std::make_pair(copy_index_dec->get_name(), thread_dims));
+    }
+
+    // Create access patterns for shared memory and input computation
+    std::vector<expr> buf_access;
+    std::vector<expr> inp_access;
+    for (int i = 0; i < buffer_shape.size(); i++) {
+        buf_access.push_back(var(copy_index_regs[i]->get_buffer()->get_name(), false));
+        inp_access.push_back(var(copy_index_regs[i]->get_buffer()->get_name(), false) + copy_offsets[i]);
+    }
+
+    // Add names of index variables as params to copy domain
+    for (int i = 0; i < copy_index_regs.size(); i++) {
+        copy_domain = isl_set_add_dims(copy_domain, isl_dim_param, 1);
+        copy_domain = isl_set_set_dim_name(copy_domain, isl_dim_param,
+                isl_set_dim(copy_domain, isl_dim_param) - 1,
+                copy_index_regs[i]->get_buffer()->get_name().c_str());
+    }
+
+    // Create the copy computation
+    std::string copy_domain_str = isl_set_to_str(copy_domain);
+    DEBUG(3, tiramisu::str_dump("Generated iteration domain for copy: " + copy_domain_str));
+    computation *copy_computation = new computation(copy_domain_str,
+            expr(o_access, inp.get_name(), inp_access, inp.get_data_type()),
+            true, inp.get_data_type(), fn);
+    copy_computation->store_in(buff, buf_access);
+    copy_computation->add_predicate(copy_index < buffer_size);
+    fn->gpu_block_dimensions.push_back(std::make_pair(copy_computation->get_name(), block_dims));
+    fn->gpu_thread_dimensions.push_back(std::make_pair(copy_computation->get_name(), thread_dims));
+    isl_set_free(copy_domain);
+
+    // Synchronization
+    computation *c_sync1 = new computation(
+            isl_set_to_str(isl_set_set_tuple_name(isl_set_copy(sync_domain), (name_prefix + "_sync1").c_str())),
+            tiramisu::sync(), true, p_int32, fn);
+    computation *c_sync2 = new computation(
+            isl_set_to_str(isl_set_set_tuple_name(isl_set_copy(sync_domain), (name_prefix + "_sync2").c_str())),
+            tiramisu::sync(), true, p_int32, fn);
+    fn->gpu_block_dimensions.push_back(std::make_pair(c_sync1->get_name(), block_dims));
+    fn->gpu_thread_dimensions.push_back(std::make_pair(c_sync1->get_name(), thread_dims));
+    fn->gpu_block_dimensions.push_back(std::make_pair(c_sync2->get_name(), block_dims));
+    fn->gpu_thread_dimensions.push_back(std::make_pair(c_sync2->get_name(), thread_dims));
+
+    // Schedule computations
+    {
+        // Traverse schedule tree up and find the first computation in the given level
+        computation *curr = this;
+        computation *pred = curr->get_predecessor();
+        while (pred != nullptr && fn->sched_graph[pred][curr] >= copy_level) {
+            curr = pred;
+            pred = curr->get_predecessor();
+        }
+        // Schedule
+        if (pred != nullptr) {
+            c_sync1->between(*pred, fn->sched_graph[pred][curr], *curr, copy_level);
+        } else {
+            c_sync1->before(*curr, copy_level);
+        }
+        c_sync2->between(*c_sync1, copy_level, *curr, copy_level);
+        copy_computation->between(*c_sync1, copy_level, *c_sync2, copy_level);
+        copy_index_decs[0]->between(*copy_computation->get_predecessor(), copy_level, *copy_computation, copy_level + 1);
+        for (int i = 1; i < copy_index_decs.size(); i++) {
+            copy_index_decs[i]->between(*copy_computation->get_predecessor(), copy_level + 1, *copy_computation, copy_level + 1);
+        }
+        for (int i = 0; i < copy_index_regs.size(); i++) {
+            copy_index_regs[i]->between(*copy_computation->get_predecessor(), copy_level + 1, *copy_computation, copy_level + 1);
+        }
+    }
+    // Schedule buffer declaration
+    {
+        // Traverse schedule tree up and find the first computation in the same kernel
+        computation *curr = this;
+        computation *pred = curr->get_predecessor();
+        while (pred != nullptr && fn->sched_graph[pred][curr] >= gpu_level) {
+            curr = pred;
+            pred = curr->get_predecessor();
+        }
+        // Schedule the declaration to the beginning of the kernel
+        if (pred != nullptr) {
+            buf_dec->between(*pred, fn->sched_graph[pred][curr], *curr, gpu_level);
+        } else {
+            buf_dec->before(*curr, gpu_level);
+        }
+    }
+
+    return new_access;
 }
 
 }

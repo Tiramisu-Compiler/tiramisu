@@ -51,31 +51,27 @@ int main(int, char **)
         for (int z = 0; z < FIn; ++z)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                    resultfile << (float)((int)(output(x, y, z, n) * 100) / 100.0);
+                    resultfile << setprecision(10) << output(x, y, z, n) << std::endl;
 
     resultfile.close();
 
     std::cout << "\t\t Result"
               << ":\n\n";
 
-    FILE *fp1, *fp2;
-
-    char line1[5], line2[5];
-
-    float file_count = 0, corr = 0;
-    fp1 = fopen("tiramisu_result.txt", "r");
-    fp2 = fopen("mkldnn_result.txt", "r");
-
-    while (!feof(fp1))
+    std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt");
+    std::string line1, line2;
+    float file_count = 0, corr = 0, f1, f2;
+    
+    while (std::getline(infile1, line1))
     {
-        fgets(line1, sizeof(line1), fp1);
-        fgets(line2, sizeof(line2), fp2);
+        std::getline(infile2, line2);
         file_count += 1;
-        if (strcmp(line1, line2) == 0)
+        f1 = std::stof(line1);
+        f2 = std::stof(line2);
+
+        if (abs(f1 - f2) <= 0.0001)
             corr += 1;
     }
-    fclose(fp1);
-    fclose(fp2);
 
     printf("\t\t Percentage of correctness %f \n\n", corr / file_count * 100);
     return 0;

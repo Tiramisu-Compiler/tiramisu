@@ -29,6 +29,14 @@
 #include <fstream>
 #include <memory>
 
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+
+#include <direct.h>
+#define getcwd _getcwd
+#endif
+
 namespace tiramisu {
 
 tiramisu::expr replace_original_indices_with_transformed_indices(tiramisu::expr exp,
@@ -1686,7 +1694,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
         auto result = exec(command.str());
 
         if (result.fail()) {
-            ERROR("Failed to compile the CPU object for the GPU code.", false);
+            ERROR("Failed to compile the CPU object for the GPU code.", true);
         }
 
         DEBUG_INDENT(-4);
@@ -1715,7 +1723,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
         auto result = exec(command.str());
 
         if (result.fail()) {
-            ERROR("Failed to compile the GPU object for the GPU code.", false);
+            ERROR("Failed to compile the GPU object for the GPU code.", true);
         }
 
         DEBUG_INDENT(-4);
