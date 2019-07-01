@@ -8,7 +8,6 @@
 #define NN 100
 #define alpha 3
 
-
 using namespace std;
 using namespace std::chrono;
 
@@ -17,7 +16,7 @@ int main(int, char **)
     Halide::Buffer<uint8_t> A_buf(NN, NN);
     Halide::Buffer<uint8_t> x_buf(NN);
     
-    //output syr2
+    //output spr
     Halide::Buffer<uint8_t> output1_buf(NN, NN);
 
     // Initialize matrix A with pseudorandom values:
@@ -55,16 +54,16 @@ int main(int, char **)
     }
     // REFERENCE C++ CODE EXECUTION ENDS.
 
-auto end2 = std::chrono::high_resolution_clock::now();
+    auto end2 = std::chrono::high_resolution_clock::now();
     auto  duration2 =duration_cast<microseconds>(end2 - start2);
 
     //===== printing REFERECE EXEC TIME: =====
     std::cout << "\n REF RESOLUTION TIME : " << duration2.count() << "microseconds";
-   //===== printing TIRAMISU EXEC TIME: =====
+    //===== printing TIRAMISU EXEC TIME: =====
     std::cout << "\n TIRAMISU RESOLUTION TIME : " << duration1.count() << "microseconds";
     printf("\n");
 
-   //===== Verify if TIRAMISU output is correct: =====
+    //===== Verify if TIRAMISU output is correct: =====
     compare_buffers("spr", output1_buf, output2_buf);
 
     return 0;
