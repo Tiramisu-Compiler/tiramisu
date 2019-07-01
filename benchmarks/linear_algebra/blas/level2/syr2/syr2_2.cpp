@@ -4,7 +4,6 @@
     for i = 0 .. N
         for j = 0 .. N
             C[i,j] = A[i,j] + alpha * X[i]*Y[j] + alpha * X[j]*Y[i]
-     
 */
 
 #include <tiramisu/tiramisu.h>
