@@ -1,7 +1,6 @@
 /**
   copy : copies vector to another vector
 
-
   for (int i = 0; i < N; i++)
       output[i] = A[i];
 */
