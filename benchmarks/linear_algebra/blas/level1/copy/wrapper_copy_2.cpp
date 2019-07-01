@@ -27,7 +27,6 @@ int main(int, char **)
 
     // REFERENCE Output buffer
     Halide::Buffer<uint8_t> expected(NN);
-  
     // REFERENCE C++ CODE EXECUTION STARTS
     auto start2 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < NN; i++) {
@@ -38,7 +37,6 @@ int main(int, char **)
 
     auto end2 = std::chrono::high_resolution_clock::now();
     auto  duration2 =duration_cast<microseconds>(end2 - start2);
-
     //===== printing REFERECE EXEC TIME: =====
     std::cout << "\n REF RESOLUTION TIME : " << duration2.count() << "microseconds";
     //===== printing TIRAMISU EXEC TIME: =====
