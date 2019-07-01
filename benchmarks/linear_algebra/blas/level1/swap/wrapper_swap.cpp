@@ -36,9 +36,9 @@ int main(int, char **)
     auto end2 = std::chrono::high_resolution_clock::now();
     auto  duration2 =duration_cast<microseconds>(end2 - start2);
    // TIRAMISU PROGRAM ENDS.
-   //===== printing REFERECE EXEC TIME: =====
+   // printing REFERECE EXEC TIME:
     std::cout << "\n REF RESOLUTION TIME : " << duration1.count() << "microseconds";
-   //===== printing TIRAMISU EXEC TIME: =====
+   // printing TIRAMISU EXEC TIME:
     std::cout << "\n TIRAMISU RESOLUTION TIME : " << duration2.count() << "microseconds";
     printf("\n");
     compare_buffers("swap_input1", input1_buf, expected1);
