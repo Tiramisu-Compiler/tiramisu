@@ -27,6 +27,8 @@ expr mul_i(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
     return (e1 + e2);
 }
 
+// given a list of producor->consumer edge,
+// group them into sub list of size `block_size`
 template <typename EdgeTy>
 std::vector<std::vector<EdgeTy>> block_edges(
     const std::vector<EdgeTy> &edges,
@@ -42,6 +44,7 @@ std::vector<std::vector<EdgeTy>> block_edges(
   return blocked_edges;
 }
 
+// think snprintf but easier to use, copied for Stackoverflow
 template<typename ... Args>
 std::string str_fmt( const std::string& format, Args ... args )
 {
@@ -51,52 +54,36 @@ std::string str_fmt( const std::string& format, Args ... args )
   return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
-// replace all occurence of `target` with `replacement` in `e`
-expr replace(expr e, expr target, expr replacement) {
-  if (e.is_equal(target)) {
-    return replacement;
-  }
-
-  auto recur_on_operand = [&target, &replacement](const expr &operand) -> expr {
-    replace(operand, target, replacement);
-  };
-
-  expr ep = e.apply_to_operands(recur_on_operand);
-  return ep;
-}
-
-// given a list of potentially redundant loads:
-// replace use of these loads with lets,
-//
-// return the lets introduced, which are not scheduled (the user should schedule it)
-std::vector<computation *> eliminate_redundant_loads(
-    std::map<std::string, expr> loads,/* loads that are potentially redundant */
-    std::vector<computation *> computations/* computations that we want to optimize */,
-    int loop_level) {
-  assert(!computations.empty());
-  std::vector<computation *> let_stmts;
-  for (auto &nameAndLoad : loads) {
-    std::string name;
-    expr load;
-    std::tie(name, load) = nameAndLoad;
-    auto *let_stmt = new constant(
-        name, load, load.get_data_type(),
-        false/*whether invariant across whole function*/,
-        computations[0]/*compute this constant with this*/,
-        loop_level);
-    for (auto *user : computations) {
-      expr new_user_expr = replace(user->get_expr(), load, *let_stmt);
-      user->set_expression(new_user_expr);
-    }
-    let_stmts.push_back(let_stmt);
-  }
-  return let_stmts;
+typedef buffer *BufferPtrTy ;
+void allocate_complex_buffers(
+    BufferPtrTy &real_buff, BufferPtrTy &imag_buff, 
+    std::vector<expr> dims, std::string name) {
+  real_buff = new buffer(
+      // name
+      str_fmt("%s_r", name.c_str()),
+      // dimensions
+      dims,
+      // type
+      tiramisu::p_float64, 
+      // usage/source
+      a_temporary);
+  imag_buff = new buffer(
+      // name
+      str_fmt("%s_i", name.c_str()),
+      // dimensions
+      dims,
+      // type
+      tiramisu::p_float64, 
+      // usage/source
+      a_temporary);
 }
 
 // if Key is not in the map insert val
 // otherwise add val to existing entry
 template <typename K>
-void insert_or_add(std::map<K, std::pair<expr, expr>> &map, K key, std::pair<expr, expr> val) {
+void insert_or_add(
+    std::map<K, std::pair<expr, expr>> &map,
+    K key, std::pair<expr, expr> val) {
   auto it = map.find(key);
   if (it == map.end()) {
     map[key] = val;
@@ -133,16 +120,12 @@ void generate_function(std::string name)
     input Blocal_i("Blocal_i", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, p_float64);
     input   prop_r("prop_r",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input   prop_i("prop_i",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
-    //input  weights("weights",  {wnum}, p_float64);
     input    psi_r("psi_r",    {n, y}, p_float64);
     input    psi_i("psi_i",    {n, y}, p_float64);
-    //input    color_weights("color_weights",    {wnum, tri}, p_int32);
-    //input    spin_weights("spin_weights",    {wnum, tri}, p_int32);
 
     computation Blocal_r_init("Blocal_r_init", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, expr((double) 0));
     computation Blocal_i_init("Blocal_i_init", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, expr((double) 0));
 
-    ////////////////// BEGIN TOM's STUFF   //////////////////
     std::map<std::string, expr> prop_loads;
     std::map<std::pair<int,int>, std::pair<expr, expr>> Q2_exprs;
     std::map<std::pair<int,int>, std::pair<expr, expr>> O_exprs;
@@ -207,8 +190,6 @@ void generate_function(std::string name)
           { t, iCprime, iSprime, kCprime, kSprime, x, y },
           // definition
           imag);
-      //realComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
-      //imagComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
       Q2[{jc,js}].first = realComputation;
       Q2[{jc,js}].second = imagComputation;
     }
@@ -233,8 +214,6 @@ void generate_function(std::string name)
           { t, jCprime, jSprime, kCprime, kSprime, x, y },
           // definition
           imag);
-      //realComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
-      //imagComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
       O[{ic,is}].first = realComputation;
       O[{ic,is}].second = imagComputation;
     }
@@ -259,35 +238,10 @@ void generate_function(std::string name)
           { t, jCprime, jSprime, kCprime, kSprime, x, y },
           // definition
           imag);
-      //realComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
-      //imagComputation->add_predicate(iCprime != kCprime || iSprime != kSprime);
       P[{kc,ks}].first = realComputation;
       P[{kc,ks}].second = imagComputation;
     }
-
-    ////////////////// END TOM's STUFF   //////////////////
-
-    //std::pair<expr, expr> prop_0(prop_r(t, 0, iCprime, iSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y), prop_i(t, 0, iCprime, iSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y));
-    //std::pair<expr, expr> prop_2(prop_r(t, 2, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y), prop_i(t, 2, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y));
-    //std::pair<expr, expr> prop_0p(prop_r(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y), prop_i(t, 0, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y));
-    //std::pair<expr, expr> prop_2p(prop_r(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y), prop_i(t, 2, iCprime, iSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y));
-    //std::pair<expr, expr> m1(mul_r(prop_0, prop_2) - mul_r(prop_0p, prop_2p), mul_i(prop_0, prop_2) - mul_i(prop_0p, prop_2p));
     std::pair<expr, expr> psi(psi_r(n, y), psi_i(n, y));
-    //std::pair<expr, expr> m2(mul_r(psi, m1), mul_i(psi, m1));
-    //expr prop_r_1 = prop_r(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
-    //expr prop_i_1 = prop_i(t, 1, jCprime, jSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y);
-    //std::pair<expr, expr> prop_1(prop_r_1, prop_i_1);
-
-#if 0
-    computation Blocal_r_update("Blocal_r_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, p_float64);
-    Blocal_r_update.set_expression(Blocal_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_r(m2, prop_1));
-
-    computation Blocal_i_update("Blocal_i_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, y, wnum}, p_float64);
-    Blocal_i_update.set_expression(Blocal_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x) + weights(wnum) * mul_i(m2, prop_1));
-#endif
-
-    //computation Q_r_init("Q_r_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y}, expr((double) 0));
-    //computation Q_i_init("Q_i_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y}, expr((double) 0));
 
     computation Bsingle_r_init("Bsingle_r_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, x2}, expr((double) 0));
     computation Bsingle_i_init("Bsingle_i_init", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, x2}, expr((double) 0));
@@ -315,9 +269,6 @@ void generate_function(std::string name)
       std::pair<expr, expr> q(
           (*q_real)(t, iCprime, iSprime, kCprime, kSprime, x, y),
           (*q_imag)(t, iCprime, iSprime, kCprime, kSprime, x, y));
-      //std::pair<expr, expr> q(
-      //    q_real->get_expr().copy(),
-      //    q_imag->get_expr().copy());
 
       // NOTE
       // iterators of Q { t, iCprime, iSprime, kCprime, kSprime, x, y },
@@ -378,8 +329,6 @@ void generate_function(std::string name)
           // definition
           blocal_update_i);
       Blocal_updates.push_back({blocal_r, blocal_i});
-      //blocal_r->add_predicate(iCprime != kCprime || iSprime != kSprime);
-      //blocal_i->add_predicate(iCprime != kCprime || iSprime != kSprime);
 
       Q2UserEdge edge {q_real, q_imag, bsingle_r, bsingle_i, blocal_r, blocal_i};
       q2userEdges.push_back(edge);
@@ -493,135 +442,9 @@ void generate_function(std::string name)
 #define O_BLOCK_SIZE 3
 #define P_BLOCK_SIZE 3
 
-    auto blocked_q2userEdges = block_edges(q2userEdges, Q_BLOCK_SIZE);
-    auto blocked_o2userEdges = block_edges(o2userEdges, O_BLOCK_SIZE);
-    auto blocked_p2userEdges = block_edges(p2userEdges, P_BLOCK_SIZE);
-
-#if 0
-    computation Q_r_update("Q_r_update", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y, wnum},
-			Q_r_init(t, n, iCprime, iSprime, kCprime, kSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y) + weights(wnum) * mul_r(psi, m1));
-    Q_r_update.add_predicate((jCprime == color_weights(wnum, 1)) && (jSprime == spin_weights(wnum, 1)));
-
-    computation Q_i_update("Q_i_update", {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y, wnum},
-			Q_i_init(t, n, iCprime, iSprime, kCprime, kSprime, color_weights(wnum, 1), spin_weights(wnum, 1), x, y) + weights(wnum) * mul_i(psi, m1));
-    Q_i_update.add_predicate((jCprime == color_weights(wnum, 1)) && (jSprime == spin_weights(wnum, 1)));
-
-    std::pair<expr, expr> Q_update(Q_r_update(t, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum), Q_i_update(t, n, iCprime, iSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum));
-    std::pair<expr, expr> prop_1p(prop_r(t, 1, jCprime, jSprime, lCprime, lSprime, x2, y), prop_i(t, 1, jCprime, jSprime, lCprime, lSprime, x2, y));
-
-    computation Bsingle_r_update("Bsingle_r_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bsingle_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) + mul_r(Q_update, prop_1p));
-
-    computation Bsingle_i_update("Bsingle_i_update", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bsingle_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) + mul_i(Q_update, prop_1p));
-#endif
-
-#if 0
-    computation O_r_init("O_r_init", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y}, expr((double) 0));
-    computation O_i_init("O_i_init", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y}, expr((double) 0));
-
-    computation P_r_init("P_r_init", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y}, expr((double) 0));
-    computation P_i_init("P_i_init", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y}, expr((double) 0));
-
-    std::pair<expr, expr> m3(mul_r(psi, prop_1), mul_i(psi, prop_1));
-    computation O_r_update("O_r_update", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y, wnum},
-			O_r_init(t, n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y) + weights(wnum) * mul_r(m3, prop_2));
-    O_r_update.add_predicate((iCprime == color_weights(wnum, 0)) && (iSprime == spin_weights(wnum, 0)));
-
-    computation O_i_update("O_i_update", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y, wnum},
-			O_i_init(t, n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 0), spin_weights(wnum, 0), x, y) + weights(wnum) * mul_i(m3, prop_2));
-    O_i_update.add_predicate((iCprime == color_weights(wnum, 0)) && (iSprime == spin_weights(wnum, 0)));
-
-    std::pair<expr, expr> m4(mul_r(psi, prop_0p), mul_i(psi, prop_0p));
-    computation P_r_update("P_r_update", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y, wnum},
-			P_r_init(t, n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y) + weights(wnum) * mul_r(m4, prop_1));
-    P_r_update.add_predicate((iCprime == color_weights(wnum, 2)) && (iSprime == spin_weights(wnum, 2)));
-
-    computation P_i_update("P_i_update", {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y, wnum},
-			P_i_init(t, n, jCprime, jSprime, kCprime, kSprime, color_weights(wnum, 2), spin_weights(wnum, 2), x, y) + weights(wnum) * mul_i(m4, prop_1));
-    P_i_update.add_predicate((iCprime == color_weights(wnum, 2)) && (iSprime == spin_weights(wnum, 2)));
-
-    std::pair<expr, expr> O_update(O_r_update(t, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum), O_i_update(t, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum));
-    std::pair<expr, expr> P_update(P_r_update(t, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum), P_i_update(t, n, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, y, wnum));
-    std::pair<expr, expr> prop_0pp(prop_r(t, 0, iCprime, iSprime, lCprime, lSprime, x2, y), prop_i(t, 0, iCprime, iSprime, lCprime, lSprime, x2, y));
-
-    computation Bdouble_r_update0("Bdouble_r_update0", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bdouble_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) + mul_r(prop_0pp, O_update));
-
-    computation Bdouble_i_update0("Bdouble_i_update0", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bdouble_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) + mul_i(prop_0pp, O_update));
-
-    std::pair<expr, expr> prop_2pp(prop_r(t, 2, iCprime, iSprime, lCprime, lSprime, x2, y), prop_i(t, 2, iCprime, iSprime, lCprime, lSprime, x2, y));
-    computation Bdouble_r_update1("Bdouble_r_update1", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bdouble_r_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) - mul_r(P_update, prop_2pp));
-
-    computation Bdouble_i_update1("Bdouble_i_update1", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, lCprime, lSprime, x, x2, y},
-	    Bdouble_i_init(t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2) - mul_i(P_update, prop_2pp));
-#endif
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-#if 0
-    block init_blk({&Blocal_r_init, &Blocal_i_init, &Q_r_init, &Q_i_init,
-		&Bsingle_r_init, &Bsingle_i_init, &Bdouble_r_init, &Bdouble_i_init,
-		&O_r_init, &O_i_init, &P_r_init, &P_i_init});
-
-    block Blocal_blk({&Blocal_r_update, &Blocal_i_update, &Q_r_update, &Q_i_update,
-		 &O_r_update, &O_i_update, &P_r_update, &P_i_update});
-
-    block Bsingle_blk({&Bsingle_r_update, &Bsingle_i_update, &Bdouble_r_update0,
-			&Bdouble_i_update0, &Bdouble_r_update1, &Bdouble_i_update1});
-#endif
-    //block init_blk({&Q_r_init, &Q_i_init,
-	//	&Bsingle_r_init, &Bsingle_i_init});
-
-    //block Blocal_blk({&Q_r_update, &Q_i_update});
-
-    //block Bsingle_blk({&Bsingle_r_update, &Bsingle_i_update});
-
-#if FUSE
-    Bsingle_blk.interchange(iCprime, jCprime);
-    Bsingle_blk.interchange(iSprime, jSprime);
-    Bsingle_blk.interchange(iCprime, kCprime);
-    Bsingle_blk.interchange(iSprime, kSprime);
-#endif
-
-#if 0
-    Blocal_r_init.then(Blocal_i_init, x)
-		 .then(Q_r_init, computation::root)
-		 .then(Q_i_init, y)
-		 .then(Bsingle_r_init, x2)
-		 .then(Bsingle_i_init, x2)
-		 .then(Bdouble_r_init, x2)
-		 .then(Bdouble_i_init, x2)
-		 .then(O_r_init, y)
-		 .then(O_i_init, y)
-		 .then(P_r_init, y)
-		 .then(P_i_init, y)
-		 .then(Blocal_r_update, computation::root)
-		 .then(Blocal_i_update, wnum)
-		 .then(Q_r_update, jSprime)
-		 .then(Q_i_update, wnum)
-		 .then(O_r_update, wnum)
-		 .then(O_i_update, wnum)
-		 .then(P_r_update, wnum)
-		 .then(P_i_update, wnum)
-		 .then(Bsingle_r_update, n)
-		 .then(Bsingle_i_update, y)
-		 .then(Bdouble_r_update0, y)
-		 .then(Bdouble_i_update0, y)
-		 .then(Bdouble_r_update1, y)
-		 .then(Bdouble_i_update1, y);
-#endif
-    //Q_r_init
-    //  .then(Q_i_init, y)
-    //  .then(Bsingle_r_init, x2)
-    //  .then(Bsingle_i_init, x2)
-    //  .then(Q_r_update, jSprime)
-    //  .then(Q_i_update, wnum)
-    //  .then(Bsingle_r_update, n)
-    //  .then(Bsingle_i_update, y);
 
     computation *handle = &(
         Blocal_r_init
@@ -631,14 +454,9 @@ void generate_function(std::string name)
         .then(Bdouble_r_init, computation::root)
         .then(Bdouble_i_init, computation::root));
 
-    //for (auto computations: Bsingle_updates) {
-    //  computation *real;
-    //  computation *imag;
-    //  std::tie(real, imag) = computations;
-    //  handle = handle
-    //    .then(*real, y)
-    //    .then(*imag, y);
-    //}
+    auto blocked_q2userEdges = block_edges(q2userEdges, Q_BLOCK_SIZE);
+    auto blocked_o2userEdges = block_edges(o2userEdges, O_BLOCK_SIZE);
+    auto blocked_p2userEdges = block_edges(p2userEdges, P_BLOCK_SIZE);
 
     var it = computation::root; 
     for (auto edges : blocked_q2userEdges) {
@@ -769,42 +587,12 @@ void generate_function(std::string name)
     Blocal_i.store_in(&buf_Blocal_i);
     Blocal_r_init.store_in(&buf_Blocal_r);
     Blocal_i_init.store_in(&buf_Blocal_i);
-#if 0
-    Blocal_r_update.store_in(&buf_Blocal_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
-    Blocal_i_update.store_in(&buf_Blocal_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
-#endif
 
-    //Q_r_init.store_in(&buf_Q_r);
-    //Q_i_init.store_in(&buf_Q_i);
-#if 0
-    O_r_init.store_in(&buf_O_r);
-    O_i_init.store_in(&buf_O_i);
-    P_r_init.store_in(&buf_P_r);
-    P_i_init.store_in(&buf_P_i);
-#endif
-
-    //Q_r_update.store_in(&buf_Q_r, {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y});
-    //Q_i_update.store_in(&buf_Q_i, {t, n, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, x, y});
-#if 0
-    O_r_update.store_in(&buf_O_r, {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y});
-    O_i_update.store_in(&buf_O_i, {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y});
-    P_r_update.store_in(&buf_P_r, {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y});
-    P_i_update.store_in(&buf_P_i, {t, n, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime, x, y});
-#endif
     Bsingle_r_init.store_in(&buf_Bsingle_r);
     Bsingle_i_init.store_in(&buf_Bsingle_i);
 
-    //Bsingle_r_update.store_in(&buf_Bsingle_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-    //Bsingle_i_update.store_in(&buf_Bsingle_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-
     Bdouble_r_init.store_in(&buf_Bdouble_r);
     Bdouble_i_init.store_in(&buf_Bdouble_i);
-#if 0
-    Bdouble_r_update0.store_in(&buf_Bdouble_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-    Bdouble_i_update0.store_in(&buf_Bdouble_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-    Bdouble_r_update1.store_in(&buf_Bdouble_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-    Bdouble_i_update1.store_in(&buf_Bdouble_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-#endif
 
     buffer *q_r_bufs[Q_BLOCK_SIZE];
     buffer *q_i_bufs[Q_BLOCK_SIZE];
@@ -812,96 +600,26 @@ void generate_function(std::string name)
     buffer *o_i_bufs[O_BLOCK_SIZE];
     buffer *p_r_bufs[P_BLOCK_SIZE];
     buffer *p_i_bufs[P_BLOCK_SIZE];
+
     for (int i = 0; i < Q_BLOCK_SIZE; i++) {
-      q_r_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_q_r_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
-      q_i_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_q_i_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
+      allocate_complex_buffers(
+          q_r_bufs[i], q_i_bufs[i],
+          { Vsnk }, str_fmt("buf_q_%d", i));
     }
     for (int i = 0; i < O_BLOCK_SIZE; i++) {
-      o_r_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_o_r_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
-      o_i_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_o_i_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
+      allocate_complex_buffers(
+          o_r_bufs[i], o_i_bufs[i],
+          { Vsnk }, str_fmt("buf_o_%d", i));
     }
     for (int i = 0; i < P_BLOCK_SIZE; i++) {
-      p_r_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_p_r_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
-      p_i_bufs[i] = new buffer(
-          // name
-          str_fmt("buf_p_i_%d", i),
-          // dimensions
-          //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-          {Vsnk},
-          // type
-          tiramisu::p_float64, 
-          // usage/source
-          a_temporary);
+      allocate_complex_buffers(
+          p_r_bufs[i], p_i_bufs[i],
+          { Vsnk }, str_fmt("buf_p_%d", i));
     }
 
     for (auto edges : blocked_q2userEdges) {
       for (int i = 0; i < edges.size(); i++) {
         auto edge = edges[i];
-        //auto *buf_q_r = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.q_r->get_name().c_str()),
-        //    // dimensions
-        //    //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-        //    {Vsnk},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
-        //auto *buf_q_i = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.q_i->get_name().c_str()),
-        //    // dimensions
-        //    //{ Lt, Nc, Ns, Nc, Ns, Vsrc, Vsnk },
-        //    {Vsnk},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
         edge.q_r->store_in(q_r_bufs[i], {y});
         edge.q_i->store_in(q_i_bufs[i], {y});
       }
@@ -925,24 +643,6 @@ void generate_function(std::string name)
     for (auto edges : blocked_o2userEdges) {
       for (int i = 0; i < edges.size(); i++) {
         auto edge = edges[i];
-        //auto *buf_o_r = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.o_r->get_name().c_str()),
-        //    // dimensions
-        //    {Vsrc},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
-        //auto *buf_o_i = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.o_i->get_name().c_str()),
-        //    // dimensions
-        //    {Vsrc},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
         edge.o_r->store_in(o_r_bufs[i], {y});
         edge.o_i->store_in(o_i_bufs[i], {y});
       }
@@ -950,24 +650,6 @@ void generate_function(std::string name)
     for (auto edges : blocked_p2userEdges) {
       for (int i = 0; i < edges.size(); i++) {
         auto edge = edges[i];
-        //auto *buf_o_r = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.o_r->get_name().c_str()),
-        //    // dimensions
-        //    {Vsrc},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
-        //auto *buf_o_i = new buffer(
-        //    // name
-        //    str_fmt("buf_%s", edge.o_i->get_name().c_str()),
-        //    // dimensions
-        //    {Vsrc},
-        //    // type
-        //    tiramisu::p_float64, 
-        //    // usage/source
-        //    a_temporary);
         edge.p_r->store_in(p_r_bufs[i], {y});
         edge.p_i->store_in(p_i_bufs[i], {y});
       }
@@ -988,24 +670,15 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-#if 0
-    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), weights.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), color_weights.get_buffer(), spin_weights.get_buffer(), Bsingle_r_update.get_buffer(), Bsingle_i_update.get_buffer(), Bdouble_r_init.get_buffer(), Bdouble_i_init.get_buffer(), &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i}, "generated_baryon.o");
-#endif
-    /* callsite:
-	    tiramisu_generated_code(Blocal_r.raw_buffer(),
-				    Blocal_i.raw_buffer(),
-				    prop_r.raw_buffer(),
-				    prop_i.raw_buffer(),
-				    weights_t.raw_buffer(),
-				    psi_r.raw_buffer(),
-				    psi_i.raw_buffer(),
-				    color_weights_t.raw_buffer(),
-				    spin_weights_t.raw_buffer(),
-				    Bsingle_r.raw_buffer(),
-				    Bsingle_i.raw_buffer(),
-    */
-    tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), 
-        &buf_Bsingle_r, &buf_Bsingle_i, Bdouble_r_init.get_buffer(), Bdouble_i_init.get_buffer(), &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i}, "generated_baryon.o");
+    tiramisu::codegen({
+        &buf_Blocal_r, &buf_Blocal_i, 
+        prop_r.get_buffer(), prop_i.get_buffer(),
+        psi_r.get_buffer(), psi_i.get_buffer(), 
+        &buf_Bsingle_r, &buf_Bsingle_i,
+        Bdouble_r_init.get_buffer(),
+        Bdouble_i_init.get_buffer(),
+        &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i},
+        "generated_baryon.o");
 }
 
 int main(int argc, char **argv)

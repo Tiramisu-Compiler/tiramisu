@@ -27,7 +27,7 @@
 #define Nw 9
 #define twoNw 81
 #define Nperms 36
-#define Lt 1 // 1..32
+#define Lt 2 // 1..32
 #define Vsrc 64 //8, 64, 512
 #define Vsnk 64 //8, 64, 512
 #define Nsrc 6
