@@ -1,33 +1,26 @@
-
 #include <tiramisu/tiramisu.h>
 #include "benchmarks.h"
+
+using namespace tiramisu;
 
 /*
     SYR:
     ----
     performs the symmetric rank 1 operation
-
         A := alpha*x*x**T + A,
- 
-    where: 
-        alpha is a real scalar, 
+
+    where:
+        alpha is a real scalar,
         x is an n element vector,
         A is an n by n symmetric matrix.
 
-   
-    The C version of this function is as follow : 
-   
+    The C version of this function is as follow :
         for(int i=0; i<N:i++){
             for(int j=0; j<N; j++){
-	            result[i][j] = alpha*x[i] * x[j] + A[i][j]; 
+	            result[i][j] = alpha*x[i] * x[j] + A[i][j];
             }
         }
-   
 */
-
-
-
-using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
@@ -36,7 +29,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-
     // Constant
     constant NN("NN", expr(N));
 
@@ -56,30 +48,25 @@ int main(int argc, char **argv)
     computation mul_x_xt("mul_x_xt", {i, j}, p_float64);
     computation sum_all("sum_all", {i, j}, p_float64);
 
-    // alpha*x*x**T
     mul_x_xt.set_expression(alpha(0) * x(i) * x(j));
-
-    // 
     sum_all.set_expression(cast(p_float64, mul_x_xt(i, j)) + A(i, j));
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-
-    sum_all.after(mul_x_xt, i);    
+    sum_all.after(mul_x_xt, i);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
     // Input buffers
     buffer b_a("b_a", {expr(NN)}, p_float64, a_input);
-    buffer b_x("b_x", {expr(NN)}, p_float64, a_input);   
+    buffer b_x("b_x", {expr(NN)}, p_float64, a_input);
     buffer b_alpha("b_alpha", {expr(1)}, p_float64, a_input);
-    
+
     // Output buffer
     buffer b_result("b_result", {expr(NN), expr(NN)}, p_float64, a_output);
- 
+
     // Storing input
     A.store_in(&b_a, {i, j});
     x.store_in(&b_x, {i});
@@ -92,7 +79,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-
     tiramisu::codegen({&b_a, &b_x, &b_alpha, &b_result}, "generated_syr.o");
 
     return 0;

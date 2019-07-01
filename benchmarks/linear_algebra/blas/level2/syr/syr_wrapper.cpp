@@ -6,16 +6,16 @@
 #include <tiramisu/utils.h>
 
 int syr_ref(
-    const int NN, 
-    const double * A, 
-    const double * x, 
+    const int NN,
+    const double * A,
+    const double * x,
     const double * alpha,
-    double * result 
+    double * result
 )
 {
     for(int i = 0; i < NN; i++){
         for(int j = 0; j < NN; j++){
-	        result[i*NN +j] = alpha[0] * x[i] * x[j] + A[i*NN + j];
+	        result[i * NN + j] = alpha[0] * x[i] * x[j] + A[i * NN + j];
         }
     }
 	return 0;
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
 
     Halide::Buffer<double> b_alpha(1), b_x(N), b_A(N, N), b_result(N, N), b_result_ref(N, N);
-    
+
     init_buffer(b_alpha, (double) 2);
     init_buffer(b_x, (double) 2);
     init_buffer(b_A, (double) 1);
@@ -51,7 +51,6 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
 
-    // Reference
     {
         for (int i = 0; i < NB_TESTS; ++i)
         {
@@ -65,7 +64,6 @@ int main(int argc, char** argv)
         }
     }
 
-    // Tiramisu
     {
         for (int i = 0; i < NB_TESTS; ++i)
         {

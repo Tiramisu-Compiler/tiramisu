@@ -6,16 +6,15 @@
 #include <tiramisu/utils.h>
 
 int asum_ref(
-    const double * x, 
+    const double * x,
     const double * incx,
-    double * result 
+    double * result
 )
 {
     result[0]=0;
-
     int inc = (int) incx[0];
     for(int i = 0; i < N; i++){
-        result[0]+=abs(x[i * inc]);
+        result[0] += abs(x[i * inc]);
     }
 	return 0;
 }
@@ -49,7 +48,6 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
 
-    // Reference
     {
         for (int i = 0; i < NB_TESTS; ++i)
         {
@@ -63,7 +61,6 @@ int main(int argc, char** argv)
         }
     }
 
-    // Tiramisu
     {
         for (int i = 0; i < NB_TESTS; ++i)
         {
