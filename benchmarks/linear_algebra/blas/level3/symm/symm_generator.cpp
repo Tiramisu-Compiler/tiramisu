@@ -2,6 +2,8 @@
 
 using namespace tiramisu;
 
+#define N 1024
+#define M 1024
 
 /**
 *   Implementation of SYMM Benchmark in Tiramisu : 
@@ -30,64 +32,58 @@ using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-	tiramisu::init();
+	tiramisu::init("symm");
 
-	function symm("symm");
 	
 	// -------------------------------------------------------
 	// Layer I
 	// -------------------------------------------------------
 
-	computation SIZES("{SIZES[e]: 0<=e<2}", expr(), false, p_float64, &symm);
-
 	// Constants
-	constant N("N", SIZES(0), p_int32, true, NULL, 0, &symm);
-	constant M("M", SIZES(1), p_int32, true, NULL, 0, &symm);
+	constant N("N", expr((int32_t) N)); 
+	constant M("M", expr((int32_t) M))
 
 	// Iteration variables
-	var i("i"), j("j"), k("k");
+	var i("i", 0, N), j("j", 0, M), k("k", 0, j);
 
 	// Scalars  
-	tiramisu::computation alpha("{alpha[0]}", expr(), false, p_float64, &symm);
-	tiramisu::computation beta("{beta[0]}", expr(), false, p_float64, &symm);
-	tiramisu::constant a("a", alpha(0),p_float64, true, NULL, 0, &symm);
-	tiramisu::constant b("b", beta(0), p_float64,true, NULL, 0,   &symm);
+	computation alpha("{alpha[0]}", expr());
+	computation beta("{beta[0]}", expr());
+	constant a("a", alpha(0));
+	constant b("b", beta(0));
 
 	// Matrix 
-	computation B("[N,M]->{B[k,j]: 0<=k<N and 0<=j<M}", expr(), false, p_float64, &symm);
-	computation A("[N]->{A[i,k]: 0<=i<N and 0<=k<N}", expr(), false, p_float64, &symm);
+	input B("B", {"k", "j"}, {N, M}, p_float64);
+	input A("A", {"i", "k"}, {N, N}, p_float64);
     	
-	computation C_0("[N,M]->{C_0[i,j]: 0<=i<N and 0<=j<M}", expr(), false, p_float64, &symm);
+	input C_0("C_0", {"i", "j"}, {N, M}, p_float64);
 	
 	// Computations 
 	// Initialisation à 0 
-	computation init("[N, M]->{init[i,j]: 0<=i<N and 0<=j<=M}", expr(cast(p_float64, 0)), true, p_float64, &symm);
+	computation init("init", {i,j}, expr((p_float64) 0));
 	
 	//  A * B
-	computation mat_mul_a_b("[N, M]->{mat_mul_a_b[i,j,k]: 0<=i<N and 0<=j<=M and 0<=k<j-1}", expr(), true, p_float64, &symm);
+	computation mat_mul_a_b("mat_mul_a_b", {i,j,k}, p_float64);
 
 	// a * temp 
-	computation mult_alpha("[N, M]->{mult_alpha[i,j,k]: 0<=i<N and 0<=j<=M and 0<=k<j-1}", expr(), true, p_float64, &symm);
+	computation mult_alpha("mult_alpha",  {i,j,k}, p_float64);
 
 	// Reduction on C 
-	computation C_1("[N,M]->{C_1[i,j,k]: 0<=k<N and 0<=j<M}", C_0(k-1,j) + mult_alpha(i,j,k) , false, p_float64, &symm);
+	computation C_1("C_1", {i,j,k}, C_0(k-1,j) + mult_alpha(i,j,k));
 
 
 	//  B * A 
-	computation mat_mul_b_a("[N, M]->{mat_mul_b_a[i,j,k]: 0<=i<N and 0<=j<=M and 0<=k<j-1}", expr(), true, p_float64, &symm);
+	computation mat_mul_b_a("mat_mul_b_a", {i,j,k}, p_float64);
 
 
-	computation mat_mul_a_b_e("[N, M]->{mat_mul_a_b_e[i,j]: 0<=i<N and 0<=j<=M }", expr(), true, p_float64, &symm);
-
-	
-	computation mult_alpha_k("[N, M]->{mult_alpha_k[i,j]: 0<=i<N and 0<=j<=M}", expr(), true, p_float64, &symm);
-
-	computation mult_beta("[N, M]->{mult_beta[i,j]: 0<=i<N and 0<=j<M}", expr(), true, p_float64, &symm);
-	
-
-	computation add_all("[N, M]->{add_all[i,j]: 0<=i<N and 0<=j<=M }", expr(), true, p_float64, &symm);
+	computation mat_mul_a_b_e("mat_mul_a_b_e", {i,j}, p_float64);
 
 	
+	computation mult_alpha_k("mult_alpha_k", {i,j}, p_float64);
+
+	computation mult_beta("mult_beta", {i,j}, p_float64);	
+
+	computation add_all("add_all", {i,j}, p_float64); 	
 
 	mat_mul_a_b.set_expression(expr(mat_mul_a_b(i, j, k-1) + A(k, i) * B(i, j)));
 	mult_alpha.set_expression(expr(alpha(0) * mat_mul_a_b(i, j , j-1))); 
@@ -112,48 +108,39 @@ int main(int argc, char **argv)
 	// -------------------------------------------------------
 	// Layer III
 	// -------------------------------------------------------
-
-	buffer buf_SIZES("buf_SIZES", {2}, tiramisu::p_int32, a_input, &symm);
 	
-	buffer buf_A("buf_A", {N,N}, p_float64, a_input, &symm);
-	buffer buf_B("buf_B", {N,M}, p_float64, a_input, &symm);
-	buffer buf_C("buf_C", {N,M}, p_float64, a_input, &symm);
-	buffer buf_alpha("buf_alpha", {1}, p_float64, a_input, &symm);
-	buffer buf_beta("buf_beta", {1}, p_float64, a_input, &symm);
+	buffer buf_A("buf_A", {N,N}, p_float64, a_input);
+	buffer buf_B("buf_B", {N,M}, p_float64, a_input);
+	buffer buf_C("buf_C", {N,M}, p_float64, a_input);
+	buffer buf_alpha("buf_alpha", {1}, p_float64, a_input);
+	buffer buf_beta("buf_beta", {1}, p_float64, a_input);
 
 
-	buffer buf_result("buf_result", {N,M}, p_float64, a_output, &symm);
+	buffer buf_result("buf_result", {N,M}, p_float64, a_output);
 
 	//Store inputs
-	SIZES.set_access("{SIZES[e]->buf_SIZES[e]: 0<=e<2}");
-	
-	A.set_access("{A[i,k]->buf_A[i,k]}");
-	A.set_access("{A[i,i]->buf_A[i,i]}");
-	B.set_access("{B[k,j]->buf_B[k,j]}");
-	B.set_access("{B[i,j]->buf_B[i,j]}");
-	C_0.set_access("{C_0[i,j]->buf_C[i,j]}");
-	alpha.set_access("{alpha[0]->buf_alpha[0]}");
-	beta.set_access("{beta[0]->buf_beta[0]}");
+	A.store_in(&buf_A); 
+	B.store_in(&buf_B); 
+	C_0.store_in(&buf_C); 
+	alpha.store_in(&buf_alpha[0]); 
+	beta.store_in(&buf_beta[0]); 
 
-	add_all.set_access("{add_all[i,j]->buf_result[i,j]}");
-	C_1.set_access("{C_1[i,j,k]->buf_result[i,j]}");
-	mult_beta.set_access("{mult_beta[i,j]->buf_result[i,j]}");
-	mult_alpha_k.set_access("{mult_alpha_k[i,j]->buf_result[i,j]}");
-	mat_mul_a_b_e.set_access("{mat_mul_a_b_e[i,j]->buf_result[i,j]}");
-	mat_mul_b_a.set_access("{mat_mul_b_a[i,j,k]->buf_result[i,j]}");
-	mult_alpha.set_access("{mult_alpha[i,j,k]->buf_result[i,j]}");
-	mat_mul_a_b.set_access("{mat_mul_a_b[i,j, k]->buf_result[i,j]}");
-	init.set_access("{init[i,j]->buf_result[i,j]}");
+	init.store_in(&buf_result, {i,j}); 
+
+	add_all.store_in(&buf_result, {i,j}); 
+	C_1.store_in(&buf_result, {i,j}); 
+	mult_beta.store_in(&buf_result, {i,j}); 
+	mat_mul_a_b_e.store_in(&buf_result, {i,j}); 
+	mat_mul_b_a.store_in(&buf_result, {i,j}); 
+	mult_alpha.store_in(&buf_result, {i,j}); 
+	mat_mul_a_b.store_in(&buf_result, {i,j}); 
 
 	
 	// -------------------------------------------------------
 	// Code Generation
 	// -------------------------------------------------------
-	symm.set_arguments({&buf_SIZES, &buf_A, &buf_B, &buf_C, &buf_alpha, &buf_beta, &buf_result});
-	symm.gen_time_space_domain();
-	symm.gen_isl_ast();
-	symm.gen_halide_stmt();
-	symm.gen_halide_obj("generated_symm.o");
+	tiramisu::codegen({&buf_A, &buf_B, &buf_C, &buf_alpha, &buf_beta, &buf_result}, "generated_symm.o");
+
 	
 	return 0;
 
