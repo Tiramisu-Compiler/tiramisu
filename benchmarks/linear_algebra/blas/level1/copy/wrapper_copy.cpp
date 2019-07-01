@@ -1,17 +1,14 @@
 #include "Halide.h"
-#include "wrapper_copy.h"
+#include "wrapper_copy_2.h"
 #include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
 #include <chrono>
 
-
 #define NN 10 
-
 
 using namespace std;
 using namespace std::chrono;
-
 
 int main(int, char **)
 {
@@ -19,14 +16,11 @@ int main(int, char **)
     // Declare vector input and initialize it with 3 
     Halide::Buffer<uint8_t> input(NN);
     init_buffer(input, (uint8_t)3);
-
     Halide::Buffer<uint8_t> output(NN);
 
     // TRAMISU CODE EXECUTION STARTS:
     auto start1 = std::chrono::high_resolution_clock::now();
-
     copy(input.raw_buffer(), output.raw_buffer());
-
     auto end1 = std::chrono::high_resolution_clock::now();
     auto  duration1 =duration_cast<microseconds>(end1 - start1);
     // TRAMISU CODE EXECUTION ENDS.
