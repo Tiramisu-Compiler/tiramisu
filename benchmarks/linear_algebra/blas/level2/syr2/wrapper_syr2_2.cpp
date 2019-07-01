@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_syr2.h"
+#include "wrapper_syr2_2.h"
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
