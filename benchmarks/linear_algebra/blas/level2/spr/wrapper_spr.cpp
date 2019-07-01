@@ -31,7 +31,6 @@ int main(int, char **)
         x_buf(i) = 2;
     }
 
-   
     // TRAMISU CODE EXECUTION STARTS:
     auto start1 = std::chrono::high_resolution_clock::now();
 
