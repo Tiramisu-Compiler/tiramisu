@@ -2,8 +2,6 @@
 
 using namespace tiramisu;
 
-#define N 1024
-#define M 1024
 
 /**
 *   Implementation of SYMM Benchmark in Tiramisu : 
@@ -40,8 +38,8 @@ int main(int argc, char **argv)
 	// -------------------------------------------------------
 
 	// Constants
-	constant N("N", expr((int32_t) N)); 
-	constant M("M", expr((int32_t) M))
+	constant N("N", expr((int32_t) N));
+	constant M("M", expr((int32_t) M));
 
 	// Iteration variables
 	var i("i", 0, N), j("j", 0, M), k("k", 0, j);
@@ -81,27 +79,27 @@ int main(int argc, char **argv)
 	
 	computation mult_alpha_k("mult_alpha_k", {i,j}, p_float64);
 
-	computation mult_beta("mult_beta", {i,j}, p_float64);	
+	computation mult_beta("mult_beta", {i,j}, p_float64);
 
-	computation add_all("add_all", {i,j}, p_float64); 	
+	computation add_all("add_all", {i,j}, p_float64);
 
 	mat_mul_a_b.set_expression(expr(mat_mul_a_b(i, j, k-1) + A(k, i) * B(i, j)));
-	mult_alpha.set_expression(expr(alpha(0) * mat_mul_a_b(i, j , j-1))); 
+	mult_alpha.set_expression(expr(alpha(0) * mat_mul_a_b(i, j , j-1)));
 	mat_mul_b_a.set_expression(expr(mat_mul_b_a(i, j, k-1) + B(k, j) * A(k, i)));
 	mat_mul_a_b_e.set_expression(expr(A(i, i) * B(i, j)));
-	mult_alpha_k.set_expression(expr(alpha(0) * mat_mul_a_b_e(i, j))); 
-	mult_beta.set_expression(expr(beta(0) *  C_1(i,j, j-1))); 
-	add_all.set_expression(expr(add_all(i,j-1) + mat_mul_a_b_e(i, j) + mult_alpha(i,j, j-1) + mult_beta(i,j))); 
+	mult_alpha_k.set_expression(expr(alpha(0) * mat_mul_a_b_e(i, j)));
+	mult_beta.set_expression(expr(beta(0) *  C_1(i,j, j-1)));
+	add_all.set_expression(expr(add_all(i,j-1) + mat_mul_a_b_e(i, j) + mult_alpha(i,j, j-1) + mult_beta(i,j)));
 
 
 	// -------------------------------------------------------
 	// Layer II
 	// -------------------------------------------------------
-	add_all.after(mult_beta, j); 
-	mult_beta.after(mult_alpha_k, j); 
-	mult_alpha_k.after(mat_mul_a_b_e, j ); 
-	mat_mul_a_b_e.after(mat_mul_b_a, j); 
-	mat_mul_b_a.after(mult_alpha, k); 
+	add_all.after(mult_beta, j);
+	mult_beta.after(mult_alpha_k, j);
+	mult_alpha_k.after(mat_mul_a_b_e, j);
+	mat_mul_a_b_e.after(mat_mul_b_a, j);
+	mat_mul_b_a.after(mult_alpha, k);
 	mult_alpha.after(mat_mul_a_b,k);
 	mat_mul_a_b.after(init, j);
 
@@ -119,21 +117,21 @@ int main(int argc, char **argv)
 	buffer buf_result("buf_result", {N,M}, p_float64, a_output);
 
 	//Store inputs
-	A.store_in(&buf_A); 
-	B.store_in(&buf_B); 
-	C_0.store_in(&buf_C); 
-	alpha.store_in(&buf_alpha[0]); 
-	beta.store_in(&buf_beta[0]); 
+	A.store_in(&buf_A);
+	B.store_in(&buf_B);
+	C_0.store_in(&buf_C);
+	alpha.store_in(&buf_alpha[0]);
+	beta.store_in(&buf_beta[0]);
 
-	init.store_in(&buf_result, {i,j}); 
+	init.store_in(&buf_result, {i,j});
 
-	add_all.store_in(&buf_result, {i,j}); 
-	C_1.store_in(&buf_result, {i,j}); 
-	mult_beta.store_in(&buf_result, {i,j}); 
-	mat_mul_a_b_e.store_in(&buf_result, {i,j}); 
-	mat_mul_b_a.store_in(&buf_result, {i,j}); 
-	mult_alpha.store_in(&buf_result, {i,j}); 
-	mat_mul_a_b.store_in(&buf_result, {i,j}); 
+	add_all.store_in(&buf_result, {i,j});
+	C_1.store_in(&buf_result, {i,j});
+	mult_beta.store_in(&buf_result, {i,j});
+	mat_mul_a_b_e.store_in(&buf_result, {i,j});
+	mat_mul_b_a.store_in(&buf_result, {i,j});
+	mult_alpha.store_in(&buf_result, {i,j});
+	mat_mul_a_b.store_in(&buf_result, {i,j});
 
 	
 	// -------------------------------------------------------
