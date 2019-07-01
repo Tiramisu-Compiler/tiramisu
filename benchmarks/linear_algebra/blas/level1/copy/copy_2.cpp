@@ -20,10 +20,13 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Declare the constant N.
     constant N("N", NN);
+  
     // Declare iterator variable.
     var i("i", 0, N);
+  
     // Declare the input.
     input A("A", {i}, p_uint8);
+  
     // Declare the output computation.
     computation output("output", {i}, A(i));
 
@@ -33,6 +36,7 @@ int main(int argc, char **argv)
     // Declare input and output buffers.
     buffer b_A("b_A", {expr(NN)}, p_uint8, a_input);
     buffer b_output("b_output", {expr(NN)}, p_uint8, a_output);
+  
     // Map the computations to a buffer.
     A.store_in(&b_A);
     output.store_in(&b_output);
