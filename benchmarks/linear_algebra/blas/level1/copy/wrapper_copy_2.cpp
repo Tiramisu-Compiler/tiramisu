@@ -27,7 +27,7 @@ int main(int, char **)
 
     // REFERENCE Output buffer
     Halide::Buffer<uint8_t> expected(NN);
-
+  
     // REFERENCE C++ CODE EXECUTION STARTS
     auto start2 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < NN; i++) {
