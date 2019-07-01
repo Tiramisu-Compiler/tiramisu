@@ -53,31 +53,12 @@ int main(int, char **)
     auto end2 = std::chrono::high_resolution_clock::now();
     auto  duration2 =duration_cast<microseconds>(end2 - start2);
     // REFERENCE C++ CODE EXECUTION ENDS.
-   //===== you can print MATRIX A =====
-     //printf("\n MAT A  :");
-     //print_buffer(A_buf);
-
-   //===== you can print VECT X =====
-     //printf("\n VECTEUR X  :");
-     //print_buffer(X_buf);
-
-   //===== you can print VECT Y =====
-     //printf("\n VECTEUR Y  :");
-     //print_buffer(Y_buf);
-
-   //===== you can print MATRIX C =====
-     //printf("\n SOL  :");
-     //print_buffer(C_buf);
-
-   //===== you can print MATRIX C_REF =====
-     //printf("\n SOL_ref  :");
-     //print_buffer(C2_buf);
-   //===== printing REFERECE EXEC TIME: =====
+   // printing REFERECE EXEC TIME:
     std::cout << "\n REF RESOLUTION TIME : " << duration2.count() << "microseconds";
-   //===== printing TIRAMISU EXEC TIME: =====
+   // printing TIRAMISU EXEC TIME:
     std::cout << "\n TIRAMISU RESOLUTION TIME : " << duration1.count() << "microseconds";
     printf("\n");
-   //===== Verify if TIRAMISU output is correct: =====
+   // Verify if TIRAMISU output is correct:
     compare_buffers("ger", C_buf, C2_buf);
     printf("\n");
     return 0;
