@@ -21,9 +21,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
-
     constant N("N", NN);
-
     var i("i", 0, N), j("j", 0, N);
 
     // Declare inputs : A(Matrix N*N) , X(Vector dim=N) , Y(Vector dim=N)
@@ -34,11 +32,9 @@ int main(int argc, char **argv)
     // Declare output which is result of computation
     computation output("output", {i,j}, expr((uint8_t)alpha) * x(i) * y(j) + expr((uint8_t)alpha) * x(j) * y(i)  + A(i, j) );
     
-
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-
     // Declare the buffers.
     buffer b_A("b_A", {N,N}, p_uint8, a_input);
     buffer b_x("b_x", {N}, p_uint8, a_input);
@@ -54,7 +50,6 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-
     tiramisu::codegen({&b_A, &b_x, &b_y, &b_output}, "build/generated_fct_developers_syr2.o");
 
     return 0;
