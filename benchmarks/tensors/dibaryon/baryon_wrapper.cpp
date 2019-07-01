@@ -120,7 +120,7 @@ int main(int, char **)
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
 
-   int nb_tests = 3;
+   int nb_tests = 1;
 
    std::cout << "Start reference C code." <<  std::endl;
 
@@ -131,7 +131,7 @@ int main(int, char **)
 
 	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
 	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi, Q);
-	    //make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
+	    make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
@@ -160,8 +160,8 @@ int main(int, char **)
 				    //spin_weights_t.raw_buffer(),
 				    Bsingle_r.raw_buffer(),
 				    Bsingle_i.raw_buffer(),
-				    //Bdouble_r.raw_buffer(),
-				    //Bdouble_i.raw_buffer(),
+				    Bdouble_r.raw_buffer(),
+				    Bdouble_i.raw_buffer(),
 				    O_r.raw_buffer(),
 				    O_i.raw_buffer(),
 				    P_r.raw_buffer(),
@@ -249,6 +249,7 @@ int main(int, char **)
 							    << " - Tiramisu = " << P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
 						    exit(1);
 					  }
+#endif
 
     for (int n=0; n<Nsrc; n++)
       for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -267,7 +268,6 @@ int main(int, char **)
 				  std::cout << "Position: (" << t << ", " << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ")" << std::endl;
 				  exit(1);
 			      }
-#endif
 
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
 
