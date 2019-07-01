@@ -8,7 +8,6 @@
 #define NN 100
 #define alpha 3
 
-
 using namespace std;
 using namespace std::chrono;
 
@@ -40,9 +39,7 @@ int main(int, char **)
 
     // TRAMISU CODE EXECUTION STARTS:
     auto start1 = std::chrono::high_resolution_clock::now();
-
     syr2(A_buf.raw_buffer(), x_buf.raw_buffer(), y_buf.raw_buffer(), output1_buf.raw_buffer() );
-
     auto end1 = std::chrono::high_resolution_clock::now();
     auto  duration1 =duration_cast<microseconds>(end1 - start1);
     // TRAMISU CODE EXECUTION ENDS.
