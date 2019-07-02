@@ -71,7 +71,7 @@ int main(int argc, char** argv)
             auto start = std::chrono::high_resolution_clock::now();
       
             if (run_ref)
-	    	sger_ref(N_DIM, M_DIM, alpha, b_A_ref.data(), b_X.data(), b_Y.data() );
+	    	sger_ref(N_DIM, M_DIM, alpha, b_A_ref.data(), b_X.data(), b_Y.data());
       
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_1.push_back(end - start);
