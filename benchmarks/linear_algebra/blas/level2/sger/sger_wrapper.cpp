@@ -19,7 +19,6 @@ int sger_ref(int n, int m, double alpha, double * A, double* x, double * y)
     return 0;
 }
 
-
 int main(int argc, char** argv)
 {
     std::vector<std::chrono::duration<double, std::milli>> duration_vector_1, duration_vector_2;
