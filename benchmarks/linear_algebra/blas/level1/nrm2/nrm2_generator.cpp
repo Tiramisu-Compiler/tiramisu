@@ -8,11 +8,13 @@ using namespace tiramisu;
 
 /***
   Benchmark for the BLAS NRM2 
- 
   out = sqrt(x*'x) 
+  
   where : 
   x : is a size N vector
   x': is the transpose of x 
+  
+  out : is a scalar
 ***/
 
 int main(int argc, char **argv)
