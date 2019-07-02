@@ -1,9 +1,3 @@
-#include "generated_sger.o.h"
-
-#include <Halide.h>
-#include <tiramisu/tiramisu.h>
-#include <tiramisu/utils.h>
-
 #include <iostream>
 #include "benchmarks.h"
 
@@ -18,7 +12,6 @@ int sger_ref(int n, int m, double alpha, double * A, double* x, double * y)
 
     return 0;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -72,7 +65,7 @@ int main(int argc, char** argv)
             auto start = std::chrono::high_resolution_clock::now();
 
             if (run_ref)
-	    	sger_ref(N_DIM, M_DIM, alpha, b_A_ref.data(), b_X.data(), b_Y.data() );
+	    	sger_ref(N_DIM, M_DIM, alpha, b_A_ref.data(), b_X.data(), b_Y.data());
 
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_1.push_back(end - start);
