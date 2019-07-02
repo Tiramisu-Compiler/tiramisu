@@ -2,6 +2,8 @@
 
 #include "benchmarks.h"
 
+#define UNROLL_FACTOR 64
+
 using namespace tiramisu;
 
 /**
@@ -59,7 +61,12 @@ int main(int argc, char **argv)
     add_y.after(mult_alpha, i);
     mult_alpha.after(sum_row, i);
     sum_row.after(result_init, i);
-
+	
+    //Unrolling
+    sum_row.unroll(j, UNROLL_FACTOR);
+    //Parallelization
+    sum_row.parallelize(i);
+	
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------

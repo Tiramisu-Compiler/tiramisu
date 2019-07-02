@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     x.store_in(&b_x);
     y.store_in(&b_y);
     alpha.store_in(&b_alpha);
-
+    
     C.store_in(&b_A, {i,j});
 
     // -------------------------------------------------------
