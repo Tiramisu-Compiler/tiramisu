@@ -1,35 +1,28 @@
-
-
 #include <tiramisu/tiramisu.h>
 #include "benchmarks.h"
 
-/*
-  IMPLEMENTATION OF THE SGER FUNCTION IN TIRAMISU 
-  
-   A = A + a*x*y**T 
-
-   where : 
-   A : is a NxM matrix
-   x : is a size N vector 
-   y : is a size M vector ( y**T : transpose of y) 
-   a : scalar 
-   
-   THE C CODE OF THIS FUNCTION IS AS FOLLOW : 
-   
-    for(int i=0; i<N:i++){
-
-        for(int j=0; j<M; j++){
-
-	        A[i,j] += a*x[i]*y[j]; 
-        }
-    }
-   
-
-*/
-
-
-
 using namespace tiramisu;
+
+/**
+*   Benchmark for BLAS SGER :   
+*  
+*   A = A + a * x * y' 
+*
+*   where : 
+*   A   : a N by M matrix
+*   x   : size N vector 
+*   y   : size M vector
+*   y'  : transpose of Y     
+*   a   : scalar 
+*   
+*   The C code of this function is as follow : 
+*   
+*   for(int i = 0; i < N; i++){
+*       for(int j = 0; j < M; j++){
+*	        A[i][j] += a * x[i] * y[j]; 
+*        }
+*    }
+*/
 
 int main(int argc, char **argv)
 {
@@ -45,19 +38,17 @@ int main(int argc, char **argv)
     var i("i", 0, N), j("j", 0, M);
 
     input A("A", {"i", "j"}, {NN, MM}, p_float64);
-    input x("x", {"i"}, {NN},p_float64);
+    input x("x", {"i"}, {NN}, p_float64);
     input y("y", {"j"}, {MM}, p_float64);
     input alpha("alpha", {}, p_float64);
     computation C("C", {i,j}, p_float64);
-    C.set_expression( A(i, j) + x(i)*y(j)*alpha(0));
+    C.set_expression(A(i, j) + alpha(0) * x(i) * y(j));
 
-
-
-	// -------------------------------------------------------
+    // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-	C.parallelize(i);
+    C.parallelize(i);
 
     // -------------------------------------------------------
     // Layer III
@@ -71,10 +62,9 @@ int main(int argc, char **argv)
     A.store_in(&b_A);
     x.store_in(&b_x);
     y.store_in(&b_y);
-	alpha.store_in(&b_alpha);
-
-   
-	C.store_in(&b_A, {i,j});
+    alpha.store_in(&b_alpha);
+    
+    C.store_in(&b_A, {i,j});
 
     // -------------------------------------------------------
     // Code Generation
