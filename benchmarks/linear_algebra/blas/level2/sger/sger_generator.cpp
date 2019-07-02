@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
 
-    tiramisu::codegen({&b_A, &b_x,&b_y,&b_alpha}, "generated_sger.o");
+    tiramisu::codegen({&b_A, &b_x, &b_y, &b_alpha}, "generated_sger.o");
 
     return 0;
 }
