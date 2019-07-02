@@ -7,14 +7,13 @@
 using namespace tiramisu;
 
 /***
-  Benchmark for the BLAS NRM2 
-  out = sqrt(x*'x) 
-  
+  Benchmark for BLAS NRM2 :  
+ 
+  out = sqrt(x*'x)
+
   where : 
-  x : is a size N vector
-  x': is the transpose of x 
-  
-  out : is a scalar
+  x  : is a size N vector 
+  'x : is the transpose of x 
 ***/
 
 int main(int argc, char **argv)
@@ -37,7 +36,7 @@ int main(int argc, char **argv)
     computation S_init("S_init", {}, expr(cast(p_float64, 0)));
     computation S("S", {i}, p_float64);
     computation result("result", {}, p_float64);
-    S.set_expression(S(i-1) + x(i ) * x(i));
+    S.set_expression(S(i-1) + x(i) * x(i));
     result.set_expression(cast(p_float64, expr(o_sqrt, S(NN), p_float64))); 
   
     // -------------------------------------------------------
@@ -73,3 +72,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
