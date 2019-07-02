@@ -29,13 +29,14 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer I
     // -------------------------------------------------------
+
     // Constant
     constant NN("NN", expr(N));
 
     // Iterators
     var i("i", 0, NN), j("j", 0, NN);
-    
-    // scalar 
+
+    // scalar
     input alpha("alpha", {}, p_float64);
 
     // The N by N input matrix
@@ -54,11 +55,13 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
+
     sum_all.after(mul_x_xt, i);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
+
     // Input buffers
     buffer b_a("b_a", {expr(NN)}, p_float64, a_input);
     buffer b_x("b_x", {expr(NN)}, p_float64, a_input);
@@ -79,6 +82,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
+
     tiramisu::codegen({&b_a, &b_x, &b_alpha, &b_result}, "generated_syr.o");
 
     return 0;

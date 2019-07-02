@@ -7,14 +7,13 @@
 
 int asum_ref(
     const double * x,
-    const double * incx,
+    const int * incx,
     double * result
 )
 {
     result[0]=0;
-    int inc = (int) incx[0];
     for(int i = 0; i < N; i++){
-        result[0] += abs(x[i * inc]);
+        result[0] += abs(x[i * incx[0]]);
     }
 	return 0;
 }
@@ -37,9 +36,10 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
 
-    Halide::Buffer<double> b_x(2 * N), b_incx(1), b_result(1), b_result_ref(1);
-    
-    init_buffer(b_incx, (double) 2);
+    Halide::Buffer<int> b_incx(1);
+    init_buffer(b_incx, 5);
+
+    Halide::Buffer<double> b_x(b_incx(0) * (N - 1) + 1), b_result(1), b_result_ref(1);
     init_buffer(b_x, (double) 5);
     init_buffer(b_result, (double) 0);
     init_buffer(b_result_ref, (double) 0);
