@@ -11,13 +11,13 @@
 #define M_DIM M
 #define N_DIM N
 
-int nrm2_ref(int n, double * X, double *nrm)
+int nrm2_ref(int n, double * X, double * nrm)
 {   
     double sum = 0;
-	
+    
     for (int i = 0; i < n; ++i)
     	 sum += X[i] * X[i]; 
-	
+
     nrm[0] = sqrt(sum);
     return 0;
 }
@@ -41,21 +41,21 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
   
     Halide::Buffer<double> b_result(1), b_result_ref(1);
-	
+    
     Halide::Buffer<double> b_X(N_DIM);
     init_buffer(b_X, (double) 1);
-	
+    
     /**
        X vector is initialized to 1
     **/
 	
     {
         for (int i = 0; i < NB_TESTS; ++i)
-        {   
+        {       
             auto start = std::chrono::high_resolution_clock::now();
 		
             if (run_ref)
-	    	nrm2_ref(N_DIM, b_X.data(), b_result_ref.data() );
+    	    	nrm2_ref(N_DIM, b_X.data(), b_result_ref.data());
 		
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_1.push_back(end - start);
@@ -64,11 +64,11 @@ int main(int argc, char** argv)
 
     {
         for (int i = 0; i < NB_TESTS; ++i)
-        {	
+        {
             auto start = std::chrono::high_resolution_clock::now();
 
             if (run_tiramisu)
-	    	nrm2(b_X.raw_buffer(), b_result.raw_buffer());
+	        	nrm2(b_X.raw_buffer(), b_result.raw_buffer());
 		
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_2.push_back(end - start);
