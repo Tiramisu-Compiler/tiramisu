@@ -27,9 +27,9 @@
 #define Nw 9
 #define twoNw 81
 #define Nperms 36
-#define Lt 24 // 1..32
-#define Vsrc 16 //8, 64, 512
-#define Vsnk 16 //8, 64, 512
+#define Lt 2 // 1..32
+#define Vsrc 64 //8, 64, 512
+#define Vsnk 64 //8, 64, 512
 #define Nsrc 6
 #define Nsnk 6
 #define mq 1.0
@@ -44,6 +44,10 @@
 #define TEST_NAME_STR       "dibaryon"
 
 #include <tiramisu/utils.h>
+
+static int test_color_weights[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
+static int test_spin_weights[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
+static double test_weights[Nw] = {-2/sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,9 +66,9 @@ int tiramisu_generated_code(halide_buffer_t *,
 	   		    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-	   		    halide_buffer_t *,
+			    //halide_buffer_t *,
+			    //halide_buffer_t *,
+	   		    //halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *);

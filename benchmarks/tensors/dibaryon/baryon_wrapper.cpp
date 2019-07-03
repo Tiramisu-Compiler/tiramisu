@@ -77,9 +77,8 @@ int main(int, char **)
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
    {
-       double v = rand()%10;
-       weights[wnum] = v;
-       weights_t(wnum) = v;
+       //double v = rand()%10;
+       weights[wnum] = test_weights[wnum];
    }
 
    for (int n=0; n<Nsrc; n++)
@@ -113,10 +112,10 @@ int main(int, char **)
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = 0; // tri
-		color_weights_t(tri, wnum) = 0; //tri
-		spin_weights[wnum][tri] = 0; //tri
-		spin_weights_t(tri, wnum) = 0; //tri
+		color_weights[wnum][tri] = test_color_weights[wnum][tri]; // tri
+		color_weights_t(tri, wnum) = test_color_weights[wnum][tri]; //tri
+		spin_weights[wnum][tri] = test_spin_weights[wnum][tri]; //tri
+		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri]; //tri
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
@@ -147,15 +146,18 @@ int main(int, char **)
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start1 = std::chrono::high_resolution_clock::now();
 
+
+    //tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), 
+        //&buf_Bsingle_r, &buf_Bsingle_i, &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i}, "generated_baryon.o");
 	    tiramisu_generated_code(Blocal_r.raw_buffer(),
 				    Blocal_i.raw_buffer(),
 				    prop_r.raw_buffer(),
 				    prop_i.raw_buffer(),
-				    weights_t.raw_buffer(),
+				    //weights_t.raw_buffer(),
 				    psi_r.raw_buffer(),
 				    psi_i.raw_buffer(),
-				    color_weights_t.raw_buffer(),
-				    spin_weights_t.raw_buffer(),
+				    //color_weights_t.raw_buffer(),
+				    //spin_weights_t.raw_buffer(),
 				    Bsingle_r.raw_buffer(),
 				    Bsingle_i.raw_buffer(),
 				    Bdouble_r.raw_buffer(),
@@ -211,6 +213,7 @@ int main(int, char **)
 				      exit(1);
 				  }
 
+#if 0
 	for (int jCprime=0; jCprime<Nc; jCprime++)
 	  for (int jSprime=0; jSprime<Ns; jSprime++)
 	     for (int kCprime=0; kCprime<Nc; kCprime++)
@@ -246,6 +249,7 @@ int main(int, char **)
 							    << " - Tiramisu = " << P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
 						    exit(1);
 					  }
+#endif
 
     for (int n=0; n<Nsrc; n++)
       for (int iCprime=0; iCprime<Nc; iCprime++)
