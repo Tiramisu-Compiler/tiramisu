@@ -1,69 +1,89 @@
-#include "Halide.h"
-#include "spr_wrapper.h"
-#include <tiramisu/utils.h>
-#include <cstdlib>
+#include <Halide.h>
+#include <tiramisu/tiramisu.h>
 #include <iostream>
-#include <chrono>
+#include "generated_spr.o.h"
+#include "benchmarks.h"
+#include <tiramisu/utils.h>
 
-#define NN 100
-#define alpha 3
-
-using namespace std;
-using namespace std::chrono;
-
-int main(int, char **)
+int spr_ref(const int NN, const double * A, const double * x, const double * alpha, double * result)
 {
-    Halide::Buffer<uint8_t> A_buf(NN, NN);
-    Halide::Buffer<uint8_t> x_buf(NN);
-    //output spr
-    Halide::Buffer<uint8_t> output1_buf(NN, NN);
-
-    // Initialize matrix A with pseudorandom values:
-    for (int i = 0; i < NN; i++)
+    for(int i = 0; i < NN; i++)
     {
-        for (int j = 0; j < NN; j++)
+        for(int j = 0; j < NN; j++)
 	{
-            A_buf(j, i) = (i + 3) * (j + 1);
+	        result[i * NN + j] = alpha[0] * x[i] * x[j] + A[i * NN + j];
         }
     }
 
-    // Initialize Vector X with pseudorandom values:
-    for (int i = 0; i < NN; i++)
-    {
-        x_buf(i) = 2;
-    }
+    return 0;
+}
 
-    // TRAMISU CODE EXECUTION STARTS:
-    auto start1 = std::chrono::high_resolution_clock::now();
-    spr(A_buf.raw_buffer(), x_buf.raw_buffer(), output1_buf.raw_buffer() );
-    auto end1 = std::chrono::high_resolution_clock::now();
-    auto  duration1 =duration_cast<microseconds>(end1 - start1);
-    // TRAMISU CODE EXECUTION ENDS.
+int main(int argc, char** argv)
+{
+    std::vector<std::chrono::duration<double, std::milli>> duration_vector_1, duration_vector_2;
+    bool run_ref = false, run_tiramisu = false;
+    const char* env_ref = std::getenv("RUN_REF");
 
-    // REFERENCE Output buffer
-    Halide::Buffer<uint8_t> output2_buf(NN, NN);
-    init_buffer(output2_buf, (uint8_t)0);
-    // REFERENCE C++ CODE EXECUTION STARTS
-    auto start2 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < NN; i++)
+    if (env_ref != NULL && env_ref[0] == '1')
+        run_ref = true;
+
+    const char* env_tiramisu = std::getenv("RUN_TIRAMISU");
+
+    if (env_tiramisu != NULL && env_tiramisu[0] == '1')
+        run_tiramisu = true;
+
+    // ---------------------------------------------------------------------
+
+    Halide::Buffer<double> b_alpha(1), b_x(N), b_A(N, N), b_result(N, N), b_result_ref(N, N);
+    init_buffer(b_alpha, (double) 2);
+    init_buffer(b_x, (double) 2);
+    init_buffer(b_A, (double) 1);
+    init_buffer(b_result, (double) 0);
+    init_buffer(b_result_ref, (double) 0);
+
+    // ---------------------------------------------------------------------
+
     {
-        for (int j = 0; j < NN; j++)
-	{
-	    output2_buf(j, i) = alpha * x_buf(i) * x_buf(j) + A_buf(j, i) ;
+        for (int i = 0; i < NB_TESTS; ++i)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            if (run_ref)
+	    	spr_ref(N, b_A.data(), b_x.data(), b_alpha.data(), b_result_ref.data());
+
+            auto end = std::chrono::high_resolution_clock::now();
+            duration_vector_1.push_back(end - start);
         }
     }
-    // REFERENCE C++ CODE EXECUTION ENDS.
 
-    auto end2 = std::chrono::high_resolution_clock::now();
-    auto  duration2 =duration_cast<microseconds>(end2 - start2);
-    //===== printing REFERECE EXEC TIME: =====
-    std::cout << "\n REF RESOLUTION TIME : " << duration2.count() << "microseconds";
-    //===== printing TIRAMISU EXEC TIME: =====
-    std::cout << "\n TIRAMISU RESOLUTION TIME : " << duration1.count() << "microseconds";
-    printf("\n");
-	
-    //===== Verify if TIRAMISU output is correct: =====
-    compare_buffers("spr", output1_buf, output2_buf);
+    {
+        for (int i = 0; i < NB_TESTS; ++i)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            if (run_tiramisu)
+	    	spr(b_A.raw_buffer(), b_x.raw_buffer(), b_alpha.raw_buffer(), b_result.raw_buffer());
+
+            auto end = std::chrono::high_resolution_clock::now();
+            duration_vector_2.push_back(end - start);
+        }
+    }
+
+    print_time("performance_cpu.csv", "spr",
+	       {"Ref", "Tiramisu"},
+	       {median(duration_vector_1), median(duration_vector_2)});
+
+    if (CHECK_CORRECTNESS && run_ref && run_tiramisu)
+        compare_buffers("spr", b_result, b_result_ref);
+
+    if (PRINT_OUTPUT)
+    {
+        std::cout << "Tiramisu " << std::endl;
+        print_buffer(b_result);
+
+        std::cout << "Reference " << std::endl;
+        print_buffer(b_result_ref);
+    }
 
     return 0;
 }
