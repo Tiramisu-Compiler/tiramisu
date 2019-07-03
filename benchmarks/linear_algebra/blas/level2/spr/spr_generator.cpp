@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-    tiramisu::codegen({&b_A, &b_x, &b_output}, "build/generated_fct_developers_spr.o");
+    tiramisu::codegen({&b_A, &b_x, &b_output}, "build/generated_spr.o");
 
     return 0;
 }
