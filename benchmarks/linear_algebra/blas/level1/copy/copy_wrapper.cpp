@@ -5,12 +5,11 @@
 #include "benchmarks.h"
 #include <tiramisu/utils.h>
 
-int copy_ref(int n,
-             Halide::Buffer<float> a,
-             Halide::Buffer<float> x)
+int copy_ref(int n, Halide::Buffer<float> a, Halide::Buffer<float> x)
 {
     for (int i = 0; i < n; ++i)
-          a(i) =  x(i);  
+        a(i) =  x(i);  
+
     return 0;
 }
 
@@ -21,10 +20,12 @@ int main(int argc, char** argv)
     bool run_ref = false, run_tiramisu = false;
 
     const char* env_ref = std::getenv("RUN_REF");
+
     if (env_ref != NULL && env_ref[0] == '1')
         run_ref = true;
 
     const char* env_tiramisu = std::getenv("RUN_TIRAMISU");
+
     if (env_tiramisu != NULL && env_tiramisu[0] == '1')
         run_tiramisu = true;
 
@@ -62,6 +63,7 @@ int main(int argc, char** argv)
             duration_vector_2.push_back(end - start);
         }
     }
+
     print_time("performance_cpu.csv", "copy",
 	       {"Ref", "Tiramisu"},
 	       {median(duration_vector_1), median(duration_vector_2)});
