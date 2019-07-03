@@ -1,4 +1,4 @@
-#include "generated_sger.o.h"
+#include "generated_nrm2.o.h"
 
 #include <Halide.h>
 #include <tiramisu/tiramisu.h>
@@ -6,16 +6,19 @@
 
 #include <iostream>
 #include "benchmarks.h"
+#include <math.h>
 
 #define M_DIM M
 #define N_DIM N
 
-int sger_ref(int n, int m, double alpha, double * A, double* x, double * y)
-{
+int nrm2_ref(int n, double * X, double * nrm)
+{   
+    double sum = 0;
+    
     for (int i = 0; i < n; ++i)
-        for (int j = 0; j < m; ++j)
-            A[i * m + j] +=  alpha * x[i] * y[j];
+    	 sum += X[i] * X[i]; 
 
+    nrm[0] = sqrt(sum);
     return 0;
 }
 
@@ -37,42 +40,23 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
   
-    double alpha = 2.0;
-  
-    Halide::Buffer<double> b_alpha(1);
-    b_alpha(0) = alpha;
-  
-    // b_A and b_A_ref needs to be initialized in each iteration test
-    Halide::Buffer<double> b_A(N_DIM, M_DIM), b_A_ref(N_DIM, M_DIM);
+    Halide::Buffer<double> b_result(1), b_result_ref(1);
     
     Halide::Buffer<double> b_X(N_DIM);
-    init_buffer(b_X, (double) 2);
-
-    Halide::Buffer<double> b_Y(M_DIM);
-    init_buffer(b_Y, (double) 3);
+    init_buffer(b_X, (double) 1);
     
     /**
-    * We have :
-    * 
-    * alpha : equals 2
-    * b_X : size N_DIM vector with all values set to 2
-    * b_Y : size M_DIM vector with all values set to 3
-    * b_A : N_DIM by M_DIM matrix with all values set to 1 (initialized in each loop)
-    * b_A_ref : N_DIM by M_DIM matrix with all values set to 1 (initialized in each loop)
-    *
-    * The result must be a N_DIM by M_DIM with all values equal to 13 
-    */
-
+       X vector is initialized to 1
+    **/
+	
     {
         for (int i = 0; i < NB_TESTS; ++i)
-        {
-            // b_A_ref initialized with 1
-            init_buffer(b_A_ref, (double) 1);
+        {       
             auto start = std::chrono::high_resolution_clock::now();
-      
+		
             if (run_ref)
-	    	sger_ref(N_DIM, M_DIM, alpha, b_A_ref.data(), b_X.data(), b_Y.data());
-      
+    	    	nrm2_ref(N_DIM, b_X.data(), b_result_ref.data());
+		
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_1.push_back(end - start);
         }
@@ -81,33 +65,30 @@ int main(int argc, char** argv)
     {
         for (int i = 0; i < NB_TESTS; ++i)
         {
-            // b_A initialized with 1
-            init_buffer(b_A, (double) 1);
-			
             auto start = std::chrono::high_resolution_clock::now();
 
             if (run_tiramisu)
-	    	sger(b_A.raw_buffer(), b_X.raw_buffer(), b_Y.raw_buffer(), b_alpha.raw_buffer());
-
+	        	nrm2(b_X.raw_buffer(), b_result.raw_buffer());
+		
             auto end = std::chrono::high_resolution_clock::now();
             duration_vector_2.push_back(end - start);
         }
     }
 
-    print_time("performance_cpu.csv", "sger",
+    print_time("performance_cpu.csv", "nrm2",
 	       {"Ref", "Tiramisu"},
 	       {median(duration_vector_1), median(duration_vector_2)});
 
     if (CHECK_CORRECTNESS && run_ref && run_tiramisu)
-        compare_buffers("sger", b_A_ref, b_A);
+        compare_buffers("nrm2", b_result, b_result_ref);
 
     if (PRINT_OUTPUT)
     {
         std::cout << "Tiramisu " << std::endl;
-        print_buffer(b_A);
+        print_buffer(b_result);
 
         std::cout << "Reference " << std::endl;
-        print_buffer(b_A_ref);
+        print_buffer(b_result_ref);
     }
   
     return 0;
