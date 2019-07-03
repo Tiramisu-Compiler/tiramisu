@@ -5,12 +5,12 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - libstdc++-4.9-dev
+      - libstdc++-8.0-dev
 
 install:
-  - wget http://llvm.org/releases/5.0.0/clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
-  - tar xvf clang+llvm-5.0.0-x86_64-linux-gnu-debian8.tar.xz
-  - mv clang+llvm-5.0.0-x86_64-linux-gnu-debian8 llvm
+  - wget http://llvm.org/releases/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+  - tar xvf clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+  - mv clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04 llvm
   - ./utils/scripts/install_submodules.sh $TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/llvm/bin
   - printf "\nset (LLVM_CONFIG_BIN \${CMAKE_SOURCE_DIR}/llvm/bin)" >> configure.cmake
 
