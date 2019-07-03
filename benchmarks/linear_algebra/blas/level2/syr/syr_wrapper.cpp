@@ -5,20 +5,17 @@
 #include "benchmarks.h"
 #include <tiramisu/utils.h>
 
-int syr_ref(
-    const int NN,
-    const double * A,
-    const double * x,
-    const double * alpha,
-    double * result
-)
+int syr_ref(const int NN, const double * A, const double * x, const double * alpha, double * result)
 {
-    for(int i = 0; i < NN; i++){
-        for(int j = 0; j < NN; j++){
+    for(int i = 0; i < NN; i++)
+    {
+        for(int j = 0; j < NN; j++)
+	{
 	        result[i * NN + j] = alpha[0] * x[i] * x[j] + A[i * NN + j];
         }
     }
-	return 0;
+
+    return 0;
 }
 
 int main(int argc, char** argv)
@@ -28,10 +25,12 @@ int main(int argc, char** argv)
     bool run_ref = false, run_tiramisu = false;
 
     const char* env_ref = std::getenv("RUN_REF");
+
     if (env_ref != NULL && env_ref[0] == '1')
         run_ref = true;
 
     const char* env_tiramisu = std::getenv("RUN_TIRAMISU");
+
     if (env_tiramisu != NULL && env_tiramisu[0] == '1')
         run_tiramisu = true;
 
