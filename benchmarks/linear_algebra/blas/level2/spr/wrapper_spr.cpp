@@ -19,13 +19,17 @@ int main(int, char **)
     Halide::Buffer<uint8_t> output1_buf(NN, NN);
 
     // Initialize matrix A with pseudorandom values:
-    for (int i = 0; i < NN; i++) {
-        for (int j = 0; j < NN; j++) {
+    for (int i = 0; i < NN; i++)
+    {
+        for (int j = 0; j < NN; j++)
+	{
             A_buf(j, i) = (i + 3) * (j + 1);
         }
     }
+
     // Initialize Vector X with pseudorandom values:
-    for (int i = 0; i < NN; i++) {
+    for (int i = 0; i < NN; i++)
+    {
         x_buf(i) = 2;
     }
 
@@ -41,8 +45,10 @@ int main(int, char **)
     init_buffer(output2_buf, (uint8_t)0);
     // REFERENCE C++ CODE EXECUTION STARTS
     auto start2 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < NN; i++) {
-        for (int j = 0; j < NN; j++) {
+    for (int i = 0; i < NN; i++)
+    {
+        for (int j = 0; j < NN; j++)
+	{
 	    output2_buf(j, i) = alpha * x_buf(i) * x_buf(j) + A_buf(j, i) ;
         }
     }
