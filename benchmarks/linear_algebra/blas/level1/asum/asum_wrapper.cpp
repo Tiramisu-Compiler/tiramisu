@@ -5,17 +5,15 @@
 #include "benchmarks.h"
 #include <tiramisu/utils.h>
 
-int asum_ref(
-    const double * x,
-    const int * incx,
-    double * result
-)
+int asum_ref(const double * x, const int * incx, double * result)
 {
-    result[0]=0;
-    for(int i = 0; i < N; i++){
+    result[0] = 0;
+    for(int i = 0; i < N; i++)
+    {
         result[0] += abs(x[i * incx[0]]);
     }
-	return 0;
+
+    return 0;
 }
 
 int main(int argc, char** argv)
@@ -25,10 +23,12 @@ int main(int argc, char** argv)
     bool run_ref = false, run_tiramisu = false;
 
     const char* env_ref = std::getenv("RUN_REF");
+
     if (env_ref != NULL && env_ref[0] == '1')
         run_ref = true;
 
     const char* env_tiramisu = std::getenv("RUN_TIRAMISU");
+
     if (env_tiramisu != NULL && env_tiramisu[0] == '1')
         run_tiramisu = true;
 
