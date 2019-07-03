@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_copy_2.h"
+#include "copy_2_wrapper.h"
 #include "tiramisu/utils.h"
 #include <cstdlib>
 #include <iostream>
