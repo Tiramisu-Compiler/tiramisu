@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "wrapper_spr.h"
+#include "spr_wrapper.h"
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
