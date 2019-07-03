@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------
-    tiramisu::codegen({&b_A, &b_x, &b_y, &b_output}, "build/generated_fct_developers_syr2.o");
+    tiramisu::codegen({&b_A, &b_x, &b_y, &b_output}, "build/generated_syr2_2.o");
 
     return 0;
 }
