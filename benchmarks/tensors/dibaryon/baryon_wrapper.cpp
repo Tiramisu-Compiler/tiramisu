@@ -77,7 +77,6 @@ int main(int, char **)
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
    {
-       //double v = rand()%10;
        weights[wnum] = test_weights[wnum];
    }
 
@@ -147,27 +146,16 @@ int main(int, char **)
 	    auto start1 = std::chrono::high_resolution_clock::now();
 
 
-    //tiramisu::codegen({&buf_Blocal_r, &buf_Blocal_i, prop_r.get_buffer(), prop_i.get_buffer(), psi_r.get_buffer(), psi_i.get_buffer(), 
-        //&buf_Bsingle_r, &buf_Bsingle_i, &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i}, "generated_baryon.o");
 	    tiramisu_generated_code(Blocal_r.raw_buffer(),
 				    Blocal_i.raw_buffer(),
 				    prop_r.raw_buffer(),
 				    prop_i.raw_buffer(),
-				    //weights_t.raw_buffer(),
 				    psi_r.raw_buffer(),
 				    psi_i.raw_buffer(),
-				    //color_weights_t.raw_buffer(),
-				    //spin_weights_t.raw_buffer(),
 				    Bsingle_r.raw_buffer(),
 				    Bsingle_i.raw_buffer(),
 				    Bdouble_r.raw_buffer(),
-				    Bdouble_i.raw_buffer(),
-				    O_r.raw_buffer(),
-				    O_i.raw_buffer(),
-				    P_r.raw_buffer(),
-				    P_i.raw_buffer(),
-				    Q_r.raw_buffer(),
-				    Q_i.raw_buffer());
+				    Bdouble_i.raw_buffer());
 
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -212,44 +200,6 @@ int main(int, char **)
 				    std::cout << "Position: (" << t << ", " << n << ", " << iCprime << ", " << iSprime << ", " << jCprime << ", " << jSprime << ", " << kCprime << ", " << kSprime << ", " << x << ", " << x2 << ")" << std::endl;
 				      exit(1);
 				  }
-
-#if 0
-	for (int jCprime=0; jCprime<Nc; jCprime++)
-	  for (int jSprime=0; jSprime<Ns; jSprime++)
-	     for (int kCprime=0; kCprime<Nc; kCprime++)
-		for (int kSprime=0; kSprime<Ns; kSprime++)
-		   for (int jC=0; jC<Nc; jC++)
-		      for (int jS=0; jS<Ns; jS++)
-			 for (int x=0; x<Vsnk; x++)
-			    for (int t=0; t<Lt; t++)
-			       for (int y=0; y<Vsrc; y++)
-				  for (int n=0; n<Nsrc; n++)
-					  if (std::abs(O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
-							    O_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t)) >= 0.01)
-					  {
-						    std::cout << "Error: different computed values for O! Ref = " << O[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
-							    << " - Tiramisu = " << O_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
-						    exit(1);
-					  }
-
-	for (int jCprime=0; jCprime<Nc; jCprime++)
-	  for (int jSprime=0; jSprime<Ns; jSprime++)
-	     for (int kCprime=0; kCprime<Nc; kCprime++)
-		for (int kSprime=0; kSprime<Ns; kSprime++)
-		   for (int jC=0; jC<Nc; jC++)
-		      for (int jS=0; jS<Ns; jS++)
-			 for (int x=0; x<Vsnk; x++)
-			    for (int t=0; t<Lt; t++)
-			       for (int y=0; y<Vsrc; y++)
-				  for (int n=0; n<Nsrc; n++)
-					  if (std::abs(P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real() -
-							    P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t)) >= 0.01)
-					  {
-						    std::cout << "Error: different computed values for P! Ref = " << P[n][jCprime][jSprime][kCprime][kSprime][jC][jS][x][t][y].real()
-							    << " - Tiramisu = " << P_r(y, x, jS, jC, kSprime, kCprime, jSprime, jCprime, n, t) << std::endl;
-						    exit(1);
-					  }
-#endif
 
     for (int n=0; n<Nsrc; n++)
       for (int iCprime=0; iCprime<Nc; iCprime++)
