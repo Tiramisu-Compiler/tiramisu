@@ -1,160 +1,22 @@
 #include <tiramisu/tiramisu.h>
 #include <string.h>
 #include "baryon_wrapper.h"
+#include "complex_util.h"
+#include "util.h"
 
-//#define FUSE 1
-#define PARALLEL 0
+#define VECTORIZE 1
+#define VECTOR_WIDTH 4
 
 using namespace tiramisu;
 
-// think snprintf but easier to use, copied for Stackoverflow
-template<typename ... Args>
-std::string str_fmt( const std::string& format, Args ... args )
-{
-  size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-  std::unique_ptr<char[]> buf( new char[ size ] ); 
-  snprintf( buf.get(), size, format.c_str(), args ... );
-  return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
-
+typedef buffer *BufferPtrTy;
 /**
-  * Multiply the two complex numbers p1 and p2 and return the real part.
+  * Helper function to allocate buffer for complex tensor
   */
-expr mul_r(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
-{
-    expr e1 = (p1.first * p2.first);
-    expr e2 = (p1.second * p2.second);
-    return (e1 - e2);
-}
-
-/**
-  * Multiply the two complex numbers p1 and p2 and return the imaginary part.
-  */
-expr mul_i(std::pair<expr, expr> p1, std::pair<expr, expr> p2)
-{
-    expr e1 = (p1.first * p2.second);
-    expr e2 = (p1.second * p2.first);
-    return (e1 + e2);
-}
-
-class complex_expr {
-  expr real, imag;
-
-public:
-  complex_expr(expr r, expr i) : real(r), imag(i) {}
-
-  // FIXME: remove 
-  complex_expr(std::pair<expr, expr> r_and_i) {
-    std::tie(real, imag) = r_and_i;
-  }
-
-  operator std::pair<expr, expr>() const {
-    return {real, imag};
-  }
-
-  complex_expr operator+(const complex_expr &other) {
-    return complex_expr(
-        real + other.real,
-        imag + other.imag);
-  }
-
-  complex_expr operator-(const complex_expr &other) {
-    return complex_expr(
-        real - other.real,
-        imag - other.imag);
-  }
-
-  complex_expr operator*(const complex_expr &other) {
-    return complex_expr(
-        mul_r(*this, other),
-        mul_i(*this, other));
-  }
-
-  complex_expr operator*(expr a) {
-    return complex_expr(
-        real * a, imag * a);
-  }
-
-  expr get_real() const {
-    return real;
-  }
-
-  expr get_imag() const {
-    return imag;
-  }
-};
-
-// NOTE: this leaks memory, but it's fine for our use
-class complex_computation {
-  computation *real, *imag;
-
-public:
-  complex_computation(computation *r, computation *i) : real(r), imag(i) {}
-
-  complex_computation(
-      std::string name,
-      std::vector<var> iterators,
-      complex_expr def) {
-    real = new computation(
-        str_fmt("%s_r", name.c_str()),
-        iterators, def.get_real());
-    imag = new computation(
-        str_fmt("%s_i", name.c_str()),
-        iterators, def.get_imag());
-  }
-
-  // FIXME : remove this
-  operator std::pair<computation *, computation *>() {
-    return {real, imag};
-  }
-  //FIXME : remove this as well
-  complex_computation(std::pair<computation *, computation*> &r_and_i) {
-    std::tie(real, imag) = r_and_i;
-  }
-  
-  template<typename ... Idxs>
-  complex_expr operator()(Idxs ... idxs) {
-    return complex_expr(
-        (*real)(idxs ...),
-        (*imag)(idxs ...));
-  }
-
-  void add_predicate(expr pred) {
-    real->add_predicate(pred);
-    imag->add_predicate(pred);
-  }
-
-  computation *get_real() {
-    return real;
-  }
-
-  computation *get_imag() {
-    return imag;
-  }
-};
-
-
-// given a list of producor->consumer edge,
-// group them into sub list of size `block_size`
-template <typename EdgeTy>
-std::vector<std::vector<EdgeTy>> block_edges(
-    const std::vector<EdgeTy> &edges,
-    unsigned int block_size) {
-  std::vector<std::vector<EdgeTy>> blocked_edges;
-  for (int ii = 0; ii < edges.size(); ii += block_size) {
-    std::vector<EdgeTy> blocked_edge;
-    for (int i = ii; i < edges.size() && i < ii+block_size; i++) {
-      blocked_edge.push_back(edges[i]);
-    }
-    blocked_edges.push_back(blocked_edge);
-  }
-  return blocked_edges;
-}
-
-typedef buffer *BufferPtrTy ;
 void allocate_complex_buffers(
     BufferPtrTy &real_buff, BufferPtrTy &imag_buff, 
-    std::vector<expr> dims, std::string name) {
+    std::vector<expr> dims, std::string name)
+{
   real_buff = new buffer(
       // name
       str_fmt("%s_r", name.c_str()),
@@ -178,16 +40,14 @@ void allocate_complex_buffers(
 // if Key is not in the map insert val
 // otherwise add val to existing entry
 template <typename K>
-void insert_or_add(
-    std::map<K, std::pair<expr, expr>> &map,
-    K key, std::pair<expr, expr> val) {
+void insert_or_add(std::map<K, complex_expr> &map, K key, complex_expr val)
+{
   auto it = map.find(key);
   if (it == map.end()) {
     map[key] = val;
     return;
   }
-  it->second.first  = it->second.first + val.first;
-  it->second.second = it->second.second + val.second;
+  it->second = it->second + val;
 }
 
 /*
@@ -226,9 +86,12 @@ void generate_function(std::string name)
     computation Blocal_i_init("Blocal_i_init", {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x}, expr((double) 0));
 
     std::map<std::string, expr> prop_loads;
-    std::map<std::pair<int,int>, std::pair<expr, expr>> Q_exprs;
-    std::map<std::pair<int,int>, std::pair<expr, expr>> O_exprs;
-    std::map<std::pair<int,int>, std::pair<expr, expr>> P_exprs;
+    // mapping <jc,js> -> Q[..., jc, js ...] in the reference impl.
+    std::map<std::pair<int,int>, complex_expr> Q_exprs;
+    // mapping <ic,is> -> O[..., ic, is ...] in the reference impl.
+    std::map<std::pair<int,int>, complex_expr> O_exprs;
+    // mapping <kc,ks> -> O[..., kc, ks ...] in the reference impl.
+    std::map<std::pair<int,int>, complex_expr> P_exprs;
     // FIRST: build the ``unrolled'' expressions of Q, O, and P
     for (int ii = 0; ii < Nw; ii++) {
       int ic = test_color_weights[ii][0];
@@ -305,12 +168,16 @@ void generate_function(std::string name)
     std::vector<std::pair<computation *, computation *>> Blocal_updates;
     std::vector<std::pair<computation *, computation *>> Bdouble_o_updates;
     std::vector<std::pair<computation *, computation *>> Bdouble_p_updates;
+
+    // Used to remember relevant (sub)computation of Q and its user computations (Blocal and Bsingle)
     struct Q2UserEdge {
       computation *q_r, *q_i,
                   *bs_r, *bs_i,
                   *bl_r, *bl_i;
     };
     std::vector<Q2UserEdge> q2userEdges;
+    
+    // Define Bsingle and Blocal computation
     for (auto &jAndComp : Q) {
       int jc, js;
       std::tie(jc, js) = jAndComp.first;
@@ -358,11 +225,14 @@ void generate_function(std::string name)
       q2userEdges.push_back(edge);
     }
 
+    // Similar to Q2UserEdge, used to record (sub)computation of P and the corresponding use in Bdouble
     struct P2UserEdge {
       computation *p_r, *p_i,
                   *bd_r, *bd_i;
     };
     std::vector<P2UserEdge> p2userEdges;
+
+    // Define Update of Bdouble using P
     for (auto &kAndComp : P) {
       int kc, ks;
       std::tie(kc, ks) = kAndComp.first;
@@ -392,11 +262,14 @@ void generate_function(std::string name)
       p2userEdges.push_back(edge);
     }
 
+    // Similar to P2UserEdge
     struct O2UserEdge {
       computation *o_r, *o_i,
                   *bd_r, *bd_i;
     };
     std::vector<O2UserEdge> o2userEdges;
+
+    // Define Update of Bdouble using O
     for (auto &iAndComp : O) {
       int ic, is;
       std::tie(ic, is) = iAndComp.first;
@@ -428,10 +301,6 @@ void generate_function(std::string name)
       o2userEdges.push_back(edge);
     }
 
-#define Q_BLOCK_SIZE 3
-#define O_BLOCK_SIZE 3
-#define P_BLOCK_SIZE 3
-
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -444,74 +313,42 @@ void generate_function(std::string name)
         .then(Bdouble_r_init, computation::root)
         .then(Bdouble_i_init, computation::root));
 
-    auto blocked_q2userEdges = block_edges(q2userEdges, Q_BLOCK_SIZE);
-    auto blocked_o2userEdges = block_edges(o2userEdges, O_BLOCK_SIZE);
-    auto blocked_p2userEdges = block_edges(p2userEdges, P_BLOCK_SIZE);
-
-    var it = computation::root; 
-    for (auto edges : blocked_q2userEdges) {
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.q_r, it)
-            .then(*edge.q_i, y));
-        it = y;
-      }
-      it = x;
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.bl_r, it)
-            .then(*edge.bl_i, y));
-        it = y;
-      }
-      it = x;
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.bs_r, it)
-            .then(*edge.bs_i, y));
-        it = y;
-      }
-      it = x;
+    // schedule Blocal and Bsingle
+    for (auto edge : q2userEdges) {
+      handle = &(handle
+          ->then(*edge.q_r, x)
+          .then(*edge.q_i, y)
+          .then(*edge.bl_r, x)
+          .then(*edge.bl_i, y)
+          .then(*edge.bs_r, x)
+          .then(*edge.bs_i, y));
     }
 
-    // O update
-    for (auto edges : blocked_o2userEdges) {
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.o_r, it)
-            .then(*edge.o_i, y));
-        it = y;
-      }
-      it = x;
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.bd_r, it)
-            .then(*edge.bd_i, y));
-        it = y;
-      }
-      it = x;
-    }
-    // P update
-    for (auto edges : blocked_p2userEdges) {
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.p_r, it)
-            .then(*edge.p_i, y));
-        it = y;
-      }
-      it = x;
-      for (auto edge : edges) {
-        handle = &(handle
-            ->then(*edge.bd_r, it)
-            .then(*edge.bd_i, y));
-        it = y;
-      }
-      it = x;
+    // schedule O update of Bdouble
+    for (auto edge : o2userEdges) {
+      handle = &(handle
+          ->then(*edge.o_r, x)
+          .then(*edge.o_i, y)
+          .then(*edge.bd_r, x)
+          .then(*edge.bd_i, y));
     }
 
-#define VECTORIZE 1
+    // schedule P update of Bdouble
+    for (auto edge : p2userEdges) {
+      handle = &(handle
+          ->then(*edge.p_r, x)
+          .then(*edge.p_i, y)
+          .then(*edge.bd_r, x)
+          .then(*edge.bd_i, y));
+    }
+
+    Blocal_r_init.vectorize(x, VECTOR_WIDTH);
+    Blocal_i_init.vectorize(x, VECTOR_WIDTH);
+    Bsingle_r_init.vectorize(x2, VECTOR_WIDTH);
+    Bsingle_i_init.vectorize(x2, VECTOR_WIDTH);
+    Bdouble_r_init.vectorize(x2, VECTOR_WIDTH);
+    Bdouble_i_init.vectorize(x2, VECTOR_WIDTH);
 #if VECTORIZE
-    // vectorize
-#define VECTOR_WIDTH 4
     for (auto edge : q2userEdges) {
       edge.q_r->vectorize(y, VECTOR_WIDTH);
       edge.q_i->vectorize(y, VECTOR_WIDTH);
@@ -539,12 +376,6 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     buffer buf_Blocal_r("buf_Blocal_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk}, p_float64, a_output);
     buffer buf_Blocal_i("buf_Blocal_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk}, p_float64, a_output);
-    buffer buf_Q_r("buf_Q_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
-    buffer buf_Q_i("buf_Q_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
-    buffer buf_O_r("buf_O_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
-    buffer buf_O_i("buf_O_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
-    buffer buf_P_r("buf_P_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
-    buffer buf_P_i("buf_P_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bsingle_r("buf_Bsingle_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bsingle_i("buf_Bsingle_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bdouble_r("buf_Bdouble_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
@@ -561,44 +392,30 @@ void generate_function(std::string name)
     Bdouble_r_init.store_in(&buf_Bdouble_r);
     Bdouble_i_init.store_in(&buf_Bdouble_i);
 
-    buffer *q_r_bufs[Q_BLOCK_SIZE];
-    buffer *q_i_bufs[Q_BLOCK_SIZE];
-    buffer *o_r_bufs[O_BLOCK_SIZE];
-    buffer *o_i_bufs[O_BLOCK_SIZE];
-    buffer *p_r_bufs[P_BLOCK_SIZE];
-    buffer *p_i_bufs[P_BLOCK_SIZE];
+    buffer *q_r_buf;
+    buffer *q_i_buf;
+    buffer *o_r_buf;
+    buffer *o_i_buf;
+    buffer *p_r_buf;
+    buffer *p_i_buf;
 
-    for (int i = 0; i < Q_BLOCK_SIZE; i++) {
-      allocate_complex_buffers(
-          q_r_bufs[i], q_i_bufs[i],
-          { Vsnk }, str_fmt("buf_q_%d", i));
-    }
-    for (int i = 0; i < O_BLOCK_SIZE; i++) {
-      allocate_complex_buffers(
-          o_r_bufs[i], o_i_bufs[i],
-          { Vsnk }, str_fmt("buf_o_%d", i));
-    }
-    for (int i = 0; i < P_BLOCK_SIZE; i++) {
-      allocate_complex_buffers(
-          p_r_bufs[i], p_i_bufs[i],
-          { Vsnk }, str_fmt("buf_p_%d", i));
-    }
+    allocate_complex_buffers(q_r_buf, q_i_buf, { Vsnk }, "buf_q");
+    allocate_complex_buffers(o_r_buf, o_i_buf, { Vsnk }, "buf_o");
+    allocate_complex_buffers(p_r_buf, p_i_buf, { Vsnk }, "buf_p");
 
-    for (auto edges : blocked_q2userEdges) {
-      for (int i = 0; i < edges.size(); i++) {
-        auto edge = edges[i];
-        edge.q_r->store_in(q_r_bufs[i], {y});
-        edge.q_i->store_in(q_i_bufs[i], {y});
-      }
+    for (auto edge : q2userEdges) {
+      edge.q_r->store_in(q_r_buf, {y});
+      edge.q_i->store_in(q_i_buf, {y});
+    }
+    for (auto edge : o2userEdges) {
+      edge.o_r->store_in(o_r_buf, {y});
+      edge.o_i->store_in(o_i_buf, {y});
+    }
+    for (auto edge : p2userEdges) {
+      edge.p_r->store_in(p_r_buf, {y});
+      edge.p_i->store_in(p_i_buf, {y});
     }
 
-    for (auto computations: Bsingle_updates) {
-      computation *real;
-      computation *imag;
-      std::tie(real, imag) = computations;
-      real->store_in(&buf_Bsingle_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-      imag->store_in(&buf_Bsingle_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
-    }
     for (auto computations: Blocal_updates) {
       computation *real;
       computation *imag;
@@ -606,20 +423,12 @@ void generate_function(std::string name)
       real->store_in(&buf_Blocal_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
       imag->store_in(&buf_Blocal_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x});
     }
-
-    for (auto edges : blocked_o2userEdges) {
-      for (int i = 0; i < edges.size(); i++) {
-        auto edge = edges[i];
-        edge.o_r->store_in(o_r_bufs[i], {y});
-        edge.o_i->store_in(o_i_bufs[i], {y});
-      }
-    }
-    for (auto edges : blocked_p2userEdges) {
-      for (int i = 0; i < edges.size(); i++) {
-        auto edge = edges[i];
-        edge.p_r->store_in(p_r_bufs[i], {y});
-        edge.p_i->store_in(p_i_bufs[i], {y});
-      }
+    for (auto computations: Bsingle_updates) {
+      computation *real;
+      computation *imag;
+      std::tie(real, imag) = computations;
+      real->store_in(&buf_Bsingle_r, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
+      imag->store_in(&buf_Bsingle_i, {t, n, iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, x, x2});
     }
     for (auto computations : Bdouble_o_updates) {
       computation *real, *imag;
@@ -643,8 +452,7 @@ void generate_function(std::string name)
         psi_r.get_buffer(), psi_i.get_buffer(), 
         &buf_Bsingle_r, &buf_Bsingle_i,
         Bdouble_r_init.get_buffer(),
-        Bdouble_i_init.get_buffer(),
-        &buf_O_r, &buf_O_i, &buf_P_r, &buf_P_i, &buf_Q_r, &buf_Q_i},
+        Bdouble_i_init.get_buffer()},
         "generated_baryon.o");
 }
 
