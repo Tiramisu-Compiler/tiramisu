@@ -17,7 +17,7 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source configure_paths.sh
 
-CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx2 -ffast-math"
+CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx2"
 #CXXFLAGS="-std=c++11 -O3 -fno-rtti"
 
 # Compile options
@@ -34,7 +34,7 @@ CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx2 -ffast-math"
 #   to set the number of threads to use by OpenMP.
 
 INCLUDES="-I${MKL_PREFIX}/include/ -I${TIRAMISU_ROOT}/include/ -I${HALIDE_SOURCE_DIRECTORY}/include/ -I${ISL_INCLUDE_DIRECTORY} -I${TIRAMISU_ROOT}/benchmarks/"
-LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread -ldl"
+LIBRARIES="-ltiramisu ${MKL_FLAGS} -lHalide -lisl -lz -lpthread"
 LIBRARIES_DIR="-L${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} -L${HALIDE_LIB_DIRECTORY}/ -L${ISL_LIB_DIRECTORY}/ -L${TIRAMISU_ROOT}/build/"
 
 echo "Compiling ${KERNEL}"
