@@ -5,15 +5,13 @@
 #include "benchmarks.h"
 #include <tiramisu/utils.h>
 
-int syr2_ref(int n,
-             double alpha, 
-             Halide::Buffer<double> A,
-             Halide::Buffer<double> x,
-             Halide::Buffer<double> y)
+int syr2_ref(int n, double alpha,  Halide::Buffer<double> A, Halide::Buffer<double> x, Halide::Buffer<double> y)
 {
+
     for (int i = 0; i < n; ++i)
        for (int j = 0; j < n; j++)
           A(j , i) +=  alpha * x(i) * y(j) + alpha * x(j) * y(i);  
+
     return 0;
 }
 
@@ -23,9 +21,12 @@ int main(int argc, char** argv)
     bool run_ref = false, run_tiramisu = false;
 
     const char* env_ref = std::getenv("RUN_REF");
+
     if (env_ref != NULL && env_ref[0] == '1')
         run_ref = true;
+
     const char* env_tiramisu = std::getenv("RUN_TIRAMISU");
+
     if (env_tiramisu != NULL && env_tiramisu[0] == '1')
         run_tiramisu = true;
 
@@ -49,9 +50,11 @@ int main(int argc, char** argv)
 	    init_buffer(b_X, (double) 2);
             init_buffer(b_Y, (double) 3);
             auto start = std::chrono::high_resolution_clock::now();
-            if (run_ref)
+
+	    if (run_ref)
 	    	syr2_ref(N, alpha, b_A_ref, b_X, b_Y );
-            auto end = std::chrono::high_resolution_clock::now();
+
+	    auto end = std::chrono::high_resolution_clock::now();
             duration_vector_1.push_back(end - start);
         }
     }
@@ -64,9 +67,11 @@ int main(int argc, char** argv)
 	    init_buffer(b_X, (double) 2);
 	    init_buffer(b_Y, (double)3);
             auto start = std::chrono::high_resolution_clock::now();
-            if (run_tiramisu)
+
+	    if (run_tiramisu)
 	    	syr2(b_A.raw_buffer(), b_X.raw_buffer(), b_Y.raw_buffer(), b_alpha.raw_buffer());
-            auto end = std::chrono::high_resolution_clock::now();
+
+	    auto end = std::chrono::high_resolution_clock::now();
             duration_vector_2.push_back(end - start);
         }
     }
