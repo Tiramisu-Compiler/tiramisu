@@ -62,15 +62,6 @@ int tiramisu_generated_code(halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 	   		    halide_buffer_t *,
-			    halide_buffer_t *,
-	   		    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    //halide_buffer_t *,
-			    //halide_buffer_t *,
-	   		    //halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
 			    halide_buffer_t *);
 
 int tiramisu_generated_code_argv(void **args);
