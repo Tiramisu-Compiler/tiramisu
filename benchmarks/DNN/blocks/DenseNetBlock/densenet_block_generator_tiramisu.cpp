@@ -68,7 +68,7 @@ int main()
     computation bn("bn", bn_relu_iter_vars, expr(p_float32));
     computation relu("relu", bn_relu_iter_vars, expr(p_float32));
     
-    // Those two computations are not scheduled when fusion is disabled
+    // These two computations are not scheduled when fusion is disabled
     computation bn_prelude("bn_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
     computation relu_prelude("relu_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
 
