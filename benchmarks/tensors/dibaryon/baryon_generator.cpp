@@ -317,7 +317,7 @@ void generate_function(std::string name)
           .then(*edge.q_i, y)
           .then(*edge.bl_r, x)
           .then(*edge.bl_i, y)
-          .then(*edge.bs_r, x)
+          .then(*edge.bs_r, jSprime)
           .then(*edge.bs_i, y));
     }
 
