@@ -197,7 +197,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 //    s = inject_hexagon_rpc(s, t, result_module);
 //    DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after splitting off Hexagon offload:\n", s)));
 
-    if (PRINT_HALIDE_IR_AFTER_CODEGEN)
+    if (PRINT_FINAL_HALIDE_IR_AFTER_CODEGEN)
     {
 	std::cout << "\nFinal Halide IR:\n";
 	std::cout << s;

@@ -11,6 +11,13 @@
 #define PRINT_HALIDE_IR_AFTER_CODEGEN 1
 
 /**
+  * Set to true to enable printing the final (fully simplified)
+  * generated Halide IR.
+  */
+#define PRINT_FINAL_HALIDE_IR_AFTER_CODEGEN 0
+
+
+/**
   * Set to true to enable debugging and false to disable debugging.
   * Debugging here means printing the results of each Tiramisu pass.
   */
