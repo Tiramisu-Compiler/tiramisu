@@ -150,10 +150,13 @@ int main()
         //n, z_b, fout_b, y, x, k_y, k_x, ffout, z_b
         conv.interchange(x, k_y);
         conv.interchange(x, k_x);
+        //n, z_b, fout_b, y, k_y, k_x, x, ffout, z_b
 
         if (BLOCK_NUMBER >= 1) {
+            //n, z_b, fout_b, y, k_y, k_x, x, ffout, z_b
             conv.interchange(y, k_y);
             conv.interchange(y, k_x);
+            //n, z_b, fout_b, k_y, k_x, y, x, ffout, z_b
         }
         
         conv.tag_parallel_level(n);
