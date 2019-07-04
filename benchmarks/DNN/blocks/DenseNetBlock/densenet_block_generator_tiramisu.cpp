@@ -68,6 +68,7 @@ int main()
     computation bn("bn", bn_relu_iter_vars, expr(p_float32));
     computation relu("relu", bn_relu_iter_vars, expr(p_float32));
     
+    // Those two computations are not scheduled when fusion is disabled
     computation bn_prelude("bn_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
     computation relu_prelude("relu_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
 
@@ -109,7 +110,14 @@ int main()
 
     computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv("conv", conv_iter_vars, expr(p_float32));
-    computation conv_conclude("conv_conclude", {n, z_b, fout_b, x, k_y, k_x, ffout, zz}, expr(p_float32), SCHEDULE_FUSION);
+
+    // This operation is not scheduled when fusion is disabled
+    computation conv_conclude(
+        "conv_conclude", 
+        {n, z_b, fout_b, x, k_y, k_x, ffout, zz}, 
+        expr(p_float32), 
+        SCHEDULE_FUSION
+    );
 
     if (!SCHEDULE_FUSION)
         conv.set_expression(init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz));
@@ -198,6 +206,10 @@ int main()
     // We use this buffer as a temporary buffer to store BN and ReLU results
     // This buffer is padded (its width and height are C_N + 2) so as to prepare it for convolution
     std::vector<expr> workspace_dim_sizes = {BATCH_SIZE, Z_NB_BLOCKS, N + 2, N + 2, Z_BLOCKING};
+
+    // When fusion is enabled, we don't need the second dimension of workspace_buf.
+    // This is because we consume all computed values of this buffer before moving
+    // on to the next z_block.
     if (SCHEDULE_FUSION)
         workspace_dim_sizes = {BATCH_SIZE, N + 2, N + 2, Z_BLOCKING};
 
