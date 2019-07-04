@@ -4,9 +4,6 @@
 #include "complex_util.h"
 #include "util.h"
 
-#define VECTORIZE 1
-#define VECTOR_WIDTH 4
-
 using namespace tiramisu;
 
 typedef buffer *BufferPtrTy;
@@ -342,32 +339,25 @@ void generate_function(std::string name)
           .then(*edge.bd_i, y));
     }
 
-    Blocal_r_init.vectorize(x, VECTOR_WIDTH);
-    Blocal_i_init.vectorize(x, VECTOR_WIDTH);
-    Bsingle_r_init.vectorize(x2, VECTOR_WIDTH);
-    Bsingle_i_init.vectorize(x2, VECTOR_WIDTH);
-    Bdouble_r_init.vectorize(x2, VECTOR_WIDTH);
-    Bdouble_i_init.vectorize(x2, VECTOR_WIDTH);
-#if VECTORIZE
+    Blocal_r_init.tag_vector_level(x, Vsnk);
+    Blocal_i_init.tag_vector_level(x, Vsnk);
+    Bsingle_r_init.tag_vector_level(x2, Vsnk);
+    Bsingle_i_init.tag_vector_level(x2, Vsnk);
+    Bdouble_r_init.tag_vector_level(x2, Vsnk);
+    Bdouble_i_init.tag_vector_level(x2, Vsnk);
+
     for (auto edge : q2userEdges) {
-      edge.q_r->vectorize(y, VECTOR_WIDTH);
-      edge.q_i->vectorize(y, VECTOR_WIDTH);
-      edge.bs_r->vectorize(x2, VECTOR_WIDTH);
-      edge.bs_i->vectorize(x2, VECTOR_WIDTH);
+      edge.q_r->tag_vector_level(y, Vsrc);
+      edge.bs_r->tag_vector_level(x2, Vsnk);
     }
     for (auto edge : o2userEdges) {
-      edge.o_r->vectorize(y, VECTOR_WIDTH);
-      edge.o_i->vectorize(y, VECTOR_WIDTH);
-      edge.bd_r->vectorize(x2, VECTOR_WIDTH);
-      edge.bd_i->vectorize(x2, VECTOR_WIDTH);
+      edge.o_r->tag_vector_level(y, Vsrc);
+      edge.bd_r->tag_vector_level(x2, Vsnk);
     }
     for (auto edge : p2userEdges) {
-      edge.p_r->vectorize(y, VECTOR_WIDTH);
-      edge.p_i->vectorize(y, VECTOR_WIDTH);
-      edge.bd_r->vectorize(x2, VECTOR_WIDTH);
-      edge.bd_i->vectorize(x2, VECTOR_WIDTH);
+      edge.p_r->tag_vector_level(y, Vsrc);
+      edge.bd_r->tag_vector_level(x2, Vsnk);
     }
-#endif
 
     // TODO: parallelize
 
