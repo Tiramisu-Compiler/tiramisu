@@ -17,7 +17,7 @@ int main()
     Halide::Buffer<float> input(Z_BLOCKING, N, N, Z_NB_BLOCKS, BATCH_SIZE);
 
     Halide::Buffer<float> bn_scale(4*GR), bn_shift(4*GR);
-    Halide::Buffer<float> conv_filter(FOUT_BLOCKING, Z_BLOCKING, K_X, K_Y, Z_NB_BLOCKS, FOUT_NB_BLOCKS);
+    Halide::Buffer<float> conv_filter(Z_BLOCKING, FOUT_BLOCKING, K_X, K_Y, FOUT_NB_BLOCKS, Z_NB_BLOCKS);
     Halide::Buffer<float> conv_bias(GR);
 
     Halide::Buffer<float> output(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
@@ -35,7 +35,7 @@ int main()
         for (int z = 0; z < 4*GR; ++z)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_filter(fout%FOUT_BLOCKING, z%Z_BLOCKING, k_x, k_y, z/Z_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+                    conv_filter(z%Z_BLOCKING, fout%FOUT_BLOCKING, k_x, k_y, fout/FOUT_BLOCKING, z/Z_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < GR; ++fout)
         conv_bias(fout) = ((float)(rand()%256 - 128)) / 127.f;

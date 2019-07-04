@@ -14,7 +14,7 @@
 #endif
 
 // DenseNet blocks are numbered from 1 to 4
-#define BLOCK_NUMBER 2
+#define BLOCK_NUMBER 1
 
 #define Z_BLOCKING 8
 #define FOUT_BLOCKING 8
@@ -27,7 +27,9 @@
 #define GR 32
 
 // Width and height of an input tensor
-#if BLOCK_NUMBER == 1
+#if BLOCK_NUMBER == 0
+    #define N 112
+#elif BLOCK_NUMBER == 1
     #define N 56
 #elif BLOCK_NUMBER == 2
     #define N 28
@@ -35,6 +37,13 @@
     #define N 14
 #elif BLOCK_NUMBER == 4
     #define N 7
+#endif
+
+// We fuse BN-Relu with CONV only for large N
+#if BLOCK_NUMBER <= 1
+    #define SCHEDULE_FUSION true
+#else
+    #define SCHEDULE_FUSION false
 #endif
 
 // Convolution kernel size
@@ -46,7 +55,7 @@
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
-#define NB_TESTS 11
+#define NB_TESTS 51
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)

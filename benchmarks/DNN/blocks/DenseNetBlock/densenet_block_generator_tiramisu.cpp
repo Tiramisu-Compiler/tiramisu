@@ -1,4 +1,5 @@
 #include <tiramisu/tiramisu.h>
+#include <vector>
 #include "configure.h"
 
 using namespace tiramisu;
@@ -11,6 +12,8 @@ int main()
     // Layer I
     // -------------------------------------------------------
     var x("x", 0, N), y("y", 0, N), z("z", 0, 4*GR), n("n", 0, BATCH_SIZE);
+    var _y("_y", 0, N - 1);
+
     var x_pad("x", 0, N + 2), y_pad("y", 0, N + 2);
     var k_x("k_x", 0, K_X), k_y("k_y", 0, K_Y), fout("fout", 0, GR);
 
@@ -21,7 +24,7 @@ int main()
     input bn_scale("bn_scale", {z_b, zz}, p_float32);
     input bn_shift("bn_shift", {z_b, zz}, p_float32);
 
-    input conv_filter("conv_filter", {fout_b, z_b, k_y, k_x, zz, ffout}, p_float32);
+    input conv_filter("conv_filter", {z_b, fout_b, k_y, k_x, ffout, zz}, p_float32);
     input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
 
     // Batch normalization followed by ReLU
@@ -56,61 +59,133 @@ int main()
         )
     );
     
+    // Compute BN followed by ReLU
+    std::vector<var> bn_relu_iter_vars = {n, z_b, y, x, zz};
+    if (SCHEDULE_FUSION)
+        bn_relu_iter_vars = {n, z_b, _y, x, zz};
+        
     computation init_workspace("init_workspace", {n, z_b, y_pad, x_pad, zz}, cast(p_float32, 0));
-    computation bn(
-        "bn", 
-        {n, z_b, y, x, zz}, 
-        bn_scale(z_b, zz) * ((c_input(n, z_b, y, x, zz) - input_mean(z_b, zz)) / input_sd(z_b, zz)) + bn_shift(z_b, zz)
-    );
+    computation bn("bn", bn_relu_iter_vars, expr(p_float32));
+    computation relu("relu", bn_relu_iter_vars, expr(p_float32));
+    
+    computation bn_prelude("bn_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
+    computation relu_prelude("relu_prelude", {n, z_b, x, zz}, expr(p_float32), SCHEDULE_FUSION);
 
-    computation relu(
-        "relu", 
-        {n, z_b, y, x, zz}, 
-        expr(
-            o_max, 
-            cast(p_float32, 0), bn(n, z_b, y, x, zz)
-        )
-    );
+    if (!SCHEDULE_FUSION) {
+        bn.set_expression(bn_scale(z_b, zz) * ((c_input(n, z_b, y, x, zz) - input_mean(z_b, zz)) / input_sd(z_b, zz)) + bn_shift(z_b, zz));
+        relu.set_expression(
+            expr(
+                o_max, 
+                cast(p_float32, 0), bn(n, z_b, y, x, zz)
+            )
+        );
+    }
+
+    else {
+        bn_prelude.set_expression(bn_scale(z_b, zz) * ((c_input(n, z_b, 0, x, zz) - input_mean(z_b, zz)) / input_sd(z_b, zz)) + bn_shift(z_b, zz));
+        relu_prelude.set_expression(
+            expr(
+                o_max, 
+                cast(p_float32, 0), bn_prelude(n, z_b, x, zz)
+            )
+        );
+
+
+        bn.set_expression(bn_scale(z_b, zz) * ((c_input(n, z_b, _y + 1, x, zz) - input_mean(z_b, zz)) / input_sd(z_b, zz)) + bn_shift(z_b, zz));
+        relu.set_expression(
+            expr(
+                o_max, 
+                cast(p_float32, 0), bn(n, z_b, _y, x, zz)
+            )
+        );
+    }
 
     view relu_padded("relu_padded", {n, z_b, y_pad, x_pad, zz}, p_float32);
 
     // Convolution computation
+    std::vector<var> conv_iter_vars = {n, z_b, fout_b, y, x, k_y, k_x, ffout, zz};
+    if (SCHEDULE_FUSION)
+        conv_iter_vars = {n, z_b, fout_b, _y, x, k_y, k_x, ffout, zz};
+
     computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
-    computation conv(
-        "conv", 
-        {n, fout_b, z_b, y, x, k_y, k_x, zz, ffout}, 
-        init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(fout_b, z_b, k_y, k_x, zz, ffout)
-    );
+    computation conv("conv", conv_iter_vars, expr(p_float32));
+    computation conv_conclude("conv_conclude", {n, z_b, fout_b, x, k_y, k_x, ffout, zz}, expr(p_float32), SCHEDULE_FUSION);
+
+    if (!SCHEDULE_FUSION)
+        conv.set_expression(init_output(n, fout_b, y, x, ffout) + relu_padded(n, z_b, y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz));
+
+    else {
+        conv.set_expression(init_output(n, fout_b, _y, x, ffout) + relu_padded(n, z_b, _y + k_y, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz));
+        conv_conclude.set_expression(init_output(n, fout_b, N - 1, x, ffout) + relu_padded(n, z_b, N + k_y - 1, x + k_x, zz)*conv_filter(z_b, fout_b, k_y, k_x, ffout, zz));
+    }
     
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    input_sum_init.then(input_sum_squares_init, zz)
-                  .then(input_sum, computation::root)
-                  .then(input_sum_squares, zz)
-                  .then(input_mean, computation::root)
-                  .then(input_sd, zz)
-                  .then(init_workspace, computation::root)
-                  .then(bn, z_b)
-                  .then(relu, zz)
-                  .then(init_output, computation::root)
-                  .then(conv, fout_b);
-                  
-    input_sum.vectorize(zz, Z_BLOCKING);
-    
-    bn.tag_parallel_level(n);
-    bn.vectorize(zz, Z_BLOCKING);
+    if (!SCHEDULE_FUSION) {
+        init_output.then(input_sum_init, computation::root)
+                   .then(input_sum_squares_init, zz)
+                   .then(input_sum, computation::root)
+                   .then(input_sum_squares, zz)
+                   .then(input_mean, computation::root)
+                   .then(input_sd, zz)
+                   .then(init_workspace, computation::root)
+                   .then(bn, z_b)
+                   .then(relu, zz)
+                   .then(conv, computation::root);
 
-    //n, fout_b, z_b, y, x, k_y, k_x, zz, ffout
-    conv.interchange(x, k_y);
-    conv.interchange(x, k_x);
+        input_sum.vectorize(zz, Z_BLOCKING);
+        
+        bn.tag_parallel_level(n);
+        bn.vectorize(zz, Z_BLOCKING);
 
-    conv.interchange(y, k_y);
-    conv.interchange(y, k_x);
-    //n, fout_b, z_b, k_y, k_x, y, x, zz, ffout
-    
-    conv.tag_parallel_level(n);
-    conv.vectorize(ffout, FOUT_BLOCKING);
+        //n, z_b, fout_b, y, x, k_y, k_x, ffout, z_b
+        conv.interchange(x, k_y);
+        conv.interchange(x, k_x);
+
+        if (BLOCK_NUMBER >= 1) {
+            conv.interchange(y, k_y);
+            conv.interchange(y, k_x);
+        }
+        
+        conv.tag_parallel_level(n);
+        conv.vectorize(ffout, FOUT_BLOCKING);
+    }
+
+    else {
+        conv.interchange(fout_b, _y);
+        conv_conclude.interchange(fout_b, x);
+
+        init_output.then(input_sum_init, computation::root)
+                   .then(input_sum_squares_init, zz)
+                   .then(input_sum, computation::root)
+                   .then(input_sum_squares, zz)
+                   .then(input_mean, computation::root)
+                   .then(input_sd, zz)
+                   .then(init_workspace, computation::root)
+                   .then(bn_prelude, z_b)
+                   .then(relu_prelude, z_b)
+                   .then(bn, z_b)
+                   .then(relu, zz)
+                   .then(conv, _y)
+                   .then(conv_conclude, z_b);
+
+        input_sum.vectorize(zz, Z_BLOCKING);
+        bn_prelude.vectorize(zz, Z_BLOCKING);
+        bn.vectorize(zz, Z_BLOCKING);
+
+        //n, z_b, y, fout_b, x, k_y, k_x, ffout, zz
+        conv.interchange(x, k_y);
+        conv.interchange(x, k_x);
+
+        conv_conclude.interchange(x, k_y);
+        conv_conclude.interchange(x, k_x);
+        //n, z_b, y, fout_b, k_y, k_x, x, ffout, zz
+        
+        conv.tag_parallel_level(n);
+        conv.vectorize(ffout, FOUT_BLOCKING);
+        conv_conclude.vectorize(ffout, FOUT_BLOCKING);
+    }
 
     // -------------------------------------------------------
     // Layer III
@@ -122,14 +197,21 @@ int main()
 
     // We use this buffer as a temporary buffer to store BN and ReLU results
     // This buffer is padded (its width and height are C_N + 2) so as to prepare it for convolution
+    std::vector<expr> workspace_dim_sizes = {BATCH_SIZE, Z_NB_BLOCKS, N + 2, N + 2, Z_BLOCKING};
+    if (SCHEDULE_FUSION)
+        workspace_dim_sizes = {BATCH_SIZE, N + 2, N + 2, Z_BLOCKING};
+
     buffer workspace_buf(
         "workspace_buf", 
-        {BATCH_SIZE, Z_NB_BLOCKS, N + 2, N + 2, Z_BLOCKING}, 
+        workspace_dim_sizes, 
         p_float32, 
         a_temporary
     );
-    
-    init_workspace.store_in(&workspace_buf);
+
+    if (!SCHEDULE_FUSION)
+        init_workspace.store_in(&workspace_buf);
+    else
+        init_workspace.store_in(&workspace_buf, {n, y_pad, x_pad, zz});
 
     input_sum_init.store_in(&input_mean_buf);
     input_sum.store_in(&input_mean_buf, {z_b, zz});
@@ -139,14 +221,32 @@ int main()
     input_sum_squares.store_in(&input_sd_buf, {z_b, zz});
     input_sd.store_in(&input_sd_buf);
 
-    // We shift the BN and ReLU computations, so as to avoid to
-    // compute on the padding region of workspace_buf.
-    bn.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
-    relu.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
-    relu_padded.store_in(&workspace_buf);
+    if (!SCHEDULE_FUSION) {
+        // We shift the BN and ReLU computations, so as to avoid to
+        // compute on the padding region of workspace_buf.
+        bn.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
+        relu.store_in(&workspace_buf, {n, z_b, y + 1, x + 1, zz});
+        relu_padded.store_in(&workspace_buf);
 
-    init_output.store_in(&output_buf);
-    conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
+        init_output.store_in(&output_buf);
+        conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
+    }
+
+    else {
+        // We shift the BN and ReLU computations, so as to avoid to
+        // compute on the padding region of workspace_buf.
+        bn_prelude.store_in(&workspace_buf, {n, 1, x + 1, zz});
+        relu_prelude.store_in(&workspace_buf, {n, 1, x + 1, zz});
+
+        bn.store_in(&workspace_buf, {n, _y + 2, x + 1, zz});
+        relu.store_in(&workspace_buf, {n, _y + 2, x + 1, zz});
+
+        relu_padded.store_in(&workspace_buf, {n, y_pad, x_pad, zz});
+
+        init_output.store_in(&output_buf);
+        conv.store_in(&output_buf, {n, fout_b, _y, x, ffout});
+        conv_conclude.store_in(&output_buf, {n, fout_b, N - 1, x, ffout});
+    }
 
     // -------------------------------------------------------
     // Code Generation
