@@ -5953,7 +5953,7 @@ computation::computation(std::string iteration_domain_str, tiramisu::expr e,
     DEBUG_INDENT(-4);
 }
 
-computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, tiramisu::expr predicate, bool schedule_this_computation, primitive_t t)
+computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
