@@ -78,16 +78,23 @@ public:
   complex_computation(tiramisu::computation *r, tiramisu::computation *i) : real(r), imag(i) {}
 
   /**
+    * \overload
+    **/
+  complex_computation(std::string name, std::vector<tiramisu::var> iterators, complex_expr def)
+	  : complex_computation(name, iterators, tiramisu::expr(), def) {}
+
+  /**
     * Wrapper around tiramisu::computation's counterpart.
-    * This allocates two buffers -- real and imag.
+    * This creates two computations -- real and imag.
     */
   complex_computation(
       std::string name,
       std::vector<tiramisu::var> iterators,
+      tiramisu::expr predicate,
       complex_expr def)
   {
-    real = new tiramisu::computation(str_fmt("%s_r", name.c_str()), iterators, def.get_real());
-    imag = new tiramisu::computation(str_fmt("%s_i", name.c_str()), iterators, def.get_imag());
+    real = new tiramisu::computation(str_fmt("%s_r", name.c_str()), iterators, predicate, def.get_real());
+    imag = new tiramisu::computation(str_fmt("%s_i", name.c_str()), iterators, predicate, def.get_imag());
   }
 
   /**
