@@ -193,9 +193,10 @@ void generate_function(std::string name)
           str_fmt("bsingle_update_%d_%d", jc, js),
           // iterator
           {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
+	  // predicate
+	  (iCprime != kCprime || iSprime != kSprime),
           // definition
           bsingle_update_def);
-      bsingle_update.add_predicate(iCprime != kCprime || iSprime != kSprime);
       Bsingle_updates.push_back(bsingle_update);
 
       // define local block
