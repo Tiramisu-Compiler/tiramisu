@@ -5953,13 +5953,13 @@ computation::computation(std::string iteration_domain_str, tiramisu::expr e,
     DEBUG_INDENT(-4);
 }
 
-computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, tiramisu::expr predicate, bool schedule_this_computation, primitive_t t)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
     DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
-    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables);
+    std::string iteration_space_str = construct_iteration_domain(name, iterator_variables, predicate);
     DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
 
     init_computation(iteration_space_str, global::get_implicit_function(), e, schedule_this_computation, t);
@@ -5995,14 +5995,23 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
     DEBUG_INDENT(-4);
 }
 
+computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+    : computation(name, iterator_variables, expr(), e, schedule_this_computation, t) {}
+
 computation::computation(std::string name, std::vector<var> iterator_variables, expr e, bool schedule_this_computation)
         : computation(name, iterator_variables, e, schedule_this_computation, e.get_data_type()) {}
 
 computation::computation(std::vector<var> iterator_variables, expr e, bool schedule_this_computation)
         : computation(generate_new_computation_name(), iterator_variables, e, schedule_this_computation) {}
 
+computation::computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e)
+	: computation(name, iterator_variables, predicate, e, true, e.get_data_type()) {}
+
 computation::computation(std::string name, std::vector<var> iterator_variables, expr e)
         : computation(name, iterator_variables, e, true, e.get_data_type()) {}
+
+computation::computation(std::vector<var> iterator_variables, expr predicate, expr e)
+        : computation(generate_new_computation_name(), iterator_variables, predicate, e) {}
 
 computation::computation(std::vector<var> iterator_variables, expr e)
         : computation(generate_new_computation_name(), iterator_variables, e) {}
@@ -6742,7 +6751,7 @@ tiramisu::constant::constant(
     DEBUG_INDENT(-4);
 }
 
-std::string tiramisu::computation::construct_iteration_domain(std::string name, std::vector<var> iterator_variables)
+std::string tiramisu::computation::construct_iteration_domain(std::string name, std::vector<var> iterator_variables, tiramisu::expr predicate)
 {
     tiramisu::function *fct = global::get_implicit_function();
 
@@ -6788,6 +6797,9 @@ std::string tiramisu::computation::construct_iteration_domain(std::string name, 
 
     if (iterator_variables.size() != 0)
         iteration_space_str += ": ";
+
+    if (predicate.is_defined())
+	 iteration_space_str += predicate.to_str() + " and ";
 
     bool insert_and = false;
     for (int i = 0; i < iterator_variables.size(); i++)

@@ -1756,8 +1756,11 @@ private:
       * domain that iterates over those iterators.  The name of the statement
       * of the iteration domain is \p name.
       * The iteration domain is a string in ISL format.
+      * \p predicate is an expression that represents constraints on the iteration domain
+      * (for example (i != j). The predicate has to be an affine
+      * expression.
       */
-    std::string construct_iteration_domain(std::string name, std::vector<var> iterator_variables);
+    std::string construct_iteration_domain(std::string name, std::vector<var> iterator_variables, tiramisu::expr predicate);
 
     /**
       * Create a copy of this computation.
@@ -2648,6 +2651,31 @@ protected:
       */
     computation(std::string name,std::vector<var> iterator_variables, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
 
+    /**
+      * \overload
+      *
+      * The argument \p predicate is used to add an affine condition
+      * (predicate) around the computation. This argument should only
+      * be used if the predicate is affine. For non affine predicates
+      * use the .add_predicate() function.
+      *
+      * Example, if you have
+      *
+      * \code
+      * for (i=0; i<20; i++)
+      *   if (i != 7)
+      *     S(i) = 0;
+      * \endcode
+      *
+      * You can express this as follows
+      *
+      * \code
+      * computation S("S", {i}, (i != 7), 0);
+      * \endcode
+      *
+      */
+    computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+
 public:
 
     /**
@@ -2759,6 +2787,11 @@ public:
     computation(std::vector<var> iterator_variables, tiramisu::expr e);
 
     /**
+      * \overload
+      */
+    computation(std::vector<var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e);
+
+    /**
       * \brief Constructor for computations.
       *
       * \details
@@ -2804,6 +2837,31 @@ public:
       *
       */
     computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr e);
+
+    /**
+      * \overload
+      *
+      * The argument \p predicate is used to add an affine condition
+      * (predicate) around the computation. This argument should only
+      * be used if the predicate is affine. For non affine predicates
+      * use the .add_predicate() function.
+      *
+      * Example, if you have
+      *
+      * \code
+      * for (i=0; i<20; i++)
+      *   if (i != 7)
+      *     S(i) = 0;
+      * \endcode
+      *
+      * You can express this as follows
+      *
+      * \code
+      * computation S("S", {i}, (i != 7), 0);
+      * \endcode
+      *
+      */
+    computation(std::string name, std::vector<var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e);
 
     /**
       * \overload
