@@ -310,15 +310,19 @@ void generate_function(std::string name)
         .then(Bdouble_r_init, computation::root)
         .then(Bdouble_i_init, computation::root));
 
+    bool first_comp = true; // Used to order the first computation edge.q_r in
+			    // a way different from the rest.
+
     // schedule Blocal and Bsingle
     for (auto edge : q2userEdges) {
       handle = &(handle
-          ->then(*edge.q_r, x)
+          ->then(*edge.q_r, first_comp?computation::root:x)
           .then(*edge.q_i, y)
           .then(*edge.bl_r, x)
           .then(*edge.bl_i, y)
           .then(*edge.bs_r, jSprime)
           .then(*edge.bs_i, y));
+      first_comp = false;
     }
 
     // schedule O update of Bdouble
