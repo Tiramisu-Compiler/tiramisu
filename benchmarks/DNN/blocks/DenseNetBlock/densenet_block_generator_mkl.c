@@ -89,7 +89,7 @@ int main()
         for (int z = 0; z < 4*GR; ++z)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand() % 256)) / 255.f;
+                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create the DenseNet block
     float* res_bn_relu[dnnResourceNumber] = {0};
