@@ -6,6 +6,9 @@
 
 using namespace tiramisu;
 
+#define VECTORIZED 1
+#define PARALLEL 1
+
 typedef buffer *BufferPtrTy;
 /**
   * Helper function to allocate buffer for complex tensor
@@ -344,6 +347,7 @@ void generate_function(std::string name)
           .then(*edge.bd_i, y));
     }
 
+#if VECTORIZED
     Blocal_r_init.tag_vector_level(x, Vsnk);
     Blocal_i_init.tag_vector_level(x, Vsnk);
     Bsingle_r_init.tag_vector_level(x2, Vsnk);
@@ -363,6 +367,30 @@ void generate_function(std::string name)
       edge.p_r->tag_vector_level(y, Vsrc);
       edge.bd_r->tag_vector_level(x2, Vsnk);
     }
+#endif
+
+#if PARALLEL
+    Blocal_r_init.tag_parallel_level(t);
+    Blocal_i_init.tag_parallel_level(t);
+    Bsingle_r_init.tag_parallel_level(t);
+    Bsingle_i_init.tag_parallel_level(t);
+    Bdouble_r_init.tag_parallel_level(t);
+    Bdouble_i_init.tag_parallel_level(t);
+
+    for (auto edge : q2userEdges) {
+      edge.q_r->tag_parallel_level(t);
+      edge.bs_r->tag_parallel_level(t);
+      edge.bl_r->tag_parallel_level(t);
+    }
+    for (auto edge : o2userEdges) {
+      edge.o_r->tag_parallel_level(t);
+      edge.bd_r->tag_parallel_level(t);
+    }
+    for (auto edge : p2userEdges) {
+      edge.p_r->tag_parallel_level(t);
+      edge.bd_r->tag_parallel_level(t);
+    }
+#endif
 
     // TODO: parallelize
 
@@ -394,21 +422,21 @@ void generate_function(std::string name)
     buffer *p_r_buf;
     buffer *p_i_buf;
 
-    allocate_complex_buffers(q_r_buf, q_i_buf, { Vsnk }, "buf_q");
-    allocate_complex_buffers(o_r_buf, o_i_buf, { Vsnk }, "buf_o");
-    allocate_complex_buffers(p_r_buf, p_i_buf, { Vsnk }, "buf_p");
+    allocate_complex_buffers(q_r_buf, q_i_buf, { Lt, Vsnk }, "buf_q");
+    allocate_complex_buffers(o_r_buf, o_i_buf, { Lt, Vsnk }, "buf_o");
+    allocate_complex_buffers(p_r_buf, p_i_buf, { Lt, Vsnk }, "buf_p");
 
     for (auto edge : q2userEdges) {
-      edge.q_r->store_in(q_r_buf, {y});
-      edge.q_i->store_in(q_i_buf, {y});
+      edge.q_r->store_in(q_r_buf, {t, y});
+      edge.q_i->store_in(q_i_buf, {t, y});
     }
     for (auto edge : o2userEdges) {
-      edge.o_r->store_in(o_r_buf, {y});
-      edge.o_i->store_in(o_i_buf, {y});
+      edge.o_r->store_in(o_r_buf, {t, y});
+      edge.o_i->store_in(o_i_buf, {t, y});
     }
     for (auto edge : p2userEdges) {
-      edge.p_r->store_in(p_r_buf, {y});
-      edge.p_i->store_in(p_i_buf, {y});
+      edge.p_r->store_in(p_r_buf, {t, y});
+      edge.p_i->store_in(p_i_buf, {t, y});
     }
 
     for (auto computations: Blocal_updates) {
