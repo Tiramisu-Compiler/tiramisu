@@ -1,5 +1,5 @@
-#ifndef __DENSENET_BLOCK_CONF_HEADER_
-#define __DENSENET_BLOCK_CONF_HEADER_
+#ifndef __CONV_RELU_MAXPOOL_CONF_HEADER_
+#define __CONV_RELU_MAXPOOL_CONF_HEADER_
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
@@ -13,49 +13,31 @@
     #define BATCH_SIZE 8
 #endif
 
-// DenseNet blocks are numbered from 1 to 4
-#define BLOCK_NUMBER 1
-
-#define Z_BLOCKING 8
-#define FOUT_BLOCKING 8
-
-#define Z_NB_BLOCKS (4*GR)/Z_BLOCKING
-#define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
-
-// Growth Rate of the block (see the original DenseNet paper for a definition)
-// This block receives an input tensor of size NxNx4*GR and outputs a tensor of size NxNxGR
-#define GR 32
-
 // Width and height of an input tensor
-#if BLOCK_NUMBER == 0
-    #define N 112
-#elif BLOCK_NUMBER == 1
-    #define N 56
-#elif BLOCK_NUMBER == 2
-    #define N 28
-#elif BLOCK_NUMBER == 3
-    #define N 14
-#elif BLOCK_NUMBER == 4
-    #define N 7
-#endif
+#define N 56
 
-// We fuse BN-Relu with CONV only for large N
-#if BLOCK_NUMBER <= 1
-    #define SCHEDULE_FUSION true
-#else
-    #define SCHEDULE_FUSION false
-#endif
+// Number of features in the input
+#define FIn 32
+// Number of features in the output
+#define FOut 64
 
 // Convolution kernel size
 #define K_X 3 
 #define K_Y 3
 
-#define EPSILON 1e-05
+// Parameters for Tiramisu code
+#define FIN_BLOCKING 8
+#define FOUT_BLOCKING 8
+
+#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
+#define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
+
+#define SCHEDULE_FUSION true
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
-#define NB_TESTS 51
+#define NB_TESTS 21
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
