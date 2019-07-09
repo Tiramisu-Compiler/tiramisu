@@ -85,7 +85,7 @@ int main()
         for (int fin = 0; fin < FIn; ++fin)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + fin*N*N + n*N*N*FIn] = ((float)(rand() % 256)) / 255.f;
+                    input_buf[x + y*N + fin*N*N + n*N*N*FIn] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create Conv-ReLU-MaxPool
     float* res_conv[dnnResourceNumber] = {0};
