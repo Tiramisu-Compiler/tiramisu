@@ -79,7 +79,6 @@ int main()
 
     // Allocate buffers
     float* input_buf = malloc(sizeof(float) * N * N * FIn * BATCH_SIZE);
-    float* maxpool_workspace_buf = malloc(sizeof(float) * N * N * FOut * BATCH_SIZE);
     float* output_buf = malloc(sizeof(float) * N/2 * N/2 * FOut * BATCH_SIZE);
 
     for (int n = 0; n < BATCH_SIZE; ++n)
@@ -130,11 +129,12 @@ int main()
     dnnPrimitive_t maxpool_primitive;
     CHECK_ERR(dnnPoolingCreateForward_F32(&maxpool_primitive, attributes, dnnAlgorithmPoolingMax, lt_conv_output, maxpool_kernel_size, maxpool_strides, maxpool_offset, dnnBorderZeros), err);
 
-    dnnLayout_t lt_maxpool_output;
+    dnnLayout_t lt_maxpool_workspace, lt_maxpool_output;
+    CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_maxpool_workspace, maxpool_primitive, dnnResourceWorkspace), err);
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_maxpool_output, maxpool_primitive, dnnResourceDst), err);
 
     res_maxpool[dnnResourceSrc] = res_relu[dnnResourceDst];
-    res_maxpool[dnnResourceWorkspace] = maxpool_workspace_buf;
+    CHECK_ERR(dnnAllocateBuffer_F32((void **)&res_maxpool[dnnResourceWorkspace], lt_maxpool_workspace), err);
     CHECK_ERR(dnnAllocateBuffer_F32((void **)&res_maxpool[dnnResourceDst], lt_maxpool_output), err);
 
     // Create output conversions
@@ -190,6 +190,7 @@ int main()
 
     dnnPrimitiveAttributesDestroy_F64(attributes);
     dnnLayoutDelete_F32(lt_maxpool_output);
+    dnnLayoutDelete_F32(lt_maxpool_workspace);
     dnnLayoutDelete_F32(lt_user_input);
     dnnLayoutDelete_F32(lt_user_filt);
     dnnLayoutDelete_F32(lt_user_output);
@@ -201,6 +202,7 @@ int main()
     dnnReleaseBuffer_F32(res_conv[dnnResourceFilter]);
     dnnReleaseBuffer_F32(res_conv[dnnResourceDst]);
     dnnReleaseBuffer_F32(res_maxpool[dnnResourceDst]);
+    dnnReleaseBuffer_F32(res_maxpool[dnnResourceWorkspace]);
 
     return 0;
 }
