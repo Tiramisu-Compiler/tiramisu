@@ -7,6 +7,8 @@
 #include "baryon_wrapper.h"
 #include "baryon_ref.cpp"
 
+#define RUN_REFERENCE 1
+
 int main(int, char **)
 {
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
@@ -121,8 +123,8 @@ int main(int, char **)
 
    int nb_tests = 3;
 
-   std::cout << "Start reference C code." <<  std::endl;
-
+#if RUN_REFERENCE
+    std::cout << "Start reference C code." <<  std::endl;
     for (int i = 0; i < nb_tests; i++)
     {
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
@@ -136,8 +138,9 @@ int main(int, char **)
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
 	    duration_vector_2.push_back(duration2);
     }
-
     std::cout << "End reference C code." <<  std::endl;
+#endif
+
     std::cout << "Start Tiramisu code." <<  std::endl;
 
     for (int i = 0; i < nb_tests; i++)
