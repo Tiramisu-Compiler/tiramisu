@@ -8,6 +8,7 @@
 #include "baryon_ref.cpp"
 
 #define RUN_REFERENCE 1
+#define RUN_CHECK 1
 
 int main(int, char **)
 {
@@ -55,8 +56,8 @@ int main(int, char **)
     Halide::Buffer<int> spin_weights_t(Nq, Nw, "spin_weights_t");
     Halide::Buffer<double> weights_t(Nw, "weights_t");
 
-    Halide::Buffer<double> Bsingle_r(Vsrc, Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Bsingle_r");
-    Halide::Buffer<double> Bsingle_i(Vsnk, Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Bsingle_i");
+    Halide::Buffer<double> Bsingle_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bsingle_r");
+    Halide::Buffer<double> Bsingle_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bsingle_i");
 
     Halide::Buffer<double> Q_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_r");
     Halide::Buffer<double> Q_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_i");
@@ -65,8 +66,8 @@ int main(int, char **)
     Halide::Buffer<double> P_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_r");
     Halide::Buffer<double> P_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_i");
 
-    Halide::Buffer<double> Bdouble_r(Vsrc, Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Bdouble_r");
-    Halide::Buffer<double> Bdouble_i(Vsnk, Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Bdouble_i");
+    Halide::Buffer<double> Bdouble_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bdouble_r");
+    Halide::Buffer<double> Bdouble_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bdouble_i");
 
     std::cout << "Start data initialization." <<  std::endl;
 
@@ -163,6 +164,7 @@ int main(int, char **)
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
 
+#if RUN_CHECK
     // Compare outputs.
 	for (int n=0; n<Nsrc; n++)
 	  for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -191,9 +193,9 @@ int main(int, char **)
 			     for (int x2=0; x2<Vsnk; x2++)
 				 for (int t=0; t<Lt; t++)
 				 if (std::abs(Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					     Bsingle_r(x2, x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
+					     Bsingle_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
+				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
 				      exit(1);
 				  }
 
@@ -208,11 +210,12 @@ int main(int, char **)
 		         for (int x2=0; x2<Vsnk; x2++)
 			     for (int t=0; t<Lt; t++)
                              if (std::abs(Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					 Bdouble_r(x2, x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
+					 Bdouble_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
 			      {
-				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
+				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
 				  exit(1);
 			      }
+#endif
 
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
 
