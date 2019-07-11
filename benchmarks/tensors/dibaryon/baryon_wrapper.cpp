@@ -176,9 +176,9 @@ int main(int, char **)
 			   for (int x=0; x<Vsnk; x++)
 			      for (int t=0; t<Lt; t++)
 				  if (std::abs(Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-						    Blocal_r(kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
+						    Blocal_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
+				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t) << std::endl;
 				      exit(1);
 				  }
 

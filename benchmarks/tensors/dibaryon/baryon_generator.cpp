@@ -73,8 +73,8 @@ void generate_function(std::string name)
 	y("y", 0, Vsrc),
 	tri("tri", 0, Nq);
 
-    input Blocal_r("Blocal_r",      {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
-    input Blocal_i("Blocal_i",      {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
+    input Blocal_r("Blocal_r",      {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input Blocal_i("Blocal_i",      {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
     input   prop_r("prop_r",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input   prop_i("prop_i",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input    psi_r("psi_r",    {n, y}, p_float64);
@@ -190,7 +190,7 @@ void generate_function(std::string name)
 
       // define local block
       complex_expr blocal_update_def = 
-        Blocal_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime) +
+        Blocal_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime) +
         q * prop(1, t, jCprime, jSprime, jc, js, x, y) * psi;
       complex_computation blocal_update(
           // name
@@ -453,8 +453,10 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_Blocal_r, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime});
-      imag->store_in(&buf_Blocal_i, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime});
+//  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
+
+      real->store_in(&buf_Blocal_r, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime});
+      imag->store_in(&buf_Blocal_i, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime});
     }
     for (auto computations: Bsingle_updates) {
       computation *real;
