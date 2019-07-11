@@ -164,7 +164,7 @@ int main(int, char **)
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
     }
-    std::cout << "Start Tiramisu code." <<  std::endl;
+    std::cout << "End Tiramisu code." <<  std::endl;
 
     print_time("performance_CPU.csv", "dibaryon", {"Ref", "Tiramisu"}, {median(duration_vector_2), median(duration_vector_1)});
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;

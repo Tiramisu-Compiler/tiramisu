@@ -306,6 +306,15 @@ void generate_function(std::string name)
     // Layer II
     // -------------------------------------------------------
 
+#if PARALLEL  // Fuse
+    computation *handle = &(
+        Blocal_r_init
+        .then(Blocal_i_init, x)
+        .then(Bsingle_r_init, computation::root)
+        .then(Bsingle_i_init, x2)
+        .then(Bdouble_r_init, computation::root)
+        .then(Bdouble_i_init, x2));
+#else
     computation *handle = &(
         Blocal_r_init
         .then(Blocal_i_init, computation::root)
@@ -313,6 +322,7 @@ void generate_function(std::string name)
         .then(Bsingle_i_init, computation::root)
         .then(Bdouble_r_init, computation::root)
         .then(Bdouble_i_init, computation::root));
+#endif
 
     bool first_comp = true; // Used to order the first computation edge.q_r in
 			    // a way different from the rest.
