@@ -334,7 +334,7 @@ void generate_function(std::string name)
           .then(*edge.q_i, y)
           .then(*edge.bl_r, x)
           .then(*edge.bl_i, y)
-          .then(*edge.bs_r, jSprime)
+          .then(*edge.bs_r, jCprime)
           .then(*edge.bs_i, y));
       first_comp = false;
     }
@@ -368,6 +368,7 @@ void generate_function(std::string name)
     for (auto edge : q2userEdges) {
       edge.q_r->tag_vector_level(y, Vsrc);
       edge.bs_r->tag_vector_level(x2, Vsnk);
+      edge.bl_r->tag_vector_level(jSprime, Ns);
     }
     for (auto edge : o2userEdges) {
       edge.o_r->tag_vector_level(y, Vsrc);
