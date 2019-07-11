@@ -188,6 +188,19 @@ void generate_function(std::string name)
       //
       complex_expr q = q_computation(t, iCprime, iSprime, kCprime, kSprime, x, y);
 
+      // define local block
+      complex_expr blocal_update_def = 
+        Blocal_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime) +
+        q * prop(t, 1, jCprime, jSprime, jc, js, x, y) * psi;
+      complex_computation blocal_update(
+          // name
+          str_fmt("blocal_update_%d_%d", jc, js),
+          // iterator
+          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
+          // definition
+          blocal_update_def);
+      Blocal_updates.push_back(blocal_update);
+
       // define single block
       complex_expr bsingle_update_def =
         Bsingle_init(t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x, x2) +
@@ -202,18 +215,6 @@ void generate_function(std::string name)
           bsingle_update_def);
       Bsingle_updates.push_back(bsingle_update);
 
-      // define local block
-      complex_expr blocal_update_def = 
-        Blocal_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime) +
-        q * prop(t, 1, jCprime, jSprime, jc, js, x, y) * psi;
-      complex_computation blocal_update(
-          // name
-          str_fmt("blocal_update_%d_%d", jc, js),
-          // iterator
-          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
-          // definition
-          blocal_update_def);
-      Blocal_updates.push_back(blocal_update);
 
       // FIXME: remove these
       auto *q_real = jAndComp.second.first;
