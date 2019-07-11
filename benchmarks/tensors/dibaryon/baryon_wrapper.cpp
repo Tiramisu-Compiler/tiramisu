@@ -29,25 +29,19 @@ int main(int, char **)
     long mega = 1024*1024;
 
     std::cout << "Array sizes" << std::endl;
-    std::cout << "Blocal:" <<  std::endl;
+    std::cout << "Blocal & Prop:" <<  std::endl;
     std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt <<  std::endl;
     std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
-    std::cout << "Bsingle & Bdouble:" <<  std::endl;
+    std::cout << "Bsingle, Bdouble, Q, O & P:" <<  std::endl;
     std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Vsnk*Lt <<  std::endl;
     std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Vsnk*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
-    std::cout << "Prop:" <<  std::endl;
-    std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt <<  std::endl;
-    std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt*sizeof(std::complex<double>)/mega <<  std::endl;
-    std::cout << "Q, O & P:" <<  std::endl;
-    std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt*Vsrc <<  std::endl;
-    std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Lt*Vsrc*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
     std::cout << std::endl;
 
     // Blocal
     // Blocal_r: tiramisu real part of Blocal.
     // Blocal_i: tiramisu imaginary part of Blocal.
-    Halide::Buffer<double> Blocal_r(Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Blocal_r");
-    Halide::Buffer<double> Blocal_i(Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Blocal_i");
+    Halide::Buffer<double> Blocal_r(Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Blocal_r");
+    Halide::Buffer<double> Blocal_i(Vsnk, Ns, Nc, Nsrc, Ns, Nc, Ns, Nc, Lt, "Blocal_i");
 
     // prop
     Halide::Buffer<double> prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Nq, Lt, "prop_r");
@@ -180,9 +174,9 @@ int main(int, char **)
 			   for (int x=0; x<Vsnk; x++)
 			      for (int t=0; t<Lt; t++)
 				  if (std::abs(Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-						    Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t)) >= 0.01)
+						    Blocal_r(x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, n, t) << std::endl;
+				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(x, kSprime, kCprime, n, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
 				      exit(1);
 				  }
 
