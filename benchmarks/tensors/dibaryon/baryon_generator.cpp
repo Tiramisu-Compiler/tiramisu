@@ -73,8 +73,8 @@ void generate_function(std::string name)
 	y("y", 0, Vsrc),
 	tri("tri", 0, Nq);
 
-    input Blocal_r("Blocal_r", {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x}, p_float64);
-    input Blocal_i("Blocal_i", {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x}, p_float64);
+    input Blocal_r("Blocal_r", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
+    input Blocal_i("Blocal_i", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
     input   prop_r("prop_r",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input   prop_i("prop_i",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input    psi_r("psi_r",    {n, y}, p_float64);
@@ -82,8 +82,8 @@ void generate_function(std::string name)
 
     complex_computation prop(&prop_r, &prop_i);
 
-    computation Blocal_r_init("Blocal_r_init", {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x}, expr((double) 0));
-    computation Blocal_i_init("Blocal_i_init", {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x}, expr((double) 0));
+    computation Blocal_r_init("Blocal_r_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, expr((double) 0));
+    computation Blocal_i_init("Blocal_i_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, expr((double) 0));
 
     std::map<std::string, expr> prop_loads;
     // mapping <jc,js> -> Q[..., jc, js ...] in the reference impl.
@@ -204,7 +204,7 @@ void generate_function(std::string name)
 
       // define local block
       complex_expr blocal_update_def = 
-        Blocal_init(t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x) +
+        Blocal_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime) +
         q * prop(t, 1, jCprime, jSprime, jc, js, x, y) * psi;
       complex_computation blocal_update(
           // name
@@ -406,8 +406,8 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer buf_Blocal_r("buf_Blocal_r", {Lt, Nc, Ns, Nc, Ns, Nsrc, Nc, Ns, Vsnk}, p_float64, a_output);
-    buffer buf_Blocal_i("buf_Blocal_i", {Lt, Nc, Ns, Nc, Ns, Nsrc, Nc, Ns, Vsnk}, p_float64, a_output);
+    buffer buf_Blocal_r("buf_Blocal_r", {Lt, Nc, Ns, Nc, Ns, Vsnk, Nsrc, Nc, Ns}, p_float64, a_output);
+    buffer buf_Blocal_i("buf_Blocal_i", {Lt, Nc, Ns, Nc, Ns, Vsnk, Nsrc, Nc, Ns}, p_float64, a_output);
     buffer buf_Bsingle_r("buf_Bsingle_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bsingle_i("buf_Bsingle_i", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
     buffer buf_Bdouble_r("buf_Bdouble_r", {Lt, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns, Vsnk, Vsnk}, p_float64, a_output);
@@ -452,8 +452,8 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_Blocal_r, {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x});
-      imag->store_in(&buf_Blocal_i, {t, iCprime, iSprime, jCprime, jSprime, n, kCprime, kSprime, x});
+      real->store_in(&buf_Blocal_r, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime});
+      imag->store_in(&buf_Blocal_i, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime});
     }
     for (auto computations: Bsingle_updates) {
       computation *real;
