@@ -45,8 +45,8 @@ int main(int, char **)
     Halide::Buffer<double> Blocal_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Blocal_i");
 
     // prop
-    Halide::Buffer<double> prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Nq, Lt, "prop_r");
-    Halide::Buffer<double> prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Nq, Lt, "prop_i");
+    Halide::Buffer<double> prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "prop_r");
+    Halide::Buffer<double> prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "prop_i");
 
     // psi
     Halide::Buffer<double> psi_r(Vsrc, Nsrc, "psi_r");
@@ -101,17 +101,17 @@ int main(int, char **)
 			    double v2 = rand()%10;
 			    std::complex<double> c(v1, v2);
 			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = c;
-			    prop_r(y, x, jSprime, jCprime, iSprime, iCprime, tri, t) = v1;
-			    prop_i(y, x, jSprime, jCprime, iSprime, iCprime, tri, t) = v2;
+			    prop_r(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v1;
+			    prop_i(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v2;
  		        }
 
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = test_color_weights[wnum][tri]; // tri
-		color_weights_t(tri, wnum) = test_color_weights[wnum][tri]; //tri
-		spin_weights[wnum][tri] = test_spin_weights[wnum][tri]; //tri
-		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri]; //tri
+		color_weights[wnum][tri] = test_color_weights[wnum][tri];
+		color_weights_t(tri, wnum) = test_color_weights[wnum][tri];
+		spin_weights[wnum][tri] = test_spin_weights[wnum][tri];
+		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri];
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;

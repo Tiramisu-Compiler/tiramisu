@@ -73,10 +73,10 @@ void generate_function(std::string name)
 	y("y", 0, Vsrc),
 	tri("tri", 0, Nq);
 
-    input Blocal_r("Blocal_r", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
-    input Blocal_i("Blocal_i", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
-    input   prop_r("prop_r",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
-    input   prop_i("prop_i",   {t, tri, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
+    input Blocal_r("Blocal_r",      {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
+    input Blocal_i("Blocal_i",      {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, p_float64);
+    input   prop_r("prop_r",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
+    input   prop_i("prop_i",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
     input    psi_r("psi_r",    {n, y}, p_float64);
     input    psi_i("psi_i",    {n, y}, p_float64);
 
@@ -102,15 +102,15 @@ void generate_function(std::string name)
       int ks = test_spin_weights[ii][2];
       double w = test_weights[ii];
 
-      complex_expr prop_0 = prop(t, 0, iCprime, iSprime, ic, is, x, y);
-      complex_expr prop_2 = prop(t, 2, kCprime, kSprime, kc, ks, x, y);
-      complex_expr prop_0p = prop(t, 0, kCprime, kSprime, ic, is, x, y);
-      complex_expr prop_2p = prop(t, 2, iCprime, iSprime, kc, ks, x, y);
+      complex_expr prop_0 =  prop(0, t, iCprime, iSprime, ic, is, x, y);
+      complex_expr prop_2 =  prop(2, t, kCprime, kSprime, kc, ks, x, y);
+      complex_expr prop_0p = prop(0, t, kCprime, kSprime, ic, is, x, y);
+      complex_expr prop_2p = prop(2, t, iCprime, iSprime, kc, ks, x, y);
       
       complex_expr q = (prop_0 * prop_2 - prop_0p * prop_2p) * w;
       insert_or_add(Q_exprs, {jc, js}, q);
 
-      complex_expr prop_1 = prop(t, 1, jCprime, jSprime, jc, js, x, y);
+      complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
       complex_expr o = prop_1 * prop_2 * w;
       insert_or_add(O_exprs, {ic, is}, o);
 
@@ -125,7 +125,7 @@ void generate_function(std::string name)
       std::tie(jc, js) = jAndExpr.first;
       Q[{jc,js}] = complex_computation(
           str_fmt("q_%d_%d", jc, js),
-          { t, iCprime, iSprime, kCprime, kSprime, x, y },
+          {t, iCprime, iSprime, kCprime, kSprime, x, y},
           jAndExpr.second);
     }
     // DEFINE computation of O
@@ -137,7 +137,7 @@ void generate_function(std::string name)
           // name
           str_fmt("o_%d_%d", ic, is),
           // iterators
-          { t, jCprime, jSprime, kCprime, kSprime, x, y },
+          {t, jCprime, jSprime, kCprime, kSprime, x, y},
           iAndExpr.second);
     }
     // DEFINE computation of P
@@ -149,7 +149,7 @@ void generate_function(std::string name)
           // name
           str_fmt("p_%d_%d", kc, ks),
           // iterators
-          { t, jCprime, jSprime, kCprime, kSprime, x, y },
+          {t, jCprime, jSprime, kCprime, kSprime, x, y},
           // definition
           kAndExpr.second);
     }
@@ -191,7 +191,7 @@ void generate_function(std::string name)
       // define local block
       complex_expr blocal_update_def = 
         Blocal_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime) +
-        q * prop(t, 1, jCprime, jSprime, jc, js, x, y) * psi;
+        q * prop(1, t, jCprime, jSprime, jc, js, x, y) * psi;
       complex_computation blocal_update(
           // name
           str_fmt("blocal_update_%d_%d", jc, js),
@@ -204,7 +204,7 @@ void generate_function(std::string name)
       // define single block
       complex_expr bsingle_update_def =
         Bsingle_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2) +
-        q * prop(t, 1, jCprime, jSprime, jc, js, x2, y) * psi;
+        q * prop(1, t, jCprime, jSprime, jc, js, x2, y) * psi;
       complex_computation bsingle_update(
           str_fmt("bsingle_update_%d_%d", jc, js),
           // iterator
@@ -247,7 +247,7 @@ void generate_function(std::string name)
 
       complex_expr bdouble_update_def =
         Bdouble_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2) -
-        p * prop(t, 2, iCprime, iSprime, kc, ks, x2, y) * psi;
+        p * prop(2, t, iCprime, iSprime, kc, ks, x2, y) * psi;
       complex_computation bdouble_update(
           // name
           str_fmt("bdouble_p_update_%d_%d", kc, ks),
@@ -285,7 +285,7 @@ void generate_function(std::string name)
 
       complex_expr bdouble_update_def =
         Bdouble_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2) +
-        o * prop(t, 0, iCprime, iSprime, ic, is, x2, y) * psi;
+        o * prop(0, t, iCprime, iSprime, ic, is, x2, y) * psi;
       complex_computation bdouble_update(
           // name
           str_fmt("bdouble_o_update_%d_%d", ic, is),
@@ -310,7 +310,7 @@ void generate_function(std::string name)
 #if PARALLEL  // Fuse
     computation *handle = &(
         Blocal_r_init
-        .then(Blocal_i_init, x)
+        .then(Blocal_i_init, kSprime)
         .then(Bsingle_r_init, computation::root)
         .then(Bsingle_i_init, x2)
         .then(Bdouble_r_init, computation::root)
@@ -359,8 +359,8 @@ void generate_function(std::string name)
     }
 
 #if VECTORIZED
-    Blocal_r_init.tag_vector_level(x, Vsnk);
-    Blocal_i_init.tag_vector_level(x, Vsnk);
+    Blocal_r_init.tag_vector_level(kSprime, Ns);
+    Blocal_i_init.tag_vector_level(kSprime, Ns);
     Bsingle_r_init.tag_vector_level(x2, Vsnk);
     Bsingle_i_init.tag_vector_level(x2, Vsnk);
     Bdouble_r_init.tag_vector_level(x2, Vsnk);
