@@ -82,8 +82,8 @@ void generate_function(std::string name)
 
     complex_computation prop(&prop_r, &prop_i);
 
-    computation Blocal_r_init("Blocal_r_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, expr((double) 0));
-    computation Blocal_i_init("Blocal_i_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime}, expr((double) 0));
+    computation Blocal_r_init("Blocal_r_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, expr((double) 0));
+    computation Blocal_i_init("Blocal_i_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, expr((double) 0));
 
     std::map<std::string, expr> prop_loads;
     // mapping <jc,js> -> Q[..., jc, js ...] in the reference impl.
@@ -155,8 +155,8 @@ void generate_function(std::string name)
     }
     complex_expr psi(psi_r(n, y), psi_i(n, y));
 
-    computation Bsingle_r_init("Bsingle_r_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2}, expr((double) 0));
-    computation Bsingle_i_init("Bsingle_i_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2}, expr((double) 0));
+    computation Bsingle_r_init("Bsingle_r_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, expr((double) 0));
+    computation Bsingle_i_init("Bsingle_i_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, expr((double) 0));
     computation Bdouble_r_init("Bdouble_r_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2}, expr((double) 0));
     computation Bdouble_i_init("Bdouble_i_init", {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2}, expr((double) 0));
 
@@ -203,7 +203,7 @@ void generate_function(std::string name)
 
       // define single block
       complex_expr bsingle_update_def =
-        Bsingle_init(t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2) +
+        Bsingle_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2) +
         q * prop(1, t, jCprime, jSprime, jc, js, x2, y) * psi;
       complex_computation bsingle_update(
           str_fmt("bsingle_update_%d_%d", jc, js),
@@ -310,7 +310,7 @@ void generate_function(std::string name)
 #if PARALLEL  // Fuse
     computation *handle = &(
         Blocal_r_init
-        .then(Blocal_i_init, kSprime)
+        .then(Blocal_i_init, jSprime)
         .then(Bsingle_r_init, computation::root)
         .then(Bsingle_i_init, x2)
         .then(Bdouble_r_init, computation::root)
@@ -359,8 +359,8 @@ void generate_function(std::string name)
     }
 
 #if VECTORIZED
-    Blocal_r_init.tag_vector_level(kSprime, Ns);
-    Blocal_i_init.tag_vector_level(kSprime, Ns);
+    Blocal_r_init.tag_vector_level(jSprime, Ns);
+    Blocal_i_init.tag_vector_level(jSprime, Ns);
     Bsingle_r_init.tag_vector_level(x2, Vsnk);
     Bsingle_i_init.tag_vector_level(x2, Vsnk);
     Bdouble_r_init.tag_vector_level(x2, Vsnk);
@@ -453,8 +453,6 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-//  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
-
       real->store_in(&buf_Blocal_r, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime});
       imag->store_in(&buf_Blocal_i, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime});
     }
@@ -462,8 +460,8 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_Bsingle_r, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2});
-      imag->store_in(&buf_Bsingle_i, {t, iCprime, iSprime, jCprime, jSprime, x, n, kCprime, kSprime, x2});
+      real->store_in(&buf_Bsingle_r, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2});
+      imag->store_in(&buf_Bsingle_i, {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2});
     }
     for (auto computations : Bdouble_o_updates) {
       computation *real, *imag;

@@ -193,9 +193,9 @@ int main(int, char **)
 			     for (int x2=0; x2<Vsnk; x2++)
 				 for (int t=0; t<Lt; t++)
 				 if (std::abs(Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					     Bsingle_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
+					     Bsingle_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01)
 				  {
-				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
+				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t) << std::endl;
 				      exit(1);
 				  }
 
