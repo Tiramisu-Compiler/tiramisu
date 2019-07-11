@@ -210,9 +210,9 @@ int main(int, char **)
 		         for (int x2=0; x2<Vsnk; x2++)
 			     for (int t=0; t<Lt; t++)
                              if (std::abs(Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					 Bdouble_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t)) >= 0.01)
+					 Bdouble_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01)
 			      {
-				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, kSprime, kCprime, n, x, jSprime, jCprime, iSprime, iCprime, t) << std::endl;
+				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t) << std::endl;
 				  exit(1);
 			      }
 #endif
