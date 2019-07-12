@@ -2318,6 +2318,18 @@ computation& computation::then(computation &next_computation, tiramisu::var dim)
     return next_computation;
 }
 
+computation& computation::then(computation &next_computation, int dim)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    next_computation.after(*this, dim);
+
+    DEBUG_INDENT(-4);
+
+    return next_computation;
+}
+
 void computation::gpu_tile(tiramisu::var L0_var, tiramisu::var L1_var, int sizeX, int sizeY)
 {
     assert(L0_var.get_name().length() > 0);
