@@ -9,6 +9,7 @@
 
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
+int nb_tests = 3;
 
 int main(int, char **)
 {
@@ -115,8 +116,6 @@ int main(int, char **)
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
-
-   int nb_tests = 3;
 
 #if RUN_REFERENCE
     std::cout << "Start reference C code." <<  std::endl;
