@@ -32,9 +32,9 @@ int main()
         conv_bias(fout) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fin = 0; fin < FIn; ++fin)
-            for (int y = 0; y < IMG_HEIGHT; ++y)
-                for (int x = 0; x < IMG_WIDTH; ++x)
+        for (int y = 0; y < IMG_HEIGHT; ++y)
+            for (int x = 0; x < IMG_WIDTH; ++x)
+                for (int fin = 0; fin < FIn; ++fin)
                     input(fin, x, y, n) = ((float)(rand() % 256)) / 255.f;
 
     std::cout << "\t\tBuffers initialized" << std::endl;
@@ -84,7 +84,7 @@ int main()
                     mkl_result >> tmp;
 
                     file_count++;
-                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.01)
+                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.00001)
                         corr++;
                 }
 
