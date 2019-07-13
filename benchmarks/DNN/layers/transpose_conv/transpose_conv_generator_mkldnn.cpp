@@ -45,7 +45,6 @@ void transpose_conv()
 				for (int x = 0; x < N; x++)
 					buf_input_batch[x + y*N + ic*N*N + b*N*N*FIn] = 1.0f;
 	
-	
     	// Create memory objects with user data format
     	auto conv_weights_user_md = memory::desc(
 		{FOut, FIn, K, K},
