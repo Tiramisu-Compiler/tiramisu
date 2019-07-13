@@ -1,86 +1,79 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-#include <tiramisu/debug.h>
-#include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
+#include <tiramisu/tiramisu.h>
 #include "halide_image_io.h"
-
 
 using namespace tiramisu;
 
+expr mixf(expr x, expr y, expr a)
+{
+    return cast(p_float32, x) * (1 - a) + cast(p_float32, y) * a;
+}
+
 int main(int argc, char **argv)
 {
-    // Set default tiramisu options.
-    global::set_default_tiramisu_options();
+    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./utils/images/gray.png");
+    int IMG_WIDTH = in_image.width();
+    int IMG_HEIGHT = in_image.height();
 
-    Halide::Buffer<uint8_t> in_image = Halide::Tools::load_image("./utils/images/rgb.png");
-    int SIZE0 = in_image.extent(0);
-    int SIZE1 = in_image.extent(1);
+    int OUT_WIDTH = in_image.width() / 1.5f;
+    int OUT_HEIGHT = in_image.height() / 1.5f;
 
-    tiramisu::function resize_tiramisu("resize_tiramisu");
+    init("resize_tiramisu");
 
-    // Input params.
-    int32_t resampled_cols = 5;
-    int32_t resampled_rows = 5;
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+    var o_x("o_x", 0, IMG_WIDTH), o_y("o_y", 0, IMG_HEIGHT);
+    var x("x", 0, OUT_WIDTH), y("y", 0, OUT_HEIGHT);
+    input c_input("c_input", {o_y, o_x}, p_uint8);
 
-    // Output buffers.
-    int resampled_extent_1 = SIZE1;
-    int resampled_extent_0 = SIZE0;
-    tiramisu::buffer buff_resampled("buff_resampled", {tiramisu::expr(resampled_extent_1), tiramisu::expr(resampled_extent_0)}, tiramisu::p_float32, tiramisu::a_output, &resize_tiramisu);
+    expr o_r((cast(p_float32, y) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, OUT_HEIGHT)) - 0.5f);
+    expr o_c((cast(p_float32, x) + 0.5f) * (cast(p_float32, IMG_WIDTH) / cast(p_float32, OUT_WIDTH)) - 0.5f);
 
-    // Input buffers.
-    int input_extent_1 = SIZE1;
-    int input_extent_0 = SIZE0;
-    tiramisu::buffer buff_input("buff_input", {tiramisu::expr(input_extent_1), tiramisu::expr(input_extent_0)}, tiramisu::p_uint8, tiramisu::a_input, &resize_tiramisu);
-    tiramisu::computation input("[input_extent_1, input_extent_0]->{input[i1, i0]: (0 <= i1 <= (input_extent_1 + -1)) and (0 <= i0 <= (input_extent_0 + -1))}", tiramisu::expr(), false, tiramisu::p_uint8, &resize_tiramisu);
-    input.set_access("{input[i1, i0]->buff_input[i1, i0]}");
+    expr r_coeff(expr(o_r) - expr(o_floor, o_r));
+    expr c_coeff(expr(o_c) - expr(o_floor, o_c));
 
+    expr A00_r(cast(p_int32, expr(o_floor, o_r)));
+    expr A00_c(cast(p_int32, expr(o_floor, o_c)));
 
-    // Define loop bounds for dimension "resampled_s0_y".
-    tiramisu::constant resampled_s0_y_loop_min("resampled_s0_y_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &resize_tiramisu);
-    tiramisu::constant resampled_s0_y_loop_extent("resampled_s0_y_loop_extent", tiramisu::expr((int32_t)resampled_extent_1), tiramisu::p_int32, true, NULL, 0, &resize_tiramisu);
+    computation resize(
+        "resize",
+        {y, x},
+        mixf(
+            mixf(
+                c_input(A00_r, A00_c), 
+                c_input(A00_r + 1, A00_c), 
+                r_coeff
+            ),
 
-    // Define loop bounds for dimension "resampled_s0_x".
-    tiramisu::constant resampled_s0_x_loop_min("resampled_s0_x_loop_min", tiramisu::expr((int32_t)0), tiramisu::p_int32, true, NULL, 0, &resize_tiramisu);
-    tiramisu::constant resampled_s0_x_loop_extent("resampled_s0_x_loop_extent", tiramisu::expr((int32_t)resampled_extent_0), tiramisu::p_int32, true, NULL, 0, &resize_tiramisu);
-    tiramisu::computation resampled_s0(
-        "[resampled_s0_y_loop_min, resampled_s0_y_loop_extent, resampled_s0_x_loop_min, resampled_s0_x_loop_extent]->{resampled_s0[resampled_s0_y, resampled_s0_x]: "
-        "(resampled_s0_y_loop_min <= resampled_s0_y <= ((resampled_s0_y_loop_min + resampled_s0_y_loop_extent) + -1)) and (resampled_s0_x_loop_min <= resampled_s0_x <= ((resampled_s0_x_loop_min + resampled_s0_x_loop_extent) + -1))}",
-        tiramisu::expr(), true, tiramisu::p_float32, &resize_tiramisu);
-    tiramisu::constant t37("t37", tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))), tiramisu::p_int32, false, &resampled_s0, 1, &resize_tiramisu);
-    tiramisu::constant t38("t38", tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))), tiramisu::p_int32, false, &resampled_s0, 1, &resize_tiramisu);
-    tiramisu::constant t39("t39", tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))), tiramisu::p_int32, false, &resampled_s0, 1, &resize_tiramisu);
-    tiramisu::constant t40("t40", tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))), tiramisu::p_int32, false, &resampled_s0, 1, &resize_tiramisu);
-    resampled_s0.set_expression(((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t37, t38)) * (tiramisu::expr((float)1) - (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input(t39, (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((int32_t)1)))) * (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))) * (tiramisu::expr((float)1) - (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))) + (((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input((tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((int32_t)1)), t40)) * (tiramisu::expr((float)1) - (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))) + (tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, input((tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((int32_t)1)), (tiramisu::expr(tiramisu::o_cast, tiramisu::p_int32, tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((int32_t)1)))) * (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_y")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_1))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_rows))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))) * (((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) - tiramisu::expr(o_floor, ((((tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::var("resampled_s0_x")) + tiramisu::expr((float)0.5)) * tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(input_extent_0))) / tiramisu::expr(tiramisu::o_cast, tiramisu::p_float32, tiramisu::expr(resampled_cols))) + tiramisu::expr((float)-0.5)))) + tiramisu::expr((float)-0.5)))));
-    resampled_s0.set_access("{resampled_s0[resampled_s0_y, resampled_s0_x]->buff_resampled[resampled_s0_y, resampled_s0_x]}");
+            mixf(
+                c_input(A00_r, A00_c + 1), 
+                c_input(A00_r + 1, A00_c + 1), 
+                r_coeff
+            ),
+    
+            c_coeff
+        )
+    );
 
-    // Define compute level for "resampled".
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+    resize.tag_parallel_level(y);
+    resize.vectorize(x, 8);
 
-    // Declare vars.
-    tiramisu::var resampled_s0_x("resampled_s0_x");
-    tiramisu::var resampled_s0_x_v8("resampled_s0_x_v8");
-    tiramisu::var resampled_s0_x_x("resampled_s0_x_x");
-    tiramisu::var resampled_s0_y("resampled_s0_y");
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+    buffer output_buf("output_buf", {OUT_HEIGHT, OUT_WIDTH}, p_float32, a_output);
+    resize.store_in(&output_buf);
 
-//    resize_tiramisu.add_context_constraints("[]->{}");
-
-    // Add schedules.
-    resampled_s0.vectorize(resampled_s0_x, 8);
-    resampled_s0.tag_parallel_level(resampled_s0_y);
-
-    resize_tiramisu.set_arguments({&buff_input, &buff_resampled});
-    resize_tiramisu.gen_time_space_domain();
-    resize_tiramisu.gen_isl_ast();
-    resize_tiramisu.gen_halide_stmt();
-    resize_tiramisu.dump_halide_stmt();
-    resize_tiramisu.gen_halide_obj("build/generated_fct_resize_tiramisu.o");
+    // -------------------------------------------------------
+    // Code Generation
+    // -------------------------------------------------------
+    codegen({
+        c_input.get_buffer(),
+        &output_buf
+    }, "build/generated_fct_resize.o");
 
     return 0;
 }
