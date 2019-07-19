@@ -36,17 +36,6 @@ int main()
         init_conv_output(n, fout_b, y, x, ffout) + input_padded(n, fin_b, y + k_y, x + k_x, ffin)*conv_filter(fout_b, fin_b, k_y, k_x, ffin, ffout)
     );
 
-    // ReLU computation
-    computation relu(
-        "relu", 
-        {n, fout_b, y, x, ffout}, 
-        expr(
-            o_max, 
-            cast(p_float32, 0), 
-            conv(n, fout_b, FIN_NB_BLOCKS - 1, y, x, K_Y - 1, K_X - 1, FIN_BLOCKING - 1, ffout)
-        )
-    );
-
     // MaxPool computation
     var x_out("x_out", 0, N/2), y_out("y_out", 0, N/2);
     var p_x("p_x", 0, 2), p_y("p_y", 0, 2);
@@ -60,7 +49,7 @@ int main()
         expr(
             o_max,
             c_output(n, fout_b, y_out, x_out, ffout),
-            relu(n, fout_b, y_out*2 + p_y, x_out*2 + p_x, ffout)
+            conv(n, fout_b, FIN_NB_BLOCKS - 1, y_out*2 + p_y, x_out*2 + p_x, K_Y - 1, K_X - 1, FIN_BLOCKING - 1, ffout)
         )
     );
     
@@ -70,7 +59,6 @@ int main()
     init_input_padded.then(copy_input, computation::root)
                      .then(init_conv_output, computation::root)
                      .then(conv, fout_b)
-                     .then(relu, computation::root)
                      .then(init_output, computation::root)
                      .then(maxpool, x_out);
 
@@ -81,9 +69,6 @@ int main()
     
     conv.tag_parallel_level(n);
     conv.vectorize(ffout, FOUT_BLOCKING);
-
-    relu.tag_parallel_level(n);
-    relu.vectorize(ffout, FOUT_BLOCKING);
 
     maxpool.tag_parallel_level(n);
 
@@ -100,8 +85,6 @@ int main()
 
     init_conv_output.store_in(&workspace_buf);
     conv.store_in(&workspace_buf, {n, fout_b, y, x, ffout});
-
-    relu.store_in(&workspace_buf);
 
     init_output.store_in(&output_buf);
     c_output.store_in(&output_buf);
