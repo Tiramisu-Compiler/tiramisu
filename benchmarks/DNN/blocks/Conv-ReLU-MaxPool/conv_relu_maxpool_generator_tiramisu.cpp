@@ -62,6 +62,11 @@ int main()
                      .then(init_output, computation::root)
                      .then(maxpool, x_out);
 
+    init_input_padded.tag_parallel_level(n);
+
+    copy_input.tag_parallel_level(n);
+    copy_input.vectorize(ffin, FIN_BLOCKING);
+
     //n, fout_b, fin_b, y, x, k_y, k_x, ffin, ffout
     conv.interchange(x, k_y);
     conv.interchange(x, k_x);
