@@ -14,11 +14,11 @@
 #endif
 
 // Width and height of an input image
-#define IMG_WIDTH 224
-#define IMG_HEIGHT 224
+#define IMG_WIDTH 600
+#define IMG_HEIGHT 400
 
 // Width and height of a convolution input tensor
-#define N 112
+#define N 224
 
 // Number of features in the input
 #define FIn 3

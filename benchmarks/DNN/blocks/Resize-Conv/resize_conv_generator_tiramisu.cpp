@@ -72,13 +72,13 @@ int main()
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    init_resized_input.then(resize, computation::root)
-                      .then(init_output, computation::root)
-                      .then(conv, computation::root);
+    init_resized_input.then(resize, n)
+                      .then(init_output, n)
+                      .then(conv, y);
 
     resize.tag_parallel_level(n);
-    resize.vectorize(x, 8);
     resize.tag_unroll_level(fin);
+    resize.vectorize(x, 8);
 
     //n, fout_b, y, x, k_y, k_x, fin, ffout
     conv.interchange(x, k_y);
