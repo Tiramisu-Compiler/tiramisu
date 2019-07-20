@@ -76,7 +76,6 @@ int main()
                       .then(init_output, n)
                       .then(conv, y);
 
-    resize.tag_parallel_level(n);
     resize.tag_unroll_level(fin);
     resize.vectorize(x, 8);
 
@@ -85,8 +84,8 @@ int main()
     conv.interchange(x, k_x);
     //n, fout_b, y, k_y, k_x, x, fin, ffout
     
-    conv.tag_parallel_level(n);
     conv.vectorize(ffout, FOUT_BLOCKING);
+    conv.tag_parallel_level(n);
 
     // -------------------------------------------------------
     // Layer III
