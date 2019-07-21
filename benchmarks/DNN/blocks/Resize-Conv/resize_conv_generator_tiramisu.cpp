@@ -74,7 +74,7 @@ int main()
     // -------------------------------------------------------
     init_resized_input.then(resize, n)
                       .then(init_output, n)
-                      .then(conv, y);
+                      .then(conv, x);
 
     resize.tag_unroll_level(fin);
     resize.vectorize(x, 8);
