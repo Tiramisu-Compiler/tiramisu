@@ -56,15 +56,12 @@ int main()
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    init_input_padded.then(copy_input, computation::root)
-                     .then(init_conv_output, computation::root)
+    init_input_padded.then(copy_input, n)
+                     .then(init_conv_output, n)
                      .then(conv, fout_b)
-                     .then(init_output, computation::root)
+                     .then(init_output, n)
                      .then(maxpool, x_out);
 
-    init_input_padded.tag_parallel_level(n);
-
-    copy_input.tag_parallel_level(n);
     copy_input.vectorize(ffin, FIN_BLOCKING);
 
     //n, fout_b, fin_b, y, x, k_y, k_x, ffin, ffout
@@ -72,7 +69,6 @@ int main()
     conv.interchange(x, k_x);
     //n, fout_b, fin_b, y, k_y, k_x, x, ffin, ffout
     
-    conv.tag_parallel_level(n);
     conv.vectorize(ffout, FOUT_BLOCKING);
 
     maxpool.tag_parallel_level(n);
