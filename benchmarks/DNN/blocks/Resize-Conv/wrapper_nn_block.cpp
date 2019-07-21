@@ -84,7 +84,7 @@ int main()
                     mkl_result >> tmp;
 
                     file_count++;
-                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.00001)
+                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
                         corr++;
                 }
 
