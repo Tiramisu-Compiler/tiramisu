@@ -78,13 +78,10 @@ int main()
 
     resize.tag_unroll_level(fin);
     resize.vectorize(x, 8);
-
-    //n, fout_b, y, x, k_y, k_x, fin, ffout
-    conv.interchange(x, k_y);
-    conv.interchange(x, k_x);
-    //n, fout_b, y, k_y, k_x, x, fin, ffout
     
+    conv.tag_unroll_level(fin);
     conv.vectorize(ffout, FOUT_BLOCKING);
+
     conv.tag_parallel_level(n);
 
     // -------------------------------------------------------
