@@ -37,19 +37,6 @@ void allocate_complex_buffers(
       a_temporary);
 }
 
-// if Key is not in the map insert val
-// otherwise add val to existing entry
-template <typename K>
-void insert_or_add(std::map<K, complex_expr> &map, K key, complex_expr val)
-{
-  auto it = map.find(key);
-  if (it == map.end()) {
-    map[key] = val;
-    return;
-  }
-  it->second = it->second + val;
-}
-
 /*
  * The goal is to generate code that implements the reference.
  * baryon_ref.cpp
@@ -107,15 +94,12 @@ void generate_function(std::string name)
       complex_expr prop_0p = prop(0, t, kCprime, kSprime, ic, is, x, y);
       complex_expr prop_2p = prop(2, t, iCprime, iSprime, kc, ks, x, y);
       
-      complex_expr q = (prop_0 * prop_2 - prop_0p * prop_2p) * w;
-      insert_or_add(Q_exprs, {jc, js}, q);
+      Q_exprs[{jc, js}] += (prop_0 * prop_2 - prop_0p * prop_2p) * w;
 
       complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
-      complex_expr o = prop_1 * prop_2 * w;
-      insert_or_add(O_exprs, {ic, is}, o);
+      O_exprs[{ic, is}] += prop_1 * prop_2 * w;
 
-      complex_expr p = prop_0p * prop_1 * w;
-      insert_or_add(P_exprs, {kc, ks}, p);
+      P_exprs[{kc, ks}] += prop_0p * prop_1 * w;
     }
 
     // DEFINE computation of Q
