@@ -66,6 +66,7 @@ This section provides a short description of how to build Tiramisu.  A more deta
 2) Get and install Tiramisu submodules (ISL, LLVM and Halide).  This step may take between few minutes to few hours (downloading and compiling LLVM is time consuming).
 
         ./utils/scripts/install_submodules.sh <TIRAMISU_ROOT_DIR>
+        # make sure <TIRAMISU_ROOT_DIR> is absolute path!
 
 3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
 
@@ -93,6 +94,7 @@ If asked for a username/password
     Username:b
     Password:b
 
+Another tar.gz version of the VM image is available [here](http://groups.csail.mit.edu/commit/software/TiramisuVM.tar.gz).
 
 ## Getting Started
 - Build [Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu/).

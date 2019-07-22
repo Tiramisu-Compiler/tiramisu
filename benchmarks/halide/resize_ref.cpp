@@ -1,7 +1,5 @@
 #include "Halide.h"
 
-#define NOCLAMP 0
-
 using namespace Halide;
 
 Expr mixf(Expr x, Expr y, Expr a) {
@@ -10,18 +8,16 @@ Expr mixf(Expr x, Expr y, Expr a) {
 
 int main(int argc, char* argv[]) {
     ImageParam in{UInt(8), 2, "input"};
-    Param<int> resampled_rows;
-    Param<int> resampled_cols;
 
     Func resampled{"resampled"};
     Var x("x"), y("y");
 
     // Translating this algorithm as close as possible
-
     Expr o_h = in.height();
     Expr o_w = in.width();
-    Expr n_h = resampled_rows;
-    Expr n_w = resampled_cols;
+
+    Expr n_h = in.height() / 1.5f;
+    Expr n_w = in.width() / 1.5f;
 
     Expr n_r = y;
     Expr n_c = x;
@@ -60,18 +56,18 @@ int main(int argc, char* argv[]) {
     Expr coord_11_c = clamp( coord_00_c + 1, 0, o_w - 1 );
 #endif
 
-    Expr A00 = in(coord_00_r, coord_00_c);
-    Expr A10 = in(coord_10_r, coord_10_c);
-    Expr A01 = in(coord_01_r, coord_01_c);
-    Expr A11 = in(coord_11_r, coord_11_c);
+    Expr A00 = in(coord_00_c, coord_00_r);
+    Expr A10 = in(coord_10_c, coord_10_r);
+    Expr A01 = in(coord_01_c, coord_01_r);
+    Expr A11 = in(coord_11_c, coord_11_r);
 
     resampled(x, y) = mixf( mixf(A00, A10, r), mixf(A01, A11, r), c);
 
     resampled.parallel(y).vectorize(x, 8);
 
-    resampled.compile_to_object("build/generated_fct_resize_ref.o", {in, resampled_rows, resampled_cols}, "resize_ref");
+    resampled.compile_to_object("build/generated_fct_resize_ref.o", {in}, "resize_ref");
 
-    resampled.compile_to_lowered_stmt("build/generated_fct_resize_ref.txt", {in, resampled_rows, resampled_cols}, HTML);
+    resampled.compile_to_lowered_stmt("build/generated_fct_resize_ref.txt", {in}, HTML);
 
     return 0;
 }

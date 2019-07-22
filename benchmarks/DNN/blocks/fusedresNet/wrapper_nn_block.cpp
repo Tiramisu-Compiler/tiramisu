@@ -88,7 +88,7 @@ int main(int, char **)
         std::chrono::duration<double, std::milli> duration = end1 - start1;
         duration_vector.push_back(duration);
     }
-    std::cout << "\t\tTiramisu convolution duration"
+    std::cout << "\t\tTiramisu ResNet block duration "
               << ": " << median(duration_vector) << "; " << std::endl;
 
     std::ofstream resultfile;
@@ -99,7 +99,7 @@ int main(int, char **)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
                 {
-                    resultfile << fixed << setprecision(2) << (float)((int)(bn2(x, y, z, n) * 1000) / 1000.0);
+                    resultfile << fixed << setprecision(10) << bn2(x, y, z, n);
                     resultfile << "\n";
                 }
     resultfile.close();
@@ -107,7 +107,7 @@ int main(int, char **)
     std::cout << "\t\t Result"
               << ":\n\n";
 
-    std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
+    std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt");
     std::string line1, line2;
     float file_count = 0, corr = 0, f1, f2;
     
@@ -118,7 +118,7 @@ int main(int, char **)
         f1 = std::stof(line1);
         f2 = std::stof(line2);
 
-        if (abs(f1 - f2) < 0.02)
+        if (abs(f1 - f2) < 0.0001)
             corr += 1;
     }
 

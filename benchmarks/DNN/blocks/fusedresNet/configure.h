@@ -23,9 +23,9 @@
 #endif
 
 // Number of features in the input
-#define FIn 1
+#define FIn 3
 // Number of features in the output
-#define FOut 1
+#define FOut 64
 
 // Strides
 #define S_X 1

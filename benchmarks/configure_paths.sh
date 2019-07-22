@@ -2,10 +2,17 @@
 
 ## Configure the MKL library (Only required for benchmarks that use Intel MKL)
 #### Path to MKL
-export MKL_PREFIX=/opt/intel/compilers_and_libraries/mac/mkl/
+#export MKL_PREFIX=/opt/intel/compilers_and_libraries/mac/mkl/
+#export MKL_PREFIX=/data/scratch/baghdadi/libs/intel/mkl/
+export MKL_PREFIX=
 #### MKL library flag
-export MKL_FLAGS="-lcblas"
+#export MKL_FLAGS="-lcblas"
+export MKL_FLAGS=""
 export MKL_LIB_PATH_SUFFIX=
+
+#### Extra machine specific libraries
+#export EXTRA_LIBRARIES="-ldl"
+export EXTRA_LIBRARIES=""
 
 ################################################################
 # Most of the following options do not need to be modified.

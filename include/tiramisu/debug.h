@@ -4,14 +4,32 @@
 #include <iostream>
 
 /**
-  * Debugging level.
+  * Set to true to enable printing the generated Halide IR after
+  * the code generation step. Set to false to disable this.
+  * Halide IR will be printed even if ENABLE_DEBUG is set to false.
   */
-#define DEBUG_LEVEL 3
+#define PRINT_HALIDE_IR_AFTER_CODEGEN 1
 
 /**
-  * Set to 1 to enable debugging and 0 to disable debugging.
+  * Set to true to enable printing the final (fully simplified)
+  * generated Halide IR.
   */
-#define ENABLE_DEBUG true
+#define PRINT_FINAL_HALIDE_IR_AFTER_CODEGEN 0
+
+
+/**
+  * Set to true to enable debugging and false to disable debugging.
+  * Debugging here means printing the results of each Tiramisu pass.
+  */
+#define ENABLE_DEBUG false
+
+/**
+  * Debugging level.
+  * Set to 3 if you want to enable basic debugging.
+  * Set to 10 if you want to enable full debugging information
+  * (this will print detailed debugging information).
+  */
+#define DEBUG_LEVEL 0
 
 namespace tiramisu
 {

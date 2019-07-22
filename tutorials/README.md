@@ -6,6 +6,7 @@
 - [Developers Tutorial 04A](developers/tutorial_04A/tutorial_04A.cpp): a matrix multiplication example.
 - [Developers Tutorial 04B](developers/tutorial_04B/tutorial_04B.cpp): an example of two successive matrix multiplications.
 - [Developers Tutorial 04gpu](developers/tutorial_04gpu/tutorial_04gpu.cpp): an example of a matrix multiplication mapped to GPU.
+- [Developers Tutorial 04gpu2](developers/tutorial_04gpu2/tutorial_04gpu2.cpp): GPU matrix multiplication with high level API.
 
 The rest of the tutorials is written using the low level Tiramisu API (most users do not need to learn the low level API).
 
