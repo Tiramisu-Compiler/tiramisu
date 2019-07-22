@@ -46,19 +46,19 @@ void generate_function(std::string name)
     tiramisu::init(name);
 
     var n("n", 0, Nsrc),
-	iCprime("iCprime", 0, Nc),
-	iSprime("iSprime", 0, Ns),
-	jCprime("jCprime", 0, Nc),
-	jSprime("jSprime", 0, Ns),
-	kCprime("kCprime", 0, Nc),
-	kSprime("kSprime", 0, Ns),
-	lCprime("lCprime", 0, Nc),
-	lSprime("lSprime", 0, Ns),
-	x("x", 0, Vsnk),
-	x2("x2", 0, Vsnk),
-	t("t", 0, Lt),
-	y("y", 0, Vsrc),
-	tri("tri", 0, Nq);
+        iCprime("iCprime", 0, Nc),
+        iSprime("iSprime", 0, Ns),
+        jCprime("jCprime", 0, Nc),
+        jSprime("jSprime", 0, Ns),
+        kCprime("kCprime", 0, Nc),
+        kSprime("kSprime", 0, Ns),
+        lCprime("lCprime", 0, Nc),
+        lSprime("lSprime", 0, Ns),
+        x("x", 0, Vsnk),
+        x2("x2", 0, Vsnk),
+        t("t", 0, Lt),
+        y("y", 0, Vsrc),
+        tri("tri", 0, Nq);
 
     input Blocal_r("Blocal_r",      {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
     input Blocal_i("Blocal_i",      {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
@@ -93,10 +93,10 @@ void generate_function(std::string name)
       complex_expr prop_2 =  prop(2, t, kCprime, kSprime, kc, ks, x, y);
       complex_expr prop_0p = prop(0, t, kCprime, kSprime, ic, is, x, y);
       complex_expr prop_2p = prop(2, t, iCprime, iSprime, kc, ks, x, y);
+      complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
       
       Q_exprs[{jc, js}] += (prop_0 * prop_2 - prop_0p * prop_2p) * w;
 
-      complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
       O_exprs[{ic, is}] += prop_1 * prop_2 * w;
 
       P_exprs[{kc, ks}] += prop_0p * prop_1 * w;
@@ -193,8 +193,8 @@ void generate_function(std::string name)
           str_fmt("bsingle_update_%d_%d", jc, js),
           // iterator
           {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
-	  // predicate
-	  (iCprime != kCprime || iSprime != kSprime),
+          // predicate
+          (iCprime != kCprime || iSprime != kSprime),
           // definition
           bsingle_update_def);
       Bsingle_updates.push_back(bsingle_update);
