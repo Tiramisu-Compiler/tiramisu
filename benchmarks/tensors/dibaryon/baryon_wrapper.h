@@ -28,8 +28,8 @@
 #define twoNw 81
 #define Nperms 36
 #define Lt 48 // 1..32
-#define Vsrc 16 //64 //8, 64, 512
-#define Vsnk 16 //64 //8, 64, 512
+#define Vsrc 32 //64 //8, 64, 512
+#define Vsnk 32 //64 //8, 64, 512
 #define Nsrc 6
 #define Nsnk 6
 #define mq 1.0
