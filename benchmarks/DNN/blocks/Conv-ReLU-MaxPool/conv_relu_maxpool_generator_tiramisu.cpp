@@ -74,7 +74,7 @@ int main()
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer input_padded_buf("input_padded_buf", {BATCH_SIZE,FIN_NB_BLOCKS, N + 2, N + 2, FIN_BLOCKING}, p_float32, a_temporary);
+    buffer input_padded_buf("input_padded_buf", {BATCH_SIZE, FIN_NB_BLOCKS, N + 2, N + 2, FIN_BLOCKING}, p_float32, a_temporary);
     buffer workspace_buf("workspace_buf", {BATCH_SIZE, N, FOUT_BLOCKING}, p_float32, a_temporary);
     buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
 
