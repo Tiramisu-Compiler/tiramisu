@@ -28,28 +28,28 @@ int main()
     computation copy_input("copy_input", {n, fin_b, y, x, ffin}, c_input(n, fin_b, y, x, ffin));
     view input_padded("input_padded", {n, fin_b, y_pad, x_pad, ffin}, p_float32);
 
+    // Init output with zeros
+    var x_out("x_out", 0, N/2), y_out("y_out", 0, N/2);
+    computation init_output("init_output", {n, fout_b, y_out, x_out, ffout}, cast(p_float32, 0));
+
     // Convolution computation
     computation init_conv_output("init_conv_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
-        {n, fout_b, fin_b, y, x, k_y, k_x, ffin, ffout}, 
+        {n, fout_b, y, x, fin_b, k_y, k_x, ffin, ffout}, 
         init_conv_output(n, fout_b, y, x, ffout) + input_padded(n, fin_b, y + k_y, x + k_x, ffin)*conv_filter(fout_b, fin_b, k_y, k_x, ffin, ffout)
     );
 
     // MaxPool computation
-    var x_out("x_out", 0, N/2), y_out("y_out", 0, N/2);
-    var p_x("p_x", 0, 2), p_y("p_y", 0, 2);
-
-    computation init_output("init_output", {n, fout_b, y_out, x_out, ffout}, cast(p_float32, 0));
-    view c_output("c_output", {n, fout_b, y_out, x_out, ffout}, p_float32);
+    view c_output("c_output", {n, fout_b, y, x, ffout}, p_float32);
 
     computation maxpool(
         "maxpool",
-        {n, fout_b, y_out, x_out, p_y, p_x, ffout},
+        {n, fout_b, y, x, ffout},
         expr(
             o_max,
-            c_output(n, fout_b, y_out, x_out, ffout),
-            conv(n, fout_b, FIN_NB_BLOCKS - 1, y_out*2 + p_y, x_out*2 + p_x, K_Y - 1, K_X - 1, FIN_BLOCKING - 1, ffout)
+            c_output(n, fout_b, y, x, ffout),
+            conv(n, fout_b, y, x, FIN_NB_BLOCKS - 1, K_Y - 1, K_X - 1, FIN_BLOCKING - 1, ffout)
         )
     );
     
@@ -57,39 +57,38 @@ int main()
     // Layer II
     // -------------------------------------------------------
     init_input_padded.then(copy_input, n)
-                     .then(init_conv_output, n)
-                     .then(conv, fout_b)
                      .then(init_output, n)
-                     .then(maxpool, x_out);
-
-    copy_input.vectorize(ffin, FIN_BLOCKING);
-
-    //n, fout_b, fin_b, y, x, k_y, k_x, ffin, ffout
+                     .then(init_conv_output, n)
+                     .then(conv, y)
+                     .then(maxpool, y);
+                     
+    conv.interchange(x, fin_b);
     conv.interchange(x, k_y);
     conv.interchange(x, k_x);
-    //n, fout_b, fin_b, y, k_y, k_x, x, ffin, ffout
     
     conv.vectorize(ffout, FOUT_BLOCKING);
+    maxpool.vectorize(ffout, FOUT_BLOCKING);
 
-    maxpool.tag_parallel_level(n);
+    conv.tag_parallel_level(n);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
     buffer input_padded_buf("input_padded_buf", {BATCH_SIZE, FIN_NB_BLOCKS, N + 2, N + 2, FIN_BLOCKING}, p_float32, a_temporary);
-    buffer workspace_buf("workspace_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer workspace_buf("workspace_buf", {BATCH_SIZE, N, FOUT_BLOCKING}, p_float32, a_temporary);
     buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
 
     init_input_padded.store_in(&input_padded_buf);
     copy_input.store_in(&input_padded_buf, {n, fin_b, y + 1, x + 1, ffin});
     input_padded.store_in(&input_padded_buf);
 
-    init_conv_output.store_in(&workspace_buf);
-    conv.store_in(&workspace_buf, {n, fout_b, y, x, ffout});
-
     init_output.store_in(&output_buf);
-    c_output.store_in(&output_buf);
-    maxpool.store_in(&output_buf, {n, fout_b, y_out, x_out, ffout});
+
+    init_conv_output.store_in(&workspace_buf, {n, x, ffout});
+    conv.store_in(&workspace_buf, {n, x, ffout});
+
+    c_output.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
+    maxpool.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
 
     // -------------------------------------------------------
     // Code Generation
@@ -103,3 +102,4 @@ int main()
 
     return 0;
 }
+
