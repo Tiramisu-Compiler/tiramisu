@@ -70,6 +70,7 @@ int main()
     //n, fout_b, fin_b, y, k_y, k_x, x, ffin, ffout
     
     conv.vectorize(ffout, FOUT_BLOCKING);
+    maxpool.vectorize(ffout, FOUT_BLOCKING);
 
     maxpool.tag_parallel_level(n);
 
