@@ -72,71 +72,6 @@ void generate_function(std::string name)
     computation Blocal_r_init("Blocal_r_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, expr((double) 0));
     computation Blocal_i_init("Blocal_i_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, expr((double) 0));
 
-    std::map<std::string, expr> prop_loads;
-    // mapping <jc,js> -> Q[..., jc, js ...] in the reference impl.
-    std::map<std::pair<int,int>, complex_expr> Q_exprs;
-    // mapping <ic,is> -> O[..., ic, is ...] in the reference impl.
-    std::map<std::pair<int,int>, complex_expr> O_exprs;
-    // mapping <kc,ks> -> O[..., kc, ks ...] in the reference impl.
-    std::map<std::pair<int,int>, complex_expr> P_exprs;
-    // FIRST: build the ``unrolled'' expressions of Q, O, and P
-    for (int ii = 0; ii < Nw; ii++) {
-      int ic = test_color_weights[ii][0];
-      int is = test_spin_weights[ii][0];
-      int jc = test_color_weights[ii][1];
-      int js = test_spin_weights[ii][1];
-      int kc = test_color_weights[ii][2];
-      int ks = test_spin_weights[ii][2];
-      double w = test_weights[ii];
-
-      complex_expr prop_0 =  prop(0, t, iCprime, iSprime, ic, is, x, y);
-      complex_expr prop_2 =  prop(2, t, kCprime, kSprime, kc, ks, x, y);
-      complex_expr prop_0p = prop(0, t, kCprime, kSprime, ic, is, x, y);
-      complex_expr prop_2p = prop(2, t, iCprime, iSprime, kc, ks, x, y);
-      complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
-      
-      Q_exprs[{jc, js}] += (prop_0 * prop_2 - prop_0p * prop_2p) * w;
-
-      O_exprs[{ic, is}] += prop_1 * prop_2 * w;
-
-      P_exprs[{kc, ks}] += prop_0p * prop_1 * w;
-    }
-
-    // DEFINE computation of Q
-    std::map<std::pair<int,int>, std::pair<computation *, computation *>> Q;
-    for (auto &jAndExpr : Q_exprs) {
-      int jc, js;
-      std::tie(jc, js) = jAndExpr.first;
-      Q[{jc,js}] = complex_computation(
-          str_fmt("q_%d_%d", jc, js),
-          {t, iCprime, iSprime, kCprime, kSprime, x, y},
-          jAndExpr.second);
-    }
-    // DEFINE computation of O
-    std::map<std::pair<int,int>, std::pair<computation *, computation *>> O;
-    for (auto &iAndExpr : O_exprs) {
-      int ic, is;
-      std::tie(ic, is) = iAndExpr.first;
-      O[{ic,is}] = complex_computation(
-          // name
-          str_fmt("o_%d_%d", ic, is),
-          // iterators
-          {t, jCprime, jSprime, kCprime, kSprime, x, y},
-          iAndExpr.second);
-    }
-    // DEFINE computation of P
-    std::map<std::pair<int,int>, std::pair<computation *, computation *>> P;
-    for (auto &kAndExpr : P_exprs) {
-      int kc, ks;
-      std::tie(kc, ks) = kAndExpr.first;
-      P[{kc,ks}] = complex_computation(
-          // name
-          str_fmt("p_%d_%d", kc, ks),
-          // iterators
-          {t, jCprime, jSprime, kCprime, kSprime, x, y},
-          // definition
-          kAndExpr.second);
-    }
     complex_expr psi(psi_r(n, y), psi_i(n, y));
 
     computation Bsingle_r_init("Bsingle_r_init", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, expr((double) 0));
@@ -153,138 +88,169 @@ void generate_function(std::string name)
     std::vector<std::pair<computation *, computation *>> Bdouble_o_updates;
     std::vector<std::pair<computation *, computation *>> Bdouble_p_updates;
 
+    complex_expr Q_exprs[Nc][Ns];
+    complex_expr O_exprs[Nc][Ns];
+    complex_expr P_exprs[Nc][Ns];
+    // FIRST: build the ``unrolled'' expressions of Q, O, and P
+    for (int ii = 0; ii < Nw; ii++) {
+      int ic = test_color_weights[ii][0];
+      int is = test_spin_weights[ii][0];
+      int jc = test_color_weights[ii][1];
+      int js = test_spin_weights[ii][1];
+      int kc = test_color_weights[ii][2];
+      int ks = test_spin_weights[ii][2];
+      double w = test_weights[ii];
+
+      complex_expr prop_0 =  prop(0, t, iCprime, iSprime, ic, is, x, y);
+      complex_expr prop_2 =  prop(2, t, kCprime, kSprime, kc, ks, x, y);
+      complex_expr prop_0p = prop(0, t, kCprime, kSprime, ic, is, x, y);
+      complex_expr prop_2p = prop(2, t, iCprime, iSprime, kc, ks, x, y);
+      complex_expr prop_1 = prop(1, t, jCprime, jSprime, jc, js, x, y);
+      
+      Q_exprs[jc][js] += (prop_0 * prop_2 - prop_0p * prop_2p) * w;
+
+      O_exprs[ic][is] += prop_1 * prop_2 * w;
+
+      P_exprs[kc][ks] += prop_0p * prop_1 * w;
+    }
+
     // Used to remember relevant (sub)computation of Q and its user computations (Blocal and Bsingle)
     struct Q2UserEdge {
       computation *q_r, *q_i,
                   *bs_r, *bs_i,
                   *bl_r, *bl_i;
     };
+    // DEFINE computation of Q, and its user -- Blocal and Bsingle
     std::vector<Q2UserEdge> q2userEdges;
-    
-    // Define Bsingle and Blocal computation
-    for (auto &jAndComp : Q) {
-      int jc, js;
-      std::tie(jc, js) = jAndComp.first;
-      complex_computation q_computation = jAndComp.second;
+    for (int jc = 0; jc < Nc; jc++) {
+      for (int js = 0; js < Ns; js++) {
+        if (Q_exprs[jc][js].is_zero())
+          continue;
 
-      // NOTE
-      // iterators of Q is { t, iCprime, iSprime, kCprime, kSprime, x, y },
-      //
-      complex_expr q = q_computation(t, iCprime, iSprime, kCprime, kSprime, x, y);
+        complex_computation q_computation(
+            str_fmt("q_%d_%d", jc, js),
+            {t, iCprime, iSprime, kCprime, kSprime, x, y},
+            Q_exprs[jc][js]);
 
-      // define local block
-      complex_expr blocal_update_def = 
-        Blocal_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime) +
-        q * prop(1, t, jCprime, jSprime, jc, js, x, y) * psi;
-      complex_computation blocal_update(
-          // name
-          str_fmt("blocal_update_%d_%d", jc, js),
-          // iterator
-          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
-          // definition
-          blocal_update_def);
-      Blocal_updates.push_back(blocal_update);
+        complex_expr q = q_computation(t, iCprime, iSprime, kCprime, kSprime, x, y);
 
-      // define single block
-      complex_expr bsingle_update_def =
-        Bsingle_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2) +
-        q * prop(1, t, jCprime, jSprime, jc, js, x2, y) * psi;
-      complex_computation bsingle_update(
-          str_fmt("bsingle_update_%d_%d", jc, js),
-          // iterator
-          {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
-          // predicate
-          (iCprime != kCprime || iSprime != kSprime),
-          // definition
-          bsingle_update_def);
-      Bsingle_updates.push_back(bsingle_update);
+        // define local block
+        complex_expr blocal_update_def = 
+          Blocal_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime) +
+          q * prop(1, t, jCprime, jSprime, jc, js, x, y) * psi;
+        complex_computation blocal_update(
+            // name
+            str_fmt("blocal_update_%d_%d", jc, js),
+            // iterator
+            {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, y},
+            // definition
+            blocal_update_def);
+        Blocal_updates.push_back(blocal_update);
+
+        // define single block
+        complex_expr bsingle_update_def =
+          Bsingle_init(t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2) +
+          q * prop(1, t, jCprime, jSprime, jc, js, x2, y) * psi;
+        complex_computation bsingle_update(
+            str_fmt("bsingle_update_%d_%d", jc, js),
+            // iterator
+            {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2, y},
+            // predicate
+            (iCprime != kCprime || iSprime != kSprime),
+            // definition
+            bsingle_update_def);
+        Bsingle_updates.push_back(bsingle_update);
 
 
-      // FIXME: remove these
-      auto *q_real = jAndComp.second.first;
-      auto *q_imag = jAndComp.second.second;
-      auto *bsingle_r = bsingle_update.get_real();
-      auto *bsingle_i = bsingle_update.get_imag();
-      auto *blocal_r = blocal_update.get_real();
-      auto *blocal_i = blocal_update.get_imag();
-      Q2UserEdge edge {q_real, q_imag, bsingle_r, bsingle_i, blocal_r, blocal_i};
-      q2userEdges.push_back(edge);
+        // FIXME: remove these
+        auto *q_real = q_computation.get_real();
+        auto *q_imag = q_computation.get_imag();
+        auto *bsingle_r = bsingle_update.get_real();
+        auto *bsingle_i = bsingle_update.get_imag();
+        auto *blocal_r = blocal_update.get_real();
+        auto *blocal_i = blocal_update.get_imag();
+        Q2UserEdge edge {q_real, q_imag, bsingle_r, bsingle_i, blocal_r, blocal_i};
+        q2userEdges.push_back(edge);
+      }
     }
 
+    // DEFINE computation of O and its user update on Bdouble
+    struct O2UserEdge {
+      computation *o_r, *o_i,
+                  *bd_r, *bd_i;
+    };
+    std::vector<O2UserEdge> o2userEdges;
+    for (int ic = 0; ic < Nc; ic++) {
+      for (int is = 0; is < Ns; is++) {
+        if (O_exprs[ic][is].is_zero())
+          continue;
+
+        complex_computation o_computation(
+            // name
+            str_fmt("o_%d_%d", ic, is),
+            // iterators
+            {t, jCprime, jSprime, kCprime, kSprime, x, y},
+            O_exprs[ic][is]);
+
+        complex_expr o = o_computation(t, jCprime, jSprime, kCprime, kSprime, x, y);
+
+        complex_expr bdouble_update_def =
+          Bdouble_init(t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2) +
+          o * prop(0, t, iCprime, iSprime, ic, is, x2, y) * psi;
+        complex_computation bdouble_update(
+            // name
+            str_fmt("bdouble_o_update_%d_%d", ic, is),
+            // iterator
+            {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2, y},
+            // definition
+            bdouble_update_def);
+
+        Bdouble_o_updates.push_back(bdouble_update);
+
+        computation *o_real = o_computation.get_real();
+        computation *o_imag = o_computation.get_imag();
+        O2UserEdge edge {o_real, o_imag, bdouble_update.get_real(), bdouble_update.get_imag()};
+        o2userEdges.push_back(edge);
+      }
+    }
+
+    // DEFINE computation of P and its user update on Bdouble
     // Similar to Q2UserEdge, used to record (sub)computation of P and the corresponding use in Bdouble
     struct P2UserEdge {
       computation *p_r, *p_i,
                   *bd_r, *bd_i;
     };
     std::vector<P2UserEdge> p2userEdges;
+    for (int kc = 0; kc < Nc; kc++) {
+      for (int ks = 0; ks < Ns; ks++) {
+        if (P_exprs[kc][ks].is_zero())
+          continue;
+        complex_computation p_computation(
+            // name
+            str_fmt("p_%d_%d", kc, ks),
+            // iterators
+            {t, jCprime, jSprime, kCprime, kSprime, x, y},
+            // definition
+            P_exprs[kc][ks]);
+        complex_expr p = p_computation(t, jCprime, jSprime, kCprime, kSprime, x, y);
 
-    // Define Update of Bdouble using P
-    for (auto &kAndComp : P) {
-      int kc, ks;
-      std::tie(kc, ks) = kAndComp.first;
+        complex_expr bdouble_update_def =
+          Bdouble_init(t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2) -
+          p * prop(2, t, iCprime, iSprime, kc, ks, x2, y) * psi;
+        complex_computation bdouble_update(
+            // name
+            str_fmt("bdouble_p_update_%d_%d", kc, ks),
+            // iterator
+            {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2, y},
+            // definition
+            bdouble_update_def);
+        Bdouble_p_updates.push_back(bdouble_update);
 
-      complex_computation p_computation = kAndComp.second;
-      // NOTE
-      // iterators of P = { t, iCprime, iSprime, kCprime, kSprime, x, y },
-      //
-      complex_expr p = p_computation(t, jCprime, jSprime, kCprime, kSprime, x, y);
-
-      complex_expr bdouble_update_def =
-        Bdouble_init(t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2) -
-        p * prop(2, t, iCprime, iSprime, kc, ks, x2, y) * psi;
-      complex_computation bdouble_update(
-          // name
-          str_fmt("bdouble_p_update_%d_%d", kc, ks),
-          // iterator
-          {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2, y},
-          // definition
-          bdouble_update_def);
-      Bdouble_p_updates.push_back(bdouble_update);
-
-      computation *p_real;
-      computation *p_imag;
-      std::tie(p_real, p_imag) = kAndComp.second;
-      P2UserEdge edge {p_real, p_imag, bdouble_update.get_real(), bdouble_update.get_imag()};
-      p2userEdges.push_back(edge);
-    }
-
-    // Similar to P2UserEdge
-    struct O2UserEdge {
-      computation *o_r, *o_i,
-                  *bd_r, *bd_i;
-    };
-    std::vector<O2UserEdge> o2userEdges;
-
-    // Define Update of Bdouble using O
-    for (auto &iAndComp : O) {
-      int ic, is;
-      std::tie(ic, is) = iAndComp.first;
-
-      complex_computation o_computation = iAndComp.second;
-      // 
-      // NOTE
-      // iterators of O { t, iCprime, iSprime, kCprime, kSprime, x, y },
-      //
-      complex_expr o = o_computation(t, jCprime, jSprime, kCprime, kSprime, x, y);
-
-      complex_expr bdouble_update_def =
-        Bdouble_init(t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2) +
-        o * prop(0, t, iCprime, iSprime, ic, is, x2, y) * psi;
-      complex_computation bdouble_update(
-          // name
-          str_fmt("bdouble_o_update_%d_%d", ic, is),
-          // iterator
-          {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2, y},
-          // definition
-          bdouble_update_def);
-
-      Bdouble_o_updates.push_back(bdouble_update);
-
-      computation *o_real;
-      computation *o_imag;
-      std::tie(o_real, o_imag) = iAndComp.second;
-      O2UserEdge edge {o_real, o_imag, bdouble_update.get_real(), bdouble_update.get_imag()};
-      o2userEdges.push_back(edge);
+        computation *p_real = p_computation.get_real();
+        computation *p_imag = p_computation.get_imag();
+        P2UserEdge edge {p_real, p_imag, bdouble_update.get_real(), bdouble_update.get_imag()};
+        p2userEdges.push_back(edge);
+      }
     }
 
     // -------------------------------------------------------

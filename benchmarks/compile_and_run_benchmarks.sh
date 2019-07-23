@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CXX=g++
+CXX=/data/scratch/ychen306/gcc/g++
 
 #set -x
 

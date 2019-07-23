@@ -11,8 +11,7 @@ export MKL_FLAGS=""
 export MKL_LIB_PATH_SUFFIX=
 
 #### Extra machine specific libraries
-#export EXTRA_LIBRARIES="-ldl"
-export EXTRA_LIBRARIES=""
+export EXTRA_LIBRARIES="-ldl"
 
 ################################################################
 # Most of the following options do not need to be modified.
@@ -25,7 +24,7 @@ export TIRAMISU_ROOT=${SCRIPTPATH}/../
 echo ${TIRAMISU_ROOT}
 
 # Number of Halide threads used for parallelization
-export CORES=1
+export CORES=48
 
 # Paths to Tiramisu 3rd party libraries
 export ISL_INCLUDE_DIRECTORY=${TIRAMISU_ROOT}/3rdParty/isl/build/include/
