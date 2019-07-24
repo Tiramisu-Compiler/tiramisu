@@ -28,12 +28,12 @@ To run this benchmark:
     To compare the result of tiramisu with MKL-DNN execute :
         ./compile_and_run_mkldnn.sh
     then 
-        ./wrapper_nn_block_densenet
+        ./wrapper_nn_block_conv_relu_maxpool
     
     To compare the result of tiramisu with MKL execute :
         ./compile_and_run_mkl.sh
     then 
-        ./wrapper_nn_block_densenet
+        ./wrapper_nn_block_conv_relu_maxpool
     
     execution results could be found in the text files : 
         mkl_result.txt (same for Intel MKL and Intel MKL-DNN)
