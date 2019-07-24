@@ -13,29 +13,30 @@
 	#define BATCH_SIZE 8
 #endif
 
-// Size of one data dimension
-// Data is NxNx16
-#if LARGE_DATA_SET
-	#define N 512
-#elif MEDIUM_DATA_SET
-	#define N 64
-#elif SMALL_DATA_SET
-	#define N 32
-#endif
+// Width and height of an input tensor
+#define N 256
 
 // Number of features in the input
-#define FIn 16
+#define FIn 64
 // Number of features in the output
-#define FOut 16
+#define FOut 128
 
 // Size of convolution filter (KxK)
+#define K 3
 
-#define K 4
+// Parameters for Tiramisu code
+#define FIN1_BLOCKING 8
+#define FIN2_BLOCKING 8
+#define FOUT_BLOCKING 8
+
+#define FIN1_NB_BLOCKS FIn/FIN1_BLOCKING
+#define FIN2_NB_BLOCKS FOut/FIN2_BLOCKING
+#define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
 
-#define NB_TESTS 1
+#define NB_TESTS 51
 
 #ifdef __cplusplus
 double median(std::vector<std::chrono::duration<double, std::milli>> scores)
