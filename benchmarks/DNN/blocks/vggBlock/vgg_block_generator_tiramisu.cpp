@@ -1,138 +1,155 @@
 #include <tiramisu/tiramisu.h>
+#include "configure.h"
 #define SCHEDULE_CPU 1
 
 using namespace tiramisu;
 
 int main(int argc, char **argv)
 {
-  init("vgg_block");
+    init("vgg_block");
 
-  // -------------------------------------------------------
-  // Layer I
-  // -------------------------------------------------------
-  // parameters
-  // N: parameters[0]
-  // K: parameters[1]
-  // FIn: parameters[2]
-  // FOut: parameters[3]
-  // BATCH_SIZE: parameters[4]
-  var i("i", 0, 5);
-  input parameters("parameters", {i}, p_int32);
+    // -------------------------------------------------------
+    // Layer I
+    // -------------------------------------------------------
+    var x("x", 0, N), y("y", 0, N), n("n", 0, BATCH_SIZE);
+    var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
 
-  constant C_N0("C_N0", parameters(0) + parameters(1));
-  constant C_N("C_N", parameters(0));
-  constant C_N1("C_N1", parameters(0) - parameters(1));
-  constant C_N2("C_N2", parameters(0) - parameters(1) - parameters(1));
-  constant C_K("C_K", parameters(1) + expr(1));
-  constant C_FIn("C_FIn", parameters(2));
-  constant C_FOut("C_FOut", parameters(3));
-  constant C_BATCH_SIZE("C_BATCH_SIZE", parameters(4));
+    var o_x("o_x", 0, N/2), o_y("o_y", 0, N/2);
+    var k_x("k_x", 0, K), k_y("k_y", 0, K);
 
-  var z1("z1", 0, C_FOut), k_x("k_x", 0, C_K), k_y("k_y", 0, C_K), k_z("k_z", 0, C_FIn); // filter variables
-  var x("x", 0, C_N0), y("y", 0, C_N0), z("z", 0, C_FOut), n("n", 0, C_BATCH_SIZE);      // input
-  var x1("x1", 0, C_N), y1("y1", 0, C_N);                                                // conv
-  var x2("x2", 0, C_N1), y2("y2", 0, C_N1);                                              // conv2
-  var x3("x3", 0, C_N2), y3("y3", 0, C_N2);                                              // maxpool
+    var fin1_b("fin1_b", 0, FIN1_NB_BLOCKS), ffin1("ffin1", 0, FIN1_BLOCKING);
+    var fin2_b("fin2_b", 0, FIN2_NB_BLOCKS), ffin2("ffin2", 0, FIN2_BLOCKING);
+    var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
 
-  // Input computations
-  input c_input("c_input", {n, z, y, x}, p_float32);
-  input bias("bias", {z}, p_float32);
-  input filter("filter", {z, k_z, k_y, k_x}, p_float32);
-  input bias2("bias2", {z}, p_float32);
-  input filter2("filter2", {z, z1, k_y, k_x}, p_float32);
+    // Input computations
+    input c_input("c_input", {n, fin1_b, y, x, ffin1}, p_float32);
 
-  // First conv computations
-  computation conv_init("conv_init", {n, z, y1, x1}, bias(z));
-  computation conv("conv", {n, z, y1, x1, k_z, k_y, k_x}, conv_init(n, z, y1, x1) + filter(z, k_z, k_y, k_x) * c_input(n, k_z, y1 + k_y, x1 + k_x));
+    input bias1("bias1", {fin2_b, ffin2}, p_float32);
+    input filter1("filter1", {fin2_b, fin1_b, k_y, k_x, ffin1, ffin2}, p_float32);
 
-  //first relu
-  computation relu("relu", {n, z, y1, x1}, tiramisu::expr(tiramisu::o_max, conv(n, z, y1, x1, 0, 0, 0), expr((float)0)));
+    input bias2("bias2", {fout_b, ffout}, p_float32);
+    input filter2("filter2", {fout_b, fin2_b, k_y, k_x, ffin2, ffout}, p_float32);
 
-  // Second conv computations
-  computation conv2_init("conv2_init", {n, z, y2, x2}, bias(z));
-  computation conv2("conv2", {n, z, y2, x2, z1, k_y, k_x}, conv2_init(n, z, y2, x2) + filter2(z, z1, k_y, k_x) * relu(n, z1, y2 + k_y, x2 + k_x));
+    // Pad input
+    computation init_input_padded("init_input_padded", {n, fin1_b, y_pad, x_pad, ffin1}, cast(p_float32, 0));
+    computation copy_input("copy_input", {n, fin1_b, y, x, ffin1}, c_input(n, fin1_b, y, x, ffin1));
+    view input_padded("input_padded", {n, fin1_b, y_pad, x_pad, ffin1}, p_float32);
 
-  //second relu
-  computation relu2("relu2", {n, z, y2, x2}, tiramisu::expr(tiramisu::o_max, conv2(n, z, y2, x2, 0, 0, 0), expr((float)0)));
+    // First conv computations
+    computation init_output1("init_output1", {n, fin2_b, y_pad, x_pad, ffin2}, cast(p_float32, 0));
 
-  //maxpooling computation
-  computation maxpool_init("maxpool_init", {n, z, y3, x3}, expr((float)-2147483647));
-  computation maxpool("maxpool", {n, z, y3, x3, k_y, k_x}, expr(o_max, maxpool_init(n, z, y3, x3), relu2(n, z, y3 + k_y, x3 + k_x)));
+    computation conv1_init("conv1_init", {n, fin2_b, y, x, ffin2}, bias1(fin2_b, ffin2));
+    computation conv1(
+        "conv1", 
+        {n, fin2_b, y, x, fin1_b, k_y, k_x, ffin1, ffin2}, 
+        conv1_init(n, fin2_b, y, x, ffin2) + filter1(fin2_b, fin1_b, k_y, k_x, ffin1, ffin2) * input_padded(n, fin1_b, y + k_y, x + k_x, ffin1)
+    );
 
-  // Layer II
+    // First relu
+    computation relu1(
+        "relu1", 
+        {n, fin2_b, y, x, ffin2}, 
+        expr(
+            o_max,
+            0.f,
+            conv1(n, fin2_b, y, x, 0, 0, 0, 0, ffin2)
+        )
+    );
 
-  int vec_len, y_block, o_block;
+    view relu1_padded("relu1_padded", {n, fin2_b, y_pad, x_pad, ffin2}, p_float32);
 
-  vec_len = 16;
-  y_block = 8;
-  o_block = 4;
+    // Second conv computations
+    computation conv2_init("conv2_init", {n, fout_b, y, x, ffout}, bias2(fout_b, ffout));
+    computation conv2(
+        "conv2", 
+        {n, fout_b, y, x, fin2_b, k_y, k_x, ffin2, ffout}, 
+        conv2_init(n, fout_b, y, x, ffout) + filter2(fout_b, fin2_b, k_y, k_x, ffin2, ffout) * relu1_padded(n, fin2_b, y + k_y, x + k_x, ffin2)
+    );
 
-  conv_init.tag_parallel_level(0);
-  conv.after(conv_init, 2);
-  conv.tag_parallel_level(0);
-  // 0, 1,   2,   3,   4,   5,     6,
-  // n, z,   y,   x, r_z, r_y,   r_x,
-  conv.interchange(3, 4);
-  // n, z,   y, (r_z,   x), r_y,   r_x,
-  conv.interchange(3, 2);
-  // n, z, (r_z,   y),   x, r_y,   r_x,
+    // Maxpooling computation
+    computation maxpool_init("maxpool_init", {n, fout_b, o_y, o_x, ffout}, 0.f);
 
-  conv.split(1, o_block);
-  conv_init.split(1, o_block);
-  // n, (z, z_t), r_z,   y,       x, r_y,   r_x,
+    view c_output("c_output", {n, fout_b, y, x, ffout}, p_float32);
+    computation maxpool(
+        "maxpool",
+        {n, fout_b, y, x, ffout}, 
+        expr(
+            o_max, 
+            c_output(n, fout_b, y, x, ffout), 
+            conv2(n, fout_b, y, x, 0, 0, 0, 0, ffout)
+        )
+    );
 
-  conv.split(3, y_block);
-  conv.split(6, vec_len);
-  conv.tag_vector_level(7, vec_len);
+    // -------------------------------------------------------
+    // Layer II
+    // -------------------------------------------------------
+    init_input_padded.then(copy_input, fin1_b)
+                     .then(maxpool_init, n)
+                     .then(init_output1, n)
+                     .then(conv1_init, fin2_b)
+                     .then(conv1, y)
+                     .then(relu1, y)
+                     .then(conv2_init, n)
+                     .then(conv2, y)
+                     .then(maxpool, y);
 
-  // n,  z, z_t,  r_z,  (y, y_t), x, r_y,   r_x,
-  conv_init.split(4, vec_len);
-  conv_init.tag_vector_level(5, vec_len);
+    copy_input.vectorize(ffin1, FIN1_BLOCKING);
+    
+    conv1.interchange(x, fin1_b);
+    conv1.interchange(x, k_y);
+    conv1.interchange(x, k_x);
 
-  relu.after(conv, 3);
-  conv2_init.after(relu, 3);
+    conv1.vectorize(ffin2, FIN2_BLOCKING);
+    relu1.vectorize(ffin2, FIN2_BLOCKING);    
+    
+    conv2.interchange(x, fin2_b);
+    conv2.interchange(x, k_y);
+    conv2.interchange(x, k_x);
 
-  conv2_init.tag_parallel_level(0);
-  conv2.after(conv2_init, tiramisu::computation::root_dimension);
-  conv2.tag_parallel_level(0);
+    conv2.vectorize(ffout, FOUT_BLOCKING);
+    maxpool.vectorize(ffout, FOUT_BLOCKING);
 
-  relu2.after(conv2, 3);
+    maxpool.tag_parallel_level(n);
 
-  // Schedule of maxpooling
-  maxpool_init.after(relu2, 3);
-  maxpool.tag_parallel_level(0);
-  maxpool.after(maxpool_init, 1);
+    // -------------------------------------------------------
+    // Layer III
+    // -------------------------------------------------------
+    buffer padded_input_buf("padded_input_buf", {BATCH_SIZE, FIN1_NB_BLOCKS, N + 2, N + 2, FIN1_BLOCKING}, p_float32, a_temporary);
+    buffer conv1_buf("conv1_buf", {BATCH_SIZE, FIN2_NB_BLOCKS, N + 2, N + 2, FIN2_BLOCKING}, p_float32, a_temporary);
+    buffer conv2_buf("conv2_buf", {BATCH_SIZE, N, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer maxpool_buf("maxpool_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
 
-  // Layer III
-  buffer parameters_buf("parameters_buf", {expr(5)}, p_int32, a_input);
-  buffer input_buf("input_buf", {expr(C_BATCH_SIZE), expr(C_FIn), expr(C_N0), expr(C_N0)}, p_float32, a_input);
-  buffer conv_buf("conv_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N), expr(C_N)}, p_float32, a_output);
-  buffer filter_buf("filter_buf", {expr(C_FOut), expr(C_FIn), expr(C_K), expr(C_K)}, p_float32, a_input);
-  buffer bias_buf("bias_buf", {expr(C_FOut)}, p_float32, a_input);
-  buffer conv2_buf("conv2_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N1), expr(C_N1)}, p_float32, a_output);
-  buffer bias2_buf("bias2_buf", {expr(C_FOut)}, p_float32, a_input);
-  buffer filter2_buf("filter2_buf", {expr(C_FOut), expr(C_FIn), expr(C_K), expr(C_K)}, p_float32, a_input);
-  buffer maxpool_buf("maxpool_buf", {expr(C_BATCH_SIZE), expr(C_FOut), expr(C_N2), expr(C_N2)}, p_float32, a_output);
+    init_input_padded.store_in(&padded_input_buf);
+    copy_input.store_in(&padded_input_buf, {n, fin1_b, y + 1, x + 1, ffin1});
+    input_padded.store_in(&padded_input_buf);
 
-  parameters.store_in(&parameters_buf);
-  c_input.store_in(&input_buf);
+    init_output1.store_in(&conv1_buf);
 
-  bias.store_in(&bias_buf);
-  filter.store_in(&filter_buf);
-  conv_init.store_in(&conv_buf);
-  conv.store_in(&conv_buf, {n, z, y1, x1});
-  relu.store_in(&conv_buf);
+    conv1_init.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
+    conv1.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
+    relu1.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
 
-  bias2.store_in(&bias2_buf);
-  filter2.store_in(&filter2_buf);
-  conv2_init.store_in(&conv2_buf);
-  conv2.store_in(&conv2_buf, {n, z, y2, x2});
-  relu2.store_in(&conv2_buf);
+    relu1_padded.store_in(&conv1_buf);
 
-  maxpool_init.store_in(&maxpool_buf);
-  maxpool.store_in(&maxpool_buf, {n, z, y3, x3});
+    conv2_init.store_in(&conv2_buf, {n, x, ffout});
+    conv2.store_in(&conv2_buf, {n, x, ffout});
 
-  tiramisu::codegen({&parameters_buf, &input_buf, &filter_buf, &bias_buf, &conv_buf, &filter2_buf, &bias2_buf, &conv2_buf, &maxpool_buf}, "generated_vgg_block.o");
+    maxpool_init.store_in(&maxpool_buf);
 
-  return 0;
+    c_output.store_in(&maxpool_buf, {n, fout_b, y/2, x/2, ffout});
+    maxpool.store_in(&maxpool_buf, {n, fout_b, y/2, x/2, ffout});
+
+    // -------------------------------------------------------
+    // Code generation
+    // -------------------------------------------------------
+    tiramisu::codegen({
+        c_input.get_buffer(), 
+        filter1.get_buffer(), 
+        bias1.get_buffer(), 
+        filter2.get_buffer(), 
+        bias2.get_buffer(),
+        &maxpool_buf
+    }, "generated_vgg_block.o");
+
+    return 0;
 }
