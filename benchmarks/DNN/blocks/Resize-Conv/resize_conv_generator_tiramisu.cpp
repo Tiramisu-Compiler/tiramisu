@@ -5,7 +5,7 @@ using namespace tiramisu;
 
 expr mixf(expr x, expr y, expr a)
 {
-    return x * (1 - a) + y * a;
+    return x + (y - x) * a;
 }
 
 int main()
