@@ -11,7 +11,6 @@ export MKL_FLAGS=""
 export MKL_LIB_PATH_SUFFIX=
 
 #### Extra machine specific libraries
-#export EXTRA_LIBRARIES="-ldl"
 export EXTRA_LIBRARIES=""
 
 ################################################################
