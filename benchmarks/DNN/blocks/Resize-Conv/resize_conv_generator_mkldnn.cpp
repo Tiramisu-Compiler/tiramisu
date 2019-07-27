@@ -17,7 +17,7 @@ using namespace mkldnn;
 void resize_conv_block()
 {
     srand(1);
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
 
     engine cpu_engine(engine::kind::cpu, 0);
     stream cpu_stream(cpu_engine);
@@ -141,7 +141,7 @@ void resize_conv_block()
 
     // Execute the network
     for (int i = 0; i < NB_TESTS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
 
         // Loop through batch dimension to process each image with OpenCV
         for (int j = 0; j < BATCH_SIZE; ++j) {
@@ -159,9 +159,8 @@ void resize_conv_block()
 
         cpu_stream.wait();
 
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;
-        duration_vector.push_back(duration);
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\n\n\tResize-Conv block time : " << median(duration_vector) << " ms." << std::endl;

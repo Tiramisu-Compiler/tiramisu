@@ -14,7 +14,7 @@ using namespace std;
 void vggBlock()
 {
     srand(1);
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
 
     engine cpu_engine(engine::kind::cpu, 0);
     stream cpu_stream(cpu_engine);
@@ -256,16 +256,15 @@ void vggBlock()
 
     // Execute the network
     for (int i = 0; i < NB_TESTS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
         
         for (size_t j = 0; j < net.size(); ++j)
             net[j].execute(cpu_stream, net_args[j]);
 
         cpu_stream.wait();
 
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;
-        duration_vector.push_back(duration);
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\n\n\tVGG block time : " << median(duration_vector) << " ms." << std::endl;

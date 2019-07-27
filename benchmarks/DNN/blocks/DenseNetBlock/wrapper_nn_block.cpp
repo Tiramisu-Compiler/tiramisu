@@ -12,7 +12,7 @@ using namespace std;
 int main()
 {
     srand(1);
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
 
     Halide::Buffer<float> input(Z_BLOCKING, N, N, Z_NB_BLOCKS, BATCH_SIZE);
 
@@ -50,7 +50,7 @@ int main()
 
     // Execute Tiramisu code
     for (int i = 0; i < NB_TESTS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
         densenet_block(
             input.raw_buffer(), 
             bn_scale.raw_buffer(), 
@@ -60,9 +60,8 @@ int main()
             output.raw_buffer()
         );
         
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;
-        duration_vector.push_back(duration);	
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);	
     }
 
     std::cout << "\t\tTiramisu DenseNet block duration"

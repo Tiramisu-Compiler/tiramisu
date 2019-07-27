@@ -22,8 +22,7 @@ int main(int, char**)
 	Halide::Buffer<float> result(FC_OUTPUT_SIZE, BATCH_SIZE);
 	init_buffer(result, (float) 0);
 
-	std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
-	std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+	std::vector<double> duration_vector;
 
 	for (int n=0; n < BATCH_SIZE; ++n)
 		for (int z=0; z < FIn; ++z)
@@ -57,16 +56,15 @@ int main(int, char**)
 
 	for (int i=0; i<NB_TESTS; i++)
 	{
-		auto start1 = std::chrono::high_resolution_clock::now();
+		double start = rtclock();
 
 		conv_relu_fc_softmax(input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), fc_weights.raw_buffer(), fc_bias.raw_buffer(), result.raw_buffer());
 
-		auto end1 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double,std::milli> duration = end1 - start1;
-		duration_vector_2.push_back(duration);
+		double end = rtclock();
+		duration_vector.push_back((end - start) * 1000);
 	}
 
-	std::cout << "\t\tTiramisu Conv-Relu-FC-Softmax" << ": " << median(duration_vector_2) << "; " << std::endl;
+	std::cout << "\t\tTiramisu Conv-Relu-FC-Softmax" << ": " << median(duration_vector) << "; " << std::endl;
 	if (SHOW_OUTPUT){
 		std::cout << "\t\tResult" << ": "<< std::endl;
 		for(int n=0; n<BATCH_SIZE; n++){
@@ -99,7 +97,7 @@ int main(int, char**)
 		for(int n=0; n<BATCH_SIZE; n++)
 			for(int z=0; z<FC_OUTPUT_SIZE; z++){
 				mkldnn_result >> tmp;
-				if (abs(result(z, n) - tmp) <= 0.000001)
+				if (std::abs(result(z, n) - tmp) <= 0.000001)
 					nb_correct++;
 			}
 

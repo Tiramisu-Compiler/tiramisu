@@ -123,14 +123,14 @@ static dnnError_t simple_net(int want_groups_conv)
         CHECK_ERR(dnnConversionExecute_F64(cv_user_to_pool1_input, user_i, resPool1[dnnResourceSrc]), err);
 
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
     for (int i = 0; i < NB_TESTS; i++)
     {
-        start = clock();
+        start = rtclock();
         CHECK_ERR(dnnExecute_F64(pool1, (void *)resPool1), err);
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
     printf("Pool time: %f.\n", median(NB_TESTS, times));
 

@@ -24,7 +24,7 @@ int main(int, char **)
 
 	Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
 
-	std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+	std::vector<double> duration_vector;
 
 	// Initialize buffers
 	srand(1);
@@ -56,7 +56,7 @@ int main(int, char **)
 
 	// Execute Tiramisu code
 	for (int i = 0; i < NB_TESTS; i++) {
-		auto start1 = std::chrono::high_resolution_clock::now();
+		double start = rtclock();
 
 		vgg_block(
 			input.raw_buffer(), 
@@ -67,9 +67,8 @@ int main(int, char **)
 			output.raw_buffer()
 		);
 
-		auto end1 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> duration = end1 - start1;
-		duration_vector.push_back(duration);
+		double end = rtclock();
+		duration_vector.push_back((end - start) * 1000);
 	}
 
 	std::cout << "\t\tTiramisu vgg Block duration"
