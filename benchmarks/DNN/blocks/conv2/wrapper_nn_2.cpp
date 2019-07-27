@@ -21,8 +21,8 @@ int main(int, char**)
     Halide::Buffer<float> conv2_tiramisu(N, N, FOut, BATCH_SIZE);
     Halide::Buffer<int> parameters(5);
 
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
-    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+    std::vector<double> duration_vector_1;
+    std::vector<double> duration_vector_2;
 
     for (int y = 0; y < N+K; ++y)
         for (int x = 0; x < N+K; ++x)
@@ -52,11 +52,10 @@ int main(int, char**)
 
     for (int i=0; i<NB_TESTS; i++)
     {
-	    auto start1 = std::chrono::high_resolution_clock::now();
+	    double start1 = rtclock();
 	    conv_halide(input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), filter2.raw_buffer(), bias2.raw_buffer(), conv2_halide.raw_buffer());
-	    auto end1 = std::chrono::high_resolution_clock::now();
-	    std::chrono::duration<double,std::milli> duration = end1 - start1;
-	    duration_vector_1.push_back(duration);
+	    double end1 = rtclock();
+	    duration_vector_1.push_back((end1 - start1) * 1000);
     }
 
     std::cout << "\t\tHalide conv2" << ": " << median(duration_vector_1) << "; " << std::endl;
@@ -84,11 +83,10 @@ int main(int, char**)
 
     for (int i=0; i<NB_TESTS; i++)
     {
-        auto start1 = std::chrono::high_resolution_clock::now();
-	conv_tiramisu(parameters.raw_buffer(), input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer(), filter2.raw_buffer(), bias2.raw_buffer(), conv2_tiramisu.raw_buffer());
-	auto end1 = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double,std::milli> duration = end1 - start1;
-	duration_vector_2.push_back(duration);
+        double start2 = rtclock();
+        conv_tiramisu(parameters.raw_buffer(), input.raw_buffer(), filter.raw_buffer(), bias.raw_buffer(), conv.raw_buffer(), filter2.raw_buffer(), bias2.raw_buffer(), conv2_tiramisu.raw_buffer());
+        double end2 = rtclock();
+        duration_vector_2.push_back((end2 - start2) * 1000);
     }
 
     std::cout << "\t\tTiramisu conv2" << ": " << median(duration_vector_2) << "; " << std::endl;

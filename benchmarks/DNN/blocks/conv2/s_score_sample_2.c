@@ -155,12 +155,12 @@ static dnnError_t simple_net(int want_groups_conv) {
     if (cv_user_to_conv2_bias) CHECK_ERR( dnnConversionExecute_F32(cv_user_to_conv2_bias, user_c2_b, resConv2[dnnResourceBias]), err );
 
 
-    clock_t start, end;
-    start = clock();
+    double start, end;
+    start = rtclock();
     CHECK_ERR( dnnExecute_F32(conv1, (void*)resConv1), err );
     CHECK_ERR( dnnExecute_F32(conv2, (void*)resConv2), err );
-    end = clock();
-    double time_taken = ((double) (end - start)/CLOCKS_PER_SEC)*1000;
+    end = rtclock();
+    double time_taken = (end - start)*1000;
     printf("Convolution time: %f.\n",  time_taken);
 
     if (cv_conv2_to_user_output) CHECK_ERR( dnnConversionExecute_F32(cv_conv2_to_user_output, resConv2[dnnResourceDst], user_c2_o), err );

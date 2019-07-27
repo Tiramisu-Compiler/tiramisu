@@ -140,20 +140,19 @@ int main()
 
     // Execute the block
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
 
     for (int i = 0; i < NB_TESTS; ++i) {
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, input_buf, res_bn_relu[dnnResourceSrc]), err);
         
-        start = clock();
+        start = rtclock();
 
         CHECK_ERR(dnnExecute_F32(bn_primitive, (void**)res_bn_relu), err);
         CHECK_ERR(dnnExecute_F32(relu_primitive, (void**)res_bn_relu), err);
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
 
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
 
     printf("\n\n\tDenseNet block time: %f ms.\n", median(NB_TESTS, times));

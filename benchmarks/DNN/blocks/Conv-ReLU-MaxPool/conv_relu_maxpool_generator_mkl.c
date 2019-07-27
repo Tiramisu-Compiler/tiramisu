@@ -146,18 +146,17 @@ int main()
 
     // Execute the block
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
 
     for (int i = 0; i < NB_TESTS; ++i) {
-        start = clock();
+        start = rtclock();
 
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
         CHECK_ERR(dnnExecute_F32(relu_primitive, (void**)res_relu), err);
         CHECK_ERR(dnnExecute_F32(maxpool_primitive, (void**)res_maxpool), err);
 
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
 
     printf("\n\n\tConv-ReLU-MaxPool block time: %f ms.\n", median(NB_TESTS, times));

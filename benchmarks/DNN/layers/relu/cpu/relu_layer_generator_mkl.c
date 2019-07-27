@@ -96,14 +96,14 @@ static dnnError_t simple_net()
         CHECK_ERR(dnnConversionExecute_F64(cv_user_to_relu1_input, user_i, resRelu1[dnnResourceSrc]), err);
 
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
     for (int i = 0; i < NB_TESTS; i++)
     {
-        start = clock();
+        start = rtclock();
         CHECK_ERR(dnnExecute_F64(relu1, (void *)resRelu1), err);
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+        
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
     printf("Relu time: %f.\n", median(NB_TESTS, times));
 

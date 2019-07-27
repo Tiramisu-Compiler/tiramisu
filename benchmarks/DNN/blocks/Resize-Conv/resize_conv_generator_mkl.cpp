@@ -50,7 +50,7 @@ int main()
 {
     srand(1);
 
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
     dnnError_t err;
 
     // Define some parameters
@@ -127,11 +127,8 @@ int main()
     CHECK_ERR(init_conversion(&cv_conv_to_usr_output, &output_buf, lt_user_output, lt_conv_output, res_conv[dnnResourceDst]), err);
 
     // Execute the block
-    double times[NB_TESTS];
-    clock_t start, end;
-
     for (int i = 0; i < NB_TESTS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
 
         // Loop through batch dimension to process each image with OpenCV
         for (int j = 0; j < BATCH_SIZE; ++j) {
@@ -144,9 +141,8 @@ int main()
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, (void*)resized_buf, res_conv[dnnResourceSrc]), err);
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
 
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;
-        duration_vector.push_back(duration);
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\t\tResize-Conv block time: "
