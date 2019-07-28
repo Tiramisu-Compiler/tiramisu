@@ -33,14 +33,15 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    var x_b, xx;
-    
     if (N >= 224) {
+        var x_b, xx;
         conv_init.split(x, 8, x_b, xx);
         
+        // n, fout_b, y, x, k_y, k_x, fin, ffout
         conv.split(x, 8, x_b, xx);
         conv.interchange(xx, k_y);
         conv.interchange(xx, k_x);
+        // n, fout_b, y, x_b, k_y, k_x, xx, fin, ffout
         
         var y_b, yy;
         conv_init.split(y, 2, y_b, yy);
@@ -50,15 +51,19 @@ int main(int argc, char **argv)
         conv.interchange(yy, x_b);
         conv.interchange(yy, k_y);
         conv.interchange(yy, k_x);
+        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
         
         conv_init.then(conv, x_b);
     }
     
     else {
+        // n, fout_b, y, x, k_y, k_x, fin, ffout
         conv.interchange(x, k_y);
         
+        var x_b, xx;
         conv.split(x, 4, x_b, xx);
         conv.interchange(xx, k_x);
+        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
         
         conv_init.then(conv, y);
     }
