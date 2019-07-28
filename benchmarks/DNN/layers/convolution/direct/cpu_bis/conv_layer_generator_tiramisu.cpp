@@ -33,12 +33,32 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    conv.vectorize(ffout, FOUT_BLOCKING);
+    var x_b, xx;
+    
+    if (N >= 224) {
+        conv_init.split(x, 8, x_b, xx);
+        
+        conv.split(x, 8, x_b, xx);
+        conv.interchange(xx, k_y);
+        conv.interchange(xx, k_x);
+        
+        conv_init.then(conv, x_b);
+    }
+    
+    else {
+        conv.interchange(x, k_y);
+        
+        conv.split(x, 4, x_b, xx);
+        conv.interchange(xx, k_x);
+        
+        conv_init.then(conv, y);
+    }
     
     conv.tag_unroll_level(fin);
     conv.tag_parallel_level(n);
     
-    conv_init.then(conv, x);
+    conv_init.vectorize(ffout, FOUT_BLOCKING);
+    conv.vectorize(ffout, FOUT_BLOCKING);
 
     // -------------------------------------------------------
     // Layer III
