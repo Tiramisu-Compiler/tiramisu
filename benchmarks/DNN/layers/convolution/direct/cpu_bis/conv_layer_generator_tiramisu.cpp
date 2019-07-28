@@ -42,6 +42,15 @@ int main(int argc, char **argv)
         conv.interchange(xx, k_y);
         conv.interchange(xx, k_x);
         
+        var y_b, yy;
+        conv_init.split(y, 2, y_b, yy);
+        conv_init.interchange(yy, x_b);
+        
+        conv.split(y, 2, y_b, yy);
+        conv.interchange(yy, x_b);
+        conv.interchange(yy, k_y);
+        conv.interchange(yy, k_x);
+        
         conv_init.then(conv, x_b);
     }
     
@@ -54,7 +63,7 @@ int main(int argc, char **argv)
         conv_init.then(conv, y);
     }
     
-    conv.tag_unroll_level(fin);
+    conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
     
     conv_init.vectorize(ffout, FOUT_BLOCKING);
