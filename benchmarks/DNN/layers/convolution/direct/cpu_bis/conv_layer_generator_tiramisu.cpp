@@ -44,21 +44,15 @@ int main(int argc, char **argv)
     );
     
     if (N >= 224) {
-        var xx;
-        conv_init.split(x, X_BLOCKING, x_b, xx);
+        var xx, yy;
         
-        // n, fout_b, y, x, k_y, k_x, fin, ffout
-        conv.split(x, X_BLOCKING, x_b, xx);
+        conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING);
+        conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        
+        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
         conv.interchange(xx, k_y);
         conv.interchange(xx, k_x);
-        // n, fout_b, y, x_b, k_y, k_x, xx, fin, ffout
-        
-        var yy;
-        conv_init.split(y, Y_BLOCKING, y_b, yy);
-        conv_init.interchange(yy, x_b);
-        
-        conv.split(y, Y_BLOCKING, y_b, yy);
-        conv.interchange(yy, x_b);
+        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
         conv.interchange(yy, k_y);
         conv.interchange(yy, k_x);
         // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
