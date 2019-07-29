@@ -33,28 +33,47 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    var x_b, xx;
+    var y_b("y_b", 0, Y_NB_BLOCKS), x_b("x_b", 0, X_NB_BLOCKS);
+    
+    // Loop through weights to load them into cache
+    computation prefetch_weights(
+        "prefetch_weights",
+        {n, fout_b, y_b, x_b, k_y, k_x, fin, ffout},
+        filter(fout_b, k_y, k_x, fin, ffout),
+        SCHEDULE_PREFETCH_WEIGHTS
+    );
     
     if (N >= 224) {
-        conv_init.split(x, 8, x_b, xx);
+        var xx, yy;
         
-        conv.split(x, 8, x_b, xx);
+        conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING);
+        conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        
+        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
         conv.interchange(xx, k_y);
         conv.interchange(xx, k_x);
+        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
+        conv.interchange(yy, k_y);
+        conv.interchange(yy, k_x);
+        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
         
-        conv_init.then(conv, x_b);
+        conv_init.then(prefetch_weights, x_b)
+                 .then(conv, x_b);
     }
     
     else {
+        // n, fout_b, y, x, k_y, k_x, fin, ffout
         conv.interchange(x, k_y);
         
-        conv.split(x, 4, x_b, xx);
+        var xx;
+        conv.split(x, X_BLOCKING, x_b, xx);
         conv.interchange(xx, k_x);
+        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
         
         conv_init.then(conv, y);
     }
     
-    conv.tag_unroll_level(fin);
+    conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
     
     conv_init.vectorize(ffout, FOUT_BLOCKING);
@@ -64,6 +83,10 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     buffer conv_buf("conv_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
+    buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
+
+    if (SCHEDULE_PREFETCH_WEIGHTS)
+        prefetch_weights.store_in(&prefetch_w_buf, {});
 
     conv_init.store_in(&conv_buf);
     conv.store_in(&conv_buf, {n, fout_b, y, x, ffout});
