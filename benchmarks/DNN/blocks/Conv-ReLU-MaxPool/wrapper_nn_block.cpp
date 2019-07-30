@@ -14,28 +14,35 @@ int main()
     srand(1);
     std::vector<double> duration_vector;
 
-    Halide::Buffer<float> input(FIN_BLOCKING, N, N, FIN_NB_BLOCKS, BATCH_SIZE);
+    Halide::Buffer<float> input(FIn, N + 2, N + 2, BATCH_SIZE);
 
-    Halide::Buffer<float> conv_filter(FOUT_BLOCKING, FIN_BLOCKING, K_X, K_Y, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+    Halide::Buffer<float> conv_filter(FOUT_BLOCKING, FIn, K_X, K_Y, FOUT_NB_BLOCKS);
     Halide::Buffer<float> conv_bias(FOut);
-
+   
     Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
+    
+    // Internal buffer used by our Tiramisu code
+    Halide::Buffer<float> workspace_buf;
+    if (N >= 224)
+        workspace_buf = Halide::Buffer<float>(FOUT_BLOCKING, X_BLOCKING, Y_BLOCKING, FOUT_NB_BLOCKS, BATCH_SIZE);
+    else 
+        workspace_buf = Halide::Buffer<float>(FOUT_BLOCKING, N, BATCH_SIZE);
 
     // Initialize buffers
     for (int fout = 0; fout < FOut; ++fout)
         for (int fin = 0; fin < FIn; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+                    conv_filter(fout%FOUT_BLOCKING, fin, k_x, k_y, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < FOut; ++fout)
         conv_bias(fout) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fin = 0; fin < FIn; ++fin)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input(fin, x, y, n) = ((float)(rand()%256 - 128)) / 127.f;
 
     std::cout << "\t\tBuffers initialized" << std::endl;
 
@@ -45,7 +52,8 @@ int main()
         conv_relu_maxpool_block(
             input.raw_buffer(), 
             conv_filter.raw_buffer(), 
-            conv_bias.raw_buffer(), 
+            conv_bias.raw_buffer(),
+            workspace_buf.raw_buffer(),
             output.raw_buffer()
         );
         
