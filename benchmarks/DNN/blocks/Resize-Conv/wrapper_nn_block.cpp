@@ -19,6 +19,7 @@ int main()
     Halide::Buffer<float> conv_filter(FOUT_BLOCKING, FIn, K_X, K_Y, FOUT_NB_BLOCKS);
     Halide::Buffer<float> conv_bias(FOut);
 
+    Halide::Buffer<float> resized_input(FIn, N + 2, N + 2, BATCH_SIZE);
     Halide::Buffer<float> output(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
 
     // Initialize buffers
@@ -45,7 +46,8 @@ int main()
         resize_conv_block(
             input.raw_buffer(), 
             conv_filter.raw_buffer(), 
-            conv_bias.raw_buffer(), 
+            conv_bias.raw_buffer(),
+            resized_input.raw_buffer(),
             output.raw_buffer()
         );
         

@@ -27,7 +27,7 @@ void resize_conv_block()
 
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
-    memory::dims conv_padding = {1, 1};
+    memory::dims conv_padding = {0, 0};
 
     std::vector<float> input_buf(BATCH_SIZE*IMG_HEIGHT*IMG_WIDTH*FIn);
     std::vector<float> conv_weights_buf(FOut*FIn*K_Y*K_X);
@@ -44,7 +44,7 @@ void resize_conv_block()
 
     // Create memory objects with user data format
     auto resized_usr_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::nhwc
     );
@@ -66,7 +66,7 @@ void resize_conv_block()
 
     // Create memory objects with a data format selected by the convolution primitive
     auto conv_src_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::any
     );
@@ -149,9 +149,9 @@ void resize_conv_block()
             float* resized_buf_raw = (float*)resized_usr_mem.get_data_handle();
 
             cv::Mat input_mat(IMG_HEIGHT, IMG_WIDTH, CV_32FC3, (uchar*)&input_buf_raw[j * FIn * IMG_WIDTH * IMG_HEIGHT]);
-            cv::Mat resized_mat(N, N, CV_32FC3, (uchar*)&resized_buf_raw[j * FIn * N * N]);
+            cv::Mat resized_mat(N + 2, N + 2, CV_32FC3, (uchar*)&resized_buf_raw[j * FIn * (N + 2) * (N + 2)]);
 
-            cv::resize(input_mat, resized_mat, {N, N}, 0, 0, cv::INTER_LINEAR);
+            cv::resize(input_mat, resized_mat, {N + 2, N + 2}, 0, 0, cv::INTER_LINEAR);
         }
         
         for (size_t j = 0; j < net.size(); ++j)

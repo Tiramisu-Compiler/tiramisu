@@ -19,23 +19,37 @@
 #define IMG_WIDTH 600
 #define IMG_HEIGHT 400
 
-// Width and height of a convolution input tensor
+// Size of one data dimension
 #define N 224
 
 // Number of features in the input
 #define FIn 3
 // Number of features in the output
-#define FOut 32
+#define FOut 64
 
-// Convolution kernel size
-#define K_X 3 
+// Size of convolution filter (K_YxK_X)
+#define K_X 3
 #define K_Y 3
 
 // Parameters for Tiramisu code
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define SCHEDULE_FUSION true
+#define FIN_BLOCKING 4
+#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
+
+#if N >= 224
+    #define X_BLOCKING 8
+    #define Y_BLOCKING 2
+    #define SCHEDULE_PREFETCH_WEIGHTS true
+#else
+    #define X_BLOCKING 4
+    #define Y_BLOCKING 1
+    #define SCHEDULE_PREFETCH_WEIGHTS false
+#endif
+
+#define X_NB_BLOCKS N/X_BLOCKING
+#define Y_NB_BLOCKS N/Y_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0

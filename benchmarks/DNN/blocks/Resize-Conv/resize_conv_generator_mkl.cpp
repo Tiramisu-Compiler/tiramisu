@@ -54,8 +54,8 @@ int main()
     dnnError_t err;
 
     // Define some parameters
-    size_t conv_input_size[] = {N, N, FIn, BATCH_SIZE};
-    size_t conv_input_strides[] = {FIn, FIn*N, 1, FIn*N*N};
+    size_t conv_input_size[] = {N + 2, N + 2, FIn, BATCH_SIZE};
+    size_t conv_input_strides[] = {FIn, FIn*(N + 2), 1, FIn*(N + 2)*(N + 2)};
 
     size_t output_size[] = {N, N, FOut, BATCH_SIZE};
     size_t output_strides[] = {1, N, N*N, N*N*FOut};
@@ -67,7 +67,7 @@ int main()
     size_t conv_filter_strides[] = {1, K_X, K_X*K_Y, K_X*K_Y*FIn};
 
     size_t conv_strides[] = {1, 1};
-    int conv_offset[] = {-1, -1};
+    int conv_offset[] = {0, 0};
 
     for (int fout = 0; fout < FOut; ++fout)
         for (int fin = 0; fin < FIn; ++fin)
@@ -80,7 +80,7 @@ int main()
 
     // Allocate buffers
     float* input_buf = (float*)malloc(sizeof(float) * FIn * IMG_WIDTH * IMG_HEIGHT * BATCH_SIZE);
-    float* resized_buf = (float*)malloc(sizeof(float) * FIn * N * N * BATCH_SIZE);
+    float* resized_buf = (float*)malloc(sizeof(float) * FIn * (N + 2) * (N + 2) * BATCH_SIZE);
     float* output_buf;
 
     for (int n = 0; n < BATCH_SIZE; ++n)
@@ -133,9 +133,9 @@ int main()
         // Loop through batch dimension to process each image with OpenCV
         for (int j = 0; j < BATCH_SIZE; ++j) {
             cv::Mat input_mat(IMG_HEIGHT, IMG_WIDTH, CV_32FC3, (uchar*)&input_buf[j * FIn * IMG_WIDTH * IMG_HEIGHT]);
-            cv::Mat resized_mat(N, N, CV_32FC3, (uchar*)&resized_buf[j * FIn * N * N]);
+            cv::Mat resized_mat(N + 2, N + 2, CV_32FC3, (uchar*)&resized_buf[j * FIn * (N + 2) * (N + 2)]);
 
-            cv::resize(input_mat, resized_mat, {N, N}, 0, 0, cv::INTER_LINEAR);
+            cv::resize(input_mat, resized_mat, {N + 2, N + 2}, 0, 0, cv::INTER_LINEAR);
         }
 
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, (void*)resized_buf, res_conv[dnnResourceSrc]), err);
@@ -172,7 +172,6 @@ int main()
     dnnDelete_F32(cv_usr_to_conv_input);
     dnnDelete_F32(cv_conv_to_usr_output);
 
-    dnnPrimitiveAttributesDestroy_F64(attributes);
     dnnLayoutDelete_F32(lt_user_input);
     dnnLayoutDelete_F32(lt_user_filt);
     dnnLayoutDelete_F32(lt_user_output);
