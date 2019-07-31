@@ -65,12 +65,6 @@ void resize_conv_block()
     auto conv_bias_usr_mem = memory(conv_bias_usr_md, cpu_engine, conv_bias_buf.data());
 
     // Create memory objects with a data format selected by the convolution primitive
-    auto conv_src_md = memory::desc(
-        {BATCH_SIZE, FIn, N + 2, N + 2},
-        memory::data_type::f32,
-        memory::format_tag::any
-    );
-
     auto conv_weights_md = memory::desc(
         {FOut, FIn, K_Y, K_X},
         memory::data_type::f32,
@@ -94,7 +88,7 @@ void resize_conv_block()
     auto conv_d = convolution_forward::desc(
         prop_kind::forward_inference,
         algorithm::convolution_direct,
-        conv_src_md,
+        resized_usr_md,
         conv_weights_md,
         conv_bias_md,
         output_md,
@@ -118,22 +112,12 @@ void resize_conv_block()
             .execute(cpu_stream, conv_weights_usr_mem, conv_weights_mem);
     }
 
+    // Create the network
     auto resized_usr_mem = memory(resized_usr_md, cpu_engine);
-    auto conv_input_mem = resized_usr_mem;
-
-    if (conv_pd.src_desc() != resized_usr_mem.get_desc()) {
-        conv_input_mem = memory(conv_pd.src_desc(), cpu_engine);
-
-        net.push_back(reorder(resized_usr_mem, conv_input_mem));
-        net_args.push_back({
-            {MKLDNN_ARG_FROM, resized_usr_mem},
-            {MKLDNN_ARG_TO, conv_input_mem}
-        });
-    }
 
     net.push_back(convolution_forward(conv_pd));
     net_args.push_back({
-        {MKLDNN_ARG_SRC, conv_input_mem},
+        {MKLDNN_ARG_SRC, resized_usr_mem},
         {MKLDNN_ARG_WEIGHTS, conv_weights_mem},
         {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
         {MKLDNN_ARG_DST, conv_dst_mem}

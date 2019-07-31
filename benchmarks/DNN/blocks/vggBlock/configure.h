@@ -16,18 +16,17 @@
 #endif
 
 // Width and height of an input tensor
-#define N 56
+#define N 112
 
 // Number of features in the input
-#define FIn 64
+#define FIn 3
 // Number of features in the output
-#define FOut 128
+#define FOut 32
 
 // Size of convolution filter (KxK)
 #define K 3
 
 // Parameters for Tiramisu code
-#define FIN1_BLOCKING 8
 #define FIN2_BLOCKING 8
 #define FOUT_BLOCKING 8
 
@@ -35,10 +34,23 @@
 #define FIN2_NB_BLOCKS FOut/FIN2_BLOCKING
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
+#if N >= 224
+    #define X_BLOCKING 8
+    #define Y_BLOCKING 2
+    #define SCHEDULE_PREFETCH_WEIGHTS true
+#else
+    #define X_BLOCKING 4
+    #define Y_BLOCKING 1
+    #define SCHEDULE_PREFETCH_WEIGHTS false
+#endif
+
+#define X_NB_BLOCKS N/X_BLOCKING
+#define Y_NB_BLOCKS N/Y_BLOCKING
+
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
 
-#define NB_TESTS 51
+#define NB_TESTS 101
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

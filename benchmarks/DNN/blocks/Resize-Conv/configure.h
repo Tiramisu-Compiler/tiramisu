@@ -25,7 +25,7 @@
 // Number of features in the input
 #define FIn 3
 // Number of features in the output
-#define FOut 64
+#define FOut 32
 
 // Size of convolution filter (K_YxK_X)
 #define K_X 3
@@ -40,7 +40,7 @@
 
 #if N >= 224
     #define X_BLOCKING 8
-    #define Y_BLOCKING 2
+    #define Y_BLOCKING 4
     #define SCHEDULE_PREFETCH_WEIGHTS true
 #else
     #define X_BLOCKING 4
@@ -54,7 +54,7 @@
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
-#define NB_TESTS 51
+#define NB_TESTS 101
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

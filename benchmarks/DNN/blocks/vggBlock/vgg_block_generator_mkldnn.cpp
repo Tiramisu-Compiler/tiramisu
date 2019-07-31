@@ -24,13 +24,14 @@ void vggBlock()
 
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
-    memory::dims conv_padding = {1, 1};
+    memory::dims conv1_padding = {0, 0};
+    memory::dims conv2_padding = {1, 1};
 
     memory::dims pool_strides = {2, 2};
     memory::dims pool_kernel = {2, 2};
     memory::dims pool_padding = {0, 0};
 
-    std::vector<float> input_buf(BATCH_SIZE*FIn*N*N);
+    std::vector<float> input_buf(BATCH_SIZE*FIn*(N + 2)*(N + 2));
 
     std::vector<float> conv1_bias_buf(FOut);
     std::vector<float> conv1_weights_buf(FOut*FIn*K*K);
@@ -38,7 +39,7 @@ void vggBlock()
     std::vector<float> conv2_bias_buf(FOut);
     std::vector<float> conv2_weights_buf(FOut*FOut*K*K);
 
-    for (int i = 0; i < BATCH_SIZE*FIn*N*N; i++)
+    for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)
         input_buf[i] = (rand() % 200 - 100) / 100.;
 
     for (int i = 0; i < FOut; i++)
@@ -53,7 +54,7 @@ void vggBlock()
 
     // Create memory objects with user data format
     auto input_usr_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::nchw
     );
@@ -75,7 +76,7 @@ void vggBlock()
 
     // Create memory objects with a data format selected by the convolution primitive
     auto conv1_src_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::any
     );
@@ -108,8 +109,8 @@ void vggBlock()
         conv1_bias_md,
         output1_md,
         conv_strides,
-        conv_padding,
-        conv_padding
+        conv1_padding,
+        conv1_padding
     );
 
     post_ops conv1_post_ops;
@@ -194,8 +195,8 @@ void vggBlock()
         conv2_bias_md,
         output2_md,
         conv_strides,
-        conv_padding,
-        conv_padding
+        conv2_padding,
+        conv2_padding
     );
 
     auto conv2_pd = convolution_forward::primitive_desc(

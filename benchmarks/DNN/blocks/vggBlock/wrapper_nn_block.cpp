@@ -14,9 +14,9 @@ using namespace std;
 
 int main(int, char **)
 {
-	Halide::Buffer<float> input(FIN1_BLOCKING, N, N, FIN1_NB_BLOCKS, BATCH_SIZE);
+	Halide::Buffer<float> input(FIn, N + 2, N + 2, BATCH_SIZE);
 
-	Halide::Buffer<float> filter1(FIN2_BLOCKING, FIN1_BLOCKING, K, K, FIN1_NB_BLOCKS, FIN2_NB_BLOCKS);
+	Halide::Buffer<float> filter1(FIN2_BLOCKING, FIn, K, K, FIN2_NB_BLOCKS);
 	Halide::Buffer<float> bias1(FOut);
 
 	Halide::Buffer<float> filter2(FOUT_BLOCKING, FIN2_BLOCKING, K, K, FIN2_NB_BLOCKS, FOUT_NB_BLOCKS);
@@ -24,15 +24,18 @@ int main(int, char **)
 
 	Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
 
+	Halide::Buffer<float> conv1_buf(FIN2_BLOCKING, N + 2, N + 2, FIN2_NB_BLOCKS, BATCH_SIZE);
+	Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, BATCH_SIZE);
+
 	std::vector<double> duration_vector;
 
 	// Initialize buffers
 	srand(1);
 	for (int n = 0; n < BATCH_SIZE; ++n)
 		for (int z = 0; z < FIn; ++z)
-			for (int y = 0; y < N; ++y)
-				for (int x = 0; x < N; ++x)
-					input(z%FIN1_BLOCKING, x, y, z/FIN1_BLOCKING, n) = (std::rand() % 200 - 100) / 100.;
+			for (int y = 0; y < N + 2; ++y)
+				for (int x = 0; x < N + 2; ++x)
+					input(z, x, y, n) = (std::rand() % 200 - 100) / 100.;
 
 	for (int z = 0; z < FOut; ++z)
 		bias1(z) = (rand() % 200 - 100) / 100.;
@@ -41,7 +44,7 @@ int main(int, char **)
 		for (int z = 0; z < FIn; ++z)
 			for (int y = 0; y < K; ++y)
 				for (int x = 0; x < K; ++x)
-					filter1(q%FIN2_BLOCKING, z%FIN1_BLOCKING, x, y, z/FIN1_BLOCKING, q/FIN2_BLOCKING) = (rand() % 200 - 100) / 100.;
+					filter1(q%FIN2_BLOCKING, z, x, y, q/FIN2_BLOCKING) = (rand() % 200 - 100) / 100.;
 
 	for (int z = 0; z < FOut; ++z)
 		bias2(z) = (rand() % 200 - 100) / 100.;
@@ -64,6 +67,8 @@ int main(int, char **)
 			bias1.raw_buffer(),
 			filter2.raw_buffer(),
 			bias2.raw_buffer(),
+			conv1_buf.raw_buffer(),
+			conv2_buf.raw_buffer(),
 			output.raw_buffer()
 		);
 

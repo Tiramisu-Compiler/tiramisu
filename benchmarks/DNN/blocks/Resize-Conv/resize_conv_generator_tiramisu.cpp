@@ -28,7 +28,8 @@ int main()
     input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
 
     // Resize computation
-    expr o_r((cast(p_float32, y_pad) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, N + 2)) - 0.5f);
+    // Compute for y = 2, ..., N + 1
+    expr o_r((cast(p_float32, y + 2) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, N + 2)) - 0.5f);
     expr o_c((cast(p_float32, x_pad) + 0.5f) * (cast(p_float32, IMG_WIDTH) / cast(p_float32, N + 2)) - 0.5f);
 
     expr r_coeff(expr(o_r) - expr(o_floor, o_r));
@@ -39,7 +40,7 @@ int main()
 
     computation resize(
         "resize",
-        {n, y_pad, x_pad, fin},
+        {n, y, x_pad, fin},
         mixf(
             mixf(
                 c_input(n, A00_r, A00_c, fin), 
@@ -57,12 +58,40 @@ int main()
         )
     );
 
+    // Start to compute resize for y = 0, 1 to fuse resize with convolution
+    var y_prelude("y_prelude", 0, 2);
+
+    expr o_r_prelude((cast(p_float32, y_prelude) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, N + 2)) - 0.5f);
+    expr r_coeff_prelude(expr(o_r_prelude) - expr(o_floor, o_r_prelude));
+    expr A00_r_prelude(cast(p_int32, expr(o_floor, o_r_prelude)));
+
+    computation resize_prelude(
+        "resize_prelude",
+        {n, y_prelude, x_pad, fin},
+        mixf(
+            mixf(
+                c_input(n, A00_r_prelude, A00_c, fin), 
+                c_input(n, A00_r_prelude + 1, A00_c, fin), 
+                r_coeff_prelude
+            ),
+
+            mixf(
+                c_input(n, A00_r_prelude, A00_c + 1, fin), 
+                c_input(n, A00_r_prelude + 1, A00_c + 1, fin), 
+                r_coeff_prelude
+            ),
+    
+            c_coeff
+        )
+    );
+
     // Convolution computation
+    view resized_view("resized_view", {n, y_pad, x_pad, fin}, p_float32);
     computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
         {n, fout_b, y, x, k_y, k_x, fin, ffout}, 
-        init_output(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resize(n, y + k_y, x + k_x, fin)
+        init_output(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resized_view(n, y + k_y, x + k_x, fin)
     );
     
     // -------------------------------------------------------
@@ -81,7 +110,8 @@ int main()
     if (N >= 224) {
         var xx, yy;
         
-        init_output.tile(y, x, Y_BLOCKING, X_BLOCKING);
+        resize.split(y, Y_BLOCKING, y_b, yy);
+        init_output.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
         conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
         
         // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
@@ -91,10 +121,16 @@ int main()
         conv.interchange(yy, k_y);
         conv.interchange(yy, k_x);
         // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
+
+        // Interchange fout_b and y_b in order to fuse resize with convolution
+        prefetch_weights.interchange(fout_b, y_b);
+        init_output.interchange(fout_b, y_b);
+        conv.interchange(fout_b, y_b);
         
-        resize.then(init_output, n)
-              .then(prefetch_weights, x_b)
-              .then(conv, x_b);
+        resize_prelude.then(resize, n)
+                      .then(init_output, y_b)
+                      .then(prefetch_weights, x_b)
+                      .then(conv, x_b);
     }
     
     else {
@@ -105,12 +141,20 @@ int main()
         conv.split(x, X_BLOCKING, x_b, xx);
         conv.interchange(xx, k_x);
         // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
+
+        // Interchange fout_b and y in order to fuse resize with convolution
+        init_output.interchange(fout_b, y);
+        conv.interchange(fout_b, y);
         
-        resize.then(init_output, n)
-              .then(conv, y);
+        resize_prelude.then(resize, n)
+                      .then(init_output, y)
+                      .then(conv, fout_b);
     }
     
     conv.tag_parallel_level(n);
+
+    resize.tag_unroll_level(fin);
+    resize.vectorize(x_pad, 8);
     
     init_output.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
@@ -125,7 +169,9 @@ int main()
     if (SCHEDULE_PREFETCH_WEIGHTS)
         prefetch_weights.store_in(&prefetch_w_buf, {});
 
-    resize.store_in(&resized_buf, {n, y_pad, x_pad, fin});
+    resize_prelude.store_in(&resized_buf, {n, y_prelude, x_pad, fin});
+    resize.store_in(&resized_buf, {n, y + 2, x_pad, fin});
+    resized_view.store_in(&resized_buf);
 
     init_output.store_in(&output_buf);
     conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
