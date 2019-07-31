@@ -28,10 +28,8 @@ int main()
     input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
 
     // Resize computation
-    computation init_resized_input("init_resized_input", {n, y_pad, x_pad, fin}, 0.f);
-
-    expr o_r((cast(p_float32, y) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, N)) - 0.5f);
-    expr o_c((cast(p_float32, x) + 0.5f) * (cast(p_float32, IMG_WIDTH) / cast(p_float32, N)) - 0.5f);
+    expr o_r((cast(p_float32, y_pad) + 0.5f) * (cast(p_float32, IMG_HEIGHT) / cast(p_float32, N + 2)) - 0.5f);
+    expr o_c((cast(p_float32, x_pad) + 0.5f) * (cast(p_float32, IMG_WIDTH) / cast(p_float32, N + 2)) - 0.5f);
 
     expr r_coeff(expr(o_r) - expr(o_floor, o_r));
     expr c_coeff(expr(o_c) - expr(o_floor, o_c));
@@ -41,7 +39,7 @@ int main()
 
     computation resize(
         "resize",
-        {n, y, x, fin},
+        {n, y_pad, x_pad, fin},
         mixf(
             mixf(
                 c_input(n, A00_r, A00_c, fin), 
@@ -59,40 +57,75 @@ int main()
         )
     );
 
-    view input_resized("input_resized", {n, y_pad, x_pad, fin}, p_float32);
-
     // Convolution computation
     computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
         {n, fout_b, y, x, k_y, k_x, fin, ffout}, 
-        init_output(n, fout_b, y, x, ffout) + input_resized(n, y + k_y, x + k_x, fin)*conv_filter(fout_b, k_y, k_x, fin, ffout)
+        init_output(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resize(n, y + k_y, x + k_x, fin)
     );
     
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    init_resized_input.then(resize, n)
-                      .then(init_output, n)
-                      .then(conv, x);
-
-    resize.tag_unroll_level(fin);
-    resize.vectorize(x, 8);
+    var y_b("y_b", 0, Y_NB_BLOCKS), x_b("x_b", 0, X_NB_BLOCKS);
     
-    conv.tag_unroll_level(fin);
-    conv.vectorize(ffout, FOUT_BLOCKING);
-
+    // Loop through weights to load them into cache
+    computation prefetch_weights(
+        "prefetch_weights",
+        {n, fout_b, y_b, x_b, k_y, k_x, fin, ffout},
+        conv_filter(fout_b, k_y, k_x, fin, ffout),
+        SCHEDULE_PREFETCH_WEIGHTS
+    );
+    
+    if (N >= 224) {
+        var xx, yy;
+        
+        init_output.tile(y, x, Y_BLOCKING, X_BLOCKING);
+        conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        
+        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
+        conv.interchange(xx, k_y);
+        conv.interchange(xx, k_x);
+        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
+        conv.interchange(yy, k_y);
+        conv.interchange(yy, k_x);
+        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
+        
+        resize.then(init_output, n)
+              .then(prefetch_weights, x_b)
+              .then(conv, x_b);
+    }
+    
+    else {
+        // n, fout_b, y, x, k_y, k_x, fin, ffout
+        conv.interchange(x, k_y);
+        
+        var xx;
+        conv.split(x, X_BLOCKING, x_b, xx);
+        conv.interchange(xx, k_x);
+        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
+        
+        resize.then(init_output, n)
+              .then(conv, y);
+    }
+    
     conv.tag_parallel_level(n);
+    
+    init_output.vectorize(ffout, FOUT_BLOCKING);
+    conv.vectorize(ffout, FOUT_BLOCKING);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer input_resized_buf("input_resized_buf", {BATCH_SIZE, N + 2, N + 2, FIn}, p_float32, a_temporary);
+    buffer resized_buf("input_resized_buf", {BATCH_SIZE, N + 2, N + 2, FIn}, p_float32, a_input);
     buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
 
-    init_resized_input.store_in(&input_resized_buf);
-    resize.store_in(&input_resized_buf, {n, y + 1, x + 1, fin});
-    input_resized.store_in(&input_resized_buf);
+    buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
+    if (SCHEDULE_PREFETCH_WEIGHTS)
+        prefetch_weights.store_in(&prefetch_w_buf, {});
+
+    resize.store_in(&resized_buf, {n, y_pad, x_pad, fin});
 
     init_output.store_in(&output_buf);
     conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
@@ -103,7 +136,8 @@ int main()
     codegen({
         c_input.get_buffer(),
         conv_filter.get_buffer(), 
-        conv_bias.get_buffer(), 
+        conv_bias.get_buffer(),
+        &resized_buf,
         &output_buf
     }, "resize_conv_tiramisu.o");
 

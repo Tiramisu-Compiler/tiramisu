@@ -24,13 +24,13 @@ void conv_relu_maxpool_block()
 
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
-    memory::dims conv_padding = {1, 1};
+    memory::dims conv_padding = {0, 0};
 
     memory::dims pool_strides = {2, 2};
     memory::dims pool_kernel = {2, 2};
     memory::dims pool_padding = {0, 0};
 
-    std::vector<float> input_buf(BATCH_SIZE*FIn*N*N);
+    std::vector<float> input_buf(BATCH_SIZE*FIn*(N + 2)*(N + 2));
 
     std::vector<float> conv_bias_buf(FOut);
     std::vector<float> conv_weights_buf(FOut*FIn*K_Y*K_X);
@@ -41,12 +41,12 @@ void conv_relu_maxpool_block()
     for (int i = 0; i < FOut; i++)
         conv_bias_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 
-    for (int i = 0; i < BATCH_SIZE*FIn*N*N; i++)
+    for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)
         input_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create memory objects with user data format
     auto input_usr_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::nchw
     );
@@ -68,7 +68,7 @@ void conv_relu_maxpool_block()
 
     // Create memory objects with a data format selected by the convolution primitive
     auto conv_src_md = memory::desc(
-        {BATCH_SIZE, FIn, N, N},
+        {BATCH_SIZE, FIn, N + 2, N + 2},
         memory::data_type::f32,
         memory::format_tag::any
     );
