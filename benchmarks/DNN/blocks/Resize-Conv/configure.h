@@ -40,7 +40,7 @@
 
 #if N >= 224
     #define X_BLOCKING 8
-    #define Y_BLOCKING 2
+    #define Y_BLOCKING 4
     #define SCHEDULE_PREFETCH_WEIGHTS true
 #else
     #define X_BLOCKING 4
