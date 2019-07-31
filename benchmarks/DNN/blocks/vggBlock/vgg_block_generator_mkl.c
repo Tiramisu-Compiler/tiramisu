@@ -39,12 +39,12 @@ bail_out:
     return err;
 }
 
-static dnnError_t simple_net(int want_groups_conv)
+static dnnError_t simple_net()
 {
     dnnError_t err;
 
-    size_t inputSize[dimension] = {N, N, FIn, BATCH_SIZE};
-    size_t inputStrides[dimension] = {1, N, N * N, N * N * FIn};
+    size_t inputSize[dimension] = {N + 2, N + 2, FIn, BATCH_SIZE};
+    size_t inputStrides[dimension] = {1, N + 2, (N + 2) * (N + 2), (N + 2) * (N + 2) * FIn};
 
     size_t output1Size[dimension] = {N, N, FOut, BATCH_SIZE};
     size_t output2Size[dimension] = {N, N, FOut, BATCH_SIZE};
@@ -56,7 +56,8 @@ static dnnError_t simple_net(int want_groups_conv)
     size_t filter2Strides[dimension] = {1, K, K * K, K * K * FOut};
 
     size_t convolutionStride[dimension - 2] = {1, 1};
-    int inputOffset[dimension - 2] = {-1, -1};
+    int input1Offset[dimension - 2] = {0, 0};
+    int input2Offset[dimension - 2] = {-1, -1};
 
     size_t biasSize[1] = {FOut};
     size_t biasStrides[1] = {1};
@@ -134,21 +135,11 @@ static dnnError_t simple_net(int want_groups_conv)
     CHECK_ERR(dnnPrimitiveAttributesCreate_F32(&attributes), err);
 
     /*** Convolution section ***/
-    if (!want_groups_conv) {
-        CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv1, attributes,
-                                                      dnnAlgorithmConvolutionDirect, dimension, inputSize,
-                                                      output1Size, filter1Size, convolutionStride, inputOffset,
-                                                      dnnBorderZeros),
-                  err);
-    }
-
-    else {
-        CHECK_ERR(dnnGroupsConvolutionCreateForwardBias_F32(&conv1, attributes,
-                                                            dnnAlgorithmConvolutionDirect, 1, dimension, inputSize,
-                                                            output1Size, filter1Size, convolutionStride, inputOffset,
-                                                            dnnBorderZeros),
-                  err);
-    }
+    CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv1, attributes,
+                                                  dnnAlgorithmConvolutionDirect, dimension, inputSize,
+                                                  output1Size, filter1Size, convolutionStride, input1Offset,
+                                                  dnnBorderZeros),
+              err);
 
     // Convolution describes what layout it expects
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_conv1_input, conv1, dnnResourceSrc), err);
@@ -167,21 +158,11 @@ static dnnError_t simple_net(int want_groups_conv)
     resRelu1[dnnResourceDst] = resRelu1[dnnResourceSrc];
 
     /*** Convolution 2 section ***/
-    if (!want_groups_conv) {
-        CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv2, attributes,
-                                                      dnnAlgorithmConvolutionDirect, dimension, output1Size,
-                                                      output2Size, filter2Size, convolutionStride, inputOffset,
-                                                      dnnBorderZeros),
-                  err);
-    }
-
-    else {
-        CHECK_ERR(dnnGroupsConvolutionCreateForwardBias_F32(&conv2, attributes,
-                                                            dnnAlgorithmConvolutionDirect, 1, dimension, output1Size,
-                                                            output2Size, filter2Size, convolutionStride, inputOffset,
-                                                            dnnBorderZeros),
-                  err);
-    }
+    CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv2, attributes,
+                                                  dnnAlgorithmConvolutionDirect, dimension, output1Size,
+                                                  output2Size, filter2Size, convolutionStride, input2Offset,
+                                                  dnnBorderZeros),
+              err);
 
     resConv2[dnnResourceSrc] = resRelu1[dnnResourceDst];
     resConv2[dnnResourceBias] = user_c2_b;
@@ -325,7 +306,7 @@ bail_out:
 int main(int argc, char **argv)
 {
     dnnError_t err;
-    err = simple_net(0);
+    err = simple_net();
     if (err != E_SUCCESS)
     {
         printf("FAILED\n");

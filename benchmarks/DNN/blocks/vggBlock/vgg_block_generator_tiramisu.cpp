@@ -17,32 +17,27 @@ int main(int argc, char **argv)
     var o_x("o_x", 0, N/2), o_y("o_y", 0, N/2);
     var k_x("k_x", 0, K), k_y("k_y", 0, K);
 
-    var fin1_b("fin1_b", 0, FIN1_NB_BLOCKS), ffin1("ffin1", 0, FIN1_BLOCKING);
+    var fin1("fin1", 0, FIn);
     var fin2_b("fin2_b", 0, FIN2_NB_BLOCKS), ffin2("ffin2", 0, FIN2_BLOCKING);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
 
     // Input computations
-    input c_input("c_input", {n, fin1_b, y, x, ffin1}, p_float32);
+    input c_input("c_input", {n, y_pad, x_pad, fin1}, p_float32);
 
     input bias1("bias1", {fin2_b, ffin2}, p_float32);
-    input filter1("filter1", {fin2_b, fin1_b, k_y, k_x, ffin1, ffin2}, p_float32);
+    input filter1("filter1", {fin2_b, k_y, k_x, fin1, ffin2}, p_float32);
 
     input bias2("bias2", {fout_b, ffout}, p_float32);
     input filter2("filter2", {fout_b, fin2_b, k_y, k_x, ffin2, ffout}, p_float32);
 
-    // Pad input
-    computation init_input_padded("init_input_padded", {n, fin1_b, y_pad, x_pad, ffin1}, cast(p_float32, 0));
-    computation copy_input("copy_input", {n, fin1_b, y, x, ffin1}, c_input(n, fin1_b, y, x, ffin1));
-    view input_padded("input_padded", {n, fin1_b, y_pad, x_pad, ffin1}, p_float32);
-
     // First conv computations
-    computation init_output1("init_output1", {n, fin2_b, y_pad, x_pad, ffin2}, cast(p_float32, 0));
+    computation zero_conv1("zero_conv2", {n, fin2_b, y_pad, x_pad, ffin2}, cast(p_float32, 0));
 
     computation conv1_init("conv1_init", {n, fin2_b, y, x, ffin2}, bias1(fin2_b, ffin2));
     computation conv1(
         "conv1", 
-        {n, fin2_b, y, x, fin1_b, k_y, k_x, ffin1, ffin2}, 
-        conv1_init(n, fin2_b, y, x, ffin2) + filter1(fin2_b, fin1_b, k_y, k_x, ffin1, ffin2) * input_padded(n, fin1_b, y + k_y, x + k_x, ffin1)
+        {n, fin2_b, y, x, k_y, k_x, fin1, ffin2}, 
+        conv1_init(n, fin2_b, y, x, ffin2) + filter1(fin2_b, k_y, k_x, fin1, ffin2) * c_input(n, y + k_y, x + k_x, fin1)
     );
 
     // First relu
@@ -52,7 +47,7 @@ int main(int argc, char **argv)
         expr(
             o_max,
             0.f,
-            conv1(n, fin2_b, y, x, 0, 0, 0, 0, ffin2)
+            conv1(n, fin2_b, y, x, 0, 0, 0, ffin2)
         )
     );
 
@@ -82,23 +77,47 @@ int main(int argc, char **argv)
 
     // -------------------------------------------------------
     // Layer II
-    // -------------------------------------------------------
-    init_input_padded.then(copy_input, fin1_b)
-                     .then(maxpool_init, n)
-                     .then(init_output1, n)
-                     .then(conv1_init, fin2_b)
-                     .then(conv1, y)
-                     .then(relu1, y)
-                     .then(conv2_init, n)
-                     .then(conv2, y)
-                     .then(maxpool, y);
-
-    copy_input.vectorize(ffin1, FIN1_BLOCKING);
+    // -------------------------------------------------------    
+    var y_b("y_b", 0, Y_NB_BLOCKS), x_b("x_b", 0, X_NB_BLOCKS);
     
-    conv1.interchange(x, fin1_b);
-    conv1.interchange(x, k_y);
-    conv1.interchange(x, k_x);
+    // Loop through weights to load them into cache
+    computation prefetch_weights1(
+        "prefetch_weights",
+        {n, fout_b, y_b, x_b, k_y, k_x, fin1, ffout},
+        filter1(fout_b, k_y, k_x, fin1, ffout),
+        SCHEDULE_PREFETCH_WEIGHTS
+    );
+    
 
+    // Schedule for first convolution
+    if (N >= 224) {
+        var xx, yy;
+        
+        conv1_init.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        conv1.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        relu1.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        
+        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
+        conv1.interchange(xx, k_y);
+        conv1.interchange(xx, k_x);
+        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
+        conv1.interchange(yy, k_y);
+        conv1.interchange(yy, k_x);
+        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
+    }
+    
+    else {
+        // n, fout_b, y, x, k_y, k_x, fin, ffout
+        conv1.interchange(x, k_y);
+        
+        var xx;
+        conv1.split(x, X_BLOCKING, x_b, xx);
+        conv1.interchange(xx, k_x);
+        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
+    }
+    
+    // Schedule for second convolution
+    conv1_init.vectorize(ffin2, FIN2_BLOCKING);
     conv1.vectorize(ffin2, FIN2_BLOCKING);
     relu1.vectorize(ffin2, FIN2_BLOCKING);    
     
@@ -106,25 +125,45 @@ int main(int argc, char **argv)
     conv2.interchange(x, k_y);
     conv2.interchange(x, k_x);
 
+    conv2_init.vectorize(ffout, FOUT_BLOCKING);
     conv2.vectorize(ffout, FOUT_BLOCKING);
     maxpool.vectorize(ffout, FOUT_BLOCKING);
 
     maxpool.tag_parallel_level(n);
 
+    if (N >= 224) {
+        maxpool_init.then(zero_conv1, fin2_b)
+                    .then(conv1_init, fin2_b)
+                    .then(prefetch_weights1, x_b)
+                    .then(conv1, x_b)
+                    .then(relu1, x_b)
+                    .then(conv2_init, fout_b)
+                    .then(conv2, y)
+                    .then(maxpool, y);
+    }
+
+    else {
+        maxpool_init.then(zero_conv1, fin2_b)
+                    .then(conv1_init, fin2_b)
+                    .then(conv1, y)
+                    .then(relu1, y)
+                    .then(conv2_init, fout_b)
+                    .then(conv2, y)
+                    .then(maxpool, y);
+    }
+
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer padded_input_buf("padded_input_buf", {BATCH_SIZE, FIN1_NB_BLOCKS, N + 2, N + 2, FIN1_BLOCKING}, p_float32, a_temporary);
-    buffer conv1_buf("conv1_buf", {BATCH_SIZE, FIN2_NB_BLOCKS, N + 2, N + 2, FIN2_BLOCKING}, p_float32, a_temporary);
-    buffer conv2_buf("conv2_buf", {BATCH_SIZE, N, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer conv1_buf("conv1_buf", {BATCH_SIZE, FIN2_NB_BLOCKS, N + 2, N + 2, FIN2_BLOCKING}, p_float32, a_input);
+    buffer conv2_buf("conv2_buf", {BATCH_SIZE, N, FOUT_BLOCKING}, p_float32, a_input);
     buffer maxpool_buf("maxpool_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
 
-    init_input_padded.store_in(&padded_input_buf);
-    copy_input.store_in(&padded_input_buf, {n, fin1_b, y + 1, x + 1, ffin1});
-    input_padded.store_in(&padded_input_buf);
+    buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
+    if (SCHEDULE_PREFETCH_WEIGHTS)
+        prefetch_weights1.store_in(&prefetch_w_buf, {});
 
-    init_output1.store_in(&conv1_buf);
-
+    zero_conv1.store_in(&conv1_buf);
     conv1_init.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
     conv1.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
     relu1.store_in(&conv1_buf, {n, fin2_b, y + 1, x + 1, ffin2});
@@ -148,6 +187,8 @@ int main(int argc, char **argv)
         bias1.get_buffer(), 
         filter2.get_buffer(), 
         bias2.get_buffer(),
+        &conv1_buf,
+        &conv2_buf,
         &maxpool_buf
     }, "generated_vgg_block.o");
 
