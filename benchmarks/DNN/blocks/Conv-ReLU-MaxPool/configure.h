@@ -21,7 +21,7 @@
 // Number of features in the input
 #define FIn 3
 // Number of features in the output
-#define FOut 64
+#define FOut 32
 
 // Size of convolution filter (K_YxK_X)
 #define K_X 3
