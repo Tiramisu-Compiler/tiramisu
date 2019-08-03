@@ -42,7 +42,7 @@
 #elif N == 112
     #define X_BLOCKING 16
     #define Y_BLOCKING 2
-    #define SCHEDULE_PREFETCH_WEIGHTS false
+    #define SCHEDULE_PREFETCH_WEIGHTS true
 #else
     #define X_BLOCKING 8
     #define Y_BLOCKING 2

@@ -47,15 +47,15 @@ int main(int argc, char **argv)
     conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING);
     conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
         
-    // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
+    // n, fout_b, y_b, x_b, yy, xx, fin_b, k_y, k_x, ffin, ffout
     conv.interchange(xx, fin_b);
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
-    // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
+    // n, fout_b, y_b, x_b, yy, fin_b, k_y, k_x, xx, ffin, ffout
     conv.interchange(yy, fin_b);
     conv.interchange(yy, k_y);
     conv.interchange(yy, k_x);
-    // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
+    // n, fout_b, y_b, x_b, fin_b, k_y, k_x, yy, xx, ffin, ffout
     
     conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
@@ -63,11 +63,13 @@ int main(int argc, char **argv)
     conv_init.vectorize(ffout, VEC_LEN);
     conv.vectorize(ffout, VEC_LEN);
 
-    if (N >= 224)
+    if (SCHEDULE_PREFETCH_WEIGHTS)
         conv_init.then(prefetch_weights, x_b)
                  .then(conv, fin_b);
+                 
     else
         conv_init.then(conv, x_b);
+
 
     // -------------------------------------------------------
     // Layer III
