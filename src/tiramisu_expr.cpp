@@ -230,5 +230,38 @@ expr cuda_stream_synchronize()
 {
     return expr(o_call, "tiramisu_cuda_stream_synchronize", {int32_t(0)}, tiramisu::p_int32);
 }
+    
+expr mkl_gemm(const buffer &A, const buffer &B, buffer &C,
+                 expr M, expr N, expr K,
+                 expr alpha, expr beta,
+                 expr offsetA, expr offsetB, expr offsetC
+                 )
+{
+    std::string fname;
+    expr alpha_expr;
+    expr beta_expr;
+    if (A.get_elements_type() == p_float32 &&
+        B.get_elements_type() == p_float32 &&
+        C.get_elements_type() == p_float32) {
+        fname = "cblas_sgemm";
+        alpha_expr = cast(p_float32, alpha);
+        beta_expr = cast(p_float32, beta);
+    } else if (A.get_elements_type() == p_float64 &&
+               B.get_elements_type() == p_float64 &&
+               C.get_elements_type() == p_float64) {
+        fname = "cblas_dgemm";
+        alpha_expr = cast(p_float64, alpha);
+        beta_expr = cast(p_float64, beta);
+    } else {
+        ERROR("All input buffers should be of same type and either p_float32 or p_float64", true);
+    }
+    
+    return expr(o_call, fname,
+            {CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+                cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K), alpha_expr,  var(p_void_ptr, A.get_name()),
+                cast(p_uint64, K),  var(p_void_ptr, B.get_name()), 
+                cast(p_uint64, N), beta_expr,  var(p_void_ptr, C.get_name()), cast(p_uint64, N)},tiramisu::p_uint8);
+}
+
 
 }
