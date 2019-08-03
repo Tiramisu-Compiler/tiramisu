@@ -15,8 +15,8 @@ int main(int argc, char **argv)
 
     var fin_b("fin_b", 0, FIN_NB_BLOCKS), ffin("ffin", 0, FIN_BLOCKING);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
-
-	var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
+    
+    var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
 
     input c_input("c_input", {n, fin_b, y_pad, x_pad, ffin}, p_float32);
     input filter("filter", {fout_b, fin_b, k_y, k_x, ffin, ffout}, p_float32);
@@ -25,10 +25,10 @@ int main(int argc, char **argv)
     computation conv_init("conv_init", {n, fout_b, y, x, ffout}, bias(fout_b, ffout));
     
     computation conv(
-		"conv",
-		{n, fout_b, y, x, fin_b, k_y, k_x, ffin, ffout},
-		conv_init(n, fout_b, y, x, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x + k_x, ffin)
-	);
+        "conv",
+        {n, fout_b, y, x, fin_b, k_y, k_x, ffin, ffout},
+        conv_init(n, fout_b, y, x, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x + k_x, ffin)
+    );
 
     // -------------------------------------------------------
     // Layer II
@@ -85,11 +85,11 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
     tiramisu::codegen({
-		c_input.get_buffer(), 
-		filter.get_buffer(), 
-		bias.get_buffer(), 
+        c_input.get_buffer(), 
+        filter.get_buffer(), 
+        bias.get_buffer(), 
         &conv_buf
-	},"generated_conv_layer.o");
+    },"generated_conv_layer.o");
 
     return 0;
 }
