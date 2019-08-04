@@ -1,1 +1,1 @@
-rm -rf _results vgg_block_generator_tiramisu  generated_vgg_block.o generated_vgg_block.o.h wrapper_nn_block_vgg vgg_block_generator_tiramisu vggBlock_mkldnn_result tiramisu_result.txt mkldnn_result.txt mkl_result.txt
+rm vgg_block_mkl vgg_block_mkldnn vgg_block_generator_tiramisu wrapper_nn_block_vgg generated_vgg_block.o generated_vgg_block.o.h tiramisu_result.txt mkl_result.txt

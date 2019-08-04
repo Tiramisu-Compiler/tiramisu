@@ -25,7 +25,7 @@ int main(int, char **)
 	Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
 
 	Halide::Buffer<float> conv1_buf(FIN2_BLOCKING, N + 2, N + 2, FIN2_NB_BLOCKS, BATCH_SIZE);
-	Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, BATCH_SIZE);
+	Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, X2_BLOCKING, BATCH_SIZE);
 
 	std::vector<double> duration_vector;
 

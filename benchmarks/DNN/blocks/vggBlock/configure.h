@@ -28,24 +28,35 @@
 
 // Parameters for Tiramisu code
 #define FIN2_BLOCKING 8
-#define FOUT_BLOCKING 8
+#define FOUT_BLOCKING 16
 
 #define FIN1_NB_BLOCKS FIn/FIN1_BLOCKING
 #define FIN2_NB_BLOCKS FOut/FIN2_BLOCKING
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
+#define VEC_LEN 8
+
 #if N >= 224
-    #define X_BLOCKING 8
-    #define Y_BLOCKING 2
-    #define SCHEDULE_PREFETCH_WEIGHTS true
+    #define X1_BLOCKING 8
+    #define Y1_BLOCKING 2
+    #define SCHEDULE_PREFETCH_WEIGHTS1 true
+
+    #define X2_BLOCKING 32
+    #define Y2_BLOCKING 4
 #else
-    #define X_BLOCKING 4
-    #define Y_BLOCKING 1
-    #define SCHEDULE_PREFETCH_WEIGHTS false
+    #define X1_BLOCKING 4
+    #define Y1_BLOCKING 1
+    #define SCHEDULE_PREFETCH_WEIGHTS1 false
+
+    #define X2_BLOCKING 16
+    #define Y2_BLOCKING 2
 #endif
 
-#define X_NB_BLOCKS N/X_BLOCKING
-#define Y_NB_BLOCKS N/Y_BLOCKING
+#define X1_NB_BLOCKS N/X1_BLOCKING
+#define Y1_NB_BLOCKS N/Y1_BLOCKING
+
+#define X2_NB_BLOCKS N/X2_BLOCKING
+#define Y2_NB_BLOCKS N/Y2_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
