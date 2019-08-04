@@ -24,37 +24,37 @@ void densenet_block()
 
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
-    memory::dims conv_padding = {1, 1};
+    memory::dims conv_padding = {0, 0};
 
-    std::vector<float> input_buf(BATCH_SIZE*4*GR*N*N);
-    std::vector<float> bn_buf(BATCH_SIZE*4*GR*N*N);
+    std::vector<float> input_buf(BATCH_SIZE*4*GR*(N+2)*(N+2));
+    std::vector<float> bn_buf(BATCH_SIZE*4*GR*(N+2)*(N+2));
 
     std::vector<float> bn_scale_shift_buf(2*4*GR);
     std::vector<float> conv_weights_buf(GR*4*GR*K_Y*K_X);
     std::vector<float> conv_bias_buf(GR);
 
-    for (int z = 0; z < 4*GR; ++z) {
-        bn_scale_shift_buf[z] = ((float)(rand()%256)) / 255.f;
-        if (bn_scale_shift_buf[z] == 0.f)
-            bn_scale_shift_buf[z] = 1.f;
+    for (int fin = 0; fin < 4*GR; ++fin) {
+        bn_scale_shift_buf[fin] = ((float)(rand()%256)) / 255.f;
+        if (bn_scale_shift_buf[fin] == 0.f)
+            bn_scale_shift_buf[fin] = 1.f;
 
-        bn_scale_shift_buf[z + 4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+        bn_scale_shift_buf[fin + 4*GR] = ((float)(rand()%256 - 128)) / 127.f;
     }
 
     for (int fout = 0; fout < GR; ++fout)
-        for (int z = 0; z < 4*GR; ++z)
+        for (int fin = 0; fin < 4*GR; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_weights_buf[k_x + k_y*K_X + z*K_X*K_Y + fout*K_X*K_Y*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+                    conv_weights_buf[k_x + k_y*K_X + fin*K_X*K_Y + fout*K_X*K_Y*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < GR; ++fout)
         conv_bias_buf[fout] = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < 4*GR; ++z)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+        for (int fin = 0; fin < 4*GR; ++fin)
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input_buf[x + y*(N+2) + fin*(N+2)*(N+2) + n*(N+2)*(N+2)*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create convolution primitive
     // We start by creating convolution in order to get its data layout
@@ -77,7 +77,7 @@ void densenet_block()
 
     // Create memory objects with a data format selected by the convolution primitive
     auto conv_src_md = memory::desc(
-        {BATCH_SIZE, 4*GR, N, N},
+        {BATCH_SIZE, 4*GR, N+2, N+2},
         memory::data_type::f32,
         memory::format_tag::any
     );
@@ -131,7 +131,7 @@ void densenet_block()
     );
 
     auto input_usr_md = memory::desc(
-        {BATCH_SIZE, 4*GR, N, N},
+        {BATCH_SIZE, 4*GR, N+2, N+2},
         memory::data_type::f32,
         memory::format_tag::nchw
     );
