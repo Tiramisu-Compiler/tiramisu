@@ -7,16 +7,16 @@ include_directories(${PROJECT_DIR}/3rdParty/Halide/include ${PROJECT_DIR}/includ
 set(tiramisu_SOURCES conv_layer_generator_tiramisu.cpp)
 set(compare_SOURCES wrapper_conv_layer.cpp)
 
-add_executable(conv_layer_generator_bis ${tiramisu_SOURCES})
-add_executable(wrapper_conv_layer_bis ${compare_SOURCES})
+add_executable(conv_layer_generator_32channels ${tiramisu_SOURCES})
+add_executable(wrapper_conv_layer_32channels ${compare_SOURCES})
  
-target_link_libraries(conv_layer_generator_bis tiramisu)
-target_link_libraries(wrapper_conv_layer_bis ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_layer.o tiramisu)
+target_link_libraries(conv_layer_generator_32channels tiramisu)
+target_link_libraries(wrapper_conv_layer_32channels ${CMAKE_CURRENT_SOURCE_DIR}/generated_conv_layer.o tiramisu)
 
-add_custom_target(run_conv_layer_generator_bis
-  COMMAND conv_layer_generator_bis
+add_custom_target(run_conv_layer_generator_32channels
+  COMMAND conv_layer_generator_32channels
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "run generated tiramisu executable in ${CMAKE_CURRENT_SOURCE_DIR}"
   SOURCES ${tiramisu_SOURCES}
 )
-add_dependencies(wrapper_conv_layer_bis run_conv_layer_generator_bis)
+add_dependencies(wrapper_conv_layer_32channels run_conv_layer_generator_32channels)

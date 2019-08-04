@@ -4,8 +4,8 @@
 #include <sys/time.h>
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	1
-#define SMALL_DATA_SET	0
+#define MEDIUM_DATA_SET	0
+#define SMALL_DATA_SET	1
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
@@ -16,10 +16,10 @@
 #endif
 
 // Size of one data dimension
-#define N 224
+#define N 112
 
 // Number of features in the input
-#define FIn 3
+#define FIn 32
 // Number of features in the output
 #define FOut 32
 
@@ -27,19 +27,25 @@
 #define K 3
 
 // Parameters for Tiramisu code
-#define FOUT_BLOCKING 8
+#define FOUT_BLOCKING 16
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
 #define FIN_BLOCKING 4
 #define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
-#if N >= 224
-    #define X_BLOCKING 8
+#define VEC_LEN 8
+
+#if N == 224
+    #define X_BLOCKING 32
+    #define Y_BLOCKING 4
+    #define SCHEDULE_PREFETCH_WEIGHTS true
+#elif N == 112
+    #define X_BLOCKING 16
     #define Y_BLOCKING 2
     #define SCHEDULE_PREFETCH_WEIGHTS true
 #else
-    #define X_BLOCKING 4
-    #define Y_BLOCKING 1
+    #define X_BLOCKING 8
+    #define Y_BLOCKING 2
     #define SCHEDULE_PREFETCH_WEIGHTS false
 #endif
 

@@ -109,10 +109,6 @@ void conv()
 
     auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
 
-    auto src_desc = conv_pd.src_desc().data.format_desc.blocking;
-    auto w_desc = conv_pd.weights_desc().data.format_desc.blocking;
-    auto dst_desc = conv_pd.dst_desc().data.format_desc.blocking;
-
     // Edit user data format
     auto input_usr_mem = memory(input_usr_md, cpu_engine, input_buf.data());
     auto input_mem = memory(conv_pd.src_desc(), cpu_engine);
@@ -135,7 +131,7 @@ void conv()
         {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
         {MKLDNN_ARG_DST, conv_dst_mem}
     });
-
+ 
     // Execute the network
     for (int i = 0; i < NB_TESTS; ++i) {
         start = rtclock();
