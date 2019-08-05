@@ -1,9 +1,7 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/core.h>
-#include "mkl.h"
-#include <stdio.h>
-#include <stdlib.h>
-#define min(x,y) (((x) < (y)) ? (x) : (y))
+#include "/opt/intel/compilers_and_libraries_2017.5.239/linux/mkl/include/mkl.h"
+
 namespace tiramisu
 {
 
