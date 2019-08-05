@@ -1,5 +1,5 @@
-#ifndef __RESIZE_CONV_CONF_HEADER_
-#define __RESIZE_CONV_CONF_HEADER_
+#ifndef __RESIZE_CONV_RELU_MAXPOOL_CONF_HEADER_
+#define __RESIZE_CONV_RELU_MAXPOOL_CONF_HEADER_
 
 #include <sys/time.h>
 
@@ -20,7 +20,7 @@
 #define IMG_HEIGHT 400
 
 // Size of one data dimension
-#define N 224
+#define N 112
 
 // Number of features in the input
 #define FIn 3

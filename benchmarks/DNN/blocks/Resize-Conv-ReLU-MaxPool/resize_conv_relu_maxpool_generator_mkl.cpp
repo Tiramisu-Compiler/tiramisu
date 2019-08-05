@@ -57,8 +57,10 @@ int main()
     size_t conv_input_size[] = {N + 2, N + 2, FIn, BATCH_SIZE};
     size_t conv_input_strides[] = {FIn, FIn*(N + 2), 1, FIn*(N + 2)*(N + 2)};
 
-    size_t output_size[] = {N, N, FOut, BATCH_SIZE};
-    size_t output_strides[] = {1, N, N*N, N*N*FOut};
+    size_t conv_output_size[] = {N, N, FOut, BATCH_SIZE};
+
+    size_t output_size[] = {N/2, N/2, FOut, BATCH_SIZE};
+    size_t output_strides[] = {1, N/2, N/2*N/2, N/2*N/2*FOut};
 
     float conv_filter_param[FOut][FIn][K_Y][K_X];
     float conv_bias_param[FOut];
@@ -68,6 +70,10 @@ int main()
 
     size_t conv_strides[] = {1, 1};
     int conv_offset[] = {0, 0};
+
+    size_t maxpool_kernel_size[] = {2, 2};
+    size_t maxpool_strides[] = {2, 2};
+    int maxpool_offset[] = {0, 0};
 
     for (int fout = 0; fout < FOut; ++fout)
         for (int fin = 0; fin < FIn; ++fin)
@@ -81,7 +87,7 @@ int main()
     // Allocate buffers
     float* input_buf = (float*)malloc(sizeof(float) * FIn * IMG_WIDTH * IMG_HEIGHT * BATCH_SIZE);
     float* resized_buf = (float*)malloc(sizeof(float) * FIn * (N + 2) * (N + 2) * BATCH_SIZE);
-    float* output_buf;
+    float* output_buf = (float*)malloc(sizeof(float) * FOut * N/2 * N/2 * BATCH_SIZE);
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int y = 0; y < IMG_HEIGHT; ++y)
@@ -89,8 +95,10 @@ int main()
                 for (int fin = 0; fin < FIn; ++fin)
                     input_buf[fin + x*FIn + y*FIn*IMG_WIDTH + n*FIn*IMG_WIDTH*IMG_HEIGHT] = ((float)(rand() % 256)) / 255.f;
 
-    // Create Resize-Conv
+    // Create Resize-Conv-ReLU-MaxPool
     float* res_conv[dnnResourceNumber] = {0};
+    float* res_relu[dnnResourceNumber] = {0};
+    float* res_maxpool[dnnResourceNumber] = {0};
 
     dnnPrimitiveAttributes_t attributes;
     CHECK_ERR(dnnPrimitiveAttributesCreate_F64(&attributes), err);
@@ -104,7 +112,7 @@ int main()
 
     dnnPrimitive_t cv_usr_to_conv_input, cv_usr_to_conv_filt;
     dnnPrimitive_t conv_primitive;
-    CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv_primitive, attributes, dnnAlgorithmConvolutionDirect, TENSOR_DIMENSION, conv_input_size, output_size, conv_filter_size, conv_strides, conv_offset, dnnBorderZeros), err);
+    CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv_primitive, attributes, dnnAlgorithmConvolutionDirect, TENSOR_DIMENSION, conv_input_size, conv_output_size, conv_filter_size, conv_strides, conv_offset, dnnBorderZeros), err);
 
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_conv_input, conv_primitive, dnnResourceSrc), err);
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_conv_filt, conv_primitive, dnnResourceFilter), err);
@@ -119,12 +127,31 @@ int main()
     CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_filt, (void*)conv_filter_param, res_conv[dnnResourceFilter]), err);
     res_conv[dnnResourceBias] = conv_bias_param;
 
-    // Create Conv output conversions
+    // Create ReLU
+    dnnPrimitive_t relu_primitive;
+    CHECK_ERR(dnnReLUCreateForward_F32(&relu_primitive, attributes, lt_conv_output, 0.f), err);
+
+    res_relu[dnnResourceSrc] = res_conv[dnnResourceDst];
+    res_relu[dnnResourceDst] = res_relu[dnnResourceSrc];
+
+    // Create MaxPool
+    dnnPrimitive_t maxpool_primitive;
+    CHECK_ERR(dnnPoolingCreateForward_F32(&maxpool_primitive, attributes, dnnAlgorithmPoolingMax, lt_conv_output, maxpool_kernel_size, maxpool_strides, maxpool_offset, dnnBorderZeros), err);
+
+    dnnLayout_t lt_maxpool_workspace, lt_maxpool_output;
+    CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_maxpool_workspace, maxpool_primitive, dnnResourceWorkspace), err);
+    CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_maxpool_output, maxpool_primitive, dnnResourceDst), err);
+
+    res_maxpool[dnnResourceSrc] = res_relu[dnnResourceDst];
+    CHECK_ERR(dnnAllocateBuffer_F32((void **)&res_maxpool[dnnResourceWorkspace], lt_maxpool_workspace), err);
+    CHECK_ERR(dnnAllocateBuffer_F32((void **)&res_maxpool[dnnResourceDst], lt_maxpool_output), err);
+
+    // Create output conversions
     dnnLayout_t lt_user_output;
     CHECK_ERR(dnnLayoutCreate_F32(&lt_user_output, TENSOR_DIMENSION, output_size, output_strides), err);
 
-    dnnPrimitive_t cv_conv_to_usr_output;
-    CHECK_ERR(init_conversion(&cv_conv_to_usr_output, &output_buf, lt_user_output, lt_conv_output, res_conv[dnnResourceDst]), err);
+    dnnPrimitive_t cv_maxpool_to_usr_output;
+    CHECK_ERR(init_conversion(&cv_maxpool_to_usr_output, &output_buf, lt_user_output, lt_maxpool_output, res_maxpool[dnnResourceDst]), err);
 
     // Execute the block
     for (int i = 0; i < NB_TESTS; ++i) {
@@ -140,6 +167,8 @@ int main()
 
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, (void*)resized_buf, res_conv[dnnResourceSrc]), err);
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
+        CHECK_ERR(dnnExecute_F32(relu_primitive, (void**)res_relu), err);
+        CHECK_ERR(dnnExecute_F32(maxpool_primitive, (void**)res_maxpool), err);
 
         double end = rtclock();
         duration_vector.push_back((end - start) * 1000);
@@ -148,7 +177,7 @@ int main()
     std::cout << "\t\tResize-Conv block time: "
               << median(duration_vector) << " ms." << std::endl;
 
-    CHECK_ERR(dnnConversionExecute_F32(cv_conv_to_usr_output, res_conv[dnnResourceDst], output_buf), err);
+    CHECK_ERR(dnnConversionExecute_F32(cv_maxpool_to_usr_output, res_maxpool[dnnResourceDst], output_buf), err);
 
     // Write results to file
     FILE* f = fopen("mkl_result.txt", "w");
@@ -159,18 +188,20 @@ int main()
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    fprintf(f, "%.10g\n", output_buf[x + y*N + fout*N*N + n*N*N*FOut]);
+            for (int y = 0; y < N/2; ++y)
+                for (int x = 0; x < N/2; ++x)
+                    fprintf(f, "%.10g\n", output_buf[x + y*N/2 + fout*N/2*N/2 + n*N/2*N/2*FOut]);
         
     fclose(f);
     
     free(input_buf);
-    dnnDelete_F64(conv_primitive);
+    dnnDelete_F32(conv_primitive);
+    dnnDelete_F32(relu_primitive);
+    dnnDelete_F32(maxpool_primitive);
 
     dnnDelete_F32(cv_usr_to_conv_filt);
     dnnDelete_F32(cv_usr_to_conv_input);
-    dnnDelete_F32(cv_conv_to_usr_output);
+    dnnDelete_F32(cv_maxpool_to_usr_output);
 
     dnnLayoutDelete_F32(lt_user_input);
     dnnLayoutDelete_F32(lt_user_filt);
@@ -182,7 +213,6 @@ int main()
     dnnReleaseBuffer_F32(res_conv[dnnResourceSrc]);
     dnnReleaseBuffer_F32(res_conv[dnnResourceFilter]);
     dnnReleaseBuffer_F32(res_conv[dnnResourceDst]);
-    dnnReleaseBuffer_F32(output_buf);
 
     return 0;
 }
