@@ -1,6 +1,6 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/core.h>
-#include "/opt/intel/compilers_and_libraries_2017.5.239/linux/mkl/include/mkl.h"
+#include "mkl.h"
 
 namespace tiramisu
 {
@@ -140,9 +140,8 @@ tiramisu::expr tiramisu::expr::copy() const
     return (*this);
 }
 
-
 std::unordered_map<std::string, var> tiramisu::var::declared_vars;
-
+    
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
         return e;
