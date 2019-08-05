@@ -1,6 +1,9 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/core.h>
-
+#include "mkl.h"
+#include <stdio.h>
+#include <stdlib.h>
+#define min(x,y) (((x) < (y)) ? (x) : (y))
 namespace tiramisu
 {
 
@@ -139,6 +142,9 @@ tiramisu::expr tiramisu::expr::copy() const
     return (*this);
 }
 
+
+std::unordered_map<std::string, var> tiramisu::var::declared_vars;
+
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
         return e;
@@ -230,12 +236,61 @@ expr cuda_stream_synchronize()
 {
     return expr(o_call, "tiramisu_cuda_stream_synchronize", {int32_t(0)}, tiramisu::p_int32);
 }
-    
-expr mkl_gemm(const buffer &A, const buffer &B, buffer &C,
+
+extern "C"
+int tiramisu_cblas_sgemm(float *A, float *B, float *C,
+                          uint64_t M, uint64_t N, uint64_t K,
+                          float alpha, float beta,
+                          uint64_t ldA, uint64_t ldB, uint64_t ldC,
+                          uint64_t offsetA, uint64_t offsetB, uint64_t offsetC,
+                          bool transposeA, bool transposeB)
+{
+    // Default values for tight packing:
+    if (ldA == 0) {
+        ldA = transposeA ? M : K;
+    }
+    if (ldB == 0) {
+        ldB = transposeB ? K : N;
+    }
+    if (ldC == 0) {
+        ldC = N;
+    }
+
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+                M, N, K, alpha, A+offsetA, K, B+ offsetB, N, beta, C+ offsetC, N);
+    return 0;
+}
+
+extern "C"
+int tiramisu_cblas_dgemm(double *A, double *B, double *C,
+                          uint64_t M, uint64_t N, uint64_t K,
+                          double alpha, double beta,
+                          uint64_t ldA, uint64_t ldB, uint64_t ldC,
+                          uint64_t offsetA, uint64_t offsetB, uint64_t offsetC,
+                          bool transposeA, bool transposeB)
+{
+    // Default values for tight packing:
+    if (ldA == 0) {
+        ldA = transposeA ? M : K;
+    }
+    if (ldB == 0) {
+        ldB = transposeB ? K : N;
+    }
+    if (ldC == 0) {
+        ldC = N;
+    }
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+                M, N, K, alpha, A+offsetA, K, B+ offsetB, N, beta, C+ offsetC, N);
+    return 0;
+}
+
+expr cblas_gemm_call(const buffer &A, const buffer &B, buffer &C,
                  expr M, expr N, expr K,
                  expr alpha, expr beta,
-                 expr offsetA, expr offsetB, expr offsetC
-                 )
+                 expr ldA, expr ldB, expr ldC,
+                 expr offsetA, expr offsetB, expr offsetC,
+                 expr transposeA, expr transposeB)
 {
     std::string fname;
     expr alpha_expr;
@@ -243,25 +298,30 @@ expr mkl_gemm(const buffer &A, const buffer &B, buffer &C,
     if (A.get_elements_type() == p_float32 &&
         B.get_elements_type() == p_float32 &&
         C.get_elements_type() == p_float32) {
-        fname = "cblas_sgemm";
+        fname = "tiramisu_cblas_sgemm";
         alpha_expr = cast(p_float32, alpha);
         beta_expr = cast(p_float32, beta);
     } else if (A.get_elements_type() == p_float64 &&
                B.get_elements_type() == p_float64 &&
                C.get_elements_type() == p_float64) {
-        fname = "cblas_dgemm";
+        fname = "tiramisu_cblas_dgemm";
         alpha_expr = cast(p_float64, alpha);
         beta_expr = cast(p_float64, beta);
     } else {
         ERROR("All input buffers should be of same type and either p_float32 or p_float64", true);
     }
-    
     return expr(o_call, fname,
-            {CblasRowMajor, CblasNoTrans, CblasNoTrans, 
-                cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K), alpha_expr,  var(p_void_ptr, A.get_name()),
-                cast(p_uint64, K),  var(p_void_ptr, B.get_name()), 
-                cast(p_uint64, N), beta_expr,  var(p_void_ptr, C.get_name()), cast(p_uint64, N)},tiramisu::p_uint8);
+            {
+                var(p_void_ptr, A.get_name()),
+                var(p_void_ptr, B.get_name()),
+                var(p_void_ptr, C.get_name()),
+                cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K),
+                alpha_expr, beta_expr,
+                cast(p_uint64, ldA), cast(p_uint64, ldB), cast(p_uint64, ldC),
+                cast(p_uint64, offsetA), cast(p_uint64, offsetB), cast(p_uint64, offsetC),
+                cast(p_boolean, transposeA), cast(p_boolean, transposeB)
+            },
+            tiramisu::p_uint8);
 }
-
 
 }
