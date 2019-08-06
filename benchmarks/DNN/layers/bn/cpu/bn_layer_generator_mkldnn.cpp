@@ -14,8 +14,9 @@ using namespace std;
 
 void bn_mkldnn()
 {
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
     auto cpu_engine = engine(engine::cpu, 0);
+
     std::vector<float> net_src(BATCH_SIZE * FIn * N * N);
     std::vector<float> net_dst(BATCH_SIZE * FIn * N * N);
     std::vector<float> mean_vect(FIn);
@@ -77,11 +78,11 @@ void bn_mkldnn()
 
     for (int i = 0; i < NB_TESTS; i++)
     {
-        auto start1 = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
         stream(stream::kind::eager).submit(net_fwd).wait();
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end1 - start1;
-        duration_vector.push_back(duration);
+
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\t\tMKL-DNN BN duration"

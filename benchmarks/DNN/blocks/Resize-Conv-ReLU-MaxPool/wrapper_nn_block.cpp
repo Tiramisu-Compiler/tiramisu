@@ -4,7 +4,7 @@
 #include <chrono>
 #include <tiramisu/tiramisu.h>
 
-#include "resize_conv_tiramisu.o.h"
+#include "resize_conv_relu_maxpool_tiramisu.o.h"
 #include "configure.h"
 
 using namespace std;
@@ -12,14 +12,21 @@ using namespace std;
 int main()
 {
     srand(1);
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
 
     Halide::Buffer<float> input(FIn, IMG_WIDTH, IMG_HEIGHT, BATCH_SIZE);
 
     Halide::Buffer<float> conv_filter(FOUT_BLOCKING, FIn, K_X, K_Y, FOUT_NB_BLOCKS);
     Halide::Buffer<float> conv_bias(FOut);
 
-    Halide::Buffer<float> output(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
+    Halide::Buffer<float> resized_input(FIn, N + 2, N + 2, BATCH_SIZE);
+    Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
+
+    Halide::Buffer<float> conv_buf;
+    if (N >= 224)
+        conv_buf = Halide::Buffer<float>(BATCH_SIZE, FOUT_NB_BLOCKS, Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING);
+    else
+        conv_buf = Halide::Buffer<float>(BATCH_SIZE, N, FOUT_BLOCKING);
 
     // Initialize buffers
     for (int fout = 0; fout < FOut; ++fout)
@@ -41,20 +48,21 @@ int main()
 
     // Execute Tiramisu code
     for (int i = 0; i < NB_TESTS; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
-        resize_conv_block(
+        double start = rtclock();
+        resize_conv_relu_maxpool_block(
             input.raw_buffer(), 
             conv_filter.raw_buffer(), 
-            conv_bias.raw_buffer(), 
+            conv_bias.raw_buffer(),
+            resized_input.raw_buffer(),
+            conv_buf.raw_buffer(),
             output.raw_buffer()
         );
         
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end - start;
-        duration_vector.push_back(duration);	
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);	
     }
 
-    std::cout << "\t\tTiramisu Resize-Conv block duration"
+    std::cout << "\t\tTiramisu Resize-Conv-ReLU-MaxPool block duration"
               << ": " << median(duration_vector) << " ms;" << std::endl;
 
     // Write results to file
@@ -66,8 +74,8 @@ int main()
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N/2; ++y)
+                for (int x = 0; x < N/2; ++x)
                     fprintf(f, "%.10g\n", output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
 
     fclose(f);
@@ -79,12 +87,12 @@ int main()
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x) {
+            for (int y = 0; y < N/2; ++y)
+                for (int x = 0; x < N/2; ++x) {
                     mkl_result >> tmp;
 
                     file_count++;
-                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.00001)
+                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
                         corr++;
                 }
 

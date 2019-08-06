@@ -46,8 +46,8 @@ int main()
     dnnError_t err;
 
     // Define some parameters
-    size_t input_size[] = {N, N, FIn, BATCH_SIZE};
-    size_t input_strides[] = {1, N, N*N, N*N*FIn};
+    size_t input_size[] = {N + 2, N + 2, FIn, BATCH_SIZE};
+    size_t input_strides[] = {1, N + 2, (N + 2)*(N + 2), (N + 2)*(N + 2)*FIn};
 
     size_t conv_output_size[] = {N, N, FOut, BATCH_SIZE};
     size_t conv_output_strides[] = {1, N, N*N, N*N*FOut};
@@ -62,7 +62,7 @@ int main()
     size_t conv_filter_strides[] = {1, K_X, K_X*K_Y, K_X*K_Y*FIn};
 
     size_t conv_strides[] = {1, 1};
-    int conv_offset[] = {-1, -1};
+    int conv_offset[] = {0, 0};
 
     size_t maxpool_kernel_size[] = {2, 2};
     size_t maxpool_strides[] = {2, 2};
@@ -78,14 +78,14 @@ int main()
         conv_bias_param[fout] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Allocate buffers
-    float* input_buf = malloc(sizeof(float) * N * N * FIn * BATCH_SIZE);
+    float* input_buf = malloc(sizeof(float) * (N + 2) * (N + 2) * FIn * BATCH_SIZE);
     float* output_buf = malloc(sizeof(float) * N/2 * N/2 * FOut * BATCH_SIZE);
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fin = 0; fin < FIn; ++fin)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + fin*N*N + n*N*N*FIn] = ((float)(rand()%256 - 128)) / 127.f;
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input_buf[x + y*(N + 2) + fin*(N + 2)*(N + 2) + n*(N + 2)*(N + 2)*FIn] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create Conv-ReLU-MaxPool
     float* res_conv[dnnResourceNumber] = {0};
@@ -114,7 +114,9 @@ int main()
     CHECK_ERR(init_conversion(&cv_usr_to_conv_filt, &res_conv[dnnResourceFilter], lt_conv_filt, lt_user_filt, (void*)conv_filter_param), err);
     CHECK_ERR(dnnAllocateBuffer_F32((void **)&res_conv[dnnResourceDst], lt_conv_output), err);
 
-    CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, input_buf, res_conv[dnnResourceSrc]), err);
+    if (cv_usr_to_conv_input)
+        CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, input_buf, res_conv[dnnResourceSrc]), err);
+    
     CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_filt, (void*)conv_filter_param, res_conv[dnnResourceFilter]), err);
     res_conv[dnnResourceBias] = conv_bias_param;
 
@@ -146,18 +148,17 @@ int main()
 
     // Execute the block
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
 
     for (int i = 0; i < NB_TESTS; ++i) {
-        start = clock();
+        start = rtclock();
 
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
         CHECK_ERR(dnnExecute_F32(relu_primitive, (void**)res_relu), err);
         CHECK_ERR(dnnExecute_F32(maxpool_primitive, (void**)res_maxpool), err);
 
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
 
     printf("\n\n\tConv-ReLU-MaxPool block time: %f ms.\n", median(NB_TESTS, times));
@@ -185,7 +186,9 @@ int main()
     dnnDelete_F64(conv_primitive);
 
     dnnDelete_F32(cv_usr_to_conv_filt);
-    dnnDelete_F32(cv_usr_to_conv_input);
+    if (cv_usr_to_conv_input)
+        dnnDelete_F32(cv_usr_to_conv_input);
+        
     dnnDelete_F32(cv_maxpool_to_usr_output);
 
     dnnPrimitiveAttributesDestroy_F64(attributes);
@@ -198,7 +201,9 @@ int main()
     dnnLayoutDelete_F32(lt_conv_filt);
     dnnLayoutDelete_F32(lt_conv_output);
 
-    dnnReleaseBuffer_F32(res_conv[dnnResourceSrc]);
+    if (cv_usr_to_conv_input)
+        dnnReleaseBuffer_F32(res_conv[dnnResourceSrc]);
+        
     dnnReleaseBuffer_F32(res_conv[dnnResourceFilter]);
     dnnReleaseBuffer_F32(res_conv[dnnResourceDst]);
     dnnReleaseBuffer_F32(res_maxpool[dnnResourceDst]);

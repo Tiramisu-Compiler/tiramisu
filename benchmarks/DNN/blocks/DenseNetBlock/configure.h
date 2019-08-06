@@ -1,6 +1,8 @@
 #ifndef __DENSENET_BLOCK_CONF_HEADER_
 #define __DENSENET_BLOCK_CONF_HEADER_
 
+#include <sys/time.h>
+
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
@@ -13,37 +15,17 @@
     #define BATCH_SIZE 8
 #endif
 
-// DenseNet blocks are numbered from 1 to 4
-#define BLOCK_NUMBER 1
-
-#define Z_BLOCKING 8
-#define FOUT_BLOCKING 8
-
-#define Z_NB_BLOCKS (4*GR)/Z_BLOCKING
-#define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
-
 // Growth Rate of the block (see the original DenseNet paper for a definition)
 // This block receives an input tensor of size NxNx4*GR and outputs a tensor of size NxNxGR
 #define GR 32
 
 // Width and height of an input tensor
+#define BLOCK_NUMBER 1
+
 #if BLOCK_NUMBER == 0
     #define N 112
 #elif BLOCK_NUMBER == 1
     #define N 56
-#elif BLOCK_NUMBER == 2
-    #define N 28
-#elif BLOCK_NUMBER == 3
-    #define N 14
-#elif BLOCK_NUMBER == 4
-    #define N 7
-#endif
-
-// We fuse BN-Relu with CONV only for large N
-#if BLOCK_NUMBER <= 1
-    #define SCHEDULE_FUSION true
-#else
-    #define SCHEDULE_FUSION false
 #endif
 
 // Convolution kernel size
@@ -52,13 +34,33 @@
 
 #define EPSILON 1e-05
 
+// Parameters for Tiramisu code
+#define FOUT_BLOCKING 16
+#define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
+
+#define FIN_BLOCKING 4
+#define FIN_NB_BLOCKS (4*GR)/FIN_BLOCKING
+
+#define VEC_LEN 8
+
+#if N == 112
+    #define X_BLOCKING 16
+    #define Y_BLOCKING 2
+#elif N == 56
+    #define X_BLOCKING 8
+    #define Y_BLOCKING 2
+#endif
+
+#define X_NB_BLOCKS N/X_BLOCKING
+#define Y_NB_BLOCKS N/Y_BLOCKING
+
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
 #define NB_TESTS 51
 
 #ifdef __cplusplus
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+double median(std::vector<double> scores)
 {
     double median;
     size_t size = scores.size();
@@ -67,11 +69,11 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 
     if (size % 2 == 0)
     {
-        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+        median = (scores[size / 2 - 1] + scores[size / 2]) / 2;
     }
     else
     {
-        median = scores[size / 2].count();
+        median = scores[size / 2];
     }
 
     return median;
@@ -103,5 +105,13 @@ double median(int n, double x[])
     }
 }
 #endif
+
+double rtclock()
+{
+    struct timeval Tp;
+    gettimeofday(&Tp, NULL);
+
+    return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+}
 
 #endif

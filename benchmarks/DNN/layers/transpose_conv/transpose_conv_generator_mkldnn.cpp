@@ -14,7 +14,7 @@ using namespace mkldnn;
 void transpose_conv()
 {
     	int OUTPUT_N = ((N-1)*STRIDE + K - 2 * PADDING);
-    	std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    	std::vector<double> duration_vector;
 	
     	engine cpu_engine(engine::kind::cpu, 0);
     	stream cpu_stream(cpu_engine);
@@ -135,15 +135,14 @@ void transpose_conv()
 	
     	// Execute the deconvolution
 	for (int i = 0; i < NB_TESTS; ++i) {
-		auto start = std::chrono::high_resolution_clock::now();
+		double start = rtclock();
 
 		deconv.execute(cpu_stream, deconv_args);
 
 		cpu_stream.wait();
 
-		auto end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> duration = end - start;
-		duration_vector.push_back(duration);
+		double end = rtclock();
+		duration_vector.push_back((end - start) * 1000);
 	}
 	
     	std::cout << "\n\n\tMKLDNN Deconv time : " << median(duration_vector) << " ms." << std::endl;

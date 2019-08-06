@@ -12,8 +12,6 @@
 
 #include "wrapper.h"
 
-typedef std::chrono::duration<double,std::milli> duration_t;
-
 int main(int argc, char *argv[])
 {
     int warmupN = 0;
@@ -61,16 +59,17 @@ int main(int argc, char *argv[])
              buf_y.raw_buffer());
     }
 
-    std::vector<duration_t> durations;
+    std::vector<double> durations;
     for (int i = 0; i < NB_TESTS; i++) {
-        auto t1 = std::chrono::high_resolution_clock::now();
+        double t1 = rtclock();
         lstm(buf_params.raw_buffer(),
              buf_Weights.raw_buffer(),
              buf_biases.raw_buffer(),
              buf_x.raw_buffer(),
              buf_y.raw_buffer());
-        auto t2 = std::chrono::high_resolution_clock::now();
-        durations.push_back(t2 - t1);
+
+        double t2 = rtclock();
+        durations.push_back((t2 - t1) * 1000);
     }
 
     if (NB_TESTS > 0) {
@@ -104,7 +103,8 @@ int main(int argc, char *argv[])
         file_count += 1;
         f1 = std::stof(line1);
         f2 = std::stof(line2);
-        if (abs(f1 - f2) < 0.02)
+        
+        if (std::abs(f1 - f2) < 0.02)
             corr += 1;
     }
 

@@ -46,8 +46,8 @@ int main()
     dnnError_t err;
 
     // Define some parameters
-    size_t input_size[] = {N, N, 4*GR, BATCH_SIZE};
-    size_t input_strides[] = {1, N, N*N, N*N*4*GR};
+    size_t input_size[] = {N+2, N+2, 4*GR, BATCH_SIZE};
+    size_t input_strides[] = {1, N+2, (N+2)*(N+2), (N+2)*(N+2)*4*GR};
 
     size_t output_size[] = {N, N, GR, BATCH_SIZE};
     size_t output_strides[] = {1, N, N*N, N*N*GR};
@@ -62,34 +62,34 @@ int main()
     size_t conv_filter_strides[] = {1, K_X, K_X*K_Y, K_X*K_Y*4*GR};
 
     size_t conv_strides[] = {1, 1};
-    int conv_offset[] = {-1, -1};
+    int conv_offset[] = {0, 0};
 
-    for (int z = 0; z < 4*GR; ++z) {
-        bn_scale_shift[z] = ((float)(rand()%256)) / 255.f;
-        if (bn_scale_shift[z] == 0.f)
-            bn_scale_shift[z] = 1.f;
+    for (int fin = 0; fin < 4*GR; ++fin) {
+        bn_scale_shift[fin] = ((float)(rand()%256)) / 255.f;
+        if (bn_scale_shift[fin] == 0.f)
+            bn_scale_shift[fin] = 1.f;
 
-        bn_scale_shift[z + 4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+        bn_scale_shift[fin + 4*GR] = ((float)(rand()%256 - 128)) / 127.f;
     }
 
     for (int fout = 0; fout < GR; ++fout)
-        for (int z = 0; z < 4*GR; ++z)
+        for (int fin = 0; fin < 4*GR; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv_filter_param[fout][z][k_y][k_x] = ((float)(rand()%256 - 128)) / 127.f;
+                    conv_filter_param[fout][fin][k_y][k_x] = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < GR; ++fout)
         conv_bias_param[fout] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Allocate buffers
-    float* input_buf = malloc(sizeof(float) * N * N * 4*GR * BATCH_SIZE);
+    float* input_buf = malloc(sizeof(float) * (N+2) * (N+2) * 4*GR * BATCH_SIZE);
     float* output_buf = malloc(sizeof(float) * N * N * GR * BATCH_SIZE);
 
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < 4*GR; ++z)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + z*N*N + n*N*N*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
+        for (int fin = 0; fin < 4*GR; ++fin)
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input_buf[x + y*(N+2) + fin*(N+2)*(N+2) + n*(N+2)*(N+2)*4*GR] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create the DenseNet block
     float* res_bn_relu[dnnResourceNumber] = {0};
@@ -140,20 +140,19 @@ int main()
 
     // Execute the block
     double times[NB_TESTS];
-    clock_t start, end;
+    double start, end;
 
     for (int i = 0; i < NB_TESTS; ++i) {
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv_input, input_buf, res_bn_relu[dnnResourceSrc]), err);
         
-        start = clock();
+        start = rtclock();
 
         CHECK_ERR(dnnExecute_F32(bn_primitive, (void**)res_bn_relu), err);
         CHECK_ERR(dnnExecute_F32(relu_primitive, (void**)res_bn_relu), err);
         CHECK_ERR(dnnExecute_F32(conv_primitive, (void**)res_conv), err);
 
-        end = clock();
-        double time_taken = ((double)(end - start) / CLOCKS_PER_SEC) * 1000;
-        times[i] = time_taken;
+        end = rtclock();
+        times[i] = (end - start) * 1000;
     }
 
     printf("\n\n\tDenseNet block time: %f ms.\n", median(NB_TESTS, times));

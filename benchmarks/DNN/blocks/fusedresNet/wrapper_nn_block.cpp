@@ -51,7 +51,8 @@ int main(int, char **)
     Halide::Buffer<double> mean(N, N, 64, BATCH_SIZE);
     Halide::Buffer<double> variance(N, N, 64, BATCH_SIZE);
 
-    std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+    std::vector<double> duration_vector;
+
     srand(1);
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int z = 0; z < 3; ++z)
@@ -79,14 +80,14 @@ int main(int, char **)
 
     for (int i = 0; i < NB_TESTS; i++)
     {
-        auto start1 = std::chrono::high_resolution_clock::now();
+        double start = rtclock();
         fused_resnet_block(parameters.raw_buffer(), filter1.raw_buffer(),
                            filter2.raw_buffer(), input.raw_buffer(), padd1.raw_buffer(),
                            conv1.raw_buffer(), mean.raw_buffer(), variance.raw_buffer(),
                            bn1.raw_buffer(), padd2.raw_buffer(), conv2.raw_buffer(), bn2.raw_buffer());
-        auto end1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> duration = end1 - start1;
-        duration_vector.push_back(duration);
+        
+        double end = rtclock();
+        duration_vector.push_back((end - start) * 1000);
     }
     std::cout << "\t\tTiramisu ResNet block duration "
               << ": " << median(duration_vector) << "; " << std::endl;

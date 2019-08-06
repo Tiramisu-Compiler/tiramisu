@@ -4072,6 +4072,11 @@ public:
     // @}
 
     /**
+      * \overload
+      */
+    computation &then(computation &next_computation, int L=computation::root_dimension);
+
+    /**
       * Tile the two loop levels \p L0 and \p L1 with rectangular
       * tiling. \p sizeX and \p sizeY represent the tile size.
       * \p L0 and \p L1 should be two consecutive loop levels.

@@ -12,14 +12,23 @@ namespace tiramisu {
 
 /**
   * Wrapper around tiramisu::tiramisu::expr
+  * with one caveat: undefined complex_expr is assumed to be zero
   */
 class complex_expr {
   tiramisu::expr real, imag;
 
 public:
-  complex_expr() {}
+  complex_expr() : real(double(0)), imag(double(0)) {}
 
   complex_expr(tiramisu::expr r, tiramisu::expr i) : real(r), imag(i) {}
+
+  bool is_zero() const {
+    if (!real.is_constant() || 
+        !imag.is_constant())
+      return false;
+    return real.get_float64_value() == 0 && imag.get_float64_value() == 0;
+  }
+
 
   // FIXME: remove 
   complex_expr(std::pair<tiramisu::expr, tiramisu::expr> r_and_i)
@@ -32,25 +41,43 @@ public:
     return {real, imag};
   }
 
-  complex_expr operator+(const complex_expr &other)
+  complex_expr operator+(const complex_expr &other) const
   {
+    if (is_zero())
+      return other;
+
     return complex_expr(real + other.real, imag + other.imag);
   }
 
-  complex_expr operator-(const complex_expr &other)
+  complex_expr &operator+=(const complex_expr &other)
   {
+    *this = *this + other;
+    return *this;
+  }
+
+  complex_expr operator-(const complex_expr &other) const
+  {
+    if (is_zero())
+      return other * -1;
+
     return complex_expr(real - other.real, imag - other.imag);
   }
 
-  complex_expr operator*(const complex_expr &other)
+  complex_expr operator*(const complex_expr &other) const
   {
+    if (is_zero())
+      return complex_expr();
+
     tiramisu::expr res_real = real * other.real - imag * other.imag;
     tiramisu::expr res_imag = real * other.imag + imag * other.real;
     return complex_expr(res_real, res_imag);
   }
 
-  complex_expr operator*(tiramisu::expr a)
+  complex_expr operator*(tiramisu::expr a) const
   {
+    if (is_zero())
+      return complex_expr();
+
     return complex_expr(real * a, imag * a);
   }
 

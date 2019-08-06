@@ -1,6 +1,8 @@
 #ifndef __CONV_CONF_HEADER_
 #define __CONV_CONF_HEADER_
 
+#include <sys/time.h>
+
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
 #define SMALL_DATA_SET	1
@@ -13,32 +15,56 @@
 	#define BATCH_SIZE 8
 #endif
 
-// Size of one data dimension
-// Data is NxNx16
-#if LARGE_DATA_SET
-	#define N 512
-#elif MEDIUM_DATA_SET
-	#define N 64
-#elif SMALL_DATA_SET
-	#define N 32
-#endif
+// Width and height of an input tensor
+#define N 112
 
 // Number of features in the input
-#define FIn 16
+#define FIn 3
 // Number of features in the output
-#define FOut 16
+#define FOut 32
 
 // Size of convolution filter (KxK)
+#define K 3
 
-#define K 4
+// Parameters for Tiramisu code
+#define FIN2_BLOCKING 8
+#define FOUT_BLOCKING 16
+
+#define FIN1_NB_BLOCKS FIn/FIN1_BLOCKING
+#define FIN2_NB_BLOCKS FOut/FIN2_BLOCKING
+#define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
+
+#define VEC_LEN 8
+
+#if N >= 224
+    #define X1_BLOCKING 8
+    #define Y1_BLOCKING 2
+    #define SCHEDULE_PREFETCH_WEIGHTS1 true
+
+    #define X2_BLOCKING 32
+    #define Y2_BLOCKING 4
+#else
+    #define X1_BLOCKING 4
+    #define Y1_BLOCKING 1
+    #define SCHEDULE_PREFETCH_WEIGHTS1 false
+
+    #define X2_BLOCKING 16
+    #define Y2_BLOCKING 2
+#endif
+
+#define X1_NB_BLOCKS N/X1_BLOCKING
+#define Y1_NB_BLOCKS N/Y1_BLOCKING
+
+#define X2_NB_BLOCKS N/X2_BLOCKING
+#define Y2_NB_BLOCKS N/Y2_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
 
-#define NB_TESTS 1
+#define NB_TESTS 101
 
 #ifdef __cplusplus
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+double median(std::vector<double> scores)
 {
     double median;
     size_t size = scores.size();
@@ -47,11 +73,11 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 
     if (size % 2 == 0)
     {
-        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+        median = (scores[size / 2 - 1] + scores[size / 2]) / 2;
     }
     else
     {
-        median = scores[size / 2].count();
+        median = scores[size / 2];
     }
 
     return median;
@@ -83,5 +109,13 @@ double median(int n, double x[])
     }
 }
 #endif
+
+double rtclock()
+{
+    struct timeval Tp;
+    gettimeofday(&Tp, NULL);
+
+    return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+}
 
 #endif
