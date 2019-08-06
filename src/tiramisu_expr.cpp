@@ -139,7 +139,7 @@ tiramisu::expr tiramisu::expr::copy() const
     return (*this);
 }
 
-std::unordered_map<std::string, var> tiramisu::var::declared_vars;
+//std::unordered_map<std::string, var> tiramisu::var::declared_vars;
     
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
@@ -233,6 +233,7 @@ expr cuda_stream_synchronize()
     return expr(o_call, "tiramisu_cuda_stream_synchronize", {int32_t(0)}, tiramisu::p_int32);
 }
 
+#if 0
 extern "C"
 int tiramisu_cblas_sgemm(float *A, float *B, float *C,
                           uint64_t M, uint64_t N, uint64_t K,
@@ -319,5 +320,6 @@ expr cblas_gemm_call(const buffer &A, const buffer &B, buffer &C,
             },
             tiramisu::p_uint8);
 }
+#endif
 
 }
