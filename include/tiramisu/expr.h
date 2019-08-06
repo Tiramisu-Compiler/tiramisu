@@ -1996,6 +1996,14 @@ expr cublas_gemm(const buffer &A, const buffer &B, buffer &C,
                  expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
                  expr transposeA = false, expr transposeB = false);
 
+expr cblas_gemm_call(const buffer &A, const buffer &B, buffer &C,
+                 expr M, expr N, expr K,
+                 expr alpha = 1, expr beta = 0,
+                 expr ldA = 0, expr ldB = 0, expr ldC = 0,
+                 expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
+                 expr transposeA = false, expr transposeB = false);
+
+	
 /**
  * Synchronize CUDA streams of current thread. This should be used whenever CUDA
  * kernels are run in parallel to make sure all kernel calls are done before
