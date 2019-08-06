@@ -1,4 +1,5 @@
 #include <tiramisu/tiramisu.h>
+#include <vector>
 #include "configure.h"
 
 using namespace tiramisu;
@@ -10,7 +11,7 @@ expr mixf(expr x, expr y, expr a)
 
 int main()
 {
-    init("resize_conv_block");
+    init("resize_conv_relu_maxpool_block");
 
     // -------------------------------------------------------
     // Layer I
@@ -26,6 +27,11 @@ int main()
     input c_input("c_input", {n, o_y, o_x, fin}, p_float32);
     input conv_filter("conv_filter", {fout_b, k_y, k_x, fin, ffout}, p_float32);
     input conv_bias("conv_bias", {fout_b, ffout}, p_float32);
+
+    // Init output with zeros
+    // With this computation, we can avoid to compute ReLU
+    var x_out("x_out", 0, N/2), y_out("y_out", 0, N/2);
+    computation init_output("init_output", {n, fout_b, y_out, x_out, ffout}, cast(p_float32, 0));
 
     // Resize computation
     // Compute for y = 2, ..., N + 1
@@ -87,11 +93,24 @@ int main()
 
     // Convolution computation
     view resized_view("resized_view", {n, y_pad, x_pad, fin}, p_float32);
-    computation init_output("init_output", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
+    computation conv_init("conv_init", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
         "conv", 
         {n, fout_b, y, x, k_y, k_x, fin, ffout}, 
-        init_output(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resized_view(n, y + k_y, x + k_x, fin)
+        conv_init(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resized_view(n, y + k_y, x + k_x, fin)
+    );
+
+    // MaxPool computation
+    view c_output("c_output", {n, fout_b, y, x, ffout}, p_float32);
+
+    computation maxpool(
+        "maxpool",
+        {n, fout_b, y, x, ffout},
+        expr(
+            o_max,
+            c_output(n, fout_b, y, x, ffout),
+            conv(n, fout_b, y, x, 0, 0, 0, ffout)
+        )
     );
     
     // -------------------------------------------------------
@@ -111,8 +130,9 @@ int main()
         var xx, yy;
         
         resize.split(y, Y_BLOCKING, y_b, yy);
-        init_output.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
         conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+        maxpool.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
         
         // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
         conv.interchange(xx, k_y);
@@ -124,13 +144,16 @@ int main()
 
         // Interchange fout_b and y_b in order to fuse resize with convolution
         prefetch_weights.interchange(fout_b, y_b);
-        init_output.interchange(fout_b, y_b);
+        conv_init.interchange(fout_b, y_b);
         conv.interchange(fout_b, y_b);
+        maxpool.interchange(fout_b, y_b);
         
-        resize_prelude.then(resize, n)
-                      .then(init_output, y_b)
-                      .then(prefetch_weights, x_b)
-                      .then(conv, x_b);
+        init_output.then(resize_prelude, n)
+                   .then(resize, n)
+                   .then(conv_init, y_b)
+                   .then(prefetch_weights, x_b)
+                   .then(conv, x_b)
+                   .then(maxpool, x_b);
     }
     
     else {
@@ -143,12 +166,15 @@ int main()
         // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
 
         // Interchange fout_b and y in order to fuse resize with convolution
-        init_output.interchange(fout_b, y);
+        conv_init.interchange(fout_b, y);
         conv.interchange(fout_b, y);
+        maxpool.interchange(fout_b, y);
         
-        resize_prelude.then(resize, n)
-                      .then(init_output, y)
-                      .then(conv, fout_b);
+        init_output.then(resize_prelude, n)
+                   .then(resize, n)
+                   .then(conv_init, y)
+                   .then(conv, fout_b)
+                   .then(maxpool, fout_b);
     }
     
     conv.tag_parallel_level(n);
@@ -156,14 +182,21 @@ int main()
     resize.tag_unroll_level(fin);
     resize.vectorize(x_pad, 8);
     
-    init_output.vectorize(ffout, FOUT_BLOCKING);
+    conv_init.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
+    maxpool.vectorize(ffout, FOUT_BLOCKING);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
     buffer resized_buf("input_resized_buf", {BATCH_SIZE, N + 2, N + 2, FIn}, p_float32, a_input);
-    buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
+    buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
+
+    std::vector<expr> conv_buf_dims = {BATCH_SIZE, FOUT_NB_BLOCKS, Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING};
+    if (N < 224)
+        conv_buf_dims = {BATCH_SIZE, N, FOUT_BLOCKING};
+
+    buffer conv_buf("conv_buf", conv_buf_dims, p_float32, a_input);
 
     buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
     if (SCHEDULE_PREFETCH_WEIGHTS)
@@ -173,8 +206,18 @@ int main()
     resize.store_in(&resized_buf, {n, y + 2, x_pad, fin});
     resized_view.store_in(&resized_buf);
 
-    init_output.store_in(&output_buf);
-    conv.store_in(&output_buf, {n, fout_b, y, x, ffout});
+    if (N >= 224) {
+        conv_init.store_in(&conv_buf, {n, fout_b, y%Y_BLOCKING, x%X_BLOCKING, ffout});
+        conv.store_in(&conv_buf, {n, fout_b, y%Y_BLOCKING, x%X_BLOCKING, ffout});
+    }
+    
+    else {
+        conv_init.store_in(&conv_buf, {n, x, ffout});
+        conv.store_in(&conv_buf, {n, x, ffout});
+    }
+
+    c_output.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
+    maxpool.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
 
     // -------------------------------------------------------
     // Code Generation
@@ -184,8 +227,9 @@ int main()
         conv_filter.get_buffer(), 
         conv_bias.get_buffer(),
         &resized_buf,
+        &conv_buf,
         &output_buf
-    }, "resize_conv_tiramisu.o");
+    }, "resize_conv_relu_maxpool_tiramisu.o");
 
     return 0;
 }

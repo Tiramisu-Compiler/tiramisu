@@ -14,7 +14,7 @@
 
 using namespace mkldnn;
 
-void resize_conv_block()
+void resize_conv_relu_maxpool_block()
 {
     srand(1);
     std::vector<double> duration_vector;
@@ -28,6 +28,10 @@ void resize_conv_block()
     // Initialize user buffers
     memory::dims conv_strides = {1, 1};
     memory::dims conv_padding = {0, 0};
+
+    memory::dims pool_strides = {2, 2};
+    memory::dims pool_kernel = {2, 2};
+    memory::dims pool_padding = {0, 0};
 
     std::vector<float> input_buf(BATCH_SIZE*IMG_HEIGHT*IMG_WIDTH*FIn);
     std::vector<float> conv_weights_buf(FOut*FIn*K_Y*K_X);
@@ -97,8 +101,15 @@ void resize_conv_block()
         conv_padding
     );
 
+    post_ops conv_post_ops;
+    conv_post_ops.append_eltwise(1, algorithm::eltwise_relu, 0, 0);
+
+    primitive_attr conv_attr;
+    conv_attr.set_post_ops(conv_post_ops);
+
     auto conv_pd = convolution_forward::primitive_desc(
         conv_d,
+        conv_attr,
         cpu_engine
     );
 
@@ -112,7 +123,7 @@ void resize_conv_block()
             .execute(cpu_stream, conv_weights_usr_mem, conv_weights_mem);
     }
 
-    // Create the network
+    // Add convolution to the network
     auto resized_usr_mem = memory(resized_usr_md, cpu_engine);
 
     net.push_back(convolution_forward(conv_pd));
@@ -121,6 +132,38 @@ void resize_conv_block()
         {MKLDNN_ARG_WEIGHTS, conv_weights_mem},
         {MKLDNN_ARG_BIAS, conv_bias_usr_mem},
         {MKLDNN_ARG_DST, conv_dst_mem}
+    });
+
+
+    // Create maxpooling primitive
+    auto pool_output_md = memory::desc(
+        {BATCH_SIZE, FOut, N/2, N/2},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    auto pool_d = pooling_forward::desc(
+        prop_kind::forward_inference,
+        algorithm::pooling_max,
+        conv_pd.dst_desc(),
+        pool_output_md,
+        pool_strides,
+        pool_kernel,
+        pool_padding,
+        pool_padding
+    );
+
+    auto pool_pd = pooling_forward::primitive_desc(
+        pool_d,
+        cpu_engine
+    );
+
+    auto pool_dst_mem = memory(pool_pd.dst_desc(), cpu_engine);
+
+    net.push_back(pooling_forward(pool_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, conv_dst_mem},
+        {MKLDNN_ARG_DST, pool_dst_mem}
     });
 
     // Execute the network
@@ -149,16 +192,16 @@ void resize_conv_block()
 
     std::cout << "\n\n\tResize-Conv block time : " << median(duration_vector) << " ms." << std::endl;
 
-    // Convert convolution output to user data format
+    // Convert maxpool output to user data format
     auto output_usr_md = memory::desc(
-        {BATCH_SIZE, FOut, N, N},
+        {BATCH_SIZE, FOut, N/2, N/2},
         memory::data_type::f32,
         memory::format_tag::nchw
     );
 
     auto output_mem = memory(output_usr_md, cpu_engine);
-    reorder(conv_dst_mem, output_mem)
-        .execute(cpu_stream, conv_dst_mem, output_mem);
+    reorder(pool_dst_mem, output_mem)
+        .execute(cpu_stream, pool_dst_mem, output_mem);
 
     /* Write results to file */
     float* output = (float*)output_mem.get_data_handle();
@@ -170,9 +213,9 @@ void resize_conv_block()
 
     for (int n = 0; n < BATCH_SIZE; ++n)
         for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    fprintf(f, "%.10g\n", output[x + y*N + fout*N*N + n*N*N*FOut]);
+            for (int y = 0; y < N/2; ++y)
+                for (int x = 0; x < N/2; ++x)
+                    fprintf(f, "%.10g\n", output[x + y*N/2 + fout*N/2*N/2 + n*N/2*N/2*FOut]);
 
     fclose(f);
 }
@@ -180,7 +223,7 @@ void resize_conv_block()
 int main()
 {
     try {
-        resize_conv_block();
+        resize_conv_relu_maxpool_block();
     }
 
     catch (error &e) {
