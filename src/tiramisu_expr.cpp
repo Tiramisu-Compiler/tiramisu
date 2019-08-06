@@ -1,6 +1,5 @@
 #include <tiramisu/expr.h>
 #include <tiramisu/core.h>
-#include "mkl.h"
 
 namespace tiramisu
 {
