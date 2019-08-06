@@ -116,105 +116,66 @@ int main()
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    var y_b("y_b", 0, Y_NB_BLOCKS), x_b("x_b", 0, X_NB_BLOCKS);
-    
+    var x_b("x_b", 0, X_NB_BLOCKS), xx;
+
     // Loop through weights to load them into cache
     computation prefetch_weights(
         "prefetch_weights",
-        {n, fout_b, y_b, x_b, k_y, k_x, fin, ffout},
-        conv_filter(fout_b, k_y, k_x, fin, ffout),
-        SCHEDULE_PREFETCH_WEIGHTS
+        {n, fout_b, y, x_b, k_y, k_x, fin, ffout},
+        conv_filter(fout_b, k_y, k_x, fin, ffout)
     );
     
-    if (N >= 224) {
-        var xx, yy;
-        
-        resize.split(y, Y_BLOCKING, y_b, yy);
-        conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-        conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-        maxpool.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-        
-        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
-        conv.interchange(xx, k_y);
-        conv.interchange(xx, k_x);
-        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
-        conv.interchange(yy, k_y);
-        conv.interchange(yy, k_x);
-        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
-
-        // Interchange fout_b and y_b in order to fuse resize with convolution
-        prefetch_weights.interchange(fout_b, y_b);
-        conv_init.interchange(fout_b, y_b);
-        conv.interchange(fout_b, y_b);
-        maxpool.interchange(fout_b, y_b);
-        
-        init_output.then(resize_prelude, n)
-                   .then(resize, n)
-                   .then(conv_init, y_b)
-                   .then(prefetch_weights, x_b)
-                   .then(conv, x_b)
-                   .then(maxpool, x_b);
-    }
+    // We split computations over dimension x to apply register blocking
+    conv_init.split(x, X_BLOCKING, x_b, xx);
+    conv.split(x, X_BLOCKING, x_b, xx);
+    maxpool.split(x, X_BLOCKING, x_b, xx);
     
-    else {
-        // n, fout_b, y, x, k_y, k_x, fin, ffout
-        conv.interchange(x, k_y);
-        
-        var xx;
-        conv.split(x, X_BLOCKING, x_b, xx);
-        conv.interchange(xx, k_x);
-        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
+    // n, fout_b, y, x_b, xx, k_y, k_x, fin, ffout
+    conv.interchange(xx, k_y);
+    conv.interchange(xx, k_x);
+    conv.interchange(xx, fin);
+    conv.interchange(xx, ffout);
+    // n, fout_b, y, x_b, k_y, k_x, fin, ffout, xx
 
-        // Interchange fout_b and y in order to fuse resize with convolution
-        conv_init.interchange(fout_b, y);
-        conv.interchange(fout_b, y);
-        maxpool.interchange(fout_b, y);
-        
-        init_output.then(resize_prelude, n)
-                   .then(resize, n)
-                   .then(conv_init, y)
-                   .then(conv, fout_b)
-                   .then(maxpool, fout_b);
-    }
-    
+    // Interchange fout_b and y in order to fuse resize with convolution
+    conv_init.interchange(fout_b, y);
+    prefetch_weights.interchange(fout_b, y);
+    conv.interchange(fout_b, y);
+    maxpool.interchange(fout_b, y);
+
     conv.tag_parallel_level(n);
 
-    resize.tag_unroll_level(fin);
-    resize.vectorize(x_pad, 8);
-    
+    resize.vectorize(x_pad, VEC_LEN);    
     conv_init.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
     maxpool.vectorize(ffout, FOUT_BLOCKING);
+
+    init_output.then(resize_prelude, n)
+               .then(resize, n)
+               .then(conv_init, y)
+               .then(prefetch_weights, x_b)
+               .then(conv, x_b)
+               .then(maxpool, x_b);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
     buffer resized_buf("input_resized_buf", {BATCH_SIZE, N + 2, N + 2, FIn}, p_float32, a_input);
     buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
-
-    std::vector<expr> conv_buf_dims = {BATCH_SIZE, FOUT_NB_BLOCKS, Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING};
-    if (N < 224)
-        conv_buf_dims = {BATCH_SIZE, N, FOUT_BLOCKING};
-
-    buffer conv_buf("conv_buf", conv_buf_dims, p_float32, a_input);
+    
+    // This is where intermediate results of convolution will be stored.
+    // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
+    buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
 
     buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
-    if (SCHEDULE_PREFETCH_WEIGHTS)
-        prefetch_weights.store_in(&prefetch_w_buf, {});
+    prefetch_weights.store_in(&prefetch_w_buf, {});
 
     resize_prelude.store_in(&resized_buf, {n, y_prelude, x_pad, fin});
     resize.store_in(&resized_buf, {n, y + 2, x_pad, fin});
     resized_view.store_in(&resized_buf);
 
-    if (N >= 224) {
-        conv_init.store_in(&conv_buf, {n, fout_b, y%Y_BLOCKING, x%X_BLOCKING, ffout});
-        conv.store_in(&conv_buf, {n, fout_b, y%Y_BLOCKING, x%X_BLOCKING, ffout});
-    }
-    
-    else {
-        conv_init.store_in(&conv_buf, {n, x, ffout});
-        conv.store_in(&conv_buf, {n, x, ffout});
-    }
+    conv_init.store_in(&reg_buf, {x%X_BLOCKING, ffout});
+    conv.store_in(&reg_buf, {x%X_BLOCKING, ffout});
 
     c_output.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
     maxpool.store_in(&output_buf, {n, fout_b, y/2, x/2, ffout});
@@ -227,7 +188,6 @@ int main()
         conv_filter.get_buffer(), 
         conv_bias.get_buffer(),
         &resized_buf,
-        &conv_buf,
         &output_buf
     }, "resize_conv_relu_maxpool_tiramisu.o");
 

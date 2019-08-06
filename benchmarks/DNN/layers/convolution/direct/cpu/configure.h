@@ -30,21 +30,8 @@
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define FIN_BLOCKING 4
-#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
-
-#if N >= 224
-    #define X_BLOCKING 8
-    #define Y_BLOCKING 2
-    #define SCHEDULE_PREFETCH_WEIGHTS true
-#else
-    #define X_BLOCKING 4
-    #define Y_BLOCKING 1
-    #define SCHEDULE_PREFETCH_WEIGHTS false
-#endif
-
+#define X_BLOCKING 8
 #define X_NB_BLOCKS N/X_BLOCKING
-#define Y_NB_BLOCKS N/Y_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
