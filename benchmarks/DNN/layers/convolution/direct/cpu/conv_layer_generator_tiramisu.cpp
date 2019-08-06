@@ -1,3 +1,30 @@
+/*
+Pseudo-code for our convolution :
+
+FOUT_NB_BLOCKS = FOut/FOUT_BLOCKING
+X_NB_BLOCKS = N/X_BLOCKING
+
+*_BLOCKING : blocking factor for the given dimension (see configure.h).
+regs : buffer of size {X_BLOCKING, FOUT_BLOCKING}.
+       We rely on the compiler to map this buffer to CPU vector registers.
+
+for (n = 0; n < BATCH_SIZE; ++n)
+for (fout_b = 0; fout_b < FOUT_NB_BLOCKS; ++fout_b)
+for (y = 0; y < N; ++y)
+for (x_b = 0; x_b < X_NB_BLOCKS; ++x_b)
+    for (xx = 0; xx < X_BLOCKING; ++xx)
+        regs[xx, :] = bias[fout_b, :]
+
+    for (k_y = 0; k_y < K; ++k_y)
+    for (k_x = 0; k_x < K; ++k_x)
+    for (fin = 0; fin < FIn; ++fin)
+    for (xx = 0; xx < X_BLOCKING; ++xx)
+        regs[xx, :] += filter[fout_b, k_y, k_x, fin, :] * input[n, y + k_y, x*X_BLOCKING + xx + k_x, fin]
+
+    for (xx = 0; xx < X_BLOCKING; ++x)
+        output[n, fout_b, y, x*X_BLOCKING + xx, :] = regs[xx, :]
+*/
+
 #include <tiramisu/tiramisu.h>
 #include "configure.h"
 
@@ -33,63 +60,68 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    var y_b("y_b", 0, Y_NB_BLOCKS), x_b("x_b", 0, X_NB_BLOCKS);
-    
+    var x_b("x_b", 0, X_NB_BLOCKS), xx;
+
     // Loop through weights to load them into cache
     computation prefetch_weights(
         "prefetch_weights",
-        {n, fout_b, y_b, x_b, k_y, k_x, fin, ffout},
-        filter(fout_b, k_y, k_x, fin, ffout),
-        SCHEDULE_PREFETCH_WEIGHTS
+        {n, fout_b, y, x_b, k_y, k_x, fin, ffout},
+        filter(fout_b, k_y, k_x, fin, ffout)
+    );
+
+    // This computation is here to apply register blocking.
+    // Convolution intermediate results will be stored in a small buffer that
+    // will be mapped to CPU registers (more precisely, CPU vector registers) 
+    // instead of being mapped to memory.
+    // This computation moves data from our small buffer to the output buffer
+    computation reg_store(
+        "reg_store",
+        {n, fout_b, y, x, ffout},
+        conv(n, fout_b, y, x, 0, 0, 0, ffout)
     );
     
-    if (N >= 224) {
-        var xx, yy;
-        
-        conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING);
-        conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-        
-        // n, fout_b, y_b, x_b, yy, xx, k_y, k_x, fin, ffout
-        conv.interchange(xx, k_y);
-        conv.interchange(xx, k_x);
-        // n, fout_b, y_b, x_b, yy, k_y, k_x, xx, fin, ffout
-        conv.interchange(yy, k_y);
-        conv.interchange(yy, k_x);
-        // n, fout_b, y_b, x_b, k_y, k_x, yy, xx, fin, ffout
-        
-        conv_init.then(prefetch_weights, x_b)
-                 .then(conv, x_b);
-    }
+    // We split computations over dimension x to apply register blocking
+    conv_init.split(x, X_BLOCKING, x_b, xx);
+    conv.split(x, X_BLOCKING, x_b, xx);
+    reg_store.split(x, X_BLOCKING, x_b, xx);
     
-    else {
-        // n, fout_b, y, x, k_y, k_x, fin, ffout
-        conv.interchange(x, k_y);
-        
-        var xx;
-        conv.split(x, X_BLOCKING, x_b, xx);
-        conv.interchange(xx, k_x);
-        // n, fout_b, y, k_y, x_b, k_x, xx, fin, ffout
-        
-        conv_init.then(conv, y);
-    }
-    
+    // n, fout_b, y, x_b, xx, k_y, k_x, fin, ffout
+    conv.interchange(xx, k_y);
+    conv.interchange(xx, k_x);
+    conv.interchange(xx, fin);
+    conv.interchange(xx, ffout);
+    // n, fout_b, y, x_b, k_y, k_x, fin, ffout, xx
+
     conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
     
     conv_init.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
+    reg_store.vectorize(ffout, FOUT_BLOCKING);
+    
+    // Note that reg_store is scheduled after that convolution intermediate results are computed
+    conv_init.then(prefetch_weights, x_b)
+             .then(conv, x_b)
+             .then(reg_store, x_b);
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
     buffer conv_buf("conv_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
+    
+    // This is where intermediate results of convolution will be stored.
+    // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
+    buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
+
     buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
+    prefetch_weights.store_in(&prefetch_w_buf, {});
 
-    if (SCHEDULE_PREFETCH_WEIGHTS)
-        prefetch_weights.store_in(&prefetch_w_buf, {});
+    // Convolution intermediate results are stored in reg_buf.
+    conv_init.store_in(&reg_buf, {x%X_BLOCKING, ffout});
+    conv.store_in(&reg_buf, {x%X_BLOCKING, ffout});
 
-    conv_init.store_in(&conv_buf);
-    conv.store_in(&conv_buf, {n, fout_b, y, x, ffout});
+    // reg_store computation moves data from reg_buf to conv_buf.
+    reg_store.store_in(&conv_buf, {n, fout_b, y, x, ffout});
 
     // -------------------------------------------------------
     // Code Generation
