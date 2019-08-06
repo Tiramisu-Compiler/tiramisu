@@ -22,12 +22,6 @@ int main()
     Halide::Buffer<float> resized_input(FIn, N + 2, N + 2, BATCH_SIZE);
     Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
 
-    Halide::Buffer<float> conv_buf;
-    if (N >= 224)
-        conv_buf = Halide::Buffer<float>(BATCH_SIZE, FOUT_NB_BLOCKS, Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING);
-    else
-        conv_buf = Halide::Buffer<float>(BATCH_SIZE, N, FOUT_BLOCKING);
-
     // Initialize buffers
     for (int fout = 0; fout < FOut; ++fout)
         for (int fin = 0; fin < FIn; ++fin)
@@ -54,7 +48,6 @@ int main()
             conv_filter.raw_buffer(), 
             conv_bias.raw_buffer(),
             resized_input.raw_buffer(),
-            conv_buf.raw_buffer(),
             output.raw_buffer()
         );
         
