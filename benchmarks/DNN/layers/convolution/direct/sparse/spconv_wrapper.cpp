@@ -108,7 +108,7 @@ int main(int, char **)
   {
     auto start2 = std::chrono::high_resolution_clock::now();
 
-		spconv(
+    spconv(
       b_SIZES.raw_buffer(),
       b_input.raw_buffer(),
       b_filter_values.raw_buffer(),
@@ -161,7 +161,6 @@ int main(int, char **)
             if (abs(b_result(x, y, fout, b) - tmp) <= 0.00001)
               nb_correct++;
           }
-
 
     std::cout << "\n\t\tPercentage of correctness " << 100*(((double)nb_correct)/(BATCH_SIZE * FOut * N * N)) << "%" << std::endl << std::endl;
   }
