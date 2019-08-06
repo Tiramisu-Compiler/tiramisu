@@ -20,13 +20,6 @@ int main()
     Halide::Buffer<float> conv_bias(FOut);
    
     Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
-    
-    // Internal buffer used by our Tiramisu code
-    Halide::Buffer<float> workspace_buf;
-    if (N >= 224)
-        workspace_buf = Halide::Buffer<float>(FOUT_BLOCKING, X_BLOCKING, Y_BLOCKING, FOUT_NB_BLOCKS, BATCH_SIZE);
-    else 
-        workspace_buf = Halide::Buffer<float>(FOUT_BLOCKING, N, BATCH_SIZE);
 
     // Initialize buffers
     for (int fout = 0; fout < FOut; ++fout)
@@ -53,7 +46,6 @@ int main()
             input.raw_buffer(), 
             conv_filter.raw_buffer(), 
             conv_bias.raw_buffer(),
-            workspace_buf.raw_buffer(),
             output.raw_buffer()
         );
         
