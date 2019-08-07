@@ -4,8 +4,8 @@
 #include <sys/time.h>
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
@@ -30,11 +30,18 @@
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define FIN_BLOCKING 8
+#if N >= 224
+    #define FIN_BLOCKING 8
+#else
+    #define FIN_BLOCKING 16
+#endif
+
 #define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
-#define X_BLOCKING 8
+#define X_BLOCKING 3
 #define X_NB_BLOCKS N/X_BLOCKING
+
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
