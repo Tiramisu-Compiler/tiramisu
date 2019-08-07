@@ -28,29 +28,30 @@ def array_has_pattern(s, pattern):
     return is_pat;
 
 
-def count_pattern(d, pattern, excluded_patterns):
+def count_pattern(d, pattern):
     nb_pat = 0
     for i in range(0,32):
 	for j in range(0,32):
 	    s = d[i,j]
 	    if array_has_pattern(s, pattern) == True:
-		if (len(excluded_patterns) == 0):
-			nb_pat += 1;
-		else:
-		    for excluded in excluded_patterns:
-			if array_has_pattern(s, excluded) == False:
-			    nb_pat += 1;
-    print("Pattern:\n" + np.array2string(pattern))
-    print("Count = " + str(nb_pat) + "/" + str(32*32) + " = " + str((nb_pat*100)/(32*32)) + "%\n")
+		nb_pat += 1;
     return nb_pat;
 
 
-def count_pattern_union(d, patterns, excluded_patterns):
-    print("------ Counting number of occurences of a union of patterns ------ \n")
+def count_patterns(d, patterns, excluded_patterns):
+    print("------ Counting patterns ------ \n")
     nb_pat = 0
     for p in patterns:
-	nb_pat += count_pattern(d, p, excluded_patterns)
-    print("Number of occurences of a union of patterns:\n" + str(nb_pat) + "/" + str(32*32) + " = " + str((nb_pat*100)/(32*32)) + "%\n")
+	nb_pat += count_pattern(d, p)
+    for excluded in excluded_patterns:
+	nb_pat -= count_pattern(d, excluded)
+    print("Patterns included:\n")
+    for p in patterns:
+	print(np.array2string(p))
+    print("\nPatterns excluded:\n")
+    for e in excluded_patterns:
+	print(np.array2string(e))
+    print("\nNumber of patterns: " + str(nb_pat) + "/" + str(32*32) + " = " + str((nb_pat*100)/(32*32)) + "%\n")
 
 
 def main():
@@ -67,65 +68,57 @@ def main():
     print("Analyzing file: " + data_file)
     print("-------------------------------")
 
-    count_pattern(d, np.array([[0,0,0],
+    count_patterns(d, [np.array([[0,0,0],
 			       [0,0,0],
-			       [0,0,0]]), [])
+			       [0,0,0]])],
+		      [])
 
-    count_pattern_union(d, [np.array([[0,0,0],
-				      [0,0,0],
-				      [0,0,1]]),
-			    np.array([[0,0,0],
-				      [0,0,0],
-				      [0,1,0]]),
-			    np.array([[0,0,0],
-				     [0,0,0],
-				     [1,0,0]]),
-	                    np.array([[0,0,0],
-				      [0,0,1],
-				      [0,0,0]]),
-			    np.array([[0,0,0],
-				      [0,1,0],
-				      [0,0,0]]),
-			    np.array([[0,0,0],
-				      [1,0,0],
-				      [0,0,0]]),
-		            np.array([[0,0,1],
-				      [0,0,0],
-				      [0,0,0]]),
-			    np.array([[0,1,0],
-				      [0,0,0],
-				      [0,0,0]]),
-			    np.array([[1,0,0],
-				      [0,0,0],
-				      [0,0,0]])],
+    count_patterns(d, [np.array([[0,0,0],
+			         [0,0,0],
+			         [0,0,1]]),
+		       np.array([[0,0,0],
+	       		         [0,0,0],
+				 [0,1,0]]),
+		       np.array([[0,0,0],
+		    	         [0,0,0],
+				 [1,0,0]]),
+	                np.array([[0,0,0],
+				  [0,0,1],
+				  [0,0,0]]),
+			np.array([[0,0,0],
+				  [0,1,0],
+				  [0,0,0]]),
+			np.array([[0,0,0],
+				  [1,0,0],
+				  [0,0,0]]),
+		        np.array([[0,0,1],
+				  [0,0,0],
+				  [0,0,0]]),
+			np.array([[0,1,0],
+			          [0,0,0],
+				  [0,0,0]]),
+			np.array([[1,0,0],
+				  [0,0,0],
+				  [0,0,0]])],
 			    [])
 
-    count_pattern(d, np.array([[-1,-1,-1],
-			       [ 0, 0, 0],
-			       [ 0, 0, 0]]),
-		    [np.array([[ 0, 0, 0],
-			       [ 0, 0, 0],
-			       [ 0, 0, 0]]),
-		     np.array([[ 1, 0, 0],
-			       [ 0, 0, 0],
-			       [ 0, 0, 0]]),
-		     np.array([[ 0, 1, 0],
-			       [ 0, 0, 0],
-			       [ 0, 0, 0]]),
-		     np.array([[ 0, 0, 1],
-			       [ 0, 0, 0],
-			       [ 0, 0, 0]])
-		    ])
+    count_patterns(d, [np.array([[-1,-1,-1],
+		                 [ 0, 0, 0],
+			         [ 0, 0, 0]])],
+		      [np.array([[ 0, 0, 0],
+		                 [ 0, 0, 0],
+			         [ 0, 0, 0]]),
+		       np.array([[ 1, 0, 0],
+		                 [ 0, 0, 0],
+			         [ 0, 0, 0]]),
+		       np.array([[ 0, 1, 0],
+			         [ 0, 0, 0],
+			         [ 0, 0, 0]]),
+		       np.array([[ 0, 0, 1],
+			         [ 0, 0, 0],
+			         [ 0, 0, 0]])
+		       ])
 
-    count_pattern(d, np.array([[0,0,0],
-			       [-1,-1,-1],
-			       [0,0,0]]),
-		    [])
-
-    count_pattern(d, np.array([[0,0,0],
-			       [0,0,0],
-			       [-1,-1,-1]]),
-		    [])
 
 main()
 #print(d)
