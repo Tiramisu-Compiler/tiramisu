@@ -46,11 +46,12 @@ int main(int argc, char **argv)
     );
     
     // We split computations over dimension x to apply register blocking
-    var x_b, xx;
-    
-    conv_init.split(x, X_BLOCKING, x_b, xx);
-    conv.split(x, X_BLOCKING, x_b, xx);
-    reg_store.split(x, X_BLOCKING, x_b, xx);
+    var x_b, y_b;
+    var xx, yy;
+
+    conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+    conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
+    reg_store.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
     
     // n, fout_b, y, x_b, xx, fin_b, k_y, k_x, fin, ffout
     conv.interchange(xx, fin_b);
@@ -58,8 +59,15 @@ int main(int argc, char **argv)
     conv.interchange(xx, k_x);
     conv.interchange(xx, ffin);
     conv.interchange(xx, ffout);
+
+    conv.interchange(yy, fin_b);
+    conv.interchange(yy, k_y);
+    conv.interchange(yy, k_x);
+    conv.interchange(yy, ffin);
+    conv.interchange(yy, ffout);
     // n, fout_b, y, x_b, fin_b, k_y, k_x, fin, ffout, xx
 
+    conv.tag_unroll_level(k_y);
     conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
     
@@ -78,11 +86,11 @@ int main(int argc, char **argv)
     
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
-    buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer reg_buf("reg_buf", {Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
 
     // Convolution intermediate results are stored in reg_buf.
-    conv_init.store_in(&reg_buf, {x%X_BLOCKING, ffout});
-    conv.store_in(&reg_buf, {x%X_BLOCKING, ffout});
+    conv_init.store_in(&reg_buf, {y%Y_BLOCKING, x%X_BLOCKING, ffout});
+    conv.store_in(&reg_buf, {y%Y_BLOCKING, x%X_BLOCKING, ffout});
 
     // reg_store computation moves data from reg_buf to conv_buf.
     reg_store.store_in(&conv_buf, {n, fout_b, y, x, ffout});
