@@ -22,62 +22,129 @@ int main(int argc, char **argv)
     input filter("filter", {fout_b, fin_b, k_y, k_x, ffin, ffout}, p_float32);
     input bias("bias", {fout_b, ffout}, p_float32);
 
-    computation conv_init("conv_init", {n, fout_b, y, x, ffout}, bias(fout_b, ffout));
+    computation conv_init("conv_init", {n, y, fout_b, x, ffout}, bias(fout_b, ffout));
+    view conv_out("conv_out", {n, y, x, fout_b, ffout}, p_float32);
     
+    // x_bound is used to have the width dimension divisible by X_BLOCKING
+    // in the conv computation.
+    var x_bound("x_bound", 0, X_BOUND);
+    var x_conclude("x_conclude", X_BOUND, N);
+
+    // Compute convolution from 0 to x_bound
     computation conv(
         "conv",
-        {n, fout_b, y, x, fin_b, k_y, k_x, ffin, ffout},
-        conv_init(n, fout_b, y, x, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x + k_x, ffin)
+        {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
+        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
+    );
+
+    // Compute convolution from x_bound to N
+    computation conv_conclude(
+        "conv_conclude",
+        {n, y, fin_b, x_conclude, k_y, k_x, ffin, fout_b, ffout},
+        conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
 
-    // This computation is here to apply register blocking.
-    // Convolution intermediate results will be stored in a small buffer that
-    // will be mapped to CPU registers (more precisely, CPU vector registers) 
-    // instead of being mapped to memory.
-    // This computation moves data from our small buffer to the output buffer
+    // schedule for conv computation
+
+    // We introduce those two computations to do register blocking
+    computation reg_load(
+        "reg_load",
+        {n, y, fin_b, x_bound, fout_b, ffout},
+        conv_init(n, y, fout_b, x_bound, ffout)
+    );
+
     computation reg_store(
         "reg_store",
-        {n, fout_b, y, x, ffout},
-        conv(n, fout_b, y, x, 0, 0, 0, 0, ffout)
+        {n, y, fin_b, x_bound, fout_b, ffout},
+        conv(n, y, fin_b, x_bound, 0, 0, 0, fout_b, ffout)
     );
-    
-    // We split computations over dimension x to apply register blocking
-    var x_b, y_b;
-    var xx, yy;
 
-    conv_init.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-    conv.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-    reg_store.tile(y, x, Y_BLOCKING, X_BLOCKING, y_b, x_b, yy, xx);
-    
-    // n, fout_b, y, x_b, xx, fin_b, k_y, k_x, fin, ffout
-    conv.interchange(xx, fin_b);
+    // Split over dimension x
+    var x_b, xx;
+    conv.split(x_bound, X_BLOCKING, x_b, xx);
+
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
     conv.interchange(xx, ffin);
+    conv.interchange(xx, fout_b);
     conv.interchange(xx, ffout);
 
-    conv.interchange(yy, fin_b);
-    conv.interchange(yy, k_y);
-    conv.interchange(yy, k_x);
-    conv.interchange(yy, ffin);
-    conv.interchange(yy, ffout);
-    // n, fout_b, y, x_b, fin_b, k_y, k_x, fin, ffout, xx
+    reg_load.split(x_bound, X_BLOCKING, x_b, xx);
+    reg_store.split(x_bound, X_BLOCKING, x_b, xx);
 
-    conv.tag_unroll_level(k_y);
-    conv.tag_parallel_level(fout_b);
-    conv.tag_parallel_level(n);
-    
-    conv_init.vectorize(ffout, FOUT_BLOCKING);
+    reg_load.interchange(xx, fout_b);
+    reg_load.interchange(xx, ffout);
+
+    reg_store.interchange(xx, fout_b);
+    reg_store.interchange(xx, ffout);
+
+    // Vectorize and unroll
+    reg_load.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
     reg_store.vectorize(ffout, FOUT_BLOCKING);
-    
-    // Note that reg_store is scheduled after that convolution intermediate results are computed
-    conv_init.then(conv, x_b)
-             .then(reg_store, x_b);
+
+    conv.tag_unroll_level(xx);
+    conv.tag_unroll_level(fout_b);
+
+    reg_load.tag_unroll_level(xx);
+    reg_load.tag_unroll_level(fout_b);
+
+    reg_store.tag_unroll_level(xx);
+    reg_store.tag_unroll_level(fout_b);
+
+    // schedule for conv_conclude
+    // This schedule is the same as conv computation
+    computation reg_load_conclude(
+        "reg_load_conclude",
+        {n, y, fin_b, x_conclude, fout_b, ffout},
+        conv_init(n, y, fout_b, x_conclude, ffout)
+    );
+
+    computation reg_store_conclude(
+        "reg_store_conclude",
+        {n, y, fin_b, x_conclude, fout_b, ffout},
+        conv_conclude(n, y, fin_b, x_conclude, 0, 0, 0, fout_b, ffout)
+    );
+
+    conv_conclude.interchange(x_conclude, k_y);
+    conv_conclude.interchange(x_conclude, k_x);
+    conv_conclude.interchange(x_conclude, ffin);
+    conv_conclude.interchange(x_conclude, fout_b);
+    conv_conclude.interchange(x_conclude, ffout);
+
+    reg_load_conclude.interchange(x_conclude, fout_b);
+    reg_load_conclude.interchange(x_conclude, ffout);
+
+    reg_store_conclude.interchange(x_conclude, fout_b);
+    reg_store_conclude.interchange(x_conclude, ffout);
+
+    reg_load_conclude.vectorize(ffout, FOUT_BLOCKING);
+    conv_conclude.vectorize(ffout, FOUT_BLOCKING);
+    reg_store_conclude.vectorize(ffout, FOUT_BLOCKING);
+
+    conv_conclude.tag_unroll_level(x_conclude);
+    conv_conclude.tag_unroll_level(fout_b);
+
+    reg_load_conclude.tag_unroll_level(x_conclude);
+    reg_load_conclude.tag_unroll_level(fout_b);
+
+    reg_store_conclude.tag_unroll_level(x_conclude);
+    reg_store_conclude.tag_unroll_level(fout_b);
+
+    // Parallelize and order
+    conv.tag_parallel_level(y);
+    conv.tag_parallel_level(n);
+
+    conv_init.then(reg_load, y)
+             .then(conv, x_b)
+             .then(reg_store, x_b)
+             .then(reg_load_conclude, y)
+             .then(conv_conclude, fin_b)
+             .then(reg_store_conclude, fin_b);
 
     // -------------------------------------------------------
     // Layer III
@@ -86,14 +153,18 @@ int main(int argc, char **argv)
     
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
-    buffer reg_buf("reg_buf", {Y_BLOCKING, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer reg_buf("reg_buf", {FOUT_NB_BLOCKS, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
 
-    // Convolution intermediate results are stored in reg_buf.
-    conv_init.store_in(&reg_buf, {y%Y_BLOCKING, x%X_BLOCKING, ffout});
-    conv.store_in(&reg_buf, {y%Y_BLOCKING, x%X_BLOCKING, ffout});
+    conv_init.store_in(&conv_buf, {n, fout_b, y, x, ffout});
+    conv_out.store_in(&reg_buf, {fout_b, x%X_BLOCKING, ffout});
 
-    // reg_store computation moves data from reg_buf to conv_buf.
-    reg_store.store_in(&conv_buf, {n, fout_b, y, x, ffout});
+    reg_load.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    conv.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    reg_store.store_in(&conv_buf, {n, fout_b, y, x_bound, ffout});
+
+    reg_load_conclude.store_in(&reg_buf, {fout_b, x_conclude%X_BLOCKING, ffout});
+    conv_conclude.store_in(&reg_buf, {fout_b, x_conclude%X_BLOCKING, ffout});
+    reg_store_conclude.store_in(&conv_buf, {n, fout_b, y, x_conclude, ffout});
 
     // -------------------------------------------------------
     // Code Generation
