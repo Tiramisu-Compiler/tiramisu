@@ -36,24 +36,23 @@ int main(int argc, char *argv[])
     }
 
     int sizes[14][3];
+    sizes[0][0] = 64;	sizes[0][1] = 64;	sizes[0][2] = 10;
+    sizes[1][0] = 32;	sizes[1][1] = 64;	sizes[1][2] = 10;
+    sizes[2][0] = 8;	sizes[2][1] = 64;	sizes[2][2] = 10;
+    sizes[3][0] = 16;	sizes[3][1] = 64;	sizes[3][2] = 10;
+    sizes[4][0] = 4;	sizes[4][1] = 64;	sizes[4][2] = 10;
 
-	sizes[0][0] = 64;	sizes[0][1] = 64;	sizes[0][2] = 10;
-	sizes[1][0] = 128;	sizes[1][1] = 64;	sizes[1][2] = 10;
-	sizes[2][0] = 32;	sizes[2][1] = 64;	sizes[2][2] = 10;
-	sizes[3][0] = 16;	sizes[3][1] = 64;	sizes[3][2] = 10;
-	sizes[4][0] = 8;	sizes[4][1] = 64;	sizes[4][2] = 10;
+    sizes[5][0] = 16;	sizes[5][1] = 128;	sizes[5][2] = 10;
+    sizes[6][0] = 16;	sizes[6][1] = 32;	sizes[6][2] = 10;
+    sizes[7][0] = 16;	sizes[7][1] = 16;	sizes[7][2] = 10;
 
-	sizes[5][0] = 16;	sizes[5][1] = 128;	sizes[5][2] = 10;
-	sizes[6][0] = 16;	sizes[6][1] = 32;	sizes[6][2] = 10;
-	sizes[7][0] = 16;	sizes[7][1] = 16;	sizes[7][2] = 10;
+    sizes[8][0] = 128;	sizes[8][1] = 16;	sizes[8][2] = 10;
+    sizes[9][0] = 64;	sizes[9][1] = 16;	sizes[9][2] = 10;
 
-	sizes[8][0] = 128;	sizes[8][1] = 16;	sizes[8][2] = 10;
-    sizes[9][0] = 2048;	sizes[9][1] = 16;	sizes[9][2] = 10;
-
-	sizes[10][0] = 16;	sizes[10][1] = 16;	sizes[10][2] = 20;
-	sizes[11][0] = 16;	sizes[11][1] = 16;	sizes[11][2] = 100;
-	sizes[12][0] = 16;	sizes[12][1] = 16;	sizes[12][2] = 500;
-	sizes[13][0] = 16;	sizes[13][1] = 16;	sizes[13][2] = 1000;
+    sizes[10][0] = 16;	sizes[10][1] = 16;	sizes[10][2] = 20;
+    sizes[11][0] = 16;	sizes[11][1] = 16;	sizes[11][2] = 100;
+    sizes[12][0] = 16;	sizes[12][1] = 16;	sizes[12][2] = 500;
+    sizes[13][0] = 16;	sizes[13][1] = 16;	sizes[13][2] = 1000;
 
     for (int j = 0; j < 14; j++)
 	{
