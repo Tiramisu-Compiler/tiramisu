@@ -1,129 +1,131 @@
-#include "Halide.h"
-#include <cstdlib>
-#include <chrono>
-#include <iomanip>
-#include <fstream>
 #include <iostream>
-#include <fstream>
-#include <string>
-#include <time.h>
-#include "configure.h"
+#include <cstdlib>
+#include <Halide.h>
+#include <chrono>
+#include <tiramisu/tiramisu.h>
+
 #include "fused_resnet_block_generator_tiramisu.o.h"
-#include <tiramisu/utils.h>
+#include "configure.h"
+
 using namespace std;
 
-bool compareFiles(const std::string &p1, const std::string &p2)
+int main()
 {
-    std::ifstream f1(p1, std::ifstream::binary | std::ifstream::ate);
-    std::ifstream f2(p2, std::ifstream::binary | std::ifstream::ate);
-
-    if (f1.fail() || f2.fail())
-    {
-        return false; //File problem
-    }
-
-    if (f1.tellg() != f2.tellg())
-    {
-        return false; //Size mismatch
-    }
-
-    //Seek back to beginning and use std::equal to compare contents
-    f1.seekg(0, std::ifstream::beg);
-    f2.seekg(0, std::ifstream::beg);
-    return std::equal(std::istreambuf_iterator<char>(f1.rdbuf()),
-                      std::istreambuf_iterator<char>(),
-                      std::istreambuf_iterator<char>(f2.rdbuf()));
-}
-
-int main(int, char **)
-{
-    Halide::Buffer<int> parameters(2);
-
-    Halide::Buffer<double> input(N, N, 3, BATCH_SIZE);
-    Halide::Buffer<double> filter1(3, 3, 3, 64);
-    Halide::Buffer<double> filter2(3, 3, 64, 64);
-    Halide::Buffer<double> padd1(N + 2, N + 2, 3, BATCH_SIZE);
-    Halide::Buffer<double> conv1(N, N, 64, BATCH_SIZE);
-    Halide::Buffer<double> padd2(N + 2, N + 2, 64, BATCH_SIZE);
-    Halide::Buffer<double> conv2(N, N, 64, BATCH_SIZE);
-    Halide::Buffer<double> bn1(N, N, 64, BATCH_SIZE);
-    Halide::Buffer<double> bn2(N, N, 64, BATCH_SIZE);
-    Halide::Buffer<double> mean(N, N, 64, BATCH_SIZE);
-    Halide::Buffer<double> variance(N, N, 64, BATCH_SIZE);
-
+    srand(1);
     std::vector<double> duration_vector;
 
-    srand(1);
+    Halide::Buffer<float> input(FIN_BLOCKING, N+2, N+2, FIN_NB_BLOCKS, BATCH_SIZE);
+
+    Halide::Buffer<float> bn1_scale(FOut), bn1_shift(FOut);
+    Halide::Buffer<float> filter1(FOUT_BLOCKING, FIN_BLOCKING, K_X, K_Y, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+    Halide::Buffer<float> bias1(FOut);
+
+    Halide::Buffer<float> bn2_scale(FOut), bn2_shift(FOut);
+    Halide::Buffer<float> filter2(FOUT_BLOCKING, FIN_BLOCKING, K_X, K_Y, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+    Halide::Buffer<float> bias2(FOut);
+
+    Halide::Buffer<float> conv1_buf(FOUT_BLOCKING, N+2, N+2, FOUT_NB_BLOCKS, BATCH_SIZE);
+    Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
+
+    Halide::Buffer<float> input_mean_buf(FOut);
+    Halide::Buffer<float> input_sd_buf(FOut);
+
+    // Initialize buffers
+    for (int fout = 0; fout < FOut; ++fout) {
+        bn1_scale(fout) = 1.f;
+        bn2_scale(fout) = 1.f;
+
+        bn1_shift(fout) = 0.f;
+        bn2_shift(fout) = 0.f;
+    }
+
+    for (int fout = 0; fout < FOut; ++fout)
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int k_y = 0; k_y < K_Y; ++k_y)
+                for (int k_x = 0; k_x < K_X; ++k_x)
+                    filter1(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        bias1(fout) = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int k_y = 0; k_y < K_Y; ++k_y)
+                for (int k_x = 0; k_x < K_X; ++k_x)
+                    filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        bias2(fout) = ((float)(rand()%256 - 128)) / 127.f;
+
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < 3; ++z)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input(x, y, z, n) = rand() % 1000;
-
-    for (int x = 0; x < 3; ++x)
-        for (int y = 0; y < 3; ++y)
-            for (int z = 0; z < 3; ++z)
-                for (int q = 0; q < 64; ++q)
-                    filter1(x, y, z, q) = 1;
-
-    for (int x = 0; x < 3; ++x)
-        for (int y = 0; y < 3; ++y)
-            for (int z = 0; z < 64; ++z)
-                for (int q = 0; q < 64; ++q)
-                    filter2(x, y, z, q) = 1;
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
 
     std::cout << "\t\tBuffers initialized" << std::endl;
 
-    // Initialize parameters[]
-    parameters(0) = N;
-    parameters(1) = BATCH_SIZE;
-
-    for (int i = 0; i < NB_TESTS; i++)
-    {
+    // Execute Tiramisu code
+    for (int i = 0; i < NB_TESTS; ++i) {
         double start = rtclock();
-        fused_resnet_block(parameters.raw_buffer(), filter1.raw_buffer(),
-                           filter2.raw_buffer(), input.raw_buffer(), padd1.raw_buffer(),
-                           conv1.raw_buffer(), mean.raw_buffer(), variance.raw_buffer(),
-                           bn1.raw_buffer(), padd2.raw_buffer(), conv2.raw_buffer(), bn2.raw_buffer());
+        fused_resnet_block(
+            input.raw_buffer(),
+            filter1.raw_buffer(), 
+            bias1.raw_buffer(),  
+            bn1_scale.raw_buffer(), 
+            bn1_shift.raw_buffer(),
+            filter2.raw_buffer(), 
+            bias2.raw_buffer(),  
+            bn2_scale.raw_buffer(), 
+            bn2_shift.raw_buffer(), 
+            input_mean_buf.raw_buffer(),
+            input_sd_buf.raw_buffer(),
+            conv1_buf.raw_buffer(),
+            conv2_buf.raw_buffer()
+        );
         
         double end = rtclock();
-        duration_vector.push_back((end - start) * 1000);
+        duration_vector.push_back((end - start) * 1000);	
     }
-    std::cout << "\t\tTiramisu ResNet block duration "
-              << ": " << median(duration_vector) << "; " << std::endl;
 
-    std::ofstream resultfile;
-    resultfile.open("tiramisu_result.txt");
+    std::cout << "\t\tTiramisu ResNet block duration"
+              << ": " << median(duration_vector) << " ms;" << std::endl;
+
+    // Write results to file
+    FILE* f = fopen("tiramisu_result.txt", "w");
+    if (f == NULL) {
+        printf("Error creating mkl_result.txt.\n");
+        return 0;
+    }
 
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < 64; ++z)
+        for (int fout = 0; fout < FOut; ++fout)
             for (int y = 0; y < N; ++y)
                 for (int x = 0; x < N; ++x)
-                {
-                    resultfile << fixed << setprecision(10) << bn2(x, y, z, n);
-                    resultfile << "\n";
-                }
-    resultfile.close();
+                    fprintf(f, "%.10g\n", conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
 
-    std::cout << "\t\t Result"
+    fclose(f);
+
+    // Compare results with Intel MKL
+    std::ifstream mkl_result("mkl_result.txt");
+    float tmp;
+    float file_count = 0, corr = 0;
+
+    for (int n = 0; n < BATCH_SIZE; ++n)
+        for (int fout = 0; fout < FOut; ++fout)
+            for (int y = 0; y < N; ++y)
+                for (int x = 0; x < N; ++x) {
+                    mkl_result >> tmp;
+
+                    file_count++;
+                    if (abs(conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
+                        corr++;
+                }
+
+    std::cout << "\t\tResult"
               << ":\n\n";
 
-    std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt");
-    std::string line1, line2;
-    float file_count = 0, corr = 0, f1, f2;
-    
-    while (std::getline(infile1, line1))
-    {
-        std::getline(infile2, line2);
-        file_count += 1;
-        f1 = std::stof(line1);
-        f2 = std::stof(line2);
-
-        if (abs(f1 - f2) < 0.0001)
-            corr += 1;
-    }
-
-    printf("\t\t Percentage of correctness %f \n\n", corr / file_count * 100);
+    cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
 
     return 0;
 }

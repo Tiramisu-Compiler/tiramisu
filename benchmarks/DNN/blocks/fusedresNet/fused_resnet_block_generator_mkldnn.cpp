@@ -1,322 +1,308 @@
-#include <chrono>
 #include <iostream>
-#include <fstream>
-#include <numeric>
-#include <math.h>
-#include <string>
-#include <time.h>
-#include <iomanip>
+#include <vector>
+#include <sstream>
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
 #include "mkldnn.hpp"
+#include "mkldnn_debug.h"
+
 #include "configure.h"
 
 using namespace mkldnn;
-using namespace std;
 
-void resnetBlock()
+void resnet_block()
 {
-    auto cpu_engine = engine(engine::cpu, 0);
-    std::vector<float> net_src(BATCH_SIZE * 3 * N * N);
-
-    /* Initializing non-zero values for src */
     srand(1);
-    for (size_t i = 0; i < net_src.size(); ++i)
-        net_src[i] = rand() % 1000;
-
-    /****** Conv 1 **********/
-    memory::dims conv_src_tz = {BATCH_SIZE, 3, N, N};
-    memory::dims conv_weights_tz = {64, 3, 3, 3};
-    memory::dims conv_bias_tz = {64};
-    memory::dims conv_dst_tz = {BATCH_SIZE, 64, N, N};
-    memory::dims conv_strides = {1, 1};
-    auto conv_padding = {1, 1};
-
-    std::vector<float> conv_weights(
-        std::accumulate(conv_weights_tz.begin(), conv_weights_tz.end(), 1,
-                        std::multiplies<uint32_t>()));
-    std::vector<float> conv_bias(std::accumulate(conv_bias_tz.begin(),
-                                                 conv_bias_tz.end(), 1,
-                                                 std::multiplies<uint32_t>()));
-
-    /* Initializing non-zero values for weights and bias */
-    for (int i = 0; i < (int)conv_weights.size(); ++i)
-        conv_weights[i] = 1;
-    for (size_t i = 0; i < conv_bias.size(); ++i)
-        conv_bias[i] = 0;
-
-    /* Create memory for user data */
-    auto conv_user_src_memory = memory(
-        {{{conv_src_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        net_src.data());
-    auto conv_user_weights_memory = memory(
-        {{{conv_weights_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        conv_weights.data());
-    auto conv_user_bias_memory = memory(
-        {{{conv_bias_tz}, memory::data_type::f32, memory::format::x},
-         cpu_engine},
-        conv_bias.data());
-
-    /* Create mmemory descriptors for convolution data  */
-    auto conv_src_md = memory::desc({conv_src_tz}, memory::data_type::f32,
-                                    memory::format::nchw);
-    auto conv_bias_md = memory::desc({conv_bias_tz}, memory::data_type::f32,
-                                     memory::format::any);
-    auto conv_weights_md = memory::desc({conv_weights_tz}, memory::data_type::f32,
-                                        memory::format::nchw);
-    auto conv_dst_md = memory::desc({conv_dst_tz}, memory::data_type::f32,
-                                    memory::format::nchw);
-
-    /* Create a convolution primitive descriptor */
-    auto conv_desc = convolution_forward::desc(
-        prop_kind::forward, convolution_direct, conv_src_md,
-        conv_weights_md, conv_bias_md, conv_dst_md, conv_strides,
-        conv_padding, conv_padding, padding_kind::zero);
-    auto conv_pd = convolution_forward::primitive_desc(conv_desc, cpu_engine);
-
-    /* Create reorder primitives between user input and conv src if needed */
-    auto conv_src_memory = conv_user_src_memory;
-    bool reorder_conv_src = false;
-    primitive conv_reorder_src;
-    if (memory::primitive_desc(conv_pd.src_primitive_desc()) != conv_user_src_memory.get_primitive_desc())
-    {
-        conv_src_memory = memory(conv_pd.src_primitive_desc());
-        conv_reorder_src = reorder(conv_user_src_memory, conv_src_memory);
-        reorder_conv_src = true;
-    }
-
-    auto conv_weights_memory = conv_user_weights_memory;
-    bool reorder_conv_weights = false;
-    primitive conv_reorder_weights;
-    if (memory::primitive_desc(conv_pd.weights_primitive_desc()) != conv_user_weights_memory.get_primitive_desc())
-    {
-        conv_weights_memory = memory(conv_pd.weights_primitive_desc());
-        conv_reorder_weights = reorder(conv_user_weights_memory, conv_weights_memory);
-        reorder_conv_weights = true;
-    }
-
-    /* Create memory primitive for conv dst */
-    auto conv_dst_memory = memory(conv_pd.dst_primitive_desc());
-
-    /* Finally create a convolution primitive */
-    auto conv = convolution_forward(conv_pd, conv_src_memory, conv_weights_memory,
-                                    conv_user_bias_memory, conv_dst_memory);
-
-    /****** Batch normalization 1 **********/
-    std::vector<float> bn_dst(BATCH_SIZE * 64 * N * N);
-    std::vector<float> mean_vect(64);
-    std::vector<float> variance_vect(64);
-
-    memory::dims bn_dst_tz = {BATCH_SIZE, 64, N, N};
-    memory::dims mean_tz = {0, 64, 0, 0};
-    memory::dims variance_tz = {0, 64, 0, 0};
-
-    /* Create memory for bn dst data in user format */
-    auto bn_dst_memory = memory(
-        {{{bn_dst_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        bn_dst.data());
-
-    auto mean_memory = memory(
-        {{{mean_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        mean_vect.data());
-
-    auto variance_memory = memory(
-        {{{variance_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        variance_vect.data());
-
-    /* Create bn dst memory descriptor in format any */
-    auto bn_dst_md = memory::desc({bn_dst_tz}, memory::data_type::f32,
-                                  memory::format::any);
-
-    /* Create bn primitive descriptor */
-    auto epsilon = 0;
-    unsigned flags = !mkldnn_use_global_stats && !mkldnn_use_scaleshift && !mkldnn_fuse_bn_relu;
-
-    auto bn_desc = batch_normalization_forward::desc(
-        prop_kind::forward, conv_dst_md, epsilon, flags);
-    auto bn_pd = batch_normalization_forward::primitive_desc(bn_desc, cpu_engine);
-
-    /* Create a bn primitive */
-    auto bn = batch_normalization_forward(bn_pd, conv_dst_memory, bn_dst_memory, mean_memory, variance_memory);
-
-    /****** Relu **********/
-    const float negative_slope = 0.0f;
-
-    /* Create relu primitive desc */
-    auto relu_desc = eltwise_forward::desc(prop_kind::forward,
-                                           algorithm::eltwise_relu, bn_pd.dst_primitive_desc().desc(),
-                                           negative_slope);
-    auto relu_pd = eltwise_forward::primitive_desc(relu_desc, cpu_engine);
-
-    /* Create relu dst memory primitive */
-    auto relu_dst_memory = memory(relu_pd.dst_primitive_desc());
-
-    /* Finally create a relu primitive */
-    auto relu = eltwise_forward(relu_pd, bn_dst_memory, relu_dst_memory);
-
-    /****** Conv 2 **********/
-    memory::dims conv2_weights_tz = {64, 64, 3, 3};
-    memory::dims conv2_bias_tz = {64};
-    memory::dims conv2_dst_tz = {BATCH_SIZE, 64, N, N};
-    memory::dims conv2_strides = {1, 1};
-    auto conv2_padding = {1, 1};
-
-    std::vector<float> conv2_weights(std::accumulate(conv2_weights_tz.begin(),
-                                                     conv2_weights_tz.end(), 1,
-                                                     std::multiplies<uint32_t>()));
-    std::vector<float> conv2_bias(std::accumulate(conv2_bias_tz.begin(),
-                                                  conv2_bias_tz.end(), 1,
-                                                  std::multiplies<uint32_t>()));
-
-    /* Initializing non-zero values for weights and bias */
-    for (int i = 0; i < (int)conv2_weights.size(); ++i)
-        conv2_weights[i] = 1;
-    for (size_t i = 0; i < conv2_bias.size(); ++i)
-        conv2_bias[i] = 0;
-
-    /* Create memory for user data */
-    auto conv2_user_weights_memory = memory({{{conv2_weights_tz}, memory::data_type::f32, memory::format::nchw},
-                                             cpu_engine},
-                                            conv2_weights.data());
-    auto conv2_user_bias_memory = memory({{{conv2_bias_tz}, memory::data_type::f32, memory::format::x},
-                                          cpu_engine},
-                                         conv2_bias.data());
-
-    /* Create mmemory descriptors for convolution data  */
-    auto conv2_bias_md = memory::desc({conv2_bias_tz}, memory::data_type::f32,
-                                      memory::format::any);
-    auto conv2_weights_md = memory::desc({conv2_weights_tz}, memory::data_type::f32,
-                                         memory::format::nchw);
-    auto conv2_dst_md = memory::desc({conv2_dst_tz}, memory::data_type::f32,
-                                     memory::format::nchw);
-
-    /* Create a convolution primitive descriptor */
-    auto conv2_desc = convolution_forward::desc(
-        prop_kind::forward, convolution_direct, bn_dst_md,
-        conv2_weights_md, conv2_bias_md, conv2_dst_md, conv2_strides,
-        conv2_padding, conv2_padding, padding_kind::zero);
-    auto conv2_pd = convolution_forward::primitive_desc(conv2_desc, cpu_engine);
-
-    /* Create reorder primitives between user input and conv src if needed */
-    auto conv2_src_memory = relu_dst_memory;
-    bool reorder_conv2_src = false;
-    primitive conv2_reorder_src;
-    if (memory::primitive_desc(conv2_pd.src_primitive_desc()) != relu_dst_memory.get_primitive_desc())
-    {
-        conv2_src_memory = memory(conv2_pd.src_primitive_desc());
-        conv2_reorder_src = reorder(relu_dst_memory, conv2_src_memory);
-        reorder_conv2_src = true;
-    }
-
-    auto conv2_weights_memory = conv2_user_weights_memory;
-    bool reorder_conv2_weights = false;
-    primitive conv2_reorder_weights;
-    if (memory::primitive_desc(conv2_pd.weights_primitive_desc()) != conv2_user_weights_memory.get_primitive_desc())
-    {
-        conv2_weights_memory = memory(conv2_pd.weights_primitive_desc());
-        conv2_reorder_weights = reorder(conv2_user_weights_memory, conv2_weights_memory);
-        reorder_conv2_weights = true;
-    }
-
-    /* Create memory primitive for conv dst */
-    auto conv2_dst_memory = memory(conv2_pd.dst_primitive_desc());
-
-    /* Finally create a convolution primitive */
-    auto conv2 = convolution_forward(conv2_pd, conv2_src_memory, conv2_weights_memory,
-                                     conv2_user_bias_memory, conv2_dst_memory);
-
-    /****** Batch normalization 2 **********/
-    std::vector<float> bn2_dst(BATCH_SIZE * 64 * N * N);
-    std::vector<float> mean2_vect(64);
-    std::vector<float> variance2_vect(64);
-
-    memory::dims bn2_dst_tz = {BATCH_SIZE, 64, N, N};
-    memory::dims mean2_tz = {0, 64, 0, 0};
-    memory::dims variance2_tz = {0, 64, 0, 0};
-
-    /* Create memory for bn dst data in user format */
-    auto bn2_dst_memory = memory(
-        {{{bn2_dst_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        bn2_dst.data());
-
-    auto mean2_memory = memory(
-        {{{mean2_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        mean2_vect.data());
-
-    auto variance2_memory = memory(
-        {{{variance2_tz}, memory::data_type::f32, memory::format::nchw},
-         cpu_engine},
-        variance2_vect.data());
-
-    /* Create bn2 dst memory descriptor in format any */
-    auto bn2_dst_md = memory::desc({bn2_dst_tz}, memory::data_type::f32,
-                                   memory::format::any);
-
-    auto bn2_desc = batch_normalization_forward::desc(
-        prop_kind::forward, conv2_dst_md, epsilon, flags);
-    auto bn2_pd = batch_normalization_forward::primitive_desc(bn2_desc, cpu_engine);
-
-    /* Create a bn primitive */
-    auto bn2 = batch_normalization_forward(bn2_pd, conv2_dst_memory, bn2_dst_memory, mean2_memory, variance2_memory);
-
-    /* Build forward net */
-    std::vector<primitive> net_fwd;
-    if (reorder_conv_src)
-        net_fwd.push_back(conv_reorder_src);
-    if (reorder_conv_weights)
-        net_fwd.push_back(conv_reorder_weights);
-    net_fwd.push_back(conv);
-    net_fwd.push_back(bn);
-    net_fwd.push_back(relu);
-    if (reorder_conv2_src)
-        net_fwd.push_back(conv2_reorder_src);
-    if (reorder_conv2_weights)
-        net_fwd.push_back(conv2_reorder_weights);
-    net_fwd.push_back(conv2);
-    net_fwd.push_back(bn2);
-
     std::vector<double> duration_vector;
-    for (int i = 0; i < NB_TESTS; i++)
-    {
+
+    engine cpu_engine(engine::kind::cpu, 0);
+    stream cpu_stream(cpu_engine);
+
+    std::vector<primitive> net;
+    std::vector<std::unordered_map<int, memory>> net_args;
+
+    // Initialize user buffers
+    memory::dims conv_strides = {1, 1};
+    std::vector<float> bn_scale_shift_buf(2*FOut);
+
+    std::vector<float> input_buf(BATCH_SIZE*FIn*(N+2)*(N+2));
+
+    std::vector<float> conv1_weights_buf(FOut*FIn*K_Y*K_X);
+    std::vector<float> conv1_bias_buf(FOut);
+    memory::dims conv1_padding = {0, 0};
+
+    std::vector<float> conv2_weights_buf(FOut*FIn*K_Y*K_X);
+    std::vector<float> conv2_bias_buf(FOut);
+    memory::dims conv2_padding = {1, 1};
+
+    for (int fout = 0; fout < FOut; ++fout) {
+        bn_scale_shift_buf[fout] = 1.f;
+        bn_scale_shift_buf[fout + FOut] = 0.f;
+    }
+
+    for (int fout = 0; fout < FOut; ++fout)
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int k_y = 0; k_y < K_Y; ++k_y)
+                for (int k_x = 0; k_x < K_X; ++k_x)
+                    conv1_weights_buf[k_x + k_y*K_X + fin*K_X*K_Y + fout*K_X*K_Y*FIn] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        conv1_bias_buf[fout] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int k_y = 0; k_y < K_Y; ++k_y)
+                for (int k_x = 0; k_x < K_X; ++k_x)
+                    conv2_weights_buf[k_x + k_y*K_X + fin*K_X*K_Y + fout*K_X*K_Y*FIn] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        conv2_bias_buf[fout] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int n = 0; n < BATCH_SIZE; ++n)
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input_buf[x + y*(N+2) + fin*(N+2)*(N+2) + n*(N+2)*(N+2)*FIn] = ((float)(rand()%256 - 128)) / 127.f;
+
+    // Create first convolution primitive
+
+    // Create memory objects with user data format
+    auto input_usr_md = memory::desc(
+        {BATCH_SIZE, FIn, N+2, N+2},
+        memory::data_type::f32,
+        memory::format_tag::nchw
+    );
+
+    auto conv_weights_usr_md = memory::desc(
+        {FOut, FIn, K_Y, K_X},
+        memory::data_type::f32,
+        memory::format_tag::oihw
+    );
+
+    auto conv_bias_usr_md = memory::desc(
+        {FOut},
+        memory::data_type::f32,
+        memory::format_tag::x
+    );
+
+    auto conv1_weights_usr_mem = memory(conv_weights_usr_md, cpu_engine, conv1_weights_buf.data());
+    auto conv1_bias_usr_mem = memory(conv_bias_usr_md, cpu_engine, conv1_bias_buf.data());
+
+    // Create memory objects with a data format selected by the convolution primitive
+    auto conv1_src_md = memory::desc(
+        {BATCH_SIZE, FIn, N+2, N+2},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    auto conv_weights_md = memory::desc(
+        {FOut, FIn, K_Y, K_X},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    auto conv_bias_md = memory::desc(
+        {FOut},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    auto conv_output_md = memory::desc(
+        {BATCH_SIZE, FOut, N, N},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    // Create the convolution primitive descriptor, so as to get
+    // the data format selected by the primitive.
+    auto conv1_d = convolution_forward::desc(
+        prop_kind::forward_inference,
+        algorithm::convolution_direct,
+        conv1_src_md,
+        conv_weights_md,
+        conv_bias_md,
+        conv_output_md,
+        conv_strides,
+        conv1_padding,
+        conv1_padding
+    );
+
+    auto conv1_pd = convolution_forward::primitive_desc(
+        conv1_d,
+        cpu_engine
+    );
+
+    auto conv1_dst_mem = memory(conv1_pd.dst_desc(), cpu_engine);
+
+    // Edit user data format
+    auto input_mem = memory(conv1_pd.src_desc(), cpu_engine);
+    auto user_input_mem = memory(input_usr_md, cpu_engine, input_buf.data());
+
+    reorder(user_input_mem, input_mem)
+        .execute(cpu_stream, user_input_mem, input_mem);
+
+    auto conv1_weights_mem = conv1_weights_usr_mem;
+    if (conv1_pd.weights_desc() != conv1_weights_usr_mem.get_desc()) {
+        conv1_weights_mem = memory(conv1_pd.weights_desc(), cpu_engine);
+        reorder(conv1_weights_usr_mem, conv1_weights_mem)
+            .execute(cpu_stream, conv1_weights_usr_mem, conv1_weights_mem);
+    }
+
+    net.push_back(convolution_forward(conv1_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, input_mem},
+        {MKLDNN_ARG_WEIGHTS, conv1_weights_mem},
+        {MKLDNN_ARG_BIAS, conv1_bias_usr_mem},
+        {MKLDNN_ARG_DST, conv1_dst_mem}
+    });
+
+    // Create BN fused with ReLU primitive
+    auto bn_scale_md = memory::desc(
+        {2, FOut},
+        memory::data_type::f32,
+        memory::format_tag::nc
+    );
+
+    auto bn1_scale_mem = memory(bn_scale_md, cpu_engine, bn_scale_shift_buf.data());
+
+    auto bn1_d = batch_normalization_forward::desc(
+        prop_kind::forward_inference,
+        conv1_pd.dst_desc(),
+        EPSILON,
+        batch_normalization_flags::use_scale_shift | batch_normalization_flags::fuse_bn_relu
+    );
+
+    auto bn1_pd = batch_normalization_forward::primitive_desc(
+        bn1_d, cpu_engine
+    );
+
+    net.push_back(batch_normalization_forward(bn1_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, conv1_dst_mem},
+        {MKLDNN_ARG_SCALE_SHIFT, bn1_scale_mem},
+        {MKLDNN_ARG_DST, conv1_dst_mem}
+    });
+
+    // Create second convolution primitive
+
+    // Create memory objects with user data format
+    auto conv2_weights_usr_mem = memory(conv_weights_usr_md, cpu_engine, conv2_weights_buf.data());
+    auto conv2_bias_usr_mem = memory(conv_bias_usr_md, cpu_engine, conv2_bias_buf.data());
+
+    // Create the convolution primitive descriptor, so as to get
+    // the data format selected by the primitive.
+    auto conv2_d = convolution_forward::desc(
+        prop_kind::forward_inference,
+        algorithm::convolution_direct,
+        conv1_pd.dst_desc(),
+        conv_weights_md,
+        conv_bias_md,
+        conv_output_md,
+        conv_strides,
+        conv2_padding,
+        conv2_padding
+    );
+
+    auto conv2_pd = convolution_forward::primitive_desc(
+        conv2_d,
+        cpu_engine
+    );
+
+    auto conv2_dst_mem = memory(conv2_pd.dst_desc(), cpu_engine);
+
+    // Edit user data format
+    auto conv2_weights_mem = conv2_weights_usr_mem;
+    if (conv2_pd.weights_desc() != conv2_weights_usr_mem.get_desc()) {
+        conv2_weights_mem = memory(conv2_pd.weights_desc(), cpu_engine);
+        reorder(conv2_weights_usr_mem, conv2_weights_mem)
+            .execute(cpu_stream, conv2_weights_usr_mem, conv2_weights_mem);
+    }
+
+    net.push_back(convolution_forward(conv2_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, conv1_dst_mem},
+        {MKLDNN_ARG_WEIGHTS, conv2_weights_mem},
+        {MKLDNN_ARG_BIAS, conv2_bias_usr_mem},
+        {MKLDNN_ARG_DST, conv2_dst_mem}
+    });
+
+    // Create BN fused with ReLU primitive
+    auto bn2_scale_mem = memory(bn_scale_md, cpu_engine, bn_scale_shift_buf.data());
+
+    auto bn2_d = batch_normalization_forward::desc(
+        prop_kind::forward_inference,
+        conv2_pd.dst_desc(),
+        EPSILON,
+        batch_normalization_flags::use_scale_shift
+    );
+
+    auto bn2_pd = batch_normalization_forward::primitive_desc(
+        bn2_d, cpu_engine
+    );
+
+    net.push_back(batch_normalization_forward(bn2_pd));
+    net_args.push_back({
+        {MKLDNN_ARG_SRC, conv2_dst_mem},
+        {MKLDNN_ARG_SCALE_SHIFT, bn2_scale_mem},
+        {MKLDNN_ARG_DST, conv2_dst_mem}
+    });
+
+    // Execute the network
+    for (int i = 0; i < NB_TESTS; ++i) {
         double start = rtclock();
-        stream(stream::kind::eager).submit(net_fwd).wait();
+        
+        for (size_t j = 0; j < net.size(); ++j)
+            net[j].execute(cpu_stream, net_args[j]);
+
+        cpu_stream.wait();
+
         double end = rtclock();
         duration_vector.push_back((end - start) * 1000);
     }
-    std::cout << "\t\tMKL-DNN ResNet block duration "
-              << ": " << median(duration_vector) << "; " << std::endl;
 
-    printf("writing result in file\n");
-    ofstream resultfile;
-    resultfile.open("mkl_result.txt");
+    std::cout << "\n\n\tResNet block time : " << median(duration_vector) << " ms." << std::endl;
 
-    float *output = (float *)bn2_dst_memory.get_data_handle();
-    for (size_t i = 0; i < BATCH_SIZE; ++i)
-        for (size_t j = 0; j < 64; ++j)
-            for (size_t k = 0; k < N; ++k)
-                for (size_t l = 0; l < N; ++l)
-                {
-                    resultfile << fixed << setprecision(10) << output[i * 64 * N * N + j * N * N + k * N + l];
-                    resultfile << "\n";
-                }
-    resultfile.close();
+    // Convert convolution output to user data format
+    auto output_usr_md = memory::desc(
+        {BATCH_SIZE, FOut, N, N},
+        memory::data_type::f32,
+        memory::format_tag::nchw
+    );
+
+    auto output_mem = memory(output_usr_md, cpu_engine);
+    reorder(conv2_dst_mem, output_mem)
+        .execute(cpu_stream, conv2_dst_mem, output_mem);
+
+    /* Write results to file */
+    float* output = (float*)output_mem.get_data_handle();
+    FILE* f = fopen("mkl_result.txt", "w");
+    if (f == NULL) {
+        std::cout << "Error creating mkl_result.txt" << std::endl;;
+        return ;
+    }
+
+    for (int n = 0; n < BATCH_SIZE; ++n)
+        for (int fout = 0; fout < FOut; ++fout)
+            for (int y = 0; y < N; ++y)
+                for (int x = 0; x < N; ++x)
+                    fprintf(f, "%.10g\n", output[x + y*N + fout*N*N + n*N*N*FOut]);
+
+    fclose(f);
 }
 
-int main(int argc, char **argv)
+int main()
 {
-    try
-    {
-        resnetBlock();
+    try {
+        resnet_block();
     }
-    catch (error &e)
-    {
-        std::cerr << "status: " << e.status << std::endl;
-        std::cerr << "message: " << e.message << std::endl;
+
+    catch (error &e) {
+        std::cerr << "Intel MKL-DNN error: " << e.what() << std::endl
+                  << "Error status: " << mkldnn_status2str(e.status) << std::endl;
+
+        return 1;
     }
+
     return 0;
 }
