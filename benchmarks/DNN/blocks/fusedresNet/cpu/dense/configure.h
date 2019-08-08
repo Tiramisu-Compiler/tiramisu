@@ -16,40 +16,35 @@
 #endif
 
 // Size of one data dimension
-#if LARGE_DATA_SET
-	#define N 152
-#elif MEDIUM_DATA_SET
-	#define N 64
-#elif SMALL_DATA_SET
-	#define N 32
-#endif
+#define N 224
 
 // Number of features in the input
-#define FIn 3
+#define FIn 32
 // Number of features in the output
-#define FOut 64
+#define FOut 32
 
-// Strides
-#define S_X 1
-#define S_Y 1
-
-// Padding 
-#define P_X 1
-#define P_Y 1
-
-// Kernel size
-#define K_X 3 
+// Size of convolution filter
+#define K_X 3
 #define K_Y 3
 
-// EPSILON
-#define EPSILON 0
+#define EPSILON 1e-05
 
-// Fusing schedule
-#define FUSED_SCHEDULE 1
+// Parameters for Tiramisu code
+#define FOUT_BLOCKING 8
+#define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
+
+#define FIN_BLOCKING 8
+#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
+
+#define X_BLOCKING 3
+#define X_NB_BLOCKS N/X_BLOCKING
+
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
 
 // If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 100
-#define NB_TESTS 1
+#define PRINT_ONLY_10 1
+
+#define NB_TESTS 101
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)
