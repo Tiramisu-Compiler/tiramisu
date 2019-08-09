@@ -23,9 +23,7 @@ int main(int, char **)
 	Halide::Buffer<float> bias2(FOut);
 
 	Halide::Buffer<float> output(FOUT_BLOCKING, N/2, N/2, FOUT_NB_BLOCKS, BATCH_SIZE);
-
 	Halide::Buffer<float> conv1_buf(FIN2_BLOCKING, N + 2, N + 2, FIN2_NB_BLOCKS, BATCH_SIZE);
-	Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, X2_BLOCKING, BATCH_SIZE);
 
 	std::vector<double> duration_vector;
 
@@ -68,7 +66,6 @@ int main(int, char **)
 			filter2.raw_buffer(),
 			bias2.raw_buffer(),
 			conv1_buf.raw_buffer(),
-			conv2_buf.raw_buffer(),
 			output.raw_buffer()
 		);
 

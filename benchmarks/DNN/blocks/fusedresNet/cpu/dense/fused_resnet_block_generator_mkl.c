@@ -48,16 +48,17 @@ int main()
     // Define some parameters
 
     // CONV1
-    size_t conv1_input_size[] = {N, N, FIn, BATCH_SIZE};
-    size_t conv1_input_strides[] = {1, N, N*N, N*N*FIn};
+    size_t conv1_input_size[] = {N+2, N+2, FIn, BATCH_SIZE};
+    size_t conv1_input_strides[] = {1, N+2, (N+2)*(N+2), (N+2)*(N+2)*FIn};
 
     float conv1_filter_param[FOut][FIn][K_Y][K_X];
+    float conv1_bias_param[FOut];
 
     size_t conv1_filter_size[] = {K_X, K_Y, FIn, FOut};
     size_t conv1_filter_strides[] = {1, K_X, K_X*K_Y, K_X*K_Y*FIn};
 
     size_t conv1_strides[] = {1, 1};
-    int conv1_offset[] = {-1, -1};
+    int conv1_offset[] = {0, 0};
 
     // BN1
     size_t bn1_input_size[] = {N, N, FOut, BATCH_SIZE};
@@ -68,6 +69,7 @@ int main()
     size_t conv2_output_size[] = {N, N, FOut, BATCH_SIZE};
 
     float conv2_filter_param[FOut][FOut][K_Y][K_X];
+    float conv2_bias_param[FOut];
 
     size_t conv2_filter_size[] = {K_X, K_Y, FOut, FOut};
     size_t conv2_filter_strides[] = {1, K_X, K_X*K_Y, K_X*K_Y*FOut};
@@ -86,32 +88,38 @@ int main()
     float bn_workspace[2*FOut];
 
     // Initialize parameters
-    for (int z = 0; z < FOut; ++z) {
-        bn_scale_shift[z] = 1.f;
-        bn_scale_shift[z + FOut] = 0.f;
+    for (int fout = 0; fout < FOut; ++fout) {
+        bn_scale_shift[fout] = 1.f;
+        bn_scale_shift[fout + FOut] = 0.f;
     }
 
     for (int fout = 0; fout < FOut; ++fout)
-        for (int z = 0; z < FIn; ++z)
+        for (int fin = 0; fin < FIn; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv1_filter_param[fout][z][k_y][k_x] = 1.f;
+                    conv1_filter_param[fout][fin][k_y][k_x] = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int fout = 0; fout < FOut; ++fout)
-        for (int z = 0; z < FOut; ++z)
+        conv1_bias_param[fout] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        for (int fin = 0; fin < FOut; ++fin)
             for (int k_y = 0; k_y < K_Y; ++k_y)
                 for (int k_x = 0; k_x < K_X; ++k_x)
-                    conv2_filter_param[fout][z][k_y][k_x] = 1.f;
+                    conv2_filter_param[fout][fin][k_y][k_x] = ((float)(rand()%256 - 128)) / 127.f;
+
+    for (int fout = 0; fout < FOut; ++fout)
+        conv2_bias_param[fout] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Allocate buffers
-    float* input_buf = malloc(sizeof(float) * N * N * FIn * BATCH_SIZE);
+    float* input_buf = malloc(sizeof(float) * (N+2) * (N+2) * FIn * BATCH_SIZE);
     float* output_buf = malloc(sizeof(float) * N * N * FOut * BATCH_SIZE);
 
     for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int z = 0; z < FIn; ++z)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    input_buf[x + y*N + z*N*N + n*N*N*FIn] = (float)(rand() % 1000);
+        for (int fin = 0; fin < FIn; ++fin)
+            for (int y = 0; y < N + 2; ++y)
+                for (int x = 0; x < N + 2; ++x)
+                    input_buf[x + y*(N+2) + fin*(N+2)*(N+2) + n*(N+2)*(N+2)*FIn] = ((float)(rand()%256 - 128)) / 127.f;
 
     // Create the ResNet block (CONV-BN-ReLU-CONV-BN)
     dnnPrimitiveAttributes_t attributes;
@@ -129,7 +137,7 @@ int main()
     dnnPrimitive_t cv_usr_to_conv1_input, cv_usr_to_conv1_filt;
 
     dnnPrimitive_t conv1_primitive;
-    CHECK_ERR(dnnConvolutionCreateForward_F32(&conv1_primitive, attributes, dnnAlgorithmConvolutionDirect, TENSOR_DIMENSION, conv1_input_size, output_size, conv1_filter_size, conv1_strides, conv1_offset, dnnBorderZeros), err);
+    CHECK_ERR(dnnConvolutionCreateForwardBias_F32(&conv1_primitive, attributes, dnnAlgorithmConvolutionDirect, TENSOR_DIMENSION, conv1_input_size, output_size, conv1_filter_size, conv1_strides, conv1_offset, dnnBorderZeros), err);
 
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_conv1_input, conv1_primitive, dnnResourceSrc), err);
     CHECK_ERR(dnnLayoutCreateFromPrimitive_F32(&lt_conv1_filt, conv1_primitive, dnnResourceFilter), err);
@@ -143,6 +151,8 @@ int main()
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv1_filt, (void*)conv1_filter_param, res_conv1[dnnResourceFilter]), err);
     if (cv_usr_to_conv1_input)
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv1_input, input_buf, res_conv1[dnnResourceSrc]), err);
+
+    res_conv1[dnnResourceBias] = conv1_bias_param;
 
     // Create BN 1
     dnnPrimitive_t bn1_primitive;
@@ -172,6 +182,8 @@ int main()
 
     if (cv_usr_to_conv2_filt)
         CHECK_ERR(dnnConversionExecute_F32(cv_usr_to_conv2_filt, (void*)conv2_filter_param, res_conv2[dnnResourceFilter]), err);
+
+    res_conv2[dnnResourceBias] = conv2_bias_param;
 
     // Create BN 2
     dnnPrimitive_t bn2_primitive;

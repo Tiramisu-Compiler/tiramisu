@@ -1,5 +1,5 @@
-#ifndef __CONV_CONF_HEADER_
-#define __CONV_CONF_HEADER_
+#ifndef __DENSENET_BLOCK_CONF_HEADER_
+#define __DENSENET_BLOCK_CONF_HEADER_
 
 #include <sys/time.h>
 
@@ -8,48 +8,52 @@
 #define SMALL_DATA_SET	1
 
 #if LARGE_DATA_SET
-	#define BATCH_SIZE 100
+    #define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
-	#define BATCH_SIZE 32
+    #define BATCH_SIZE 32
 #elif SMALL_DATA_SET
-	#define BATCH_SIZE 8
+    #define BATCH_SIZE 8
 #endif
 
-// Size of one data dimension
-#if LARGE_DATA_SET
-	#define N 152
-#elif MEDIUM_DATA_SET
-	#define N 64
-#elif SMALL_DATA_SET
-	#define N 32
+// Growth Rate of the block (see the original DenseNet paper for a definition)
+// This block receives an input tensor of size NxNx4*GR and outputs a tensor of size NxNxGR
+#define GR 32
+
+// Width and height of an input tensor
+#define BLOCK_NUMBER 2
+
+#if BLOCK_NUMBER == 0
+    #define N 112
+#elif BLOCK_NUMBER == 1
+    #define N 56
+#elif BLOCK_NUMBER == 2
+    #define N 28
 #endif
 
-// Number of features in the input
-#define FIn 3
-// Number of features in the output
-#define FOut 64
-
-// Strides
-#define S_X 1
-#define S_Y 1
-
-// Padding 
-#define P_X 1
-#define P_Y 1
-
-// Kernel size
+// Convolution kernel size
 #define K_X 3 
 #define K_Y 3
 
-// EPSILON
-#define EPSILON 0
+#define EPSILON 1e-05
 
-// Fusing schedule
-#define FUSED_SCHEDULE 1
+// Parameters for Tiramisu code
+#define FOUT_BLOCKING 8
+#define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
+
+#define FIN_BLOCKING 8
+#define FIN_NB_BLOCKS (4*GR)/FIN_BLOCKING
+
+#define X_BLOCKING 3
+#define X_NB_BLOCKS N/X_BLOCKING
+
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
+
+#define VEC_LEN 8
 
 // If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 100
-#define NB_TESTS 1
+#define PRINT_ONLY_10 0
+
+#define NB_TESTS 101
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

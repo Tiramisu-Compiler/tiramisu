@@ -15,48 +15,31 @@
 	#define BATCH_SIZE 8
 #endif
 
-// Width and height of an input tensor
-#define N 112
+// Size of one data dimension
+#define N 224
 
 // Number of features in the input
-#define FIn 3
+#define FIn 32
 // Number of features in the output
 #define FOut 32
 
-// Size of convolution filter (KxK)
-#define K 3
+// Size of convolution filter
+#define K_X 3
+#define K_Y 3
+
+#define EPSILON 1e-05
 
 // Parameters for Tiramisu code
-#define FIN2_BLOCKING 8
-#define FOUT_BLOCKING 16
-
-#define FIN1_NB_BLOCKS FIn/FIN1_BLOCKING
-#define FIN2_NB_BLOCKS FOut/FIN2_BLOCKING
+#define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define VEC_LEN 8
+#define FIN_BLOCKING 8
+#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
-#if N >= 224
-    #define X1_BLOCKING 8
-    #define Y1_BLOCKING 2
-    #define SCHEDULE_PREFETCH_WEIGHTS1 true
+#define X_BLOCKING 3
+#define X_NB_BLOCKS N/X_BLOCKING
 
-    #define X2_BLOCKING 32
-    #define Y2_BLOCKING 4
-#else
-    #define X1_BLOCKING 4
-    #define Y1_BLOCKING 1
-    #define SCHEDULE_PREFETCH_WEIGHTS1 false
-
-    #define X2_BLOCKING 16
-    #define Y2_BLOCKING 2
-#endif
-
-#define X1_NB_BLOCKS N/X1_BLOCKING
-#define Y1_NB_BLOCKS N/Y1_BLOCKING
-
-#define X2_NB_BLOCKS N/X2_BLOCKING
-#define Y2_NB_BLOCKS N/Y2_BLOCKING
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
@@ -88,11 +71,11 @@ double median(int n, double x[])
     double temp;
     int i, j;
 
-    // the following two loops sort the array x in ascending order
+    // The following two loops sort the array x in ascending order
     for(i=0; i<n-1; i++) {
         for(j=i+1; j<n; j++) {
             if(x[j] < x[i]) {
-                // swap elements
+                // Swap elements
                 temp = x[i];
                 x[i] = x[j];
                 x[j] = temp;
@@ -101,10 +84,10 @@ double median(int n, double x[])
     }
 
     if(n%2==0) {
-        // if there is an even number of elements, return mean of the two elements in the middle
+        // If there is an even number of elements, return mean of the two elements in the middle
         return((x[n/2] + x[n/2 - 1]) / 2.0);
     } else {
-        // else return the element in the middle
+        // Else return the element in the middle
         return x[n/2];
     }
 }
