@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     // Compute convolution from x_bound to N
     computation conv_conclude(
         "conv_conclude",
-        {n, y, fin_b, x_conclude, k_y, k_x, ffin, fout_b, ffout},
+        {n, y, fin_b, k_y, k_x, ffin, fout_b, ffout, x_conclude},
         conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
 
@@ -100,27 +100,15 @@ int main(int argc, char **argv)
     // This schedule is the same as conv computation
     computation reg_load_conclude(
         "reg_load_conclude",
-        {n, y, fin_b, x_conclude, fout_b, ffout},
+        {n, y, fin_b, fout_b, ffout, x_conclude},
         conv_init(n, y, fout_b, x_conclude, ffout)
     );
 
     computation reg_store_conclude(
         "reg_store_conclude",
-        {n, y, fin_b, x_conclude, fout_b, ffout},
-        conv_conclude(n, y, fin_b, x_conclude, 0, 0, 0, fout_b, ffout)
+        {n, y, fin_b, fout_b, ffout, x_conclude},
+        conv_conclude(n, y, fin_b, 0, 0, 0, fout_b, ffout, x_conclude)
     );
-
-    conv_conclude.interchange(x_conclude, k_y);
-    conv_conclude.interchange(x_conclude, k_x);
-    conv_conclude.interchange(x_conclude, ffin);
-    conv_conclude.interchange(x_conclude, fout_b);
-    conv_conclude.interchange(x_conclude, ffout);
-
-    reg_load_conclude.interchange(x_conclude, fout_b);
-    reg_load_conclude.interchange(x_conclude, ffout);
-
-    reg_store_conclude.interchange(x_conclude, fout_b);
-    reg_store_conclude.interchange(x_conclude, ffout);
 
     reg_load_conclude.vectorize(ffout, FOUT_BLOCKING);
     conv_conclude.vectorize(ffout, FOUT_BLOCKING);

@@ -4,8 +4,8 @@
 #include <sys/time.h>
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	1
-#define SMALL_DATA_SET	0
+#define MEDIUM_DATA_SET	0
+#define SMALL_DATA_SET	1
 
 #if LARGE_DATA_SET
     #define BATCH_SIZE 100
@@ -20,12 +20,14 @@
 #define GR 32
 
 // Width and height of an input tensor
-#define BLOCK_NUMBER 1
+#define BLOCK_NUMBER 2
 
 #if BLOCK_NUMBER == 0
     #define N 112
 #elif BLOCK_NUMBER == 1
     #define N 56
+#elif BLOCK_NUMBER == 2
+    #define N 28
 #endif
 
 // Convolution kernel size
@@ -35,29 +37,23 @@
 #define EPSILON 1e-05
 
 // Parameters for Tiramisu code
-#define FOUT_BLOCKING 16
+#define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS GR/FOUT_BLOCKING
 
-#define FIN_BLOCKING 4
+#define FIN_BLOCKING 8
 #define FIN_NB_BLOCKS (4*GR)/FIN_BLOCKING
 
-#define VEC_LEN 8
-
-#if N == 112
-    #define X_BLOCKING 16
-    #define Y_BLOCKING 2
-#elif N == 56
-    #define X_BLOCKING 8
-    #define Y_BLOCKING 2
-#endif
-
+#define X_BLOCKING 3
 #define X_NB_BLOCKS N/X_BLOCKING
-#define Y_NB_BLOCKS N/Y_BLOCKING
+
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
+
+#define VEC_LEN 8
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 0
 
-#define NB_TESTS 51
+#define NB_TESTS 101
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

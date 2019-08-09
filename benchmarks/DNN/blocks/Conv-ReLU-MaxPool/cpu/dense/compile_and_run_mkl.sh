@@ -1,6 +1,6 @@
 #set -x
 
-source ../../../configure_paths.sh
+source ../../../../../configure_paths.sh
 
 export INCLUDES="-I${MKL_PREFIX}/include/"
 export LIBRARIES="${MKL_FLAGS} -lisl -lz -lpthread -ldl "
