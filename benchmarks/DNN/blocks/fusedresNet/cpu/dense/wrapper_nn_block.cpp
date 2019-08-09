@@ -27,9 +27,6 @@ int main()
     Halide::Buffer<float> conv1_buf(FOUT_BLOCKING, N+2, N+2, FOUT_NB_BLOCKS, BATCH_SIZE);
     Halide::Buffer<float> conv2_buf(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
 
-    Halide::Buffer<float> input_mean_buf(FOut);
-    Halide::Buffer<float> input_sd_buf(FOut);
-
     // Initialize buffers
     for (int fout = 0; fout < FOut; ++fout) {
         bn1_scale(fout) = 1.f;
@@ -78,8 +75,6 @@ int main()
             bias2.raw_buffer(),  
             bn2_scale.raw_buffer(), 
             bn2_shift.raw_buffer(), 
-            input_mean_buf.raw_buffer(),
-            input_sd_buf.raw_buffer(),
             conv1_buf.raw_buffer(),
             conv2_buf.raw_buffer()
         );
