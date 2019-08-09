@@ -69,40 +69,61 @@ int main(int argc, char **argv)
     /*
      * BN-ReLU computations
      */
-    view conv1_result("conv1_result", {n, fout_b, y, x, ffout}, p_float32);
+    computation zero_input1_mean("zero_input1_mean", {fout_b, ffout}, cast(p_float32, 0));
+    computation zero_input1_sd("zero_input1_sd", {fout_b, ffout}, cast(p_float32, 0));
 
     // Compute the sum over the features dimension (z)
-    computation input1_sum_init("input1_sum_init", {fout_b, ffout}, cast(p_float32, 0));
+    computation input1_sum_init("input1_sum_init", {n, fout_b, ffout}, cast(p_float32, 0));
     computation input1_sum(
         "input1_sum", 
-        {fout_b, n, y, x, ffout}, 
-        input1_sum_init(fout_b, ffout) + conv1_result(n, fout_b, y, x, ffout)
+        {n, y, x_bound, fout_b, ffout}, 
+        input1_sum_init(n, fout_b, ffout) + conv1(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout)
+    );
+
+    computation input1_sum_conclude(
+        "input1_sum_conclude",
+        {n, y, fout_b, ffout, x_conclude},
+        input1_sum_init(n, fout_b, ffout) + conv1_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude)
     );
 
     // Compute the sum of squares over the features dimension (z)
-    computation input1_sum_squares_init("input1_sum_squares_init", {fout_b, ffout}, cast(p_float32, 0));
+    computation input1_sum_squares_init("input1_sum_squares_init", {n, fout_b, ffout}, cast(p_float32, 0));
     computation input1_sum_squares(
         "input1_sum_squares", 
-        {fout_b, n, y, x, ffout}, 
-        input1_sum_squares_init(fout_b, ffout) + conv1_result(n, fout_b, y, x, ffout) * conv1_result(n, fout_b, y, x, ffout)
+        {n, y, x_bound, fout_b, ffout}, 
+        input1_sum_squares_init(n, fout_b, ffout) + conv1(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout) * conv1(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout)
     );
+
+    computation input1_sum_squares_conclude(
+        "input1_sum_squares_conclude",
+        {n, y, fout_b, ffout, x_conclude},
+        input1_sum_squares_init(n, fout_b, ffout) + conv1_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude) * conv1_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude)
+    );
+
+    computation input1_sum_cummulate("input1_sum_cummulate", {n, fout_b, ffout}, p_float32);
+    input1_sum_cummulate.set_expression(input1_sum_cummulate(n, fout_b, ffout) + input1_sum(n, 0, 0, fout_b, ffout));
 
     computation input1_mean(
         "input1_mean", 
         {fout_b, ffout}, 
-        input1_sum(fout_b, 0, 0, 0, ffout) / cast(p_float32, BATCH_SIZE*N*N)
+        input1_sum_cummulate(0, fout_b, ffout) / cast(p_float32, BATCH_SIZE*N*N)
     );
+
+    computation input1_sum_squares_cummulate("input1_sum_squares_cummulate", {n, fout_b, ffout}, p_float32);
+    input1_sum_squares_cummulate.set_expression(input1_sum_squares_cummulate(n, fout_b, ffout) + input1_sum_squares(n, 0, 0, fout_b, ffout));
 
     computation input1_sd(
         "input1_sd", 
         {fout_b, ffout}, 
         expr(
             o_sqrt, 
-            input1_sum_squares(fout_b, 0, 0, 0, ffout) / cast(p_float32, BATCH_SIZE*N*N) - input1_mean(fout_b, ffout) * input1_mean(fout_b, ffout) + cast(p_float32, EPSILON)
+            input1_sum_squares_cummulate(0, fout_b, ffout) / cast(p_float32, BATCH_SIZE*N*N) - input1_mean(fout_b, ffout) * input1_mean(fout_b, ffout) + cast(p_float32, EPSILON)
         )
     );
 
     // Compute BN followed by ReLU
+    view conv1_result("conv1_result", {n, fout_b, y, x, ffout}, p_float32);
+
     computation bn1(
         "bn1", 
         {n, fout_b, y, x, ffout}, 
@@ -143,38 +164,59 @@ int main(int argc, char **argv)
     /*
      * BN computations
      */
-    view conv2_result("conv2_result", {n, fout_b, y, x, ffout}, p_float32);
+    computation zero_input2_mean("zero_input2_mean", {fout_b, ffout}, cast(p_float32, 0));
+    computation zero_input2_sd("zero_input2_sd", {fout_b, ffout}, cast(p_float32, 0));
 
     // Compute the sum over the features dimension (z)
-    computation input2_sum_init("input2_sum_init", {fout_b, ffout}, cast(p_float32, 0));
+    computation input2_sum_init("input2_sum_init", {n, fout_b, ffout}, cast(p_float32, 0));
     computation input2_sum(
         "input2_sum", 
-        {fout_b, n, y, x, ffout}, 
-        input2_sum_init(fout_b, ffout) + conv2_result(n, fout_b, y, x, ffout)
+        {n, y, x_bound, fout_b, ffout}, 
+        input2_sum_init(n, fout_b, ffout) + conv2(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout)
+    );
+
+    computation input2_sum_conclude(
+        "input2_sum_conclude",
+        {n, y, fout_b, ffout, x_conclude},
+        input2_sum_init(n, fout_b, ffout) + conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude)
     );
 
     // Compute the sum of squares over the features dimension (z)
-    computation input2_sum_squares_init("input2_sum_squares_init", {fout_b, ffout}, cast(p_float32, 0));
+    computation input2_sum_squares_init("input2_sum_squares_init", {n, fout_b, ffout}, cast(p_float32, 0));
     computation input2_sum_squares(
         "input2_sum_squares", 
-        {fout_b, n, y, x, ffout}, 
-        input2_sum_squares_init(fout_b, ffout) + conv2_result(n, fout_b, y, x, ffout) * conv2_result(n, fout_b, y, x, ffout)
+        {n, y, x_bound, fout_b, ffout}, 
+        input2_sum_squares_init(n, fout_b, ffout) + conv2(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout) * conv2(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout)
     );
+
+    computation input2_sum_squares_conclude(
+        "input2_sum_squares_conclude",
+        {n, y, fout_b, ffout, x_conclude},
+        input2_sum_squares_init(n, fout_b, ffout) + conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude) * conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude)
+    );
+
+    computation input2_sum_cummulate("input2_sum_cummulate", {n, fout_b, ffout}, p_float32);
+    input2_sum_cummulate.set_expression(input2_sum_cummulate(n, fout_b, ffout) + input2_sum(n, 0, 0, fout_b, ffout));
 
     computation input2_mean(
         "input2_mean", 
         {fout_b, ffout}, 
-        input2_sum(fout_b, 0, 0, 0, ffout) / cast(p_float32, BATCH_SIZE*N*N)
+        input2_sum_cummulate(0, fout_b, ffout) / cast(p_float32, BATCH_SIZE*N*N)
     );
+
+    computation input2_sum_squares_cummulate("input2_sum_squares_cummulate", {n, fout_b, ffout}, p_float32);
+    input2_sum_squares_cummulate.set_expression(input2_sum_squares_cummulate(n, fout_b, ffout) + input2_sum_squares(n, 0, 0, fout_b, ffout));
 
     computation input2_sd(
         "input2_sd", 
         {fout_b, ffout}, 
         expr(
             o_sqrt, 
-            input2_sum_squares(fout_b, 0, 0, 0, ffout) / cast(p_float32, BATCH_SIZE*N*N) - input2_mean(fout_b, ffout) * input2_mean(fout_b, ffout) + cast(p_float32, EPSILON)
+            input2_sum_squares_cummulate(0, fout_b, ffout) / cast(p_float32, BATCH_SIZE*N*N) - input2_mean(fout_b, ffout) * input2_mean(fout_b, ffout) + cast(p_float32, EPSILON)
         )
     );
+
+    view conv2_result("conv2_result", {n, fout_b, y, x, ffout}, p_float32);
 
     computation bn2(
         "bn2", 
@@ -210,12 +252,20 @@ int main(int argc, char **argv)
 
     conv1_init.split(x_bound, X_BLOCKING, x_b, xx);
     reg1_store.split(x_bound, X_BLOCKING, x_b, xx);
+    input1_sum.split(x_bound, X_BLOCKING, x_b, xx);
+    input1_sum_squares.split(x_bound, X_BLOCKING, x_b, xx);
 
     conv1_init.interchange(xx, fout_b);
     conv1_init.interchange(xx, ffout);
 
     reg1_store.interchange(xx, fout_b);
     reg1_store.interchange(xx, ffout);
+
+    input1_sum.interchange(xx, fout_b);
+    input1_sum.interchange(xx, ffout);
+
+    input1_sum_squares.interchange(xx, fout_b);
+    input1_sum_squares.interchange(xx, ffout);
 
     // Vectorize and unroll
     conv1_init.vectorize(ffout, FOUT_BLOCKING);
@@ -255,10 +305,6 @@ int main(int argc, char **argv)
     /* 
      * schedule for BN-ReLU computations
      */
-    input1_sum.vectorize(ffout, FOUT_BLOCKING);
-    input1_sum.tag_parallel_level(fout_b);
-
-    bn1.tag_parallel_level(n);
     bn1.vectorize(ffout, FOUT_BLOCKING);
 
     /* 
@@ -283,12 +329,20 @@ int main(int argc, char **argv)
 
     conv2_init.split(x_bound, X_BLOCKING, x_b, xx);
     reg2_store.split(x_bound, X_BLOCKING, x_b, xx);
+    input2_sum.split(x_bound, X_BLOCKING, x_b, xx);
+    input2_sum_squares.split(x_bound, X_BLOCKING, x_b, xx);
 
     conv2_init.interchange(xx, fout_b);
     conv2_init.interchange(xx, ffout);
 
     reg2_store.interchange(xx, fout_b);
     reg2_store.interchange(xx, ffout);
+
+    input2_sum.interchange(xx, fout_b);
+    input2_sum.interchange(xx, ffout);
+
+    input2_sum_squares.interchange(xx, fout_b);
+    input2_sum_squares.interchange(xx, ffout);
 
     // Vectorize and unroll
     conv2_init.vectorize(ffout, FOUT_BLOCKING);
@@ -328,9 +382,6 @@ int main(int argc, char **argv)
     /* 
      * schedule for the second BN computation
      */
-    input2_sum.vectorize(ffout, FOUT_BLOCKING);
-    input2_sum.tag_parallel_level(fout_b);
-
     bn2.tag_parallel_level(n);
     bn2.vectorize(ffout, FOUT_BLOCKING);
 
@@ -340,33 +391,45 @@ int main(int argc, char **argv)
     conv1.tag_parallel_level(n);
     conv2.tag_parallel_level(n);
  
-    zero_conv1.then(conv1_init, n)
-              .then(conv1, x_b)
-              .then(reg1_store, x_b)
-              .then(conv1_init_conclude, y)
-              .then(conv1_conclude, y)
-              .then(reg1_store_conclude, y)
-              .then(input1_sum_init, computation::root)
-              .then(input1_sum_squares_init, ffout)
-              .then(input1_sum, fout_b)
-              .then(input1_sum_squares, ffout)
-              .then(input1_mean, fout_b)
-              .then(input1_sd, ffout)
-              .then(bn1, computation::root)
-              .then(relu1, ffout)
-              .then(conv2_init, n)
-              .then(conv2, x_b)
-              .then(reg2_store, x_b)
-              .then(conv2_init_conclude, y)
-              .then(conv2_conclude, y)
-              .then(reg2_store_conclude, y)
-              .then(input2_sum_init, computation::root)
-              .then(input2_sum_squares_init, ffout)
-              .then(input2_sum, fout_b)
-              .then(input2_sum_squares, ffout)
-              .then(input2_mean, fout_b)
-              .then(input2_sd, ffout)
-              .then(bn2, computation::root);;
+    input1_sum_init.then(input1_sum_squares_init, ffout)
+                   .then(input2_sum_init, ffout)
+                   .then(input2_sum_squares_init, ffout)
+                   .then(zero_conv1, computation::root)
+                   .then(conv1_init, n)
+                   .then(conv1, x_b)
+                   .then(reg1_store, x_b)
+                   .then(input1_sum, xx)
+                   .then(input1_sum_squares, xx)
+                   .then(conv1_init_conclude, y)
+                   .then(conv1_conclude, y)
+                   .then(reg1_store_conclude, y)
+                   .then(input1_sum_conclude, x_conclude)
+                   .then(input1_sum_squares_conclude, x_conclude)
+                   .then(zero_input1_mean, computation::root)
+                   .then(zero_input1_sd, ffout)
+                   .then(input1_sum_cummulate, computation::root)
+                   .then(input1_sum_squares_cummulate, ffout)
+                   .then(input1_mean, computation::root)
+                   .then(input1_sd, ffout)
+                   .then(bn1, computation::root)
+                   .then(relu1, ffout)
+                   .then(conv2_init, n)
+                   .then(conv2, x_b)
+                   .then(reg2_store, x_b)
+                   .then(input2_sum, xx)
+                   .then(input2_sum_squares, xx)
+                   .then(conv2_init_conclude, y)
+                   .then(conv2_conclude, y)
+                   .then(reg2_store_conclude, y)
+                   .then(input2_sum_conclude, x_conclude)
+                   .then(input2_sum_squares_conclude, x_conclude)
+                   .then(zero_input2_mean, computation::root)
+                   .then(zero_input2_sd, ffout)
+                   .then(input2_sum_cummulate, computation::root)
+                   .then(input2_sum_squares_cummulate, ffout)
+                   .then(input2_mean, computation::root)
+                   .then(input2_sd, ffout)
+                   .then(bn2, computation::root);
 
     // -------------------------------------------------------
     // Layer III
@@ -374,8 +437,14 @@ int main(int argc, char **argv)
     buffer conv1_buf("conv1_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N + 2, N + 2, FOUT_BLOCKING}, p_float32, a_input);
     buffer conv2_buf("conv2_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
 
-    buffer input_mean_buf("input_mean_buf", {FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_input);
-    buffer input_sd_buf("input_sd_buf", {FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_input);
+    buffer input_mean_buf("input_mean_buf", {FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer input_sd_buf("input_sd_buf", {FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
+
+    buffer batch_input1_mean_buf("batch_input1_mean_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer batch_input1_sd_buf("batch_input1_sd_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
+
+    buffer batch_input2_mean_buf("batch_input2_mean_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer batch_input2_sd_buf("batch_input2_sd_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, FOUT_BLOCKING}, p_float32, a_temporary);
 
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
@@ -400,12 +469,21 @@ int main(int argc, char **argv)
      */
     conv1_result.store_in(&conv1_buf, {n, fout_b, y + 1, x + 1, ffout});
 
-    input1_sum_init.store_in(&input_mean_buf);
-    input1_sum.store_in(&input_mean_buf, {fout_b, ffout});
+    zero_input1_mean.store_in(&input_mean_buf);
+    zero_input1_sd.store_in(&input_sd_buf);
+
+    input1_sum_init.store_in(&batch_input1_mean_buf);
+    input1_sum.store_in(&batch_input1_mean_buf, {n, fout_b, ffout});
+    input1_sum_conclude.store_in(&batch_input1_mean_buf, {n, fout_b, ffout});
+
+    input1_sum_cummulate.store_in(&input_mean_buf, {fout_b, ffout});
     input1_mean.store_in(&input_mean_buf);
     
-    input1_sum_squares_init.store_in(&input_sd_buf);
-    input1_sum_squares.store_in(&input_sd_buf, {fout_b, ffout});
+    input1_sum_squares_init.store_in(&batch_input1_sd_buf);
+    input1_sum_squares.store_in(&batch_input1_sd_buf, {n, fout_b, ffout});
+    input1_sum_squares_conclude.store_in(&batch_input1_sd_buf, {n, fout_b, ffout});
+
+    input1_sum_squares_cummulate.store_in(&input_sd_buf, {fout_b, ffout});
     input1_sd.store_in(&input_sd_buf);
 
     bn1.store_in(&conv1_buf, {n, fout_b, y + 1, x + 1, ffout});
@@ -429,12 +507,21 @@ int main(int argc, char **argv)
      */
     conv2_result.store_in(&conv2_buf, {n, fout_b, y, x, ffout});
 
-    input2_sum_init.store_in(&input_mean_buf);
-    input2_sum.store_in(&input_mean_buf, {fout_b, ffout});
+    zero_input2_mean.store_in(&input_mean_buf);
+    zero_input2_sd.store_in(&input_sd_buf);
+
+    input2_sum_init.store_in(&batch_input2_mean_buf);
+    input2_sum.store_in(&batch_input2_mean_buf, {n, fout_b, ffout});
+    input2_sum_conclude.store_in(&batch_input2_mean_buf, {n, fout_b, ffout});
+
+    input2_sum_cummulate.store_in(&input_mean_buf, {fout_b, ffout});
     input2_mean.store_in(&input_mean_buf);
     
-    input2_sum_squares_init.store_in(&input_sd_buf);
-    input2_sum_squares.store_in(&input_sd_buf, {fout_b, ffout});
+    input2_sum_squares_init.store_in(&batch_input2_sd_buf);
+    input2_sum_squares.store_in(&batch_input2_sd_buf, {n, fout_b, ffout});
+    input2_sum_squares_conclude.store_in(&batch_input2_sd_buf, {n, fout_b, ffout});
+
+    input2_sum_squares_cummulate.store_in(&input_sd_buf, {fout_b, ffout});
     input2_sd.store_in(&input_sd_buf);
 
     bn2.store_in(&conv2_buf, {n, fout_b, y, x, ffout});
@@ -452,8 +539,6 @@ int main(int argc, char **argv)
         bias2.get_buffer(),
         bn2_scale.get_buffer(),
         bn2_shift.get_buffer(),
-        &input_mean_buf,
-        &input_sd_buf,
         &conv1_buf,
         &conv2_buf
     }, "fused_resnet_block_generator_tiramisu.o");
