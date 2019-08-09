@@ -16,7 +16,7 @@
 #endif
 
 // Size of one data dimension
-#define N 224
+#define N 112
 
 // Size of convolution filter (KxK)
 #define K 3
