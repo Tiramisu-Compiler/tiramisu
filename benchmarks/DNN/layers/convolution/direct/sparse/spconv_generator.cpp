@@ -5,7 +5,7 @@
 #include <isl/schedule.h>
 #include <isl/schedule_node.h>
 
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
