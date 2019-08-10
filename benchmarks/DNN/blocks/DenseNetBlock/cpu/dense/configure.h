@@ -4,8 +4,8 @@
 #include <sys/time.h>
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
 
 #if LARGE_DATA_SET
     #define BATCH_SIZE 100
@@ -20,7 +20,7 @@
 #define GR 32
 
 // Width and height of an input tensor
-#define BLOCK_NUMBER 2
+#define BLOCK_NUMBER 1
 
 #if BLOCK_NUMBER == 0
     #define N 112
@@ -28,6 +28,10 @@
     #define N 56
 #elif BLOCK_NUMBER == 2
     #define N 28
+#elif BLOCK_NUMBER == 3
+    #define N 14
+#elif BLOCK_NUMBER == 4
+    #define N 7
 #endif
 
 // Convolution kernel size
