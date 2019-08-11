@@ -9,49 +9,49 @@ using namespace std;
 // Original version by: Kyle Spafford Adapted for COO Format
 int initRandomSparseMatrix(float* matrix, float density, const int KK, const int fin_size, const int fout_size)
 {
-    const int n = KK * KK * fin_size * fout_size * density; // number of non zero elements
-    int nnzAssigned = 0;
+  const int n = KK * KK * fin_size * fout_size * density; // number of non zero elements
+  int nnzAssigned = 0;
 
-    // Figure out the probability that a nonzero should be assigned to a given
-    // spot in the matrix
-    int total_num_entries = KK * KK * fin_size * fout_size;
-    double prob = (double)n / ((double) total_num_entries);
+  // Figure out the probability that a nonzero should be assigned to a given
+  // spot in the matrix
+  int total_num_entries = KK * KK * fin_size * fout_size;
+  double prob = (double)n / ((double) total_num_entries);
 
-    // Randomly decide whether entry i,j gets a value, but ensure n values
-    // are assigned
-    int fillRemaining = 0;
-    srand(1);
-    for (int fout = 0; fout < fout_size; fout++)
+  // Randomly decide whether entry i,j gets a value, but ensure n values
+  // are assigned
+  int fillRemaining = 0;
+  srand(1);
+  for (int fout = 0; fout < fout_size; fout++)
+  {
+    for (int fin = 0; fin < fin_size; fin++)
     {
-      for (int fin = 0; fin < fin_size; fin++)
+      for (int ky = 0; ky < KK; ky++)
       {
-        for (int ky = 0; ky < KK; ky++)
+        for (int kx = 0; kx < KK; kx++)
         {
-          for (int kx = 0; kx < KK; kx++)
+          int numEntriesLeft = total_num_entries - ((fout * KK * KK * fin_size) + (fin * KK * KK) + (ky * KK) + kx);
+          int needToAssign   = n - nnzAssigned;
+          if (numEntriesLeft <= needToAssign) {
+            fillRemaining = 1;
+          }
+          if ((nnzAssigned < n && ((double) rand() / (RAND_MAX + 1.0)) <= prob) || fillRemaining)
           {
-            int numEntriesLeft = total_num_entries - ((fout * KK * KK * fin_size) + (fin * KK * KK) + (ky * KK) + kx);
-            int needToAssign   = n - nnzAssigned;
-            if (numEntriesLeft <= needToAssign) {
-              fillRemaining = 1;
-            }
-            if ((nnzAssigned < n && ((double) rand() / (RAND_MAX + 1.0)) <= prob) || fillRemaining)
-            {
-              matrix[kx + ky*KK + fin*KK*KK + fout*KK*KK*fin_size] = ((float)(rand()%256 - 128)) / 127.f;
-              nnzAssigned++;
-            }
-            else{
-              matrix[kx + ky*KK + fin*KK*KK + fout*KK*KK*fin_size] = 0;
-            }
+            matrix[kx + ky*KK + fin*KK*KK + fout*KK*KK*fin_size] = ((float)(rand()%256 - 128)) / 127.f;
+            nnzAssigned++;
+          }
+          else{
+            matrix[kx + ky*KK + fin*KK*KK + fout*KK*KK*fin_size] = 0;
           }
         }
       }
     }
-    if (nnzAssigned != n){
-      printf("Error initializing the matrix\n");
-      exit(500);
-    }
+  }
+  if (nnzAssigned != n){
+    printf("Error initializing the matrix\n");
+    exit(500);
+  }
 
-    return n;
+  return n;
 }
 
 void conv_relu_maxpool_block()
@@ -241,14 +241,13 @@ void conv_relu_maxpool_block()
   reorder(pool_dst_mem, output_mem)
     .execute(cpu_stream, pool_dst_mem, output_mem);
 
-
   if (WRITE_RESULT_TO_FILE){
     /* Write results to file */
     float* output = (float*)output_mem.get_data_handle();
     FILE* f = fopen("mkl_result.txt", "w");
     if (f == NULL) {
-        std::cout << "Error creating mkl_result.txt" << std::endl;;
-        return ;
+      std::cout << "Error creating mkl_result.txt" << std::endl;;
+      return ;
     }
     for (int n = 0; n < BATCH_SIZE; ++n)
       for (int fout = 0; fout < FOut; ++fout)
