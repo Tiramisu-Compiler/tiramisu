@@ -88,12 +88,13 @@ int main(int argc, char **argv)
         )
     );
 
+    view c_output_conclude("c_output_conclude", {n, fout_b, y, x2_conclude, ffout}, p_float32);
     computation maxpool_conclude(
         "maxpool_conclude",
         {n, y, fout_b, ffout, x2_conclude}, 
         expr(
             o_max, 
-            c_output(n, fout_b, y, x2_conclude, ffout), 
+            c_output_conclude(n, fout_b, y, x2_conclude, ffout), 
             conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x2_conclude)
         )
     );
@@ -229,7 +230,16 @@ int main(int argc, char **argv)
 
     conv2_init_conclude.store_in(&reg2_buf, {fout_b, x2_conclude%X2_BLOCKING, ffout});
     conv2_conclude.store_in(&reg2_buf, {fout_b, x2_conclude%X2_BLOCKING, ffout});
-    maxpool_conclude.store_in(&maxpool_buf, {n, fout_b, y/2, x2_conclude/2, ffout});
+
+    if (N % X2_BLOCKING > 1) {
+        c_output_conclude.store_in(&maxpool_buf, {n, fout_b, y/2, x2_conclude/2, ffout});
+        maxpool_conclude.store_in(&maxpool_buf, {n, fout_b, y/2, x2_conclude/2, ffout});
+    }
+
+    else {
+        c_output_conclude.store_in(&maxpool_buf, {n, fout_b, y/2, (N-1)/2, ffout});
+        maxpool_conclude.store_in(&maxpool_buf, {n, fout_b, y/2, (N-1)/2, ffout});
+    }
 
     maxpool_init.store_in(&maxpool_buf);
     c_output.store_in(&maxpool_buf, {n, fout_b, y/2, x/2, ffout});
