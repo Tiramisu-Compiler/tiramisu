@@ -115,8 +115,26 @@ static dnnError_t simple_net(int want_groups_conv)
     for (int i = 0; i < inputSize[0] * inputSize[1] * inputSize[2] * inputSize[3]; i++)
         user_i[i] = ((float)(rand()%256 - 128)) / 127.f;
 
-    for (int i = 0; i < filterSize[0] * filterSize[1] * filterSize[2] * filterSize[3]; i++)
-        user_c1_f[i] = ((float)(rand()%256 - 128)) / 127.f;
+    for (int fout = 0; fout < FOut; ++fout)
+    {
+		int zero_weights = 0;
+		for (int fin = 0; fin < FIn; ++fin)
+		{
+			for (int k_y = 0; k_y < K; ++k_y)
+				for (int k_x = 0; k_x < K; ++k_x)
+				{
+					int i = k_x + k_y*(K) + fin*(K*K) + fout*(FIn*K*K);
+					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
+						user_c1_f[i] = 0;
+					else
+						user_c1_f[i] = ((float)(rand()%256 - 128)) / 127.f;
+				}
+			zero_weights++;
+		}
+    }
+
+//    for (int i = 0; i < filterSize[0] * filterSize[1] * filterSize[2] * filterSize[3]; i++)
+//        user_c1_f[i] = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int i = 0; i < outputSize[2]; i++)
         user_c1_b[i] = ((float)(rand()%256 - 128)) / 127.f;

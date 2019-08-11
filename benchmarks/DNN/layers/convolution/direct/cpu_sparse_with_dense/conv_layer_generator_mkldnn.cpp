@@ -35,8 +35,24 @@ void conv()
     for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)
         input_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 
-    for (int i = 0; i < FOut*FIn*K*K; i++)
-        conv_weights_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
+    for (int fout = 0; fout < FOut; ++fout)
+    {
+		int zero_weights = 0;
+		for (int fin = 0; fin < FIn; ++fin)
+		{
+			for (int k_y = 0; k_y < K; ++k_y)
+				for (int k_x = 0; k_x < K; ++k_x)
+				{
+					int i = k_x + k_y*(K) + fin*(K*K) + fout*(FIn*K*K);
+					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
+						conv_weights_buf[i] = 0;
+					else
+						conv_weights_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
+				}
+			zero_weights++;
+		}
+    }
+
 
     for (int i = 0; i < FOut; i++)
         conv_bias_buf[i] = ((float)(rand()%256 - 128)) / 127.f;

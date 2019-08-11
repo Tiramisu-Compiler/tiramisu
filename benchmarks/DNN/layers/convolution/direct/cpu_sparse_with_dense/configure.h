@@ -21,6 +21,9 @@
 // Size of convolution filter (KxK)
 #define K 3
 
+// Sparsity properies
+#define ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 15
+
 // Parameters for Tiramisu code
 // Fin: Number of features in the input
 // FOut: Number of features in the output
