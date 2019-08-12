@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 
     input c_input("c_input", {n, fin_b, y_pad, x_pad, ffin}, p_float32);
     input filter("filter", {fout_b, fin_b, k_y, k_x, ffin, ffout}, p_float32);
+    input filter2("filter2", {fout_b, fin_b, k_x, ffin, ffout}, p_float32);
     input bias("bias", {fout_b, ffout}, p_float32);
 
     computation conv_init("conv_init", {n, y, fout_b, x, ffout}, bias(fout_b, ffout));
@@ -42,9 +43,9 @@ int main(int argc, char **argv)
         {n, y, fin_b, x_bound, ffin, fout_b, ffout},
 	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
 	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
-        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, 0, 0, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 0, ffin)
-					       + filter(fout_b, fin_b, 0, 1, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 1, ffin)
-					       + filter(fout_b, fin_b, 0, 2, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 2, ffin));
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 2, ffin));
 
     /* Pattern 1
      *
@@ -59,9 +60,9 @@ int main(int argc, char **argv)
 	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
 	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
 									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
-        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, 1, 0, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 0, ffin)
-					       + filter(fout_b, fin_b, 1, 1, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 1, ffin)
-					       + filter(fout_b, fin_b, 1, 2, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 2, ffin));
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 2, ffin));
 
     /* Pattern 2
      *
@@ -78,9 +79,9 @@ int main(int argc, char **argv)
 	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
 									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
 									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
-        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, 2, 0, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 0, ffin)
-					       + filter(fout_b, fin_b, 2, 1, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 1, ffin)
-					       + filter(fout_b, fin_b, 2, 2, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 2, ffin));
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 2, ffin));
 
 
     // Compute convolution from 0 to x_bound
@@ -247,6 +248,7 @@ int main(int argc, char **argv)
     tiramisu::codegen({
         c_input.get_buffer(), 
         filter.get_buffer(), 
+        filter2.get_buffer(),
         bias.get_buffer(), 
         &conv_buf
     },"generated_conv_layer.o");

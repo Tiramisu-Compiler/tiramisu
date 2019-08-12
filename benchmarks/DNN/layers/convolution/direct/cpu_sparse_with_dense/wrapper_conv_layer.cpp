@@ -14,6 +14,7 @@ int main(int, char**)
 
 	Halide::Buffer<float> input(FIN_BLOCKING, N + 2, N + 2, FIN_NB_BLOCKS, BATCH_SIZE);
 	Halide::Buffer<float> filter(FOUT_BLOCKING, FIN_BLOCKING, K, K, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+	Halide::Buffer<float> filter2(FOUT_BLOCKING, FIN_BLOCKING, 3, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
 	Halide::Buffer<float> bias(FOut);
 	Halide::Buffer<float> conv(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
 
@@ -40,7 +41,10 @@ int main(int, char**)
 								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
 					{
 						if (k_y == 0)
-						    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						{
+					            filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						    filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						}
 						else
 					    	    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
 					}
@@ -49,7 +53,10 @@ int main(int, char**)
 								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
 					{
 						if (k_y == 1)
+						{
 							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+							filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						}
 						else
 							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
 
@@ -60,7 +67,10 @@ int main(int, char**)
 								PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
 					{
 						if (k_y == 2)
+						{
 					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+					    		filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						}
 						else
 					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
 
@@ -85,6 +95,7 @@ int main(int, char**)
 		conv_tiramisu(
 			input.raw_buffer(), 
 			filter.raw_buffer(), 
+			filter2.raw_buffer(),
 			bias.raw_buffer(), 
 			conv.raw_buffer()
 		);
