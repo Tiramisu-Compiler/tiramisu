@@ -34,6 +34,7 @@ int main(int argc, char **argv)
     computation conv(
         "conv",
         {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
+	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
         conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
     );
 
@@ -41,6 +42,7 @@ int main(int argc, char **argv)
     computation conv_conclude(
         "conv_conclude",
         {n, y, fin_b, k_y, k_x, ffin, fout_b, ffout, x_conclude},
+	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
         conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
 
