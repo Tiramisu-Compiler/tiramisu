@@ -24,8 +24,8 @@ int main(int, char**)
 				for (int x = 0; x < N + 2; ++x)
 					input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
 
-	for (int fout = 0; fout < FOut; ++fout)
-	{
+    	for (int fout = 0; fout < FOut; ++fout)
+        {
 		int zero_weights = 0;
 		for (int fin = 0; fin < FIn; ++fin)
 		{
@@ -33,14 +33,45 @@ int main(int, char**)
 				for (int k_x = 0; k_x < K; ++k_x)
 				{
 					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
+					{
+	 				        filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
+					}
+					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
+					{
+						if (k_y == 0)
+						    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						else
+					    	    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
+					}
+					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
+					{
+						if (k_y == 1)
+							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						else
+							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
+
+					}
+					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+								PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
+					{
+						if (k_y == 2)
+					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
+						else
+					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
+
+					}
 					else
-					    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+						filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 				}
 
-		        zero_weights++;
+			zero_weights++;
 		}
-	}
+    	}
 
 	for (int fout = 0; fout < FOut; ++fout)
 		bias(fout) = ((float)(rand()%256 - 128)) / 127.f;
