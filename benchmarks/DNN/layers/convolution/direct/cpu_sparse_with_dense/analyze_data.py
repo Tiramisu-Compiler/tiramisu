@@ -97,6 +97,43 @@ def main():
 			         [0, 0, 0]])])
 
     if (RARE_CASES):
+	count_patterns(d, [np.array([[1,0,0],
+				     [0,0,0],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,1,0],
+				     [0,0,0],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,1],
+				     [0,0,0],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [1,0,0],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [0,1,0],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [0,0,1],
+				     [0,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [0,0,0],
+				     [1,0,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [0,0,0],
+				     [0,1,0]])],
+				[])
+	count_patterns(d, [np.array([[0,0,0],
+				     [0,0,0],
+				     [0,0,1]])],
+				[])
+
 	count_patterns(d, [np.array([[0,0,0],
 				     [0,0,0],
 				     [0,0,1]]),
