@@ -22,7 +22,11 @@
 #define K 3
 
 // Sparsity properies
-#define ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 15
+#define ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 16
+#define PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 2
+#define PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 2
+#define PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 3
+
 
 // Parameters for Tiramisu code
 // Fin: Number of features in the input
