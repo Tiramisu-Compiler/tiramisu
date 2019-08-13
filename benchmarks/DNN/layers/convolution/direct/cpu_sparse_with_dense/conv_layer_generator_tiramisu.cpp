@@ -3,9 +3,6 @@
 
 using namespace tiramisu;
 
-#define USE_AFFINE_CONSTRAINTS 1
-#define USE_NON_AFFINE_PREDICATES 0
-
 int main(int argc, char **argv)
 {
     init("conv_tiramisu");
