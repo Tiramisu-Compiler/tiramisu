@@ -36,9 +36,9 @@ int main(int argc, char **argv)
 
     // Compute convolution from 0 to x_bound
     computation conv(
-        "conv",
-        {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
-        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
+        "[BATCH_SIZE,N,FIN_NB_BLOCKS,X_BOUND,K,FIN_BLOCKING,FOUT_NB_BLOCKS,FOUT_BLOCKING]->{conv[n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout]: 0<=n<BATCH_SIZE and 0<=y<N and 0<=fin_b<FIN_NB_BLOCKS and 0<=x_bound<X_BOUND and 0<=k_y<K and 0<=k_x<K and 0<=ffin<FIN_BLOCKING and 0<=fout_b<FOUT_NB_BLOCKS and 0<=ffout<FOUT_BLOCKING}",
+        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin),
+	true, p_float32, global::get_implicit_function()
     );
 
     // Compute convolution from x_bound to N
@@ -48,6 +48,7 @@ int main(int argc, char **argv)
         conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
 
+    global::get_implicit_function()->set_context_set("[BATCH_SIZE,N,FIN_NB_BLOCKS,X_BOUND,K,FIN_BLOCKING,FOUT_NB_BLOCKS,FOUT_BLOCKING]->{: BATCH_SIZE= " + std::to_string(BATCH_SIZE) + " and N=" + std::to_string(N) + " and FIN_NB_BLOCKS=" + std::to_string(FIN_NB_BLOCKS) + " and X_BOUND=" + std::to_string(X_BOUND) + " and K=" + std::to_string(K) + " and FIN_BLOCKING=" + std::to_string(FIN_BLOCKING) + " and FOUT_NB_BLOCKS = " + std::to_string(FOUT_NB_BLOCKS) + " and FOUT_BLOCKING= " + std::to_string(FOUT_BLOCKING) + "}");
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
