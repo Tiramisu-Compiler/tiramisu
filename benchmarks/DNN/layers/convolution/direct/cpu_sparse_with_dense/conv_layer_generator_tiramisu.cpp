@@ -34,85 +34,10 @@ int main(int argc, char **argv)
     var x_bound("x_bound", 0, X_BOUND);
     var x_conclude("x_conclude", X_BOUND, N);
 
-#if USE_AFFINE_CONSTRAINTS
-    expr constraints_P0 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    expr constraints_P1 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    expr constraints_P2 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    expr constraints_P3 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-#else
-    expr constraints_P0 = expr();
-    expr constraints_P1 = expr();
-    expr constraints_P2 = expr();
-    expr constraints_P3 = expr();
-#endif
-
-    /* Pattern 0
-     *
-     *   1 1 1
-     *   0 0 0
-     *   0 0 0
-     *
-     */
-    computation conv_P0(
-        "conv_P0",
-        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	constraints_P0,
-        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 0, ffin)
-					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 1, ffin)
-					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 2, ffin));
-
-
-    /* Pattern 1
-     *
-     *   0 0 0
-     *   1 1 1
-     *   0 0 0
-     *
-     */
-    computation conv_P1(
-        "conv_P1",
-        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	constraints_P1,
-        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 0, ffin)
-					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 1, ffin)
-					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 2, ffin));
-
-    /* Pattern 2
-     *
-     *   0 0 0
-     *   0 0 0
-     *   1 1 1
-     *
-     */
-    computation conv_P2(
-        "conv_P2",
-        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	constraints_P2,
-        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 0, ffin)
-					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 1, ffin)
-					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 2, ffin));
-
     // Compute convolution from 0 to x_bound
     computation conv(
         "conv",
         {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
-	constraints_P3,
         conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
     );
 
@@ -120,36 +45,8 @@ int main(int argc, char **argv)
     computation conv_conclude(
         "conv_conclude",
         {n, y, fin_b, k_y, k_x, ffin, fout_b, ffout, x_conclude},
-	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
         conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
-
-#if USE_NON_AFFINE_PREDICATES
-    constraints_P0 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    constraints_P1 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    constraints_P2 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-
-    constraints_P3 =
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
-    conv_P0.add_predicate(constraints_P0);
-    conv_P1.add_predicate(constraints_P1);
-    conv_P2.add_predicate(constraints_P2);
-    conv.add_predicate(constraints_P3);
-#endif
 
     // -------------------------------------------------------
     // Layer II
@@ -173,26 +70,12 @@ int main(int argc, char **argv)
     // Split over dimension x
     var x_b, xx;
     conv.split(x_bound, X_BLOCKING, x_b, xx);
-    conv_P0.split(x_bound, X_BLOCKING, x_b, xx);
-    conv_P1.split(x_bound, X_BLOCKING, x_b, xx);
-    conv_P2.split(x_bound, X_BLOCKING, x_b, xx);
-
 
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
     conv.interchange(xx, ffin);
     conv.interchange(xx, fout_b);
     conv.interchange(xx, ffout);
-    conv_P0.interchange(xx, ffin);
-    conv_P0.interchange(xx, fout_b);
-    conv_P0.interchange(xx, ffout);
-    conv_P1.interchange(xx, ffin);
-    conv_P1.interchange(xx, fout_b);
-    conv_P1.interchange(xx, ffout);
-    conv_P2.interchange(xx, ffin);
-    conv_P2.interchange(xx, fout_b);
-    conv_P2.interchange(xx, ffout);
-
 
     reg_load.split(x_bound, X_BLOCKING, x_b, xx);
     reg_store.split(x_bound, X_BLOCKING, x_b, xx);
@@ -206,20 +89,10 @@ int main(int argc, char **argv)
     // Vectorize and unroll
     reg_load.tag_vector_level(ffout, FOUT_BLOCKING);
     conv.tag_vector_level(ffout, FOUT_BLOCKING);
-    conv_P0.tag_vector_level(ffout, FOUT_BLOCKING);
-    conv_P1.tag_vector_level(ffout, FOUT_BLOCKING);
-    conv_P2.tag_vector_level(ffout, FOUT_BLOCKING);
     reg_store.tag_vector_level(ffout, FOUT_BLOCKING);
 
     conv.tag_unroll_level(xx);
     conv.tag_unroll_level(fout_b);
-    conv_P0.tag_unroll_level(xx);
-    conv_P0.tag_unroll_level(fout_b);
-    conv_P1.tag_unroll_level(xx);
-    conv_P1.tag_unroll_level(fout_b);
-    conv_P2.tag_unroll_level(xx);
-    conv_P2.tag_unroll_level(fout_b);
-
 
     reg_load.tag_unroll_level(xx);
     reg_load.tag_unroll_level(fout_b);
@@ -259,9 +132,6 @@ int main(int argc, char **argv)
     conv.tag_parallel_level(n);
 
     conv_init.then(reg_load, y)
-             .then(conv_P0, x_b)
-             .then(conv_P1, x_b)
-             .then(conv_P2, x_b)
              .then(conv, x_b)
              .then(reg_store, x_b)
              .then(reg_load_conclude, y)
@@ -282,9 +152,6 @@ int main(int argc, char **argv)
 
     reg_load.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
     conv.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
-    conv_P0.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
-    conv_P1.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
-    conv_P2.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
     reg_store.store_in(&conv_buf, {n, fout_b, y, x_bound, ffout});
 
     reg_load_conclude.store_in(&reg_buf, {fout_b, x_conclude%X_BLOCKING, ffout});
