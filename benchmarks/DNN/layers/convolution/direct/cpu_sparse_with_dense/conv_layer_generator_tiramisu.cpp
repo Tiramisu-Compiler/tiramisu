@@ -3,6 +3,9 @@
 
 using namespace tiramisu;
 
+#define USE_AFFINE_CONSTRAINTS 1
+#define USE_NON_AFFINE_PREDICATES 0
+
 int main(int argc, char **argv)
 {
     init("conv_tiramisu");
@@ -31,6 +34,34 @@ int main(int argc, char **argv)
     var x_bound("x_bound", 0, X_BOUND);
     var x_conclude("x_conclude", X_BOUND, N);
 
+#if USE_AFFINE_CONSTRAINTS
+    expr constraints_P0 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P1 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P2 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P3 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+#else
+    expr constraints_P0 = expr();
+    expr constraints_P1 = expr();
+    expr constraints_P2 = expr();
+    expr constraints_P3 = expr();
+#endif
+
     /* Pattern 0
      *
      *   1 1 1
@@ -41,11 +72,11 @@ int main(int argc, char **argv)
     computation conv_P0(
         "conv_P0",
         {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
+	constraints_P0,
         conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 0, ffin)
 					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 1, ffin)
 					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 2, ffin));
+
 
     /* Pattern 1
      *
@@ -57,9 +88,7 @@ int main(int argc, char **argv)
     computation conv_P1(
         "conv_P1",
         {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
+	constraints_P1,
         conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 0, ffin)
 					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 1, ffin)
 					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 2, ffin));
@@ -74,23 +103,16 @@ int main(int argc, char **argv)
     computation conv_P2(
         "conv_P2",
         {n, y, fin_b, x_bound, ffin, fout_b, ffout},
-	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
-	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
-									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL),
+	constraints_P2,
         conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 0, ffin)
 					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 1, ffin)
 					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 2, ffin));
-
 
     // Compute convolution from 0 to x_bound
     computation conv(
         "conv",
         {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
-	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-										PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-										PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
+	constraints_P3,
         conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
     );
 
@@ -101,6 +123,33 @@ int main(int argc, char **argv)
 	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
         conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
+
+#if USE_NON_AFFINE_PREDICATES
+    constraints_P0 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P1 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P2 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P3 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+    conv_P0.add_predicate(constraints_P0);
+    conv_P1.add_predicate(constraints_P1);
+    conv_P2.add_predicate(constraints_P2);
+    conv.add_predicate(constraints_P3);
+#endif
 
     // -------------------------------------------------------
     // Layer II
