@@ -1,9 +1,25 @@
-#define FEATURE_SIZE 16  // 512
-#define BATCH_SIZE 64  // 64
-#define NUM_LAYERS 4  // 4
-#define SEQ_LENGTH 10  // 100
+#ifndef __LSTM_CPULIB_CONF_HEADER_
+#define __LSTM_CPULIB_CONF_HEADER_
 
-#define NB_TESTS 2
+#include <sys/time.h>
+
+#define LARGE_DATA_SET	0
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
+
+#if LARGE_DATA_SET
+	#define BATCH_SIZE 100
+#elif MEDIUM_DATA_SET
+	#define BATCH_SIZE 32
+#elif SMALL_DATA_SET
+	#define BATCH_SIZE 8
+#endif
+
+#define FEATURE_SIZE 16
+#define SEQ_LENGTH 10
+#define NUM_LAYERS 4
+
+#define NB_TESTS 101
 
 #if 1  // Flip to use double precision
     #define DATA_TYPE float
@@ -15,10 +31,8 @@
     #define DATA_TYPE_CUDNN CUDNN_DATA_DOUBLE
 #endif
 
-
-
 #ifdef __cplusplus
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+double median(std::vector<double> scores)
 {
     double median;
     size_t size = scores.size();
@@ -27,11 +41,11 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 
     if (size % 2 == 0)
     {
-        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+        median = (scores[size / 2 - 1] + scores[size / 2]) / 2;
     }
     else
     {
-        median = scores[size / 2].count();
+        median = scores[size / 2];
     }
 
     return median;
@@ -62,4 +76,14 @@ double median(int n, double x[])
         return x[n/2];
     }
 }
+#endif
+
+double rtclock()
+{
+    struct timeval Tp;
+    gettimeofday(&Tp, NULL);
+
+    return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+}
+
 #endif

@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
     // Multiplication from input is batched
     computation sum1({l, s0},
-    cblas_gemm_call(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
+    cblas_gemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
                     GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                     1, 0,  // alpha, beta
                     0, 0, 0,  // ldABC
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
                     s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
                     false, false));
     computation sum2({l, s},
-    cblas_gemm_call(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
+    cblas_gemm(*h.get_buffer(), *weights_T.get_buffer(), *tmp.get_buffer(),
                     BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
                     1, 1,  // alpha, beta
                     0, 0, 0,  // ldABC
@@ -93,9 +93,6 @@ int main(int argc, char **argv)
     // Output is the last layer
     computation y({s, k, i}, h(NUM_LAYERS - 1, s, k, i));
     y.store_in(&buf_y_cpu);
-
-    computation time_start({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
-    computation time_end({var("dummy", 0, 1)}, expr(o_call, "get_time", {int32_t(0)}, p_float32));
 
     // -------------------------------------------------------
     // Layer II
@@ -129,22 +126,18 @@ int main(int argc, char **argv)
     sum1.parallelize(l_s);
 
     // Scheduling commands
-    time_start
-            .then(weights_T, computation::root)
-            .then(h_init, computation::root)
-            .then(c_init, computation::root)
-            .then(h_copy_x, computation::root)          
-            .then(sum1, computation::root)   
-            .then(sum2, l_s)
-            .then(sig_i,s1 )
-            .then(sig_f,i1)
-            .then(tnh_z, i1)
-            .then(sig_o, i1)
-            .then(c, i1)
-            .then(h, i1)
-            .then(y, computation::root)
-            .then(time_end, computation::root);
-
+    weights_T.then(h_init, computation::root)
+             .then(c_init, computation::root)
+             .then(h_copy_x, computation::root)          
+             .then(sum1, computation::root)   
+             .then(sum2, l_s)
+             .then(sig_i,s1 )
+             .then(sig_f,i1)
+             .then(tnh_z, i1)
+             .then(sig_o, i1)
+             .then(c, i1)
+             .then(h, i1)
+             .then(y, computation::root);
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
@@ -161,13 +154,11 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
 
     tiramisu::codegen({
-            &buf_Weights_cpu,
-            &buf_biases_cpu,
-            &buf_x_cpu,
-            &buf_y_cpu,
-            time_start.get_buffer(),
-            time_end.get_buffer(),
-        }, "lstm.o", true);
+        &buf_Weights_cpu,
+        &buf_biases_cpu,
+        &buf_x_cpu,
+        &buf_y_cpu
+    }, "lstm.o");
 
     return 0;
 }
