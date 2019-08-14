@@ -15,7 +15,7 @@
 	#define BATCH_SIZE 8
 #endif
 
-#define FEATURE_SIZE 16
+#define FEATURE_SIZE 128
 #define SEQ_LENGTH 10
 #define NUM_LAYERS 4
 

@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
         warmupN = atoi(argv[1]);
 
     // Note that indices are flipped (see tutorial 2)
-    Halide::Buffer<DATA_TYPE> buf_Weights(FEATURE_SIZE, 4 * FEATURE_SIZE, 2, NUM_LAYERS);
+    Halide::Buffer<DATA_TYPE> buf_Weights(4 * FEATURE_SIZE, FEATURE_SIZE, 2, NUM_LAYERS);
     Halide::Buffer<DATA_TYPE> buf_biases(4 * FEATURE_SIZE, NUM_LAYERS);
 
     Halide::Buffer<DATA_TYPE> buf_input(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
@@ -38,12 +38,12 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)      
-                buf_Weights(l, k, 0, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)
-                buf_Weights(l, k, 1, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 1, i) = ((float)(rand()%256 - 128)) / 127.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int j = 0; j < 4 * FEATURE_SIZE; j++)
