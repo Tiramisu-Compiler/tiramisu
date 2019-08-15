@@ -15,11 +15,14 @@
 	#define BATCH_SIZE 8
 #endif
 
-#define FEATURE_SIZE 128
+#define FEATURE_SIZE 64
 #define SEQ_LENGTH 10
 #define NUM_LAYERS 4
 
-#define NB_TESTS 101
+// Parameters for Tiramisu code
+#define GEMM_BATCH SEQ_LENGTH
+
+#define NB_TESTS 201
 
 #if 1  // Flip to use double precision
     #define DATA_TYPE float
