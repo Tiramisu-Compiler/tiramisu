@@ -32,6 +32,9 @@ int main(int argc, char *argv[])
     Halide::Buffer<DATA_TYPE> buf_input(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
     Halide::Buffer<DATA_TYPE> buf_output(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
 
+    Halide::Buffer<DATA_TYPE> buf_h(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH + 1, NUM_LAYERS + 1);
+    Halide::Buffer<DATA_TYPE> buf_c(FEATURE_SIZE, BATCH_SIZE, NUM_LAYERS);
+
     // Initialize weights
     std::srand(0);
 
@@ -62,6 +65,8 @@ int main(int argc, char *argv[])
             buf_Weights.raw_buffer(),
             buf_biases.raw_buffer(),
             buf_input.raw_buffer(),
+            buf_h.raw_buffer(),
+            buf_c.raw_buffer(),
             buf_output.raw_buffer()
         );
     }
@@ -77,6 +82,8 @@ int main(int argc, char *argv[])
             buf_Weights.raw_buffer(),
             buf_biases.raw_buffer(),
             buf_input.raw_buffer(),
+            buf_h.raw_buffer(),
+            buf_c.raw_buffer(),
             buf_output.raw_buffer()
         );
 
@@ -114,7 +121,7 @@ int main(int argc, char *argv[])
         f1 = std::stof(line1);
         f2 = std::stof(line2);
         
-        if (std::abs(f1 - f2) < 0.001)
+        if (std::abs(f1 - f2) < 0.01)
             corr += 1;
     }
 
