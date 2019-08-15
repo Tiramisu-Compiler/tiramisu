@@ -1,11 +1,18 @@
-#ifndef __CONV_CONF_HEADER_
-#define __CONV_CONF_HEADER_
-
+#ifndef __SPCONV_CONF_HEADER_
+#define __SPCONV_CONF_HEADER_
 #include <sys/time.h>
+
+#define SHOW_OUTPUT 0
+#define WRITE_RESULT_TO_FILE 1
+#define CHECK_CORRECTNESS 1
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
+
+#define LARGE_N	1
+#define MEDIUM_N	0
+#define SMALL_N	0
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
@@ -16,27 +23,30 @@
 #endif
 
 // Size of one data dimension
-#define N 112
+#if LARGE_N
+	#define N 224
+#elif MEDIUM_N
+	#define N 112
+#elif SMALL_N
+	#define N 56
+#endif
+
+#define X_BL 8
+#define X_NB_BL (N/X_BL)
+
+#define Y_BL 2
+#define Y_NB_BL (N/Y_BL)
+
+// Number of features in the input
+#define FIn 3
+// Number of features in the output
+#define FOut 32
 
 // Size of convolution filter (KxK)
 #define K 3
 
-// Sparsity properies
-#define ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 16
-#define PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 2
-#define PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 2
-#define PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 3
-
-
-// Parameters for Tiramisu code
-// Fin: Number of features in the input
-// FOut: Number of features in the output
-#include "tuning_parameters.h"
-
-// If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 1
-
-#define NB_TESTS 101
+#define WEIGHTS_DENSITY 0.1
+#define NB_TESTS 301
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)
@@ -84,7 +94,6 @@ double median(int n, double x[])
     }
 }
 #endif
-
 double rtclock()
 {
     struct timeval Tp;
@@ -92,5 +101,4 @@ double rtclock()
 
     return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
 }
-
 #endif

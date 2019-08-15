@@ -1341,7 +1341,7 @@ public:
                     {
                     case tiramisu::o_logical_and:
                         str +=  "(";
-                        this->get_operand(0).dump(false);
+                        str += this->get_operand(0).to_str();
                         str +=  " && ";
                         str += this->get_operand(1).to_str();
                         str +=  ")";

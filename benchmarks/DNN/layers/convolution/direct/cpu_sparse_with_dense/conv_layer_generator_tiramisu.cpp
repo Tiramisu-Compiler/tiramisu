@@ -1,34 +1,10 @@
-/*
-Pseudo-code for our convolution :
-
-FOUT_NB_BLOCKS = FOut/FOUT_BLOCKING
-X_NB_BLOCKS = N/X_BLOCKING
-
-*_BLOCKING : blocking factor for the given dimension (see configure.h).
-regs : buffer of size {X_BLOCKING, FOUT_BLOCKING}.
-       We rely on the compiler to map this buffer to CPU vector registers.
-
-for (n = 0; n < BATCH_SIZE; ++n)
-for (fout_b = 0; fout_b < FOUT_NB_BLOCKS; ++fout_b)
-for (y = 0; y < N; ++y)
-for (x_b = 0; x_b < X_NB_BLOCKS; ++x_b)
-    for (xx = 0; xx < X_BLOCKING; ++xx)
-        regs[xx, :] = bias[fout_b, :]
-
-    for (k_y = 0; k_y < K; ++k_y)
-    for (k_x = 0; k_x < K; ++k_x)
-    for (fin = 0; fin < FIn; ++fin)
-    for (xx = 0; xx < X_BLOCKING; ++xx)
-        regs[xx, :] += filter[fout_b, k_y, k_x, fin, :] * input[n, y + k_y, x*X_BLOCKING + xx + k_x, fin]
-
-    for (xx = 0; xx < X_BLOCKING; ++x)
-        output[n, fout_b, y, x*X_BLOCKING + xx, :] = regs[xx, :]
-*/
-
 #include <tiramisu/tiramisu.h>
 #include "configure.h"
 
 using namespace tiramisu;
+
+#define USE_AFFINE_CONSTRAINTS 1
+#define USE_NON_AFFINE_PREDICATES 0
 
 int main(int argc, char **argv)
 {
@@ -40,69 +16,257 @@ int main(int argc, char **argv)
     var x("x", 0, N), y("y", 0, N), n("n", 0, BATCH_SIZE);
     var k_x("k_x", 0, K), k_y("k_y", 0, K);
 
-    var fin("fin", 0, FIn);
+    var fin_b("fin_b", 0, FIN_NB_BLOCKS), ffin("ffin", 0, FIN_BLOCKING);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
     
     var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
 
-    input c_input("c_input", {n, y_pad, x_pad, fin}, p_float32);
-    input filter("filter", {fout_b, k_y, k_x, fin, ffout}, p_float32);
+    input c_input("c_input", {n, fin_b, y_pad, x_pad, ffin}, p_float32);
+    input filter("filter", {fout_b, fin_b, k_y, k_x, ffin, ffout}, p_float32);
+    input filter2("filter2", {fout_b, fin_b, k_x, ffin, ffout}, p_float32);
     input bias("bias", {fout_b, ffout}, p_float32);
 
-    computation conv_init("conv_init", {n, fout_b, y, x, ffout}, bias(fout_b, ffout));
+    computation conv_init("conv_init", {n, y, fout_b, x, ffout}, bias(fout_b, ffout));
+    view conv_out("conv_out", {n, y, x, fout_b, ffout}, p_float32);
     
+    // x_bound is used to have the width dimension divisible by X_BLOCKING
+    // in the conv computation.
+    var x_bound("x_bound", 0, X_BOUND);
+    var x_conclude("x_conclude", X_BOUND, N);
+
+#if USE_AFFINE_CONSTRAINTS
+    expr constraints_P0 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P1 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P2 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    expr constraints_P3 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+#else
+    expr constraints_P0 = expr();
+    expr constraints_P1 = expr();
+    expr constraints_P2 = expr();
+    expr constraints_P3 = expr();
+#endif
+
+    /* Pattern 0
+     *
+     *   1 1 1
+     *   0 0 0
+     *   0 0 0
+     *
+     */
+    computation conv_P0(
+        "conv_P0",
+        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
+	constraints_P0,
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 0, x_bound + 2, ffin));
+
+
+    /* Pattern 1
+     *
+     *   0 0 0
+     *   1 1 1
+     *   0 0 0
+     *
+     */
+    computation conv_P1(
+        "conv_P1",
+        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
+	constraints_P1,
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 1, x_bound + 2, ffin));
+
+    /* Pattern 2
+     *
+     *   0 0 0
+     *   0 0 0
+     *   1 1 1
+     *
+     */
+    computation conv_P2(
+        "conv_P2",
+        {n, y, fin_b, x_bound, ffin, fout_b, ffout},
+	constraints_P2,
+        conv_out(n, y, x_bound, fout_b, ffout) + filter2(fout_b, fin_b, 0, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 0, ffin)
+					       + filter2(fout_b, fin_b, 1, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 1, ffin)
+					       + filter2(fout_b, fin_b, 2, ffin, ffout) * c_input(n, fin_b, y + 2, x_bound + 2, ffin));
+
+    // Compute convolution from 0 to x_bound
     computation conv(
         "conv",
-        {n, fout_b, y, x, k_y, k_x, fin, ffout},
-        conv_init(n, fout_b, y, x, ffout) + filter(fout_b, k_y, k_x, fin, ffout) * c_input(n, y + k_y, x + k_x, fin)
-	);
+        {n, y, fin_b, x_bound, k_y, k_x, ffin, fout_b, ffout},
+	constraints_P3,
+        conv_out(n, y, x_bound, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
+    );
+
+    // Compute convolution from x_bound to N
+    computation conv_conclude(
+        "conv_conclude",
+        {n, y, fin_b, k_y, k_x, ffin, fout_b, ffout, x_conclude},
+	(fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL,
+        conv_out(n, y, x_conclude, fout_b, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
+    );
+
+#if USE_NON_AFFINE_PREDICATES
+    constraints_P0 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P1 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P2 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL) &&
+	((fin_b*FIN_BLOCKING + ffin) <  ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL
+									       + PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+
+    constraints_P3 =
+	((fin_b*FIN_BLOCKING + ffin) >= ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL + PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+									         PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
+										 PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL);
+    conv_P0.add_predicate(constraints_P0);
+    conv_P1.add_predicate(constraints_P1);
+    conv_P2.add_predicate(constraints_P2);
+    conv.add_predicate(constraints_P3);
+#endif
 
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    var x_b("x_b", 0, X_NB_BLOCKS), xx;
 
-    // Loop through weights to load them into cache
-    computation prefetch_weights(
-        "prefetch_weights",
-        {n, fout_b, y, x_b, k_y, k_x, fin, ffout},
-        filter(fout_b, k_y, k_x, fin, ffout)
+    // schedule for conv computation
+
+    // We introduce those two computations to do register blocking
+    computation reg_load(
+        "reg_load",
+        {n, y, fin_b, x_bound, fout_b, ffout},
+        conv_init(n, y, fout_b, x_bound, ffout)
     );
 
-    // This computation is here to apply register blocking.
-    // Convolution intermediate results will be stored in a small buffer that
-    // will be mapped to CPU registers (more precisely, CPU vector registers) 
-    // instead of being mapped to memory.
-    // This computation moves data from our small buffer to the output buffer
     computation reg_store(
         "reg_store",
-        {n, fout_b, y, x, ffout},
-        conv(n, fout_b, y, x, 0, 0, 0, ffout)
+        {n, y, fin_b, x_bound, fout_b, ffout},
+        conv(n, y, fin_b, x_bound, 0, 0, 0, fout_b, ffout)
     );
-    
-    // We split computations over dimension x to apply register blocking
-    conv_init.split(x, X_BLOCKING, x_b, xx);
-    conv.split(x, X_BLOCKING, x_b, xx);
-    reg_store.split(x, X_BLOCKING, x_b, xx);
-    
-    // n, fout_b, y, x_b, xx, k_y, k_x, fin, ffout
+
+    // Split over dimension x
+    var x_b, xx;
+    conv.split(x_bound, X_BLOCKING, x_b, xx);
+    conv_P0.split(x_bound, X_BLOCKING, x_b, xx);
+    conv_P1.split(x_bound, X_BLOCKING, x_b, xx);
+    conv_P2.split(x_bound, X_BLOCKING, x_b, xx);
+
+
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
-    conv.interchange(xx, fin);
+    conv.interchange(xx, ffin);
+    conv.interchange(xx, fout_b);
     conv.interchange(xx, ffout);
-    // n, fout_b, y, x_b, k_y, k_x, fin, ffout, xx
+    conv_P0.interchange(xx, ffin);
+    conv_P0.interchange(xx, fout_b);
+    conv_P0.interchange(xx, ffout);
+    conv_P1.interchange(xx, ffin);
+    conv_P1.interchange(xx, fout_b);
+    conv_P1.interchange(xx, ffout);
+    conv_P2.interchange(xx, ffin);
+    conv_P2.interchange(xx, fout_b);
+    conv_P2.interchange(xx, ffout);
 
-    conv.tag_parallel_level(fout_b);
+
+    reg_load.split(x_bound, X_BLOCKING, x_b, xx);
+    reg_store.split(x_bound, X_BLOCKING, x_b, xx);
+
+    reg_load.interchange(xx, fout_b);
+    reg_load.interchange(xx, ffout);
+
+    reg_store.interchange(xx, fout_b);
+    reg_store.interchange(xx, ffout);
+
+    // Vectorize and unroll
+    reg_load.tag_vector_level(ffout, FOUT_BLOCKING);
+    conv.tag_vector_level(ffout, FOUT_BLOCKING);
+    conv_P0.tag_vector_level(ffout, FOUT_BLOCKING);
+    conv_P1.tag_vector_level(ffout, FOUT_BLOCKING);
+    conv_P2.tag_vector_level(ffout, FOUT_BLOCKING);
+    reg_store.tag_vector_level(ffout, FOUT_BLOCKING);
+
+    conv.tag_unroll_level(xx);
+    conv.tag_unroll_level(fout_b);
+    conv_P0.tag_unroll_level(xx);
+    conv_P0.tag_unroll_level(fout_b);
+    conv_P1.tag_unroll_level(xx);
+    conv_P1.tag_unroll_level(fout_b);
+    conv_P2.tag_unroll_level(xx);
+    conv_P2.tag_unroll_level(fout_b);
+
+
+    reg_load.tag_unroll_level(xx);
+    reg_load.tag_unroll_level(fout_b);
+
+    reg_store.tag_unroll_level(xx);
+    reg_store.tag_unroll_level(fout_b);
+
+    // schedule for conv_conclude
+    // This schedule is the same as conv computation
+    computation reg_load_conclude(
+        "reg_load_conclude",
+        {n, y, fin_b, fout_b, ffout, x_conclude},
+        conv_init(n, y, fout_b, x_conclude, ffout)
+    );
+
+    computation reg_store_conclude(
+        "reg_store_conclude",
+        {n, y, fin_b, fout_b, ffout, x_conclude},
+        conv_conclude(n, y, fin_b, 0, 0, 0, fout_b, ffout, x_conclude)
+    );
+
+    reg_load_conclude.tag_vector_level(ffout, FOUT_BLOCKING);
+    conv_conclude.tag_vector_level(ffout, FOUT_BLOCKING);
+    reg_store_conclude.tag_vector_level(ffout, FOUT_BLOCKING);
+
+    conv_conclude.tag_unroll_level(x_conclude);
+    conv_conclude.tag_unroll_level(fout_b);
+
+    reg_load_conclude.tag_unroll_level(x_conclude);
+    reg_load_conclude.tag_unroll_level(fout_b);
+
+    reg_store_conclude.tag_unroll_level(x_conclude);
+    reg_store_conclude.tag_unroll_level(fout_b);
+
+    // Parallelize and order
+    conv.tag_parallel_level(y);
     conv.tag_parallel_level(n);
-    
-    conv_init.vectorize(ffout, FOUT_BLOCKING);
-    conv.vectorize(ffout, FOUT_BLOCKING);
-    reg_store.vectorize(ffout, FOUT_BLOCKING);
-    
-    // Note that reg_store is scheduled after that convolution intermediate results are computed
-    conv_init.then(prefetch_weights, x_b)
+
+    conv_init.then(reg_load, y)
+             .then(conv_P0, x_b)
+             .then(conv_P1, x_b)
+             .then(conv_P2, x_b)
              .then(conv, x_b)
-             .then(reg_store, x_b);
+             .then(reg_store, x_b)
+             .then(reg_load_conclude, y)
+             .then(conv_conclude, fin_b)
+             .then(reg_store_conclude, fin_b);
 
     // -------------------------------------------------------
     // Layer III
@@ -111,17 +275,21 @@ int main(int argc, char **argv)
     
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
-    buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
+    buffer reg_buf("reg_buf", {FOUT_NB_BLOCKS, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
 
-    buffer prefetch_w_buf("prefetch_w_buf", {1}, p_float32, a_temporary);
-    prefetch_weights.store_in(&prefetch_w_buf, {});
+    conv_init.store_in(&conv_buf, {n, fout_b, y, x, ffout});
+    conv_out.store_in(&reg_buf, {fout_b, x%X_BLOCKING, ffout});
 
-    // Convolution intermediate results are stored in reg_buf.
-    conv_init.store_in(&reg_buf, {x%X_BLOCKING, ffout});
-    conv.store_in(&reg_buf, {x%X_BLOCKING, ffout});
+    reg_load.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    conv.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    conv_P0.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    conv_P1.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    conv_P2.store_in(&reg_buf, {fout_b, x_bound%X_BLOCKING, ffout});
+    reg_store.store_in(&conv_buf, {n, fout_b, y, x_bound, ffout});
 
-    // reg_store computation moves data from reg_buf to conv_buf.
-    reg_store.store_in(&conv_buf, {n, fout_b, y, x, ffout});
+    reg_load_conclude.store_in(&reg_buf, {fout_b, x_conclude%X_BLOCKING, ffout});
+    conv_conclude.store_in(&reg_buf, {fout_b, x_conclude%X_BLOCKING, ffout});
+    reg_store_conclude.store_in(&conv_buf, {n, fout_b, y, x_conclude, ffout});
 
     // -------------------------------------------------------
     // Code Generation
@@ -129,6 +297,7 @@ int main(int argc, char **argv)
     tiramisu::codegen({
         c_input.get_buffer(), 
         filter.get_buffer(), 
+        filter2.get_buffer(),
         bias.get_buffer(), 
         &conv_buf
     },"generated_conv_layer.o");

@@ -1,7 +1,9 @@
 #define FOut 32
-#define FIn 3
+#define FIn 32
 #define FOUT_BLOCKING 8
-#define X_BLOCKING 8
+#define FIN_BLOCKING 8
+#define X_BLOCKING 3
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
+#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 #define X_NB_BLOCKS N/X_BLOCKING
-
+#define X_BOUND X_NB_BLOCKS*X_BLOCKING
