@@ -1,17 +1,22 @@
-set(benchmark_name benchmark_lstm)
-set(generator_name ${benchmark_name}_generator)
-set(wrapper_name ${benchmark_name}_wrapper)
-set(object_files lstm.o )
+cmake_minimum_required(VERSION 3.5)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--no-as-needed -ldl -g -lz -lpthread -std=c++11 -O3 -fno-rtti")
 
-add_executable(${generator_name} generator.cpp)
-target_link_libraries(${generator_name} tiramisu ${HalideLib} ${ISLLib} ${LINK_FLAGS}  ${MKL_LIBRARIES} ${MKL_FLAGS} "/usr/lib/x86_64-linux-gnu/blas/libblas.a" )
-add_custom_command(OUTPUT ${object_files} COMMAND ${generator_name} DEPENDS ${generator_name})
+include_directories(${PROJECT_DIR}/3rdParty/Halide/include ${PROJECT_DIR}/include/ ${PROJECT_DIR}/3rdParty/isl/include)
 
-add_executable(${wrapper_name} wrapper.cpp ${object_files})
-target_link_libraries(${wrapper_name} tiramisu ${HalideLib} ${ISLLib} ${LINK_FLAGS}  ${MKL_LIBRARIES} ${MKL_FLAGS} "/usr/lib/x86_64-linux-gnu/blas/libblas.a" )
-target_include_directories(${wrapper_name} PUBLIC  ${MKL_PREFIX}/include/ )
+set(tiramisu_SOURCES generator.cpp)
+set(compare_SOURCES wrapper.cpp)
 
-add_custom_target(run_${benchmark_name} COMMAND ${wrapper_name})
-add_custom_target(run_${benchmark_name}_correctness COMMAND ${wrapper_name} 1 1 0 1)
-add_custom_target(run_${benchmark_name}_nvprof COMMAND LD_LIBRARY_PATH=${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/bin/nvprof --profile-from-start off --print-gpu-trace $<TARGET_FILE:${wrapper_name}> DEPENDS ${wrapper_name})
-add_custom_target(run_${benchmark_name}_nvprof2 COMMAND LD_LIBRARY_PATH=${CUDA_TOOLKIT_ROOT_DIR}/lib64 ${CUDA_TOOLKIT_ROOT_DIR}/bin/nvprof --profile-from-start off $<TARGET_FILE:${wrapper_name}> DEPENDS ${wrapper_name})
+add_executable(lstm_generator_tiramisu ${tiramisu_SOURCES})
+add_executable(wrapper_lstm ${compare_SOURCES})
+ 
+target_link_libraries(lstm_generator_tiramisu tiramisu)
+target_link_libraries(wrapper_lstm ${CMAKE_CURRENT_SOURCE_DIR}/lstm.o tiramisu mkl_wrapper -DMKL_ILP64 -m64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm)
+
+add_custom_target(run_lstm
+  COMMAND lstm_generator_tiramisu
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "run generated tiramisu executable in ${CMAKE_CURRENT_SOURCE_DIR}"
+  SOURCES ${tiramisu_SOURCES}
+)
+add_dependencies(wrapper_lstm run_lstm)

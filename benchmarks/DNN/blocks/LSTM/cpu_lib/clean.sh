@@ -1,0 +1,1 @@
+rm lstm_generator_tiramisu lstm_mkldnn wrapper_lstm lstm.o lstm.o.h mkldnn_result.txt tiramisu_result.txt
