@@ -15,8 +15,42 @@ int main(int, char**)
 	Halide::Buffer<float> input(FIN_BLOCKING, N + 2, N + 2, FIN_NB_BLOCKS, BATCH_SIZE);
 	Halide::Buffer<float> filter(FOUT_BLOCKING, FIN_BLOCKING, K, K, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
 	Halide::Buffer<float> filter2(FOUT_BLOCKING, FIN_BLOCKING, 3, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+	Halide::Buffer<int8_t> zero_weight_filters_per_output_channel(FOut);
 	Halide::Buffer<float> bias(FOut);
 	Halide::Buffer<float> conv(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
+
+	zero_weight_filters_per_output_channel(0) = 24;
+	zero_weight_filters_per_output_channel(1) = 22;
+	zero_weight_filters_per_output_channel(2) = 19;
+	zero_weight_filters_per_output_channel(3) = 17;
+	zero_weight_filters_per_output_channel(4) = 17;
+	zero_weight_filters_per_output_channel(5) = 16;
+	zero_weight_filters_per_output_channel(6) = 16;
+	zero_weight_filters_per_output_channel(7) = 16;
+	zero_weight_filters_per_output_channel(8) = 16;
+	zero_weight_filters_per_output_channel(9) = 15;
+	zero_weight_filters_per_output_channel(10) = 15;
+	zero_weight_filters_per_output_channel(11) = 15;
+	zero_weight_filters_per_output_channel(12) = 14;
+	zero_weight_filters_per_output_channel(13) = 14;
+	zero_weight_filters_per_output_channel(14) = 14;
+	zero_weight_filters_per_output_channel(15) = 14;
+	zero_weight_filters_per_output_channel(16) = 13;
+	zero_weight_filters_per_output_channel(17) = 13;
+	zero_weight_filters_per_output_channel(18) = 13;
+	zero_weight_filters_per_output_channel(19) = 12;
+	zero_weight_filters_per_output_channel(20) = 12;
+	zero_weight_filters_per_output_channel(21) = 12;
+	zero_weight_filters_per_output_channel(22) = 12;
+	zero_weight_filters_per_output_channel(23) = 12;
+	zero_weight_filters_per_output_channel(24) = 11;
+	zero_weight_filters_per_output_channel(25) = 11;
+	zero_weight_filters_per_output_channel(26) = 11;
+	zero_weight_filters_per_output_channel(27) = 11;
+	zero_weight_filters_per_output_channel(28) = 10;
+	zero_weight_filters_per_output_channel(29) = 10;
+	zero_weight_filters_per_output_channel(30) = 9;
+	zero_weight_filters_per_output_channel(31) = 6;
 
 	// Initialize buffers
 	for (int n = 0; n < BATCH_SIZE; ++n)
@@ -69,6 +103,7 @@ int main(int, char**)
 			input.raw_buffer(), 
 			filter.raw_buffer(), 
 			filter2.raw_buffer(),
+			zero_weight_filters_per_output_channel.raw_buffer(),
 			bias.raw_buffer(), 
 			conv.raw_buffer()
 		);
