@@ -48,33 +48,6 @@ int main(int, char**)
 						else
 					    	    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
 					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 1)
-						{
-							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-							filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 2)
-						{
-					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-					    		filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-
-					}
 					else
 						filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 				}
