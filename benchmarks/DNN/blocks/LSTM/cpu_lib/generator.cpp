@@ -71,13 +71,15 @@ int main(int argc, char **argv)
 
     // Nonlinear operations as well as biases
     #define sigmoid(x) expr(DATA_TYPE(1)) / (1 + expr(o_expo, -(x)))
+    #define tanh(x) (expr(o_expo, x) - expr(o_expo, -(x))) / (expr(o_expo, x) + expr(o_expo, -(x)))
+
     computation sig_i({l, s, k, i},      sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + biases(l, i + 0 * FEATURE_SIZE)));
     computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
-    computation tnh_z({l, s, k, i}, expr(o_tanh, tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
+    computation tnh_z({l, s, k, i},      tanh(tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
     computation sig_o({l, s, k, i},      sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + biases(l, i + 3 * FEATURE_SIZE)));
 
     c.set_expression(sig_i(l, s, k, i) * tnh_z(l, s, k, i) + sig_f(l, s, k, i) * c(l, s - 1, k, i));
-    h.set_expression(expr(o_tanh, c(l, s, k, i)) * sig_o(l, s, k, i));
+    h.set_expression(tanh(c(l, s, k, i)) * sig_o(l, s, k, i));
    
     // Output is the last layer
     computation y({s, k, i}, h(NUM_LAYERS - 1, s, k, i));
