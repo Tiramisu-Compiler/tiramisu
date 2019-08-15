@@ -68,8 +68,8 @@ int generateCSRWeights(float **filter_values, float density, int **filter_idx, i
 
 int main(int, char **)
 {
-  std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
-  std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
+  std::vector<double> duration_vector;
+  double start, end;
 
   // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
@@ -106,8 +106,7 @@ int main(int, char **)
   std::cout << "Buffers Initialized" << std::endl;
   for (int i = 0; i < NB_TESTS; i++)
   {
-    auto start2 = std::chrono::high_resolution_clock::now();
-
+    start = rtclock();
     spconv(
       b_SIZES.raw_buffer(),
       b_input.raw_buffer(),
@@ -117,10 +116,8 @@ int main(int, char **)
       b_bias.raw_buffer(),
       b_result.raw_buffer()
     );
-
-    auto end2 = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
-    duration_vector_2.push_back(duration2);
+    end = rtclock();
+    duration_vector.push_back((end - start) * 1000);
   }
 
   if (SHOW_OUTPUT)
@@ -128,7 +125,7 @@ int main(int, char **)
 
   print_time("performance_CPU.csv", "spconv",
              {"Tiramisu"},
-             {median(duration_vector_2)});
+             {median(duration_vector)});
 
   if (WRITE_RESULT_TO_FILE){
     // Write results to file

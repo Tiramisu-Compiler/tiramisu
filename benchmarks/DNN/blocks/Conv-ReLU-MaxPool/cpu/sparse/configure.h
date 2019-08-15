@@ -1,11 +1,18 @@
-#ifndef __LSTM_CPULIB_CONF_HEADER_
-#define __LSTM_CPULIB_CONF_HEADER_
-
+#ifndef __SPCONV_CONF_HEADER_
+#define __SPCONV_CONF_HEADER_
 #include <sys/time.h>
+
+#define SHOW_OUTPUT 0
+#define WRITE_RESULT_TO_FILE 1
+#define CHECK_CORRECTNESS 1
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
+
+#define LARGE_N	1
+#define MEDIUM_N	0
+#define SMALL_N	0
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
@@ -15,21 +22,31 @@
 	#define BATCH_SIZE 8
 #endif
 
-#define FEATURE_SIZE 128
-#define SEQ_LENGTH 10
-#define NUM_LAYERS 4
-
-#define NB_TESTS 101
-
-#if 1  // Flip to use double precision
-    #define DATA_TYPE float
-    #define DATA_TYPE_P p_float32
-    #define DATA_TYPE_CUDNN CUDNN_DATA_FLOAT
-#else
-    #define DATA_TYPE double
-    #define DATA_TYPE_P p_float64
-    #define DATA_TYPE_CUDNN CUDNN_DATA_DOUBLE
+// Size of one data dimension
+#if LARGE_N
+	#define N 224
+#elif MEDIUM_N
+	#define N 112
+#elif SMALL_N
+	#define N 56
 #endif
+
+#define X_BL 8
+#define X_NB_BL (N/X_BL)
+
+#define Y_BL 2
+#define Y_NB_BL (N/Y_BL)
+
+// Number of features in the input
+#define FIn 3
+// Number of features in the output
+#define FOut 32
+
+// Size of convolution filter (KxK)
+#define K 3
+
+#define WEIGHTS_DENSITY 0.1
+#define NB_TESTS 301
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)
@@ -56,11 +73,11 @@ double median(int n, double x[])
     double temp;
     int i, j;
 
-    // The following two loops sort the array x in ascending order
+    // the following two loops sort the array x in ascending order
     for(i=0; i<n-1; i++) {
         for(j=i+1; j<n; j++) {
             if(x[j] < x[i]) {
-                // Swap elements
+                // swap elements
                 temp = x[i];
                 x[i] = x[j];
                 x[j] = temp;
@@ -69,15 +86,14 @@ double median(int n, double x[])
     }
 
     if(n%2==0) {
-        // If there is an even number of elements, return mean of the two elements in the middle
+        // if there is an even number of elements, return mean of the two elements in the middle
         return((x[n/2] + x[n/2 - 1]) / 2.0);
     } else {
-        // Else return the element in the middle
+        // else return the element in the middle
         return x[n/2];
     }
 }
 #endif
-
 double rtclock()
 {
     struct timeval Tp;
@@ -85,5 +101,4 @@ double rtclock()
 
     return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
 }
-
 #endif

@@ -1,17 +1,4 @@
-#include <isl/set.h>
-#include <isl/union_map.h>
-#include <isl/union_set.h>
-#include <isl/ast_build.h>
-#include <isl/schedule.h>
-#include <isl/schedule_node.h>
-
-//#include <bits/stdc++.h>
-
-#include <tiramisu/debug.h>
 #include <tiramisu/core.h>
-
-#include <string.h>
-#include <Halide.h>
 #include "configure.h"
 
 using namespace tiramisu;

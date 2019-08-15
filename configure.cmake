@@ -15,6 +15,10 @@ set(USE_LIBJPEG FALSE)
 # Set to TRUE if you wish to use cuDNN for benchmark comparisons
 set(USE_CUDNN FALSE)
 
+# Set to TRUE if you wish to use MKL wrappers provided by Tiramisu
+# If you set this to true, you should correctly set MKL_PREFIX (see below)
+set(USE_MKL_WRAPPERS TRUE)
+
 # Change with the cudnn library location
 set(CUDNN_LOCATION /data/scratch/akkas/cudnn7)
 

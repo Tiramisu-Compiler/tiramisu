@@ -59,23 +59,43 @@ int main()
     );
     
     // Compute BN followed by ReLU
+
+    // Compute BN-ReLU for y = 0, 1
+    var y_prelude("y_prelude", 0, 2);
+    computation bn_prelude(
+        "bn_prelude",
+        {n, fin_b, y_prelude, x_pad, ffin},
+        bn_scale(fin_b, ffin) * ((c_input(n, fin_b, y_prelude, x_pad, ffin) - input_mean(fin_b, ffin)) / input_sd(fin_b, ffin)) + bn_shift(fin_b, ffin)
+    );
+
+    computation relu_prelude(
+        "relu_prelude", 
+        {n, fin_b, y_prelude, x_pad, ffin}, 
+        expr(
+            o_max, 
+            cast(p_float32, 0), 
+            bn_prelude(n, fin_b, y_prelude, x_pad, ffin)
+        )
+    );
+
+    // Compute BN-ReLU for y = 2, .... N + 1
     computation bn(
         "bn", 
-        {n, fin_b, y_pad, x_pad, ffin}, 
-        bn_scale(fin_b, ffin) * ((c_input(n, fin_b, y_pad, x_pad, ffin) - input_mean(fin_b, ffin)) / input_sd(fin_b, ffin)) + bn_shift(fin_b, ffin)
+        {n, fin_b, y, x_pad, ffin}, 
+        bn_scale(fin_b, ffin) * ((c_input(n, fin_b, y + 2, x_pad, ffin) - input_mean(fin_b, ffin)) / input_sd(fin_b, ffin)) + bn_shift(fin_b, ffin)
     );
 
     computation relu(
         "relu", 
-        {n, fin_b, y_pad, x_pad, ffin}, 
+        {n, fin_b, y, x_pad, ffin}, 
         expr(
             o_max, 
             cast(p_float32, 0), 
-            bn(n, fin_b, y_pad, x_pad, ffin)
+            bn(n, fin_b, y, x_pad, ffin)
         )
     );
 
-    computation conv_init("conv_init", {n, y, fout_b, x, ffout}, conv_bias(fout_b, ffout));
+    computation conv_init("conv_init", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     view conv_out("conv_out", {n, y, x, fout_b, ffout}, p_float32);
 
     // Convolution computation
@@ -84,18 +104,20 @@ int main()
     var x_bound("x_bound", 0, X_BOUND);
     var x_conclude("x_conclude", X_BOUND, N);
 
+    view relu_view("relu_view", {n, fin_b, y_pad, x_pad, ffin}, p_float32);
+
     // Compute convolution from 0 to x_bound
     computation conv(
         "conv",
         {n, fin_b, y, x_bound, k_y, k_x, ffin, fout_b, ffout},
-        conv_out(n, y, x_bound, fout_b, ffout) + conv_filter(fin_b, fout_b, k_y, k_x, ffin, ffout) * relu(n, fin_b, y + k_y, x_bound + k_x, ffin)
+        conv_out(n, y, x_bound, fout_b, ffout) + conv_filter(fin_b, fout_b, k_y, k_x, ffin, ffout) * relu_view(n, fin_b, y + k_y, x_bound + k_x, ffin)
     );
 
     // Compute convolution from x_bound to N
     computation conv_conclude(
         "conv_conclude",
         {n, fin_b, y, k_y, k_x, ffin, fout_b, ffout, x_conclude},
-        conv_out(n, y, x_conclude, fout_b, ffout) + conv_filter(fin_b, fout_b, k_y, k_x, ffin, ffout) * relu(n, fin_b, y + k_y, x_conclude + k_x, ffin)
+        conv_out(n, y, x_conclude, fout_b, ffout) + conv_filter(fin_b, fout_b, k_y, k_x, ffin, ffout) * relu_view(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
     
     // -------------------------------------------------------
@@ -104,6 +126,7 @@ int main()
     input_sum.vectorize(ffin, VEC_LEN);
     input_sum.tag_parallel_level(fin_b);
 
+    bn_prelude.vectorize(ffin, VEC_LEN);
     bn.vectorize(ffin, VEC_LEN);
 
     /*
@@ -113,7 +136,7 @@ int main()
     computation reg_load(
         "reg_load",
         {n, fin_b, y, x_bound, fout_b, ffout},
-        conv_init(n, y, fout_b, x_bound, ffout)
+        conv_init(n, fout_b, y, x_bound, ffout)
     );
 
     computation reg_store(
@@ -160,7 +183,7 @@ int main()
     computation reg_load_conclude(
         "reg_load_conclude",
         {n, fin_b, y, fout_b, ffout, x_conclude},
-        conv_init(n, y, fout_b, x_conclude, ffout)
+        conv_init(n, fout_b, y, x_conclude, ffout)
     );
 
     computation reg_store_conclude(
@@ -191,9 +214,11 @@ int main()
                   .then(input_mean, fin_b)
                   .then(input_sd, ffin)
                   .then(conv_init, computation::root)
-                  .then(bn, n)
+                  .then(bn_prelude, n)
+                  .then(relu_prelude, ffin)
+                  .then(bn, fin_b)
                   .then(relu, ffin)
-                  .then(reg_load, fin_b)
+                  .then(reg_load, y)
                   .then(conv, x_b)
                   .then(reg_store, x_b)
                   .then(reg_load_conclude, y)
@@ -222,12 +247,17 @@ int main()
     input_sum_squares.store_in(&input_sd_buf, {fin_b, ffin});
     input_sd.store_in(&input_sd_buf);
 
-    bn.store_in(&workspace_buf, {n, y_pad, x_pad, ffin});
-    relu.store_in(&workspace_buf, {n, y_pad, x_pad, ffin});
+    bn_prelude.store_in(&workspace_buf, {n, y_prelude, x_pad, ffin});
+    relu_prelude.store_in(&workspace_buf, {n, y_prelude, x_pad, ffin});
+    
+    bn.store_in(&workspace_buf, {n, y + 2, x_pad, ffin});
+    relu.store_in(&workspace_buf, {n, y + 2, x_pad, ffin});
 
     /*
      * Storage for conv
      */
+    relu_view.store_in(&workspace_buf, {n, y_pad, x_pad, ffin});
+
     conv_init.store_in(&output_buf, {n, fout_b, y, x, ffout});
     conv_out.store_in(&reg_buf, {fout_b, x%X_BLOCKING, ffout});
 
