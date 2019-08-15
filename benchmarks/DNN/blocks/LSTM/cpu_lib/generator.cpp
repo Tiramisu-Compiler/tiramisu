@@ -71,12 +71,12 @@ int main(int argc, char **argv)
 
     // Nonlinear operations as well as biases
     #define sigmoid(x) expr(DATA_TYPE(1)) / (1 + expr(o_expo, -(x)))
-    #define tanh(x) (expr(o_expo, x) - expr(o_expo, -(x))) / (expr(o_expo, x) + expr(o_expo, -(x)))
+    #define tanh(x) ((expr(o_expo, 2*(x)) - 1) / (expr(o_expo, 2*(x)) + 1))
 
-    computation sig_i({l, s, k, i},      sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + biases(l, i + 0 * FEATURE_SIZE)));
-    computation sig_f({l, s, k, i},      sigmoid(tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
-    computation tnh_z({l, s, k, i},      tanh(tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
-    computation sig_o({l, s, k, i},      sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + biases(l, i + 3 * FEATURE_SIZE)));
+    computation sig_i({l, s, k, i}, sigmoid(tmp(s, k, i + 0 * FEATURE_SIZE) + biases(l, i + 0 * FEATURE_SIZE)));
+    computation sig_f({l, s, k, i}, sigmoid(tmp(s, k, i + 1 * FEATURE_SIZE) + biases(l, i + 1 * FEATURE_SIZE)));
+    computation tnh_z({l, s, k, i}, tanh(tmp(s, k, i + 2 * FEATURE_SIZE) + biases(l, i + 2 * FEATURE_SIZE)));
+    computation sig_o({l, s, k, i}, sigmoid(tmp(s, k, i + 3 * FEATURE_SIZE) + biases(l, i + 3 * FEATURE_SIZE)));
 
     c.set_expression(sig_i(l, s, k, i) * tnh_z(l, s, k, i) + sig_f(l, s, k, i) * c(l, s - 1, k, i));
     h.set_expression(tanh(c(l, s, k, i)) * sig_o(l, s, k, i));
@@ -114,16 +114,16 @@ int main(int argc, char **argv)
     // Scheduling commands
     dummy_c.then(h_init, computation::root)
            .then(c_init, l)
-          .then(h_copy_x, computation::root)          
-          .then(sum1, computation::root)   
-          .then(sum2, l_s)
-          .then(sig_i,s1 )
-          .then(sig_f,i1)
-          .then(tnh_z, i1)
-          .then(sig_o, i1)
-          .then(c, i1)
-          .then(h, i1)
-          .then(y, computation::root);
+           .then(h_copy_x, computation::root)          
+           .then(sum1, computation::root)   
+           .then(sum2, l_s)
+           .then(sig_i,s1 )
+           .then(sig_f,i1)
+           .then(tnh_z, i1)
+           .then(sig_o, i1)
+           .then(c, i1)
+           .then(h, i1)
+           .then(y, computation::root);
 
     // -------------------------------------------------------
     // Layer III
