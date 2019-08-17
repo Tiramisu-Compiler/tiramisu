@@ -263,10 +263,10 @@ expr cblas_gemm(const buffer &A, const buffer &B, buffer &C,
                 var(p_void_ptr, A.get_name()),
                 var(p_void_ptr, B.get_name()),
                 var(p_void_ptr, C.get_name()),
-                cast(p_uint64, M), cast(p_uint64, N), cast(p_uint64, K),
+                cast(p_int32, M), cast(p_int32, N), cast(p_int32, K),
                 alpha_expr, beta_expr,
-                cast(p_uint64, ldA), cast(p_uint64, ldB), cast(p_uint64, ldC),
-                cast(p_uint64, offsetA), cast(p_uint64, offsetB), cast(p_uint64, offsetC),
+                cast(p_int32, ldA), cast(p_int32, ldB), cast(p_int32, ldC),
+                cast(p_int32, offsetA), cast(p_int32, offsetB), cast(p_int32, offsetC),
                 cast(p_boolean, transposeA), cast(p_boolean, transposeB)
             },
             tiramisu::p_uint8);
