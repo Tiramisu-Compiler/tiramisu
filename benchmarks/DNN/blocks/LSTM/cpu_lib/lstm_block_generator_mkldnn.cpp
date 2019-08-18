@@ -16,6 +16,8 @@ using namespace std;
 
 void lstm()
 {
+    int warmupN = 10;
+    
     auto cpu_engine = engine(engine::kind::cpu, 0);
     stream s(cpu_engine);
 
@@ -164,7 +166,14 @@ void lstm()
         for (size_t p = 0; p < lstm_net.size(); ++p)
             lstm_net.at(p).execute(s, lstm_net_args.at(p));
     };
+    
+    // Warmup
+    for (int i = 0; i < warmupN; i++) {
+        execute();
+        s.wait();
+    }
 
+    // Execute with time measurement
     for (int i = 0; i < NB_TESTS; i++) {
         double start = rtclock();
 
