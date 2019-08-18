@@ -41,21 +41,21 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)      
-                buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)
-                buf_Weights(k, l, 1, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 1, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int j = 0; j < 4 * FEATURE_SIZE; j++)
-            buf_biases(j, i) = ((float)(rand()%256 - 128)) / 127.f;
+            buf_biases(j, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < SEQ_LENGTH; i++)
         for (int j = 0; j < BATCH_SIZE; j++)
             for (int k = 0; k < FEATURE_SIZE; k++)
-                buf_input(k, j, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_input(k, j, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     std::cout << "Initalization done" << std::endl;
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
         f1 = std::stof(line1);
         f2 = std::stof(line2);
         
-        if (std::abs(f1 - f2) < 0.01)
+        if (std::abs(f1 - f2) < 0.0001)
             corr += 1;
     }
 

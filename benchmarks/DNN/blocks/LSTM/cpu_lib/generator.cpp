@@ -121,6 +121,10 @@ int main(int argc, char **argv)
     buffer dummy_buf("dummy_buf", {1}, DATA_TYPE_P, a_temporary);
     dummy_c.store_in(&dummy_buf, {});
 
+    buffer gemm_ret("gemm_ret", {1}, DATA_TYPE_P, a_temporary);
+    sum1.store_in(&gemm_ret, {});
+    sum2.store_in(&gemm_ret, {});
+
     // -------------------------------------------------------
     // Code Generation
     // -------------------------------------------------------

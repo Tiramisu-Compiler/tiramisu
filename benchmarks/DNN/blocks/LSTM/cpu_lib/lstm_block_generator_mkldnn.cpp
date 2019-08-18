@@ -44,15 +44,15 @@ void lstm()
     /* Only tested with positive values for weigths and bias */
     srand(0);
     for (int i = 0; i < (int)user_wei_layer.size(); ++i)
-        user_wei_layer[i] = ((float)(rand()%256 - 128)) / 127.f;
+        user_wei_layer[i] = ((float)(rand()%256 - 128)) / 1270.f;
     for (int i = 0; i < (int)user_wei_iter.size(); ++i)
-        user_wei_iter[i] = ((float)(rand()%256 - 128)) / 127.f;
+        user_wei_iter[i] = ((float)(rand()%256 - 128)) / 1270.f;
     for (int i = 0; i < (int)user_bias.size(); ++i)
-        user_bias[i] = ((float)(rand()%256 - 128)) / 127.f;
+        user_bias[i] = ((float)(rand()%256 - 128)) / 1270.f;
 
     /* Initializing non-zero values for src */
     for (int i = 0; i < (int)net_src.size(); ++i)
-        net_src[i] = ((float)(rand()%256 - 128)) / 127.f;
+        net_src[i] = ((float)(rand()%256 - 128)) / 1270.f;
 
     // We create the memory descriptors used by the user
     auto user_src_layer_md = mkldnn::memory::desc(
