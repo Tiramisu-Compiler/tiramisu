@@ -5,14 +5,17 @@
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
+#define SMALL_DATA_SET	0
+#define NO_BATCH        1
 
 #if LARGE_DATA_SET
-	#define BATCH_SIZE 100
+    #define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
-	#define BATCH_SIZE 32
+    #define BATCH_SIZE 32
 #elif SMALL_DATA_SET
-	#define BATCH_SIZE 8
+    #define BATCH_SIZE 8
+#elif NO_BATCH
+    #define BATCH_SIZE 1
 #endif
 
 // Width and height of an input tensor

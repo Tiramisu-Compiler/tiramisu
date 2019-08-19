@@ -12,8 +12,8 @@ int main(int, char**)
 	std::vector<double> duration_vector;
 	double start, end;
 
-	Halide::Buffer<float> input(FIN_BLOCKING, N + 2, N + 2, FIN_NB_BLOCKS, BATCH_SIZE);
-	Halide::Buffer<float> filter(FOUT_BLOCKING, FIN_BLOCKING, K, K, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+	Halide::Buffer<float> input(FIn, N + 2, N + 2, BATCH_SIZE);
+	Halide::Buffer<float> filter(FOUT_BLOCKING, FIn, K, K, FOUT_NB_BLOCKS);
 	Halide::Buffer<float> bias(FOut);
 	Halide::Buffer<float> conv(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
 
@@ -22,13 +22,13 @@ int main(int, char**)
 		for (int fin = 0; fin < FIn; ++fin)
 			for (int y = 0; y < N + 2; ++y)
 				for (int x = 0; x < N + 2; ++x)
-					input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
+					input(fin, x, y, n) = ((float)(rand()%256 - 128)) / 127.f;
 
 	for (int fout = 0; fout < FOut; ++fout)
 		for (int fin = 0; fin < FIn; ++fin)
 			for (int k_y = 0; k_y < K; ++k_y)
 				for (int k_x = 0; k_x < K; ++k_x)
-					filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+					filter(fout%FOUT_BLOCKING, fin, k_x, k_y, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 
 	for (int fout = 0; fout < FOut; ++fout)
 		bias(fout) = ((float)(rand()%256 - 128)) / 127.f;
