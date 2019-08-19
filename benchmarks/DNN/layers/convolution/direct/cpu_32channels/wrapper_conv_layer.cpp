@@ -80,7 +80,7 @@ int main(int, char**)
                     mkl_result >> tmp;
 
                     file_count++;
-                    if (std::abs(conv(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.0001)
+                    if (std::abs(conv(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
                         corr++;
                 }
 
