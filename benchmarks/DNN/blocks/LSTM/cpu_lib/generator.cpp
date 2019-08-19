@@ -3,7 +3,7 @@
 
 using namespace tiramisu;
 
-#define sigmoid(x) expr(DATA_TYPE(1)) / (1 + expr(o_expo, -(x)))
+#define sigmoid(x) (expr(DATA_TYPE(1)) / (1 + expr(o_expo, -(x))))
 #define tanh(x) ((expr(o_expo, 2*(x)) - 1) / (expr(o_expo, 2*(x)) + 1))
 
 int main(int argc, char **argv)
@@ -37,24 +37,24 @@ int main(int argc, char **argv)
     computation c("c", {l, s, k, i}, DATA_TYPE_P);
     
     // Pad buffers to make room for edges
-    h.store_in({l + 1, s + 1, k, i}, {NUM_LAYERS + 1, SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE});
-    c.store_in({l, k, i}, {NUM_LAYERS, BATCH_SIZE, FEATURE_SIZE});
+    h.store_in({s + 1, k, i}, {SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE});
+    c.store_in({k, i}, {BATCH_SIZE, FEATURE_SIZE});
         
     // Initial sets and stores
-    computation h_init({l, k, i}, expr(DATA_TYPE(0)));
-    computation c_init({l, k, i}, expr(DATA_TYPE(0)));
-    computation h_copy_x({s, k, i}, x(s, k, i));
+    computation h_init("h_init", {l, k, i}, cast(DATA_TYPE_P, 0));
+    computation c_init("c_init", {l, k, i}, cast(DATA_TYPE_P, 0));
+    computation h_copy_x("h_copy_x", {s, k, i}, x(s, k, i));
 
     // Multiplication from input is batched
     computation sum1("sum1", {l, s0},
         cblas_gemm(
             *h.get_buffer(), *weights.get_buffer(), *tmp.get_buffer(),
             GEMM_BATCH * BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
-            1, 0,  // alpha, beta
-            0, 0, 0,  // ldABC
-            (l * (SEQ_LENGTH + 1) + s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-            (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-            s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
+            1, 0, // alpha, beta
+            0, 0, 0, // ldABC
+            (s0 * GEMM_BATCH + 1) * BATCH_SIZE * FEATURE_SIZE, //offsetA
+            (l * 2) * 4 * FEATURE_SIZE * FEATURE_SIZE, //offsetB
+            s0 * GEMM_BATCH * BATCH_SIZE * 4 * FEATURE_SIZE, // offsetC
             false, false
         )
     );
@@ -63,11 +63,11 @@ int main(int argc, char **argv)
         cblas_gemm(
             *h.get_buffer(), *weights.get_buffer(), *tmp.get_buffer(),
             BATCH_SIZE, 4 * FEATURE_SIZE, FEATURE_SIZE,
-            1, 1,  // alpha, beta
-            0, 0, 0,  // ldABC
-            ((l + 1) * (SEQ_LENGTH + 1) + s) * BATCH_SIZE * FEATURE_SIZE,  //offsetA
-            (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE,  //offsetB
-            s * BATCH_SIZE * 4 * FEATURE_SIZE,  // offsetC
+            1, 1, // alpha, beta
+            0, 0, 0, // ldABC
+            s * BATCH_SIZE * FEATURE_SIZE, //offsetA
+            (l * 2 + 1) * 4 * FEATURE_SIZE * FEATURE_SIZE, //offsetB
+            s * BATCH_SIZE * 4 * FEATURE_SIZE, // offsetC
             false, false
         )
     );
@@ -89,10 +89,10 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    dummy_c.then(h_init, computation::root)
-           .then(c_init, i)
-           .then(h_copy_x, computation::root)          
-           .then(sum1, computation::root)   
+    dummy_c.then(h_copy_x, computation::root) 
+           .then(h_init, computation::root)
+           .then(c_init, i)         
+           .then(sum1, l)   
            .then(sum2, l)
            .then(sig_i, s)
            .then(sig_f, i)
@@ -105,18 +105,16 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer buf_output("buf_output", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_output);
-
-    sig_i.store_in(tmp.get_buffer(), {s, k, i + 0 * FEATURE_SIZE});
-    sig_f.store_in(tmp.get_buffer(), {s, k, i + 1 * FEATURE_SIZE});
-    tnh_z.store_in(tmp.get_buffer(), {s, k, i + 2 * FEATURE_SIZE});
-    sig_o.store_in(tmp.get_buffer(), {s, k, i + 3 * FEATURE_SIZE});
-
-    h_init.store_in(h.get_buffer(), {l + 1, 0, k, i});
-    c_init.store_in(c.get_buffer(), {l, k, i});
-
-    h_copy_x.store_in(h.get_buffer(), {0, s + 1, k, i});
-    copy_output.store_in(&buf_output);
+    h_init.store_in(h.get_buffer(), {0, k, i});
+    h_copy_x.store_in(h.get_buffer(), {s + 1, k, i});
+    c_init.store_in(c.get_buffer(), {k, i});
+    
+    buffer sig_buf("sig_buf", {4, VEC_LEN}, DATA_TYPE_P, a_temporary);
+    
+    sig_i.store_in(&sig_buf, {0, i%VEC_LEN});
+    sig_f.store_in(&sig_buf, {1, i%VEC_LEN});
+    tnh_z.store_in(&sig_buf, {2, i%VEC_LEN});
+    sig_o.store_in(&sig_buf, {3, i%VEC_LEN});
 
     buffer dummy_buf("dummy_buf", {1}, DATA_TYPE_P, a_temporary);
     dummy_c.store_in(&dummy_buf, {});
@@ -124,6 +122,9 @@ int main(int argc, char **argv)
     buffer gemm_ret("gemm_ret", {1}, DATA_TYPE_P, a_temporary);
     sum1.store_in(&gemm_ret, {});
     sum2.store_in(&gemm_ret, {});
+    
+    buffer buf_output("buf_output", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_output);
+    copy_output.store_in(&buf_output);
 
     // -------------------------------------------------------
     // Code Generation

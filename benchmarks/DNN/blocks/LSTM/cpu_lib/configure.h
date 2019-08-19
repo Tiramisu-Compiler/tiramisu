@@ -18,8 +18,8 @@
     #define BATCH_SIZE 1
 #endif
 
-#define FEATURE_SIZE 512
-#define SEQ_LENGTH 50
+#define FEATURE_SIZE 1024
+#define SEQ_LENGTH 10
 #define NUM_LAYERS 4
 
 // Parameters for Tiramisu code
