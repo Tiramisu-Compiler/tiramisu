@@ -8,8 +8,8 @@
 #define CHECK_CORRECTNESS 1
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
 
 #define LARGE_N 1
 #define MEDIUM_N 0

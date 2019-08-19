@@ -62,7 +62,6 @@ int initRandomSparseMatrix(float* matrix, float density, const int KK, const int
     return n;
 }
 
-
 void resnet_block()
 {
     std::vector<double> duration_vector;
@@ -123,7 +122,6 @@ void resnet_block()
     }
 
     // Create first convolution primitive
-
     // Create memory objects with user data format
     auto input_usr_md = memory::desc(
         {BATCH_SIZE, FIn, N+2, N+2},

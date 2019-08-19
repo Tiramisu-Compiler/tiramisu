@@ -100,12 +100,7 @@ int main(int argc, char **argv)
 
   store_conv_bn_relu.set_expression(expr(o_max, 0.f, c_bn_scale(fout_b * FOUT_BL + ffout) * ((convolve(b, fout_b, y_b, x_b, ffout, 0, yy, xx) - c_bn_mean(fout_b * FOUT_BL + ffout))/ expr(o_sqrt, c_bn_variance(fout_b * FOUT_BL + ffout) + cast(p_float32, EPSILON))) + c_bn_shift(fout_b * FOUT_BL + ffout)));
 
-//////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////
   // Second Convolution
-
   computation init_conv2("[BATCHSIZE]->{init_conv2[b,fout_b,y_b,x_b,ffout,yy,xx]: 0<=b<BATCHSIZE and 0<=fout_b<"+FOUT_NB_BL2s+" and 0<=ffout<"+FOUT_BL2s+" and 0<=x_b<"+X_NB_BL2s+" and 0<=xx<"+X_BL2s+" and 0<=y_b<"+Y_NB_BL2s+" and 0<=yy<"+Y_BL2s+"}", c_bias2(fout_b * FOUT_BL + ffout), true, p_float32, &fused_sparse_resnet_block);
   computation store_conv_bn2("[BATCHSIZE]->{store_conv_bn2[b,fout_b,y_b,x_b,ffout,yy,xx]: 0<=b<BATCHSIZE and 0<=fout_b<"+FOUT_NB_BL2s+" and 0<=ffout<"+FOUT_BL2s+" and 0<=x_b<"+X_NB_BL2s+" and 0<=xx<"+X_BL2s+" and 0<=y_b<"+Y_NB_BL2s+" and 0<=yy<"+Y_BL2s+"}", expr(), true, p_float32, &fused_sparse_resnet_block);
 
@@ -119,8 +114,6 @@ int main(int argc, char **argv)
   constant k2_range1("k2_range1", c_filter_finptr2(fout_b * FOUT_BL2 + ffout + 1), p_int32, false, &convolve2, 4, &fused_sparse_resnet_block);
 
   convolve2.set_expression(convolve2(b, fout_b, y_b, x_b, ffout, k, yy, xx) + c_input2_view(b, (y_b * Y_BL2 + yy) * (N + 2) + x_b * X_BL2 + xx) * c_filter_values2(k));
-
-  // First Batchnorm + ReLU
 
   store_conv_bn2.set_expression((c_bn2_scale(fout_b * FOUT_BL + ffout) * ((convolve2(b, fout_b, y_b, x_b, ffout, 0, yy, xx) - c_bn2_mean(fout_b * FOUT_BL + ffout)) / expr(o_sqrt, c_bn2_variance(fout_b * FOUT_BL + ffout) + cast(p_float32, EPSILON)))) + c_bn2_shift(fout_b * FOUT_BL + ffout));
 
@@ -154,7 +147,6 @@ int main(int argc, char **argv)
 
   // Parallelization
   convolve.parallelize(b);
-
   convolve2.parallelize(b);
 
   // ---------------------------------------------------------------------------------
@@ -206,7 +198,7 @@ int main(int argc, char **argv)
 
   c_bias.set_access("{c_bias[fout]->b_bias[fout]}");
 
-  // BN
+  // BN1
   c_bn_scale.set_access("{c_bn_scale[fout]->b_bn_scale[fout]}");
   c_bn_shift.set_access("{c_bn_shift[fout]->b_bn_shift[fout]}");
 
