@@ -9,11 +9,11 @@
 #define NO_BATCH        0
 
 #if LARGE_DATA_SET
-    #define BATCH_SIZE 100
+	#define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
-    #define BATCH_SIZE 32
+	#define BATCH_SIZE 32
 #elif SMALL_DATA_SET
-    #define BATCH_SIZE 8
+	#define BATCH_SIZE 8
 #elif NO_BATCH
     #define BATCH_SIZE 1
 #endif
@@ -22,9 +22,9 @@
 #define N 112
 
 // Number of features in the input
-#define FIn 128
+#define FIn 3
 // Number of features in the output
-#define FOut 256 
+#define FOut 32
 
 // Size of convolution filter (KxK)
 #define K 3
@@ -33,20 +33,8 @@
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define FOUT_B_SPLIT_FACTOR 4
-
-#if N >= 224
-    #define FIN_BLOCKING 8
-#else
-    #define FIN_BLOCKING 16
-#endif
-
-#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
-
-#define X_BLOCKING 3
+#define X_BLOCKING 8
 #define X_NB_BLOCKS N/X_BLOCKING
-
-#define X_BOUND X_NB_BLOCKS*X_BLOCKING
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1
