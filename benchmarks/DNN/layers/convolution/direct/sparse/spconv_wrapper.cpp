@@ -155,7 +155,7 @@ int main(int, char **)
         for(int y=0; y<N; y++)
           for(int x=0; x< N; x++){
             mkldnn_result >> tmp;
-            if (abs(b_result(x, y, fout, b) - tmp) <= 0.00001)
+            if (std::abs(b_result(x, y, fout, b) - tmp) <= 0.00001)
               nb_correct++;
           }
 
