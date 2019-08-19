@@ -4,24 +4,27 @@
 #include <sys/time.h>
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	1
-#define SMALL_DATA_SET	0
+#define MEDIUM_DATA_SET	0
+#define SMALL_DATA_SET	1
+#define NO_BATCH        0
 
 #if LARGE_DATA_SET
-	#define BATCH_SIZE 100
+    #define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
-	#define BATCH_SIZE 32
+    #define BATCH_SIZE 32
 #elif SMALL_DATA_SET
-	#define BATCH_SIZE 8
+    #define BATCH_SIZE 8
+#elif NO_BATCH
+    #define BATCH_SIZE 1
 #endif
 
 // Size of one data dimension
 #define N 112
 
 // Number of features in the input
-#define FIn 32
+#define FIn 128
 // Number of features in the output
-#define FOut 32
+#define FOut 256 
 
 // Size of convolution filter (KxK)
 #define K 3
@@ -29,6 +32,8 @@
 // Parameters for Tiramisu code
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
+
+#define FOUT_B_SPLIT_FACTOR 4
 
 #if N >= 224
     #define FIN_BLOCKING 8
