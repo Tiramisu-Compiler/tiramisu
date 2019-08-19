@@ -1,4 +1,4 @@
-#include "generated_spconv.o.h"
+#include "generated_fused_sparse_resnet_block.o.h"
 
 #include "Halide.h"
 #include <tiramisu/utils.h>
@@ -6,7 +6,7 @@
 #include <iostream>
 #include "configure.h"
 // Original version by: Kyle Spafford Adapted for CSR format
-void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size)
+void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size, int seed)
 {
     int nnzAssigned = 0;
     // Figure out the probability that a nonzero should be assigned to a given
@@ -15,7 +15,7 @@ void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, c
     double prob = (double)n / ((double) total_num_entries);
 
     // Seed random number generator
-    srand(1);
+    srand(seed);
 
     // Randomly decide whether entry gets a value, but ensure n values
     // are assigned
@@ -52,13 +52,13 @@ void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, c
     assert(nnzAssigned == n);
 }
 
-int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size)
+int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size, int seed)
 {
   int nNonzero = KK * KK * fin_size * fout_size * density;
   *filter_values = (float *) malloc(nNonzero * sizeof(float));
   *filter_idx = (int *) malloc(nNonzero * sizeof(int));
   *filter_finptr = (int *) malloc((fout_size + 1) * sizeof(int));
-  initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size);
+  initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size, seed);
   return nNonzero;
 }
 
@@ -75,9 +75,9 @@ int main(int, char **)
   int *filter_idx;
   int *filter_finptr;
 
-  int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut);
+  int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut, 2);
 
-  Halide::Buffer<int> b_SIZES(1);
+  Halide::Buffer<int> b_SIZES(2);
   b_SIZES(0) = FNNZ;
   Halide::Buffer<float> b_input((N+2) * (N+2) * FIn, BATCH_SIZE);
 
@@ -86,10 +86,34 @@ int main(int, char **)
   Halide::Buffer<int> b_filter_finptr(filter_finptr, FOut + 1);
 
   Halide::Buffer<float> b_bias(FOut);
+  Halide::Buffer<float> b_bn_scale(FOut);
+  Halide::Buffer<float> b_bn_shift(FOut);
+  Halide::Buffer<float> b_bn_mean(FOut);
+  Halide::Buffer<float> b_bn_variance(FOut);
+
+  Halide::Buffer<float> b_conv1_result(N + 2, N + 2, FOut, BATCH_SIZE);
+
+  // Second convolution
+
+  float *filter_values2;
+  int *filter_idx2;
+  int *filter_finptr2;
+
+  int FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, 5);
+  b_SIZES(1) = FNNZ2;
+  Halide::Buffer<float> b_filter_values2(filter_values2, FNNZ2);
+  Halide::Buffer<int> b_filter_idx2(filter_idx2, FNNZ2);
+  Halide::Buffer<int> b_filter_finptr2(filter_finptr2, FOut + 1);
+
+  Halide::Buffer<float> b_bias2(FOut);
+  Halide::Buffer<float> b_bn2_scale(FOut);
+  Halide::Buffer<float> b_bn2_shift(FOut);
+  Halide::Buffer<float> b_bn2_mean(FOut);
+  Halide::Buffer<float> b_bn2_variance(FOut);
 
   Halide::Buffer<float> b_result(N, N, FOut, BATCH_SIZE);
-
-  srand(2);
+  srand(3);
+  // First convolution
   for (int n=0; n < BATCH_SIZE; ++n)
     for (int z=0; z < FIn; ++z)
       for (int y=0; y < N+2; ++y)
@@ -99,17 +123,48 @@ int main(int, char **)
   for (int q=0; q<FOut; q++)
     b_bias(q) = ((float)(rand()%256 - 128)) / 127.f;
 
+  for (int q=0; q<FOut; q++){
+    b_bn_scale(q) = 1.f;
+    b_bn_shift(q) = 0.f;
+    b_bn_mean(q) = ((float)(rand()%256)) / 127.f;
+    b_bn_variance(q) = ((float)(rand()%256)) / 127.f;
+  }
+
+  // Second convolution
+  for (int q=0; q<FOut; q++)
+    b_bias2(q) = ((float)(rand()%256 - 128)) / 127.f;
+
+  for (int q=0; q<FOut; q++){
+    b_bn2_scale(q) = 1.f;
+    b_bn2_shift(q) = 0.f;
+    b_bn2_mean(q) = ((float)(rand()%256)) / 127.f;
+    b_bn2_variance(q) = ((float)(rand()%256)) / 127.f;
+  }
+
   std::cout << "Buffers Initialized" << std::endl;
   for (int i = 0; i < NB_TESTS; i++)
   {
     start = rtclock();
-		spconv(
+		fused_sparse_resnet_block(
       b_SIZES.raw_buffer(),
       b_input.raw_buffer(),
-      b_filter_values.raw_buffer(),
-      b_filter_idx.raw_buffer(),
-      b_filter_finptr.raw_buffer(),
-      b_bias.raw_buffer(),
+        b_filter_values.raw_buffer(),
+        b_filter_idx.raw_buffer(),
+        b_filter_finptr.raw_buffer(),
+        b_bias.raw_buffer(),
+        b_bn_scale.raw_buffer(),
+        b_bn_shift.raw_buffer(),
+        b_bn_mean.raw_buffer(),
+        b_bn_variance.raw_buffer(),
+      b_conv1_result.raw_buffer(),
+        b_filter_values2.raw_buffer(),
+        b_filter_idx2.raw_buffer(),
+        b_filter_finptr2.raw_buffer(),
+        b_bias2.raw_buffer(),
+        b_bn2_scale.raw_buffer(),
+        b_bn2_shift.raw_buffer(),
+        b_bn2_mean.raw_buffer(),
+        b_bn2_variance.raw_buffer(),
       b_result.raw_buffer()
     );
     end = rtclock();
@@ -119,7 +174,7 @@ int main(int, char **)
   if (SHOW_OUTPUT)
     print_buffer(b_result);
 
-  print_time("performance_CPU.csv", "spconv",
+  print_time("performance_CPU.csv", "Sparse ResNet Block",
              {"Tiramisu"},
              {median(duration_vector)});
 
@@ -151,7 +206,7 @@ int main(int, char **)
         for(int y=0; y<N; y++)
           for(int x=0; x< N; x++){
             mkldnn_result >> tmp;
-            if (std::abs(b_result(x, y, fout, b) - tmp) <= 0.00001)
+            if (std::abs(b_result(x, y, fout, b) - tmp) <= 0.002)
               nb_correct++;
           }
 
