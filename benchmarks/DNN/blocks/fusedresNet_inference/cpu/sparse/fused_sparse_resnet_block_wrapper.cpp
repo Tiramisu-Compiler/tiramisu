@@ -94,7 +94,6 @@ int main(int, char **)
   Halide::Buffer<float> b_conv1_result(N + 2, N + 2, FOut, BATCH_SIZE);
 
   // Second convolution
-
   float *filter_values2;
   int *filter_idx2;
   int *filter_finptr2;
