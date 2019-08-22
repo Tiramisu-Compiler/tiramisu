@@ -1,57 +1,70 @@
-#ifndef __CONV_CONF_HEADER_
-#define __CONV_CONF_HEADER_
+#ifndef __SPCONV_CONF_HEADER_
+#define __SPCONV_CONF_HEADER_
 
 #include <sys/time.h>
 
+#define SHOW_OUTPUT 0
+#define WRITE_RESULT_TO_FILE 1
+#define CHECK_CORRECTNESS 1
+
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
-#define NO_BATCH        0
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
+
+#define LARGE_N 1
+#define MEDIUM_N 0
+#define SMALL_N 0
 
 #if LARGE_DATA_SET
-    #define BATCH_SIZE 100
+	#define BATCH_SIZE 100
 #elif MEDIUM_DATA_SET
-    #define BATCH_SIZE 32
+	#define BATCH_SIZE 32
 #elif SMALL_DATA_SET
-    #define BATCH_SIZE 8
-#elif NO_BATCH
-    #define BATCH_SIZE 1
+	#define BATCH_SIZE 8
 #endif
 
 // Size of one data dimension
-#define N 112
+#if LARGE_N
+	#define N 224
+#elif MEDIUM_N
+	#define N 112
+#elif SMALL_N
+	#define N 56
+#endif
 
 // Number of features in the input
-#define FIn 128
+#define FIn 32
+#define FIN_BL 2
+
 // Number of features in the output
-#define FOut 256 
+#define FOut 32
+#define FOUT_BL 32
+#define FOUT_NB_BL (FOut/ FOUT_BL)
+
+#define FOUT_BL2 32
+#define FOUT_NB_BL2 (FOut/ FOUT_BL2)
 
 // Size of convolution filter (KxK)
 #define K 3
 
-// Parameters for Tiramisu code
-#define FOUT_BLOCKING 8
-#define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
-
-#define FOUT_B_SPLIT_FACTOR 4
-
-#if N >= 224
-    #define FIN_BLOCKING 8
-#else
-    #define FIN_BLOCKING 16
-#endif
-
-#define FIN_NB_BLOCKS FIn/FIN_BLOCKING
-
-#define X_BLOCKING 3
-#define X_NB_BLOCKS N/X_BLOCKING
-
-#define X_BOUND X_NB_BLOCKS*X_BLOCKING
-
-// If this is defined, print 10 array elements only
-#define PRINT_ONLY_10 1
+#define WEIGHTS_DENSITY 0.2
 
 #define NB_TESTS 101
+
+// Parameters to tune
+#define X_BL 32 // Must be a multiple of N
+#define X_NB_BL (N/X_BL)
+
+#define Y_BL 2 // Must be a multiple of N
+#define Y_NB_BL (N/Y_BL)
+
+#define X_BL2 32 // Must be a multiple of N
+#define X_NB_BL2 (N/X_BL2)
+
+#define Y_BL2 2 // Must be a multiple of N
+#define Y_NB_BL2 (N/Y_BL2)
+
+#define EPSILON 1e-05
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

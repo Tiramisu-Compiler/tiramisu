@@ -20,20 +20,20 @@ The files in this folder are organized as follows:
 
 To run this benchmark:
 
-    At the directory build/benchmarks/DNN/layers/convolution/direct/cpu_32channels execute 
+    At the directory build/benchmarks/DNN/layers/convolution/direct/cpu_3channels execute 
 	    make 
 
-    wrapper_conv_layer_32channels executable will be created in the current directory. 
+    wrapper_conv_layer_3channels executable will be created in the current directory. 
 
     To compare the result of tiramisu with MKL-DNN execute :
         ./compile_and_run_mkldnn.sh
     then 
-        ./wrapper_conv_layer_32channels
+        ./wrapper_conv_layer_3channels
     
     To compare the result of tiramisu with MKL execute :
         ./compile_and_run_mkl.sh
     then 
-        ./wrapper_conv_layer_32channels
+        ./wrapper_conv_layer_3channels
     
     execution results could be found in the text files : 
         mkl_result.txt (same for Intel MKL and Intel MKL-DNN)

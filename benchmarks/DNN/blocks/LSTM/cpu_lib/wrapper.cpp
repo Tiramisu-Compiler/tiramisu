@@ -32,27 +32,30 @@ int main(int argc, char *argv[])
     Halide::Buffer<DATA_TYPE> buf_input(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
     Halide::Buffer<DATA_TYPE> buf_output(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH);
 
+    Halide::Buffer<DATA_TYPE> buf_h(FEATURE_SIZE, BATCH_SIZE, SEQ_LENGTH + 1);
+    Halide::Buffer<DATA_TYPE> buf_c(FEATURE_SIZE, BATCH_SIZE);
+
     // Initialize weights
     std::srand(0);
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)      
-                buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
             for (int k = 0; k < 4 * FEATURE_SIZE; k++)
-                buf_Weights(k, l, 1, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_Weights(k, l, 1, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int j = 0; j < 4 * FEATURE_SIZE; j++)
-            buf_biases(j, i) = ((float)(rand()%256 - 128)) / 127.f;
+            buf_biases(j, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < SEQ_LENGTH; i++)
         for (int j = 0; j < BATCH_SIZE; j++)
             for (int k = 0; k < FEATURE_SIZE; k++)
-                buf_input(k, j, i) = ((float)(rand()%256 - 128)) / 127.f;
+                buf_input(k, j, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     std::cout << "Initalization done" << std::endl;
 
@@ -62,6 +65,8 @@ int main(int argc, char *argv[])
             buf_Weights.raw_buffer(),
             buf_biases.raw_buffer(),
             buf_input.raw_buffer(),
+            buf_h.raw_buffer(),
+            buf_c.raw_buffer(),
             buf_output.raw_buffer()
         );
     }
@@ -77,6 +82,8 @@ int main(int argc, char *argv[])
             buf_Weights.raw_buffer(),
             buf_biases.raw_buffer(),
             buf_input.raw_buffer(),
+            buf_h.raw_buffer(),
+            buf_c.raw_buffer(),
             buf_output.raw_buffer()
         );
 
