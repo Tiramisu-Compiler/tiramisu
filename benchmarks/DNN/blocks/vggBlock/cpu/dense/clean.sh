@@ -1,0 +1,1 @@
+rm vgg_block_mkl vgg_block_mkldnn vgg_block_generator_tiramisu wrapper_nn_block_vgg generated_vgg_block.o generated_vgg_block.o.h tiramisu_result.txt mkl_result.txt

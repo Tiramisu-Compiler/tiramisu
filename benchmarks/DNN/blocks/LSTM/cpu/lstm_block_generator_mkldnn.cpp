@@ -91,14 +91,13 @@ void lstm()
                         user_wei_iter_memory, user_bias_memory,
                         dst_layer_memory, null_memory_, null_memory_));
 
-        std::vector<std::chrono::duration<double, std::milli>> duration_vector;
+        std::vector<double> duration_vector;
         for (int i = 0; i < NB_TESTS; i++)
         {
-                auto start1 = std::chrono::high_resolution_clock::now();
+                double start = rtclock();
                 stream(stream::kind::eager).submit(lstm_net).wait();
-                auto end1 = std::chrono::high_resolution_clock::now();
-                std::chrono::duration<double, std::milli> duration = end1 - start1;
-                duration_vector.push_back(duration);
+                double end = rtclock();
+                duration_vector.push_back((end - start) * 1000);
         }
         std::cout << "\t\tMKL-DNN LSTM duration"
                   << ": " << median(duration_vector) << "; " << std::endl;

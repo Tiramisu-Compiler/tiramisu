@@ -1,0 +1,1 @@
+rm -rf resize_conv_relu_maxpool_generator_tiramisu resize_conv_relu_maxpool_tiramisu.o resize_conv_relu_maxpool_tiramisu.o.h wrapper_nn_block_resize_conv_relu_maxpool resize_conv_relu_maxpool_mkl resize_conv_relu_maxpool_mkldnn mkl_result.txt tiramisu_result.txt

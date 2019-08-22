@@ -139,6 +139,8 @@ tiramisu::expr tiramisu::expr::copy() const
     return (*this);
 }
 
+//std::unordered_map<std::string, var> tiramisu::var::declared_vars;
+    
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
         return e;
@@ -229,6 +231,45 @@ expr cublas_gemm(const buffer &A, const buffer &B, buffer &C,
 expr cuda_stream_synchronize()
 {
     return expr(o_call, "tiramisu_cuda_stream_synchronize", {int32_t(0)}, tiramisu::p_int32);
+}
+
+expr cblas_gemm(const buffer &A, const buffer &B, buffer &C,
+                expr M, expr N, expr K,
+                expr alpha, expr beta,
+                expr ldA, expr ldB, expr ldC,
+                expr offsetA, expr offsetB, expr offsetC,
+                expr transposeA, expr transposeB)
+{
+    std::string fname;
+    expr alpha_expr;
+    expr beta_expr;
+    if (A.get_elements_type() == p_float32 &&
+        B.get_elements_type() == p_float32 &&
+        C.get_elements_type() == p_float32) {
+        fname = "tiramisu_cblas_sgemm";
+        alpha_expr = cast(p_float32, alpha);
+        beta_expr = cast(p_float32, beta);
+    } else if (A.get_elements_type() == p_float64 &&
+               B.get_elements_type() == p_float64 &&
+               C.get_elements_type() == p_float64) {
+        fname = "tiramisu_cblas_dgemm";
+        alpha_expr = cast(p_float64, alpha);
+        beta_expr = cast(p_float64, beta);
+    } else {
+        ERROR("All input buffers should be of same type and either p_float32 or p_float64", true);
+    }
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, A.get_name()),
+                var(p_void_ptr, B.get_name()),
+                var(p_void_ptr, C.get_name()),
+                cast(p_int32, M), cast(p_int32, N), cast(p_int32, K),
+                alpha_expr, beta_expr,
+                cast(p_int32, ldA), cast(p_int32, ldB), cast(p_int32, ldC),
+                cast(p_int32, offsetA), cast(p_int32, offsetB), cast(p_int32, offsetC),
+                cast(p_boolean, transposeA), cast(p_boolean, transposeB)
+            },
+            tiramisu::p_uint8);
 }
 
 }

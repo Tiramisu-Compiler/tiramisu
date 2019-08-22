@@ -1,6 +1,8 @@
 #ifndef __CONV_CONF_HEADER_
 #define __CONV_CONF_HEADER_
 
+#include <sys/time.h>
+
 #define LARGE_DATA_SET	0	
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
@@ -45,7 +47,7 @@
 #define NB_TESTS 1
 
 #ifdef __cplusplus
-double median(std::vector<std::chrono::duration<double, std::milli>> scores)
+double median(std::vector<double> scores)
 {
     double median;
     size_t size = scores.size();
@@ -54,11 +56,11 @@ double median(std::vector<std::chrono::duration<double, std::milli>> scores)
 
     if (size % 2 == 0)
     {
-        median = (scores[size / 2 - 1].count() + scores[size / 2].count()) / 2;
+        median = (scores[size / 2 - 1] + scores[size / 2]) / 2;
     }
     else
     {
-        median = scores[size / 2].count();
+        median = scores[size / 2];
     }
 
     return median;
@@ -90,5 +92,13 @@ double median(int n, double x[])
     }
 }
 #endif
+
+double rtclock()
+{
+    struct timeval Tp;
+    gettimeofday(&Tp, NULL);
+
+    return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
+}
 
 #endif

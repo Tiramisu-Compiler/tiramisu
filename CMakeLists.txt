@@ -43,6 +43,10 @@ if (${USE_GPU})
     endif()
 endif()
 
+if (${USE_MKL_WRAPPERS})
+    add_library(mkl_wrapper STATIC "src/tiramisu_mkl_wrappers.cpp")
+    target_include_directories(mkl_wrapper PUBLIC ${MKL_PREFIX}/include)
+endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
