@@ -19,38 +19,6 @@ int main(int, char**)
 	Halide::Buffer<float> bias(FOut);
 	Halide::Buffer<float> conv(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
 
-	zero_weight_filters_per_output_channel(0) = 24;
-	zero_weight_filters_per_output_channel(1) = 22;
-	zero_weight_filters_per_output_channel(2) = 19;
-	zero_weight_filters_per_output_channel(3) = 17;
-	zero_weight_filters_per_output_channel(4) = 17;
-	zero_weight_filters_per_output_channel(5) = 16;
-	zero_weight_filters_per_output_channel(6) = 16;
-	zero_weight_filters_per_output_channel(7) = 16;
-	zero_weight_filters_per_output_channel(8) = 16;
-	zero_weight_filters_per_output_channel(9) = 15;
-	zero_weight_filters_per_output_channel(10) = 15;
-	zero_weight_filters_per_output_channel(11) = 15;
-	zero_weight_filters_per_output_channel(12) = 14;
-	zero_weight_filters_per_output_channel(13) = 14;
-	zero_weight_filters_per_output_channel(14) = 14;
-	zero_weight_filters_per_output_channel(15) = 14;
-	zero_weight_filters_per_output_channel(16) = 13;
-	zero_weight_filters_per_output_channel(17) = 13;
-	zero_weight_filters_per_output_channel(18) = 13;
-	zero_weight_filters_per_output_channel(19) = 12;
-	zero_weight_filters_per_output_channel(20) = 12;
-	zero_weight_filters_per_output_channel(21) = 12;
-	zero_weight_filters_per_output_channel(22) = 12;
-	zero_weight_filters_per_output_channel(23) = 12;
-	zero_weight_filters_per_output_channel(24) = 11;
-	zero_weight_filters_per_output_channel(25) = 11;
-	zero_weight_filters_per_output_channel(26) = 11;
-	zero_weight_filters_per_output_channel(27) = 11;
-	zero_weight_filters_per_output_channel(28) = 10;
-	zero_weight_filters_per_output_channel(29) = 10;
-	zero_weight_filters_per_output_channel(30) = 9;
-	zero_weight_filters_per_output_channel(31) = 6;
 
 	// Initialize buffers
 	for (int n = 0; n < BATCH_SIZE; ++n)
@@ -67,21 +35,8 @@ int main(int, char**)
 			for (int k_y = 0; k_y < K; ++k_y)
 				for (int k_x = 0; k_x < K; ++k_x)
 				{
-					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
+					if (zero_weights < zero_weight_filters_per_output_channel[fout])
 	 				        filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 0)
-						{
-					            filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						    filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-					    	    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-					}
 					else
 						filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 				}

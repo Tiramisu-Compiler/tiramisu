@@ -21,16 +21,14 @@
 // Size of convolution filter (KxK)
 #define K 3
 
-// Sparsity properies
-#define COMMON_ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 6
-#define ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 16
-#define PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL 0
-
-
 // Parameters for Tiramisu code
 // Fin: Number of features in the input
 // FOut: Number of features in the output
 #include "tuning_parameters.h"
+
+// Sparsity properies
+int8_t zero_weight_filters_per_output_channel[FOut] = {25, 22, 19, 18, 17, 17, 16, 15, 15, 15, 15, 15, 14, 14, 14, 13, 13, 13, 13, 13, 13, 13, 12, 12, 11, 11, 10, 10, 10, 8, 8, 8};
+
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1

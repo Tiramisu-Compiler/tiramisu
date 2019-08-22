@@ -45,18 +45,8 @@ void conv()
 				{
 					int i = k_x + k_y*(K) + fin*(K*K) + fout*(FIn*K*K);
 
-					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
+					if (zero_weights < zero_weight_filters_per_output_channel[fout])
 						conv_weights_buf[i] = 0;
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 0)
-						    conv_weights_buf[i] = 1;
-						else
-						    conv_weights_buf[i] = 0;
-					}
 					else
 						conv_weights_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 				}
