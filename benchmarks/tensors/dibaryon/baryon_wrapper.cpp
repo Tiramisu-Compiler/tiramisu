@@ -75,7 +75,7 @@ int main(int, char **)
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
    {
-       weights[wnum] = test_weights[wnum];
+       weights[wnum] = src_weights_r1[wnum];
    }
 
    for (int n=0; n<Nsrc; n++)
@@ -109,10 +109,10 @@ int main(int, char **)
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = test_color_weights[wnum][tri];
-		color_weights_t(tri, wnum) = test_color_weights[wnum][tri];
-		spin_weights[wnum][tri] = test_spin_weights[wnum][tri];
-		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri];
+		color_weights[wnum][tri] = src_color_weights_r1[wnum][tri];
+		color_weights_t(tri, wnum) = src_color_weights_r1[wnum][tri];
+		spin_weights[wnum][tri] = src_spin_weights_r1[wnum][tri];
+		spin_weights_t(tri, wnum) = src_spin_weights_r1[wnum][tri];
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
