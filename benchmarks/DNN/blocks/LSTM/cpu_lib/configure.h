@@ -24,6 +24,7 @@
 
 // Parameters for Tiramisu code
 #define GEMM_BATCH SEQ_LENGTH
+#define VEC_LEN 8
 
 #define NB_TESTS 101
 
