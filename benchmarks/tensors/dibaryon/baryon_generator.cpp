@@ -440,39 +440,73 @@ void generate_function(std::string name)
 
     computation *handle = &(
         B1_Blocal_r1_r_init
+	.then(B1_Blocal_r2_r_init, jSprime)
         .then(B1_Blocal_r1_i_init, jSprime)
+	.then(B1_Blocal_r2_i_init, jSprime)
         .then(B1_Bsingle_r1_r_init, jSprime)
+	.then(B1_Bsingle_r2_r_init, jSprime)
         .then(B1_Bsingle_r1_i_init, x2)
+	.then(B1_Bsingle_r2_i_init, x2)
         .then(B1_Bdouble_r1_r_init, x2)
-        .then(B1_Bdouble_r1_i_init, x2));
+	.then(B1_Bdouble_r2_r_init, x2)
+        .then(B1_Bdouble_r1_i_init, x2)
+	.then(B1_Bdouble_r2_i_init, x2));
 
     // schedule B1_Blocal_r1 and B1_Bsingle_r1
-    for (auto edge : B1_q2userEdges_r1) {
+    for (int i = 0; i < B1_q2userEdges_r1.size(); i++)
+    {
+      auto edge = B1_q2userEdges_r1[i];
+      auto edge2 = B1_q2userEdges_r2[i];
       handle = &(handle
           ->then(*edge.q_r, x)
+	  .then(*edge2.q_r, x)
           .then(*edge.q_i, y)
+	  .then(*edge2.q_i, y)
           .then(*edge.bl_r, x)
+          .then(*edge2.bl_r, x)
           .then(*edge.bl_i, y)
+          .then(*edge2.bl_i, y)
           .then(*edge.bs_r, jCprime)
-          .then(*edge.bs_i, y));
+          .then(*edge2.bs_r, jCprime)
+          .then(*edge.bs_i, y)
+	  .then(*edge2.bs_i, y)
+	  );
     }
 
     // schedule O update of B1_Bdouble_r1
-    for (auto edge : B1_o2userEdges_r1) {
+    for (int i = 0; i < B1_o2userEdges_r1.size(); i++)
+    {
+      auto edge  = B1_o2userEdges_r1[i];
+      auto edge2 = B1_o2userEdges_r2[i];
+
       handle = &(handle
           ->then(*edge.o_r, x)
+          .then(*edge2.o_r, x)
           .then(*edge.o_i, y)
+          .then(*edge2.o_i, y)
           .then(*edge.bd_r, x)
-          .then(*edge.bd_i, y));
+          .then(*edge2.bd_r, x)
+          .then(*edge.bd_i, y)
+	  .then(*edge2.bd_i, y)
+	  );
     }
 
     // schedule P update of B1_Bdouble_r1
-    for (auto edge : B1_p2userEdges_r1) {
+    for (int i = 0; i < B1_p2userEdges_r1.size(); i++)
+    {
+      auto edge  = B1_p2userEdges_r1[i];
+      auto edge2 = B1_p2userEdges_r2[i];
+
       handle = &(handle
           ->then(*edge.p_r, x)
+          .then(*edge2.p_r, x)
           .then(*edge.p_i, y)
+          .then(*edge2.p_i, y)
           .then(*edge.bd_r, x)
-          .then(*edge.bd_i, y));
+          .then(*edge2.bd_r, x)
+          .then(*edge.bd_i, y)
+          .then(*edge2.bd_i, y)
+	  );
     }
 
 #if VECTORIZED
@@ -493,6 +527,27 @@ void generate_function(std::string name)
       edge.bd_r->tag_vector_level(x2, Vsnk);
     }
     for (auto edge : B1_p2userEdges_r1) {
+      edge.p_r->tag_vector_level(y, Vsrc);
+      edge.bd_r->tag_vector_level(x2, Vsnk);
+    }
+
+    B1_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
+    B1_Blocal_r2_i_init.tag_vector_level(jSprime, Ns);
+    B1_Bsingle_r2_r_init.tag_vector_level(x2, Vsnk);
+    B1_Bsingle_r2_i_init.tag_vector_level(x2, Vsnk);
+    B1_Bdouble_r2_r_init.tag_vector_level(x2, Vsnk);
+    B1_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk);
+
+    for (auto edge : B1_q2userEdges_r2) {
+      edge.q_r->tag_vector_level(y, Vsrc);
+      edge.bs_r->tag_vector_level(x2, Vsnk);
+      edge.bl_r->tag_vector_level(jSprime, Ns);
+    }
+    for (auto edge : B1_o2userEdges_r2) {
+      edge.o_r->tag_vector_level(y, Vsrc);
+      edge.bd_r->tag_vector_level(x2, Vsnk);
+    }
+    for (auto edge : B1_p2userEdges_r2) {
       edge.p_r->tag_vector_level(y, Vsrc);
       edge.bd_r->tag_vector_level(x2, Vsnk);
     }
@@ -519,71 +574,7 @@ void generate_function(std::string name)
       edge.p_r->tag_parallel_level(t);
       edge.bd_r->tag_parallel_level(t);
     }
-#endif
 
-
-// B1_r2
-    handle = &(handle
-       ->then(B1_Blocal_r2_r_init, computation::root)
-        .then(B1_Blocal_r2_i_init, jSprime)
-        .then(B1_Bsingle_r2_r_init, jSprime)
-        .then(B1_Bsingle_r2_i_init, x2)
-        .then(B1_Bdouble_r2_r_init, x2)
-        .then(B1_Bdouble_r2_i_init, x2));
-
-    // schedule B1_Blocal_r2 and B1_Bsingle_r2
-    for (auto edge : B1_q2userEdges_r2) {
-      handle = &(handle
-          ->then(*edge.q_r, x)
-          .then(*edge.q_i, y)
-          .then(*edge.bl_r, x)
-          .then(*edge.bl_i, y)
-          .then(*edge.bs_r, jCprime)
-          .then(*edge.bs_i, y));
-    }
-
-    // schedule O update of B1_Bdouble_r2
-    for (auto edge : B1_o2userEdges_r2) {
-      handle = &(handle
-          ->then(*edge.o_r, x)
-          .then(*edge.o_i, y)
-          .then(*edge.bd_r, x)
-          .then(*edge.bd_i, y));
-    }
-
-    // schedule P update of B1_Bdouble_r2
-    for (auto edge : B1_p2userEdges_r2) {
-      handle = &(handle
-          ->then(*edge.p_r, x)
-          .then(*edge.p_i, y)
-          .then(*edge.bd_r, x)
-          .then(*edge.bd_i, y));
-    }
-
-#if VECTORIZED
-    B1_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
-    B1_Blocal_r2_i_init.tag_vector_level(jSprime, Ns);
-    B1_Bsingle_r2_r_init.tag_vector_level(x2, Vsnk);
-    B1_Bsingle_r2_i_init.tag_vector_level(x2, Vsnk);
-    B1_Bdouble_r2_r_init.tag_vector_level(x2, Vsnk);
-    B1_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk);
-
-    for (auto edge : B1_q2userEdges_r2) {
-      edge.q_r->tag_vector_level(y, Vsrc);
-      edge.bs_r->tag_vector_level(x2, Vsnk);
-      edge.bl_r->tag_vector_level(jSprime, Ns);
-    }
-    for (auto edge : B1_o2userEdges_r2) {
-      edge.o_r->tag_vector_level(y, Vsrc);
-      edge.bd_r->tag_vector_level(x2, Vsnk);
-    }
-    for (auto edge : B1_p2userEdges_r2) {
-      edge.p_r->tag_vector_level(y, Vsrc);
-      edge.bd_r->tag_vector_level(x2, Vsnk);
-    }
-#endif
-
-#if PARALLEL
     B1_Blocal_r2_r_init.tag_parallel_level(t);
     B1_Blocal_r2_i_init.tag_parallel_level(t);
     B1_Bsingle_r2_r_init.tag_parallel_level(t);
@@ -605,7 +596,6 @@ void generate_function(std::string name)
       edge.bd_r->tag_parallel_level(t);
     }
 #endif
-
 
     // -------------------------------------------------------
     // Layer III
