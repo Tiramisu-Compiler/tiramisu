@@ -14,8 +14,8 @@ from tensorflow import image
 IMG_WIDTH = 600
 IMG_HEIGHT = 400
 
-BATCH_SIZE = 8
-N = 56
+BATCH_SIZE = 32
+N = 224
 FIN = 3
 FOUT = 32
 

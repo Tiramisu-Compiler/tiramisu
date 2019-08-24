@@ -10,7 +10,7 @@ import time, sys
 
 from tensorflow import nn
 
-BATCH_SIZE = 8
+BATCH_SIZE = 32
 N = 112
 FIN = 3
 FOUT = 32

@@ -10,10 +10,10 @@ import time, sys
 
 from tensorflow.contrib import rnn
 
-FEATURE_SIZE = 512
+FEATURE_SIZE = 1024
 BATCH_SIZE = 1
 NUM_LAYERS = 4
-SEQ_LENGTH = 50
+SEQ_LENGTH = 100
 
 NB_TESTS = 101
 
