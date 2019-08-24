@@ -2033,7 +2033,19 @@ expr cblas_gemm(const buffer &A, const buffer &B, buffer &C,
                 expr offsetA = 0, expr offsetB = 0, expr offsetC = 0,
                 expr transposeA = false, expr transposeB = false);
 
-	
+// Sparse matrix-vector multiplication
+expr spmv(expr transposeA,
+          expr alpha,
+          const buffer &csrA,
+          const buffer &descrA,
+          expr layer_num,
+          expr weight_type,
+          const buffer &B,
+          expr beta,
+          buffer &C,
+          expr offsetB, expr offsetC
+);
+
 /**
  * Synchronize CUDA streams of current thread. This should be used whenever CUDA
  * kernels are run in parallel to make sure all kernel calls are done before

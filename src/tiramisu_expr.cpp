@@ -140,7 +140,7 @@ tiramisu::expr tiramisu::expr::copy() const
 }
 
 //std::unordered_map<std::string, var> tiramisu::var::declared_vars;
-    
+
 expr cast(primitive_t tT, const expr & e) {
     if (e.get_data_type() == tT)
         return e;
@@ -268,6 +268,34 @@ expr cblas_gemm(const buffer &A, const buffer &B, buffer &C,
                 cast(p_int32, ldA), cast(p_int32, ldB), cast(p_int32, ldC),
                 cast(p_int32, offsetA), cast(p_int32, offsetB), cast(p_int32, offsetC),
                 cast(p_boolean, transposeA), cast(p_boolean, transposeB)
+            },
+            tiramisu::p_uint8);
+}
+
+expr spmv(expr transposeA,
+          expr alpha,
+          const buffer &csrA,
+          const buffer &descrA,
+          expr layer_num,
+          expr weight_type,
+          const buffer &B,
+          expr beta,
+          buffer &C,
+          expr offsetB, expr offsetC
+)
+{
+    return expr(o_call, "tiramisu_spmv",
+            {
+              cast(p_boolean, transposeA),
+              cast(p_float32, alpha),
+              var(p_void_ptr, csrA.get_name()),
+              var(p_void_ptr, descrA.get_name()),
+              cast(p_int32, layer_num),
+              cast(p_int32, weight_type),
+              var(p_void_ptr, B.get_name()),
+              cast(p_float32, beta),
+              var(p_void_ptr, C.get_name()),
+              cast(p_int32, offsetB), cast(p_int32, offsetC)
             },
             tiramisu::p_uint8);
 }
