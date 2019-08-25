@@ -1,4 +1,4 @@
-The files in this folder are organized as follows:
+## The files in this folder are organized as follows:
 
     General
         clean.sh : remove some useless files.
@@ -18,13 +18,18 @@ The files in this folder are organized as follows:
     Intel MKL
         mkl_dense_convolution.c: code that calls Intel MKL's dense convolution.
 
-To run this benchmark:
+    Intel MKL Sparse
+        spconv_generator_mkl_sparse.cpp : code that performs sparse convolution using im2col and MKL Sparse's spmm.
 
+# To run this benchmark:
+## Run with random weights values
     At the directory build/benchmarks/DNN/layers/convolution/direct/sparse_32channels execute
 	    make
 
     spconv_wrapper executable will be created in the current directory.
     To compare results, you need first to go to configure.h and set WRITE_RESULTS_TO_FILE and CHECK_CORRECTNESS to 1
+    To run with random values for weights set IMPORT_CSR_FROM_FILE to 0
+
 
     To compare the result of tiramisu with MKL-DNN execute :
         ./compile_and_run_mkldnn.sh
@@ -32,10 +37,24 @@ To run this benchmark:
         ./spconv_wrapper_32channels
 
     To compare the result of tiramisu with MKL execute :
-        ./compile_and_run_mkl.sh
+        ./compile_and_run_mkl.sh intel64 (depending on architecture)
+    then
+        ./spconv_wrapper_32channels
+
+    To compare the result of tiramisu with MKL Sparse execute :
+        ./compile_and_run_mkl_sparse.sh intel64 (depending on architecture)
     then
         ./spconv_wrapper_32channels
 
     execution results could be found in the text files :
-        mkl_result.txt (same for Intel MKL and Intel MKL-DNN)
+        mkl_result.txt (same for Intel MKL, Intel MKL-DNN and MKL Sparse)
         tiramisu_result.txt
+
+## Run with weights values imported from a file
+  To run with values imported from a file set IMPORT_CSR_FROM_FILE to 1
+    - You must provide dense weights through a .npy file which contains the weights tensor serialized using numpy.
+    - You can then use the convert_dense_to_csr.py script to create a file that contains a sparse csr representation of your dense weights.
+    - You need to set the layer parameters in configure.h for your layer, this is needed by the tiramisu generator to generate fast specialized code.
+    - Compile the tiramisu code.
+    - Run mkldnn code ./compile_and_run_mkldnn.sh
+    - Run tiramisu wrapper ./spconv_wrapper_32channels

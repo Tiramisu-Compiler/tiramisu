@@ -85,11 +85,6 @@ int main(int argc, char **argv)
     convolve.parallelize(b);
     convolve.parallelize(fout_b);
 
-    // Vectorization
-    init_zero.tag_vector_level(xx, X_BL);
-    convolve.tag_vector_level(xx, X_BL);
-    add_bias.tag_vector_level(xx, X_BL);
-
     // ---------------------------------------------------------------------------------
     // Layer III
     // ---------------------------------------------------------------------------------

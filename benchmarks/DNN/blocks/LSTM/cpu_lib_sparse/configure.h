@@ -5,7 +5,7 @@
 #include <vector>
 
 #define VEC_LEN 8
-#define WEIGHTS_DENSITY 0.2
+#define WEIGHTS_DENSITY 0.15
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0

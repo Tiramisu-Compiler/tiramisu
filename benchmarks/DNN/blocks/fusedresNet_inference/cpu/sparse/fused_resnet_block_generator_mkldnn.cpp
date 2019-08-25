@@ -87,7 +87,7 @@ void resnet_block()
     std::vector<float> conv1_bias_buf(FOut);
     memory::dims conv1_padding = {0, 0};
 
-    std::vector<float> conv2_weights_buf(FOut*FIn*K*K);
+    std::vector<float> conv2_weights_buf(FOut*FOut*K*K);
     std::vector<float> conv2_bias_buf(FOut);
     memory::dims conv2_padding = {1, 1};
 
@@ -135,6 +135,12 @@ void resnet_block()
         memory::format_tag::oihw
     );
 
+    auto conv2_weights_usr_md = memory::desc(
+        {FOut, FOut, K, K},
+        memory::data_type::f32,
+        memory::format_tag::oihw
+    );
+
     auto conv_bias_usr_md = memory::desc(
         {FOut},
         memory::data_type::f32,
@@ -153,6 +159,12 @@ void resnet_block()
 
     auto conv_weights_md = memory::desc(
         {FOut, FIn, K, K},
+        memory::data_type::f32,
+        memory::format_tag::any
+    );
+
+    auto conv2_weights_md = memory::desc(
+        {FOut, FOut, K, K},
         memory::data_type::f32,
         memory::format_tag::any
     );
@@ -258,7 +270,7 @@ void resnet_block()
     // Create second convolution primitive
 
     // Create memory objects with user data format
-    auto conv2_weights_usr_mem = memory(conv_weights_usr_md, cpu_engine, conv2_weights_buf.data());
+    auto conv2_weights_usr_mem = memory(conv2_weights_usr_md, cpu_engine, conv2_weights_buf.data());
     auto conv2_bias_usr_mem = memory(conv_bias_usr_md, cpu_engine, conv2_bias_buf.data());
 
     // Create the convolution primitive descriptor, so as to get
@@ -267,7 +279,7 @@ void resnet_block()
         prop_kind::forward_inference,
         algorithm::convolution_direct,
         conv1_pd.dst_desc(),
-        conv_weights_md,
+        conv2_weights_md,
         conv_bias_md,
         conv_output_md,
         conv_strides,
