@@ -38,7 +38,6 @@ void im2col_cpu(const float* data_im, const int channels,
         const int hc0 = h_offset;
         const int wc0 = w_offset;
 
-
         for (int h = h_start; h < h_end; ++h) {
           int h_pad = h + hc0;
 
@@ -60,6 +59,5 @@ void im2col_cpu(const float* data_im, const int channels,
         }
       }
     }
-
   }
 }
