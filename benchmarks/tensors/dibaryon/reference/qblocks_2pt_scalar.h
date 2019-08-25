@@ -14,8 +14,8 @@
 #define Vsnk 1
 #define Nt 1
 
-#define Nsrc 1
-#define Nsnk 1
+#define Nsrc 4
+#define Nsnk 4
 #define NsrcHex 1
 #define NsnkHex 1
 
@@ -43,10 +43,10 @@ void make_two_nucleon_2pt(double* C_re,
     const double* snk_psi_B1_im, 
     const double* snk_psi_B2_re, 
     const double* snk_psi_B2_im, 
-    const double* hexaquark_src_psi_re, 
-    const double* hexaquark_src_psi_im, 
-    const double* hexaquark_snk_psi_re, 
-    const double* hexaquark_snk_psi_im,
+    const double* hex_src_psi_re, 
+    const double* hex_src_psi_im, 
+    const double* hex_snk_psi_re, 
+    const double* hex_snk_psi_im,
     const int space_symmetric,
     const int snk_entangled);
 
@@ -128,7 +128,7 @@ void make_dibaryon_correlator(double* C_re,
     const double* snk_psi_re, 
     const double* snk_psi_im);
 
-void make_dibaryon_hexaquark_correlator(double* C_re,
+void make_dibaryon_hex_correlator(double* C_re,
     double* C_im,
     const double* B1_Blocal_re, 
     const double* B1_Blocal_im, 
@@ -143,7 +143,7 @@ void make_dibaryon_hexaquark_correlator(double* C_re,
     const double* hex_snk_psi_re,
     const double* hex_snk_psi_im);
 
-void make_hexaquark_dibaryon_correlator(double* C_re,
+void make_hex_dibaryon_correlator(double* C_re,
     double* C_im,
     const double* B1_Blocal_re, 
     const double* B1_Blocal_im, 
@@ -158,7 +158,7 @@ void make_hexaquark_dibaryon_correlator(double* C_re,
     const double* hex_src_psi_re,
     const double* hex_src_psi_im);
 
-void make_hexaquark_correlator(double* C_re,
+void make_hex_correlator(double* C_re,
     double* C_im,
     const double* B1_props_re, 
     const double* B1_props_im, 

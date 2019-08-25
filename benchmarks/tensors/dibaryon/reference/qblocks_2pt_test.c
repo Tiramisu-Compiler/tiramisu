@@ -200,70 +200,22 @@ int main() {
       }
    }
    printf("B=2 ratios\n");
-   for (m=0; m<Nsrc; m++) {
-      for (n=0; n<Nsnk; n++) {
+   for (m=0; m<Nsrc+NsrcHex; m++) {
+      for (n=0; n<Nsnk+NsnkHex; n++) {
          for (t=0; t<Nt; t++) {
-            printf("(C_B2_A1g/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m, n, t, C_re[correlator_index(0,m,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
+            printf("R_B2_A1g[%d,%d,%d] = %4.9f \n", m, n, t, C_re[correlator_index(0,m,n,t)] / (C_B1_re[B1_correlator_index(0,0,0,t)] * C_B1_re[B1_correlator_index(1,0,0,t)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r1/(C_B1_G1g_r1)^2[%d,%d,%d] = %4.9f\n", m, n, t, C_re[correlator_index(1,m,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(0,m,n,t)]));
+            printf("R_B2_T1g_r1[%d,%d,%d] = %4.9f \n", m, n, t, C_re[correlator_index(1,m,n,t)] / (C_B1_re[B1_correlator_index(0,0,0,t)] * C_B1_re[B1_correlator_index(1,0,0,t)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r2/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m, n, t, C_re[correlator_index(2,m,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
+            printf("R_B2_T1g_r2[%d,%d,%d] = %4.9f \n", m, n, t, C_re[correlator_index(2,m,n,t)] / (C_B1_re[B1_correlator_index(0,0,0,t)] * C_B1_re[B1_correlator_index(1,0,0,t)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r3/(C_B1_G1g_r2)^2[%d,%d,%d] = %4.9f\n", m, n, t, C_re[correlator_index(3,m,n,t)]/(C_B1_re[B1_correlator_index(1,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-      }
-   } 
-   for (m=0; m<Nsrc; m++) {
-      for (n=0; n<NsnkHex; n++) {
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_A1g/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m, n+Nsnk, t, C_re[correlator_index(0,m,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r1/(C_B1_G1g_r1)^2[%d,%d,%d] = %4.9f\n", m, n+Nsnk, t, C_re[correlator_index(1,m,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(0,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r2/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m, n+Nsnk, t, C_re[correlator_index(2,m,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r3/(C_B1_G1g_r2)^2[%d,%d,%d] = %4.9f\n", m, n+Nsnk, t, C_re[correlator_index(3,m,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(1,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
+            printf("R_B2_T1g_r3[%d,%d,%d] = %4.9f \n", m, n, t, C_re[correlator_index(3,m,n,t)] / (C_B1_re[B1_correlator_index(0,0,0,t)] * C_B1_re[B1_correlator_index(1,0,0,t)]) );
          }
       }
    }
-   for (m=0; m<NsrcHex; m++) {
-      for (n=0; n<Nsnk; n++) {
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_A1g/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(0,m+Nsrc,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r1/(C_B1_G1g_r1)^2[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(1,m+Nsrc,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(0,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r2/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(2,m+Nsrc,n,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r3/(C_B1_G1g_r2)^2[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(3,m+Nsrc,n,t)]/(C_B1_re[B1_correlator_index(1,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-      }
-   }
-   for (m=0; m<NsrcHex; m++) {
-      for (n=0; n<NsnkHex; n++) {
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_A1g/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(0,m+Nsrc,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r1/(C_B1_G1g_r1)^2[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(1,m+Nsrc,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(0,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r2/(C_B1_G1g_r1*C_B1_G1g_r2)[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(2,m+Nsrc,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(0,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-         for (t=0; t<Nt; t++) {
-            printf("(C_B2_T1g_r3/(C_B1_G1g_r2)^2[%d,%d,%d] = %4.9f\n", m+Nsrc, n+Nsnk, t, C_re[correlator_index(3,m+Nsrc,n+Nsnk,t)]/(C_B1_re[B1_correlator_index(1,m,n,t)] * C_B1_re[B1_correlator_index(1,m,n,t)]));
-         }
-      }
-   } 
    time (&end);
    dif = difftime (end,start);
    printf("total time %5.3f\n",dif);

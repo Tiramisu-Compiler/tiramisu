@@ -557,7 +557,7 @@ void make_dibaryon_hex_correlator(double* C_re,
     const double* hex_snk_psi_re,
     const double* hex_snk_psi_im) {
    /* indices */
-   int iC1,iS1,jC1,jS1,kC1,kS1,iC2,iS2,jC2,jS2,kC2,kS2,x,t,wnum,nperm,b,n,m,y;
+   int iC1,iS1,jC1,jS1,kC1,kS1,iC2,iS2,jC2,jS2,kC2,kS2,x,t,wnum,nperm,b,n,m;
    int Nb = 2;
    int Nw2 = Nw*Nw;
    double term_re, term_im;
@@ -597,13 +597,13 @@ void make_dibaryon_hex_correlator(double* C_re,
          kC2 = snk_color_weights[snk_weight_index(snk_3_b[1],wnum,snk_3_nq[1])];
          kS2 = snk_spin_weights[snk_weight_index(snk_3_b[1],wnum,snk_3_nq[1])]; 
          for (t=0; t<Nt; t++) {
-            for (y=0; y<Vsnk; y++) {
-               for (n=0; n<Nsrc; n++) {
-                  term_re = sigs[nperm] * overall_weight * snk_weights[wnum] * (B1_Blocal_re[snk_Blocal_index(t,iC1,iS1,kC1,kS1,y,jC1,jS1,n)] * B2_Blocal_re[snk_Blocal_index(t,iC2,iS2,kC2,kS2,y,jC2,jS2,n)] - B1_Blocal_im[snk_Blocal_index(t,iC1,iS1,kC1,kS1,y,jC1,jS1,n)] * B2_Blocal_im[snk_Blocal_index(t,iC2,iS2,kC2,kS2,y,jC2,jS2,n)]);
-                  term_im = sigs[nperm] * overall_weight * snk_weights[wnum] * (B1_Blocal_re[snk_Blocal_index(t,iC1,iS1,kC1,kS1,y,jC1,jS1,n)] * B2_Blocal_im[snk_Blocal_index(t,iC2,iS2,kC2,kS2,y,jC2,jS2,n)] + B1_Blocal_im[snk_Blocal_index(t,iC1,iS1,kC1,kS1,y,jC1,jS1,n)] * B2_Blocal_re[snk_Blocal_index(t,iC2,iS2,kC2,kS2,y,jC2,jS2,n)]);
-                  for (m=0; m<NsnkHex; m++) {
-                     C_re[one_hex_correlator_index(m,n,t)] += hex_snk_psi_re[hex_snk_psi_index(y,m)] * term_re - hex_snk_psi_im[hex_snk_psi_index(y,m)] * term_im;
-                     C_im[one_hex_correlator_index(m,n,t)] += hex_snk_psi_re[hex_snk_psi_index(y,m)] * term_im + hex_snk_psi_im[hex_snk_psi_index(y,m)] * term_re;
+            for (x=0; x<Vsnk; x++) {
+               for (m=0; m<Nsrc; m++) {
+                  term_re = sigs[nperm] * overall_weight * snk_weights[wnum] * (B1_Blocal_re[Blocal_index(t,iC1,iS1,kC1,kS1,x,jC1,jS1,m)] * B2_Blocal_re[Blocal_index(t,iC2,iS2,kC2,kS2,x,jC2,jS2,m)] - B1_Blocal_im[Blocal_index(t,iC1,iS1,kC1,kS1,x,jC1,jS1,m)] * B2_Blocal_im[Blocal_index(t,iC2,iS2,kC2,kS2,x,jC2,jS2,m)]);
+                  term_im = sigs[nperm] * overall_weight * snk_weights[wnum] * (B1_Blocal_re[Blocal_index(t,iC1,iS1,kC1,kS1,x,jC1,jS1,m)] * B2_Blocal_im[Blocal_index(t,iC2,iS2,kC2,kS2,x,jC2,jS2,m)] + B1_Blocal_im[Blocal_index(t,iC1,iS1,kC1,kS1,x,jC1,jS1,m)] * B2_Blocal_re[Blocal_index(t,iC2,iS2,kC2,kS2,x,jC2,jS2,m)]);
+                  for (n=0; n<NsnkHex; n++) {
+                     C_re[one_hex_correlator_index(m,n,t)] += hex_snk_psi_re[hex_snk_psi_index(x,n)] * term_re - hex_snk_psi_im[hex_snk_psi_index(x,n)] * term_im;
+                     C_im[one_hex_correlator_index(m,n,t)] += hex_snk_psi_re[hex_snk_psi_index(x,n)] * term_im + hex_snk_psi_im[hex_snk_psi_index(x,n)] * term_re;
                   }
                }
             }
@@ -828,118 +828,6 @@ void make_two_nucleon_2pt(double* C_re,
    /* indices */
    int nB1, nB2, nq, n, m, t;
    double overall_weight;
-   double* hex_full_src_psi_re = malloc(Vsrc * Nsrc * sizeof (double));
-   double* hex_full_src_psi_im = malloc(Vsrc * Nsrc * sizeof (double));
-   double* hex_full_snk_psi_re = malloc(Vsrc * Nsrc * sizeof (double));
-   double* hex_full_snk_psi_im = malloc(Vsrc * Nsrc * sizeof (double));
-   /* create blocks */
-   double* B1_Blocal_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B1_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B1_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B1_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B1_Bsingle_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bsingle_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bsingle_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bsingle_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bdouble_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bdouble_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B1_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   make_local_block(B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
-   make_local_block(B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
-   make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
-   make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
-   make_double_block(B1_Bdouble_r1_re, B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
-   make_double_block(B1_Bdouble_r2_re, B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
-   double* B2_Blocal_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B2_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B2_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B2_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
-   double* B2_Bsingle_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bsingle_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bsingle_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bsingle_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bdouble_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bdouble_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   double* B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
-   make_local_block(B2_Blocal_r1_re, B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
-   make_local_block(B2_Blocal_r2_re, B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
-   make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
-   make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
-   make_double_block(B2_Bdouble_r1_re, B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
-   make_double_block(B2_Bdouble_r2_re, B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
-   /* hold results for two nucleon correlators */
-   double* BB_0_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_0_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r1_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r1_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r2_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r2_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r3_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* BB_r3_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-   double* H_0_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_0_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r1_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r1_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r2_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r2_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r3_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* H_r3_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* BB_H_0_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_0_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r1_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r1_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r2_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r2_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r3_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* BB_H_r3_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
-   double* H_BB_0_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_0_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r1_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r1_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r2_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r2_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r3_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   double* H_BB_r3_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
-   for (m=0; m<Nsrc; m++) {
-      for (n=0; n<Nsnk; n++) {
-         for (t=0; t<Nt; t++) {
-            BB_0_re[one_correlator_index(m,n,t)] = 0.0;
-            BB_0_im[one_correlator_index(m,n,t)] = 0.0;
-            BB_r1_re[one_correlator_index(m,n,t)] = 0.0;
-            BB_r1_im[one_correlator_index(m,n,t)] = 0.0;
-            BB_r2_re[one_correlator_index(m,n,t)] = 0.0;
-            BB_r2_im[one_correlator_index(m,n,t)] = 0.0;
-            BB_r3_re[one_correlator_index(m,n,t)] = 0.0;
-            BB_r3_im[one_correlator_index(m,n,t)] = 0.0;
-            H_0_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_0_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r1_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r1_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r2_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r2_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r3_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_r3_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_0_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_0_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r1_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r1_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r2_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r2_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r3_re[one_hex_correlator_index(m,n,t)] = 0.0;
-            BB_H_r3_im[one_hex_correlator_index(m,n,t)] = 0.0;
-            H_BB_0_re[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_0_im[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r1_re[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r1_im[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r2_re[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r2_im[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r3_re[one_correlator_index(m,n,t)] = 0.0;
-            H_BB_r3_im[one_correlator_index(m,n,t)] = 0.0;
-         }
-      }
-   }
    /* compute two nucleon snk weights */
    int Nw2 = Nw*Nw;
    int* snk_color_weights_1 = malloc(2 * Nw2 * Nq * sizeof (int));
@@ -969,7 +857,7 @@ void make_two_nucleon_2pt(double* C_re,
          snk_weights_r2_2[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r2[nB1]*src_weights_r1[nB2];
          snk_weights_r3[nB1+Nw*nB2] = src_weights_r2[nB1]*src_weights_r2[nB2];
          for (nq=0; nq<Nq; nq++) {
-            /* A1g */
+            // A1g
             snk_color_weights_1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB1,nq)];
             snk_spin_weights_1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB1,nq)];
             snk_color_weights_1[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r2[src_weight_index(nB2,nq)];
@@ -978,12 +866,12 @@ void make_two_nucleon_2pt(double* C_re,
             snk_spin_weights_2[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r2[src_weight_index(nB1,nq)];
             snk_color_weights_2[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB2,nq)];
             snk_spin_weights_2[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB2,nq)];
-            /* T1g_r1 */
+            // T1g_r1
             snk_color_weights_r1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB1,nq)];
             snk_spin_weights_r1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB1,nq)];
             snk_color_weights_r1[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB2,nq)];
             snk_spin_weights_r1[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB2,nq)];
-            /* T1g_r2 */
+            // T1g_r2
             snk_color_weights_r2_1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB1,nq)];
             snk_spin_weights_r2_1[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB1,nq)];
             snk_color_weights_r2_1[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r2[src_weight_index(nB2,nq)];
@@ -992,7 +880,7 @@ void make_two_nucleon_2pt(double* C_re,
             snk_spin_weights_r2_2[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r2[src_weight_index(nB1,nq)];
             snk_color_weights_r2_2[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r1[src_weight_index(nB2,nq)];
             snk_spin_weights_r2_2[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_spin_weights_r1[src_weight_index(nB2,nq)];
-            /* T1g_r3 */
+            // T1g_r3 
             snk_color_weights_r3[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_color_weights_r2[src_weight_index(nB1,nq)];
             snk_spin_weights_r3[snk_weight_index(0,nB1+Nw*nB2,nq)] = src_spin_weights_r2[src_weight_index(nB1,nq)];
             snk_color_weights_r3[snk_weight_index(1,nB1+Nw*nB2,nq)] = src_color_weights_r2[src_weight_index(nB2,nq)];
@@ -1006,6 +894,66 @@ void make_two_nucleon_2pt(double* C_re,
    else {
       overall_weight = 1.0/2.0;
    } 
+   // hold results for two nucleon correlators 
+   double* BB_0_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_0_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r1_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r1_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r2_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r2_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r3_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   double* BB_r3_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+   for (m=0; m<Nsrc; m++) {
+      for (n=0; n<Nsnk; n++) {
+         for (t=0; t<Nt; t++) {
+            BB_0_re[one_correlator_index(m,n,t)] = 0.0;
+            BB_0_im[one_correlator_index(m,n,t)] = 0.0;
+            BB_r1_re[one_correlator_index(m,n,t)] = 0.0;
+            BB_r1_im[one_correlator_index(m,n,t)] = 0.0;
+            BB_r2_re[one_correlator_index(m,n,t)] = 0.0;
+            BB_r2_im[one_correlator_index(m,n,t)] = 0.0;
+            BB_r3_re[one_correlator_index(m,n,t)] = 0.0;
+            BB_r3_im[one_correlator_index(m,n,t)] = 0.0;
+         }
+      }
+   }
+   // create blocks
+   double* B1_Blocal_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B1_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B1_Bsingle_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bsingle_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bdouble_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bdouble_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   make_local_block(B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
+   make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
+   make_double_block(B1_Bdouble_r1_re, B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im);
+   double* B1_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B1_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B1_Bsingle_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bsingle_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B1_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
+   make_local_block(B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
+   make_double_block(B1_Bdouble_r2_re, B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im);
+   double* B2_Blocal_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B2_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B2_Bsingle_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bsingle_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bdouble_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bdouble_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   make_local_block(B2_Blocal_r1_re, B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
+   make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
+   make_double_block(B2_Bdouble_r1_re, B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im);
+   double* B2_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B2_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
+   double* B2_Bsingle_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bsingle_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   double* B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
+   make_local_block(B2_Blocal_r2_re, B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
+   make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
+   make_double_block(B2_Bdouble_r2_re, B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im);
    /* compute two nucleon correlators from blocks */
    /* BB_BB */
    make_dibaryon_correlator(BB_0_re, BB_0_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_Bdouble_r1_re, B1_Bdouble_r1_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_Bdouble_r2_re, B2_Bdouble_r2_im, perms, sigs, overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, snk_psi_re, snk_psi_im);
@@ -1030,6 +978,22 @@ void make_two_nucleon_2pt(double* C_re,
       make_dibaryon_correlator(BB_r2_re, BB_r2_im, B1_Blocal_r2_re, B1_Blocal_r2_im, B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_Bdouble_r2_re, B1_Bdouble_r2_im, B2_Blocal_r1_re, B2_Blocal_r1_im, B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_Bdouble_r1_re, B2_Bdouble_r1_im, perms, sigs, space_symmetric*overall_weight/sqrt(2.0), snk_color_weights_r2_2, snk_spin_weights_r2_2, snk_weights_r2_2, snk_psi_re, snk_psi_im);
       make_dibaryon_correlator(BB_r3_re, BB_r3_im, B1_Blocal_r2_re, B1_Blocal_r2_im, B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_Bdouble_r2_re, B1_Bdouble_r2_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_Bdouble_r2_re, B2_Bdouble_r2_im, perms, sigs, space_symmetric*overall_weight, snk_color_weights_r3, snk_spin_weights_r3, snk_weights_r3, snk_psi_re, snk_psi_im);
    }
+   free(B1_Bsingle_r1_re);
+   free(B1_Bsingle_r1_im);
+   free(B1_Bsingle_r2_re);
+   free(B1_Bsingle_r2_im);
+   free(B1_Bdouble_r1_re);
+   free(B1_Bdouble_r1_im);
+   free(B1_Bdouble_r2_re);
+   free(B1_Bdouble_r2_im);
+   free(B2_Bsingle_r1_re);
+   free(B2_Bsingle_r1_im);
+   free(B2_Bsingle_r2_re);
+   free(B2_Bsingle_r2_im);
+   free(B2_Bdouble_r1_re);
+   free(B2_Bdouble_r1_im);
+   free(B2_Bdouble_r2_re);
+   free(B2_Bdouble_r2_im);
    for (m=0; m<Nsrc; m++) {
       for (n=0; n<Nsnk; n++) {
          for (t=0; t<Nt; t++) {
@@ -1044,32 +1008,37 @@ void make_two_nucleon_2pt(double* C_re,
          }
       }
    }
-   /* H_H */
-   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, -1.0*overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, -1.0*overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r1_re, H_r1_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight, snk_color_weights_r1, snk_spin_weights_r1, snk_weights_r1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_r2_1, snk_spin_weights_r2_1, snk_weights_r2_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight/sqrt(2.0), snk_color_weights_r2_1, snk_spin_weights_r2_1, snk_weights_r2_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_r2_2, snk_spin_weights_r2_2, snk_weights_r2_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight/sqrt(2.0), snk_color_weights_r2_2, snk_spin_weights_r2_2, snk_weights_r2_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   make_hex_correlator(H_r3_re, H_r3_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight, snk_color_weights_r3, snk_spin_weights_r3, snk_weights_r3, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
-   for (m=0; m<NsrcHex; m++) {
+   free(BB_0_re);
+   free(BB_0_im);
+   free(BB_r1_re);
+   free(BB_r1_im);
+   free(BB_r2_re);
+   free(BB_r2_im);
+   free(BB_r3_re);
+   free(BB_r3_im);
+   // BB_H 
+   double* BB_H_0_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_0_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r1_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r1_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r2_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r2_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r3_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   double* BB_H_r3_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+   for (m=0; m<Nsrc; m++) {
       for (n=0; n<NsnkHex; n++) {
          for (t=0; t<Nt; t++) {
-            C_re[correlator_index(0,Nsrc+m,Nsnk+n,t)] = H_0_re[one_hex_correlator_index(m,n,t)];
-            C_im[correlator_index(0,Nsrc+m,Nsnk+n,t)] = H_0_im[one_hex_correlator_index(m,n,t)];
-            C_re[correlator_index(1,Nsrc+m,Nsnk+n,t)] = H_r1_re[one_hex_correlator_index(m,n,t)];
-            C_im[correlator_index(1,Nsrc+m,Nsnk+n,t)] = H_r1_im[one_hex_correlator_index(m,n,t)];
-            C_re[correlator_index(2,Nsrc+m,Nsnk+n,t)] = H_r2_re[one_hex_correlator_index(m,n,t)];
-            C_im[correlator_index(2,Nsrc+m,Nsnk+n,t)] = H_r2_im[one_hex_correlator_index(m,n,t)];
-            C_re[correlator_index(3,Nsrc+m,Nsnk+n,t)] = H_r3_re[one_hex_correlator_index(m,n,t)];
-            C_im[correlator_index(3,Nsrc+m,Nsnk+n,t)] = H_r3_im[one_hex_correlator_index(m,n,t)];
+            BB_H_0_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_0_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r1_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r1_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r2_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r2_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r3_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            BB_H_r3_im[one_hex_correlator_index(m,n,t)] = 0.0;
          }
       }
    }
-   /* BB_H */
    make_dibaryon_hex_correlator(BB_H_0_re, BB_H_0_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B2_Blocal_r2_re, B2_Blocal_r2_im, perms, sigs, overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_snk_psi_re, hex_snk_psi_im);
    make_dibaryon_hex_correlator(BB_H_0_re, BB_H_0_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B2_Blocal_r2_re, B2_Blocal_r2_im, perms, sigs, overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, hex_snk_psi_re, hex_snk_psi_im);
    make_dibaryon_hex_correlator(BB_H_0_re, BB_H_0_im, B1_Blocal_r2_re, B1_Blocal_r2_im, B2_Blocal_r1_re, B2_Blocal_r1_im, perms, sigs, -1.0*overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_snk_psi_re, hex_snk_psi_im);
@@ -1094,7 +1063,29 @@ void make_two_nucleon_2pt(double* C_re,
          }
       }
    } 
-   /* H_BB */
+   // H_BB 
+   double* H_BB_0_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_0_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r1_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r1_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r2_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r2_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r3_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   double* H_BB_r3_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+   for (m=0; m<NsrcHex; m++) {
+      for (n=0; n<Nsnk; n++) {
+         for (t=0; t<Nt; t++) {
+            H_BB_0_re[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_0_im[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r1_re[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r1_im[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r2_re[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r2_im[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r3_re[one_correlator_index(m,n,t)] = 0.0;
+            H_BB_r3_im[one_correlator_index(m,n,t)] = 0.0; 
+         }
+      }
+   }
    if (snk_entangled == 0) {
       double* snk_B1_Blocal_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsrc * Nc * Ns * Nsnk * sizeof (double));
       double* snk_B1_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsrc * Nc * Ns * Nsnk * sizeof (double));
@@ -1157,47 +1148,14 @@ void make_two_nucleon_2pt(double* C_re,
          }
       }
    } 
-   /* clean up */
    free(B1_Blocal_r1_re);
    free(B1_Blocal_r1_im);
    free(B1_Blocal_r2_re);
    free(B1_Blocal_r2_im);
-   free(B1_Bsingle_r1_re);
-   free(B1_Bsingle_r1_im);
-   free(B1_Bsingle_r2_re);
-   free(B1_Bsingle_r2_im);
-   free(B1_Bdouble_r1_re);
-   free(B1_Bdouble_r1_im);
-   free(B1_Bdouble_r2_re);
-   free(B1_Bdouble_r2_im);
    free(B2_Blocal_r1_re);
    free(B2_Blocal_r1_im);
    free(B2_Blocal_r2_re);
    free(B2_Blocal_r2_im);
-   free(B2_Bsingle_r1_re);
-   free(B2_Bsingle_r1_im);
-   free(B2_Bsingle_r2_re);
-   free(B2_Bsingle_r2_im);
-   free(B2_Bdouble_r1_re);
-   free(B2_Bdouble_r1_im);
-   free(B2_Bdouble_r2_re);
-   free(B2_Bdouble_r2_im);
-   free(BB_0_re);
-   free(BB_0_im);
-   free(BB_r1_re);
-   free(BB_r1_im);
-   free(BB_r2_re);
-   free(BB_r2_im);
-   free(BB_r3_re);
-   free(BB_r3_im);
-   free(H_0_re);
-   free(H_0_im);
-   free(H_r1_re);
-   free(H_r1_im);
-   free(H_r2_re);
-   free(H_r2_im);
-   free(H_r3_re);
-   free(H_r3_im);
    free(H_BB_0_re);
    free(H_BB_0_im);
    free(H_BB_r1_re);
@@ -1214,6 +1172,61 @@ void make_two_nucleon_2pt(double* C_re,
    free(BB_H_r2_im);
    free(BB_H_r3_re);
    free(BB_H_r3_im);
+   // H_H 
+   double* H_0_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_0_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r1_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r1_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r2_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r2_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r3_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* H_r3_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+   for (m=0; m<NsrcHex; m++) {
+      for (n=0; n<NsnkHex; n++) {
+         for (t=0; t<Nt; t++) {
+            H_0_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_0_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r1_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r1_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r2_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r2_im[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r3_re[one_hex_correlator_index(m,n,t)] = 0.0;
+            H_r3_im[one_hex_correlator_index(m,n,t)] = 0.0;
+         }
+      }
+   }
+   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, -1.0*overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_0_re, H_0_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, -1.0*overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r1_re, H_r1_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight, snk_color_weights_r1, snk_spin_weights_r1, snk_weights_r1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_r2_1, snk_spin_weights_r2_1, snk_weights_r2_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight/sqrt(2.0), snk_color_weights_r2_1, snk_spin_weights_r2_1, snk_weights_r2_1, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight/sqrt(2.0), snk_color_weights_r2_2, snk_spin_weights_r2_2, snk_weights_r2_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r2_re, H_r2_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, overall_weight/sqrt(2.0), snk_color_weights_r2_2, snk_spin_weights_r2_2, snk_weights_r2_2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   make_hex_correlator(H_r3_re, H_r3_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, perms, sigs, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, overall_weight, snk_color_weights_r3, snk_spin_weights_r3, snk_weights_r3, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im);
+   for (m=0; m<NsrcHex; m++) {
+      for (n=0; n<NsnkHex; n++) {
+         for (t=0; t<Nt; t++) {
+            C_re[correlator_index(0,Nsrc+m,Nsnk+n,t)] = H_0_re[one_hex_correlator_index(m,n,t)];
+            C_im[correlator_index(0,Nsrc+m,Nsnk+n,t)] = H_0_im[one_hex_correlator_index(m,n,t)];
+            C_re[correlator_index(1,Nsrc+m,Nsnk+n,t)] = H_r1_re[one_hex_correlator_index(m,n,t)];
+            C_im[correlator_index(1,Nsrc+m,Nsnk+n,t)] = H_r1_im[one_hex_correlator_index(m,n,t)];
+            C_re[correlator_index(2,Nsrc+m,Nsnk+n,t)] = H_r2_re[one_hex_correlator_index(m,n,t)];
+            C_im[correlator_index(2,Nsrc+m,Nsnk+n,t)] = H_r2_im[one_hex_correlator_index(m,n,t)];
+            C_re[correlator_index(3,Nsrc+m,Nsnk+n,t)] = H_r3_re[one_hex_correlator_index(m,n,t)];
+            C_im[correlator_index(3,Nsrc+m,Nsnk+n,t)] = H_r3_im[one_hex_correlator_index(m,n,t)];
+         }
+      }
+   }
+   free(H_0_re);
+   free(H_0_im);
+   free(H_r1_re);
+   free(H_r1_im);
+   free(H_r2_re);
+   free(H_r2_im);
+   free(H_r3_re);
+   free(H_r3_im);
 }
 
 void make_nucleon_2pt(double* C_re,
@@ -1276,11 +1289,11 @@ void make_nucleon_2pt(double* C_re,
             }
          }
       }
-   }
+   } 
 
    /* clean up */
    free(Blocal_r1_re);
    free(Blocal_r1_im);
    free(Blocal_r2_re);
-   free(Blocal_r2_im);
+   free(Blocal_r2_im); 
 }
