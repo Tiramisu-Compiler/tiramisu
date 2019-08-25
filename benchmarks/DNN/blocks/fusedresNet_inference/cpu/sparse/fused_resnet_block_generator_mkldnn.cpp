@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
+#include <assert.h>
+#include <string.h>
+#include <fstream>
+
 #include "mkldnn.hpp"
 #include "mkldnn_debug.h"
 
@@ -62,8 +66,112 @@ int initRandomSparseMatrix(float* matrix, float density, const int KK, const int
     return n;
 }
 
+void importCSRFromFileAsDense(std::string filename, float** matrix, int* FOUT, int* FIN, int* KK, int* n){
+    std::ifstream cFile (filename);
+    float* values;
+    int* rowptr;
+    int* colidx;
+    int NNZ;
+
+    if (cFile.is_open())
+    {
+        std::string line;
+        // Get first line containing conv size
+
+        getline(cFile, line);
+        std::string delimiter = ",";
+
+        size_t pos = 0;
+        std::string token;
+        // FOUT
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FOUT = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // FIN
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FIN = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // K
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *KK = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *n = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        NNZ = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        values = (float*)malloc((NNZ) * sizeof(float));
+        rowptr = (int*)malloc(((*FOUT) + 1) * sizeof(int));
+        colidx = (int*)malloc((NNZ) * sizeof(int));
+        int i = 0;
+        getline(cFile, line);
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            values[i] = std::stof(line);
+            i++;
+        }
+        assert(i == NNZ);
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            rowptr[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == (*FOUT + 1));
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            colidx[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == NNZ);
+
+        // Transform to dense
+        *matrix = (float*)malloc(((*FOUT) * (*FIN) * (*KK) * (*KK)) * sizeof(float));
+        memset(*matrix, 0.f, ((*FOUT) * (*FIN) * (*KK) * (*KK)) * sizeof(float));
+        for (int fout = 0; fout < *FOUT; fout++){
+          int fstart = rowptr[fout];
+          int fend = rowptr[fout + 1];
+          for(int i = fstart; i < fend; i++){
+            int fin = colidx[i] / (*n + 2) / (*n + 2);
+            int ky = colidx[i] / (*n + 2) % (*n + 2);
+            int kx = colidx[i] % (*n + 2);
+
+            (*matrix)[fout * (*FIN) * (*KK) * (*KK) + fin * (*KK) * (*KK) + ky * (*KK) + kx] = values[i];
+          }
+        }
+        free(values);
+        free(rowptr);
+        free(colidx);
+    }
+    else {
+        std::cerr << "Couldn't open config file for reading.\n";
+    }
+}
+
 void resnet_block()
 {
+    std::string filename1 = "resnet_10.csr"; // Layer 1's weights
+    std::string filename2 = "resnet_10.csr"; // Layer 2's weights
+
     std::vector<double> duration_vector;
 
     engine cpu_engine(engine::kind::cpu, 0);
@@ -83,16 +191,58 @@ void resnet_block()
 
     std::vector<float> input_buf(BATCH_SIZE*FIn*(N+2)*(N+2));
 
-    std::vector<float> conv1_weights_buf(FOut*FIn*K*K);
     std::vector<float> conv1_bias_buf(FOut);
     memory::dims conv1_padding = {0, 0};
 
-    std::vector<float> conv2_weights_buf(FOut*FOut*K*K);
     std::vector<float> conv2_bias_buf(FOut);
-    memory::dims conv2_padding = {1, 1};
 
-    initRandomSparseMatrix(conv1_weights_buf.data(), WEIGHTS_DENSITY, K, FIn, FOut, 2);
-    initRandomSparseMatrix(conv2_weights_buf.data(), WEIGHTS_DENSITY, K, FOut, FOut, 5);
+    memory::dims conv2_padding = {1, 1};
+    int used_FOUT;
+    int used_FIN;
+    int used_K;
+    int n;
+    float* weights1_buf;
+    if (IMPORT_CSR_FROM_FILE){
+      importCSRFromFileAsDense(filename1, &weights1_buf, &used_FOUT, &used_FIN, &used_K, &n);
+    }
+    else{
+      used_FOUT = FOut;
+      used_FIN = FIn;
+      used_K = K;
+      n = N;
+      weights1_buf = (float*) malloc(FOut * FIn * K * K * sizeof(float));
+      initRandomSparseMatrix(weights1_buf, WEIGHTS_DENSITY, K, FIn, FOut, 2);
+    }
+
+    // Assertions to ensure that the generated tiramisu code has the right parameters
+    // because we are defining the parameters in the configure.h files to get specialized fast code
+    assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+    assert((used_FIN == FIn) && ("FIn parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+    assert((used_K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+    assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
+
+    float* weights2_buf;
+    if (IMPORT_CSR_FROM_FILE){
+      importCSRFromFileAsDense(filename2, &weights2_buf, &used_FOUT, &used_FIN, &used_K, &n);
+    }
+    else{
+      used_FOUT = FOut;
+      used_FIN = FIn;
+      used_K = K;
+      n = N;
+      weights2_buf = (float*) malloc(FOut * FIn * K * K * sizeof(float));
+      initRandomSparseMatrix(weights2_buf, WEIGHTS_DENSITY, K, FOut, FOut, 5);
+    }
+
+    // Assertions to ensure that the generated tiramisu code has the right parameters
+    // because we are defining the parameters in the configure.h files to get specialized fast code
+    assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+    assert((used_FIN == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+    assert((used_K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+    assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
+
+    std::vector<float> conv1_weights_buf(weights1_buf, weights1_buf + FOut*FIn*K*K);
+    std::vector<float> conv2_weights_buf(weights2_buf, weights2_buf + FOut*FOut*K*K);
 
     srand(3);
     for (int n = 0; n < BATCH_SIZE; ++n)
