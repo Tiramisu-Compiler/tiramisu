@@ -4,9 +4,11 @@
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
 #include "configure.h"
 // Original version by: Kyle Spafford Adapted for CSR format
-void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size)
+void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size, int seed)
 {
     int nnzAssigned = 0;
     // Figure out the probability that a nonzero should be assigned to a given
@@ -15,7 +17,7 @@ void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, c
     double prob = (double)n / ((double) total_num_entries);
 
     // Seed random number generator
-    srand(1);
+    srand(seed);
 
     // Randomly decide whether entry gets a value, but ensure n values
     // are assigned
@@ -52,16 +54,95 @@ void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, c
     assert(nnzAssigned == n);
 }
 
-int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size)
+int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size, int seed)
 {
   int nNonzero = KK * KK * fin_size * fout_size * density;
   *filter_values = (float *) malloc(nNonzero * sizeof(float));
   *filter_idx = (int *) malloc(nNonzero * sizeof(int));
   *filter_finptr = (int *) malloc((fout_size + 1) * sizeof(int));
-  initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size);
+  initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size, seed);
   return nNonzero;
 }
 
+void importCSRFromFile(std::string filename, float** values, int** rowptr, int** colidx, int* FOUT, int* FIN, int* KK, int* NNZ, int* n){
+    std::ifstream cFile (filename);
+
+    if (cFile.is_open())
+    {
+        std::string line;
+        // Get first line containing conv size
+
+        getline(cFile, line);
+        std::string delimiter = ",";
+
+        size_t pos = 0;
+        std::string token;
+        // FOUT
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FOUT = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // FIN
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FIN = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // K
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *KK = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *n = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *NNZ = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        *values = (float*)malloc((*NNZ) * sizeof(float));
+        *rowptr = (int*)malloc(((*FOUT) + 1) * sizeof(int));
+        *colidx = (int*)malloc((*NNZ) * sizeof(int));
+        int i = 0;
+        getline(cFile, line);
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*values)[i] = std::stof(line);
+            i++;
+        }
+        assert(i == *NNZ);
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*rowptr)[i] = std::stoi(line);
+            i++;
+        }
+        //printf(" DENSITY : %f\n", (float)(*NNZ)/ ((float)(*FOUT) * (*FIN) * (*KK) * (*KK)));
+        assert(i == (*FOUT + 1));
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*colidx)[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == *NNZ);
+    }
+    else {
+        std::cerr << "Couldn't open config file for reading.\n";
+    }
+}
 int main(int, char **)
 {
   std::vector<double> duration_vector;
@@ -70,33 +151,54 @@ int main(int, char **)
   // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
+  std:: string filename = "resnet_10.csr";
 
   float *filter_values;
   int *filter_idx;
   int *filter_finptr;
 
-  int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut);
+  int FNNZ;
+  int used_FOUT;
+  int used_FIN;
+  int used_K;
+  int n;
+  if (IMPORT_CSR_FROM_FILE)
+    importCSRFromFile(filename, &filter_values, &filter_finptr, &filter_idx, &used_FOUT, &used_FIN, &used_K, &FNNZ, &n);
+  else{
+    used_FOUT = FOut;
+    used_FIN = FIn;
+    used_K = K;
+    n = N;
+    FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, used_K, used_FIN, used_FOUT, 3);
+  }
+
+  // Assertions to ensure that the generated tiramisu code has the right parameters
+  // because we are defining the parameters in the configure.h files to get specialized fast code
+  assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+  assert((used_FIN == FIn) && ("FIn parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+  assert((used_K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+  assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
 
   Halide::Buffer<int> b_SIZES(1);
   b_SIZES(0) = FNNZ;
-  Halide::Buffer<float> b_input((N+2) * (N+2) * FIn, BATCH_SIZE);
+  Halide::Buffer<float> b_input((N+2) * (N+2) * used_FIN, BATCH_SIZE);
 
   Halide::Buffer<float> b_filter_values(filter_values, FNNZ);
   Halide::Buffer<int> b_filter_idx(filter_idx, FNNZ);
-  Halide::Buffer<int> b_filter_finptr(filter_finptr, FOut + 1);
+  Halide::Buffer<int> b_filter_finptr(filter_finptr, used_FOUT + 1);
 
-  Halide::Buffer<float> b_bias(FOut);
+  Halide::Buffer<float> b_bias(used_FOUT);
 
-  Halide::Buffer<float> b_result(N, N, FOut, BATCH_SIZE);
+  Halide::Buffer<float> b_result(N, N, used_FOUT, BATCH_SIZE);
 
   srand(2);
   for (int n=0; n < BATCH_SIZE; ++n)
-    for (int z=0; z < FIn; ++z)
+    for (int z=0; z < used_FIN; ++z)
       for (int y=0; y < N+2; ++y)
         for (int x=0; x < N+2; ++x)
             b_input(x + y * (N + 2) + z* (N + 2) * (N + 2), n) = ((float)(rand()%256 - 128)) / 127.f;
 
-  for (int q=0; q<FOut; q++)
+  for (int q=0; q<used_FOUT; q++)
     b_bias(q) = ((float)(rand()%256 - 128)) / 127.f;
 
   std::cout << "Buffers Initialized" << std::endl;
@@ -132,7 +234,7 @@ int main(int, char **)
     }
 
     for(int b=0; b<BATCH_SIZE; b++)
-      for(int fout=0; fout<FOut; fout++)
+      for(int fout=0; fout<used_FOUT; fout++)
         for(int y=0; y<N; y++)
           for(int x=0; x<N; x++)
             fprintf(f, "%.17g\n", b_result(x, y, fout, b));
@@ -147,7 +249,7 @@ int main(int, char **)
     long nb_correct = 0;
 
     for(int b=0; b<BATCH_SIZE; b++)
-      for(int fout=0; fout<FOut; fout++)
+      for(int fout=0; fout<used_FOUT; fout++)
         for(int y=0; y<N; y++)
           for(int x=0; x< N; x++){
             mkldnn_result >> tmp;
@@ -155,7 +257,7 @@ int main(int, char **)
               nb_correct++;
           }
 
-    std::cout << "\n\t\tPercentage of correctness " << 100*(((double)nb_correct)/(BATCH_SIZE * FOut * N * N)) << "%" << std::endl << std::endl;
+    std::cout << "\n\t\tPercentage of correctness " << 100*(((double)nb_correct)/(BATCH_SIZE * used_FOUT * N * N)) << "%" << std::endl << std::endl;
   }
 
   free(filter_idx);
