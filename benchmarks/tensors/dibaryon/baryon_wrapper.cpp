@@ -16,13 +16,20 @@ int main(int, char **)
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
     std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-    std::complex<double> (*Blocal) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt]);
-    std::complex<double> (*Bsingle) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
-    std::complex<double> (*Bdouble) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
-    std::complex<double> (*prop) [Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nq][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
-    std::complex<double> (*Q) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
-    std::complex<double> (*O) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
-    std::complex<double> (*P) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_Blocal_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt]);
+    std::complex<double> (*B1_Blocal_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt]);
+    std::complex<double> (*B1_Bsingle_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*B1_Bsingle_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*B1_Bdouble_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*B1_Bdouble_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Vsnk][Lt]);
+    std::complex<double> (*B1_prop) [Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nq][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_Q_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_Q_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_O_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_O_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_P_r1) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+    std::complex<double> (*B1_P_r2) [Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc] = new (std::complex<double> [Nsrc][Nc][Ns][Nc][Ns][Nc][Ns][Vsnk][Lt][Vsrc]);
+
     int color_weights[Nw][Nq];
     int spin_weights[Nw][Nq];
     double weights[Nw];
@@ -40,14 +47,17 @@ int main(int, char **)
     std::cout << std::endl;
 
     // Blocal
-    // Blocal_r: tiramisu real part of Blocal.
-    // Blocal_i: tiramisu imaginary part of Blocal.
-    Halide::Buffer<double> Blocal_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Blocal_r");
-    Halide::Buffer<double> Blocal_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Blocal_i");
+    // B1_Blocal_r1_r: tiramisu real part of Blocal.
+    // B1_Blocal_r1_i: tiramisu imaginary part of Blocal.
+    Halide::Buffer<double> B1_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Blocal_r1_r");
+    Halide::Buffer<double> B1_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Blocal_r1_i");
+
+    Halide::Buffer<double> B1_Blocal_r2_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Blocal_r2_r");
+    Halide::Buffer<double> B1_Blocal_r2_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Blocal_r2_i");
 
     // prop
-    Halide::Buffer<double> prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "prop_r");
-    Halide::Buffer<double> prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "prop_i");
+    Halide::Buffer<double> B1_prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B1_prop_r");
+    Halide::Buffer<double> B1_prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B1_prop_i");
 
     // psi
     Halide::Buffer<double> psi_r(Vsrc, Nsrc, "psi_r");
@@ -57,25 +67,24 @@ int main(int, char **)
     Halide::Buffer<int> spin_weights_t(Nq, Nw, "spin_weights_t");
     Halide::Buffer<double> weights_t(Nw, "weights_t");
 
-    Halide::Buffer<double> Bsingle_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bsingle_r");
-    Halide::Buffer<double> Bsingle_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bsingle_i");
+    Halide::Buffer<double> B1_Bsingle_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r1_r");
+    Halide::Buffer<double> B1_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r1_i");
 
-    Halide::Buffer<double> Q_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_r");
-    Halide::Buffer<double> Q_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "Q_i");
-    Halide::Buffer<double> O_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "O_r");
-    Halide::Buffer<double> O_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "O_i");
-    Halide::Buffer<double> P_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_r");
-    Halide::Buffer<double> P_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Ns, Nc, Nsrc, Lt, "P_i");
+    Halide::Buffer<double> B1_Bsingle_r2_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r2_r");
+    Halide::Buffer<double> B1_Bsingle_r2_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r2_i");
 
-    Halide::Buffer<double> Bdouble_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bdouble_r");
-    Halide::Buffer<double> Bdouble_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "Bdouble_i");
+    Halide::Buffer<double> B1_Bdouble_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r1_r");
+    Halide::Buffer<double> B1_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r1_i");
+
+    Halide::Buffer<double> B1_Bdouble_r2_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r2_r");
+    Halide::Buffer<double> B1_Bdouble_r2_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r2_i");
 
     std::cout << "Start data initialization." <<  std::endl;
 
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
    {
-       weights[wnum] = test_weights[wnum];
+       weights[wnum] = src_weights_r1[wnum];
    }
 
    for (int n=0; n<Nsrc; n++)
@@ -101,18 +110,18 @@ int main(int, char **)
 			    double v1 = rand()%10;
 			    double v2 = rand()%10;
 			    std::complex<double> c(v1, v2);
-			    prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = c;
-			    prop_r(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v1;
-			    prop_i(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v2;
+			    B1_prop[tri][iCprime][iSprime][jCprime][jSprime][x][t][y] = c;
+			    B1_prop_r(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v1;
+			    B1_prop_i(y, x, jSprime, jCprime, iSprime, iCprime, t, tri) = v2;
  		        }
 
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = test_color_weights[wnum][tri];
-		color_weights_t(tri, wnum) = test_color_weights[wnum][tri];
-		spin_weights[wnum][tri] = test_spin_weights[wnum][tri];
-		spin_weights_t(tri, wnum) = test_spin_weights[wnum][tri];
+		color_weights[wnum][tri] = src_color_weights_r1[wnum][tri];
+		color_weights_t(tri, wnum) = src_color_weights_r1[wnum][tri];
+		spin_weights[wnum][tri] = src_spin_weights_r1[wnum][tri];
+		spin_weights_t(tri, wnum) = src_spin_weights_r1[wnum][tri];
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
@@ -124,9 +133,14 @@ int main(int, char **)
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start2 = std::chrono::high_resolution_clock::now();
 
-	    make_local_block(Blocal, prop, color_weights, spin_weights, weights, psi);
-	    make_single_block(Bsingle, prop, color_weights, spin_weights, weights, psi, Q);
-	    make_double_block(Bdouble, prop, color_weights, spin_weights, weights, psi, O, P);
+	    make_local_block(B1_Blocal_r1, B1_prop, color_weights, spin_weights, weights, psi);
+	    make_single_block(B1_Bsingle_r1, B1_prop, color_weights, spin_weights, weights, psi, B1_Q_r1);
+	    make_double_block(B1_Bdouble_r1, B1_prop, color_weights, spin_weights, weights, psi, B1_O_r1, B1_P_r1);
+
+	    make_local_block(B1_Blocal_r2, B1_prop, color_weights, spin_weights, weights, psi);
+	    make_single_block(B1_Bsingle_r2, B1_prop, color_weights, spin_weights, weights, psi, B1_Q_r2);
+	    make_double_block(B1_Bdouble_r2, B1_prop, color_weights, spin_weights, weights, psi, B1_O_r2, B1_P_r2);
+
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
@@ -143,16 +157,22 @@ int main(int, char **)
 	    auto start1 = std::chrono::high_resolution_clock::now();
 
 
-	    tiramisu_generated_code(Blocal_r.raw_buffer(),
-				    Blocal_i.raw_buffer(),
-				    prop_r.raw_buffer(),
-				    prop_i.raw_buffer(),
+	    tiramisu_generated_code(B1_Blocal_r1_r.raw_buffer(),
+				    B1_Blocal_r1_i.raw_buffer(),
+				    B1_Blocal_r2_r.raw_buffer(),
+				    B1_Blocal_r2_i.raw_buffer(),
+				    B1_prop_r.raw_buffer(),
+				    B1_prop_i.raw_buffer(),
 				    psi_r.raw_buffer(),
 				    psi_i.raw_buffer(),
-				    Bsingle_r.raw_buffer(),
-				    Bsingle_i.raw_buffer(),
-				    Bdouble_r.raw_buffer(),
-				    Bdouble_i.raw_buffer());
+				    B1_Bsingle_r1_r.raw_buffer(),
+				    B1_Bsingle_r1_i.raw_buffer(),
+				    B1_Bsingle_r2_r.raw_buffer(),
+				    B1_Bsingle_r2_i.raw_buffer(),
+				    B1_Bdouble_r1_r.raw_buffer(),
+				    B1_Bdouble_r1_i.raw_buffer(),
+				    B1_Bdouble_r2_r.raw_buffer(),
+				    B1_Bdouble_r2_i.raw_buffer());
 
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
@@ -174,10 +194,16 @@ int main(int, char **)
 			for (int kSprime=0; kSprime<Ns; kSprime++)
 			   for (int x=0; x<Vsnk; x++)
 			      for (int t=0; t<Lt; t++)
-				  if (std::abs(Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-						    Blocal_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01)
+				  if ((std::abs(B1_Blocal_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
+					        B1_Blocal_r1_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				      (std::abs(B1_Blocal_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
+					        B1_Blocal_r2_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				      (std::abs(B1_Blocal_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].imag() -
+					        B1_Blocal_r1_i(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				      (std::abs(B1_Blocal_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].imag() -
+					        B1_Blocal_r2_i(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01))
 				  {
-				      std::cout << "Error: different computed values for Blocal! Ref = " << Blocal[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() << " - Tiramisu = " << Blocal_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t) << std::endl;
+				      std::cout << "Error: different computed values for B1_Blocal_r1 or B1_Blocal_r2!" << std::endl;
 				      exit(1);
 				  }
 
@@ -191,10 +217,16 @@ int main(int, char **)
 			   for (int x=0; x<Vsnk; x++)
 			     for (int x2=0; x2<Vsnk; x2++)
 				 for (int t=0; t<Lt; t++)
-				 if (std::abs(Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					     Bsingle_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01)
+				 if ((std::abs(B1_Bsingle_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
+					       B1_Bsingle_r1_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				     (std::abs(B1_Bsingle_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
+					       B1_Bsingle_r2_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				     (std::abs(B1_Bsingle_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
+					       B1_Bsingle_r1_i(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
+				     (std::abs(B1_Bsingle_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
+					       B1_Bsingle_r2_i(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01))
 				  {
-				      std::cout << "Error: different computed values for Bsingle! Ref = " << Bsingle[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bsingle_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t) << std::endl;
+				      std::cout << "Error: different computed values for B1_Bsingle_r1 or B1_Bsingle_r2!" << std::endl;
 				      exit(1);
 				  }
 
@@ -208,10 +240,16 @@ int main(int, char **)
                        for (int x=0; x<Vsnk; x++)
 		         for (int x2=0; x2<Vsnk; x2++)
 			     for (int t=0; t<Lt; t++)
-                             if (std::abs(Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					 Bdouble_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01)
+                             if ((std::abs(B1_Bdouble_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
+					   B1_Bdouble_r1_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01) ||
+				 (std::abs(B1_Bdouble_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
+					   B1_Bdouble_r2_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01) ||
+				 (std::abs(B1_Bdouble_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
+					   B1_Bdouble_r1_i(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01) ||
+				 (std::abs(B1_Bdouble_r2[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
+					   B1_Bdouble_r2_i(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01))
 			      {
-				  std::cout << "Error: different computed values for Bdouble! Ref = " << Bdouble[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() << " - Tiramisu = " << Bdouble_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t) << std::endl;
+				  std::cout << "Error: different computed values for B1_Bdouble_r1 or B1_Bdouble_r2!" << std::endl;
 				  exit(1);
 			      }
 #endif

@@ -3,6 +3,7 @@
 
 #include <sys/time.h>
 
+#define IMPORT_CSR_FROM_FILE 1
 #define SHOW_OUTPUT 0
 #define WRITE_RESULT_TO_FILE 1
 #define CHECK_CORRECTNESS 1
@@ -34,7 +35,7 @@
 
 // Number of features in the input
 #define FIn 32
-#define FIN_BL 8
+#define FIN_BL 16 // Used only when IMPORT_CSR_FROM_FILE is at 0, otherwise, the blocked traversal is generated via the python script that exports the layer in CSR format
 
 // Number of features in the output
 #define FOut 32
@@ -44,15 +45,15 @@
 // Size of convolution filter (KxK)
 #define K 3
 
-#define WEIGHTS_DENSITY 0.2
+#define WEIGHTS_DENSITY 0.15
 
-#define NB_TESTS 101
+#define NB_TESTS 201
 
 // Parameters to tune
-#define X_BL 8
+#define X_BL 32
 #define X_NB_BL (N/X_BL)
 
-#define Y_BL 4
+#define Y_BL 2
 #define Y_NB_BL (N/Y_BL)
 
 #ifdef __cplusplus

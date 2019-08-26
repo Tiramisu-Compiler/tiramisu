@@ -3,6 +3,7 @@
 
 #include <sys/time.h>
 
+#define IMPORT_CSR_FROM_FILE 0
 #define SHOW_OUTPUT 0
 #define WRITE_RESULT_TO_FILE 1
 #define CHECK_CORRECTNESS 1
@@ -34,7 +35,7 @@
 
 // Number of features in the input
 #define FIn 32
-#define FIN_BL 2
+#define FIN_BL 2 // Used only in the case where IMPORT_CSR_FROM_FILE = 0, to block FIN when IMPORT_CSR_FROM_FILE = 1, you need to do it through the python script
 
 // Number of features in the output
 #define FOut 32

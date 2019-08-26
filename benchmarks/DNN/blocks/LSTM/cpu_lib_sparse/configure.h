@@ -2,6 +2,10 @@
 #define __LSTM_CPULIB_CONF_HEADER_
 
 #include <sys/time.h>
+#include <vector>
+
+#define VEC_LEN 8
+#define WEIGHTS_DENSITY 0.15
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
@@ -19,12 +23,11 @@
 #endif
 
 #define FEATURE_SIZE 1024
-#define SEQ_LENGTH 10
+#define SEQ_LENGTH 100
 #define NUM_LAYERS 4
 
 // Parameters for Tiramisu code
 #define GEMM_BATCH SEQ_LENGTH
-#define VEC_LEN 8
 
 #define NB_TESTS 101
 

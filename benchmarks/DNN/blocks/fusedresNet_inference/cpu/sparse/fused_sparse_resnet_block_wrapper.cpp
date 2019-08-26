@@ -4,6 +4,8 @@
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <algorithm>
 #include "configure.h"
 // Original version by: Kyle Spafford Adapted for CSR format
 void initRandomWeights(float* fin_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size, int seed)
@@ -62,6 +64,86 @@ int generateCSRWeights(float **filter_values, float density, int **filter_idx, i
   return nNonzero;
 }
 
+
+void importCSRFromFile(std::string filename, float** values, int** rowptr, int** colidx, int* FOUT, int* FIN, int* KK, int* NNZ, int* n){
+    std::ifstream cFile (filename);
+
+    if (cFile.is_open())
+    {
+        std::string line;
+        // Get first line containing conv size
+
+        getline(cFile, line);
+        std::string delimiter = ",";
+
+        size_t pos = 0;
+        std::string token;
+        // FOUT
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FOUT = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // FIN
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *FIN = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // K
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *KK = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *n = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        *NNZ = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        *values = (float*)malloc((*NNZ) * sizeof(float));
+        *rowptr = (int*)malloc(((*FOUT) + 1) * sizeof(int));
+        *colidx = (int*)malloc((*NNZ) * sizeof(int));
+        int i = 0;
+        getline(cFile, line);
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*values)[i] = std::stof(line);
+            i++;
+        }
+        assert(i == *NNZ);
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*rowptr)[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == (*FOUT + 1));
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            (*colidx)[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == *NNZ);
+    }
+    else {
+        std::cerr << "Couldn't open config file for reading.\n";
+    }
+}
+
 int main(int, char **)
 {
   std::vector<double> duration_vector;
@@ -70,12 +152,35 @@ int main(int, char **)
   // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
+  std::string filename = "resnet_10.csr";
+  std::string filename2 = "resnet_10.csr";
 
   float *filter_values;
   int *filter_idx;
   int *filter_finptr;
 
-  int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut, 2);
+  int FNNZ;
+  int used_FOUT;
+  int used_FIN;
+  int used_K;
+  int n;
+  if (IMPORT_CSR_FROM_FILE)
+    importCSRFromFile(filename, &filter_values, &filter_finptr, &filter_idx, &used_FOUT, &used_FIN, &used_K, &FNNZ, &n);
+  else{
+    used_FOUT = FOut;
+    used_FIN = FIn;
+    used_K = K;
+    n = N;
+    FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut, 2);
+  }
+  printf("Layer 1 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ / (FOut * FIn * K * K))*100, filename.c_str());
+
+  // Assertions to ensure that the generated tiramisu code has the right parameters
+  // because we are defining the parameters in the configure.h files to get specialized fast code
+  assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+  assert((used_FIN == FIn) && ("FIn parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+  assert((used_K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+  assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
 
   Halide::Buffer<int> b_SIZES(2);
   b_SIZES(0) = FNNZ;
@@ -94,12 +199,28 @@ int main(int, char **)
   Halide::Buffer<float> b_conv1_result(N + 2, N + 2, FOut, BATCH_SIZE);
 
   // Second convolution
-
   float *filter_values2;
   int *filter_idx2;
   int *filter_finptr2;
 
-  int FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, 5);
+  int FNNZ2;
+  if (IMPORT_CSR_FROM_FILE)
+    importCSRFromFile(filename2, &filter_values2, &filter_finptr2, &filter_idx2, &used_FOUT, &used_FIN, &used_K, &FNNZ2, &n);
+  else{
+    used_FOUT = FOut;
+    used_FIN = FOut;
+    used_K = K;
+    n = N;
+    FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, 5);
+  }
+  printf("Layer 2 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ2 / (FOut * FOut * K * K))*100, filename2.c_str());
+  // Assertions to ensure that the generated tiramisu code has the right parameters
+  // because we are defining the parameters in the configure.h files to get specialized fast code
+  assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+  assert((used_FIN == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+  assert((used_K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+  assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
+
   b_SIZES(1) = FNNZ2;
   Halide::Buffer<float> b_filter_values2(filter_values2, FNNZ2);
   Halide::Buffer<int> b_filter_idx2(filter_idx2, FNNZ2);
