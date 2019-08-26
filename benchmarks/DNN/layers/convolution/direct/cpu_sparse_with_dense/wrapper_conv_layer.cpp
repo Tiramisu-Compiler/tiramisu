@@ -15,8 +15,10 @@ int main(int, char**)
 	Halide::Buffer<float> input(FIN_BLOCKING, N + 2, N + 2, FIN_NB_BLOCKS, BATCH_SIZE);
 	Halide::Buffer<float> filter(FOUT_BLOCKING, FIN_BLOCKING, K, K, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
 	Halide::Buffer<float> filter2(FOUT_BLOCKING, FIN_BLOCKING, 3, FIN_NB_BLOCKS, FOUT_NB_BLOCKS);
+	Halide::Buffer<int8_t> zero_weight_filters_per_output_channel(FOut);
 	Halide::Buffer<float> bias(FOut);
 	Halide::Buffer<float> conv(FOUT_BLOCKING, N, N, FOUT_NB_BLOCKS, BATCH_SIZE);
+
 
 	// Initialize buffers
 	for (int n = 0; n < BATCH_SIZE; ++n)
@@ -33,48 +35,8 @@ int main(int, char**)
 			for (int k_y = 0; k_y < K; ++k_y)
 				for (int k_x = 0; k_x < K; ++k_x)
 				{
-					if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
+					if (zero_weights < zero_weight_filters_per_output_channel[fout])
 	 				        filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 0)
-						{
-					            filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						    filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-					    	    filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 1)
-						{
-							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-							filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-							filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-
-					}
-					else if (zero_weights < ZERO_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_0_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_1_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL +
-								PATTERN_2_WEIGHT_FILTERS_PER_OUTPUT_CHANNEL)
-					{
-						if (k_y == 2)
-						{
-					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-					    		filter2(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 1;
-						}
-						else
-					    		filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
-
-					}
 					else
 						filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
 				}
@@ -96,6 +58,7 @@ int main(int, char**)
 			input.raw_buffer(), 
 			filter.raw_buffer(), 
 			filter2.raw_buffer(),
+			zero_weight_filters_per_output_channel.raw_buffer(),
 			bias.raw_buffer(), 
 			conv.raw_buffer()
 		);

@@ -42,15 +42,26 @@ def count_pattern(d, pattern):
 
 def count_pattern_per_output_channel(d, pattern):
     nb_pat = 32
-    for i in range(0,32):
+    final_histogram_of_patterns_per_input_channel = [0] * 32
+    for i in range(0,32): # for each output channel
+	histogram_of_patterns_per_input_channel = [0] * 32
 	old_nb_pat = nb_pat;
 	new_nb_pat = 0;
-	for j in range(0,32):
+	for j in range(0,32): # for each input channel
 	    s = d[i,j]
 	    if array_has_pattern(s, pattern) == True:
 		new_nb_pat += 1;
+		histogram_of_patterns_per_input_channel[j] += 1;
+		final_histogram_of_patterns_per_input_channel[j] += 1;
 	print("Patterns in output channel " + str(i) + " : " + str(new_nb_pat));
 	nb_pat = min(old_nb_pat, new_nb_pat)
+        print("Histogram of patterns for output channel " + str(i) + ": ");
+	for j in range(0,32):
+	    print(str(histogram_of_patterns_per_input_channel[j]) + " "),
+	print("")
+    print("\nFinal histogram of patterns for all input channels: ");
+    for j in range(0,32):
+	    print(str(final_histogram_of_patterns_per_input_channel[j]) + " "),
     return nb_pat;
 
 def count_patterns(d, patterns, excluded_patterns):
