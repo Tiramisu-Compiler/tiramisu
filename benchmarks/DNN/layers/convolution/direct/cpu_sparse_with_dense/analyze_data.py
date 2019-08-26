@@ -3,9 +3,24 @@
 import numpy as np
 import sys
 
-RARE_CASES=True
+Channels = 32
+
+RARE_CASES=False
+ANALYSIS_0=True
 ANALYSIS_1=False
-ANALYSIS_2=True
+ANALYSIS_2=False
+ANALYSIS_3=False
+ANALYSIS_4=False
+ANALYSIS_5=False
+ANALYSIS_6=False
+ANALYSIS_7=False
+ANALYSIS_8=False
+ANALYSIS_9=False
+ANALYSIS_10=False
+ANALYSIS_11=False
+
+# Format is [OutChannels, InChannels, 3, 3]
+PRODUCE_CSV_FRIENDLY_OUTPUT=True
 
 def is_zero(s):
     is_zeroo = True
@@ -33,34 +48,36 @@ def array_has_pattern(s, pattern):
 
 def count_pattern(d, pattern):
     nb_pat = 0
-    for i in range(0,32):
-	for j in range(0,32):
+    for i in range(0,Channels):
+	for j in range(0,Channels):
 	    s = d[i,j]
 	    if array_has_pattern(s, pattern) == True:
 		nb_pat += 1;
     return nb_pat;
 
 def count_pattern_per_output_channel(d, pattern):
-    nb_pat = 32
-    final_histogram_of_patterns_per_input_channel = [0] * 32
-    for i in range(0,32): # for each output channel
-	histogram_of_patterns_per_input_channel = [0] * 32
+    nb_pat = Channels
+    final_histogram_of_patterns_per_input_channel = [0] * Channels
+    for i in range(0,Channels): # for each output channel
+	histogram_of_patterns_per_input_channel = [0] * Channels
 	old_nb_pat = nb_pat;
 	new_nb_pat = 0;
-	for j in range(0,32): # for each input channel
+	for j in range(0,Channels): # for each input channel
 	    s = d[i,j]
 	    if array_has_pattern(s, pattern) == True:
 		new_nb_pat += 1;
 		histogram_of_patterns_per_input_channel[j] += 1;
 		final_histogram_of_patterns_per_input_channel[j] += 1;
-	print("Patterns in output channel " + str(i) + " : " + str(new_nb_pat));
+	if (PRODUCE_CSV_FRIENDLY_OUTPUT == False):
+	    print("Patterns in output channel " + str(i) + " : " + str(new_nb_pat));
 	nb_pat = min(old_nb_pat, new_nb_pat)
-        print("Histogram of patterns for output channel " + str(i) + ": ");
-	for j in range(0,32):
-	    print(str(histogram_of_patterns_per_input_channel[j]) + " "),
+	if (PRODUCE_CSV_FRIENDLY_OUTPUT == False):
+	    print("Histogram of patterns for output channel " + str(i) + ": ");
+	for j in range(0,Channels):
+	    print(str(histogram_of_patterns_per_input_channel[j]) + ";"),
 	print("")
     print("\nFinal histogram of patterns for all input channels: ");
-    for j in range(0,32):
+    for j in range(0,Channels):
 	    print(str(final_histogram_of_patterns_per_input_channel[j]) + " "),
     return nb_pat;
 
@@ -77,7 +94,7 @@ def count_patterns(d, patterns, excluded_patterns):
     print("\nPatterns excluded:\n")
     for e in excluded_patterns:
 	print(np.array2string(e))
-    print("\nNumber of patterns: " + str(nb_pat) + "/" + str(32*32) + " = " + str((nb_pat*100)/(32*32)) + "%\n")
+    print("\nNumber of patterns: " + str(nb_pat) + "/" + str(Channels*Channels) + " = " + str((nb_pat*100)/(Channels*Channels)) + "%\n")
 
 def count_patterns_per_output_channel(d, patterns, excluded_patterns):
     print("------ Counting patterns per output channel ------ \n")
@@ -88,11 +105,12 @@ def count_patterns_per_output_channel(d, patterns, excluded_patterns):
     for e in excluded_patterns:
 	print(np.array2string(e))
     nb_pat = 0
+    print("\nPattern CSV:\n")
     for p in patterns:
 	nb_pat += count_pattern_per_output_channel(d, p)
     for excluded in excluded_patterns:
 	nb_pat -= count_pattern_per_output_channel(d, excluded)
-    print("\nNumber of patterns per output channel: " + str(nb_pat) + "/" + str(32) + " = " + str((nb_pat*100)/(32)) + "%\n")
+    print("\nNumber of patterns per output channel: " + str(nb_pat) + "/" + str(Channels) + " = " + str((nb_pat*100)/(Channels)) + "%\n")
 
 
 def main():
@@ -109,6 +127,12 @@ def main():
     print("--------------------------------------------------------------------------------")
     print("Analyzing file: " + data_file)
     print("--------------------------------------------------------------------------------")
+
+    if (ANALYSIS_0):
+	count_patterns_per_output_channel(d, [np.array([[0,0,0],
+						        [0,0,0],
+						        [0,0,0]])],
+						       [])
 
     if (ANALYSIS_1):
 	count_patterns(d, [np.array([[0,0,0],
@@ -262,7 +286,43 @@ def main():
 							[0,0,0],
 							[0,0,0]])],
 					     [])
+    if (ANALYSIS_3):
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[ 0, 0, 0],
+							[ 0, 0, 0]])],
+					     [])
 
+    if (ANALYSIS_4):
+	count_patterns_per_output_channel(d, [np.array([[ 0, 0, 0],
+							[-1,-1,-1],
+							[ 0, 0, 0]])],
+					     [])
+
+    if (ANALYSIS_5):
+	count_patterns_per_output_channel(d, [np.array([[ 0, 0, 0],
+							[ 0, 0, 0],
+							[-1,-1,-1]])],
+					     [])
+
+    if (ANALYSIS_6):
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1,-1,-1],
+							[ 0, 0, 0]])],
+					     [])
+
+    if (ANALYSIS_7):
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[ 0, 0, 0],
+							[-1,-1,-1]])],
+					     [])
+
+    if (ANALYSIS_8):
+	count_patterns_per_output_channel(d, [np.array([[ 0, 0, 0],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+
+    if (ANALYSIS_9):
 	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
 							[ 0, 0, 0],
 							[ 0, 0, 0]])],
@@ -283,6 +343,62 @@ def main():
 					    [np.array([[0, 0, 0],
 						       [0, 0, 0],
 						       [0, 0, 0]])])
+    if (ANALYSIS_10):
+	count_patterns_per_output_channel(d, [np.array([[-1, 0, 0],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[0, -1, 0],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[ 0, 0,-1],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+    if (ANALYSIS_11):
+	count_patterns_per_output_channel(d, [np.array([[-1, 0,-1],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1, 0],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[ 0,-1,-1],
+							[-1,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1, 0,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[ 0,-1,-1],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1,-1, 0],
+							[-1,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1,-1,-1],
+							[ 0,-1,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1,-1,-1],
+							[-1, 0,-1]])],
+					     [])
+	count_patterns_per_output_channel(d, [np.array([[-1,-1,-1],
+							[-1,-1,-1],
+							[-1,-1, 0]])],
+					     [])
+
+
+
+
+
+
 
 
 main()
