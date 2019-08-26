@@ -64,7 +64,6 @@ int generateCSRWeights(float **filter_values, float density, int **filter_idx, i
   return nNonzero;
 }
 
-
 void importCSRFromFile(std::string filename, float** values, int** rowptr, int** colidx, int* FOUT, int* FIN, int* KK, int* NNZ, int* n){
     std::ifstream cFile (filename);
 
