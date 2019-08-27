@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # For convenience, disable warnings of type FutureWarning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
