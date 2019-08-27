@@ -5,12 +5,8 @@ import numpy as np
 import time, os
 
 import tvm
-from tvm import relay
-from tvm import autotvm
-from tvm.relay import testing
-from tvm.autotvm.tuner import XGBTuner, GATuner, RandomTuner, GridSearchTuner
-from tvm.autotvm.graph_tuner import DPTuner, PBQPTuner
 import tvm.contrib.graph_runtime as runtime
+from tvm import relay
 
 import tensorflow as tf
 import tvm.relay.testing.tf as tf_testing
