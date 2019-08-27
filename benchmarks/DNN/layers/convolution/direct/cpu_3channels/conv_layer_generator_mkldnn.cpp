@@ -8,6 +8,8 @@
 #include "mkldnn.hpp"
 #include "configure.h"
 
+#define USE_GEMM_CONV false
+
 using namespace mkldnn;
 using namespace std;
 
@@ -106,6 +108,12 @@ void conv()
         conv_d,
         cpu_engine
     );
+    
+    // Force MKL-DNN to use GEMM-based conv
+    if (USE_GEMM_CONV) {
+        while (std::string(conv_pd.impl_info_str()).find("gemm") == std::string::npos)
+            conv_pd.next_impl();
+    }
 
     auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
 
