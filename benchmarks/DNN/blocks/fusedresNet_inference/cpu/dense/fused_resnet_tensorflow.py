@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # For convenience, disable warnings of type FutureWarning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -10,9 +8,9 @@ import time, sys
 
 from tensorflow import nn
 
-BATCH_SIZE = 8
-N = 112
-FIN = 3
+BATCH_SIZE = 32
+N = 224
+FIN = 32
 FOUT = 32
 
 K_Y = 3
@@ -59,11 +57,6 @@ scale2 = np.random.rand(FOUT)
 # Create the network
 X = tf.compat.v1.placeholder(tf.float32, [BATCH_SIZE, N + 2, N + 2, FIN], name="X")
 activations = resnetBlock(X, weights1, bias1, weights2, bias2, mean1, variance1, offset1, scale1, mean2, variance2, offset2, scale2)
-
-# Save the graph and exit if requested
-if len(sys.argv) > 1 and sys.argv[1] == "0":
-    tf.io.write_graph(tf.compat.v1.get_default_graph(), "", "tf_model.pb", as_text=False)
-    exit()
 
 # Start execution session
 with tf.compat.v1.Session() as sess:

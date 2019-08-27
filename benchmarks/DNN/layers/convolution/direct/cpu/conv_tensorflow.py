@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # For convenience, disable warnings of type FutureWarning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -10,8 +8,8 @@ import time, sys
 
 from tensorflow import nn
 
-BATCH_SIZE = 8
-N = 56
+BATCH_SIZE = 32
+N = 112
 FIN = 32
 FOUT = 32
 
@@ -37,11 +35,6 @@ bias = np.random.rand(FOUT)
 X = tf.compat.v1.placeholder(tf.float32, [BATCH_SIZE, N + 2, N + 2, FIN], name="X")
 activations = Convolution(X, weights, bias)
 
-# Save the graph and exit if requested
-if len(sys.argv) > 1 and sys.argv[1] == "0":
-    tf.io.write_graph(tf.compat.v1.get_default_graph(), "", "tf_model.pb", as_text=False)
-    exit()
-
 # Start execution session
 with tf.compat.v1.Session() as sess:
     durations = []
@@ -55,4 +48,3 @@ with tf.compat.v1.Session() as sess:
         durations.append((end - start)*1000)
     
     print("Duration : ", np.median(durations))
-
