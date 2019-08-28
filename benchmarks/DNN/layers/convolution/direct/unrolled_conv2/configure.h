@@ -2,7 +2,8 @@
 #define __CONV_CONF_HEADER_
 
 #include <sys/time.h>
-#define TUNE_PARAMETERS 0
+#define IMPORT_CSR_FROM_FILE 0
+#define WEIGHTS_DENSITY 0.2 // considered only if IMPORT_CSR_FROM_FILE=0
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
@@ -27,17 +28,21 @@
 // Number of features in the output
 #define FOut 32
 
-// Size of convolution filter
-#define K_X 3
-#define K_Y 3
-
-#define EPSILON 1e-05
+// Size of convolution filter (KxK)
+#define K 3
 
 // Parameters for Tiramisu code
 #define FOUT_BLOCKING 8
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
-#define FIN_BLOCKING 8
+#define FOUT_B_SPLIT_FACTOR 4
+
+#if N >= 224
+    #define FIN_BLOCKING 8
+#else
+    #define FIN_BLOCKING 16
+#endif
+
 #define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
 #define X_BLOCKING 3
@@ -49,11 +54,6 @@
 #define PRINT_ONLY_10 1
 
 #define NB_TESTS 101
-#if defined(__TIRAMISU_WRAPPER__) || defined(__TIRAMISU_GENERATOR__)
-	#if TUNE_PARAMETERS
-		#include "param_tuning.h"
-	#endif
-#endif
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)
@@ -80,11 +80,11 @@ double median(int n, double x[])
     double temp;
     int i, j;
 
-    // The following two loops sort the array x in ascending order
+    // the following two loops sort the array x in ascending order
     for(i=0; i<n-1; i++) {
         for(j=i+1; j<n; j++) {
             if(x[j] < x[i]) {
-                // Swap elements
+                // swap elements
                 temp = x[i];
                 x[i] = x[j];
                 x[j] = temp;
@@ -93,10 +93,10 @@ double median(int n, double x[])
     }
 
     if(n%2==0) {
-        // If there is an even number of elements, return mean of the two elements in the middle
+        // if there is an even number of elements, return mean of the two elements in the middle
         return((x[n/2] + x[n/2 - 1]) / 2.0);
     } else {
-        // Else return the element in the middle
+        // else return the element in the middle
         return x[n/2];
     }
 }

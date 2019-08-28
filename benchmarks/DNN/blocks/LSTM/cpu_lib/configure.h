@@ -2,6 +2,7 @@
 #define __LSTM_CPULIB_CONF_HEADER_
 
 #include <sys/time.h>
+#define TUNE_PARAMETERS 0
 
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	0
@@ -19,7 +20,7 @@
 #endif
 
 #define FEATURE_SIZE 1024
-#define SEQ_LENGTH 10
+#define SEQ_LENGTH 100
 #define NUM_LAYERS 4
 
 // Parameters for Tiramisu code
@@ -36,6 +37,12 @@
     #define DATA_TYPE double
     #define DATA_TYPE_P p_float64
     #define DATA_TYPE_CUDNN CUDNN_DATA_DOUBLE
+#endif
+
+#if defined(__TIRAMISU_WRAPPER__) || defined(__TIRAMISU_GENERATOR__)
+	#if TUNE_PARAMETERS
+		#include "param_tuning.h"
+	#endif
 #endif
 
 #ifdef __cplusplus

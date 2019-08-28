@@ -1,0 +1,28 @@
+{
+  "tuning_header_file_dir":".",
+  "tuning_header_file_name":"param_tuning.h",
+  "executable_dir":".",
+  "executable_name":"wrapper_nn_block_resize_conv_relu_maxpool",
+  "compile_path":"../../../../../../build/benchmarks/DNN/blocks/Resize-Conv-ReLU-MaxPool/cpu/dense",
+  "compile_options":"",
+  "output_file_path":"./log.txt",
+  "parameters_to_tune":[
+    {
+      "name":"FOUT_BLOCKING",
+      "values":"2:16",
+      "divisor_of":32
+    },
+    {
+      "name":"X_BLOCKING",
+      "values":"2:16",
+      "divisor_of":32
+    },
+    {
+      "name":"VEC_LEN",
+      "values":"2:16",
+      "divisor_of":16
+    }
+  ],
+  "tuning_script_file_dir": ".",
+  "tuning_script_file_name":"tuning_script.sh"
+}

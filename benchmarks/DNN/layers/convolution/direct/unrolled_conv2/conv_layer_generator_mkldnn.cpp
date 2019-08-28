@@ -4,6 +4,7 @@
 #include <numeric>
 #include <math.h>
 #include <string>
+#include <time.h>
 #include <assert.h>
 #include <string.h>
 
@@ -14,44 +15,48 @@ using namespace mkldnn;
 using namespace std;
 
 // Original version by: Kyle Spafford Adapted for COO Format
-int initRandomSparseMatrix(float* matrix, float density, const int KK, const int fin_size, const int fout_size)
+int initRandomSparseMatrix(float* matrix, float density, const int KK, int seed)
 {
-    const int n = KK * KK * fin_size * fout_size * density; // number of non zero elements
+    const int n = KK * KK * FIn * FOut * density; // number of non zero elements
     int nnzAssigned = 0;
 
     // Figure out the probability that a nonzero should be assigned to a given
     // spot in the matrix
-    int total_num_entries = KK * KK * fin_size * fout_size;
+    int total_num_entries = KK * KK * FIn * FOut;
     double prob = (double)n / ((double) total_num_entries);
 
     // Randomly decide whether entry i,j gets a value, but ensure n values
     // are assigned
     int fillRemaining = 0;
-    srand(1);
-    for (int fout = 0; fout < fout_size; fout++)
+    srand(seed);
+    for (int fout_b = 0; fout_b < FOUT_NB_BLOCKS; fout_b++)
     {
-      for (int fin_b = 0; fin_b < fin_size/FIN_BL; fin_b++)
+      for (int fin_b = 0; fin_b < FIN_NB_BLOCKS; fin_b++)
       {
         for (int ky = 0; ky < KK; ky++)
         {
           for (int kx = 0; kx < KK; kx++)
           {
-            for (int ffin = 0; ffin < FIN_BL; ffin++){
-              int numEntriesLeft = total_num_entries - ((fout * KK * KK * fin_size) + (fin_b * KK * KK * FIN_BL) + (ky * KK * FIN_BL) + kx * FIN_BL + ffin);
-              int needToAssign   = n - nnzAssigned;
-              if (numEntriesLeft <= needToAssign) {
-                fillRemaining = 1;
-              }
-              if ((nnzAssigned < n && ((double) rand() / (RAND_MAX + 1.0)) <= prob) || fillRemaining)
-              {
-                // Assign (kx,ky,fin,b) a value
-                matrix[kx + ky*KK + (fin_b * FIN_BL + ffin)*KK*KK + fout*KK*KK*fin_size] = ((float)(rand()%256 - 128)) / 127.f;
-                nnzAssigned++;
-              }
-              else{
-                matrix[kx + ky*KK + (fin_b * FIN_BL + ffin)*KK*KK + fout*KK*KK*fin_size] = 0;
-              }
-            }
+            for (int ffin = 0; ffin < FIN_BLOCKING; ffin++)
+            {
+  						for(int ffout = 0; ffout < FOUT_BLOCKING; ffout++)
+  						{
+
+								int numEntriesLeft = total_num_entries - ((fout_b * KK * KK * FIn * FOUT_BLOCKING) + (fin_b * KK * KK * FOUT_BLOCKING * FIN_BLOCKING) + (ky * KK * FOUT_BLOCKING * FIN_BLOCKING) + kx * FOUT_BLOCKING * FIN_BLOCKING + ffin * FOUT_BLOCKING + ffout);
+								int needToAssign   = n - nnzAssigned;
+								if (numEntriesLeft <= needToAssign) {
+									fillRemaining = 1;
+								}
+								if ((nnzAssigned < n && ((double) rand() / (RAND_MAX + 1.0)) <= prob) || fillRemaining)
+								{
+									matrix[kx + ky * KK + (fin_b * FIN_BLOCKING + ffin) * KK * KK + (fout_b * FOUT_BLOCKING + ffout) * KK * KK * FIn] = ((float)(rand()%256 - 128)) / 127.f;
+									nnzAssigned++;
+								}
+								else{
+									matrix[kx + ky * KK + (fin_b * FIN_BLOCKING + ffin) * KK * KK + (fout_b * FOUT_BLOCKING + ffout) * KK * KK * FIn] = 0;
+								}
+							}
+						}
           }
         }
       }
@@ -131,7 +136,6 @@ void importCSRFromFileAsDense(std::string filename, float** matrix, int* FOUT, i
             rowptr[i] = std::stoi(line);
             i++;
         }
-        printf(" DENSITY : %f\n", (float)(NNZ)/ ((float)(*FOUT) * (*FIN) * (*KK) * (*KK)));
         assert(i == (*FOUT + 1));
 
         i = 0;
@@ -182,9 +186,12 @@ void conv()
     memory::dims conv_strides = {1, 1};
     memory::dims conv_padding = {0, 0};
 
-    std::vector<float> input_buf(BATCH_SIZE * FIn * (N + 2) * (N + 2) );
+    std::vector<float> input_buf(BATCH_SIZE*FIn*(N + 2)*(N + 2));
 
     std::vector<float> conv_bias_buf(FOut);
+
+    for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)
+        input_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 
     int used_FOUT;
     int used_FIN;
@@ -200,7 +207,7 @@ void conv()
       used_K = K;
       n = N;
       weights_buf = (float*) malloc(FOut * FIn * K * K * sizeof(float));
-      initRandomSparseMatrix(weights_buf, WEIGHTS_DENSITY, K, FIn, FOut);
+      initRandomSparseMatrix(weights_buf, WEIGHTS_DENSITY, K, 2);
     }
 
     // Assertions to ensure that the generated tiramisu code has the right parameters
@@ -213,10 +220,7 @@ void conv()
     // create weights array from the pointer
     std::vector<float> conv_weights_buf(weights_buf, weights_buf + FOut * FIn * K * K);
 
-    srand(2);
-    for (int i = 0; i < BATCH_SIZE * FIn * (N + 2) * (N + 2); i++)
-        input_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
-
+    srand(3);
     for (int i = 0; i < FOut; i++)
         conv_bias_buf[i] = ((float)(rand()%256 - 128)) / 127.f;
 
@@ -288,10 +292,6 @@ void conv()
 
     auto conv_dst_mem = memory(conv_pd.dst_desc(), cpu_engine);
 
-    auto src_desc = conv_pd.src_desc().data.format_desc.blocking;
-    auto w_desc = conv_pd.weights_desc().data.format_desc.blocking;
-    auto dst_desc = conv_pd.dst_desc().data.format_desc.blocking;
-
     // Edit user data format
     auto input_usr_mem = memory(input_usr_md, cpu_engine, input_buf.data());
     auto input_mem = memory(conv_pd.src_desc(), cpu_engine);
@@ -341,24 +341,21 @@ void conv()
     reorder(conv_dst_mem, output_mem)
         .execute(cpu_stream, conv_dst_mem, output_mem);
 
-    if (WRITE_RESULT_TO_FILE){
-      /* Write results to file */
-      float* output = (float*)output_mem.get_data_handle();
-      FILE* f = fopen("mkl_result.txt", "w");
-      if (f == NULL) {
-          std::cout << "Error creating mkl_result.txt" << std::endl;;
-          return ;
-      }
-
-      for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fout = 0; fout < FOut; ++fout)
-          for (int y = 0; y < N; ++y)
-            for (int x = 0; x < N; ++x)
-              fprintf(f, "%.10g\n", output[x + y*N + fout*N*N + n*N*N*FOut]);
-
-      fclose(f);
+    /* Write results to file */
+    float* output = (float*)output_mem.get_data_handle();
+    FILE* f = fopen("mkl_result.txt", "w");
+    if (f == NULL) {
+        std::cout << "Error creating mkl_result.txt" << std::endl;;
+        return ;
     }
 
+    for (int n = 0; n < BATCH_SIZE; ++n)
+        for (int fout = 0; fout < FOut; ++fout)
+            for (int y = 0; y < N; ++y)
+                for (int x = 0; x < N; ++x)
+                    fprintf(f, "%.10g\n", output[x + y*N + fout*N*N + n*N*N*FOut]);
+
+    fclose(f);
 }
 
 int main(int argc, char **argv)

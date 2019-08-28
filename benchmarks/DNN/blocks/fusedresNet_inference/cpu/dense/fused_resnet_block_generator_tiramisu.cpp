@@ -1,9 +1,10 @@
+#define __TIRAMISU_GENERATOR__
 /* 
     This benchmark represents a ResNet Block which includes the next layers in order:
     - convolution layer
     - 2D batch normalization
     - relu
-    - convolution 
+    - convolution
     - 2D batch normalization
     Each convolution function is fused with the BN layer that follows it.
 */
@@ -25,7 +26,7 @@ int main(int argc, char **argv)
 
     var fin_b("fin_b", 0, FIN_NB_BLOCKS), ffin("ffin", 0, FIN_BLOCKING);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
-    
+
     var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
 
     // x_bound is used to have the width dimension divisible by X_BLOCKING
@@ -55,26 +56,26 @@ int main(int argc, char **argv)
      * Preliminary computations
      */
     computation bn1_alpha(
-        "bn1_alpha", 
-        {fout_b, ffout}, 
+        "bn1_alpha",
+        {fout_b, ffout},
         bn1_scale(fout_b, ffout) / expr(o_sqrt, bn1_variance(fout_b, ffout) + cast(p_float32, EPSILON))
     );
 
     computation bn1_beta(
-        "bn1_beta", 
-        {fout_b, ffout}, 
+        "bn1_beta",
+        {fout_b, ffout},
         bn1_shift(fout_b, ffout) - (bn1_scale(fout_b, ffout) * bn1_mean(fout_b, ffout)) / expr(o_sqrt, bn1_variance(fout_b, ffout) + cast(p_float32, EPSILON))
     );
 
     computation bn2_alpha(
-        "bn2_alpha", 
-        {fout_b, ffout}, 
+        "bn2_alpha",
+        {fout_b, ffout},
         bn2_scale(fout_b, ffout) / expr(o_sqrt, bn2_variance(fout_b, ffout) + cast(p_float32, EPSILON))
     );
 
     computation bn2_beta(
-        "bn2_beta", 
-        {fout_b, ffout}, 
+        "bn2_beta",
+        {fout_b, ffout},
         bn2_shift(fout_b, ffout) - (bn2_scale(fout_b, ffout) * bn2_mean(fout_b, ffout)) / expr(o_sqrt, bn2_variance(fout_b, ffout) + cast(p_float32, EPSILON))
     );
 
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
     /*
      * First convolution computations
      */
-    
+
     // Compute convolution from 0 to x_bound
     computation conv1_init("conv1_init", {n, y, x_bound, fout_b, ffout}, bias1(fout_b, ffout));
     computation conv1(
@@ -104,33 +105,33 @@ int main(int argc, char **argv)
      * BN-ReLU computations
      */
     computation bn1(
-        "bn1", 
-        {n, y, x_bound, fout_b, ffout}, 
+        "bn1",
+        {n, y, x_bound, fout_b, ffout},
         bn1_alpha(fout_b, ffout) * conv1(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout) + bn1_beta(fout_b, ffout)
     );
 
     computation relu1(
-        "relu1", 
-        {n, y, x_bound, fout_b, ffout}, 
+        "relu1",
+        {n, y, x_bound, fout_b, ffout},
         expr(
-            o_max, 
-            cast(p_float32, 0), 
+            o_max,
+            cast(p_float32, 0),
             bn1(n, y, x_bound, fout_b, ffout)
         )
     );
 
     computation bn1_conclude(
-        "bn1_conclude", 
-        {n, y, fout_b, ffout, x_conclude}, 
+        "bn1_conclude",
+        {n, y, fout_b, ffout, x_conclude},
         bn1_alpha(fout_b, ffout) * conv1_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude) + bn1_beta(fout_b, ffout)
     );
 
     computation relu1_conclude(
-        "relu1_conclude", 
-        {n, y, fout_b, ffout, x_conclude}, 
+        "relu1_conclude",
+        {n, y, fout_b, ffout, x_conclude},
         expr(
-            o_max, 
-            cast(p_float32, 0), 
+            o_max,
+            cast(p_float32, 0),
             bn1_conclude(n, y, fout_b, ffout, x_conclude)
         )
     );
@@ -160,14 +161,14 @@ int main(int argc, char **argv)
      * BN computations
      */
     computation bn2(
-        "bn2", 
-        {n, y, x_bound, fout_b, ffout}, 
+        "bn2",
+        {n, y, x_bound, fout_b, ffout},
         bn2_alpha(fout_b, ffout) * conv2(n, y, x_bound, 0, 0, 0, 0, fout_b, ffout) + bn2_beta(fout_b, ffout)
     );
 
     computation bn2_conclude(
-        "bn2_conclude", 
-        {n, y, fout_b, ffout, x_conclude}, 
+        "bn2_conclude",
+        {n, y, fout_b, ffout, x_conclude},
         bn2_alpha(fout_b, ffout) * conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x_conclude) + bn2_beta(fout_b, ffout)
     );
 
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     var x_b, xx;
 
-    /* 
+    /*
      * schedule for the first conv computation
      */
 
@@ -232,7 +233,7 @@ int main(int argc, char **argv)
     bn1_conclude.tag_unroll_level(x_conclude);
     bn1_conclude.tag_unroll_level(fout_b);
 
-    /* 
+    /*
      * schedule for the second conv computation
      */
 
@@ -288,7 +289,7 @@ int main(int argc, char **argv)
      * Parallelize and order
      */
     conv2.tag_parallel_level(n);
- 
+
     bn1_alpha.then(bn1_beta, ffout)
              .then(bn2_alpha, computation::root)
              .then(bn2_beta, ffout)
@@ -318,7 +319,7 @@ int main(int argc, char **argv)
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
     buffer reg1_buf("reg1_buf", {FOUT_NB_BLOCKS, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
     buffer reg2_buf("reg2_buf", {FOUT_NB_BLOCKS, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
-    
+
     /*
      * First convolution storage
      */
@@ -351,9 +352,9 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
     tiramisu::codegen({
-        c_input.get_buffer(), 
-        filter1.get_buffer(), 
-        bias1.get_buffer(), 
+        c_input.get_buffer(),
+        filter1.get_buffer(),
+        bias1.get_buffer(),
         bn1_scale.get_buffer(),
         bn1_shift.get_buffer(),
         bn1_mean.get_buffer(),
