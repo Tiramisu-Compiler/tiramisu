@@ -33,7 +33,6 @@ int initRandomSparseMatrix(float* matrix, float density, const int KK, int seed)
             {
   						for(int ffout = 0; ffout < FOUT_BLOCKING; ffout++)
   						{
-
 								int numEntriesLeft = total_num_entries - ((fout_b * KK * KK * FIn * FOUT_BLOCKING) + (fin_b * KK * KK * FOUT_BLOCKING * FIN_BLOCKING) + (ky * KK * FOUT_BLOCKING * FIN_BLOCKING) + kx * FOUT_BLOCKING * FIN_BLOCKING + ffin * FOUT_BLOCKING + ffout);
 								int needToAssign   = n - nnzAssigned;
 								if (numEntriesLeft <= needToAssign) {

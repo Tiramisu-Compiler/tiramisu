@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 # For convenience, disable warnings of type FutureWarning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -10,10 +8,10 @@ import time, sys
 
 from tensorflow.contrib import rnn
 
-FEATURE_SIZE = 512
+FEATURE_SIZE = 1024
 BATCH_SIZE = 1
 NUM_LAYERS = 4
-SEQ_LENGTH = 50
+SEQ_LENGTH = 100
 
 NB_TESTS = 101
 
@@ -35,11 +33,6 @@ batch_X = np.random.rand(SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE)
 # Create the network
 X = tf.compat.v1.placeholder(tf.float32, [SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE], name="X")
 activations = LSTM(X)
-
-# Save the graph and exit if requested
-if len(sys.argv) > 1 and sys.argv[1] == "0":
-    tf.io.write_graph(tf.compat.v1.get_default_graph(), "", "tf_model.pb", as_text=False)
-    exit()
 
 # Initialize the variables (i.e. assign their default value)
 init = tf.compat.v1.global_variables_initializer()
