@@ -1,0 +1,23 @@
+{
+  "tuning_header_file_dir":".",
+  "tuning_header_file_name":"param_tuning.h",
+  "executable_dir":".",
+  "executable_name":"wrapper_conv_layer_3channels",
+  "compile_path":"../../../../../../build/benchmarks/DNN/layers/convolution/direct/cpu_3channels",
+  "compile_options":"",
+  "output_file_path":"./log.txt",
+  "parameters_to_tune":[
+    {
+      "name":"FOUT_BLOCKING",
+      "values":"2:16",
+      "divisor_of":32
+    },
+    {
+      "name":"X_BLOCKING",
+      "values":"2:16",
+      "divisor_of":32
+    }
+  ],
+  "tuning_script_file_dir": ".",
+  "tuning_script_file_name":"tuning_script.sh"
+}

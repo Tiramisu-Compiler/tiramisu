@@ -45,7 +45,7 @@
 // Size of convolution filter (KxK)
 #define K 3
 
-#define WEIGHTS_DENSITY 0.1
+#define WEIGHTS_DENSITY 0.2
 #define NB_TESTS 301
 
 #ifdef __cplusplus

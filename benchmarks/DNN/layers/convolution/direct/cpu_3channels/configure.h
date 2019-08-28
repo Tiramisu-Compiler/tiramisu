@@ -2,10 +2,11 @@
 #define __CONV_CONF_HEADER_
 
 #include <sys/time.h>
+#define TUNE_PARAMETERS 1
 
 #define LARGE_DATA_SET	0
-#define MEDIUM_DATA_SET	0
-#define SMALL_DATA_SET	1
+#define MEDIUM_DATA_SET	1
+#define SMALL_DATA_SET	0
 #define NO_BATCH        0
 
 #if LARGE_DATA_SET
@@ -19,7 +20,7 @@
 #endif
 
 // Size of one data dimension
-#define N 112
+#define N 224
 
 // Number of features in the input
 #define FIn 3
@@ -40,7 +41,11 @@
 #define PRINT_ONLY_10 1
 
 #define NB_TESTS 101
-
+#if defined(__TIRAMISU_WRAPPER__) || defined(__TIRAMISU_GENERATOR__)
+	#if TUNE_PARAMETERS
+		#include "param_tuning.h"
+	#endif
+#endif
 #ifdef __cplusplus
 double median(std::vector<double> scores)
 {

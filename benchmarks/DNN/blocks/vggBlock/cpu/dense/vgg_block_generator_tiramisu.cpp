@@ -1,3 +1,4 @@
+#define __TIRAMISU_GENERATOR__
 #include <tiramisu/tiramisu.h>
 #include "configure.h"
 #define SCHEDULE_CPU 1
@@ -35,15 +36,15 @@ int main(int argc, char **argv)
 
     computation conv1_init("conv1_init", {n, fin2_b, y, x, ffin2}, bias1(fin2_b, ffin2));
     computation conv1(
-        "conv1", 
-        {n, fin2_b, y, x, k_y, k_x, fin1, ffin2}, 
+        "conv1",
+        {n, fin2_b, y, x, k_y, k_x, fin1, ffin2},
         conv1_init(n, fin2_b, y, x, ffin2) + filter1(fin2_b, k_y, k_x, fin1, ffin2) * c_input(n, y + k_y, x + k_x, fin1)
     );
 
     // First relu
     computation relu1(
-        "relu1", 
-        {n, fin2_b, y, x, ffin2}, 
+        "relu1",
+        {n, fin2_b, y, x, ffin2},
         expr(
             o_max,
             0.f,
@@ -80,10 +81,10 @@ int main(int argc, char **argv)
 
     computation maxpool(
         "maxpool",
-        {n, y, x2_bound, fout_b, ffout}, 
+        {n, y, x2_bound, fout_b, ffout},
         expr(
-            o_max, 
-            c_output(n, fout_b, y, x2_bound, ffout), 
+            o_max,
+            c_output(n, fout_b, y, x2_bound, ffout),
             conv2(n, y, x2_bound, 0, 0, 0, 0, fout_b, ffout)
         )
     );
@@ -91,17 +92,17 @@ int main(int argc, char **argv)
     view c_output_conclude("c_output_conclude", {n, fout_b, y, x2_conclude, ffout}, p_float32);
     computation maxpool_conclude(
         "maxpool_conclude",
-        {n, y, fout_b, ffout, x2_conclude}, 
+        {n, y, fout_b, ffout, x2_conclude},
         expr(
-            o_max, 
-            c_output_conclude(n, fout_b, y, x2_conclude, ffout), 
+            o_max,
+            c_output_conclude(n, fout_b, y, x2_conclude, ffout),
             conv2_conclude(n, y, 0, 0, 0, 0, fout_b, ffout, x2_conclude)
         )
     );
 
     // -------------------------------------------------------
     // Layer II
-    // -------------------------------------------------------    
+    // -------------------------------------------------------
     var x1_b("x1_b", 0, X1_NB_BLOCKS), xx1;
 
     /*
@@ -113,23 +114,23 @@ int main(int argc, char **argv)
         {n, fin2_b, y, x1_b, k_y, k_x, fin1, ffin2},
         filter1(fin2_b, k_y, k_x, fin1, ffin2)
     );
-    
+
     // We split computations over dimension x to apply register blocking
     conv1_init.split(x, X1_BLOCKING, x1_b, xx1);
     conv1.split(x, X1_BLOCKING, x1_b, xx1);
     relu1.split(x, X1_BLOCKING, x1_b, xx1);
-    
+
     // n, fin2_b, y, x_b, xx, k_y, k_x, fin1, ffin2
     conv1.interchange(xx1, k_y);
     conv1.interchange(xx1, k_x);
     conv1.interchange(xx1, fin1);
     conv1.interchange(xx1, ffin2);
     // n, fin2_b, y, x_b, k_y, k_x, fin1, ffin2, xx
-    
+
     conv1_init.vectorize(ffin2, VEC_LEN);
     conv1.vectorize(ffin2, VEC_LEN);
     relu1.vectorize(ffin2, VEC_LEN);
-    
+
     /*
      * Schedule for second Conv-ReLU-MaxPool
      */
@@ -248,10 +249,10 @@ int main(int argc, char **argv)
     // Code generation
     // -------------------------------------------------------
     tiramisu::codegen({
-        c_input.get_buffer(), 
-        filter1.get_buffer(), 
-        bias1.get_buffer(), 
-        filter2.get_buffer(), 
+        c_input.get_buffer(),
+        filter1.get_buffer(),
+        bias1.get_buffer(),
+        filter2.get_buffer(),
         bias2.get_buffer(),
         &conv1_buf,
         &maxpool_buf

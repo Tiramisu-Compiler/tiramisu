@@ -1,0 +1,22 @@
+{
+  "tuning_header_file_dir":".",
+  "tuning_header_file_name":"param_tuning.h",
+  "executable_dir":".",
+  "executable_name":"wrapper_nn_block_vgg",
+  "compile_path":"../../../../../../build/benchmarks/DNN/blocks/vggBlock/cpu/dense",
+  "compile_options":"",
+  "output_file_path":"./log.txt",
+  "parameters_to_tune":[
+    {
+      "name":"X1_BLOCKING",
+      "values":"4:16",
+      "divisor_of":112
+    },
+    {
+      "name":"X2_BLOCKING",
+      "values":"3,5,9"
+    }
+  ],
+  "tuning_script_file_dir": ".",
+  "tuning_script_file_name":"tuning_script.sh"
+}

@@ -1,3 +1,4 @@
+#define __TIRAMISU_GENERATOR__
 #include <tiramisu/tiramisu.h>
 #include "configure.h"
 
@@ -35,11 +36,11 @@ int main(int argc, char **argv)
     // Input x is copied to h(-1, s)
     computation h("h", {l, s, k, i}, DATA_TYPE_P);
     computation c("c", {l, s, k, i}, DATA_TYPE_P);
-    
+
     // Pad buffers to make room for edges
     h.store_in({s + 1, k, i}, {SEQ_LENGTH + 1, BATCH_SIZE, FEATURE_SIZE});
     c.store_in({k, i}, {BATCH_SIZE, FEATURE_SIZE});
-        
+
     // Initial sets and stores
     computation h_init("h_init", {l, k, i}, cast(DATA_TYPE_P, 0));
     computation c_init("c_init", {l, k, i}, cast(DATA_TYPE_P, 0));
@@ -80,7 +81,7 @@ int main(int argc, char **argv)
 
     c.set_expression(sig_i(l, s, k, i) * tnh_z(l, s, k, i) + sig_f(l, s, k, i) * c(l, s - 1, k, i));
     h.set_expression(tanh(c(l, s, k, i)) * sig_o(l, s, k, i));
-   
+
     // Output is the last layer
     computation copy_output({s, k, i}, h(NUM_LAYERS - 1, s, k, i));
 
@@ -89,10 +90,10 @@ int main(int argc, char **argv)
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
-    dummy_c.then(h_copy_x, computation::root) 
+    dummy_c.then(h_copy_x, computation::root)
            .then(h_init, computation::root)
-           .then(c_init, i)         
-           .then(sum1, l)   
+           .then(c_init, i)
+           .then(sum1, l)
            .then(sum2, l)
            .then(sig_i, s)
            .then(sig_f, i)
@@ -108,9 +109,9 @@ int main(int argc, char **argv)
     h_init.store_in(h.get_buffer(), {0, k, i});
     h_copy_x.store_in(h.get_buffer(), {s + 1, k, i});
     c_init.store_in(c.get_buffer(), {k, i});
-    
+
     buffer sig_buf("sig_buf", {4, VEC_LEN}, DATA_TYPE_P, a_temporary);
-    
+
     sig_i.store_in(&sig_buf, {0, i%VEC_LEN});
     sig_f.store_in(&sig_buf, {1, i%VEC_LEN});
     tnh_z.store_in(&sig_buf, {2, i%VEC_LEN});
@@ -122,7 +123,7 @@ int main(int argc, char **argv)
     buffer gemm_ret("gemm_ret", {1}, DATA_TYPE_P, a_temporary);
     sum1.store_in(&gemm_ret, {});
     sum2.store_in(&gemm_ret, {});
-    
+
     buffer buf_output("buf_output", {SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE}, DATA_TYPE_P, a_output);
     copy_output.store_in(&buf_output);
 
