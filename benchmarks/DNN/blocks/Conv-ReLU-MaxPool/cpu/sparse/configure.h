@@ -37,6 +37,12 @@
 #define Y_BL 2
 #define Y_NB_BL (N/Y_BL)
 
+// Parameters for MKL Sparse's IM2COL,
+#define H_BL 32 // Must be a divisor of N
+#define H_NB_BL N/H_BL
+#define W_BL 32 // Must be a divisor of N
+#define W_NB_BL N/W_BL
+
 // Number of features in the input
 #define FIn 3
 // Number of features in the output
@@ -45,7 +51,7 @@
 // Size of convolution filter (KxK)
 #define K 3
 
-#define WEIGHTS_DENSITY 0.1
+#define WEIGHTS_DENSITY 0.2
 #define NB_TESTS 301
 
 #ifdef __cplusplus

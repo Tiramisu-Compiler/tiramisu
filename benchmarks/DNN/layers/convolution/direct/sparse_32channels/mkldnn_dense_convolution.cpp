@@ -186,7 +186,6 @@ void conv()
 
     std::vector<float> conv_bias_buf(FOut);
 
-
     int used_FOUT;
     int used_FIN;
     int used_K;

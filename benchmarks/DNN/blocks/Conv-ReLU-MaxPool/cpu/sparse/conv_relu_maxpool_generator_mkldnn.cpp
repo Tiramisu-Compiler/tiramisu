@@ -7,7 +7,7 @@ using namespace mkldnn;
 using namespace std;
 
 // Original version by: Kyle Spafford Adapted for COO Format
-int initRandomSparseMatrix(float* matrix, float density, const int KK, const int fin_size, const int fout_size)
+int initRandomSparseMatrix(float* matrix, float density, const int KK, const int fin_size, const int fout_size, int seed)
 {
   const int n = KK * KK * fin_size * fout_size * density; // number of non zero elements
   int nnzAssigned = 0;
@@ -20,7 +20,7 @@ int initRandomSparseMatrix(float* matrix, float density, const int KK, const int
   // Randomly decide whether entry i,j gets a value, but ensure n values
   // are assigned
   int fillRemaining = 0;
-  srand(1);
+  srand(seed);
   for (int fout = 0; fout < fout_size; fout++)
   {
     for (int fin = 0; fin < fin_size; fin++)
@@ -77,7 +77,7 @@ void conv_relu_maxpool_block()
   std::vector<float> conv_bias_buf(FOut);
   std::vector<float> conv_weights_buf(FOut * FIn * K * K);
 
-  initRandomSparseMatrix(conv_weights_buf.data(), WEIGHTS_DENSITY, K, FIn, FOut);
+  initRandomSparseMatrix(conv_weights_buf.data(), WEIGHTS_DENSITY, K, FIn, FOut, 1);
 
   srand(3);
   for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)

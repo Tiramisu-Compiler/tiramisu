@@ -4,7 +4,7 @@
  * For example, if it is located in /opt/intel/mkl/bin/mklvars.sh and you are in 64-bits :
  * source /opt/intel/mkl/bin/mklvars.sh intel64
  */
-
+#define __TIRAMISU_WRAPPER__
 #include "Halide.h"
 #include <tiramisu/utils.h>
 #include <cstdlib>
@@ -20,7 +20,7 @@
 #include "lstm.o.h"
 
 int main(int argc, char *argv[])
-{   
+{
     int warmupN = 10;
     if (argc > 1)
         warmupN = atoi(argv[1]);
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < NUM_LAYERS; i++)
         for (int l = 0; l < FEATURE_SIZE; l++)
-            for (int k = 0; k < 4 * FEATURE_SIZE; k++)      
+            for (int k = 0; k < 4 * FEATURE_SIZE; k++)
                 buf_Weights(k, l, 0, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
     for (int i = 0; i < NUM_LAYERS; i++)
@@ -57,7 +57,8 @@ int main(int argc, char *argv[])
             for (int k = 0; k < FEATURE_SIZE; k++)
                 buf_input(k, j, i) = ((float)(rand()%256 - 128)) / 1270.f;
 
-    std::cout << "Initalization done" << std::endl;
+    if (!TUNE_PARAMETERS)
+      std::cout << "Initalization done" << std::endl;
 
     // Warmup
     for (int i = 0; i < warmupN; i++) {
@@ -70,8 +71,8 @@ int main(int argc, char *argv[])
             buf_output.raw_buffer()
         );
     }
-
-    std::cout << "Warmup done" << std::endl;
+    if (!TUNE_PARAMETERS)
+      std::cout << "Warmup done" << std::endl;
 
     // Execute Tiramisu code
     std::vector<double> durations;
@@ -92,40 +93,42 @@ int main(int argc, char *argv[])
     }
 
     std::cout << "LSTM median runtime: " << median(durations) << "ms" << std::endl << std::flush;
+    if (!TUNE_PARAMETERS){
+      std::cout << "LSTM done" << std::endl;
 
-    std::cout << "LSTM done" << std::endl;
-   
-    // Write results to file
-    std::ofstream resultfile;
-    resultfile.open("tiramisu_result.txt");
+      // Write results to file
+      std::ofstream resultfile;
+      resultfile.open("tiramisu_result.txt");
 
-    for (int n = 0; n < SEQ_LENGTH; ++n)
-        for (int z = 0; z < BATCH_SIZE; ++z)
-            for (int y = 0; y < FEATURE_SIZE; ++y)
-                resultfile << std::setprecision(10) << buf_output(y, z, n) << std::endl;
+      for (int n = 0; n < SEQ_LENGTH; ++n)
+          for (int z = 0; z < BATCH_SIZE; ++z)
+              for (int y = 0; y < FEATURE_SIZE; ++y)
+                  resultfile << std::setprecision(10) << buf_output(y, z, n) << std::endl;
 
-    resultfile.close();
+      resultfile.close();
 
-    std::cout << "\t\t Result"
-              << ":\n\n";
+      std::cout << "\t\t Result"
+                << ":\n\n";
 
-    // Check for correctness with MKLDNN
-    std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
-    std::string line1, line2;
-    float file_count = 0, corr = 0, f1, f2;
+      // Check for correctness with MKLDNN
+      std::ifstream infile1("tiramisu_result.txt"), infile2("mkldnn_result.txt");
+      std::string line1, line2;
+      float file_count = 0, corr = 0, f1, f2;
 
-    while (std::getline(infile1, line1))
-    {
-        std::getline(infile2, line2);
-        file_count += 1;
-        f1 = std::stof(line1);
-        f2 = std::stof(line2);
-        
-        if (std::abs(f1 - f2) < 0.001)
-            corr += 1;
+      while (std::getline(infile1, line1))
+      {
+          std::getline(infile2, line2);
+          file_count += 1;
+          f1 = std::stof(line1);
+          f2 = std::stof(line2);
+
+          if (std::abs(f1 - f2) < 0.001)
+              corr += 1;
+      }
+
+      printf("\t\t Percentage of correctness %f \n\n", corr / file_count * 100);
+
     }
-
-    printf("\t\t Percentage of correctness %f \n\n", corr / file_count * 100);
 
     return 0;
 }

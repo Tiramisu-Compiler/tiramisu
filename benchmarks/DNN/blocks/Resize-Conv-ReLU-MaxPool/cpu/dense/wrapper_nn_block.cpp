@@ -1,3 +1,4 @@
+#define __TIRAMISU_WRAPPER__
 #include <iostream>
 #include <cstdlib>
 #include <Halide.h>
@@ -37,62 +38,64 @@ int main()
             for (int x = 0; x < IMG_WIDTH; ++x)
                 for (int fin = 0; fin < FIn; ++fin)
                     input(fin, x, y, n) = ((float)(rand() % 256)) / 255.f;
-
-    std::cout << "\t\tBuffers initialized" << std::endl;
+    if (!TUNE_PARAMETERS)
+      std::cout << "\t\tBuffers initialized" << std::endl;
 
     // Execute Tiramisu code
     for (int i = 0; i < NB_TESTS; ++i) {
         double start = rtclock();
         resize_conv_relu_maxpool_block(
-            input.raw_buffer(), 
-            conv_filter.raw_buffer(), 
+            input.raw_buffer(),
+            conv_filter.raw_buffer(),
             conv_bias.raw_buffer(),
             resized_input.raw_buffer(),
             output.raw_buffer()
         );
-        
+
         double end = rtclock();
-        duration_vector.push_back((end - start) * 1000);	
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\t\tTiramisu Resize-Conv-ReLU-MaxPool block duration"
               << ": " << median(duration_vector) << " ms;" << std::endl;
 
-    // Write results to file
-    FILE* f = fopen("tiramisu_result.txt", "w");
-    if (f == NULL) {
-        printf("Error creating mkl_result.txt.\n");
-        return 0;
+    if (!TUNE_PARAMETERS){
+      // Write results to file
+      FILE* f = fopen("tiramisu_result.txt", "w");
+      if (f == NULL) {
+          printf("Error creating mkl_result.txt.\n");
+          return 0;
+      }
+
+      for (int n = 0; n < BATCH_SIZE; ++n)
+          for (int fout = 0; fout < FOut; ++fout)
+              for (int y = 0; y < N/2; ++y)
+                  for (int x = 0; x < N/2; ++x)
+                      fprintf(f, "%.10g\n", output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
+
+      fclose(f);
+
+      // Compare results with Intel MKL
+      std::ifstream mkl_result("mkl_result.txt");
+      float tmp;
+      float file_count = 0, corr = 0;
+
+      for (int n = 0; n < BATCH_SIZE; ++n)
+          for (int fout = 0; fout < FOut; ++fout)
+              for (int y = 0; y < N/2; ++y)
+                  for (int x = 0; x < N/2; ++x) {
+                      mkl_result >> tmp;
+
+                      file_count++;
+                      if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
+                          corr++;
+                  }
+
+      std::cout << "\t\tResult"
+                << ":\n\n";
+
+      std::cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << std::endl << std::endl;
     }
-
-    for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N/2; ++y)
-                for (int x = 0; x < N/2; ++x)
-                    fprintf(f, "%.10g\n", output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
-
-    fclose(f);
-
-    // Compare results with Intel MKL
-    std::ifstream mkl_result("mkl_result.txt");
-    float tmp;
-    float file_count = 0, corr = 0;
-
-    for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N/2; ++y)
-                for (int x = 0; x < N/2; ++x) {
-                    mkl_result >> tmp;
-
-                    file_count++;
-                    if (std::abs(output(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
-                        corr++;
-                }
-
-    std::cout << "\t\tResult"
-              << ":\n\n";
-
-    std::cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << std::endl << std::endl;
 
     return 0;
 }

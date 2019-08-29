@@ -1,3 +1,4 @@
+#define __TIRAMISU_GENERATOR__
 #include <tiramisu/tiramisu.h>
 #include <vector>
 #include "configure.h"
@@ -49,17 +50,17 @@ int main()
         {n, y, x_pad, fin},
         mixf(
             mixf(
-                c_input(n, A00_r, A00_c, fin), 
-                c_input(n, A00_r + 1, A00_c, fin), 
+                c_input(n, A00_r, A00_c, fin),
+                c_input(n, A00_r + 1, A00_c, fin),
                 r_coeff
             ),
 
             mixf(
-                c_input(n, A00_r, A00_c + 1, fin), 
-                c_input(n, A00_r + 1, A00_c + 1, fin), 
+                c_input(n, A00_r, A00_c + 1, fin),
+                c_input(n, A00_r + 1, A00_c + 1, fin),
                 r_coeff
             ),
-    
+
             c_coeff
         )
     );
@@ -76,17 +77,17 @@ int main()
         {n, y_prelude, x_pad, fin},
         mixf(
             mixf(
-                c_input(n, A00_r_prelude, A00_c, fin), 
-                c_input(n, A00_r_prelude + 1, A00_c, fin), 
+                c_input(n, A00_r_prelude, A00_c, fin),
+                c_input(n, A00_r_prelude + 1, A00_c, fin),
                 r_coeff_prelude
             ),
 
             mixf(
-                c_input(n, A00_r_prelude, A00_c + 1, fin), 
-                c_input(n, A00_r_prelude + 1, A00_c + 1, fin), 
+                c_input(n, A00_r_prelude, A00_c + 1, fin),
+                c_input(n, A00_r_prelude + 1, A00_c + 1, fin),
                 r_coeff_prelude
             ),
-    
+
             c_coeff
         )
     );
@@ -95,8 +96,8 @@ int main()
     view resized_view("resized_view", {n, y_pad, x_pad, fin}, p_float32);
     computation conv_init("conv_init", {n, fout_b, y, x, ffout}, conv_bias(fout_b, ffout));
     computation conv(
-        "conv", 
-        {n, fout_b, y, x, k_y, k_x, fin, ffout}, 
+        "conv",
+        {n, fout_b, y, x, k_y, k_x, fin, ffout},
         conv_init(n, fout_b, y, x, ffout) + conv_filter(fout_b, k_y, k_x, fin, ffout)*resized_view(n, y + k_y, x + k_x, fin)
     );
 
@@ -112,7 +113,7 @@ int main()
             conv(n, fout_b, y, x, 0, 0, 0, ffout)
         )
     );
-    
+
     // -------------------------------------------------------
     // Layer II
     // -------------------------------------------------------
@@ -124,12 +125,12 @@ int main()
         {n, fout_b, y, x_b, k_y, k_x, fin, ffout},
         conv_filter(fout_b, k_y, k_x, fin, ffout)
     );
-    
+
     // We split computations over dimension x to apply register blocking
     conv_init.split(x, X_BLOCKING, x_b, xx);
     conv.split(x, X_BLOCKING, x_b, xx);
     maxpool.split(x, X_BLOCKING, x_b, xx);
-    
+
     // n, fout_b, y, x_b, xx, k_y, k_x, fin, ffout
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
@@ -145,7 +146,7 @@ int main()
 
     conv.tag_parallel_level(n);
 
-    resize.vectorize(x_pad, VEC_LEN);    
+    resize.vectorize(x_pad, VEC_LEN);
     conv_init.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
     maxpool.vectorize(ffout, FOUT_BLOCKING);
@@ -162,7 +163,7 @@ int main()
     // -------------------------------------------------------
     buffer resized_buf("input_resized_buf", {BATCH_SIZE, N + 2, N + 2, FIn}, p_float32, a_input);
     buffer output_buf("output_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N/2, N/2, FOUT_BLOCKING}, p_float32, a_output);
-    
+
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
     buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
@@ -185,7 +186,7 @@ int main()
     // -------------------------------------------------------
     codegen({
         c_input.get_buffer(),
-        conv_filter.get_buffer(), 
+        conv_filter.get_buffer(),
         conv_bias.get_buffer(),
         &resized_buf,
         &output_buf

@@ -1,3 +1,4 @@
+#define __TIRAMISU_GENERATOR__
 /*
 Pseudo-code for our convolution :
 
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
 
     var fin("fin", 0, FIn);
     var fout_b("fout_b", 0, FOUT_NB_BLOCKS), ffout("ffout", 0, FOUT_BLOCKING);
-    
+
     var x_pad("x_pad", 0, N + 2), y_pad("y_pad", 0, N + 2);
 
     input c_input("c_input", {n, y_pad, x_pad, fin}, p_float32);
@@ -50,7 +51,7 @@ int main(int argc, char **argv)
     input bias("bias", {fout_b, ffout}, p_float32);
 
     computation conv_init("conv_init", {n, fout_b, y, x, ffout}, bias(fout_b, ffout));
-    
+
     computation conv(
         "conv",
         {n, fout_b, y, x, k_y, k_x, fin, ffout},
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 
     // This computation is here to apply register blocking.
     // Convolution intermediate results will be stored in a small buffer that
-    // will be mapped to CPU registers (more precisely, CPU vector registers) 
+    // will be mapped to CPU registers (more precisely, CPU vector registers)
     // instead of being mapped to memory.
     // This computation moves data from our small buffer to the output buffer
     computation reg_store(
@@ -79,12 +80,12 @@ int main(int argc, char **argv)
         {n, fout_b, y, x, ffout},
         conv(n, fout_b, y, x, 0, 0, 0, ffout)
     );
-    
+
     // We split computations over dimension x to apply register blocking
     conv_init.split(x, X_BLOCKING, x_b, xx);
     conv.split(x, X_BLOCKING, x_b, xx);
     reg_store.split(x, X_BLOCKING, x_b, xx);
-    
+
     // n, fout_b, y, x_b, xx, k_y, k_x, fin, ffout
     conv.interchange(xx, k_y);
     conv.interchange(xx, k_x);
@@ -94,11 +95,11 @@ int main(int argc, char **argv)
 
     conv.tag_parallel_level(fout_b);
     conv.tag_parallel_level(n);
-    
+
     conv_init.vectorize(ffout, FOUT_BLOCKING);
     conv.vectorize(ffout, FOUT_BLOCKING);
     reg_store.vectorize(ffout, FOUT_BLOCKING);
-    
+
     // Note that reg_store is scheduled after that convolution intermediate results are computed
     conv_init.then(prefetch_weights, x_b)
              .then(conv, x_b)
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
     // Layer III
     // -------------------------------------------------------
     buffer conv_buf("conv_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
-    
+
     // This is where intermediate results of convolution will be stored.
     // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
     buffer reg_buf("reg_buf", {X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
@@ -127,9 +128,9 @@ int main(int argc, char **argv)
     // Code Generation
     // -------------------------------------------------------
     tiramisu::codegen({
-        c_input.get_buffer(), 
-        filter.get_buffer(), 
-        bias.get_buffer(), 
+        c_input.get_buffer(),
+        filter.get_buffer(),
+        bias.get_buffer(),
         &conv_buf
     },"generated_conv_layer.o");
 

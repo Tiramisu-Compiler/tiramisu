@@ -1,3 +1,4 @@
+#define __TIRAMISU_WRAPPER__
 #include <iostream>
 #include <cstdlib>
 #include <Halide.h>
@@ -71,72 +72,74 @@ int main()
             for (int y = 0; y < N + 2; ++y)
                 for (int x = 0; x < N + 2; ++x)
                     input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
-
-    std::cout << "\t\tBuffers initialized" << std::endl;
+    if (!TUNE_PARAMETERS)
+      std::cout << "\t\tBuffers initialized" << std::endl;
 
     // Execute Tiramisu code
     for (int i = 0; i < NB_TESTS; ++i) {
         double start = rtclock();
         fused_resnet_block(
             input.raw_buffer(),
-            filter1.raw_buffer(), 
-            bias1.raw_buffer(),  
-            bn1_scale.raw_buffer(), 
+            filter1.raw_buffer(),
+            bias1.raw_buffer(),
+            bn1_scale.raw_buffer(),
             bn1_shift.raw_buffer(),
             bn1_mean.raw_buffer(),
             bn1_variance.raw_buffer(),
-            filter2.raw_buffer(), 
-            bias2.raw_buffer(),  
-            bn2_scale.raw_buffer(), 
-            bn2_shift.raw_buffer(), 
+            filter2.raw_buffer(),
+            bias2.raw_buffer(),
+            bn2_scale.raw_buffer(),
+            bn2_shift.raw_buffer(),
             bn2_mean.raw_buffer(),
             bn2_variance.raw_buffer(),
             conv1_buf.raw_buffer(),
             conv2_buf.raw_buffer()
         );
-        
+
         double end = rtclock();
-        duration_vector.push_back((end - start) * 1000);	
+        duration_vector.push_back((end - start) * 1000);
     }
 
     std::cout << "\t\tTiramisu ResNet block duration"
               << ": " << median(duration_vector) << " ms;" << std::endl;
 
-    // Write results to file
-    FILE* f = fopen("tiramisu_result.txt", "w");
-    if (f == NULL) {
-        printf("Error creating mkl_result.txt.\n");
-        return 0;
+    if (!TUNE_PARAMETERS){
+      // Write results to file
+      FILE* f = fopen("tiramisu_result.txt", "w");
+      if (f == NULL) {
+          printf("Error creating mkl_result.txt.\n");
+          return 0;
+      }
+
+      for (int n = 0; n < BATCH_SIZE; ++n)
+          for (int fout = 0; fout < FOut; ++fout)
+              for (int y = 0; y < N; ++y)
+                  for (int x = 0; x < N; ++x)
+                      fprintf(f, "%.10g\n", conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
+
+      fclose(f);
+
+      // Compare results with Intel MKL
+      std::ifstream mkl_result("mkl_result.txt");
+      float tmp;
+      float file_count = 0, corr = 0;
+
+      for (int n = 0; n < BATCH_SIZE; ++n)
+          for (int fout = 0; fout < FOut; ++fout)
+              for (int y = 0; y < N; ++y)
+                  for (int x = 0; x < N; ++x) {
+                      mkl_result >> tmp;
+
+                      file_count++;
+                      if (abs(conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
+                          corr++;
+                  }
+
+      std::cout << "\t\tResult"
+                << ":\n\n";
+
+      cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
     }
-
-    for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x)
-                    fprintf(f, "%.10g\n", conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n));
-
-    fclose(f);
-
-    // Compare results with Intel MKL
-    std::ifstream mkl_result("mkl_result.txt");
-    float tmp;
-    float file_count = 0, corr = 0;
-
-    for (int n = 0; n < BATCH_SIZE; ++n)
-        for (int fout = 0; fout < FOut; ++fout)
-            for (int y = 0; y < N; ++y)
-                for (int x = 0; x < N; ++x) {
-                    mkl_result >> tmp;
-
-                    file_count++;
-                    if (abs(conv2_buf(fout%FOUT_BLOCKING, x, y, fout/FOUT_BLOCKING, n) - tmp) <= 0.001)
-                        corr++;
-                }
-
-    std::cout << "\t\tResult"
-              << ":\n\n";
-
-    cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
 
     return 0;
 }

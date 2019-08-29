@@ -1,3 +1,4 @@
+#define __TIRAMISU_WRAPPER__
 #include "Halide.h"
 #include <cstdlib>
 #include <chrono>
@@ -52,15 +53,15 @@ int main(int, char **)
 			for (int y = 0; y < K; ++y)
 				for (int x = 0; x < K; ++x)
 					filter2(q%FOUT_BLOCKING, z%FIN2_BLOCKING, x, y, z/FIN2_BLOCKING, q/FOUT_BLOCKING) = (rand() % 200 - 100) / 100.;
-
-	std::cout << "\t\tBuffers initialized" << std::endl;
+	if (!TUNE_PARAMETERS)
+		std::cout << "\t\tBuffers initialized" << std::endl;
 
 	// Execute Tiramisu code
 	for (int i = 0; i < NB_TESTS; i++) {
 		double start = rtclock();
 
 		vgg_block(
-			input.raw_buffer(), 
+			input.raw_buffer(),
 			filter1.raw_buffer(),
 			bias1.raw_buffer(),
 			filter2.raw_buffer(),
@@ -76,39 +77,40 @@ int main(int, char **)
 	std::cout << "\t\tTiramisu vgg Block duration"
 			  << ": " << median(duration_vector) << "; " << std::endl;
 
-	// Write results to file
-	std::ofstream resultfile;
-	resultfile.open("tiramisu_result.txt");
+	if (!TUNE_PARAMETERS){
+		// Write results to file
+		std::ofstream resultfile;
+		resultfile.open("tiramisu_result.txt");
 
-	for (int n = 0; n < BATCH_SIZE; ++n)
-		for (int z = 0; z < FOut; ++z)
-			for (int y = 0; y < N/2; ++y)
-				for (int x = 0; x < N/2; ++x)
-					resultfile << setprecision(10) << output(z%FOUT_BLOCKING, x, y, z/FOUT_BLOCKING, n) << std::endl;
+		for (int n = 0; n < BATCH_SIZE; ++n)
+			for (int z = 0; z < FOut; ++z)
+				for (int y = 0; y < N/2; ++y)
+					for (int x = 0; x < N/2; ++x)
+						resultfile << setprecision(10) << output(z%FOUT_BLOCKING, x, y, z/FOUT_BLOCKING, n) << std::endl;
 
-	resultfile.close();
+		resultfile.close();
 
-	// Compare results with Intel MKL
-	std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt");
+		// Compare results with Intel MKL
+		std::ifstream infile1("tiramisu_result.txt"), infile2("mkl_result.txt");
 
-	std::string line1, line2;
-	float file_count = 0, corr = 0, f1, f2;
+		std::string line1, line2;
+		float file_count = 0, corr = 0, f1, f2;
 
-	while (std::getline(infile1, line1))
-	{
-		std::getline(infile2, line2);
-		file_count += 1;
-		f1 = std::stof(line1);
-		f2 = std::stof(line2);
+		while (std::getline(infile1, line1))
+		{
+			std::getline(infile2, line2);
+			file_count += 1;
+			f1 = std::stof(line1);
+			f2 = std::stof(line2);
 
-		if (abs(f1 - f2) < 0.001)
-			corr += 1;
+			if (abs(f1 - f2) < 0.001)
+				corr += 1;
+		}
+
+	    std::cout << "\t\tResult"
+	              << ":\n\n";
+
+	    cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
 	}
-
-    std::cout << "\t\tResult"
-              << ":\n\n";
-
-    cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << endl << endl;
-
 	return 0;
 }

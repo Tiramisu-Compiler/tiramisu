@@ -18,6 +18,9 @@ The files in this folder are organized as follows:
     Intel MKL
         spconv_relu_maxpool_generator_mkl.c: code that calls Intel MKL's dense conv-relu-maxpool.
 
+    Intel MKL Sparse
+        spconv_relu_maxpool_generator_mkl_sparse.cpp: code that calls Intel MKL Sparse's sparse conv-relu-maxpool.
+
 To run this benchmark:
 
     At the directory build/benchmarks/DNN/blocks/Conv-ReLU-Maxpool/cpu/sparse execute
@@ -36,6 +39,11 @@ To run this benchmark:
     then
         ./spconv_relu_maxpool_wrapper
 
+    To compare the result of tiramisu with MKL Sparse execute :
+        ./compile_and_run_mkl_sparse.sh
+    then
+        ./spconv_relu_maxpool_wrapper
+
     execution results could be found in the text files :
-        mkl_result.txt (same for Intel MKL and Intel MKL-DNN)
+        mkl_result.txt (same for Intel MKL, Intel MKL-DNN and Intel MKL Sparse)
         tiramisu_result.txt
