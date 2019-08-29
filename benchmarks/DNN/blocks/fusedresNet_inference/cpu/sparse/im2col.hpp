@@ -46,10 +46,6 @@ void im2col_cpu_addpadding(const float* data_im, const int channels,
   }
 }
 
-#define H_BL 32
-#define H_NB_BL N/H_BL
-#define W_BL 32
-#define W_NB_BL N/W_BL
 void im2col_cpu(const float* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int pad_h, const int pad_w,
@@ -57,7 +53,6 @@ void im2col_cpu(const float* data_im, const int channels,
   int height_col = (height - kernel_h) + 1;
   int width_col = (width - kernel_w) + 1;
   int channels_col = channels * kernel_h * kernel_w;
-  omp_set_num_threads(4);
   #pragma omp parallel for
   for( int h_b = 0; h_b < H_NB_BL; h_b++){
     int h_start = h_b * H_BL;
@@ -71,7 +66,6 @@ void im2col_cpu(const float* data_im, const int channels,
         int c_im = c / kernel_h / kernel_w;
         const int hc0 = h_offset;
         const int wc0 = w_offset;
-
 
         for (int h = h_start; h < h_end; ++h) {
           int h_pad = h + hc0;
