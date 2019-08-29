@@ -40,7 +40,7 @@ bail_out:
 }
 
 // Original version by: Kyle Spafford Adapted for COO Format
-int initRandomSparseMatrix(float matrix[FOut][FIn][K][K], float density, const int KK, const int fin_size, const int fout_size)
+int initRandomSparseMatrix(float matrix[FOut][FIn][K][K], float density, const int KK, const int fin_size, const int fout_size, int seed)
 {
   const int n = KK * KK * fin_size * fout_size * density; // number of non zero elements
   int nnzAssigned = 0;
@@ -50,10 +50,10 @@ int initRandomSparseMatrix(float matrix[FOut][FIn][K][K], float density, const i
   int total_num_entries = KK * KK * fin_size * fout_size;
   double prob = (double)n / ((double) total_num_entries);
 
-  // Randomly decide whether entry i,j gets a value, but ensure n values
+  // Randomly decide whether an entry gets a value, but ensure n values
   // are assigned
   int fillRemaining = 0;
-  srand(1);
+  srand(seed);
   for (int fout = 0; fout < fout_size; fout++)
   {
     for (int fin = 0; fin < fin_size; fin++)
@@ -113,7 +113,7 @@ int main()
     size_t maxpool_kernel_size[] = {2, 2};
     size_t maxpool_strides[] = {2, 2};
     int maxpool_offset[] = {0, 0};
-    initRandomSparseMatrix(conv_filter_param, WEIGHTS_DENSITY, K, FIn, FOut);
+    initRandomSparseMatrix(conv_filter_param, WEIGHTS_DENSITY, K, FIn, FOut, 1);
 
     srand(3);
     // Allocate buffers

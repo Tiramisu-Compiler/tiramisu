@@ -1,5 +1,6 @@
 #ifndef __SPCONV_CONF_HEADER_
 #define __SPCONV_CONF_HEADER_
+
 #include <sys/time.h>
 
 #define SHOW_OUTPUT 0
@@ -10,9 +11,9 @@
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
 
-#define LARGE_N	1
-#define MEDIUM_N	0
-#define SMALL_N	0
+#define LARGE_N 0
+#define MEDIUM_N 1
+#define SMALL_N 0
 
 #if LARGE_DATA_SET
 	#define BATCH_SIZE 100
@@ -31,28 +32,37 @@
 	#define N 56
 #endif
 
-#define X_BL 8
-#define X_NB_BL (N/X_BL)
-
-#define Y_BL 2
-#define Y_NB_BL (N/Y_BL)
-
-// Parameters for MKL Sparse's IM2COL,
-#define H_BL 32 // Must be a divisor of N
-#define H_NB_BL N/H_BL
-#define W_BL 32 // Must be a divisor of N
-#define W_NB_BL N/W_BL
-
 // Number of features in the input
 #define FIn 3
 // Number of features in the output
 #define FOut 32
 
+#define FIN1_BLOCKING 1
+#define FIN2_BLOCKING 1
+
+#define FOUT_BL 8
+#define FOUT_NB_BL FOut/FOUT_BL
+#define X_BL1 16
+#define Y_BL1 4
+#define X_BL2 16
+#define Y_BL2 2
+#define X_NB_BL1 N/X_BL1
+#define X_NB_BL2 N/X_BL2
+#define Y_NB_BL1 N/Y_BL1
+#define Y_NB_BL2 N/Y_BL2
+
 // Size of convolution filter (KxK)
 #define K 3
 
-#define WEIGHTS_DENSITY 0.2
-#define NB_TESTS 301
+#define WEIGHTS_DENSITY 0.02
+
+#define NB_TESTS 201
+
+// Parameters for MKL Sparse's IM2COL
+#define H_BL 16 // Must be a divisor of N
+#define H_NB_BL N/H_BL
+#define W_BL 16 // Must be a divisor of N
+#define W_NB_BL N/W_BL
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)
@@ -100,6 +110,7 @@ double median(int n, double x[])
     }
 }
 #endif
+
 double rtclock()
 {
     struct timeval Tp;
@@ -107,4 +118,5 @@ double rtclock()
 
     return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
 }
+
 #endif

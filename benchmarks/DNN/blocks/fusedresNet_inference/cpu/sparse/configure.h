@@ -67,6 +67,12 @@
 
 #define EPSILON 1e-05
 
+// Parameters for MKL Sparse's IM2COL,
+#define H_BL 32 // Must be a divisor of N
+#define H_NB_BL N/H_BL
+#define W_BL 32 // Must be a divisor of N
+#define W_NB_BL N/W_BL
+
 #ifdef __cplusplus
 double median(std::vector<double> scores)
 {
