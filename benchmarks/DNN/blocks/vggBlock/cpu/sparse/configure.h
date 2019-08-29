@@ -37,6 +37,9 @@
 // Number of features in the output
 #define FOut 32
 
+#define FIN1_BLOCKING 1
+#define FIN2_BLOCKING 1
+
 #define FOUT_BL 8
 #define FOUT_NB_BL FOut/FOUT_BL
 #define X_BL1 16
@@ -54,6 +57,12 @@
 #define WEIGHTS_DENSITY 0.02
 
 #define NB_TESTS 201
+
+// Parameters for MKL Sparse's IM2COL,
+#define H_BL 16 // Must be a divisor of N
+#define H_NB_BL N/H_BL
+#define W_BL 16 // Must be a divisor of N
+#define W_NB_BL N/W_BL
 
 #ifdef __cplusplus
 double median(std::vector<double> scores)

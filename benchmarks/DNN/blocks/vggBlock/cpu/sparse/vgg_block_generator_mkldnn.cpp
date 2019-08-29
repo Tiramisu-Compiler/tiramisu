@@ -91,9 +91,8 @@ void vggBlock()
     std::vector<float> conv2_bias_buf(FOut);
     std::vector<float> conv2_weights_buf(FOut*FOut*K*K);
 
-    initRandomSparseMatrix(conv1_weights_buf.data(), WEIGHTS_DENSITY, K, FIn, FOut, 1, 1);
-    initRandomSparseMatrix(conv2_weights_buf.data(), WEIGHTS_DENSITY, K, FOut, FOut, 8, 2);
-
+    initRandomSparseMatrix(conv1_weights_buf.data(), WEIGHTS_DENSITY, K, FIn, FOut, FIN1_BLOCKING, 1);
+    initRandomSparseMatrix(conv2_weights_buf.data(), WEIGHTS_DENSITY, K, FOut, FOut, FIN2_BLOCKING, 2);
 
     srand(3);
     for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)

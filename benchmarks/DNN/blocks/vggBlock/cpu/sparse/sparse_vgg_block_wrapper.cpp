@@ -76,7 +76,7 @@ int main(int, char **)
   int *filter_idx1;
   int *filter_finptr1;
 
-  int FNNZ1 = generateCSRWeights(&filter_values1, WEIGHTS_DENSITY, &filter_idx1, &filter_finptr1, K, FIn, FOut, 1, 1);
+  int FNNZ1 = generateCSRWeights(&filter_values1, WEIGHTS_DENSITY, &filter_idx1, &filter_finptr1, K, FIn, FOut, FIN1_BLOCKING, 1);
 
   Halide::Buffer<float> b_input((N+2) * (N+2) * FIn, BATCH_SIZE);
 
@@ -93,7 +93,7 @@ int main(int, char **)
   int *filter_idx2;
   int *filter_finptr2;
 
-  int FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, 8, 2);
+  int FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, FIN2_BLOCKING, 2);
 
   Halide::Buffer<float> b_filter_values2(filter_values2, FNNZ2);
   Halide::Buffer<int> b_filter_idx2(filter_idx2, FNNZ2);
@@ -149,11 +149,10 @@ int main(int, char **)
   if (SHOW_OUTPUT)
     print_buffer(b_result);
 
-  printf("%f\n", median(duration_vector_2));
-  /*print_time("performance_CPU.csv", "sparse_vgg_block",
+  print_time("performance_CPU.csv", "sparse_vgg_block",
              {"Tiramisu"},
              {median(duration_vector_2)});
-*/
+ 
   if (WRITE_RESULT_TO_FILE){
     // Write results to file
     FILE* f = fopen("tiramisu_result.txt", "w");
@@ -182,8 +181,10 @@ int main(int, char **)
         for(int y=0; y<N/2; y++)
           for(int x=0; x< N/2; x++){
             mkldnn_result >> tmp;
-            if (abs(b_result(x, y, fout, b) - tmp) <= 0.0001)
+            if (std::abs(b_result(x, y, fout, b) - tmp) <= 0.0001)
               nb_correct++;
+            else
+              printf("%f and %f (%d, %d, %d, %d) \n", b_result(x, y, fout, b), tmp, b, fout, y, x);
           }
 
 

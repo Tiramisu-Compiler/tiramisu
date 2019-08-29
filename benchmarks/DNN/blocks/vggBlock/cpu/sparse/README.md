@@ -14,6 +14,9 @@ The files in this folder are organized as follows:
     Intel MKL-DNN
         vgg_block_generator_mkldnn.cpp : code that calls Intel MKL-DNN VGG block.
 
+    Intel MKL-DNN
+        sparse_vggblock_generator_mkl_sparse.cpp : code that calls Intel MKL Sparse VGG block.
+
 To run this benchmark:
 
     At the directory build/benchmarks/DNN/blocks/vggBlock/sparse execute
@@ -26,7 +29,11 @@ To run this benchmark:
     then
         ./sparse_vgg_block_wrapper
 
+    To compare the result of tiramisu with MKL Sparse execute :
+        ./compile_and_run_mkl_sparse.sh intel64
+    then
+        ./sparse_vgg_block_wrapper
 
     execution results could be found in the text files :
-        mkl_result.txt (Intel MKL-DNN)
+        mkl_result.txt (same for Intel MKL-DNN and MKL Sparse)
         tiramisu_result.txt (Tiramisu)
