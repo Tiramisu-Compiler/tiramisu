@@ -88,6 +88,5 @@ void im2col_cpu(const float* data_im, const int channels,
         }
       }
     }
-
   }
 }

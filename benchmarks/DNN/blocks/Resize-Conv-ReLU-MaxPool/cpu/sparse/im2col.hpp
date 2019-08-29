@@ -12,10 +12,6 @@ inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
   return static_cast<unsigned>(a) < static_cast<unsigned>(b);
 }
 
-#define H_BL 32
-#define H_NB_BL N/H_BL
-#define W_BL 32
-#define W_NB_BL N/W_BL
 void im2col_cpu(const float* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int pad_h, const int pad_w,
@@ -38,7 +34,6 @@ void im2col_cpu(const float* data_im, const int channels,
         const int hc0 = h_offset;
         const int wc0 = w_offset;
 
-
         for (int h = h_start; h < h_end; ++h) {
           int h_pad = h + hc0;
 
@@ -60,6 +55,5 @@ void im2col_cpu(const float* data_im, const int channels,
         }
       }
     }
-
   }
 }

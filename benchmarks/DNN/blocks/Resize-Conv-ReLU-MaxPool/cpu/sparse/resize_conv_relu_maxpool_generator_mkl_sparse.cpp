@@ -222,17 +222,6 @@ int main()
           for(int x=0; x<N; x++)
             conv_output_buf[batch*(FOut*N*N) + fout*N*N + y*N + x] += conv_bias_buf[fout];
       }
-
-      /*
-      #pragma omp parallel for
-      for(int fout_b = 0; fout_b<FOut/2; fout_b++){
-        for(int y_b=0; y_b<N/2; y_b++)
-          for(int x_b=0; x_b<N/8; x_b++)
-          for(int ffout = 0; ffout<2; ffout++)
-            for(int yy=0; yy<2; yy++)
-              for(int xx=0; xx<8; xx++)
-                conv_output_buf[batch*(FOut*N*N) + (fout_b*2+ffout)*N*N + (y_b*2+yy)*N + x_b*8+xx] += conv_bias_buf[fout_b*2+ffout];
-      */
     }
     // Execute relu/maxpool
     for (size_t j = 0; j < net.size(); ++j)

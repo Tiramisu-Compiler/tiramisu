@@ -58,7 +58,7 @@
 
 #define NB_TESTS 201
 
-// Parameters for MKL Sparse's IM2COL,
+// Parameters for MKL Sparse's IM2COL
 #define H_BL 16 // Must be a divisor of N
 #define H_NB_BL N/H_BL
 #define W_BL 16 // Must be a divisor of N

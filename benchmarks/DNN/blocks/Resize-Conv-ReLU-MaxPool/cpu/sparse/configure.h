@@ -41,6 +41,12 @@
 #define FIN_BLOCKING 8
 #define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
+// Parameters for MKL Sparse's IM2COL
+#define H_BL 32 // Must be a divisor of N
+#define H_NB_BL N/H_BL
+#define W_BL 32 // Must be a divisor of N
+#define W_NB_BL N/W_BL
+
 #if N >= 224
     #define X_BL 8
     #define Y_BL 4
