@@ -172,7 +172,8 @@ int main(int, char **)
     n = N;
     FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut, 2);
   }
-  printf("Layer 1 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ / (FOut * FIn * K * K))*100, filename.c_str());
+  if (IMPORT_CSR_FROM_FILE)
+    printf("Layer 1 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ / (FOut * FIn * K * K))*100, filename.c_str());
 
   // Assertions to ensure that the generated tiramisu code has the right parameters
   // because we are defining the parameters in the configure.h files to get specialized fast code
@@ -212,7 +213,8 @@ int main(int, char **)
     n = N;
     FNNZ2 = generateCSRWeights(&filter_values2, WEIGHTS_DENSITY, &filter_idx2, &filter_finptr2, K, FOut, FOut, 5);
   }
-  printf("Layer 2 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ2 / (FOut * FOut * K * K))*100, filename2.c_str());
+  if (IMPORT_CSR_FROM_FILE)
+    printf("Layer 2 Density : %.2f %%. Weights imported from %s\n", ((float)FNNZ2 / (FOut * FOut * K * K))*100, filename2.c_str());
   // Assertions to ensure that the generated tiramisu code has the right parameters
   // because we are defining the parameters in the configure.h files to get specialized fast code
   assert((used_FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
