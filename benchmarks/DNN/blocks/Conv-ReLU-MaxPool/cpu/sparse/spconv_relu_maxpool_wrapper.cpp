@@ -7,7 +7,7 @@
 #include "configure.h"
 
 // Original version by: Kyle Spafford Adapted for CSR format
-void initRandomWeights(float* filter_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size)
+void initRandomWeights(float* filter_values, int* filter_idx, int* filter_finptr, const int n, const int KK, const int fin_size, const int fout_size, int seed)
 {
     int nnzAssigned = 0;
     // Figure out the probability that a nonzero should be assigned to a given
@@ -16,7 +16,7 @@ void initRandomWeights(float* filter_values, int* filter_idx, int* filter_finptr
     double prob = (double)n / ((double) total_num_entries);
 
     // Seed random number generator
-    srand(1);
+    srand(seed);
 
     // Randomly decide whether entry i,j gets a value, but ensure n values
     // are assigned
@@ -50,12 +50,12 @@ void initRandomWeights(float* filter_values, int* filter_idx, int* filter_finptr
     assert(nnzAssigned == n);
 }
 
-int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size) {
+int generateCSRWeights(float **filter_values, float density, int **filter_idx, int** filter_finptr, int KK, int fin_size, int fout_size, int seed) {
     int nNonzero = KK * KK * fin_size * fout_size * density;
     *filter_values = (float *) malloc(nNonzero * sizeof(float));
     *filter_idx = (int *) malloc(nNonzero * sizeof(int));
     *filter_finptr = (int *) malloc((fout_size + 1) * sizeof(int));
-    initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size);
+    initRandomWeights(*filter_values, *filter_idx, *filter_finptr, nNonzero, KK, fin_size, fout_size, seed);
     return nNonzero;
 }
 
@@ -72,8 +72,7 @@ int main(int, char **)
     int *filter_idx;
     int *filter_finptr;
 
-    int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut);
-    std::cout << "FNNZ : " << FNNZ << std::endl;
+    int FNNZ = generateCSRWeights(&filter_values, WEIGHTS_DENSITY, &filter_idx, &filter_finptr, K, FIn, FOut, 1);
 
     Halide::Buffer<int> b_SIZES(1);
     b_SIZES(0) = FNNZ;
@@ -98,7 +97,7 @@ int main(int, char **)
     for (int q=0; q<FOut; q++)
       b_bias(q) = ((float)(rand()%256 - 128)) / 127.f;
 
-    std::cout << "Starting the tests : " << std::endl;
+    std::cout << "Buffers Initialized" << std::endl;
     for (int i = 0; i < NB_TESTS; i++)
     {
 	    start = rtclock();
@@ -108,10 +107,9 @@ int main(int, char **)
     }
     if (SHOW_OUTPUT)
       print_buffer(b_result);
-    print_time("performance_CPU.csv", "spconv",
+    print_time("performance_CPU.csv", "SpConv-ReLU-MaxPool",
                {"Tiramisu"},
                {median(duration_vector)});
-    std::cout << "FOUT = "<< FOut << "\t\tWEIGHTS DENSITY = " << WEIGHTS_DENSITY << std::endl;
 
     if (WRITE_RESULT_TO_FILE){
       // Write results to file
