@@ -55,13 +55,6 @@ int main(int argc, char **argv)
     var x_bound("x_bound", 0, X_BOUND);
     var x_conclude("x_conclude", X_BOUND, N);
 
-    // Compute convolution from 0 to x_bound
-    /*computation conv(
-        "conv",
-        {n, y, fout_b, fin_b, x_bound, k_y, k_x, ffin, ffout},
-        conv_out(n, y, fout_b, x_bound, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_bound + k_x, ffin)
-    );*/
-
     // Compute unrolled convolution from 0 to x_bound
     computation *unrolled_conv[FOut];
     for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
@@ -123,19 +116,11 @@ int main(int argc, char **argv)
 
     // Interchange
     reg_load.interchange(xx, ffout);
-/*    for (int f = 0; f < FOut; f++)
-	for (int in = 0; in < FIN_NB_BLOCKS; in++)
-	    unrolled_conv[f][in]->interchange(xx, ffout);*/
     reg_store.interchange(xx, ffout);
 
     // Split over dimension fout_b
     var fout_b_up, fout_b_low;
-    
     if (FOUT_B_SPLIT_FACTOR*FOUT_BLOCKING != FOut) {
-	exit(0);
-//        conv_init.split(fout_b, FOUT_B_SPLIT_FACTOR, fout_b_up, fout_b_low);
-//        conv.split(fout_b, FOUT_B_SPLIT_FACTOR, fout_b_up, fout_b_low);
-        
         reg_load.split(fout_b, FOUT_B_SPLIT_FACTOR, fout_b_up, fout_b_low);
         reg_store.split(fout_b, FOUT_B_SPLIT_FACTOR, fout_b_up, fout_b_low);
     }
@@ -144,21 +129,14 @@ int main(int argc, char **argv)
         fout_b_low = fout_b;
     }
 
-//    reg_load.interchange(fout_b_low, fin_b);
     reg_load.interchange(fout_b_low, x_b);
-    for (int f = 0; f < FOut; f++)
-	{
-//	    unrolled_conv[f][in]->interchange(fout_b_low, fin_b);
-//	    unrolled_conv[f][in]->interchange(fout_b_low, x_b);
-	}
-//    reg_store.interchange(fout_b_low, fin_b);
     reg_store.interchange(fout_b_low, x_b);
 
     // Vectorize and unroll
     for (int f = 0; f < FOut; f++)
 	{
 	    unrolled_conv[f]->tag_vector_level(3, 3);
-//	    unrolled_conv[f]->tag_unroll_level(4); //xx);
+//	    unrolled_conv[f]->tag_unroll_level(3); //4); //xx);
 //	    unrolled_conv[f][in]->tag_vector_level(5, FOUT_BLOCKING); //ffout, FOUT_BLOCKING);
 //	    unrolled_conv[f][in]->tag_unroll_level(6); //fout_b_low);
 	}
@@ -217,8 +195,8 @@ int main(int argc, char **argv)
     reg_store_conclude.tag_unroll_level(fout_b_low);
 
     // Parallelize and order
-//    unrolled_conv[0][0]->tag_parallel_level(y);
-//    unrolled_conv[0][0]->tag_parallel_level(n);
+//    unrolled_conv[0]->tag_parallel_level(y);
+//    unrolled_conv[0]->tag_parallel_level(n);
 
     conv_init.then(reg_load, fout_b_up);
 
