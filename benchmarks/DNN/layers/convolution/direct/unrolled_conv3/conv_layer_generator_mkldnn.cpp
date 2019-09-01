@@ -33,13 +33,13 @@ void conv()
     std::vector<float> conv_weights_buf(FOut*FIn*K*K);
 
     for (int i = 0; i < BATCH_SIZE*FIn*(N + 2)*(N + 2); i++)
-        input_buf[i] = ((float) 1); //(rand()%256 - 128)) / 127.f;
+        input_buf[i] = ((float) (rand()%256 - 128)) / 127.f;
 
     for (int i = 0; i < FOut*FIn*K*K; i++)
-        conv_weights_buf[i] = ((float) 1);//(rand()%256 - 128)) / 127.f;
+        conv_weights_buf[i] = ((float) (rand()%256 - 128)) / 127.f;
 
     for (int i = 0; i < FOut; i++)
-        conv_bias_buf[i] = ((float)1); //(rand()%256 - 128)) / 127.f;
+        conv_bias_buf[i] = ((float) (rand()%256 - 128)) / 127.f;
 
     // Create memory objects with user data format
     auto input_usr_md = memory::desc(
