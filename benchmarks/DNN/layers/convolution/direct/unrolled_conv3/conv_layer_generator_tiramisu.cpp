@@ -23,7 +23,9 @@ void gen_random_dense_weights()
 		for (int fin = 0; fin < FIn; ++fin)
 			for (int k_y = 0; k_y < K; ++k_y)
 				for (int k_x = 0; k_x < K; ++k_x)
+				{
 					Hfilter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
+				}
 }
 
 int main(int argc, char **argv)
@@ -56,35 +58,37 @@ int main(int argc, char **argv)
     var x_conclude("x_conclude", X_BOUND, N);
 
     // Compute unrolled convolution from 0 to x_bound
-    computation *unrolled_conv[FOut];
-    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
-      for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
-	{
-	    expr e = expr((float) 0);
+    computation *unrolled_conv[FOUT_NB_BLOCKS][FOUT_BLOCKING][FIN_NB_BLOCKS][FIN_BLOCKING][K][K];
+    for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+      for (int ky = 0; ky < K; ky++)
+	for (int kx = 0; kx < K; kx++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+    	    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
+              for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
+	        if (Hfilter(f1, in1, kx, ky, in0, f0) != 0)
+		{
+		    expr e = expr((float) Hfilter(f1, in1, kx, ky, in0, f0)) * c_input(n, in0, y + ky, x_bound + kx, in1);
 
-	    for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
-		for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
-		    for (int ky = 0; ky < K; ky++)
-			for (int kx = 0; kx < K; kx++)
-			    if (Hfilter(f1, in1, kx, ky, in0, f0) != 0)
-				e = e + expr((float) Hfilter(f1, in1, kx, ky, in0, f0)) * c_input(n, in0, y + ky, x_bound + kx, in1);
+		    computation *conv = new computation(
+			    "conv_" + std::to_string(f0)  + "_" + std::to_string(f1)  + "_" +
+				      std::to_string(in0) + "_" + std::to_string(in1) + "_" +
+				      std::to_string(ky) +  "_" + std::to_string(kx),
+			    {n, y, x_bound}, conv_out(n, y, f0, x_bound, f1) + e);
 
-	    computation *conv =
-			new computation(
-			    "conv_" + std::to_string(f0) + "_" + std::to_string(f1),
-			    {n, y, x_bound},
-				conv_out(n, y, f0, x_bound, f1) + e);
-
-	    conv->get_buffer()->set_auto_allocate(false);
-	    unrolled_conv[f0*FOUT_BLOCKING+f1] = conv;
-	}
+		    conv->get_buffer()->set_auto_allocate(false);
+		    unrolled_conv[f0][f1][in0][in1][ky][kx] = conv;
+		}
+		else
+		    unrolled_conv[f0][f1][in0][in1][ky][kx] = NULL;
 
     // Compute convolution from x_bound to N
+#if DO_CONCLUSION
     computation conv_conclude(
         "conv_conclude",
         {n, y, fout_b, fin_b, k_y, k_x, ffin, ffout, x_conclude},
         conv_out(n, y, fout_b, x_conclude, ffout) + filter(fout_b, fin_b, k_y, k_x, ffin, ffout) * c_input(n, fin_b, y + k_y, x_conclude + k_x, ffin)
     );
+#endif
 
     // -------------------------------------------------------
     // Layer II
@@ -110,10 +114,16 @@ int main(int argc, char **argv)
     // Split over dimension x
     var x_b, xx;
     reg_load.split(x_bound, X_BLOCKING, x_b, xx);
-    for (int f = 0; f < FOut; f++)
-	unrolled_conv[f]->split(x_bound, X_BLOCKING, x_b, xx);
+    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
+      for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
+        for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+	    for (int ky = 0; ky < K; ky++)
+	      for (int kx = 0; kx < K; kx++)
+		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->split(x_bound, X_BLOCKING, x_b, xx);
     reg_store.split(x_bound, X_BLOCKING, x_b, xx);
-
+ 
     // Interchange
     reg_load.interchange(xx, ffout);
     reg_store.interchange(xx, ffout);
@@ -132,14 +142,22 @@ int main(int argc, char **argv)
     reg_load.interchange(fout_b_low, x_b);
     reg_store.interchange(fout_b_low, x_b);
 
+    // This is where intermediate results of convolution will be stored.
+    // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
+    buffer reg_buf("reg_buf", {FOUT_B_SPLIT_FACTOR, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
+    reg_buf.set_auto_allocate(false);
+    computation *alloc_reg_buf = reg_buf.allocate_at(reg_load, x_b);
+
     // Vectorize and unroll
-    for (int f = 0; f < FOut; f++)
-	{
-	    unrolled_conv[f]->tag_vector_level(3, 3);
-//	    unrolled_conv[f]->tag_unroll_level(3); //4); //xx);
-//	    unrolled_conv[f][in]->tag_vector_level(5, FOUT_BLOCKING); //ffout, FOUT_BLOCKING);
-//	    unrolled_conv[f][in]->tag_unroll_level(6); //fout_b_low);
-	}
+    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
+      for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
+        for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+	    for (int ky = 0; ky < K; ky++)
+	      for (int kx = 0; kx < K; kx++)
+		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_vector_level(3, 8);
+
     reg_load.vectorize(ffout, FOUT_BLOCKING);
     reg_store.vectorize(ffout, FOUT_BLOCKING);
     reg_load.tag_unroll_level(xx);
@@ -147,6 +165,7 @@ int main(int argc, char **argv)
     reg_store.tag_unroll_level(xx);
     reg_store.tag_unroll_level(fout_b_low);
 
+#if DO_CONCLUSION
     // schedule for conv_conclude
     // This schedule is the same as conv computation
     computation reg_load_conclude(
@@ -193,51 +212,67 @@ int main(int argc, char **argv)
 
     reg_store_conclude.tag_unroll_level(x_conclude);
     reg_store_conclude.tag_unroll_level(fout_b_low);
+#endif
 
     // Parallelize and order
-//    unrolled_conv[0]->tag_parallel_level(y);
-//    unrolled_conv[0]->tag_parallel_level(n);
+    unrolled_conv[0][0][0][0][0][0]->tag_parallel_level(y);
+    unrolled_conv[0][0][0][0][0][0]->tag_parallel_level(n);
 
-    conv_init.then(reg_load, fout_b_up);
+    conv_init.then(*alloc_reg_buf, fout_b_up)
+	     .then(reg_load, x_b);
 
     computation *previous_comp = &reg_load;
 
-    for (int f = 0; f < FOut; f++)
-	{
-	    previous_comp->then(*unrolled_conv[f], 2);//4);
-	    previous_comp = unrolled_conv[f];
-	}
+    for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+      for (int ky = 0; ky < K; ky++)
+	for (int kx = 0; kx < K; kx++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+    	    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
+              for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
+		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
+		{
+		    previous_comp->then(*unrolled_conv[f0][f1][in0][in1][ky][kx], 2);
+		    previous_comp = unrolled_conv[f0][f1][in0][in1][ky][kx];
+		}
 
     previous_comp
-	    ->then(reg_store, 2) //x_b)
-             .then(reg_load_conclude, 1) //fout_b_up)
+	    ->then(reg_store, 2);
+
+#if DO_CONCLUSION
+    reg_store.then(reg_load_conclude, 1)
              .then(conv_conclude, fin_b)
              .then(reg_store_conclude, fin_b);
+#endif
 
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
     buffer conv_buf("conv_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
-    
-    // This is where intermediate results of convolution will be stored.
-    // We rely on the compiler to detect that this buffer can be mapped to CPU registers.
-    buffer reg_buf("reg_buf", {FOUT_B_SPLIT_FACTOR, X_BLOCKING, FOUT_BLOCKING}, p_float32, a_temporary);
-
+ 
     conv_init.store_in(&conv_buf, {n, fout_b, y, x, ffout});
     conv_out.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x%X_BLOCKING, ffout});
 
     reg_load.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, ffout});
-    //for (int f = 0; f < FOut; f++)
-//	    unrolled_conv[f][in]->store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, ffout});
+
     for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
       for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
-	   unrolled_conv[f0*FOUT_BLOCKING+f1]->store_in(&reg_buf, {f0%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, f1});
+        for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+	    for (int ky = 0; ky < K; ky++)
+	      for (int kx = 0; kx < K; kx++)
+		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
+		{
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->store_in(&reg_buf, {f0%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, f1});
+		}
+
     conv_orig.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, ffout});
     reg_store.store_in(&conv_buf, {n, fout_b, y, x_bound, ffout});
 
+#if DO_CONCLUSION
     reg_load_conclude.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_conclude%X_BLOCKING, ffout});
     conv_conclude.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_conclude%X_BLOCKING, ffout});
     reg_store_conclude.store_in(&conv_buf, {n, fout_b, y, x_conclude, ffout});
+#endif
 
     // -------------------------------------------------------
     // Code Generation
