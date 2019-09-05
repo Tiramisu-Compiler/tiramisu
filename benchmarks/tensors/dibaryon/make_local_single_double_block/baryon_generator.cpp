@@ -1,6 +1,6 @@
 #include <tiramisu/tiramisu.h>
 #include <string.h>
-#include "baryon_wrapper.h"
+#include "tiramisu_make_local_single_double_block_wrapper.h"
 #include "../utils/complex_util.h"
 #include "../utils/util.h"
 
@@ -440,12 +440,12 @@ void generate_function(std::string name)
         src_psi_B1_r.get_buffer(), src_psi_B1_i.get_buffer(), 
         &buf_B1_Bsingle_r1_r, &buf_B1_Bsingle_r1_i,
         B1_Bdouble_r1_r_init.get_buffer(), B1_Bdouble_r1_i_init.get_buffer()},
-        "generated_baryon.o");
+        "tiramisu_make_local_single_double_block.o");
 }
 
 int main(int argc, char **argv)
 {
-    generate_function("tiramisu_generated_code");
+    generate_function("tiramisu_make_local_single_double_block");
 
     return 0;
 }

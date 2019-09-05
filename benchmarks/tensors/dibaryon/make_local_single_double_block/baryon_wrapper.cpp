@@ -4,8 +4,8 @@
 #include <iostream>
 #include "benchmarks.h"
 
-#include "baryon_wrapper.h"
-#include "baryon_ref.cpp"
+#include "tiramisu_make_local_single_double_block_wrapper.h"
+#include "tiramisu_make_local_single_double_block_ref.cpp"
 
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
@@ -143,7 +143,7 @@ int main(int, char **)
 	    auto start1 = std::chrono::high_resolution_clock::now();
 
 
-	    tiramisu_generated_code(B1_Blocal_r1_r.raw_buffer(),
+	    tiramisu_make_local_single_double_block(B1_Blocal_r1_r.raw_buffer(),
 				    B1_Blocal_r1_i.raw_buffer(),
 				    B1_prop_r.raw_buffer(),
 				    B1_prop_i.raw_buffer(),

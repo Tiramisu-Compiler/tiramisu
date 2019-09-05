@@ -41,7 +41,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "dibaryon"
+#define TEST_NAME_STR       "tiramisu_make_local_single_double_block"
 
 #include <tiramisu/utils.h>
 
@@ -57,7 +57,7 @@ static double src_weights_r2[Nw] = {-2/sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2),
 extern "C" {
 #endif
 
-int tiramisu_generated_code(halide_buffer_t *,
+int tiramisu_make_local_single_double_block(halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
