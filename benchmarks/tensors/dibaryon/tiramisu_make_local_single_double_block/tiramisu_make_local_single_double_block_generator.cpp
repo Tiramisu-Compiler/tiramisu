@@ -9,34 +9,6 @@ using namespace tiramisu;
 #define VECTORIZED 1
 #define PARALLEL 1
 
-typedef buffer *BufferPtrTy;
-/**
-  * Helper function to allocate buffer for complex tensor
-  */
-void allocate_complex_buffers(
-    BufferPtrTy &real_buff, BufferPtrTy &imag_buff, 
-    std::vector<expr> dims, std::string name)
-{
-  real_buff = new buffer(
-      // name
-      str_fmt("%s_r", name.c_str()),
-      // dimensions
-      dims,
-      // type
-      tiramisu::p_float64, 
-      // usage/source
-      a_temporary);
-  imag_buff = new buffer(
-      // name
-      str_fmt("%s_i", name.c_str()),
-      // dimensions
-      dims,
-      // type
-      tiramisu::p_float64, 
-      // usage/source
-      a_temporary);
-}
-
 // Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
 struct Q2UserEdge {
       computation *q_r, *q_i,
