@@ -10,14 +10,17 @@
 #define Nc 3
 #define Ns 2
 #define Nw 9
+#define Nw2 Nw*Nw
 #define twoNw 81
 #define Nperms 36
-#define Lt 2
+#define Nt 2
 #define Vsrc 2
 #define Vsnk 4
 #define Nsrc 2
 #define Nsnk 2
 #define mq 1.0
+#define NsnkHex 4
+#define Nb 2
 
 #elif LARGE_BARYON_DATA_SET
 
@@ -25,14 +28,17 @@
 #define Nc 3
 #define Ns 2
 #define Nw 9
+#define Nw2 Nw*Nw
 #define twoNw 81
 #define Nperms 36
-#define Lt 4 // 1..32
+#define Nt 4 // 1..32
 #define Vsrc 16 //64 //8, 64, 512
 #define Vsnk 16 //64 //8, 64, 512
 #define Nsrc 6
 #define Nsnk 6
 #define mq 1.0
+#define NsnkHex 4
+#define Nb 2
 
 #endif
 
@@ -58,6 +64,10 @@ extern "C" {
 #endif
 
 int tiramisu_make_dibaryon_hex_correlator(halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
