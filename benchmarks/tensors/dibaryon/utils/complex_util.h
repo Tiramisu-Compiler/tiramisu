@@ -169,4 +169,33 @@ public:
   }
 };
 
+typedef tiramisu::buffer *BufferPtrTy;
+
+/**
+  * Helper function to allocate buffer for complex tensor
+  */
+void allocate_complex_buffers(
+    BufferPtrTy &real_buff, BufferPtrTy &imag_buff, 
+    std::vector<tiramisu::expr> dims, std::string name)
+{
+  real_buff = new tiramisu::buffer(
+      // name
+      str_fmt("%s_r", name.c_str()),
+      // dimensions
+      dims,
+      // type
+      tiramisu::p_float64, 
+      // usage/source
+      tiramisu::a_temporary);
+  imag_buff = new tiramisu::buffer(
+      // name
+      str_fmt("%s_i", name.c_str()),
+      // dimensions
+      dims,
+      // type
+      tiramisu::p_float64, 
+      // usage/source
+      tiramisu::a_temporary);
+}
+
 #endif
