@@ -4,6 +4,7 @@
 #### Path to MKL
 #export MKL_PREFIX=/opt/intel/compilers_and_libraries/mac/mkl/
 #export MKL_PREFIX=/data/scratch/baghdadi/libs/intel/mkl/
+#export MKL_PREFIX=/Users/b/Documents/src/MIT/tiramisu/3rdParty/mkldnn_mac_1.0.1_cpu_iomp/
 export MKL_PREFIX=
 #### MKL library flag
 #export MKL_FLAGS="-lcblas"
