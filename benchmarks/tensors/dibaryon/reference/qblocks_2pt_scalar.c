@@ -3,6 +3,7 @@
 #include <complex.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "qblocks_2pt_scalar.h"                                       /* DEPS */
 #include "tiramisu_wrapper.h"
@@ -26,6 +27,10 @@ int Q_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3, int y
 int Blocal_index(int t, int c1, int s1, int c2, int s2, int x, int c3, int s3, int m, int Nc, int Ns, int Vsnk, int Nsrc) {
    return m +Nsrc*( s3 +Ns*( c3 +Nc*( x +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t ))))))));
 }
+int tBlocal_index(int t, int c1, int s1, int c2, int s2, int x, int m, int c3, int s3, int Nc, int Ns, int Vsnk, int Nsrc) {
+   return s3 +Ns*( c3 + Nc*( m +Nsrc*( x +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t ))))))));
+}
+
 int Bdouble_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3, int x2, int m, int Nc, int Ns, int Vsnk, int Nsrc) {
    return m +Nsrc*( x2 +Vsnk*(  s3 +Ns*( c3 +Nc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t )))))))));
 }
@@ -34,6 +39,14 @@ void error_msg(char *msg)
 {
     printf("\nError! %s.\n", msg);
     exit(1);
+}
+
+double rtclock()
+{
+    struct timeval Tp;
+    gettimeofday(&Tp, NULL);
+
+    return (Tp.tv_sec + Tp.tv_usec * 1.0e-6);
 }
 
 void make_local_block(double* Blocal_re, 
@@ -885,6 +898,11 @@ void make_two_nucleon_2pt(double* C_re,
     const int Nperms) {
    /* indices */
    int nB1, nB2, nq, n, m, t;
+
+   double total_time_reference = 0;
+   double total_time_tiramisu = 0;
+   double total_time_common = 0;
+
    // hold results for two nucleon correlators 
    /* compute two nucleon snk weights */
    int Nw2 = Nw*Nw;
@@ -985,10 +1003,14 @@ void make_two_nucleon_2pt(double* C_re,
 	      B2_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
 	      B2_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc * sizeof (double));
 
+	      double start_time = rtclock();
 	      make_local_block(B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 	      make_local_block(B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 	      make_local_block(B2_Blocal_r1_re, B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 	      make_local_block(B2_Blocal_r2_re, B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
+	      double end_time = rtclock();
+	      total_time_reference += (end_time - start_time);
+
 	      printf("made local blocks \n");
       }
       if (Nsnk > 0) {
@@ -1046,6 +1068,7 @@ void make_two_nucleon_2pt(double* C_re,
 		 B2_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 
+   		 double start_time = rtclock();
 		 make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B1_Bdouble_r1_re, B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
@@ -1054,6 +1077,9 @@ void make_two_nucleon_2pt(double* C_re,
 		 make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B2_Bdouble_r1_re, B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B2_Bdouble_r2_re, B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
+		 double end_time = rtclock();
+		 total_time_reference += (end_time - start_time);
+
 		 printf("made double blocks \n");
 	 }
 	 if (USE_TIRAMISU)
@@ -1084,10 +1110,13 @@ void make_two_nucleon_2pt(double* C_re,
 		 t_B2_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 t_B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 
+		 double start_time = rtclock();
 		 tiramisu_wrapper_make_local_single_double_block(t_B1_Blocal_r1_re, t_B1_Blocal_r1_im, t_B1_Bsingle_r1_re, t_B1_Bsingle_r1_im, t_B1_Bdouble_r1_re, t_B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
 		 tiramisu_wrapper_make_local_single_double_block(t_B1_Blocal_r2_re, t_B1_Blocal_r2_im, t_B1_Bsingle_r2_re, t_B1_Bsingle_r2_im, t_B1_Bdouble_r2_re, t_B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
 		 tiramisu_wrapper_make_local_single_double_block(t_B2_Blocal_r1_re, t_B2_Blocal_r1_im, t_B2_Bsingle_r1_re, t_B2_Bsingle_r1_im, t_B2_Bdouble_r1_re, t_B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
 		 tiramisu_wrapper_make_local_single_double_block(t_B2_Blocal_r2_re, t_B2_Blocal_r2_im, t_B2_Bsingle_r2_re, t_B2_Bsingle_r2_im, t_B2_Bdouble_r2_re, t_B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
+		 double end_time = rtclock();
+		 total_time_tiramisu += (end_time - start_time);
 	 }
 	 /* Compare the results of Reference and Tiramisu code. */
 	 if (USE_REFERENCE && USE_TIRAMISU)
@@ -1103,9 +1132,21 @@ void make_two_nucleon_2pt(double* C_re,
 				 for (jCprime=0; jCprime<Nc; jCprime++)
 				    for (jSprime=0; jSprime<Ns; jSprime++)
 				       for (m=0; m<Nsrc; m++)
-					  if (fabs(B1_Blocal_r1_re[Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
-					         t_B1_Blocal_r1_re[Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)]) <= ERROR_THRESH)
+				       {
+					  if (fabs(B1_Blocal_r1_re[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
+					         t_B1_Blocal_r1_re[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 					      error_msg("Results for B1_Blocal_r1_re do not match");
+					  if (fabs(B1_Blocal_r1_im[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
+					         t_B1_Blocal_r1_im[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+					      error_msg("Results for B1_Blocal_r1_im do not match");
+
+					  if (fabs(B2_Blocal_r1_re[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
+					         t_B2_Blocal_r1_re[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+					      error_msg("Results for B2_Blocal_r1_re do not match");
+					  if (fabs(B2_Blocal_r1_im[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
+					         t_B2_Blocal_r1_im[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+					      error_msg("Results for B2_Blocal_r1_im do not match");
+				       }
 	 }
          /* compute two nucleon correlators from blocks */
          double* BB_0_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
@@ -1116,6 +1157,8 @@ void make_two_nucleon_2pt(double* C_re,
          double* BB_r2_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
          double* BB_r3_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
          double* BB_r3_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+
+	 double start_time = rtclock();
          for (m=0; m<Nsrc; m++) {
             for (n=0; n<Nsnk; n++) {
                for (t=0; t<Nt; t++) {
@@ -1166,6 +1209,9 @@ void make_two_nucleon_2pt(double* C_re,
                }
             }
          }
+         double end_time = rtclock();
+	 total_time_common += (end_time - start_time);
+
          free(B1_Bsingle_r1_re);
          free(B1_Bsingle_r1_im);
          free(B1_Bsingle_r2_re);
@@ -1202,6 +1248,8 @@ void make_two_nucleon_2pt(double* C_re,
          double* BB_H_r2_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
          double* BB_H_r3_re = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
          double* BB_H_r3_im = malloc(Nsrc * NsnkHex * Nt * sizeof (double));
+
+	 double start_time = rtclock();
          for (m=0; m<Nsrc; m++) {
             for (n=0; n<NsnkHex; n++) {
                for (t=0; t<Nt; t++) {
@@ -1268,6 +1316,9 @@ void make_two_nucleon_2pt(double* C_re,
                }
             }
          } 
+         double end_time = rtclock();
+	 total_time_common += (end_time - start_time);
+
          free(BB_H_0_re);
          free(BB_H_0_im);
          free(BB_H_r1_re);
@@ -1298,6 +1349,8 @@ void make_two_nucleon_2pt(double* C_re,
          double* H_r2_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
          double* H_r3_re = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
          double* H_r3_im = malloc(NsrcHex * NsnkHex * Nt * sizeof (double));
+
+	 double start_time = rtclock();
          for (m=0; m<NsrcHex; m++) {
             for (n=0; n<NsnkHex; n++) {
                for (t=0; t<Nt; t++) {
@@ -1336,6 +1389,9 @@ void make_two_nucleon_2pt(double* C_re,
                }
             }
          }
+         double end_time = rtclock();
+	 total_time_common += (end_time - start_time);
+
          free(H_0_re);
          free(H_0_im);
          free(H_r1_re);
@@ -1357,11 +1413,8 @@ void make_two_nucleon_2pt(double* C_re,
             double* snk_B2_Blocal_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsrc * Nc * Ns * Nsnk * sizeof (double));
             double* snk_B2_Blocal_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsrc * Nc * Ns * Nsnk * sizeof (double));
             double* snk_B2_Blocal_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsrc * Nc * Ns * Nsnk * sizeof (double));
-            make_local_snk_block(snk_B1_Blocal_r1_re, snk_B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, snk_psi_B1_re, snk_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
-            make_local_snk_block(snk_B1_Blocal_r2_re, snk_B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_psi_B1_re, snk_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
-            make_local_snk_block(snk_B2_Blocal_r1_re, snk_B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, snk_psi_B2_re, snk_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
-            make_local_snk_block(snk_B2_Blocal_r2_re, snk_B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_psi_B2_re, snk_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
-            double* H_BB_0_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+
+	    double* H_BB_0_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
             double* H_BB_0_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
             double* H_BB_r1_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
             double* H_BB_r1_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
@@ -1369,6 +1422,12 @@ void make_two_nucleon_2pt(double* C_re,
             double* H_BB_r2_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
             double* H_BB_r3_re = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
             double* H_BB_r3_im = malloc(NsrcHex * Nsnk * Nt * sizeof (double));
+
+	    double start_time = rtclock();
+            make_local_snk_block(snk_B1_Blocal_r1_re, snk_B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, snk_psi_B1_re, snk_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
+            make_local_snk_block(snk_B1_Blocal_r2_re, snk_B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_psi_B1_re, snk_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
+            make_local_snk_block(snk_B2_Blocal_r1_re, snk_B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, snk_psi_B2_re, snk_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
+            make_local_snk_block(snk_B2_Blocal_r2_re, snk_B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_psi_B2_re, snk_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsnk);
             for (m=0; m<NsrcHex; m++) {
                for (n=0; n<Nsnk; n++) {
                   for (t=0; t<Nt; t++) {
@@ -1419,6 +1478,9 @@ void make_two_nucleon_2pt(double* C_re,
                   }
                }
             }
+	    double end_time = rtclock();
+	    total_time_common += (end_time - start_time);
+
             free(snk_B1_Blocal_r1_re);
             free(snk_B1_Blocal_r1_im);
             free(snk_B1_Blocal_r2_re);
@@ -1439,6 +1501,11 @@ void make_two_nucleon_2pt(double* C_re,
          }
       }
    }
+
+   if (USE_REFERENCE)
+	printf("Total execution time for reference code: %lf\n", (total_time_common + total_time_reference)*1000);
+   if (USE_TIRAMISU)
+	printf("Total execution time for Tiramisu code: %lf\n",  (total_time_common + total_time_tiramisu)*1000);
 }
 
 void make_nucleon_2pt(double* C_re,

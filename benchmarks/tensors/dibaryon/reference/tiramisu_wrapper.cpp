@@ -22,17 +22,6 @@ extern "C" {
 
 void tiramisu_wrapper_make_local_single_double_block(double *t_B1_Blocal_r1_re, double *t_B1_Blocal_r1_im, double *t_B1_Bsingle_r1_re, double *t_B1_Bsingle_r1_im, double *t_B1_Bdouble_r1_re, double *t_B1_Bdouble_r1_im, const double *B1_prop_re, const double *B1_prop_im, const int *src_color_weights_r1, const int *src_spin_weights_r1, const double *src_weights_r1, const double *src_psi_B1_re, const double *src_psi_B1_im, const int Nc, const int Ns, const int Vsrc, const int Vsnk, const int Nt, const int Nw, const int Nq, const int Nsrc)
 {
-    long mega = 1024*1024;
-
-    std::cout << "Array sizes" << std::endl;
-    std::cout << "Blocal & Prop:" <<  std::endl;
-    std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Nt <<  std::endl;
-    std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Nt*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
-    std::cout << "Bsingle, Bdouble, Q, O & P:" <<  std::endl;
-    std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Vsnk*Nt <<  std::endl;
-    std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*Vsnk*Vsnk*Nt*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
-    std::cout << std::endl;
-
     // Blocal
     // B1_Blocal_r1_r: tiramisu real part of Blocal.
     // B1_Blocal_r1_i: tiramisu imaginary part of Blocal.

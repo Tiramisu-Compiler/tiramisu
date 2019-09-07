@@ -80,6 +80,6 @@ void make_nucleon_2pt(double* C_re,
 
 /* Erorr threshold. If the difference between the results of Tiramisu and the reference code is bigger than this value,
  we signal an error. */
-#define ERROR_THRESH 0.01
+#define ERROR_THRESH 1e-12
 
 #endif /* !defined(MARK_29681028_3ABA_81FF_EBA1_781947E184FF) */

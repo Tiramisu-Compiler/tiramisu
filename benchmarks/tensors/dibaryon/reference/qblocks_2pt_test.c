@@ -5,29 +5,30 @@
 #include <time.h>
 
 #include "qblocks_2pt_scalar.h"                                       /* DEPS */
-
+#include "qblocks_2pt_parameters.h"
 
 int main() {
-int Vsrc = 1;
-int Vsnk = 1;
-int Nt = 1;
+  int Vsrc = P_Vsrc;
+  int Vsnk = P_Vsnk;
+  int Nt = P_Nt;
 
-int Nsrc = 1;
-int NsrcHex = 2;
-int Nsnk = 3;
-int NsnkHex = 4;
+  int Nsrc = P_Nsrc;
+  int NsrcHex = P_NsrcHex;
+  int Nsnk = P_Nsnk;
+  int NsnkHex = P_NsnkHex;
 
-int Nc = 3;
-int Ns = 2;
-int Nq = 3;
-int Nw = 9;
-int Nperms = 9;
+  int Nc = P_Nc;
+  int Ns = P_Ns;
+  int Nq = P_Nq;
+  int Nw = P_Nw;
+  int Nperms = P_Nperms;
+
    printf("starting block main\n");
    time_t start,end;
    time (&start);
    double dif;
    int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, x, x1, x2, t, y, nB1, nB2, q, n, m, wnum, i, k, r, b;
-   double mq = 1.0;
+   double mq = P_mq;
    double* B1_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    double* B1_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    double* B2_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
