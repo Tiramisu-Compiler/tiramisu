@@ -28,11 +28,131 @@ void gen_random_dense_weights()
 				}
 }
 
+void importCSRFromFileAsDense(std::string filename)
+{
+    std::ifstream cFile (filename);
+    float* values;
+    int* rowptr;
+    int* colidx;
+    int NNZ;
+    float* matrix;
+    int FOUT; int FIN; int KK; int n;
+    if (cFile.is_open())
+    {
+        std::string line;
+        // Get first line containing conv size
+
+        getline(cFile, line);
+        std::string delimiter = ",";
+
+        size_t pos = 0;
+        std::string token;
+        // FOUT
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        FOUT = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // FIN
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        FIN = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // K
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        KK = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        n = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        // NNZ
+        pos = line.find(delimiter);
+        token = line.substr(0, pos);
+        NNZ = std::stoi(token);
+        line.erase(0, pos + delimiter.length());
+
+        values = (float*)malloc((NNZ) * sizeof(float));
+        rowptr = (int*)malloc(((FOUT) + 1) * sizeof(int));
+        colidx = (int*)malloc((NNZ) * sizeof(int));
+        int i = 0;
+        getline(cFile, line);
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            values[i] = std::stof(line);
+            i++;
+        }
+        assert(i == NNZ);
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            rowptr[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == (FOUT + 1));
+
+        i = 0;
+        while(getline(cFile, line)){
+            if(line[0]=='/' || line.empty())
+              break;
+            colidx[i] = std::stoi(line);
+            i++;
+        }
+        assert(i == NNZ);
+
+        // Transform to dense
+        matrix = (float*)malloc(((FOUT) * (FIN) * (KK) * (KK)) * sizeof(float));
+        memset(matrix, 0.f, ((FOUT) * (FIN) * (KK) * (KK)) * sizeof(float));
+        for (int fout = 0; fout < FOUT; fout++){
+          int fstart = rowptr[fout];
+          int fend = rowptr[fout + 1];
+          for(int i = fstart; i < fend; i++){
+            int fin = colidx[i] / (n + 2) / (n + 2);
+            int ky = colidx[i] / (n + 2) % (n + 2);
+            int kx = colidx[i] % (n + 2);
+
+            matrix[fout * (FIN) * (KK) * (KK) + fin * (KK) * (KK) + ky * (KK) + kx] = values[i];
+          }
+        }
+        free(values);
+        free(rowptr);
+        free(colidx);
+    }
+    else
+        std::cerr << "Couldn't open config file for reading.\n";
+
+    // Switch to FOUT_NB_BLOCKS, FIN_NB_BLOCKS, K, K, FOUT_BLOCKING, FIN_BLOCKING format
+    for (int fout = 0; fout < FOut; fout++)
+	    for (int fin = 0; fin < FIn; fin++)
+		    for (int ky = 0; ky < K; ky++)
+			    for (int kx = 0; kx < K; kx++)
+				Hfilter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, kx, ky, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = matrix[kx + ky * (KK) + fin * (KK) * (KK) + fout * (KK) * (KK) * (FIN)];
+
+
+    // Assertions to ensure that the generated tiramisu code has the right parameters
+    // because we are defining the parameters in the configure.h files to get specialized fast code
+    assert((FOUT == FOut) && ("FOut parameter specified in configure.h doesn't match the csr weights file's FOUT parameter."));
+    assert((FIN == FIn) && ("FIn parameter specified in configure.h doesn't match the csr weights file's FIn parameter"));
+    assert((K == K) && ("K parameter specified in configure.h doesn't match the csr weights file's K parameter"));
+    assert((n == N) && ("N parameter specified in configure.h doesn't match the csr weights file's N parameter"));
+
+    free(matrix);
+}
+
 int main(int argc, char **argv)
 {
     init("conv_tiramisu");
 
-    gen_random_dense_weights();
+    //gen_random_dense_weights();
+    importCSRFromFileAsDense("resnet_5.csr");
 
     // -------------------------------------------------------
     // Layer I
@@ -156,7 +276,7 @@ int main(int argc, char **argv)
 	    for (int ky = 0; ky < K; ky++)
 	      for (int kx = 0; kx < K; kx++)
 		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
-		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_vector_level(3, 8);
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_vector_level(3, X_BLOCKING);
 
     reg_load.vectorize(ffout, FOUT_BLOCKING);
     reg_store.vectorize(ffout, FOUT_BLOCKING);
@@ -215,8 +335,20 @@ int main(int argc, char **argv)
 #endif
 
     // Parallelize and order
-    unrolled_conv[0][0][0][0][0][0]->tag_parallel_level(y);
-    unrolled_conv[0][0][0][0][0][0]->tag_parallel_level(n);
+    bool code_is_parallelized = false;
+    for (int in0 = 0; in0 < FIN_NB_BLOCKS; in0++)
+      for (int ky = 0; ky < K; ky++)
+	for (int kx = 0; kx < K; kx++)
+	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
+    	    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
+              for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
+	        if ((code_is_parallelized == false) && (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL))
+		{
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_parallel_level(n);
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_parallel_level(y);
+
+		    code_is_parallelized = true;
+		}
 
     conv_init.then(*alloc_reg_buf, fout_b_up)
 	     .then(reg_load, x_b);

@@ -3,6 +3,9 @@
 
 #include <sys/time.h>
 
+#define IMPORT_CSR_FROM_FILE 1
+#define WEIGHTS_DENSITY 0.2 // considered only if IMPORT_CSR_FROM_FILE=0
+
 #define LARGE_DATA_SET	0
 #define MEDIUM_DATA_SET	1
 #define SMALL_DATA_SET	0
@@ -19,34 +22,36 @@
 #endif
 
 // Size of one data dimension
-#define N 112
+#define N 224
 
 // Number of features in the input
-#define FIn 32
+#define FIn 16
 // Number of features in the output
-#define FOut 32
+#define FOut 16
 
 // Size of convolution filter (KxK)
 #define K 3
 
 // Parameters for Tiramisu code
-#define FOUT_BLOCKING 8
+#define FOUT_BLOCKING 4
 #define FOUT_NB_BLOCKS FOut/FOUT_BLOCKING
 
 #define FOUT_B_SPLIT_FACTOR 4
 
 #if N >= 224
-    #define FIN_BLOCKING 8
+    #define FIN_BLOCKING 4
 #else
-    #define FIN_BLOCKING 16
+    #define FIN_BLOCKING 4
 #endif
 
 #define FIN_NB_BLOCKS FIn/FIN_BLOCKING
 
-#define X_BLOCKING 3
+#define X_BLOCKING 2
 #define X_NB_BLOCKS N/X_BLOCKING
 
 #define X_BOUND X_NB_BLOCKS*X_BLOCKING
+
+#define DO_CONCLUSION 0
 
 // If this is defined, print 10 array elements only
 #define PRINT_ONLY_10 1

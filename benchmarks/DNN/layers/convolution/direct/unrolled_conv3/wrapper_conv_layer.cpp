@@ -24,12 +24,7 @@ int main(int, char**)
 				for (int x = 0; x < N + 2; ++x)
 					input(fin%FIN_BLOCKING, x, y, fin/FIN_BLOCKING, n) = ((float)(rand()%256 - 128)) / 127.f;
 
-	for (int fout = 0; fout < FOut; ++fout)
-		for (int fin = 0; fin < FIn; ++fin)
-			for (int k_y = 0; k_y < K; ++k_y)
-				for (int k_x = 0; k_x < K; ++k_x)
-					filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float) (rand()%256 - 128)) / 127.f;
-
+	srand(3);
 	for (int fout = 0; fout < FOut; ++fout)
 		bias(fout) = ((float)(rand()%256 - 128)) / 127.f;
 
