@@ -1,8 +1,11 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
+#include "../reference/qblocks_2pt_parameters.h"
+
 #define SMALL_BARYON_DATA_SET 0
-#define LARGE_BARYON_DATA_SET 1
+#define LARGE_BARYON_DATA_SET 0
+#define USE_GLOBAL_PARAMS 1
 
 #if SMALL_BARYON_DATA_SET
 
@@ -34,6 +37,21 @@
 #define Nsnk 6
 #define mq 1.0
 
+#elif USE_GLOBAL_PARAMS
+
+#define Nq P_Nq
+#define Nc P_Nc
+#define Ns P_Ns
+#define Nw P_Nw
+#define twoNw Nw*Nw
+#define Nperms P_Nperms
+#define Lt P_Nt
+#define Vsrc P_Vsrc
+#define Vsnk P_Vsnk
+#define Nsrc P_Nsrc
+#define Nsnk P_Nsnk
+#define mq P_mq
+
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,9 +67,9 @@ static int src_color_weights_r1[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, 
 static int src_spin_weights_r1[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
 static double src_weights_r1[Nw] = {-2/sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
 
-static int src_color_weights_r2[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
-static int src_spin_weights_r2[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
-static double src_weights_r2[Nw] = {-2/sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
+static int src_color_weights_r2[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{1,2,0}, {2,1,0}, {2,0,1}, {0,1,2}, {0,2,1}, {1,0,2} };
+static int src_spin_weights_r2[Nw][Nq] = { {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {1,0,1}, {1,0,1}, {1,0,1} };
+static double src_weights_r2[Nw] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -2/sqrt(2), 2/sqrt(2), 2/sqrt(2)};
 
 #ifdef __cplusplus
 extern "C" {

@@ -6,8 +6,8 @@
 
 using namespace tiramisu;
 
-#define VECTORIZED 1
-#define PARALLEL 1
+#define VECTORIZED 0
+#define PARALLEL 0
 
 // Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
 struct Q2UserEdge {
