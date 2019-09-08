@@ -3926,6 +3926,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                     Halide::Target::AVX,
                     Halide::Target::SSE41,
                     //Halide::Target::AVX2,
+	    	    //Halide::Target::FMA,
                     Halide::Target::LargeBuffers
             };
 
