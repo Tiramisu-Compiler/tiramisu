@@ -11,6 +11,10 @@
 
 The previous script will go to the folder "tensors/dibaryon/tiramisu_make_local_single_double_block/" and build the Tiramisu code "tiramisu_make_local_single_double_block" and run it to generate the object file.
 
+
+* Edit the file [qblocks_2pt_parameters.h](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/benchmarks/tensors/dibaryon/reference/qblocks_2pt_parameters.h) to specify the sizes that you want. This file is used by both the Tiramisu code and by the reference code.
+
+
 * Make the reference code (no Tiramisu)
 
 ```
