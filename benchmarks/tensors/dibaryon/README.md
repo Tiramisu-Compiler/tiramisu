@@ -32,12 +32,5 @@ The previous script will go to the folder "tensors/dibaryon/tiramisu_make_local_
 * In order to run code compiler with Tiramisu, you need to add the following library paths:
 
 ```
-    ${TIRAMISU_ROOT}/3rdParty/Halide/bin/
-    ${TIRAMISU_ROOT}/build
-```
-
-where ${TIRAMISU_ROOT} is the root directory of Tiramisu source (i.e., top directory). For example, on Linux you can do
-
-```
-    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TIRAMISU_ROOT}/3rdParty/Halide/bin/:${TIRAMISU_ROOT}/build/ ./qblocks_2pt_test
+    make run
 ```
