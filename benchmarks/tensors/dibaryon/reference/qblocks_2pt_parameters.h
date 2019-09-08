@@ -22,11 +22,11 @@
 
 #elif DATA_SET_2
 
-#define P_Vsrc 16
-#define P_Vsnk 16
-#define P_Nsrc 16
-#define P_Nsnk 16
-#define P_Nt 1
+#define P_Vsrc 32
+#define P_Vsnk 32
+#define P_Nsrc 32
+#define P_Nsnk 32
+#define P_Nt 4
 #define P_NsrcHex 2
 #define P_NsnkHex 4
 #define P_Nc 3

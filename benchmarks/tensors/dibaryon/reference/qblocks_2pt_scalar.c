@@ -1503,9 +1503,15 @@ void make_two_nucleon_2pt(double* C_re,
    }
 
    if (USE_REFERENCE)
+   {
 	printf("Total execution time for reference code: %lf\n", (total_time_common + total_time_reference)*1000);
+	printf("(optimized part alone: %lf)\n", (total_time_reference)*1000);
+   }
    if (USE_TIRAMISU)
+   {
 	printf("Total execution time for Tiramisu code: %lf\n",  (total_time_common + total_time_tiramisu)*1000);
+	printf("(optimized part alone: %lf)\n", (total_time_tiramisu)*1000);
+   }
 }
 
 void make_nucleon_2pt(double* C_re,

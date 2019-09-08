@@ -1,5 +1,5 @@
 ## Set the Tiramisu path
-TIRAMISU_PATH=/Users/b/Documents/src/MIT/tiramisu/
+TIRAMISU_PATH=../../../../
 
 # Set to true if you want to run the reference when running Tiramisu code
 USE_REFERENCE_WITH_TIRAMISU=1
@@ -24,6 +24,9 @@ tiramisu:
 	$(CC) $(CFLAGS) -c -DUSE_REFERENCE=$(USE_REFERENCE_WITH_TIRAMISU) -DUSE_TIRAMISU=1 qblocks_2pt_scalar.c -o qblocks_2pt_scalar.o
 	$(CC) $(CFLAGS) -c -DUSE_REFERENCE=$(USE_REFERENCE_WITH_TIRAMISU) -DUSE_TIRAMISU=1 qblocks_2pt_test.c -o qblocks_2pt_test.o
 	$(CXX) $(CXXFLAGS) ${INCLUDE_DIR} ${LIB_DIR} tiramisu_wrapper qblocks_2pt_scalar.o qblocks_2pt_test.o ${TIRAMISU_GENERATED_OBJ} -ltiramisu -lHalide -o qblocks_2pt_test
+
+run:
+	DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${TIRAMISU_PATH}/3rdParty/Halide/bin/:${TIRAMISU_PATH}/build/ LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TIRAMISU_PATH}/3rdParty/Halide/bin/:${TIRAMISU_PATH}/build/ ./qblocks_2pt_test
 
 clean:
 	rm -rf *.o qblocks_2pt_test tiramisu_wrapper
