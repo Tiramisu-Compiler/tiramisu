@@ -1289,14 +1289,14 @@ void make_two_nucleon_2pt(double* C_re,
          for (m=0; m<Nsrc; m++) {
             for (n=0; n<NsnkHex; n++) {
                for (t=0; t<Nt; t++) {
-                  C_re[index_4d(0,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_0_re[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_im[index_4d(0,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_0_im[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_re[index_4d(1,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r1_re[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_im[index_4d(1,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r1_im[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_re[index_4d(2,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r2_re[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_im[index_4d(2,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r2_im[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_re[index_4d(3,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r3_re[index_3d(m,n,t ,Nsnk,Nt)];
-                  C_im[index_4d(3,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r3_im[index_3d(m,n,t ,Nsnk,Nt)];
+                  C_re[index_4d(0,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_0_re[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_im[index_4d(0,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_0_im[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_re[index_4d(1,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r1_re[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_im[index_4d(1,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r1_im[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_re[index_4d(2,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r2_re[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_im[index_4d(2,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r2_im[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_re[index_4d(3,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r3_re[index_3d(m,n,t ,NsnkHex,Nt)];
+                  C_im[index_4d(3,m,Nsnk+n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] = BB_H_r3_im[index_3d(m,n,t ,NsnkHex,Nt)];
                }
             }
          } 
