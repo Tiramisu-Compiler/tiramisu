@@ -21,7 +21,9 @@
   * Set to true to enable debugging and false to disable debugging.
   * Debugging here means printing the results of each Tiramisu pass.
   */
+#ifndef ENABLE_DEBUG
 #define ENABLE_DEBUG false
+#endif // ENABLE_DEBUG
 
 /**
   * Debugging level.
@@ -29,7 +31,9 @@
   * Set to 10 if you want to enable full debugging information
   * (this will print detailed debugging information).
   */
+#ifndef DEBUG_LEVEL
 #define DEBUG_LEVEL 0
+#endif // DEBUG_LEVEL
 
 namespace tiramisu
 {
