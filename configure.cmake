@@ -1,26 +1,20 @@
 set(CMAKE_BUILD_TYPE DEBUG)
 
-# Set to TRUE if you wish to use GPU
-set(USE_GPU FALSE)
+option(USE_GPU "Build with GPU support" OFF)
 
-# Set to TRUE if you wish to use MPI
-set(USE_MPI FALSE)
+option(USE_MPI "Build with MPI support" OFF)
 
-# Set to TRUE if you wish to use libpng which is needed only by the Halide benchmarks
-set(USE_LIBPNG FALSE)
+option(USE_LIBPNG "Build with libpng for the Halide benchmark" FALSE)
 
-# Set to TRUE if you wish to use libjpeg which is needed only by the Halide benchmarks
-set(USE_LIBJPEG FALSE)
+option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
 
-# Set to TRUE if you wish to use cuDNN for benchmark comparisons
-set(USE_CUDNN FALSE)
+option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
-# Set to TRUE if you wish to use MKL wrappers provided by Tiramisu
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
-set(USE_MKL_WRAPPERS TRUE)
+option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 
 # Change with the cudnn library location
-set(CUDNN_LOCATION /data/scratch/akkas/cudnn7)
+set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location")
 
 # If USE_MPI is true, you need to the MPI_BUILD_DIR and MPI_NODES path
 # Note: This assumes you are using your own installed version of MPI. If your system already
@@ -29,23 +23,24 @@ set(CUDNN_LOCATION /data/scratch/akkas/cudnn7)
 # Examples:
 #set(MPI_BUILD_DIR "/data/scratch/jray/Repositories/tiramisu/3rdParty/openmpi-3.1.2/build/")
 #set(MPI_NODES "lanka01,lanka02,lanka03,lanka04,lanka05,lanka06,lanka12,lanka13,lanka14,lanka15")
-set(MPI_BUILD_DIR "")
-set(MPI_NODES "")
+set(MPI_BUILD_DIR "" CACHE PATH "Build directory of MPI")
+set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 
-# Intel MKL library path. The specified folder should contain the folders
-# include and lib.
+# The specified folder should contain the folders include and lib.
 # Example:
 # set(MKL_PREFIX "/data/scratch/baghdadi/libs/intel/mkl/")
-set(MKL_PREFIX "")
+set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
 
-# LLVM_CONFIG_BIN: Directory containing llvm-config executable.
-set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/")
+set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
+
+# Debug
+option(ENABLE_DEBUG "Enable debug printing" FALSE)
+set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 
 # ISL paths
-set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/")
-set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/")
+set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL include directory")
+set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
 
 # Halide Paths
-set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide")
-set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/lib")
-
+set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide" CACHE PATH "Path to Halide source directory")
+set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/lib" CACHE PATH "Path to Halide library directory")
