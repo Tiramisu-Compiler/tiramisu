@@ -1,6 +1,7 @@
 #!/bin/bash
 
 USE_LIBJPEG=0
+USE_PNG=0
 
 if [ "$#" -eq 0 ]; then
 	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
@@ -86,12 +87,14 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"
 if [ "${USE_LIBJPEG}" = "0" ]; then
-    echo_and_run_cmd "make CXXFLAGS=\"-DHALIDE_NO_JPEG\" -j $CORES"
-else
-    echo_and_run_cmd "make clean"
-    echo_and_run_cmd "make -j $CORES"
+    CXXFLAGS=\"$CXXFLAGS -DHALIDE_NO_JPEG\"
+fi
+if [ "${USE_LIBPNG}" = "0" ]; then
+    CXXFLAGS=\"$CXXFLAGS -DHALIDE_NO_PNG\"
 fi
 
+echo_and_run_cmd "make clean"
+echo_and_run_cmd "make -j $CXXFLAGS $CORES"
 
 
 cd ${PROJECT_SRC_DIR}
