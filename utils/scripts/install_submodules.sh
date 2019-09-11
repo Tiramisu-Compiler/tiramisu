@@ -11,6 +11,7 @@ fi
 PROJECT_SRC_DIR=$1
 CMAKE=cmake
 CORES=1
+
 # For Travis build we skip LLVM installation and use a custom binary.
 # Second argument specifies the custom path of the LLVM bin dir.
 if [ "$2" = "" ]; then
@@ -87,15 +88,14 @@ echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/Halide"
 echo_and_run_cmd "git checkout tiramisu_64_bit"
 echo_and_run_cmd "git pull"
 if [ "${USE_LIBJPEG}" = "0" ]; then
-    CXXFLAGS=\"$CXXFLAGS -DHALIDE_NO_JPEG\"
+    CXXFLAGS_JPEG="-DHALIDE_NO_JPEG"
 fi
 if [ "${USE_LIBPNG}" = "0" ]; then
-    CXXFLAGS=\"$CXXFLAGS -DHALIDE_NO_PNG\"
+    CXXFLAGS_PNG="-DHALIDE_NO_PNG"
 fi
 
 echo_and_run_cmd "make clean"
-echo_and_run_cmd "make -j $CXXFLAGS $CORES"
-
+make CXXFLAGS="${CXXFLAGS_JPEG} ${CXXFLAGS_PNG}" -j $CORES
 
 cd ${PROJECT_SRC_DIR}
 echo "Done installing Halide"
