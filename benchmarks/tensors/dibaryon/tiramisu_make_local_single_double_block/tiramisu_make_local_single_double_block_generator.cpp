@@ -287,7 +287,7 @@ void generate_function(std::string name)
     }
 
 
-/*
+
 #if VECTORIZED
     B1_Blocal_r1_r_init.tag_vector_level(n, Nsrc);
     B1_Blocal_r1_i_init.tag_vector_level(n, Nsrc);
@@ -333,7 +333,7 @@ void generate_function(std::string name)
       edge.bd_r->tag_parallel_level(y);
     }
 #endif
-*/
+
 
     // -------------------------------------------------------
     // Layer III
@@ -364,21 +364,21 @@ void generate_function(std::string name)
     buffer *B1_p_r1_i_buf;
 
 // ????? 
-    allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, { Lt, Vsnk }, "buf_B1_q_r1");
-    allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, { Lt, Vsnk }, "buf_B1_o_r1");
-    allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, { Lt, Vsnk }, "buf_B1_p_r1");
+    allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, { Vsrc }, "buf_B1_q_r1");
+    allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, { Vsrc }, "buf_B1_o_r1");
+    allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, { Vsrc }, "buf_B1_p_r1");
 
     for (auto edge : B1_q2userEdges_r1) {
-      edge.q_r->store_in(B1_q_r1_r_buf, {t, y});
-      edge.q_i->store_in(B1_q_r1_i_buf, {t, y});
+      edge.q_r->store_in(B1_q_r1_r_buf, {y});
+      edge.q_i->store_in(B1_q_r1_i_buf, {y});
     }
     for (auto edge : B1_o2userEdges_r1) {
-      edge.o_r->store_in(B1_o_r1_r_buf, {t, y});
-      edge.o_i->store_in(B1_o_r1_i_buf, {t, y});
+      edge.o_r->store_in(B1_o_r1_r_buf, {y});
+      edge.o_i->store_in(B1_o_r1_i_buf, {y});
     }
     for (auto edge : B1_p2userEdges_r1) {
-      edge.p_r->store_in(B1_p_r1_r_buf, {t, y});
-      edge.p_i->store_in(B1_p_r1_i_buf, {t, y});
+      edge.p_r->store_in(B1_p_r1_r_buf, {y});
+      edge.p_i->store_in(B1_p_r1_i_buf, {y});
     }
 // ????? 
 

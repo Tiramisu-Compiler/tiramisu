@@ -6,7 +6,7 @@
 
 #if DATA_SET_1
 
-#define P_Vsrc 1
+#define P_Vsrc 5
 #define P_Vsnk 1
 #define P_Nsrc 4
 #define P_Nsnk 4
