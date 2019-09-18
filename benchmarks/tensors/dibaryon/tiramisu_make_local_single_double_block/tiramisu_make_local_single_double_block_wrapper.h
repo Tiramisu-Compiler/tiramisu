@@ -83,8 +83,6 @@ int tiramisu_make_local_single_double_block(halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
 	   		    halide_buffer_t *,
 			    halide_buffer_t *);
 

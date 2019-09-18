@@ -6,13 +6,13 @@
 
 #if DATA_SET_1
 
-#define P_Vsrc 5
-#define P_Vsnk 1
+#define P_Vsrc 2
+#define P_Vsnk 2
 #define P_Nsrc 4
-#define P_Nsnk 4
+#define P_Nsnk 5
 #define P_Nt 1
-#define P_NsrcHex 1
-#define P_NsnkHex 1
+#define P_NsrcHex 6
+#define P_NsnkHex 7
 #define P_Nc 3
 #define P_Ns 2
 #define P_Nq 3
@@ -22,13 +22,13 @@
 
 #elif DATA_SET_2
 
-#define P_Vsrc 123
-#define P_Vsnk 512
-#define P_Nsrc 4
-#define P_Nsnk 4
-#define P_Nt 1
-#define P_NsrcHex 1
-#define P_NsnkHex 1
+#define P_Vsrc 32
+#define P_Vsnk 32
+#define P_Nsrc 32
+#define P_Nsnk 32
+#define P_Nt 4
+#define P_NsrcHex 2
+#define P_NsnkHex 4
 #define P_Nc 3
 #define P_Ns 2
 #define P_Nq 3
