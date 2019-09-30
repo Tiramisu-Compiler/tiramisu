@@ -23,20 +23,21 @@ from pathlib import Path
 nb_nodes = 19
 
 # Path to the list of programs
-progs_list_path = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/results/progs_list.pickle")
+progs_list_path = Path("progs_list.pickle")
 
 # Path where to store the job files
 # This script will use two subdirectories (don't forget to create them first) : wrappers and execute
-dst_path = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/job_files")
+dst_path = Path("job_files")
 
 # Path to the script that edits and compiles the wrappers
-wrappers_script = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/rewrite_tiramisu_wrappers.py")
+# If your wrappers are already in the good format, point this script to compile_tiramisu_wrappers.py
+wrappers_script = Path("rewrite_tiramisu_wrappers.py")
 
 # Path to the script that execute the compiled wrappers
-execute_script = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/execute_programs.py")
+execute_script = Path("execute_programs.py")
 
 # Path to where to store the logs of the jobs
-log_path = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/log/")
+log_path = Path("log/")
 
 # Content of the job files of type wrappers
 wrappers_job = "\

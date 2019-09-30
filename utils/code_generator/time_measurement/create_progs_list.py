@@ -15,7 +15,7 @@ from pathlib import Path
 data_path = Path("/data/scratch/henni-mohammed/data3/programs/")
 
 # Path to where to store the list of programs
-dst_path = Path("/data/scratch/k_abdous/autoscheduling_tiramisu/execute_all/results/progs_list.pickle")
+dst_path = Path("progs_list.pickle")
 
 progs_list = []
 

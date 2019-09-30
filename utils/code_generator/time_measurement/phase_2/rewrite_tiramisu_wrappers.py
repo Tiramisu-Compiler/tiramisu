@@ -32,10 +32,10 @@ chunksize = 100
 data_path = Path("/data/scratch/henni-mohammed/data3/programs/")
 
 # Path to the list of programs
-progs_list_path = Path("../results/progs_list.pickle")
+progs_list_path = Path("progs_list.pickle")
 
 # Path to where to store the new wrappers
-dst_path = Path("../results/wrappers")
+dst_path = Path("wrappers")
 
 # Path to Tiramisu root directory
 TIRAMISU_ROOT = "/data/scratch/k_abdous/software/tiramisu"
