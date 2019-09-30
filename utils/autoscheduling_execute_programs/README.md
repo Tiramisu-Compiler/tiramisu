@@ -1,6 +1,6 @@
 Here's a description of each script (there are scripts that generate python lists, we use pickle to save them to disk) :
 
-#### create_progs_list.py
+### create_progs_list.py
 
 The first script to call : it generates a list of programs that will be executed. This list will be a more convenient way to distribute tasks across multiple nodes.
 
