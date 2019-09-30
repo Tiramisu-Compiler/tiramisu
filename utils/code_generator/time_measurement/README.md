@@ -13,7 +13,7 @@ Each entry of the list is of format : (function_id, schedule_id).
 ### Phase 1 : generate Tiramisu object files
 Compile the Tiramisu codes and generate object files. This is where you must begin if your don't have Tiramisu object files.
 
-### Phase 2 : compile wrappers and execute them
+### Phase 2 : compile wrappers and execute them
 Compile the wrappers and do time measurement. You must have your Tiramisu object files before.
 
 ### IMPORTANT :
