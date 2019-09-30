@@ -23,7 +23,6 @@ nb_nodes = 19
 progs_list_path = Path("progs_list.pickle")
 
 # Path where to store the job files
-# This script will use two subdirectories (don't forget to create them first) : wrappers and execute
 dst_path = Path("job_files")
 
 # Path to the script that will be distributed

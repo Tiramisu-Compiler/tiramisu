@@ -20,13 +20,13 @@ This is the script that measures execution times (`rewrite_tiramisu_wrappers.py`
 
 This script generates the job files that will be submitted to SLURM. See the script comments for more information.
 
-### preprocess_programs.py
+### postprocess_programs.py
 
 At the end of `execute_programs.py`, this script must be executed to calculate medians and speedups, and to fuse all the generated files to a single one. The final file is a list, where each entry has the following format :
 
 (function_id, schedule_id, list of execution times, median, speedup)
 
-### job_files/submit_execute_jobs.sh job_files/submit_wrapper_jobs.sh
+### submit_execute_jobs.sh, submit_wrapper_jobs.sh
 
 Submit the jobs to SLURM.
 
@@ -44,4 +44,4 @@ First, configure `rewrite_tiramisu_wrappers.py` and `execute_programs.py` (note 
 
 When this is done, submit the wrapper jobs to SLURM by using `submit_wrapper_jobs.sh`. Wait for the jobs to finish, and then submit the executon jobs by using `submit_execute_jobs.sh`.
 
-When all the jobs are done, you will have a lot of files that contain execution times. Execute `preprocess_programs.py` to calculate medians and speedups, and to fuse everything to a single file.
+When all the jobs are done, you will have a lot of files that contain execution times. Execute `postprocess_programs.py` to calculate medians and speedups, and to fuse everything to a single file.
