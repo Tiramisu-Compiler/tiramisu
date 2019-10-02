@@ -79,9 +79,6 @@ int main(int, char**)
                         corr++;
                 }
 
-    std::cout << "\t\tResult"
-              << ":\n\n";
-
     std::cout << "\t\tPercentage of correctness " << corr / file_count * 100 << "%" << std::endl << std::endl;
 
     return 0;
