@@ -65,31 +65,31 @@ void generate_function(std::string name)
     computation snk_2_nq("snk_2_nq", {nperm, b}, snk_2(nperm, b)%Nq);
     computation snk_3_nq("snk_3_nq", {nperm, b}, snk_3(nperm, b)%Nq);
 
-    computation iC1("iC1", {nperm, wnum}, snk_color_weights(snk_1_b(nperm, 0), wnum, snk_1_nq(nperm, 0)));
-    computation iS1("iS1", {nperm, wnum}, snk_spin_weights(snk_1_b(nperm, 0), wnum, snk_1_nq(nperm, 0)));
-    computation jC1("jC1", {nperm, wnum}, snk_color_weights(snk_2_b(nperm, 0), wnum, snk_2_nq(nperm, 0)));
-    computation jS1("jS1", {nperm, wnum}, snk_spin_weights(snk_2_b(nperm, 0), wnum, snk_2_nq(nperm, 0)));
-    computation kC1("kC1", {nperm, wnum}, snk_color_weights(snk_3_b(nperm, 0), wnum, snk_3_nq(nperm, 0)));
-    computation kS1("kS1", {nperm, wnum}, snk_spin_weights(snk_3_b(nperm, 0), wnum, snk_3_nq(nperm, 0)));
-    computation iC2("iC2", {nperm, wnum}, snk_color_weights(snk_1_b(nperm, 1), wnum, snk_1_nq(nperm, 1)));
-    computation iS2("iS2", {nperm, wnum}, snk_spin_weights(snk_1_b(nperm, 1), wnum, snk_1_nq(nperm, 1)));
-    computation jC2("jC2", {nperm, wnum}, snk_color_weights(snk_2_b(nperm, 1), wnum, snk_2_nq(nperm, 1)));
-    computation jS2("jS2", {nperm, wnum}, snk_spin_weights(snk_2_b(nperm, 1), wnum, snk_2_nq(nperm, 1)));
-    computation kC2("kC2", {nperm, wnum}, snk_color_weights(snk_3_b(nperm, 1), wnum, snk_3_nq(nperm, 1)));
-    computation kS2("kS2", {nperm, wnum}, snk_spin_weights(snk_3_b(nperm, 1), wnum, snk_3_nq(nperm, 1)));
+    computation iC1("iC1", {nperm, wnum}, snk_color_weights(snk_1_b(0, 0), wnum, snk_1_nq(0, 0))); //Original access: snk_1_b(nperm, 0) replaced by snk_1_b(0, 0)
+    computation iS1("iS1", {nperm, wnum}, snk_spin_weights(snk_1_b(0, 0), wnum, snk_1_nq(0, 0)));
+    computation jC1("jC1", {nperm, wnum}, snk_color_weights(snk_2_b(0, 0), wnum, snk_2_nq(0, 0)));
+    computation jS1("jS1", {nperm, wnum}, snk_spin_weights(snk_2_b(0, 0), wnum, snk_2_nq(0, 0)));
+    computation kC1("kC1", {nperm, wnum}, snk_color_weights(snk_3_b(0, 0), wnum, snk_3_nq(0, 0)));
+    computation kS1("kS1", {nperm, wnum}, snk_spin_weights(snk_3_b(0, 0), wnum, snk_3_nq(0, 0)));
+    computation iC2("iC2", {nperm, wnum}, snk_color_weights(snk_1_b(1, 1), wnum, snk_1_nq(1, 1)));
+    computation iS2("iS2", {nperm, wnum}, snk_spin_weights(snk_1_b(1, 1), wnum, snk_1_nq(1, 1)));
+    computation jC2("jC2", {nperm, wnum}, snk_color_weights(snk_2_b(1, 1), wnum, snk_2_nq(1, 1)));
+    computation jS2("jS2", {nperm, wnum}, snk_spin_weights(snk_2_b(1, 1), wnum, snk_2_nq(1, 1)));
+    computation kC2("kC2", {nperm, wnum}, snk_color_weights(snk_3_b(1, 1), wnum, snk_3_nq(1, 1)));
+    computation kS2("kS2", {nperm, wnum}, snk_spin_weights(snk_3_b(1, 1), wnum, snk_3_nq(1, 1)));
 
-    expr iC1e = iC1(nperm, wnum);
-    expr iS1e = iS1(nperm, wnum);
-    expr jC1e = jC1(nperm, wnum);
-    expr jS1e = jS1(nperm, wnum);
-    expr kC1e = kC1(nperm, wnum);
-    expr kS1e = kS1(nperm, wnum);
-    expr iC2e = iC2(nperm, wnum);
-    expr iS2e = iS2(nperm, wnum);
-    expr jC2e = jC2(nperm, wnum);
-    expr jS2e = jS2(nperm, wnum);
-    expr kC2e = kC2(nperm, wnum);
-    expr kS2e = kS2(nperm, wnum);
+    expr iC1e = iC1(0, 0); //Original access iC1(nperm, wnum) replaced by iC1(0, 0)
+    expr iS1e = iS1(0, 0);
+    expr jC1e = jC1(0, 0);
+    expr jS1e = jS1(0, 0);
+    expr kC1e = kC1(0, 0);
+    expr kS1e = kS1(0, 0);
+    expr iC2e = iC2(0, 0);
+    expr iS2e = iS2(0, 0);
+    expr jC2e = jC2(0, 0);
+    expr jS2e = jS2(0, 0);
+    expr kC2e = kC2(0, 0);
+    expr kS2e = kS2(0, 0);
 
     complex_expr B1_Blocal(B1_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e), B1_Blocal_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e));
     complex_expr B2_Blocal(B2_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e), B2_Blocal_im(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e));
