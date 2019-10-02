@@ -1049,6 +1049,30 @@ void make_two_nucleon_2pt(double* C_re,
          double* t_B2_Bdouble_r2_re;
          double* t_B2_Bdouble_r2_im;
 
+         double* BB_0_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_0_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r1_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r1_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r2_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r2_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r3_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+         double* BB_r3_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
+
+	 double start_time = rtclock();
+         for (m=0; m<Nsrc; m++) {
+            for (n=0; n<Nsnk; n++) {
+               for (t=0; t<Nt; t++) {
+                  BB_0_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_0_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r1_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r1_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r2_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r2_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r3_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+                  BB_r3_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
+               }
+            }
+         }
 	 if (USE_REFERENCE)
 	 {
 		 B1_Bsingle_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
@@ -1148,31 +1172,8 @@ void make_two_nucleon_2pt(double* C_re,
 					      error_msg("Results for B2_Blocal_r1_im do not match");
 				       }
 	 }
-         /* compute two nucleon correlators from blocks */
-         double* BB_0_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_0_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r1_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r1_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r2_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r2_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r3_re = malloc(Nsrc * Nsnk * Nt * sizeof (double));
-         double* BB_r3_im = malloc(Nsrc * Nsnk * Nt * sizeof (double));
 
-	 double start_time = rtclock();
-         for (m=0; m<Nsrc; m++) {
-            for (n=0; n<Nsnk; n++) {
-               for (t=0; t<Nt; t++) {
-                  BB_0_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_0_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r1_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r1_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r2_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r2_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r3_re[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-                  BB_r3_im[index_3d(m,n,t,Nsnk,Nt)] = 0.0;
-               }
-            }
-         }
+	 /* compute two nucleon correlators from blocks */
          make_dibaryon_correlator(BB_0_re, BB_0_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_Bdouble_r1_re, B1_Bdouble_r1_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_Bdouble_r2_re, B2_Bdouble_r2_im, perms, sigs, overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, snk_psi_re, snk_psi_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc,Nsnk,Nperms);
          make_dibaryon_correlator(BB_0_re, BB_0_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_Bdouble_r1_re, B1_Bdouble_r1_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_Bdouble_r2_re, B2_Bdouble_r2_im, perms, sigs, overall_weight/sqrt(2.0), snk_color_weights_2, snk_spin_weights_2, snk_weights_2, snk_psi_re, snk_psi_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc,Nsnk,Nperms);
          make_dibaryon_correlator(BB_0_re, BB_0_im, B1_Blocal_r2_re, B1_Blocal_r2_im, B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_Bdouble_r2_re, B1_Bdouble_r2_im, B2_Blocal_r1_re, B2_Blocal_r1_im, B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_Bdouble_r1_re, B2_Bdouble_r1_im, perms, sigs, -1.0*overall_weight/sqrt(2.0), snk_color_weights_1, snk_spin_weights_1, snk_weights_1, snk_psi_re, snk_psi_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc,Nsnk,Nperms);
