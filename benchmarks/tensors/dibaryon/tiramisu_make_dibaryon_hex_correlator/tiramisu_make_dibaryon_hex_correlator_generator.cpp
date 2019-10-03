@@ -136,6 +136,7 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
+/*
     buffer buf_iC1("buf_iC1", {1}, p_int32, a_temporary);
     buffer buf_iC2("buf_iC2", {1}, p_int32, a_temporary);
     buffer buf_jC1("buf_jC1", {1}, p_int32, a_temporary);
@@ -148,7 +149,7 @@ void generate_function(std::string name)
     buffer buf_jS2("buf_jS2", {1}, p_int32, a_temporary);
     buffer buf_kS1("buf_kS1", {1}, p_int32, a_temporary);
     buffer buf_kS2("buf_kS2", {1}, p_int32, a_temporary);
-
+*/
     buffer buf_snk_1("buf_snk_1", {Nb}, p_int32, a_temporary);
     buffer buf_snk_2("buf_snk_2", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3("buf_snk_3", {Nb}, p_int32, a_temporary);
@@ -171,7 +172,7 @@ void generate_function(std::string name)
 
     buffer buf_C_r("buf_C_r", {Nsrc, NsnkHex, Nt}, p_float64, a_output);
     buffer buf_C_i("buf_C_i", {Nsrc, NsnkHex, Nt}, p_float64, a_output);
-
+/*
     iC1.store_in(&buf_iC1, {0});
     iC2.store_in(&buf_iC2, {0});
     jC1.store_in(&buf_jC1, {0});
@@ -184,7 +185,7 @@ void generate_function(std::string name)
     jS2.store_in(&buf_jS2, {0});
     kS1.store_in(&buf_kS1, {0});
     kS2.store_in(&buf_kS2, {0});
-
+*/
     C_r.store_in(&buf_C_r);
     C_i.store_in(&buf_C_i);
     C_update_r.store_in(&buf_C_r, {m, n, t});

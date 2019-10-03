@@ -77,12 +77,12 @@ void generate_function(std::string name)
     // In all the following code, when an array is used for an indirect access, accesses to that
     // are not being treated correctly by Tiramisu. We set the first dimension in accesses in those
     // arrays to the value that we want, and only that value will be used in access later.
-    computation iC1("iC1", {nperm, wnum}, snk_color_weights(snk_1_b(0, 0), wnum, snk_1_nq(1, 0)));
-    computation iS1("iS1", {nperm, wnum}, snk_spin_weights(snk_1_b(0, 0), wnum, snk_1_nq(1, 0)));
-    computation jC1("jC1", {nperm, wnum}, snk_color_weights(snk_2_b(0, 0), wnum, snk_2_nq(1, 0)));
-    computation jS1("jS1", {nperm, wnum}, snk_spin_weights(snk_2_b(0, 0), wnum, snk_2_nq(1, 0)));
-    computation kC1("kC1", {nperm, wnum}, snk_color_weights(snk_3_b(0, 0), wnum, snk_3_nq(1, 0)));
-    computation kS1("kS1", {nperm, wnum}, snk_spin_weights(snk_3_b(0, 0), wnum, snk_3_nq(1, 0)));
+    computation iC1("iC1", {nperm, wnum}, snk_color_weights(snk_1_b(0, 0), wnum, snk_1_nq(0, 0))); //Original access: snk_1_b(nperm, 0) replaced by snk_1_b(0, 0)
+    computation iS1("iS1", {nperm, wnum}, snk_spin_weights(snk_1_b(0, 0), wnum, snk_1_nq(0, 0)));
+    computation jC1("jC1", {nperm, wnum}, snk_color_weights(snk_2_b(0, 0), wnum, snk_2_nq(0, 0)));
+    computation jS1("jS1", {nperm, wnum}, snk_spin_weights(snk_2_b(0, 0), wnum, snk_2_nq(0, 0)));
+    computation kC1("kC1", {nperm, wnum}, snk_color_weights(snk_3_b(0, 0), wnum, snk_3_nq(0, 0)));
+    computation kS1("kS1", {nperm, wnum}, snk_spin_weights(snk_3_b(0, 0), wnum, snk_3_nq(0, 0)));
     computation iC2("iC2", {nperm, wnum}, snk_color_weights(snk_1_b(1, 1), wnum, snk_1_nq(1, 1)));
     computation iS2("iS2", {nperm, wnum}, snk_spin_weights(snk_1_b(1, 1), wnum, snk_1_nq(1, 1)));
     computation jC2("jC2", {nperm, wnum}, snk_color_weights(snk_2_b(1, 1), wnum, snk_2_nq(1, 1)));
@@ -90,7 +90,7 @@ void generate_function(std::string name)
     computation kC2("kC2", {nperm, wnum}, snk_color_weights(snk_3_b(1, 1), wnum, snk_3_nq(1, 1)));
     computation kS2("kS2", {nperm, wnum}, snk_spin_weights(snk_3_b(1, 1), wnum, snk_3_nq(1, 1)));
 
-    expr iC1e = iC1(0, 0);
+    expr iC1e = iC1(0, 0); //Original access iC1(nperm, wnum) replaced by iC1(0, 0)
     expr iS1e = iS1(0, 0);
     expr jC1e = jC1(0, 0);
     expr jS1e = jS1(0, 0);
