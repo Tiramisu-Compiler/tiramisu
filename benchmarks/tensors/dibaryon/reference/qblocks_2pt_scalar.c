@@ -1171,6 +1171,8 @@ void make_two_nucleon_2pt(double* C_re,
 					         t_B2_Blocal_r1_im[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 					      error_msg("Results for B2_Blocal_r1_im do not match");
 				       }
+
+	       printf("\033[1;32mResults of tiramisu_wrapper_make_local_single_double_block and reference match.\033[0m\n");
 	 }
 
 	 /* compute two nucleon correlators from blocks */
