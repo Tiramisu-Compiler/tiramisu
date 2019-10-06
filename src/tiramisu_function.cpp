@@ -2171,8 +2171,12 @@ bool tiramisu::function::check_legality() {
     isl_union_map* conflict_set = isl_union_map_subtract(isl_union_map_intersect(c1, c2),
                                                          isl_union_set_identity(isl_union_set_copy(iteration_domain)));
     DEBUG(3, tiramisu::str_dump("Conflict set: ", isl_union_map_to_str(conflict_set)));
-    isl_union_map* same_idx = isl_union_map_domain_product(isl_union_map_copy(write_relation),
-                                                           isl_union_map_copy(write_relation));
+    isl_union_map* same_idx =
+        isl_union_set_unwrap(
+            isl_union_map_domain(
+                isl_union_map_domain_product(
+                    isl_union_map_copy(write_relation),
+                    isl_union_map_copy(write_relation))));
     DEBUG(3, tiramisu::str_dump("Same idx: ", isl_union_map_to_str(same_idx)));
     isl_union_map* invalid_set = isl_union_map_intersect(isl_union_map_copy(conflict_set), isl_union_map_copy(same_idx));
     DEBUG(3, tiramisu::str_dump("Invalid set: ", isl_union_map_to_str(invalid_set)));
