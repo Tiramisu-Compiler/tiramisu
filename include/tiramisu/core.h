@@ -1075,7 +1075,7 @@ public:
     /**
      * \brief Check legality of scheduling.
      */
-    void check_legality();
+    bool check_legality();
 };
 
 

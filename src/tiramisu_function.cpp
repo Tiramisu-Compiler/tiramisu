@@ -2073,7 +2073,9 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->lift_dist_comps();
     this->gen_time_space_domain();
     if (do_legality_check) {
-        this->check_legality();
+        if (!this->check_legality()) {
+            ERROR("Schedules you specified violates dataflow dependency.", true);
+        }
     }
     this->gen_isl_ast();
     if (gen_cuda_stmt) {
@@ -2094,11 +2096,11 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::check_legality() {
+bool tiramisu::function::check_legality() {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
     if (this->body.empty()){
-        return;
+        return true;
     }
     isl_union_set* iteration_domain = this->get_iteration_domain();
     // Only parameter is used in isl_union_map_empty, so iteration_domain is enough.
@@ -2151,7 +2153,7 @@ void tiramisu::function::check_legality() {
         isl_basic_map* sample = isl_union_map_sample(sub);
         DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
         DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
-        ERROR("", 1);
+        return false;
     }
 
     isl_union_map* last_use =
@@ -2178,11 +2180,11 @@ void tiramisu::function::check_legality() {
         isl_basic_map* sample = isl_union_map_sample(invalid_set);
         DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
         DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
-        ERROR("", 1);
+        return false;
     }
 
     DEBUG_INDENT(-4);
-    return;
+    return true;
 }
 
 }
