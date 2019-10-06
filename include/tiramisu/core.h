@@ -122,7 +122,7 @@ void init();
   * If \p gen_cuda_stmt is set to true, CUDA code is generated instead of code
   * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, const bool check_legality = false);
 
 //*******************************************************
 
@@ -1049,7 +1049,7 @@ public:
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, const bool check_legality = false);
 
     /**
      * \brief Set the context of the function.
@@ -1071,6 +1071,11 @@ public:
       * This function takes an ISL set as input.
       */
     void set_context_set(isl_set *context);
+
+    /**
+     * \brief Check legality of scheduling.
+     */
+    void check_legality();
 };
 
 

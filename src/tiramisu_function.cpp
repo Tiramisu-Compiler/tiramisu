@@ -2056,7 +2056,7 @@ void function::gen_time_space_domain()
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt, const bool do_legality_check)
 {
     if (gen_cuda_stmt)
     {
@@ -2072,6 +2072,9 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->set_arguments(arguments);
     this->lift_dist_comps();
     this->gen_time_space_domain();
+    if (do_legality_check) {
+        this->check_legality();
+    }
     this->gen_isl_ast();
     if (gen_cuda_stmt) {
         this->gen_cuda_stmt();
@@ -2089,6 +2092,97 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
         inv_str.push_back(inv[i].get_name());
 
     return inv_str;
+}
+
+void tiramisu::function::check_legality() {
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    if (this->body.empty()){
+        return;
+    }
+    isl_union_set* iteration_domain = this->get_iteration_domain();
+    // Only parameter is used in isl_union_map_empty, so iteration_domain is enough.
+    // TODO: refactor
+    isl_space* space = isl_union_set_get_space(iteration_domain);
+    isl_union_map* read_access_relation = isl_union_map_empty(space);
+
+    for (const auto& comp: this->body) {
+        std::vector<isl_map*> accesses;
+        generator::get_rhs_accesses(this, comp, accesses, false);
+        for (const auto& access : accesses) {
+            isl_union_map* uaccess = isl_union_map_from_map(access);
+            read_access_relation = isl_union_map_union(read_access_relation, uaccess);
+        }
+    }
+    DEBUG(3, tiramisu::str_dump("Read access relation: ", isl_union_map_to_str(read_access_relation)));
+    DEBUG(3, tiramisu::str_dump("Iteration domain: ", isl_union_set_to_str(iteration_domain)));
+    read_access_relation = isl_union_map_intersect_domain(read_access_relation, isl_union_set_copy(iteration_domain));
+    read_access_relation = isl_union_map_intersect_range(read_access_relation, isl_union_set_copy(iteration_domain));
+    DEBUG(3, tiramisu::str_dump("Read access relation: ", isl_union_map_to_str(read_access_relation)));
+    isl_union_map* dataflow_dependency = isl_union_map_reverse(isl_union_map_copy(read_access_relation));
+    DEBUG(3, tiramisu::str_dump("Dataflow dependency relation: ", isl_union_map_to_str(dataflow_dependency)));
+
+    isl_union_map* sched1 = this->get_trimmed_schedule();
+    isl_union_map* sched2 =
+        isl_union_map_intersect_domain(
+            isl_union_map_copy(this->get_aligned_identity_schedules()),
+            isl_union_set_copy(this->get_trimmed_time_processor_domain()));
+    isl_union_map* schedule = isl_union_map_apply_range(isl_union_map_copy(sched1),
+                                                        isl_union_map_copy(sched2));
+
+    isl_union_map* schedule_order =
+        isl_union_map_lex_lt_union_map(isl_union_map_copy(schedule),
+                                       isl_union_map_copy(schedule));
+    DEBUG(3, tiramisu::str_dump("Schedule relation: ", isl_union_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Schedule order: ", isl_union_map_to_str(schedule_order)));
+
+    isl_union_map* write_relation = isl_union_map_empty(space);
+    for (const auto& comp : this->body)  {
+        isl_union_map* uaccess = isl_union_map_from_map(isl_map_copy(comp->get_access_relation()));
+        write_relation = isl_union_map_union(uaccess, write_relation);
+    }
+    write_relation = isl_union_map_intersect_domain(write_relation, isl_union_set_copy(iteration_domain));
+
+    DEBUG(3, tiramisu::str_dump("Write relation: ", isl_union_map_to_str(write_relation)));
+
+    if (isl_union_map_is_subset(dataflow_dependency, schedule_order) != isl_bool_true) {
+        isl_union_map* sub =
+            isl_union_map_subtract(isl_union_map_copy(dataflow_dependency), isl_union_map_copy(schedule_order));
+        isl_basic_map* sample = isl_union_map_sample(sub);
+        DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
+        DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
+        ERROR("", 1);
+    }
+
+    isl_union_map* last_use =
+        isl_union_set_unwrap(
+            isl_union_map_domain(
+                isl_union_map_lexmax(
+                    isl_union_map_apply_range(
+                        isl_union_map_range_map(isl_union_map_copy(dataflow_dependency)),
+                        isl_union_map_copy(schedule)))));
+    DEBUG(3, tiramisu::str_dump("Last use: ", isl_union_map_to_str(last_use)));
+    isl_union_map* c1 = isl_union_map_lex_lt_union_map(isl_union_map_copy(schedule),
+                                                       isl_union_map_apply_range(isl_union_map_copy(last_use),
+                                                                                 isl_union_map_copy(schedule)));
+    isl_union_map* c2 = isl_union_map_reverse(isl_union_map_copy(c1));
+    isl_union_map* conflict_set = isl_union_map_subtract(isl_union_map_intersect(c1, c2),
+                                                         isl_union_set_identity(isl_union_set_copy(iteration_domain)));
+    DEBUG(3, tiramisu::str_dump("Conflict set: ", isl_union_map_to_str(conflict_set)));
+    isl_union_map* same_idx = isl_union_map_domain_product(isl_union_map_copy(write_relation),
+                                                           isl_union_map_copy(write_relation));
+    DEBUG(3, tiramisu::str_dump("Same idx: ", isl_union_map_to_str(same_idx)));
+    isl_union_map* invalid_set = isl_union_map_intersect(isl_union_map_copy(conflict_set), isl_union_map_copy(same_idx));
+    DEBUG(3, tiramisu::str_dump("Invalid set: ", isl_union_map_to_str(invalid_set)));
+    if (isl_union_map_is_empty(invalid_set) != isl_bool_true) {
+        isl_basic_map* sample = isl_union_map_sample(invalid_set);
+        DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
+        DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
+        ERROR("", 1);
+    }
+
+    DEBUG_INDENT(-4);
+    return;
 }
 
 }

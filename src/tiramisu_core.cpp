@@ -85,10 +85,10 @@ void init()
     global::set_default_tiramisu_options();
 }
 
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt, const bool check_legality)
 {
     function *fct = global::get_implicit_function();
-    fct->codegen(arguments, obj_filename, gen_cuda_stmt);
+    fct->codegen(arguments, obj_filename, gen_cuda_stmt, check_legality);
 }
 
 //********************************************************
