@@ -53,3 +53,4 @@ test number `XX` in the file `tests/test_list.txt`.
 - .update() (new way of expressing updates): test_91
 - 64 bit buffers: test_97
 - gen_communication() : 160
+- legality check of scheduling : 175 176
