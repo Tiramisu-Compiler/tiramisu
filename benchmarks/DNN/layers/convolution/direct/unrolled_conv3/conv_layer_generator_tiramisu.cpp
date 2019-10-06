@@ -278,11 +278,11 @@ int main(int argc, char **argv)
 		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
 		    unrolled_conv[f0][f1][in0][in1][ky][kx]->tag_vector_level(3, X_BLOCKING);
 
-    reg_load.vectorize(ffout, FOUT_BLOCKING);
-    reg_store.vectorize(ffout, FOUT_BLOCKING);
-    reg_load.tag_unroll_level(xx);
+    reg_load.vectorize(xx, X_BLOCKING);
+    reg_store.vectorize(xx, X_BLOCKING);
+    reg_load.tag_unroll_level(ffout);
+    reg_store.tag_unroll_level(ffout);
     reg_load.tag_unroll_level(fout_b_low);
-    reg_store.tag_unroll_level(xx);
     reg_store.tag_unroll_level(fout_b_low);
 
 #if DO_CONCLUSION
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
 	  for (int in1 = 0; in1 < FIN_BLOCKING; in1++)
     	    for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
               for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
-		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
+		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL)
 		{
 		    previous_comp->then(*unrolled_conv[f0][f1][in0][in1][ky][kx], 2);
 		    previous_comp = unrolled_conv[f0][f1][in0][in1][ky][kx];
@@ -382,9 +382,9 @@ int main(int argc, char **argv)
     buffer conv_buf("conv_buf", {BATCH_SIZE, FOUT_NB_BLOCKS, N, N, FOUT_BLOCKING}, p_float32, a_output);
  
     conv_init.store_in(&conv_buf, {n, fout_b, y, x, ffout});
-    conv_out.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x%X_BLOCKING, ffout});
+    conv_out.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, ffout, x%X_BLOCKING});
 
-    reg_load.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, ffout});
+    reg_load.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, ffout, x_bound%X_BLOCKING});
 
     for (int f0 = 0; f0 < FOUT_NB_BLOCKS; f0++)
       for (int f1 = 0; f1 < FOUT_BLOCKING; f1++)
@@ -394,10 +394,10 @@ int main(int argc, char **argv)
 	      for (int kx = 0; kx < K; kx++)
 		if (unrolled_conv[f0][f1][in0][in1][ky][kx] != NULL) 
 		{
-		    unrolled_conv[f0][f1][in0][in1][ky][kx]->store_in(&reg_buf, {f0%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, f1});
+		    unrolled_conv[f0][f1][in0][in1][ky][kx]->store_in(&reg_buf, {f0%FOUT_B_SPLIT_FACTOR, f1, x_bound%X_BLOCKING});
 		}
 
-    conv_orig.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, x_bound%X_BLOCKING, ffout});
+    conv_orig.store_in(&reg_buf, {fout_b%FOUT_B_SPLIT_FACTOR, ffout, x_bound%X_BLOCKING});
     reg_store.store_in(&conv_buf, {n, fout_b, y, x_bound, ffout});
 
 #if DO_CONCLUSION

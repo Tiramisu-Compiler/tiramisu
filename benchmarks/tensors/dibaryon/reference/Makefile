@@ -23,7 +23,7 @@ tiramisu:
 	$(CXX) $(CXXFLAGS) ${INCLUDE_DIR} -DUSE_REFERENCE=0 -c tiramisu_wrapper.cpp -o tiramisu_wrapper
 	$(CC) $(CFLAGS) -c -DUSE_REFERENCE=$(USE_REFERENCE_WITH_TIRAMISU) -DUSE_TIRAMISU=1 qblocks_2pt_scalar.c -o qblocks_2pt_scalar.o
 	$(CC) $(CFLAGS) -c -DUSE_REFERENCE=$(USE_REFERENCE_WITH_TIRAMISU) -DUSE_TIRAMISU=1 qblocks_2pt_test.c -o qblocks_2pt_test.o
-	$(CXX) $(CXXFLAGS) ${INCLUDE_DIR} ${LIB_DIR} tiramisu_wrapper qblocks_2pt_scalar.o qblocks_2pt_test.o ${TIRAMISU_GENERATED_OBJ} -ltiramisu -lHalide -o qblocks_2pt_test
+	$(CXX) $(CXXFLAGS) ${INCLUDE_DIR} ${LIB_DIR} tiramisu_wrapper qblocks_2pt_scalar.o qblocks_2pt_test.o ${TIRAMISU_GENERATED_OBJ} -lHalide -o qblocks_2pt_test
 
 run:
 	DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${TIRAMISU_PATH}/3rdParty/Halide/bin/:${TIRAMISU_PATH}/build/ LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${TIRAMISU_PATH}/3rdParty/Halide/bin/:${TIRAMISU_PATH}/build/ ./qblocks_2pt_test
