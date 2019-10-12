@@ -6,6 +6,7 @@ import numpy as np
 from src.data import load_data
 import src.data.stats as stats
 import dill
+from tqdm import tqdm
 
 class DatasetFromHdf5(data.Dataset):
 
@@ -101,19 +102,12 @@ class DatasetFromPkl(data.Dataset):
         self.Y = []
         self.restricted_program_indexes = []
         self.restricted_schedules = []
-        for i in range(len(self.schedules)):
-      
+        for i in tqdm(range(len(self.schedules))):      
             program = self.programs[self.program_indexes[i]]
-            
-           # prog_num = int(program.name[len("function"):])
-            
-           # if prog_num <= 6i00 or (115000 <= prog_num <= 121200):
             self.X.append(program.add_schedule(self.schedules[i]).__array__())
             self.Y.append(self.speedups[i])
             self.restricted_program_indexes.append(self.program_indexes[i])
             self.restricted_schedules.append(self.schedules[i])
-
-
         self.X = np.array(self.X).astype('float32')
         self.Y = np.array(self.Y, dtype='float32').reshape(-1, 1)
 
@@ -137,10 +131,6 @@ class DatasetFromPkl(data.Dataset):
 
         return self.maxsize
 
-   
-
-
-
     @staticmethod
     def pickle_data(data_path='data/training_data/', dataset_path='data/speedup_dataset.pkl'):
         st = stats.Stats(data_path)
@@ -151,7 +141,64 @@ class DatasetFromPkl(data.Dataset):
         print("Serializing")
         load_data.serialize(programs, schedules, exec_times, filename=dataset_path)
         print("done")
-   
+        
+
+#loads data using filter on speedup and excluding some functions        
+class DatasetFromPkl_Filter(data.Dataset):
+    def __init__(self, filename, normalized=False, log=False, maxsize=100000, speedup_lo_bound=0, speedup_up_bound=np.inf, exlude_funcs=[]):
+        super().__init__()
+
+        self.maxsize = maxsize
+        self.dataset = filename
+        
+        #read dataset
+        f = open(filename, 'rb')
+        dataset_dict = dill.load(f)
+        f.close()
+
+        self.programs = dataset_dict['programs']
+        self.program_indexes = dataset_dict['program_indexes']
+        self.schedules = dataset_dict['schedules']
+        self.exec_times = dataset_dict['exec_times']
+        self.speedups = dataset_dict['speedup']
+
+        
+        self.X = []
+        self.Y = []
+        self.restricted_program_indexes = []
+        self.restricted_schedules = []
+        for i in tqdm(range(len(self.schedules))):
+            if((self.speedups[i]>=speedup_lo_bound) & (self.speedups[i]<=speedup_up_bound) & (self.programs[self.program_indexes[i]].name not in exlude_funcs)):
+                program = self.programs[self.program_indexes[i]]
+                self.X.append(program.add_schedule(self.schedules[i]).__array__())
+                self.Y.append(self.speedups[i])
+                self.restricted_program_indexes.append(self.program_indexes[i])
+                self.restricted_schedules.append(self.schedules[i])
+            else:
+                pass
+        self.X = np.array(self.X).astype('float32')
+        self.Y = np.array(self.Y, dtype='float32').reshape(-1, 1)
+
+
+
+        if log:
+            self.Y = np.log(self.Y)
+            
+            self.mean = np.mean(self.Y)
+            self.std = np.std(self.Y)
+
+            self.Y = (self.Y - self.mean)/self.std
+
+        
+    def __getitem__(self, index):
+        return self.X[index], self.Y[index] 
+
+    def __len__(self):
+        if self.maxsize is None:
+            return len(self.Y)
+
+        return self.maxsize
+
        
 class DatasetFromPkl_old(data.Dataset):
     def __init__(self, filename, normalized=False, log=False, maxsize=100000):
