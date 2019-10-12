@@ -167,8 +167,8 @@ if __name__=='__main__':
     st = Stats('/data/scratch/mmerouani/data/batch2001-2500/')
 
     print("loading data")
-#     programs, schedules, exec_times = st.load_data()
-    programs, schedules, exec_times = st.load_data_separate_exec_times('/data/scratch/mmerouani/data/batch2001-2500/final_exec_times_batch2001-2500.pickle')
+    programs, schedules, exec_times = st.load_data()
+#     programs, schedules, exec_times = st.load_data_separate_exec_times('/data/scratch/mmerouani/data/batch2001-2500/final_exec_times_batch2001-2500.pickle')
     print("data loaded")
     print("calculating model input")
     #data_to_h5(programs, schedules, exec_times)
