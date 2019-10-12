@@ -1,0 +1,10 @@
+*.h5
+*.pkl
+/data/training_data/
+__pycache__/*
+.ipynb_checkpoints/
+drafts/
+draft*
+*.pyc
+*.pyo
+*.pth

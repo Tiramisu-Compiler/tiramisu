@@ -4,7 +4,7 @@ from itertools import permutations
 from tqdm import tqdm 
 import h5py
 import dill as pickle
-
+from src.data.stats import *
 
 def data_to_h5(programs, schedules, exec_times, filename="speedup_dataset.h5"):
     #create file
@@ -17,7 +17,7 @@ def data_to_h5(programs, schedules, exec_times, filename="speedup_dataset.h5"):
     #get data
     programs_array, schedules_array, speedup_array, times_array, prog_names, sched_names = get_speedup_data(programs, schedules, exec_times)
 
-    assert programs_array.shape[0] ==  schedules_array.shape[0]
+    assert programs_array.shape[0] == schedules_array.shape[0]
     assert schedules_array.shape[0] == times_array.shape[0]
     assert schedules_array.shape[1] == n_cols_scheds
     assert programs_array.shape[1] == n_cols_progs 
@@ -164,13 +164,15 @@ def serialize(programs, schedules, exec_times, filename='speedup_dataset.pkl'):
 
 
 if __name__=='__main__':
-    st = Stats('../../data/training_data/')
+    st = Stats('/data/scratch/mmerouani/data/batch2001-2500/')
 
     print("loading data")
     programs, schedules, exec_times = st.load_data()
+#     programs, schedules, exec_times = st.load_data_separate_exec_times('/data/scratch/mmerouani/data/batch2001-2500/final_exec_times_batch2001-2500.pickle')
     print("data loaded")
     print("calculating model input")
     #data_to_h5(programs, schedules, exec_times)
-    serialize(programs, schedules, exec_times)
+    serialize(programs, schedules, exec_times,filename='speedup_dataset_research_batch2001-2500.pkl')
     print("done")
-    
+
+
