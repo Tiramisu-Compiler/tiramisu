@@ -7,4 +7,4 @@ drafts/
 draft*
 *.pyc
 *.pyo
-
+*.pth
