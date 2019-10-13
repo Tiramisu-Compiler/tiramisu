@@ -2096,34 +2096,35 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
+/**
+ * Check the legality of scheduling.
+ * Time scheduling (layer II) is legal if the dependency relation is subset of scheduling order.
+ * Memory scheduling (layer III) is legal if no pair in the conflict set [1] write to a same inex.
+ *  Conflict set is a set of pair of array indices whose elements need to live simultaneously.
+ * [1] S. Bhaskaracharya, et al. SMO: An integrated approach to intra-array and inter-array storage optimization. POPL 2016
+ */
 bool tiramisu::function::check_legality() {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
+
     if (this->body.empty()){
         return true;
     }
     isl_union_set* iteration_domain = this->get_iteration_domain();
-    // Only parameter is used in isl_union_map_empty, so iteration_domain is enough.
-    // TODO: refactor
+    // For any isl_union_map, we can use this space because it only checks parameters.
     isl_space* space = isl_union_set_get_space(iteration_domain);
-    isl_union_map* read_access_relation = isl_union_map_empty(space);
-
-    for (const auto& comp: this->body) {
-        std::vector<isl_map*> accesses;
-        generator::get_rhs_accesses(this, comp, accesses, false);
-        for (const auto& access : accesses) {
-            isl_union_map* uaccess = isl_union_map_from_map(access);
-            read_access_relation = isl_union_map_union(read_access_relation, uaccess);
-        }
-    }
-    DEBUG(3, tiramisu::str_dump("Read access relation: ", isl_union_map_to_str(read_access_relation)));
     DEBUG(3, tiramisu::str_dump("Iteration domain: ", isl_union_set_to_str(iteration_domain)));
-    read_access_relation = isl_union_map_intersect_domain(read_access_relation, isl_union_set_copy(iteration_domain));
-    read_access_relation = isl_union_map_intersect_range(read_access_relation, isl_union_set_copy(iteration_domain));
-    DEBUG(3, tiramisu::str_dump("Read access relation: ", isl_union_map_to_str(read_access_relation)));
-    isl_union_map* dataflow_dependency = isl_union_map_reverse(isl_union_map_copy(read_access_relation));
+
+    isl_union_map* dataflow_dependency = compute_dep_graph();
+    if (!dataflow_dependency) {
+        dataflow_dependency = isl_union_map_empty(space);
+    }
+    dataflow_dependency = isl_union_map_intersect_domain(dataflow_dependency, isl_union_set_copy(iteration_domain));
+    dataflow_dependency = isl_union_map_intersect_range(dataflow_dependency, isl_union_set_copy(iteration_domain));
+
     DEBUG(3, tiramisu::str_dump("Dataflow dependency relation: ", isl_union_map_to_str(dataflow_dependency)));
 
+    // Compute schedule S : iteration doman -> trimmed time processor domain
     isl_union_map* sched1 = this->get_trimmed_schedule();
     isl_union_map* sched2 =
         isl_union_map_intersect_domain(
@@ -2131,31 +2132,37 @@ bool tiramisu::function::check_legality() {
             isl_union_set_copy(this->get_trimmed_time_processor_domain()));
     isl_union_map* schedule = isl_union_map_apply_range(isl_union_map_copy(sched1),
                                                         isl_union_map_copy(sched2));
-
+    // Schedule order <_S : i1 <_S i2 iff S(i1) < S(i2)
     isl_union_map* schedule_order =
         isl_union_map_lex_lt_union_map(isl_union_map_copy(schedule),
                                        isl_union_map_copy(schedule));
     DEBUG(3, tiramisu::str_dump("Schedule relation: ", isl_union_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Schedule order: ", isl_union_map_to_str(schedule_order)));
 
+    // Compute write relation: iteration domain -> writing location
     isl_union_map* write_relation = isl_union_map_empty(space);
     for (const auto& comp : this->body)  {
         isl_union_map* uaccess = isl_union_map_from_map(isl_map_copy(comp->get_access_relation()));
         write_relation = isl_union_map_union(uaccess, write_relation);
     }
     write_relation = isl_union_map_intersect_domain(write_relation, isl_union_set_copy(iteration_domain));
-
     DEBUG(3, tiramisu::str_dump("Write relation: ", isl_union_map_to_str(write_relation)));
 
+    // Check whether dataflow dependency is ordered by schedule
     if (isl_union_map_is_subset(dataflow_dependency, schedule_order) != isl_bool_true) {
+        // Show an example dependency which is not ordered by schedule
         isl_union_map* sub =
             isl_union_map_subtract(isl_union_map_copy(dataflow_dependency), isl_union_map_copy(schedule_order));
         isl_basic_map* sample = isl_union_map_sample(sub);
         DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
-        DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
+        DEBUG(3, tiramisu::str_dump("A dependency not orderd by schedule: ", isl_basic_map_to_str(sample)));
         return false;
     }
 
+    // Compute last use function L: L(i) is the last iteration which use the value computed at the iteration i.
+    // Which can be computed as
+    // unwrap of domain of lexmax of {(i->j)->k : i->j \in D and k = S(j) }
+    // = unwrap of domain of lexmax of apply_range(range_map(D), S)
     isl_union_map* last_use =
         isl_union_set_unwrap(
             isl_union_map_domain(
@@ -2164,13 +2171,21 @@ bool tiramisu::function::check_legality() {
                         isl_union_map_range_map(isl_union_map_copy(dataflow_dependency)),
                         isl_union_map_copy(schedule)))));
     DEBUG(3, tiramisu::str_dump("Last use: ", isl_union_map_to_str(last_use)));
+
+    // Compute conflict set by using the last use function.
+    // Conflict set is { i -> j : i <_S L(j) and j <_S L(i) }
+    // = { i -> j : i <_S L(j) } \cap { i -> j : j <_S L(i) }
+    // = C1 \cap C1^{-1}
+    //   where C1 = { i -> j : i <_S L(j) }
     isl_union_map* c1 = isl_union_map_lex_lt_union_map(isl_union_map_copy(schedule),
-                                                       isl_union_map_apply_range(isl_union_map_copy(last_use),
-                                                                                 isl_union_map_copy(schedule)));
+        isl_union_map_apply_range(isl_union_map_copy(last_use),
+        isl_union_map_copy(schedule)));
     isl_union_map* c2 = isl_union_map_reverse(isl_union_map_copy(c1));
     isl_union_map* conflict_set = isl_union_map_subtract(isl_union_map_intersect(c1, c2),
-                                                         isl_union_set_identity(isl_union_set_copy(iteration_domain)));
+        isl_union_set_identity(isl_union_set_copy(iteration_domain)));
     DEBUG(3, tiramisu::str_dump("Conflict set: ", isl_union_map_to_str(conflict_set)));
+
+    // Set of pairs of iterations which writes to the same index.
     isl_union_map* same_idx =
         isl_union_set_unwrap(
             isl_union_map_domain(
@@ -2178,12 +2193,15 @@ bool tiramisu::function::check_legality() {
                     isl_union_map_copy(write_relation),
                     isl_union_map_copy(write_relation))));
     DEBUG(3, tiramisu::str_dump("Same idx: ", isl_union_map_to_str(same_idx)));
+
+    // Set of conflicting pair of iterations writing same index. If this set is not empty, dependency is violated.
     isl_union_map* invalid_set = isl_union_map_intersect(isl_union_map_copy(conflict_set), isl_union_map_copy(same_idx));
     DEBUG(3, tiramisu::str_dump("Invalid set: ", isl_union_map_to_str(invalid_set)));
     if (isl_union_map_is_empty(invalid_set) != isl_bool_true) {
+        // Compute example pair conflicting and writing to a same index.
         isl_basic_map* sample = isl_union_map_sample(invalid_set);
-        DEBUG(3, tiramisu::str_dump("Time schedule violates dependency relation"));
-        DEBUG(3, tiramisu::str_dump("Violating sample: ", isl_basic_map_to_str(sample)));
+        DEBUG(3, tiramisu::str_dump("Memory schedule violates dependency relation"));
+        DEBUG(3, tiramisu::str_dump("Example points conflicting and writing to a same index : ", isl_basic_map_to_str(sample)));
         return false;
     }
 

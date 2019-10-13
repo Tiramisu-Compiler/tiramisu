@@ -1073,7 +1073,9 @@ public:
     void set_context_set(isl_set *context);
 
     /**
-     * \brief Check legality of scheduling.
+     * \brief Check the legality of scheduling. In particular, it checks that
+     * (i) layer II schedule does not violate dataflow dependency, and
+     * (ii) layer III schedule does not overwrite necessary values.
      */
     bool check_legality();
 };
