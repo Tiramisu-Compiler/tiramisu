@@ -2100,7 +2100,7 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
  * Check the legality of scheduling.
  * Time scheduling (layer II) is legal if the dependency relation is subset of scheduling order.
  * Memory scheduling (layer III) is legal if no pair in the conflict set [1] write to a same inex.
- *  Conflict set is a set of pair of array indices whose elements need to live simultaneously.
+ * Conflict set is a set of pairs of array indices whose elements need to live simultaneously.
  * [1] S. Bhaskaracharya, et al. SMO: An integrated approach to intra-array and inter-array storage optimization. POPL 2016
  */
 bool tiramisu::function::check_legality() {
@@ -2111,7 +2111,7 @@ bool tiramisu::function::check_legality() {
         return true;
     }
     isl_union_set* iteration_domain = this->get_iteration_domain();
-    // For any isl_union_map, we can use this space because it only checks parameters.
+    // We can use this space for any isl_union_map if its parameter set is the same to iteration domain.
     isl_space* space = isl_union_set_get_space(iteration_domain);
     DEBUG(3, tiramisu::str_dump("Iteration domain: ", isl_union_set_to_str(iteration_domain)));
 
@@ -2194,7 +2194,7 @@ bool tiramisu::function::check_legality() {
                     isl_union_map_copy(write_relation))));
     DEBUG(3, tiramisu::str_dump("Same idx: ", isl_union_map_to_str(same_idx)));
 
-    // Set of conflicting pair of iterations writing same index. If this set is not empty, dependency is violated.
+    // Set of conflicting pairs of iterations writing to the same index. If this set is not empty, dependency is violated.
     isl_union_map* invalid_set = isl_union_map_intersect(isl_union_map_copy(conflict_set), isl_union_map_copy(same_idx));
     DEBUG(3, tiramisu::str_dump("Invalid set: ", isl_union_map_to_str(invalid_set)));
     if (isl_union_map_is_empty(invalid_set) != isl_bool_true) {
