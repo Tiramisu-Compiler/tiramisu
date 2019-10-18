@@ -8,3 +8,4 @@ draft*
 *.pyc
 *.pyo
 *.pth
+tmp.pth
