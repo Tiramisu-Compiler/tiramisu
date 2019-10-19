@@ -110,6 +110,7 @@ class DatasetFromPkl(data.Dataset):
             self.restricted_schedules.append(self.schedules[i])
         self.X = np.array(self.X).astype('float32')
         self.Y = np.array(self.Y, dtype='float32').reshape(-1, 1)
+        self.Y_speedups = np.array(self.Y, dtype='float32')
 
 
 
@@ -178,7 +179,72 @@ class DatasetFromPkl_Filter(data.Dataset):
                 pass
         self.X = np.array(self.X).astype('float32')
         self.Y = np.array(self.Y, dtype='float32').reshape(-1, 1)
+        self.Y_speedups = np.array(self.Y, dtype='float32')
 
+
+
+        if log:
+            self.Y = np.log(self.Y)
+            
+            self.mean = np.mean(self.Y)
+            self.std = np.std(self.Y)
+
+            self.Y = (self.Y - self.mean)/self.std
+
+        
+    def __getitem__(self, index):
+        return self.X[index], self.Y[index] 
+
+    def __len__(self):
+        if self.maxsize is None:
+            return len(self.Y)
+
+        return self.maxsize
+    
+#loads data using filter function and transformation on speedups      
+class DatasetFromPkl_Transform(data.Dataset):
+    def __init__(self, filename, normalized=False, log=False, maxsize=100000, filter_func=None, transform_func=None):
+        super().__init__()
+
+        self.maxsize = maxsize
+        self.dataset = filename
+        
+        #read dataset
+        f = open(filename, 'rb')
+        dataset_dict = dill.load(f)
+        f.close()
+
+        self.programs = dataset_dict['programs']
+        self.program_indexes = dataset_dict['program_indexes']
+        self.schedules = dataset_dict['schedules']
+        self.exec_times = dataset_dict['exec_times']
+        self.speedups = dataset_dict['speedup']
+
+        
+        self.X = []
+        self.Y = []
+        self.restricted_program_indexes = []
+        self.restricted_schedules = []
+        
+        if (filter_func==None):
+            filter_func = lambda x : True
+        if (transform_func==None):
+            transform_func = lambda x : x
+            
+        for i in tqdm(range(len(self.schedules))):
+            if(filter_func(self)):
+                program = self.programs[self.program_indexes[i]]
+                self.X.append(program.add_schedule(self.schedules[i]).__array__())
+                self.Y.append(self.speedups[i])
+                self.restricted_program_indexes.append(self.program_indexes[i])
+                self.restricted_schedules.append(self.schedules[i])
+            else:
+                pass
+        self.X = np.array(self.X).astype('float32')
+        self.Y = np.array(self.Y, dtype='float32').reshape(-1, 1)
+        self.Y_speedups = np.array(self.Y, dtype='float32')
+        self.Y = transform_func(self.Y)
+        self.Y = np.array(self.Y, dtype='float32')
 
 
         if log:
