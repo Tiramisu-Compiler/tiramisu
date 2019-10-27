@@ -3,9 +3,9 @@
 
 #include <sys/time.h>
 
-#define IMPORT_CSR_FROM_FILE 0
+#define IMPORT_CSR_FROM_FILE 1
 #define WEIGHTS_DENSITY 0.2 // considered only if IMPORT_CSR_FROM_FILE=0
-#define USE_DENSE_MATRIX 1
+#define USE_DENSE_MATRIX 0
 
 #define CSR_FILE_NAME "resnet_5.csr"
 
