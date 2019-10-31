@@ -31,4 +31,7 @@ class Model_BN(nn.Module):
 
         x = self.predict(x)
         return x
-    
+
+
+
+import fastai.basic_train

@@ -9,6 +9,7 @@ import json
 import numpy as np
 from functools import reduce
 from tqdm import tqdm
+import pickle
 
 from src.data.loop_ast import *
 from src.data.schedule import *
@@ -41,6 +42,24 @@ class Stats():
 
         for program in programs:
             yield program
+#     def get_all_programs(self):
+#         folder = self.stats_folder if self.stats_folder_created else self.programs_folder
+
+#         programs = listdir(self.data_path + folder)
+
+#         programs = []
+#         batches = listdir(self.data_path + folder)
+#         batches = filter(lambda x: not x.startswith('-'), batches)
+#         for b in  batches:
+#             batch_programs = listdir(self.data_path + folder + '/' + b + '/')
+#             for p in batch_programs:
+#                 p = b+'/'+p
+#                 programs.append(p)
+            
+
+#         for program in programs:
+#             yield program
+
 
     def get_all_schedules(self, program):
         folder = self.stats_folder if self.stats_folder_created else self.programs_folder
@@ -196,7 +215,7 @@ class Stats():
     def read_program_json(self, program):
 
         full_path = self.data_path + self.stats_folder + '/' + program + '/' + program + '.json'
-
+        json_dict = json.load(open(full_path, 'r'))
         try:
             json_dict = json.load(open(full_path, 'r'))
         except Exception:
@@ -320,6 +339,7 @@ class Stats():
 
     def program_to_ast(self, program):
         #read json in dictionary
+
         program_dict = self.read_program_json(program)
 
         #transform to ast
@@ -388,8 +408,10 @@ class Stats():
 
         programs = sorted(self.get_all_programs())
         for program in programs:
+            print(program)
 
             prog_ast = self.program_to_ast(program)
+
             progs_array.append(prog_ast)
 
             progs_schedules = []
@@ -411,7 +433,58 @@ class Stats():
 
         
         return (progs_array, schedules_array, exec_times_array)
+        
+    def load_data_separate_exec_times(self,execTimesFile):
+        '''
+            Loads data exec times from a separate .pickle file
+            Returns (programs, schedules, times)
+        '''
+        exec_times_tuples=[] # contains a list of tuples (func_id, sched_id, e, median, speedup)
+#         for fileName in execTimesFilesList:
+        with open(execTimesFile, "rb") as f:
+            exec_times_tuples.extend(pickle.load(f))
+        
+        
+        progs_array = []
+        schedules_array = []
+        exec_times_array = []
+        exec_times_tuples=sorted(exec_times_tuples, key = lambda x: x[1])
+        programs = sorted(self.get_all_programs())
+        i = 0
+        for program in programs:
+            print(program)
 
+            prog_ast = self.program_to_ast(program)
+
+            progs_array.append(prog_ast)
+
+            progs_schedules = []
+            progs_times = []
+
+            schedules = sorted(list(self.get_all_schedules(program)))
+
+            for schedule in schedules:
+                #get schedule representation
+                schedule_repr = self.schedule_repr(program, schedule)
+                progs_schedules.append(schedule_repr)
+
+#                 t = self.read_exec_time(program, schedule)
+                assert exec_times_tuples[i][1]==schedule,'error on appending exec times at '+schedule
+#                 if (exec_times_tuples[i][1]!=schedule):
+#                     print("error")
+#                     print((exec_times_tuples[i][1],schedule))
+#                     raise Exception('error on appending exec times')
+#                 print((exec_times_tuples[i][1],exec_times_tuples[i][3]/1000,schedule))
+                t=exec_times_tuples[i][3]/1000
+                progs_times.append(t)
+                i+=1
+
+            
+            schedules_array.append(progs_schedules)
+            exec_times_array.append(progs_times)
+
+        
+        return (progs_array, schedules_array, exec_times_array)
 
 
     

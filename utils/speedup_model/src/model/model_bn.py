@@ -21,13 +21,16 @@ class Model_BN(nn.Module):
 
         self.predict = nn.Linear(hidden_sizes[-1], output_size)
         nn.init.xavier_uniform_(self.predict.weight)
-        
+#         self.LeakyReLU=nn.LeakyReLU()
+
         
 
     def forward(self, x):
 
         for i in range(len(self.hidden_layers)):
             x = self.dropouts[i](F.relu(self.batch_norm_layers[i](self.hidden_layers[i](x))))
+#             x = self.dropouts[i](F.relu(self.batch_norm_layers[i](self.hidden_layers[i](x))))
+
 
         x = self.predict(x)
         return F.relu(x)

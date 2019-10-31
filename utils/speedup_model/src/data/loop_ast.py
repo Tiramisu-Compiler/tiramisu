@@ -24,7 +24,8 @@ class Input():
     def __init__(self, input_id, dict_repr, depth=0):
         self.id = input_id
         self.depth = depth
-        
+        #print(dict_repr)
+        #print(input_id)
         #search for input_id
         input_ = next(i for i in dict_repr['inputs']['inputs_array']
                                 if i['input_id'] == input_id)
@@ -55,7 +56,6 @@ class Access_pattern():
         for _ in range(rows):
             self.access_matrix = np.insert(self.access_matrix, len(self.access_matrix), 0, axis=0)
 
-        
         return self.access_matrix.flatten()
 
         
@@ -106,7 +106,7 @@ class Computation():
             children_arr.extend(inp.__array__() + access.__array__())
 
         children_arr.extend([0] * (self.max_comp_len - len(children_arr)))
-        
+        # print(len(children_arr))
         return children_arr
         
         
@@ -117,9 +117,8 @@ class Loop():
     def __init__(self, loop_repr, dict_repr, depth=0):
         self.tiled = False
         self.tile_factor = 0 
-
+        self.nb_comps_max=10
         self.interchanged = False
-
 
         self.depth = depth
         self.id = loop_repr['loop_id']
@@ -146,7 +145,10 @@ class Loop():
                 self.children_dict[loop['position']] = Loop(loop, dict_repr, self.depth+1)
 
         self.children = self.sort_children()
-        
+
+        self.nb_comps = len(comps)
+
+
     def sort_children(self):
         #sort children by position 
         return list(list(zip(*sorted(self.children_dict.items(), key=lambda x: int(x[0]))))[1])  
@@ -193,9 +195,19 @@ class Loop():
             #fill loop space with 0
             loop_arr_len = len(arr)
             arr.extend([0]*loop_arr_len * (3 - self.depth))
-        
-       
-        arr.extend(self.children[0].__array__())
+
+        if isinstance(self.children[0], Computation): #if it's the innermost loop then all the children are computations
+            comp_repr_size = len(self.children[0].__array__())
+            for i in range(self.nb_comps):
+                arr.extend(self.children[i].__array__())
+
+            arr.extend([0] * comp_repr_size*(self.nb_comps_max - self.nb_comps))
+                # print(i)
+                # print(self.children[i].__array__())
+
+        else : #the child in a loop
+            arr.extend(self.children[0].__array__())
+        # print(len(arr))
 
         return arr
         
