@@ -35,7 +35,7 @@ int main(int, char**)
 			for (int k_y = 0; k_y < K; ++k_y)
 				for (int k_x = 0; k_x < K; ++k_x)
 				{
-					if (zero_weights < zero_weight_filters_per_output_channel[fout])
+					if (zero_weights < zero_weight_filters_per_output_channel(fout))
 	 				        filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = 0;
 					else
 						filter(fout%FOUT_BLOCKING, fin%FIN_BLOCKING, k_x, k_y, fin/FIN_BLOCKING, fout/FOUT_BLOCKING) = ((float)(rand()%256 - 128)) / 127.f;
