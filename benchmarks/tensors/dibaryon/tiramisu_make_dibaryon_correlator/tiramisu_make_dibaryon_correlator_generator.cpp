@@ -40,23 +40,23 @@ void generate_function(std::string name)
     input C_r("C_r",      {m, n, t}, p_float64);
     input C_i("C_i",      {m, n, t}, p_float64);
 
-    input  B1_Blocal_re("B1_Blocal_re",  {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
-    input  B1_Blocal_im("B1_Blocal_im",  {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
-    input B1_Bsingle_re("B1_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, p_float64);
-    input B1_Bsingle_im("B1_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, p_float64);
-    input B1_Bdouble_re("B1_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2}, p_float64);
-    input B1_Bdouble_im("B1_Bdouble_im", {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2}, p_float64);
+    input  B1_Blocal_re("B1_Blocal_re",  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input  B1_Blocal_im("B1_Blocal_im",  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input B1_Bsingle_re("B1_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
+    input B1_Bsingle_im("B1_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
+    input B1_Bdouble_re("B1_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
+    input B1_Bdouble_im("B1_Bdouble_im", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
 
-    input B2_Blocal_re("B2_Blocal_re",   {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
-    input B2_Blocal_im("B2_Blocal_im",   {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
-    input B2_Bsingle_re("B2_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, p_float64);
-    input B2_Bsingle_im("B2_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime, x2}, p_float64);
-    input B2_Bdouble_re("B2_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2}, p_float64);
-    input B2_Bdouble_im("B2_Bdouble_im", {t, jCprime, jSprime, kCprime, kSprime, x, n, iCprime, iSprime, x2}, p_float64);
+    input B2_Blocal_re("B2_Blocal_re",   {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input B2_Blocal_im("B2_Blocal_im",   {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input B2_Bsingle_re("B2_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
+    input B2_Bsingle_im("B2_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
+    input B2_Bdouble_re("B2_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
+    input B2_Bdouble_im("B2_Bdouble_im", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
 
     input  perms("perms", {nperm, q2}, p_int32);
     input  sigs("sigs", {nperm}, p_int32);
-    input  overall_weight("overall_weight", {on}, p_int32);
+    input  overall_weight("overall_weight", {on}, p_float64);
     input  snk_color_weights("snk_color_weights", {to, wnum, q}, p_int32);
     input  snk_spin_weights("snk_spin_weights", {to, wnum, q}, p_int32);
     input  snk_weights("snk_weights", {wnum}, p_float64);
@@ -107,7 +107,7 @@ void generate_function(std::string name)
     complex_expr B2_Blocal(B2_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e), B2_Blocal_im(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e));
     complex_expr B1_B2_Blocal = B1_Blocal * B2_Blocal;
 
-    computation term_re("term_re", {nperm, wnum, t, x, x2, m}, cast(p_float64, sigs(nperm) * overall_weight(0)) * snk_weights(wnum));
+    computation term_re("term_re", {nperm, wnum, t, x, x2, m}, cast(p_float64, sigs(nperm)) * overall_weight(0) * snk_weights(wnum));
     computation term_im("term_im", {nperm, wnum, t, x, x2, m}, cast(p_float64, expr((double) 0)));
 
     computation new_term_re_0("new_term_re_0", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e) - term_im(nperm, wnum, t, x, x2, m) * B1_Blocal_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e));
@@ -194,13 +194,13 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer buf_snk_1("buf_snk_1", {Nb}, p_int32, a_temporary);
+    buffer buf_snk_1("buf_snk_1", {Nb}, p_int32, a_output); //a_temporary);
     buffer buf_snk_2("buf_snk_2", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3("buf_snk_3", {Nb}, p_int32, a_temporary);
-    buffer buf_snk_1_b("buf_snk_1_b", {Nb}, p_int32, a_temporary);
+    buffer buf_snk_1_b("buf_snk_1_b", {Nb}, p_int32, a_output); //a_temporary);
     buffer buf_snk_2_b("buf_snk_2_b", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3_b("buf_snk_3_b", {Nb}, p_int32, a_temporary);
-    buffer buf_snk_1_nq("buf_snk_1_nq", {Nb}, p_int32, a_temporary);
+    buffer buf_snk_1_nq("buf_snk_1_nq", {Nb}, p_int32, a_output); //a_temporary);
     buffer buf_snk_2_nq("buf_snk_2_nq", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3_nq("buf_snk_3_nq", {Nb}, p_int32, a_temporary);
 
@@ -249,8 +249,8 @@ void generate_function(std::string name)
     buffer buf_new_term_r("buf_new_term_r", {1}, p_float64, a_temporary);
     buffer buf_new_term_i("buf_new_term_i", {1}, p_float64, a_temporary);
 
-    buffer buf_term_r("buf_term_r", {1}, p_float64, a_temporary);
-    buffer buf_term_i("buf_term_i", {1}, p_float64, a_temporary);
+    buffer buf_term_r("buf_term_r", {1}, p_float64, a_output); //a_temporary);
+    buffer buf_term_i("buf_term_i", {1}, p_float64, a_output); //a_temporary);
 
     term_re.store_in(&buf_term_r, {0});
     term_im.store_in(&buf_term_i, {0});
@@ -295,7 +295,13 @@ void generate_function(std::string name)
 	snk_spin_weights.get_buffer(),
 	snk_weights.get_buffer(),
 	&buf_snk_psi_re,
-	&buf_snk_psi_im},
+	&buf_snk_psi_im,
+	&buf_term_r,
+	&buf_term_i,
+	&buf_snk_1,
+	&buf_snk_1_b,
+	&buf_snk_1_nq
+	},
         "generated_tiramisu_make_dibaryon_correlator.o");
 }
 

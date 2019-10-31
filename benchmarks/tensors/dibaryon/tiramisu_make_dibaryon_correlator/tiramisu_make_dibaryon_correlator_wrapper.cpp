@@ -40,17 +40,31 @@ int main(int, char **)
     // B1_Blocal_r1_i: tiramisu imaginary part of Blocal.
     Halide::Buffer<double>        B1_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Blocal_r1_r");
     Halide::Buffer<double>        B1_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Blocal_r1_i");
-    Halide::Buffer<double> B1_Bsingle_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_r");
+    Halide::Buffer<double> B1_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_r");
     Halide::Buffer<double> B1_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_i");
-    Halide::Buffer<double> B1_Bdouble_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_r");
+    Halide::Buffer<double> B1_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_r");
     Halide::Buffer<double> B1_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_i");
 
     Halide::Buffer<double>        B2_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Blocal_r1_r");
     Halide::Buffer<double>        B2_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Blocal_r1_i");
-    Halide::Buffer<double> B2_Bsingle_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_r");
-    Halide::Buffer<double> B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_i");
-    Halide::Buffer<double> B2_Bdouble_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_r");
-    Halide::Buffer<double> B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_i");
+    Halide::Buffer<double> B2_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bsingle_r1_r");
+    Halide::Buffer<double> B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bsingle_r1_i");
+    Halide::Buffer<double> B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bdouble_r1_r");
+    Halide::Buffer<double> B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bdouble_r1_i");
+
+    Halide::Buffer<double>        t_B1_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Blocal_r1_r");
+    Halide::Buffer<double>        t_B1_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Blocal_r1_i");
+    Halide::Buffer<double> t_B1_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bsingle_r1_r");
+    Halide::Buffer<double> t_B1_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bsingle_r1_i");
+    Halide::Buffer<double> t_B1_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bdouble_r1_r");
+    Halide::Buffer<double> t_B1_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bdouble_r1_i");
+
+    Halide::Buffer<double>        t_B2_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Blocal_r1_r");
+    Halide::Buffer<double>        t_B2_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Blocal_r1_i");
+    Halide::Buffer<double> t_B2_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bsingle_r1_r");
+    Halide::Buffer<double> t_B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bsingle_r1_i");
+    Halide::Buffer<double> t_B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bdouble_r1_r");
+    Halide::Buffer<double> t_B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bdouble_r1_i");
 
     for (int i = 0; i < Nt; i++)
       for (int j = 0; j < Nsnk; j++)
@@ -77,6 +91,34 @@ int main(int, char **)
 			B2_Blocal_r1_r(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
 			B2_Blocal_r1_i(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
 		    }
+
+    for (int m=0; m<Nsrc; m++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+         for (int iSprime=0; iSprime<Ns; iSprime++)
+            for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                      for (int x=0; x<Vsnk; x++)
+                        for (int x2=0; x2<Vsnk; x2++)
+                          for (int t=0; t<Nt; t++)
+			  {
+                             B1_Bsingle_r1_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, m) = (double) 1;
+			  }
+
+    for (int m=0; m<Nsrc; m++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+         for (int iSprime=0; iSprime<Ns; iSprime++)
+            for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                      for (int x=0; x<Vsnk; x++)
+                        for (int x2=0; x2<Vsnk; x2++)
+                          for (int t=0; t<Nt; t++)
+			  {
+                             t_B1_Bsingle_r1_r(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = (double) 1;
+			  }
 
     int perms_array[36][6] = { {1,2,3,4,5,6}, {1, 4, 3, 2, 5, 6}, {1, 6, 3, 2, 5, 4}, {1, 2, 3, 6, 5, 4}, {1, 4, 3, 6, 5, 2}, {1, 6, 3, 4, 5, 2}, {3, 2, 1, 4, 5, 6}, {3, 4, 1, 2, 5, 6}, {3, 6, 1, 2, 5, 4}, {3, 2, 1, 6, 5, 4}, {3, 4, 1, 6, 5, 2}, {3, 6, 1, 4, 5, 2}, {5, 2, 1, 4, 3, 6}, {5, 4, 1, 2, 3, 6}, {5, 6, 1, 2, 3, 4}, {5, 2, 1, 6, 3, 4}, {5, 4, 1, 6, 3, 2}, {5, 6, 1, 4, 3, 2}, {1, 2, 5, 4, 3, 6}, {1, 4, 5, 2, 3, 6}, {1, 6, 5, 2, 3, 4}, {1, 2, 5, 6, 3, 4}, {1, 4, 5, 6, 3, 2}, {1, 6, 5, 4, 3, 2}, {3, 2, 5, 4, 1, 6}, {3, 4, 5, 2, 1, 6}, {3, 6, 5, 2, 1, 4}, {3, 2, 5, 6, 1, 4}, {3, 4, 5, 6, 1, 2}, {3, 6, 5, 4, 1, 2}, {5, 2, 3, 4, 1, 6}, {5, 4, 3, 2, 1, 6}, {5, 6, 3, 2, 1, 4}, {5, 2, 3, 6, 1, 4}, {5, 4, 3, 6, 1, 2}, {5, 6, 3, 4, 1, 2} };
    int sigs_array[36] = {1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1};
@@ -187,7 +229,8 @@ int main(int, char **)
 				    C_i.raw_buffer(),
 				    B1_Blocal_r1_r.raw_buffer(),
 				    B1_Blocal_r1_i.raw_buffer(),
-				    B1_Bsingle_r1_r.raw_buffer(),
+				    t_B1_Bsingle_r1_r.raw_buffer(), //TODO: all of the buffers passed to this function should be be prefixed with t_.
+								    // They should also be initialized.
 				    B1_Bsingle_r1_i.raw_buffer(),
 				    B1_Bdouble_r1_r.raw_buffer(),
 				    B1_Bdouble_r1_i.raw_buffer(),

@@ -110,12 +110,25 @@ int main() {
    double* src_psi_B1_im = malloc(Nsrc * Vsrc * sizeof (double));
    double* src_psi_B2_re = malloc(Nsrc * Vsrc * sizeof (double));
    double* src_psi_B2_im = malloc(Nsrc * Vsrc * sizeof (double));
+
+   // Tiramisu version of src_psi_
+   double* tsrc_psi_B1_re = malloc(Nsrc * Vsrc * sizeof (double));
+   double* tsrc_psi_B1_im = malloc(Nsrc * Vsrc * sizeof (double));
+   double* tsrc_psi_B2_re = malloc(Nsrc * Vsrc * sizeof (double));
+   double* tsrc_psi_B2_im = malloc(Nsrc * Vsrc * sizeof (double));
+
    for (k = 0; k < Nsrc; k++) {
       for (x = 0; x < Vsrc; x++) {
          src_psi_B1_re[index_2d(x,k ,Nsrc)] = 1.0;
          src_psi_B1_im[index_2d(x,k ,Nsrc)] = 0.0;
          src_psi_B2_re[index_2d(x,k ,Nsrc)] = 1.0;
          src_psi_B2_im[index_2d(x,k ,Nsrc)] = 0.0;
+
+	 // Tiramisu version (array dimensions are interchanged).
+         tsrc_psi_B1_re[index_2d(k,x ,Vsrc)] = 1.0;
+         tsrc_psi_B1_im[index_2d(k,x ,Vsrc)] = 0.0;
+         tsrc_psi_B2_re[index_2d(k,x ,Vsrc)] = 1.0;
+         tsrc_psi_B2_im[index_2d(k,x ,Vsrc)] = 0.0;
       }
    }
    double* snk_psi_B1_re = malloc(Nsnk * Vsnk * sizeof (double));
@@ -196,7 +209,7 @@ int main() {
    int space_symmetric = 0;
    int snk_entangled = 0;
    printf("starting \n");
-   make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+   make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, tsrc_psi_B1_re, tsrc_psi_B1_im, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
    printf("B=2 results\n");
    int* Vtab = malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));
    for (m=0; m<Nsrc; m++) {

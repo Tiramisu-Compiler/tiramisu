@@ -1,8 +1,11 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
+#include "../reference/qblocks_2pt_parameters.h"
+
 #define SMALL_BARYON_DATA_SET 0
-#define LARGE_BARYON_DATA_SET 1
+#define LARGE_BARYON_DATA_SET 0
+#define USE_GLOBAL_PARAMS 1
 
 #if SMALL_BARYON_DATA_SET
 
@@ -39,6 +42,21 @@
 #define mq 1.0
 #define NsnkHex 4
 #define Nb 2
+
+#elif USE_GLOBAL_PARAMS
+
+#define Nq P_Nq
+#define Nc P_Nc
+#define Ns P_Ns
+#define Nw P_Nw
+#define twoNw Nw*Nw
+#define Nperms P_Nperms
+#define Lt P_Nt
+#define Vsrc P_Vsrc
+#define Vsnk P_Vsnk
+#define Nsrc P_Nsrc
+#define Nsnk P_Nsnk
+#define mq P_mq
 
 #endif
 

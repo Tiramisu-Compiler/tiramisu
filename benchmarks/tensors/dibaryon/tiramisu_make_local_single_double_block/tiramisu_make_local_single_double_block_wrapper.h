@@ -7,6 +7,8 @@
 #define LARGE_BARYON_DATA_SET 0
 #define USE_GLOBAL_PARAMS 1
 
+#define R1 0
+
 #if SMALL_BARYON_DATA_SET
 
 #define Nq 3
@@ -63,19 +65,30 @@
 
 #include <tiramisu/utils.h>
 
-static int src_color_weights_r1[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
-static int src_spin_weights_r1[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
-static double src_weights_r1[Nw] = {-2/sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
+static int src_color_weights_r1_P[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
+static int src_spin_weights_r1_P[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
+static double src_weights_r1_P[Nw] = {-2/ sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
 
-static int src_color_weights_r2[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{1,2,0}, {2,1,0}, {2,0,1}, {0,1,2}, {0,2,1}, {1,0,2} };
-static int src_spin_weights_r2[Nw][Nq] = { {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {1,0,1}, {1,0,1}, {1,0,1} };
-static double src_weights_r2[Nw] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -2/sqrt(2), 2/sqrt(2), 2/sqrt(2)};
+static int src_color_weights_r2_P[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{1,2,0}, {2,1,0}, {2,0,1}, {0,1,2}, {0,2,1}, {1,0,2} };
+static int src_spin_weights_r2_P[Nw][Nq] = { {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {1,0,1}, {1,0,1}, {1,0,1} };
+static double src_weights_r2_P[Nw] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -2/sqrt(2), 2/sqrt(2), 2/sqrt(2)};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int tiramisu_make_local_single_double_block(halide_buffer_t *,
+int tiramisu_make_local_single_double_block_r1(halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+	   		    halide_buffer_t *,
+			    halide_buffer_t *);
+
+int tiramisu_make_local_single_double_block_r2(halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,

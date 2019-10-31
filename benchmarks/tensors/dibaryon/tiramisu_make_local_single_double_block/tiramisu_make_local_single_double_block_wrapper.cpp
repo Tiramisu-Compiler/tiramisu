@@ -64,10 +64,10 @@ int main(int, char **)
     Halide::Buffer<int> spin_weights_t(Nq, Nw, "spin_weights_t");
     Halide::Buffer<double> weights_t(Nw, "weights_t");
 
-    Halide::Buffer<double> B1_Bsingle_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r1_r");
+    Halide::Buffer<double> B1_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r1_r");
     Halide::Buffer<double> B1_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bsingle_r1_i");
 
-    Halide::Buffer<double> B1_Bdouble_r1_r(Vsrc, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r1_r");
+    Halide::Buffer<double> B1_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r1_r");
     Halide::Buffer<double> B1_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, "B1_Bdouble_r1_i");
 
     std::cout << "Start data initialization." <<  std::endl;
@@ -75,7 +75,7 @@ int main(int, char **)
     // Initialization
    for (int wnum=0; wnum<Nw; wnum++)
    {
-       weights[wnum] = src_weights_r1[wnum];
+       weights[wnum] = R1?src_weights_r1_P[wnum]:src_weights_r2_P[wnum];
    }
 
    for (int n=0; n<Nsrc; n++)
@@ -109,10 +109,10 @@ int main(int, char **)
    for (int wnum=0; wnum<Nw; wnum++)
 	for (int tri=0; tri<Nq; tri++)
 	{
-		color_weights[wnum][tri] = src_color_weights_r1[wnum][tri];
-		color_weights_t(tri, wnum) = src_color_weights_r1[wnum][tri];
-		spin_weights[wnum][tri] = src_spin_weights_r1[wnum][tri];
-		spin_weights_t(tri, wnum) = src_spin_weights_r1[wnum][tri];
+		color_weights[wnum][tri] = R1?src_color_weights_r1_P[wnum][tri]:src_color_weights_r2_P[wnum][tri];
+		color_weights_t(tri, wnum) = R1?src_color_weights_r1_P[wnum][tri]:src_color_weights_r2_P[wnum][tri];
+		spin_weights[wnum][tri] = R1?src_spin_weights_r1_P[wnum][tri]:src_spin_weights_r2_P[wnum][tri];
+		spin_weights_t(tri, wnum) = R1?src_spin_weights_r1_P[wnum][tri]:src_spin_weights_r2_P[wnum][tri];
 	}
 
    std::cout << "End data initialization." <<  std::endl << std::endl;
@@ -142,8 +142,19 @@ int main(int, char **)
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start1 = std::chrono::high_resolution_clock::now();
 
-
-	    tiramisu_make_local_single_double_block(B1_Blocal_r1_r.raw_buffer(),
+	    if (R1)
+		tiramisu_make_local_single_double_block_r1(B1_Blocal_r1_r.raw_buffer(),
+				    B1_Blocal_r1_i.raw_buffer(),
+				    B1_prop_r.raw_buffer(),
+				    B1_prop_i.raw_buffer(),
+				    psi_r.raw_buffer(),
+				    psi_i.raw_buffer(),
+				    B1_Bsingle_r1_r.raw_buffer(),
+				    B1_Bsingle_r1_i.raw_buffer(),
+				    B1_Bdouble_r1_r.raw_buffer(),
+				    B1_Bdouble_r1_i.raw_buffer());
+	    else
+		tiramisu_make_local_single_double_block_r2(B1_Blocal_r1_r.raw_buffer(),
 				    B1_Blocal_r1_i.raw_buffer(),
 				    B1_prop_r.raw_buffer(),
 				    B1_prop_i.raw_buffer(),

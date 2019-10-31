@@ -14,7 +14,7 @@ CXXFLAGS=-O3 -std=c++11 -fno-rtti
 ## No need to modify the rest
 LIB_DIR=-L${TIRAMISU_PATH}/build/ -L${TIRAMISU_PATH}/3rdParty/Halide/bin/
 INCLUDE_DIR=-I${TIRAMISU_PATH}/include/ -I${TIRAMISU_PATH}/3rdParty/Halide/include/
-TIRAMISU_GENERATED_OBJ=../tiramisu_make_local_single_double_block/generated_tiramisu_make_local_single_double_block.o
+TIRAMISU_GENERATED_OBJ=../tiramisu_make_local_single_double_block/generated_tiramisu_make_local_single_double_block_r1.o ../tiramisu_make_local_single_double_block/generated_tiramisu_make_local_single_double_block_r2.o ../tiramisu_make_dibaryon_correlator/generated_tiramisu_make_dibaryon_correlator.o
 
 reference:
 	$(CC) $(CFLAGS) qblocks_2pt_scalar.c qblocks_2pt_test.c -o qblocks_2pt_test

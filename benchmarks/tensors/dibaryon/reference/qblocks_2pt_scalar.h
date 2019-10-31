@@ -6,6 +6,11 @@
     #define USE_TIRAMISU 0
 #endif
 
+#define CHECK_CORRECTNESS_MAKE_LOCAL_SINGLE 1
+#define CHECK_CORRECTNESS_MAKE_BDOUBLE 0
+#define CHECK_CORRECTNESS_MAKE_CORRELATOR 1
+#define PRINT_OUTPUTS_TO_FILE 0
+
 int index_2d(int a, int b, int length2);
 int index_3d(int a, int b, int c, int length2, int length3);
 int index_4d(int a, int b, int c, int d, int length2, int length3, int length4);
@@ -41,6 +46,10 @@ void make_two_nucleon_2pt(double* C_re,
     const double* hex_snk_psi_im,
     const int space_symmetric,
     const int snk_entangled,
+    const double* tsrc_psi_B1_re, 
+    const double* tsrc_psi_B1_im, 
+    const double* tsrc_psi_B2_re, 
+    const double* tsrc_psi_B2_im,
     const int Nc,
     const int Ns,
     const int Vsrc,

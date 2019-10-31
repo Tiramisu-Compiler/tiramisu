@@ -31,7 +31,7 @@ struct P2UserEdge {
  * The goal is to generate code that implements the reference.
  * baryon_ref.cpp
  */
-void generate_function(std::string name)
+void generate_function(std::string name, std::string object_file_name, int src_color_weights_r1[Nw][Nq], int src_spin_weights_r1[Nw][Nq], double src_weights_r1[Nw])
 {
     tiramisu::init(name);
 
@@ -295,16 +295,16 @@ void generate_function(std::string name)
 
     for (auto edge : B1_q2userEdges_r1) {
       edge.q_r->tag_vector_level(y, Vsrc);
-      edge.bs_r->tag_vector_level(x2, Vsnk);
-      edge.bl_r->tag_vector_level(jSprime, Ns);
+//      edge.bs_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
+//      edge.bl_r->tag_vector_level(jSprime, Ns); // Disabled due to a an error
     }
     for (auto edge : B1_o2userEdges_r1) {
       edge.o_r->tag_vector_level(y, Vsrc);
-      edge.bd_r->tag_vector_level(x2, Vsnk);
+//      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
     }
     for (auto edge : B1_p2userEdges_r1) {
       edge.p_r->tag_vector_level(y, Vsrc);
-      edge.bd_r->tag_vector_level(x2, Vsnk);
+//      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
     }
 #endif
 
@@ -359,9 +359,9 @@ void generate_function(std::string name)
     buffer *B1_p_r1_r_buf;
     buffer *B1_p_r1_i_buf;
 
-    allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, { Lt, Vsnk }, "buf_B1_q_r1");
-    allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, { Lt, Vsnk }, "buf_B1_o_r1");
-    allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, { Lt, Vsnk }, "buf_B1_p_r1");
+    allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, { Lt, Vsrc }, "buf_B1_q_r1");
+    allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, { Lt, Vsrc }, "buf_B1_o_r1");
+    allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, { Lt, Vsrc }, "buf_B1_p_r1");
 
     for (auto edge : B1_q2userEdges_r1) {
       edge.q_r->store_in(B1_q_r1_r_buf, {t, y});
@@ -412,12 +412,15 @@ void generate_function(std::string name)
         src_psi_B1_r.get_buffer(), src_psi_B1_i.get_buffer(), 
         &buf_B1_Bsingle_r1_r, &buf_B1_Bsingle_r1_i,
         B1_Bdouble_r1_r_init.get_buffer(), B1_Bdouble_r1_i_init.get_buffer()},
-        "generated_tiramisu_make_local_single_double_block.o");
+        object_file_name);
 }
 
 int main(int argc, char **argv)
 {
-    generate_function("tiramisu_make_local_single_double_block");
+    if (R1)
+	generate_function("tiramisu_make_local_single_double_block_r1", "generated_tiramisu_make_local_single_double_block.o", src_color_weights_r1_P, src_spin_weights_r1_P, src_weights_r1_P);
+    else
+	generate_function("tiramisu_make_local_single_double_block_r2", "generated_tiramisu_make_local_single_double_block.o", src_color_weights_r2_P, src_spin_weights_r2_P, src_weights_r2_P);
 
     return 0;
 }
