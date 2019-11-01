@@ -22,7 +22,7 @@ int original_prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int
    return x +Vsnk*( y +Vsrc*( c2 +Nc*( s2 +Ns*( c1 +Nc*( s1 +Ns*( t +Nt* q ))))));
 }
 int prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int x, int Nc, int Ns, int Vsrc, int Vsnk, int Nt) {
-   return y +Vsrc*( x +Vsnk*( c2 +Nc*( s2 +Ns*( c1 +Nc*( s1 +Ns*( t +Nt* q ))))));
+   return y +Vsrc*( x +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t +Nt* q ))))));
 }
 int Q_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3, int y, int Nc, int Ns, int Vsrc, int Vsnk) {
    return y +Vsrc*( s3 +Ns*( c3 +Nc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t ))))))));
@@ -1502,6 +1502,8 @@ void make_two_nucleon_2pt(double* C_re,
 			  }
 	}
 
+	 if (USE_TIRAMISU)
+	 {
 	// Transform the Bdouble reference to the Tiramisu layout
 	for (int m=0; m<Nsrc; m++)
           for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -1523,6 +1525,7 @@ void make_two_nucleon_2pt(double* C_re,
 		    t_B2_Bdouble_r2_re[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2, Nc,Ns,Vsnk,Nsrc)] = B2_Bdouble_r2_re[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)];
 		    t_B2_Bdouble_r2_im[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2, Nc,Ns,Vsnk,Nsrc)] = B2_Bdouble_r2_im[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)];
 		  }
+    }
 
 	 /* compute two nucleon correlators from blocks */
 	 if (USE_REFERENCE)
