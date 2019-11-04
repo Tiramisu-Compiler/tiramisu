@@ -3,11 +3,11 @@
 
 #if ((!defined USE_REFERENCE) && (!defined USE_TIRAMISU))
     #define USE_REFERENCE 1
-    #define USE_TIRAMISU 0
+    #define USE_TIRAMISU 1
 #endif
 
 #define CHECK_CORRECTNESS_MAKE_LOCAL_SINGLE 1
-#define CHECK_CORRECTNESS_MAKE_BDOUBLE 0
+#define CHECK_CORRECTNESS_MAKE_BDOUBLE 1
 #define CHECK_CORRECTNESS_MAKE_CORRELATOR 1
 #define PRINT_OUTPUTS_TO_FILE 0
 
@@ -22,6 +22,10 @@ void make_two_nucleon_2pt(double* C_re,
     const double* B1_prop_im, 
     const double* B2_prop_re, 
     const double* B2_prop_im, 
+    const double* tB1_prop_re, 
+    const double* tB1_prop_im, 
+    const double* tB2_prop_re, 
+    const double* tB2_prop_im, 
     const int* src_color_weights_r1, 
     const int* src_spin_weights_r1, 
     const double* src_weights_r1, 

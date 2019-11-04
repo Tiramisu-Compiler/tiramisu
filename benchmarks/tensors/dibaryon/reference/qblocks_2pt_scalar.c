@@ -22,7 +22,8 @@ int original_prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int
    return x +Vsnk*( y +Vsrc*( c2 +Nc*( s2 +Ns*( c1 +Nc*( s1 +Ns*( t +Nt* q ))))));
 }
 int prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int x, int Nc, int Ns, int Vsrc, int Vsnk, int Nt) {
-   return y +Vsrc*( x +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t +Nt* q ))))));
+   //return y +Vsrc*( x +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t +Nt* q ))))));
+   return x +Vsnk*( y +Vsrc*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t +Nt* q ))))));
 }
 int Q_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3, int y, int Nc, int Ns, int Vsrc, int Vsnk) {
    return y +Vsrc*( s3 +Ns*( c3 +Nc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t ))))))));
@@ -38,8 +39,12 @@ int Bdouble_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3,
    return m +Nsrc*( x2 +Vsnk*(  s3 +Ns*( c3 +Nc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t )))))))));
 }
 
-int tBdouble_index(int t, int c1, int s1, int c2, int s2, int x1, int m, int c3, int s3, int x2, int Nc, int Ns, int Vsnk, int Nsrc) {
+int tBsingle_index(int t, int c1, int s1, int c2, int s2, int x1, int m, int c3, int s3, int x2, int Nc, int Ns, int Vsnk, int Nsrc) {
    return x2 +Vsnk*(  s3 +Ns*( c3 +Nc*( m +Nsrc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t )))))))));
+}
+
+int tBdouble_index(int t, int c1, int s1, int c2, int s2, int x1, int m, int c3, int s3, int x2, int Nc, int Ns, int Vsnk, int Nsrc) {
+   return x2 +Vsnk*(  s1 +Ns*( c1 +Nc*( m +Nsrc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s3 +Ns*( c3 +Nc*( t )))))))));
 }
 
 void error_msg(char *msg)
@@ -514,7 +519,7 @@ void print_t_buffers(char *file_name,
                      for (int x=0; x<Vsnk; x++)
                        for (int x2=0; x2<Vsnk; x2++)
                          for (int t=0; t<Nt; t++)
-		            fprintf(f, "%s = %lf\n", B1_Bsingle_re_name, B1_Bsingle_re[ tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,  jCprime,jSprime,x2 ,Nc,Ns,Vsnk,Nsrc)]);
+		            fprintf(f, "%s = %lf\n", B1_Bsingle_re_name, B1_Bsingle_re[ tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m,  jCprime,jSprime,x2 ,Nc,Ns,Vsnk,Nsrc)]);
 
    for (int m=0; m<Nsrc; m++)
      for (int iCprime=0; iCprime<Nc; iCprime++)
@@ -526,7 +531,7 @@ void print_t_buffers(char *file_name,
                      for (int x=0; x<Vsnk; x++)
                        for (int x2=0; x2<Vsnk; x2++)
                          for (int t=0; t<Nt; t++)
-		            fprintf(f, "%s = %lf\n", B1_Bsingle_im_name, B1_Bsingle_im[ tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m, jCprime,jSprime,x2 ,Nc,Ns,Vsnk,Nsrc)]);
+		            fprintf(f, "%s = %lf\n", B1_Bsingle_im_name, B1_Bsingle_im[ tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m, jCprime,jSprime,x2 ,Nc,Ns,Vsnk,Nsrc)]);
    for (int m=0; m<Nsrc; m++)
      for (int iCprime=0; iCprime<Nc; iCprime++)
         for (int iSprime=0; iSprime<Ns; iSprime++)
@@ -1098,6 +1103,10 @@ void make_two_nucleon_2pt(double* C_re,
     const double* B1_prop_im, 
     const double* B2_prop_re, 
     const double* B2_prop_im, 
+    const double* tB1_prop_re, 
+    const double* tB1_prop_im, 
+    const double* tB2_prop_re, 
+    const double* tB2_prop_im, 
     const int* src_color_weights_r1, 
     const int* src_spin_weights_r1, 
     const double* src_weights_r1, 
@@ -1253,7 +1262,7 @@ void make_two_nucleon_2pt(double* C_re,
 	      double end_time = rtclock();
 	      total_time_reference += (end_time - start_time);
 
-	      printf("made local blocks \n");
+	      printf("made local blocks in %4.9f sec \n", end_time - start_time);
       }
       if (Nsnk > 0) {
          /* BB_BB */
@@ -1283,7 +1292,7 @@ void make_two_nucleon_2pt(double* C_re,
          double* BB_r3_re;
          double* BB_r3_im;
 
-	 double* t_B1_Bsingle_r1_re;
+         double* t_B1_Bsingle_r1_re;
          double* t_B1_Bsingle_r1_im;
          double* t_B1_Bsingle_r2_re;
          double* t_B1_Bsingle_r2_im;
@@ -1320,20 +1329,6 @@ void make_two_nucleon_2pt(double* C_re,
 		 B2_Bsingle_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 B2_Bsingle_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 
-   		 double start_time = rtclock();
-		 make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
-		 make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
-		 make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
-		 make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
-		 double end_time = rtclock();
-		 total_time_reference += (end_time - start_time);
-
-		 printf("made single blocks \n");
-	 }
-
-	 // Compute Bdouble (common between the reference and Tiramisu since
-	 // the Bdouble computed by Tiramisu now is not correct.
-	 {
 		 B1_Bdouble_r1_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 B1_Bdouble_r1_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 B1_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
@@ -1343,15 +1338,19 @@ void make_two_nucleon_2pt(double* C_re,
 		 B2_Bdouble_r2_re = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 		 B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 
-   		 double start_time = rtclock();
+   	 double start_time = rtclock();
+		 make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
+		 make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
+		 make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
+		 make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B1_Bdouble_r1_re, B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B1_Bdouble_r2_re, B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B2_Bdouble_r1_re, B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 make_double_block(B2_Bdouble_r2_re, B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc);
 		 double end_time = rtclock();
-		 total_time_common += (end_time - start_time);
+		 total_time_reference += (end_time - start_time);
 
-		 printf("made double blocks \n");
+		 printf("made single/double blocks in %4.9f sec \n", (end_time - start_time));
 	 }
 
 	 if (USE_TIRAMISU)
@@ -1383,12 +1382,13 @@ void make_two_nucleon_2pt(double* C_re,
 		 t_B2_Bdouble_r2_im = malloc(Nt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc * sizeof (double));
 
 		 double start_time = rtclock();
-		 tiramisu_wrapper_make_local_single_double_block(1, t_B1_Blocal_r1_re, t_B1_Blocal_r1_im, t_B1_Bsingle_r1_re, t_B1_Bsingle_r1_im, t_B1_Bdouble_r1_re, t_B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, tsrc_psi_B1_re, tsrc_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
-		 tiramisu_wrapper_make_local_single_double_block(0, t_B1_Blocal_r2_re, t_B1_Blocal_r2_im, t_B1_Bsingle_r2_re, t_B1_Bsingle_r2_im, t_B1_Bdouble_r2_re, t_B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, tsrc_psi_B1_re, tsrc_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
-		 tiramisu_wrapper_make_local_single_double_block(1, t_B2_Blocal_r1_re, t_B2_Blocal_r1_im, t_B2_Bsingle_r1_re, t_B2_Bsingle_r1_im, t_B2_Bdouble_r1_re, t_B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
-		 tiramisu_wrapper_make_local_single_double_block(0, t_B2_Blocal_r2_re, t_B2_Blocal_r2_im, t_B2_Bsingle_r2_re, t_B2_Bsingle_r2_im, t_B2_Bdouble_r2_re, t_B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
+		 tiramisu_wrapper_make_local_single_double_block(1, t_B1_Blocal_r1_re, t_B1_Blocal_r1_im, t_B1_Bsingle_r1_re, t_B1_Bsingle_r1_im, t_B1_Bdouble_r1_re, t_B1_Bdouble_r1_im, tB1_prop_re, tB1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, tsrc_psi_B1_re, tsrc_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
+		 tiramisu_wrapper_make_local_single_double_block(0, t_B1_Blocal_r2_re, t_B1_Blocal_r2_im, t_B1_Bsingle_r2_re, t_B1_Bsingle_r2_im, t_B1_Bdouble_r2_re, t_B1_Bdouble_r2_im, tB1_prop_re, tB1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, tsrc_psi_B1_re, tsrc_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
+		 tiramisu_wrapper_make_local_single_double_block(1, t_B2_Blocal_r1_re, t_B2_Blocal_r1_im, t_B2_Bsingle_r1_re, t_B2_Bsingle_r1_im, t_B2_Bdouble_r1_re, t_B2_Bdouble_r1_im, tB2_prop_re, tB2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
+		 tiramisu_wrapper_make_local_single_double_block(0, t_B2_Blocal_r2_re, t_B2_Blocal_r2_im, t_B2_Bsingle_r2_re, t_B2_Bsingle_r2_im, t_B2_Bdouble_r2_re, t_B2_Bdouble_r2_im, tB2_prop_re, tB2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc);
 		 double end_time = rtclock();
 		 total_time_tiramisu += (end_time - start_time);
+		 printf("tiramisu made local/single/double blocks in %4.9f sec \n", (end_time - start_time));
 	 }
 
 	 /* Compare the results of Reference and Tiramisu code. */
@@ -1408,7 +1408,10 @@ void make_two_nucleon_2pt(double* C_re,
 				       {
 					  if (fabs(B1_Blocal_r1_re[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
 					         t_B1_Blocal_r1_re[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+                 {
+                    printf("%4.9f %4.9f \n", B1_Blocal_r1_re[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)], t_B1_Blocal_r1_re[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]);
 					      error_msg("Results for B1_Blocal_r1_re do not match");
+                 }
 					  if (fabs(B1_Blocal_r1_im[ Blocal_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,m ,Nc,Ns,Vsnk,Nsrc)] -
 					         t_B1_Blocal_r1_im[tBlocal_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime ,Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 					      error_msg("Results for B1_Blocal_r1_im do not match");
@@ -1446,16 +1449,16 @@ void make_two_nucleon_2pt(double* C_re,
 			  for (int t=0; t<Nt; t++)
 			  {
 			    if (fabs(B1_Bsingle_r1_re[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,  jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)] -
-				   t_B1_Bsingle_r1_re[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+				   t_B1_Bsingle_r1_re[tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 			      error_msg("Results for B1_Bsingle_r1_re do not match");
 			    if (fabs(B1_Bsingle_r1_im[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,  jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)] -
-				   t_B1_Bsingle_r1_im[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+				   t_B1_Bsingle_r1_im[tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 			      error_msg("Results for B1_Bsingle_r1_im do not match");
 			    if (fabs(B1_Bsingle_r2_re[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,  jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)] -
-				   t_B1_Bsingle_r2_re[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+				   t_B1_Bsingle_r2_re[tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 			      error_msg("Results for B1_Bsingle_r2_re do not match");
 			    if (fabs(B1_Bsingle_r2_im[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,  jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)] -
-				   t_B1_Bsingle_r2_im[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
+				   t_B1_Bsingle_r2_im[tBsingle_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2,   Nc,Ns,Vsnk,Nsrc)]) >= ERROR_THRESH)
 			      error_msg("Results for B1_Bsingle_r2_im do not match");
 			  }
 
@@ -1502,7 +1505,7 @@ void make_two_nucleon_2pt(double* C_re,
 			  }
 	}
 
-	 if (USE_TIRAMISU)
+/*	 if (USE_TIRAMISU)
 	 {
 	// Transform the Bdouble reference to the Tiramisu layout
 	for (int m=0; m<Nsrc; m++)
@@ -1525,7 +1528,7 @@ void make_two_nucleon_2pt(double* C_re,
 		    t_B2_Bdouble_r2_re[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2, Nc,Ns,Vsnk,Nsrc)] = B2_Bdouble_r2_re[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)];
 		    t_B2_Bdouble_r2_im[tBdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,m,jCprime,jSprime,x2, Nc,Ns,Vsnk,Nsrc)] = B2_Bdouble_r2_im[ Bdouble_index(t,iCprime,iSprime,kCprime,kSprime,x,jCprime,jSprime,x2,m ,Nc,Ns,Vsnk,Nsrc)];
 		  }
-    }
+    } */
 
 	 /* compute two nucleon correlators from blocks */
 	 if (USE_REFERENCE)
@@ -1579,6 +1582,7 @@ void make_two_nucleon_2pt(double* C_re,
 	    }
 	  double end_time = rtclock();
 	  total_time_reference += (end_time - start_time);
+	  printf("made dibaryon correlators in %4.9f sec \n", (end_time - start_time));
 	 }
 
 	 if (USE_TIRAMISU)
@@ -1643,6 +1647,7 @@ void make_two_nucleon_2pt(double* C_re,
 	    }
 	   double end_time = rtclock();
 	   total_time_tiramisu += (end_time - start_time);
+	   printf("tiramisu made dibaryon correlators in %4.9f sec \n", (end_time - start_time));
 	 }
 
 	 /* Compare the results of Reference and Tiramisu code. */

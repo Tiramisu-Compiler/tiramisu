@@ -33,25 +33,37 @@ int main() {
    double* B1_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    double* B2_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    double* B2_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* tB1_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* tB1_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* tB2_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* tB2_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    for (q = 0; q < Nq; q++) {
       for (t = 0; t < Nt; t++) {
          for (iC = 0; iC < Nc; iC++) {
             for (iS = 0; iS < Ns; iS++) {
                for (jC = 0; jC < Nc; jC++) {
                   for (jS = 0; jS < Ns; jS++) {
-                     for (y = 0; y < Vsnk; y++) {
-                        for (x = 0; x < Vsrc; x++) {
+                     for (y = 0; y < Vsrc; y++) {
+                        for (x = 0; x < Vsnk; x++) {
                            if ((jC == iC) && (jS == iS)) {
-                              B1_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B2_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B1_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
-                              B2_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
+                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
+                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
+                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
+                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
+                              tB1_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 1/mq*cos(2*M_PI/6);
+                              tB2_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 1/mq*cos(2*M_PI/6);
+                              tB1_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 1/mq*sin(2*M_PI/6);
+                              tB2_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 1/mq*sin(2*M_PI/6);
                            }
                            else {
-                              B1_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
-                              B2_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
-                              B1_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
-                              B2_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
+                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
+                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
+                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
+                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
+                              tB1_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 0;
+                              tB2_prop_re[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 0;
+                              tB1_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 0;
+                              tB2_prop_im[prop_index(q,t,iC,iS,jC,jS,x,y ,Nc,Ns,Vsnk,Vsrc,Nt)] = 0;
                            }
                         }
                      }
@@ -209,7 +221,7 @@ int main() {
    int space_symmetric = 0;
    int snk_entangled = 0;
    printf("starting \n");
-   make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, tsrc_psi_B1_re, tsrc_psi_B1_im, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+   make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, tB1_prop_re, tB1_prop_im, tB2_prop_re, tB2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, tsrc_psi_B1_re, tsrc_psi_B1_im, tsrc_psi_B2_re, tsrc_psi_B2_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
    printf("B=2 results\n");
    int* Vtab = malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));
    for (m=0; m<Nsrc; m++) {

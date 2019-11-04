@@ -421,6 +421,8 @@ int main(int argc, char **argv)
 	generate_function("tiramisu_make_local_single_double_block_r1", "generated_tiramisu_make_local_single_double_block.o", src_color_weights_r1_P, src_spin_weights_r1_P, src_weights_r1_P);
     else
 	generate_function("tiramisu_make_local_single_double_block_r2", "generated_tiramisu_make_local_single_double_block.o", src_color_weights_r2_P, src_spin_weights_r2_P, src_weights_r2_P);
+	generate_function("tiramisu_make_local_single_double_block_r1", "generated_tiramisu_make_local_single_double_block_r1.o", src_color_weights_r1_P, src_spin_weights_r1_P, src_weights_r1_P);
+	generate_function("tiramisu_make_local_single_double_block_r2", "generated_tiramisu_make_local_single_double_block_r2.o", src_color_weights_r2_P, src_spin_weights_r2_P, src_weights_r2_P);
 
     return 0;
 }
