@@ -8,7 +8,7 @@
 #include "tiramisu_make_dibaryon_correlator_ref.cpp"
 
 #define RUN_REFERENCE 1
-#define RUN_CHECK 0
+#define RUN_CHECK 1
 int nb_tests = 3;
 
 int main(int, char **)
@@ -47,24 +47,20 @@ int main(int, char **)
 
     Halide::Buffer<double>        B2_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Blocal_r1_r");
     Halide::Buffer<double>        B2_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Blocal_r1_i");
-    Halide::Buffer<double> B2_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bsingle_r1_r");
-    Halide::Buffer<double> B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bsingle_r1_i");
-    Halide::Buffer<double> B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bdouble_r1_r");
-    Halide::Buffer<double> B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B2_Bdouble_r1_i");
+    Halide::Buffer<double> B2_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_r");
+    Halide::Buffer<double> B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bsingle_r1_i");
+    Halide::Buffer<double> B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_r");
+    Halide::Buffer<double> B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_i");
 
-    Halide::Buffer<double>        t_B1_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Blocal_r1_r");
-    Halide::Buffer<double>        t_B1_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Blocal_r1_i");
-    Halide::Buffer<double> t_B1_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bsingle_r1_r");
-    Halide::Buffer<double> t_B1_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bsingle_r1_i");
-    Halide::Buffer<double> t_B1_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bdouble_r1_r");
-    Halide::Buffer<double> t_B1_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B1_Bdouble_r1_i");
-
-    Halide::Buffer<double>        t_B2_Blocal_r1_r(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Blocal_r1_r");
-    Halide::Buffer<double>        t_B2_Blocal_r1_i(Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Blocal_r1_i");
-    Halide::Buffer<double> t_B2_Bsingle_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bsingle_r1_r");
-    Halide::Buffer<double> t_B2_Bsingle_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bsingle_r1_i");
-    Halide::Buffer<double> t_B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bdouble_r1_r");
-    Halide::Buffer<double> t_B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "t_B2_Bdouble_r1_i");
+    // Halide buffers
+    Halide::Buffer<int> b_perms(2*Nq, Nperms, "perms");
+    Halide::Buffer<int> b_sigs(Nperms, "sigs");
+    Halide::Buffer<double> b_overall_weight(1, "overall_weight");
+    Halide::Buffer<int> b_snk_color_weights(Nq, Nw2, 2, "snk_color_weights");
+    Halide::Buffer<int> b_snk_spin_weights(Nq, Nw2, 2, "snk_spin_weights");
+    Halide::Buffer<double> b_snk_weights(Nw2, "snk_weights");
+    Halide::Buffer<double> b_snk_psi_re(Nsnk, Vsnk, Vsnk, "snk_psi_re");
+    Halide::Buffer<double> b_snk_psi_im(Nsnk, Vsnk, Vsnk, "snk_psi_im");
 
     for (int i = 0; i < Nt; i++)
       for (int j = 0; j < Nsnk; j++)
@@ -92,34 +88,6 @@ int main(int, char **)
 			B2_Blocal_r1_i(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
 		    }
 
-    for (int m=0; m<Nsrc; m++)
-      for (int iCprime=0; iCprime<Nc; iCprime++)
-         for (int iSprime=0; iSprime<Ns; iSprime++)
-            for (int jCprime=0; jCprime<Nc; jCprime++)
-              for (int jSprime=0; jSprime<Ns; jSprime++)
-                 for (int kCprime=0; kCprime<Nc; kCprime++)
-                    for (int kSprime=0; kSprime<Ns; kSprime++)
-                      for (int x=0; x<Vsnk; x++)
-                        for (int x2=0; x2<Vsnk; x2++)
-                          for (int t=0; t<Nt; t++)
-			  {
-                             B1_Bsingle_r1_r(t, x2, x, kSprime, kCprime, jSprime, jCprime, iSprime, iCprime, m) = (double) 1;
-			  }
-
-    for (int m=0; m<Nsrc; m++)
-      for (int iCprime=0; iCprime<Nc; iCprime++)
-         for (int iSprime=0; iSprime<Ns; iSprime++)
-            for (int jCprime=0; jCprime<Nc; jCprime++)
-              for (int jSprime=0; jSprime<Ns; jSprime++)
-                 for (int kCprime=0; kCprime<Nc; kCprime++)
-                    for (int kSprime=0; kSprime<Ns; kSprime++)
-                      for (int x=0; x<Vsnk; x++)
-                        for (int x2=0; x2<Vsnk; x2++)
-                          for (int t=0; t<Nt; t++)
-			  {
-                             t_B1_Bsingle_r1_r(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = (double) 1;
-			  }
-
     int perms_array[36][6] = { {1,2,3,4,5,6}, {1, 4, 3, 2, 5, 6}, {1, 6, 3, 2, 5, 4}, {1, 2, 3, 6, 5, 4}, {1, 4, 3, 6, 5, 2}, {1, 6, 3, 4, 5, 2}, {3, 2, 1, 4, 5, 6}, {3, 4, 1, 2, 5, 6}, {3, 6, 1, 2, 5, 4}, {3, 2, 1, 6, 5, 4}, {3, 4, 1, 6, 5, 2}, {3, 6, 1, 4, 5, 2}, {5, 2, 1, 4, 3, 6}, {5, 4, 1, 2, 3, 6}, {5, 6, 1, 2, 3, 4}, {5, 2, 1, 6, 3, 4}, {5, 4, 1, 6, 3, 2}, {5, 6, 1, 4, 3, 2}, {1, 2, 5, 4, 3, 6}, {1, 4, 5, 2, 3, 6}, {1, 6, 5, 2, 3, 4}, {1, 2, 5, 6, 3, 4}, {1, 4, 5, 6, 3, 2}, {1, 6, 5, 4, 3, 2}, {3, 2, 5, 4, 1, 6}, {3, 4, 5, 2, 1, 6}, {3, 6, 5, 2, 1, 4}, {3, 2, 5, 6, 1, 4}, {3, 4, 5, 6, 1, 2}, {3, 6, 5, 4, 1, 2}, {5, 2, 3, 4, 1, 6}, {5, 4, 3, 2, 1, 6}, {5, 6, 3, 2, 1, 4}, {5, 2, 3, 6, 1, 4}, {5, 4, 3, 6, 1, 2}, {5, 6, 3, 4, 1, 2} };
    int sigs_array[36] = {1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1};
    int* perms = (int *) malloc(Nperms * 2*Nq * sizeof (int));
@@ -135,8 +103,10 @@ int main(int, char **)
       else {
          for (int q = 0; q < 2*Nq; q++) {
             perms[index_2d(permnum,q ,2*Nq)] = perms_array[i][q];
+            b_perms(q,permnum) = perms_array[i][q];
          }
          sigs[permnum] = sigs_array[i];
+         b_sigs(permnum) = sigs_array[i];
          permnum += 1;
       }
     }
@@ -149,14 +119,18 @@ int main(int, char **)
     double* snk_psi_im = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
 
     overall_weight[0] = 1;
+    b_overall_weight(0) = 1;
 
     for (int i = 0; i<2; i++)
 	    for (int j = 0; j<Nw2; j++)
 		    for (int k = 0; k<Nq; k++)
 		    {
 			snk_color_weights[i*Nw2*Nq + j*Nq + k] = 1;
+         b_snk_color_weights(k,j,i) = 1;
 			snk_spin_weights[i*Nw2*Nq + j*Nq + k] = 1;
+         b_snk_spin_weights(k,j,i) = 1;
 			snk_weights[i*Nw2*Nq + j*Nq + k] = (double) 1;
+         b_snk_weights(k,j,i) = (double) 1;
 		    }
 
     for (int i = 0; i<Vsnk; i++)
@@ -165,17 +139,10 @@ int main(int, char **)
 		    {
 			snk_psi_re[i*Nsnk*Vsnk + k*Nsnk + j] = (double) 1;
 			snk_psi_im[i*Nsnk*Vsnk + k*Nsnk + j] = (double) 1;
+         b_snk_psi_re(k,i,j) = (double) 1;
+         b_snk_psi_im(k,i,j) = (double) 1;
 		    }
 
-    // Halide buffers
-    Halide::Buffer<int> b_perms(perms, {2*Nq, Nperms});
-    Halide::Buffer<int> b_sigs(sigs, Nperms);
-    Halide::Buffer<double> b_overall_weight(overall_weight, 1);
-    Halide::Buffer<int> b_snk_color_weights(snk_color_weights, {Nq, Nw2, 2});
-    Halide::Buffer<int> b_snk_spin_weights(snk_spin_weights, {Nq, Nw2, 2});
-    Halide::Buffer<double> b_snk_weights(snk_weights, Nw2);
-    Halide::Buffer<double> b_snk_psi_re(snk_psi_re, {Nsnk, Vsnk, Vsnk});
-    Halide::Buffer<double> b_snk_psi_im(snk_psi_im, {Nsnk, Vsnk, Vsnk});
 
 #if RUN_REFERENCE
     std::cout << "Start reference C code." <<  std::endl;
@@ -183,6 +150,8 @@ int main(int, char **)
     {
 	    std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	    auto start2 = std::chrono::high_resolution_clock::now();
+
+       printf("diff %4.9f %4.9f %4.9f \n", b_overall_weight(0), (double) *(b_overall_weight.raw_buffer()->host), overall_weight[0]);
 
 	    make_dibaryon_correlator(
 				    (double *) ref_C_r.raw_buffer()->host,
@@ -201,14 +170,14 @@ int main(int, char **)
 				    (const double *) B2_Bdouble_r1_r.raw_buffer()->host,
 				    (const double *) B2_Bdouble_r1_i.raw_buffer()->host,
 
-				    (const int *) b_perms.raw_buffer()->host,
-				    (const int *) b_sigs.raw_buffer()->host,
-				    (const double) *(b_overall_weight.raw_buffer()->host),
-				    (const int *) b_snk_color_weights.raw_buffer()->host,
-				    (const int *) b_snk_spin_weights.raw_buffer()->host,
-				    (const double *) b_snk_weights.raw_buffer()->host,
-				    (const double *) b_snk_psi_re.raw_buffer()->host,
-				    (const double *) b_snk_psi_im.raw_buffer()->host);
+                perms,
+                sigs,
+                overall_weight[0],
+                snk_color_weights,
+                snk_spin_weights,
+                snk_weights,
+                snk_psi_re,
+                snk_psi_im);
 
 	    auto end2 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration2 = end2 - start2;
@@ -229,8 +198,7 @@ int main(int, char **)
 				    C_i.raw_buffer(),
 				    B1_Blocal_r1_r.raw_buffer(),
 				    B1_Blocal_r1_i.raw_buffer(),
-				    t_B1_Bsingle_r1_r.raw_buffer(), //TODO: all of the buffers passed to this function should be be prefixed with t_.
-								    // They should also be initialized.
+				    B1_Bsingle_r1_r.raw_buffer(),
 				    B1_Bsingle_r1_i.raw_buffer(),
 				    B1_Bdouble_r1_r.raw_buffer(),
 				    B1_Bdouble_r1_i.raw_buffer(),
@@ -262,71 +230,17 @@ int main(int, char **)
 
 #if RUN_CHECK
     // Compare outputs.
-	for (int n=0; n<Nsrc; n++)
-	  for (int iCprime=0; iCprime<Nc; iCprime++)
-	    for (int iSprime=0; iSprime<Ns; iSprime++)
-	       for (int jCprime=0; jCprime<Nc; jCprime++)
-		  for (int jSprime=0; jSprime<Ns; jSprime++)
-		     for (int kCprime=0; kCprime<Nc; kCprime++)
-			for (int kSprime=0; kSprime<Ns; kSprime++)
-			   for (int x=0; x<Vsnk; x++)
-			      for (int t=0; t<Nt; t++)
-				  if ((std::abs(B1_Blocal_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].real() -
-					        B1_Blocal_r1_r(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
-				      (std::abs(B1_Blocal_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][t].imag() -
-					        B1_Blocal_r1_i(jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01))
-				  {
-				      std::cout << "Error: different computed values for B1_Blocal_r1!" << std::endl;
-				      exit(1);
-				  }
-
-	for (int n=0; n<Nsrc; n++)
-	  for (int iCprime=0; iCprime<Nc; iCprime++)
-	    for (int iSprime=0; iSprime<Ns; iSprime++)
-	       for (int jCprime=0; jCprime<Nc; jCprime++)
-		  for (int jSprime=0; jSprime<Ns; jSprime++)
-		     for (int kCprime=0; kCprime<Nc; kCprime++)
-			for (int kSprime=0; kSprime<Ns; kSprime++)
-			   for (int x=0; x<Vsnk; x++)
-			     for (int x2=0; x2<Vsnk; x2++)
-				 for (int t=0; t<Nt; t++)
-				 if ((std::abs(B1_Bsingle_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					       B1_Bsingle_r1_r(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01) ||
-				     (std::abs(B1_Bsingle_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
-					       B1_Bsingle_r1_i(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t)) >= 0.01))
-				  {
-				      std::cout << "Error: different computed values for B1_Bsingle_r1!" << std::endl;
-				      exit(1);
-				  }
-
-    for (int n=0; n<Nsrc; n++)
-      for (int iCprime=0; iCprime<Nc; iCprime++)
-        for (int iSprime=0; iSprime<Ns; iSprime++)
-           for (int jCprime=0; jCprime<Nc; jCprime++)
-              for (int jSprime=0; jSprime<Ns; jSprime++)
-                 for (int kCprime=0; kCprime<Nc; kCprime++)
-                    for (int kSprime=0; kSprime<Ns; kSprime++)
-                       for (int x=0; x<Vsnk; x++)
-		         for (int x2=0; x2<Vsnk; x2++)
-			     for (int t=0; t<Nt; t++)
-                             if ((std::abs(B1_Bdouble_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].real() -
-					   B1_Bdouble_r1_r(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01) ||
-				 (std::abs(B1_Bdouble_r1[n][iCprime][iSprime][jCprime][jSprime][kCprime][kSprime][x][x2][t].imag() -
-					   B1_Bdouble_r1_i(x2, iSprime, iCprime, n, x, kSprime, kCprime, jSprime, jCprime, t)) >= 0.01))
-			      {
-				  std::cout << "Error: different computed values for B1_Bdouble_r1!" << std::endl;
-				  exit(1);
-			      }
 
     for (int i = 0; i < Nt; i++)
       for (int j = 0; j < Nsnk; j++)
         for (int k = 0; k < Nsrc; k++)
+        {printf("%4.9f %4.9f \n", ref_C_r(i,j,k), C_r(i,j,k));
            if ((std::abs(ref_C_r(i,j,k) - C_r(i,j,k)) >= 0.01) ||
 	       (std::abs(ref_C_i(i,j,k) - C_i(i,j,k)) >= 0.01))
 	    {
 		  std::cout << "Error: different computed values for C_r or C_i!" << std::endl;
 		  exit(1);
-	    }
+	    }}
 
 #endif
 

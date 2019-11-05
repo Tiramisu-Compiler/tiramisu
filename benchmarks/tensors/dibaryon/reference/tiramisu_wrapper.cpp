@@ -190,11 +190,11 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
     Halide::Buffer<double> snk_weights((double *) t_snk_weights, Nw*Nw);
     Halide::Buffer<double> snk_psi_re((double *) t_snk_psi_re, {Nsnk, Vsnk, Vsnk});
     Halide::Buffer<double> snk_psi_im((double *) t_snk_psi_im, {Nsnk, Vsnk, Vsnk});
-    Halide::Buffer<double> term_re(1);
-    Halide::Buffer<double> term_im(1);
-    Halide::Buffer<int> snk_1(Nb);
-    Halide::Buffer<int> snk_1_b(Nb);
-    Halide::Buffer<int> snk_1_nq(Nb);
+//    Halide::Buffer<double> term_re(1);
+//    Halide::Buffer<double> term_im(1);
+//    Halide::Buffer<int> snk_1(Nb);
+//    Halide::Buffer<int> snk_1_b(Nb);
+//    Halide::Buffer<int> snk_1_nq(Nb);
 
     tiramisu_make_dibaryon_correlator(
 				    C_re.raw_buffer(),
@@ -218,12 +218,12 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
 				    snk_spin_weights.raw_buffer(),
 				    snk_weights.raw_buffer(),
 				    snk_psi_re.raw_buffer(),
-				    snk_psi_im.raw_buffer(),
-				    term_re.raw_buffer(),
-				    term_im.raw_buffer(),
-				    snk_1.raw_buffer(),
-				    snk_1_b.raw_buffer(),
-				    snk_1_nq.raw_buffer());
+				    snk_psi_im.raw_buffer());
+//				    term_re.raw_buffer(),
+//				    term_im.raw_buffer(),
+//				    snk_1.raw_buffer(),
+//				    snk_1_b.raw_buffer(),
+//				    snk_1_nq.raw_buffer());
 
    FILE *f = fopen("tiramisu", "w");
    fprintf(f, "overall_weight = %lf\n", overall_weight(0));
@@ -358,11 +358,11 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
                                   for (int t=0; t<Nt; t++)
                                      fprintf(f, "B2_Bdouble_im = %lf\n", B2_Bdouble_im(x2, jSprime, jCprime, n, x, kSprime, kCprime, iSprime, iCprime, t));
 
-   for (int b=0; b<Nb; b++) {
+/*   for (int b=0; b<Nb; b++) {
          fprintf(f, "snk_1[b] = %d\n", snk_1(b));
          fprintf(f, "snk_1_b[b] = %d\n", snk_1_b(b));
          fprintf(f, "snk_1_nq[b] = %d\n", snk_1_nq(b));
-   }
+   }*/
 
    for (int nperm=0; nperm<Nperms; nperm++)
 	 fprintf(f, "sigs[nperm] = %d\n", sigs(nperm));
@@ -380,8 +380,8 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
        for (int n = 0; n<Nsnk; n++)
          fprintf(f, "snk_psi_im[x1,x2,n] = %lf\n", snk_psi_im(n, x2, x1));
 
-   fprintf(f, "term_re = %lf\n", term_re(0));
-   fprintf(f, "term_im = %lf\n", term_im(0));
+/*   fprintf(f, "term_re = %lf\n", term_re(0));
+   fprintf(f, "term_im = %lf\n", term_im(0)); */
 
    for (int t=0; t<Nt; t++)
      for (int m=0; m<Nsrc; m++)
