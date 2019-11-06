@@ -194,13 +194,13 @@ void generate_function(std::string name)
     // -------------------------------------------------------
     // Layer III
     // -------------------------------------------------------
-    buffer buf_snk_1("buf_snk_1", {Nb}, p_int32, a_output); //a_temporary);
+    buffer buf_snk_1("buf_snk_1", {Nb}, p_int32, a_temporary);
     buffer buf_snk_2("buf_snk_2", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3("buf_snk_3", {Nb}, p_int32, a_temporary);
-    buffer buf_snk_1_b("buf_snk_1_b", {Nb}, p_int32, a_output); //a_temporary);
+    buffer buf_snk_1_b("buf_snk_1_b", {Nb}, p_int32, a_temporary);
     buffer buf_snk_2_b("buf_snk_2_b", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3_b("buf_snk_3_b", {Nb}, p_int32, a_temporary);
-    buffer buf_snk_1_nq("buf_snk_1_nq", {Nb}, p_int32, a_output); //a_temporary);
+    buffer buf_snk_1_nq("buf_snk_1_nq", {Nb}, p_int32, a_temporary);
     buffer buf_snk_2_nq("buf_snk_2_nq", {Nb}, p_int32, a_temporary);
     buffer buf_snk_3_nq("buf_snk_3_nq", {Nb}, p_int32, a_temporary);
 
@@ -246,11 +246,11 @@ void generate_function(std::string name)
     buffer buf_snk_psi_re("buf_snk_psi_re", {Vsnk, Vsnk, Nsnk}, p_float64, a_input);
     buffer buf_snk_psi_im("buf_snk_psi_im", {Vsnk, Vsnk, Nsnk}, p_float64, a_input);
 
-    buffer buf_new_term_r("buf_new_term_r", {1}, p_float64, a_output); // a_temporary);
-    buffer buf_new_term_i("buf_new_term_i", {1}, p_float64, a_output); // a_temporary);
+    buffer buf_new_term_r("buf_new_term_r", {1}, p_float64, a_temporary);
+    buffer buf_new_term_i("buf_new_term_i", {1}, p_float64, a_temporary);
 
-    buffer buf_term_r("buf_term_r", {1}, p_float64, a_output); //a_temporary);
-    buffer buf_term_i("buf_term_i", {1}, p_float64, a_output); //a_temporary);
+    buffer buf_term_r("buf_term_r", {1}, p_float64, a_temporary);
+    buffer buf_term_i("buf_term_i", {1}, p_float64, a_temporary);
 
     term_re.store_in(&buf_term_r, {0});
     term_im.store_in(&buf_term_i, {0});
@@ -295,14 +295,7 @@ void generate_function(std::string name)
 	snk_spin_weights.get_buffer(),
 	snk_weights.get_buffer(),
 	&buf_snk_psi_re,
-	&buf_snk_psi_im,
-	&buf_term_r,
-	&buf_term_i,
-	&buf_new_term_r,
-	&buf_new_term_i,
-	&buf_snk_1,
-	&buf_snk_1_b,
-	&buf_snk_1_nq
+	&buf_snk_psi_im
 	},
         "generated_tiramisu_make_dibaryon_correlator.o");
 }

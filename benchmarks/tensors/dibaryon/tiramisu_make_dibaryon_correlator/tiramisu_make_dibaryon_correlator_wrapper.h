@@ -106,13 +106,6 @@ int tiramisu_make_dibaryon_correlator(halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
-	   		    halide_buffer_t *,
 			    halide_buffer_t *);
 #ifdef __cplusplus
 }  // extern "C"

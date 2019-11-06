@@ -190,11 +190,6 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
     Halide::Buffer<double> snk_weights((double *) t_snk_weights, Nw*Nw);
     Halide::Buffer<double> snk_psi_re((double *) t_snk_psi_re, {Nsnk, Vsnk, Vsnk});
     Halide::Buffer<double> snk_psi_im((double *) t_snk_psi_im, {Nsnk, Vsnk, Vsnk});
-//    Halide::Buffer<double> term_re(1);
-//    Halide::Buffer<double> term_im(1);
-//    Halide::Buffer<int> snk_1(Nb);
-//    Halide::Buffer<int> snk_1_b(Nb);
-//    Halide::Buffer<int> snk_1_nq(Nb);
 
     tiramisu_make_dibaryon_correlator(
 				    C_re.raw_buffer(),
@@ -219,11 +214,6 @@ void tiramisu_wrapper_make_dibaryon_correlator(double* t_C_re,
 				    snk_weights.raw_buffer(),
 				    snk_psi_re.raw_buffer(),
 				    snk_psi_im.raw_buffer());
-//				    term_re.raw_buffer(),
-//				    term_im.raw_buffer(),
-//				    snk_1.raw_buffer(),
-//				    snk_1_b.raw_buffer(),
-//				    snk_1_nq.raw_buffer());
 
    FILE *f = fopen("tiramisu", "w");
    fprintf(f, "overall_weight = %lf\n", overall_weight(0));

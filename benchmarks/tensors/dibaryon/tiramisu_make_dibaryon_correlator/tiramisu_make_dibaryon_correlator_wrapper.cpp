@@ -75,13 +75,6 @@ int main(int, char **)
     Halide::Buffer<double> b_snk_weights(Nw2, "snk_weights");
     Halide::Buffer<double> b_snk_psi_re(Nsnk, Vsnk, Vsnk, "snk_psi_re");
     Halide::Buffer<double> b_snk_psi_im(Nsnk, Vsnk, Vsnk, "snk_psi_im");
-    Halide::Buffer<double> buf_term_r(1, "buf_term_r");
-    Halide::Buffer<double> buf_term_i(1, "buf_term_i");
-    Halide::Buffer<double> buf_new_term_r(1, "buf_new_term_r");
-    Halide::Buffer<double> buf_new_term_i(1, "buf_new_term_i");
-    Halide::Buffer<int> buf_snk_1(2, "buf_snk_1");
-    Halide::Buffer<int> buf_snk_1_b(2, "buf_snk_1_b");
-    Halide::Buffer<int> buf_snk_1_nq(2, "buf_snk_1_nq");
 
     for (int i = 0; i < Nt; i++)
       for (int j = 0; j < Nsnk; j++)
@@ -287,21 +280,8 @@ int main(int, char **)
 				    b_snk_spin_weights.raw_buffer(),
 				    b_snk_weights.raw_buffer(),
 				    b_snk_psi_re.raw_buffer(),
-				    b_snk_psi_im.raw_buffer(),
-                buf_term_r.raw_buffer(),
-                buf_term_i.raw_buffer(),
-                buf_new_term_r.raw_buffer(),
-                buf_new_term_i.raw_buffer(),
-                buf_snk_1.raw_buffer(),
-                buf_snk_1_b.raw_buffer(),
-                buf_snk_1_nq.raw_buffer());
+				    b_snk_psi_im.raw_buffer());
        
-       printf("buf_term = %4.1f + I( %4.1f ) \n", buf_term_r(0), buf_term_i(0));
-       printf("buf_new_term = %4.1f + I( %4.1f ) \n", buf_new_term_r(0), buf_term_i(0));
-       printf("buf_snk_1 = %d %d \n", buf_snk_1(0), buf_snk_1(1));
-       printf("buf_snk_1_b = %d %d \n", buf_snk_1_b(0), buf_snk_1_b(1));
-       printf("buf_snk_1_nq = %d %d \n", buf_snk_1_nq(0), buf_snk_1_nq(1));
-
 	    auto end1 = std::chrono::high_resolution_clock::now();
 	    std::chrono::duration<double,std::milli> duration1 = end1 - start1;
 	    duration_vector_1.push_back(duration1);
