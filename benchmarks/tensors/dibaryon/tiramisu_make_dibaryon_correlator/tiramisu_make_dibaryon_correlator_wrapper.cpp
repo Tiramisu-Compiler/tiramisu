@@ -52,6 +52,20 @@ int main(int, char **)
     Halide::Buffer<double> B2_Bdouble_r1_r(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_r");
     Halide::Buffer<double> B2_Bdouble_r1_i(Vsnk, Ns, Nc, Nsrc, Vsnk, Ns, Nc, Ns, Nc, Nt, "B1_Bdouble_r1_i");
 
+   double B1_Bsingle_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+   double B1_Bdouble_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+	double B1_Blocal_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc];
+   double B1_Bsingle_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+   double B1_Bdouble_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+	double B1_Blocal_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc];
+
+   double B2_Bsingle_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+   double B2_Bdouble_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+	double B2_Blocal_r1_re[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc];
+   double B2_Bsingle_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+   double B2_Bdouble_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Vsnk * Nsrc];
+	double B2_Blocal_r1_im[Lt * Nc * Ns * Nc * Ns * Vsnk * Nc * Ns * Nsrc];
+
     // Halide buffers
     Halide::Buffer<int> b_perms(2*Nq, Nperms, "perms");
     Halide::Buffer<int> b_sigs(Nperms, "sigs");
@@ -63,6 +77,8 @@ int main(int, char **)
     Halide::Buffer<double> b_snk_psi_im(Nsnk, Vsnk, Vsnk, "snk_psi_im");
     Halide::Buffer<double> buf_term_r(1, "buf_term_r");
     Halide::Buffer<double> buf_term_i(1, "buf_term_i");
+    Halide::Buffer<double> buf_new_term_r(1, "buf_new_term_r");
+    Halide::Buffer<double> buf_new_term_i(1, "buf_new_term_i");
     Halide::Buffer<int> buf_snk_1(2, "buf_snk_1");
     Halide::Buffer<int> buf_snk_1_b(2, "buf_snk_1_b");
     Halide::Buffer<int> buf_snk_1_nq(2, "buf_snk_1_nq");
@@ -77,21 +93,67 @@ int main(int, char **)
 	  ref_C_i(i, j, k) = (double) 1;
         }
 
-    for (int i0 = 0; i0 < Ns; i0++)
-      for (int i1 = 0; i1 < Nc; i1++)
-        for (int i2 = 0; i2 < Nsrc; i2++)
-          for (int i3 = 0; i3 < Vsnk; i3++)
-            for (int i4 = 0; i4 < Ns; i4++)
-	      for (int i5 = 0; i5 < Nc; i5++)
-	   	for (int i6 = 0; i6 < Ns; i6++)
-		  for (int i7 = 0; i7 < Nc; i7++)
-		    for (int t = 0; t < Nt; t++)
-		    {
-			B1_Blocal_r1_r(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
-			B1_Blocal_r1_i(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
-			B2_Blocal_r1_r(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
-			B2_Blocal_r1_i(i0, i1, i2, i3, i4, i5, i6, i7, t) = (double) 1;
-		    }
+   for (int m=0; m<Nsrc; m++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+         for (int iSprime=0; iSprime<Ns; iSprime++)
+            for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                      for (int x=0; x<Vsnk; x++)
+                          for (int t=0; t<Nt; t++)
+			  {
+	double v1 = 1.0;// rand()%10;
+	double v2 = 1.0;// rand()%10;
+	double v3 = 1.0;// rand()%10;
+	double v4 = 1.0;// rand()%10;
+                             B1_Blocal_r1_r(jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v1;
+                             B2_Blocal_r1_r(jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v2;
+                             B1_Blocal_r1_i(jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v3;
+                             B2_Blocal_r1_i(jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v4;
+                             B1_Blocal_r1_re[Blocal_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, m)] = v1;
+                             B1_Blocal_r1_im[Blocal_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, m)] = v2;
+                             B2_Blocal_r1_re[Blocal_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, m)] = v3;
+                             B2_Blocal_r1_im[Blocal_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, m)] = v4;
+			  }
+
+   for (int m=0; m<Nsrc; m++)
+      for (int iCprime=0; iCprime<Nc; iCprime++)
+         for (int iSprime=0; iSprime<Ns; iSprime++)
+            for (int jCprime=0; jCprime<Nc; jCprime++)
+              for (int jSprime=0; jSprime<Ns; jSprime++)
+                 for (int kCprime=0; kCprime<Nc; kCprime++)
+                    for (int kSprime=0; kSprime<Ns; kSprime++)
+                      for (int x=0; x<Vsnk; x++)
+                        for (int x2=0; x2<Vsnk; x2++)
+                          for (int t=0; t<Nt; t++)
+			  {
+	double v1 = 1.0;// rand()%10;
+	double v2 = 1.0;// rand()%10;
+	double v3 = 1.0;// rand()%10;
+	double v4 = 1.0;// rand()%10;
+	double v5 = 1.0;// rand()%10;
+	double v6 = 1.0;// rand()%10;
+	double v7 = 1.0;// rand()%10;
+	double v8 = 1.0;// rand()%10;
+                             B1_Bsingle_r1_r(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v1;
+                             B2_Bsingle_r1_r(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v2;
+                             B1_Bsingle_r1_i(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v3;
+                             B2_Bsingle_r1_i(x2, jSprime, jCprime, m, x, kSprime, kCprime, iSprime, iCprime, t) = v4;
+                             B1_Bsingle_r1_re[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v1;
+                             B1_Bsingle_r1_im[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v2;
+                             B2_Bsingle_r1_re[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v3;
+                             B2_Bsingle_r1_im[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v4;
+
+                             B1_Bdouble_r1_r(x2, iSprime, iCprime, m, x, kSprime, kCprime, jSprime, jCprime, t) = v5;
+                             B2_Bdouble_r1_r(x2, iSprime, iCprime, m, x, kSprime, kCprime, jSprime, jCprime, t) = v6;
+                             B1_Bdouble_r1_i(x2, iSprime, iCprime, m, x, kSprime, kCprime, jSprime, jCprime, t) = v7;
+                             B2_Bdouble_r1_i(x2, iSprime, iCprime, m, x, kSprime, kCprime, jSprime, jCprime, t) = v8;
+                             B1_Bdouble_r1_re[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v5;
+                             B1_Bdouble_r1_im[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v6;
+                             B2_Bdouble_r1_re[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v7;
+                             B2_Bdouble_r1_im[Bdouble_index(t, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, x2, m)] = v8;
+			  }
 
     int perms_array[36][6] = { {1,2,3,4,5,6}, {1, 4, 3, 2, 5, 6}, {1, 6, 3, 2, 5, 4}, {1, 2, 3, 6, 5, 4}, {1, 4, 3, 6, 5, 2}, {1, 6, 3, 4, 5, 2}, {3, 2, 1, 4, 5, 6}, {3, 4, 1, 2, 5, 6}, {3, 6, 1, 2, 5, 4}, {3, 2, 1, 6, 5, 4}, {3, 4, 1, 6, 5, 2}, {3, 6, 1, 4, 5, 2}, {5, 2, 1, 4, 3, 6}, {5, 4, 1, 2, 3, 6}, {5, 6, 1, 2, 3, 4}, {5, 2, 1, 6, 3, 4}, {5, 4, 1, 6, 3, 2}, {5, 6, 1, 4, 3, 2}, {1, 2, 5, 4, 3, 6}, {1, 4, 5, 2, 3, 6}, {1, 6, 5, 2, 3, 4}, {1, 2, 5, 6, 3, 4}, {1, 4, 5, 6, 3, 2}, {1, 6, 5, 4, 3, 2}, {3, 2, 5, 4, 1, 6}, {3, 4, 5, 2, 1, 6}, {3, 6, 5, 2, 1, 4}, {3, 2, 5, 6, 1, 4}, {3, 4, 5, 6, 1, 2}, {3, 6, 5, 4, 1, 2}, {5, 2, 3, 4, 1, 6}, {5, 4, 3, 2, 1, 6}, {5, 6, 3, 2, 1, 4}, {5, 2, 3, 6, 1, 4}, {5, 4, 3, 6, 1, 2}, {5, 6, 3, 4, 1, 2} };
    int sigs_array[36] = {1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1};
@@ -130,22 +192,25 @@ int main(int, char **)
 	    for (int j = 0; j<Nw2; j++)
 		    for (int k = 0; k<Nq; k++)
 		    {
-			snk_color_weights[i*Nw2*Nq + j*Nq + k] = 1;
-         b_snk_color_weights(k,j,i) = 1;
-			snk_spin_weights[i*Nw2*Nq + j*Nq + k] = 1;
-         b_snk_spin_weights(k,j,i) = 1;
-			snk_weights[i*Nw2*Nq + j*Nq + k] = (double) 1;
-         b_snk_weights(k,j,i) = (double) 1;
+	double v1 = rand()%10;
+			snk_color_weights[i*Nw2*Nq + j*Nq + k] = k;
+         b_snk_color_weights(k,j,i) = k;
+			snk_spin_weights[i*Nw2*Nq + j*Nq + k] = i;
+         b_snk_spin_weights(k,j,i) = i;
+			snk_weights[j] = v1;
+         b_snk_weights(j) = v1;
 		    }
 
     for (int i = 0; i<Vsnk; i++)
 	for (int k = 0; k<Vsnk; k++)
 	    for (int j = 0; j<Nsnk; j++)
 		    {
-			snk_psi_re[i*Nsnk*Vsnk + k*Nsnk + j] = (double) 1;
-			snk_psi_im[i*Nsnk*Vsnk + k*Nsnk + j] = (double) 1;
-         b_snk_psi_re(i,k,j) = (double) 1;
-         b_snk_psi_im(i,k,j) = (double) 1;
+	double v1 = rand()%10;
+	double v2 = rand()%10;
+			snk_psi_re[i*Nsnk*Vsnk + k*Nsnk + j] = v1;
+			snk_psi_im[i*Nsnk*Vsnk + k*Nsnk + j] = v2;
+         b_snk_psi_re(i,k,j) = v1;
+         b_snk_psi_im(i,k,j) = v2;
 		    }
 
 
@@ -159,19 +224,19 @@ int main(int, char **)
 	    make_dibaryon_correlator(
 				    (double *) ref_C_r.raw_buffer()->host,
 				    (double *) ref_C_i.raw_buffer()->host,
-				    (const double *) B1_Blocal_r1_r.raw_buffer()->host,
-				    (const double *) B1_Blocal_r1_i.raw_buffer()->host,
-				    (const double *) B1_Bsingle_r1_r.raw_buffer()->host,
-				    (const double *) B1_Bsingle_r1_i.raw_buffer()->host,
-				    (const double *) B1_Bdouble_r1_r.raw_buffer()->host,
-				    (const double *) B1_Bdouble_r1_i.raw_buffer()->host,
+				    B1_Blocal_r1_re,
+				    B1_Blocal_r1_im,
+				    B1_Bsingle_r1_re,
+				    B1_Bsingle_r1_im,
+				    B1_Bdouble_r1_re,
+				    B1_Bdouble_r1_im,
 
-				    (const double *) B2_Blocal_r1_r.raw_buffer()->host,
-				    (const double *) B2_Blocal_r1_i.raw_buffer()->host,
-				    (const double *) B2_Bsingle_r1_r.raw_buffer()->host,
-				    (const double *) B2_Bsingle_r1_i.raw_buffer()->host,
-				    (const double *) B2_Bdouble_r1_r.raw_buffer()->host,
-				    (const double *) B2_Bdouble_r1_i.raw_buffer()->host,
+				    B2_Blocal_r1_re,
+				    B2_Blocal_r1_im,
+				    B2_Bsingle_r1_re,
+				    B2_Bsingle_r1_im,
+				    B2_Bdouble_r1_re,
+				    B2_Bdouble_r1_im,
 
                 perms,
                 sigs,
@@ -223,11 +288,14 @@ int main(int, char **)
 				    b_snk_psi_im.raw_buffer(),
                 buf_term_r.raw_buffer(),
                 buf_term_i.raw_buffer(),
+                buf_new_term_r.raw_buffer(),
+                buf_new_term_i.raw_buffer(),
                 buf_snk_1.raw_buffer(),
                 buf_snk_1_b.raw_buffer(),
                 buf_snk_1_nq.raw_buffer());
        
-       printf("buf_term = %4.9f + I( %4.9f ) \n", buf_term_r(0), buf_term_i(0));
+       printf("buf_term = %4.1f + I( %4.1f ) \n", buf_term_r(0), buf_term_i(0));
+       printf("buf_new_term = %4.1f + I( %4.1f ) \n", buf_new_term_r(0), buf_term_i(0));
        printf("buf_snk_1 = %d %d \n", buf_snk_1(0), buf_snk_1(1));
        printf("buf_snk_1_b = %d %d \n", buf_snk_1_b(0), buf_snk_1_b(1));
        printf("buf_snk_1_nq = %d %d \n", buf_snk_1_nq(0), buf_snk_1_nq(1));
@@ -247,7 +315,7 @@ int main(int, char **)
     for (int i = 0; i < Nt; i++)
       for (int j = 0; j < Nsnk; j++)
         for (int k = 0; k < Nsrc; k++)
-        {printf("%4.9f %4.9f \n", ref_C_r(i,j,k), C_r(i,j,k));
+        {printf("%4.1f %4.1f \n", ref_C_r(i,j,k), C_r(i,j,k));
            if ((std::abs(ref_C_r(i,j,k) - C_r(i,j,k)) >= 0.01) ||
 	       (std::abs(ref_C_i(i,j,k) - C_i(i,j,k)) >= 0.01))
 	    {
