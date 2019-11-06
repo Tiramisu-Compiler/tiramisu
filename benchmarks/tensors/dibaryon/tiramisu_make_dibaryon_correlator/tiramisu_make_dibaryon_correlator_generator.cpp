@@ -40,15 +40,15 @@ void generate_function(std::string name)
     input C_r("C_r",      {m, n, t}, p_float64);
     input C_i("C_i",      {m, n, t}, p_float64);
 
-    input  B1_Blocal_re("B1_Blocal_re",  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
-    input  B1_Blocal_im("B1_Blocal_im",  {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input  B1_Blocal_re("B1_Blocal_re",  {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
+    input  B1_Blocal_im("B1_Blocal_im",  {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
     input B1_Bsingle_re("B1_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
     input B1_Bsingle_im("B1_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
     input B1_Bdouble_re("B1_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
     input B1_Bdouble_im("B1_Bdouble_im", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
 
-    input B2_Blocal_re("B2_Blocal_re",   {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
-    input B2_Blocal_im("B2_Blocal_im",   {t, iCprime, iSprime, kCprime, kSprime, x, n, jCprime, jSprime}, p_float64);
+    input B2_Blocal_re("B2_Blocal_re",   {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
+    input B2_Blocal_im("B2_Blocal_im",   {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime}, p_float64);
     input B2_Bsingle_re("B2_Bsingle_re", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
     input B2_Bsingle_im("B2_Bsingle_im", {t, iCprime, iSprime, kCprime, kSprime, x, m, jCprime, jSprime, x2}, p_float64);
     input B2_Bdouble_re("B2_Bdouble_re", {t, jCprime, jSprime, kCprime, kSprime, x, m, iCprime, iSprime, x2}, p_float64);
@@ -60,8 +60,8 @@ void generate_function(std::string name)
     input  snk_color_weights("snk_color_weights", {to, wnum, q}, p_int32);
     input  snk_spin_weights("snk_spin_weights", {to, wnum, q}, p_int32);
     input  snk_weights("snk_weights", {wnum}, p_float64);
-    input  snk_psi_re("snk_psi_re", {x, x2, n}, p_float64);
-    input  snk_psi_im("snk_psi_im", {x, x2, n}, p_float64);
+    input  snk_psi_re("snk_psi_re", {n, x2, x}, p_float64);
+    input  snk_psi_im("snk_psi_im", {n, x2, x}, p_float64);
 
     computation snk_1("snk_1", {nperm, b}, perms(nperm, Nq*b+0) - 1, p_int32);
     computation snk_2("snk_2", {nperm, b}, perms(nperm, Nq*b+1) - 1, p_int32);
@@ -110,7 +110,7 @@ void generate_function(std::string name)
     computation term_re("term_re", {nperm, wnum, t, x, x2, m}, cast(p_float64, sigs(nperm)) * overall_weight(0) * snk_weights(wnum));
     computation term_im("term_im", {nperm, wnum, t, x, x2, m}, cast(p_float64, expr((double) 0)));
 
-    computation new_term_re_0("new_term_re_0", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e) - term_im(nperm, wnum, t, x, x2, m) * B1_Blocal_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e));
+    computation new_term_re_0("new_term_re_0", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e) - term_im(nperm, wnum, t, x, x2, m) * B1_Blocal_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e)) ;
     computation new_term_im_0("new_term_im_0", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Blocal_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e) + term_im(nperm, wnum, t, x, x2, m) * B1_Blocal_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e));
     new_term_re_0.add_predicate(snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0);
     new_term_im_0.add_predicate(snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0);
@@ -122,28 +122,28 @@ void generate_function(std::string name)
 
     computation new_term_re_2("new_term_re_2", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Bsingle_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e, x2) - term_im(nperm, wnum, t, x, x2, m) * B1_Bsingle_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e, x2));
     computation new_term_im_2("new_term_im_2", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Bsingle_im(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e, x2) + term_im(nperm, wnum, t, x, x2, m) * B1_Bsingle_re(t, iC1e, iS1e, kC1e, kS1e, x, m, jC1e, jS1e, x2));
-    new_term_re_2.add_predicate(snk_1_b(b, b) == 0 && snk_3_b(b, b) == 0);
-    new_term_im_2.add_predicate(snk_1_b(b, b) == 0 && snk_3_b(b, b) == 0);
+    new_term_re_2.add_predicate(snk_1_b(b, b) == 0 && snk_2_b(b,b) == 1 && snk_3_b(b, b) == 0);
+    new_term_im_2.add_predicate(snk_1_b(b, b) == 0 && snk_2_b(b,b) == 1 && snk_3_b(b, b) == 0);
 
-    computation new_term_re_3("new_term_re_3", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bsingle_re(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e, x2) - term_im(nperm, wnum, t, x, x2, m) * B2_Bsingle_im(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e, x2));
-    computation new_term_im_3("new_term_im_3", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bsingle_im(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e, x2) + term_im(nperm, wnum, t, x, x2, m) * B2_Bsingle_re(t, iC2e, iS2e, kC2e, kS2e, x, m, jC2e, jS2e, x2));
-    new_term_re_3.add_predicate(snk_1_b(b, b) == 1 && snk_3_b(b, b) == 1);
-    new_term_im_3.add_predicate(snk_1_b(b, b) == 1 && snk_3_b(b, b) == 1);
+    computation new_term_re_3("new_term_re_3", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bsingle_re(t, iC2e, iS2e, kC2e, kS2e, x2, m, jC2e, jS2e, x) - term_im(nperm, wnum, t, x, x2, m) * B2_Bsingle_im(t, iC2e, iS2e, kC2e, kS2e, x2, m, jC2e, jS2e, x));
+    computation new_term_im_3("new_term_im_3", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bsingle_im(t, iC2e, iS2e, kC2e, kS2e, x2, m, jC2e, jS2e, x) + term_im(nperm, wnum, t, x, x2, m) * B2_Bsingle_re(t, iC2e, iS2e, kC2e, kS2e, x2, m, jC2e, jS2e, x));
+    new_term_re_3.add_predicate(snk_1_b(b, b) == 1 && snk_2_b(b,b) == 0 && snk_3_b(b, b) == 1);
+    new_term_im_3.add_predicate(snk_1_b(b, b) == 1 && snk_2_b(b,b) == 0 && snk_3_b(b, b) == 1);
 
     computation new_term_re_4("new_term_re_4", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Bdouble_re(t, jC1e, jS1e, kC1e, kS1e, x, m, iC1e, iS1e, x2) - term_im(nperm, wnum, t, x, x2, m) * B1_Bdouble_im(t, jC1e, jS1e, kC1e, kS1e, x, m, iC1e, iS1e, x2));
     computation new_term_im_4("new_term_im_4", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B1_Bdouble_im(t, jC1e, jS1e, kC1e, kS1e, x, m, iC1e, iS1e, x2) + term_im(nperm, wnum, t, x, x2, m) * B1_Bdouble_re(t, jC1e, jS1e, kC1e, kS1e, x, m, iC1e, iS1e, x2));
-    new_term_re_4.add_predicate((snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0) || (snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0));
-    new_term_im_4.add_predicate((snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0) || (snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0));
+    new_term_re_4.add_predicate((snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0 && snk_3_b(b,b) == 1) || (snk_1_b(b,b) == 1 && snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0));
+    new_term_im_4.add_predicate((snk_1_b(b, b) == 0 && snk_2_b(b, b) == 0 && snk_3_b(b,b) == 1) || (snk_1_b(b,b) == 1 && snk_2_b(b, b) == 0 && snk_3_b(b, b) == 0));
 
-    computation new_term_re_5("new_term_re_5", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bdouble_re(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x2) - term_im(nperm, wnum, t, x, x2, m) * B2_Bdouble_im(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x2));
-    computation new_term_im_5("new_term_im_5", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bdouble_im(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x2) + term_im(nperm, wnum, t, x, x2, m) * B2_Bdouble_re(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x2));
-    new_term_re_5.add_predicate((snk_1_b(b, b) == 1 && snk_2_b(b, b) == 1) || (snk_2_b(b, b) == 1 && snk_3_b(b, b) == 1));
-    new_term_im_5.add_predicate((snk_1_b(b, b) == 1 && snk_2_b(b, b) == 1) || (snk_2_b(b, b) == 1 && snk_3_b(b, b) == 1));
+    computation new_term_re_5("new_term_re_5", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bdouble_re(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x) - term_im(nperm, wnum, t, x, x2, m) * B2_Bdouble_im(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x));
+    computation new_term_im_5("new_term_im_5", {nperm, wnum, t, x, x2, m, b}, term_re(nperm, wnum, t, x, x2, m) * B2_Bdouble_im(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x) + term_im(nperm, wnum, t, x, x2, m) * B2_Bdouble_re(t, jC2e, jS2e, kC2e, kS2e, x2, m, iC2e, iS2e, x));
+    new_term_re_5.add_predicate((snk_1_b(b, b) == 1 && snk_2_b(b, b) == 1 && snk_3_b(b,b) == 0) || (snk_1_b(b,b) == 0 && snk_2_b(b, b) == 1 && snk_3_b(b, b) == 1));
+    new_term_im_5.add_predicate((snk_1_b(b, b) == 1 && snk_2_b(b, b) == 1 && snk_3_b(b,b) == 0) || (snk_1_b(b,b) == 0 && snk_2_b(b, b) == 1 && snk_3_b(b, b) == 1));
 
     computation term_re_1("term_re_1", {nperm, wnum, t, x, x2, m, b}, new_term_re_5(nperm, wnum, t, x, x2, m, b));
     computation term_im_1("term_im_1", {nperm, wnum, t, x, x2, m, b}, new_term_im_5(nperm, wnum, t, x, x2, m, b));
     complex_expr term(term_re_1(nperm, wnum, t, x, x2, m, Nb-1), term_im_1(nperm, wnum, t, x, x2, m, Nb-1));
-    complex_expr snk_psi(snk_psi_re(x, x2, n), snk_psi_im(x, x2, n));
+    complex_expr snk_psi(snk_psi_re(n, x2, x), snk_psi_im(n, x2, x));
     complex_expr term_res = term * snk_psi;
 
     computation C_update_r("C_update_r", {nperm, wnum, t, x, x2, m, n}, C_r(m, n, t) + term_res.get_real());
@@ -189,7 +189,7 @@ void generate_function(std::string name)
 	 .then(term_re_1, b)
 	 .then(term_im_1, b)
 	 .then(C_update_r, m)
-	 .then(C_update_i, n); 
+	 .then(C_update_i, n);  
 
     // -------------------------------------------------------
     // Layer III
@@ -268,7 +268,7 @@ void generate_function(std::string name)
     new_term_re_4.store_in(&buf_new_term_r, {0});
     new_term_im_4.store_in(&buf_new_term_i, {0});
     new_term_re_5.store_in(&buf_new_term_r, {0});
-    new_term_im_5.store_in(&buf_new_term_i, {0}); 
+    new_term_im_5.store_in(&buf_new_term_i, {0});
 
     snk_psi_re.store_in(&buf_snk_psi_re, {x, x2, n});
     snk_psi_im.store_in(&buf_snk_psi_im, {x, x2, n});

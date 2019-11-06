@@ -6,11 +6,11 @@
 
 #if DATA_SET_1
 
-#define P_Vsrc 16
-#define P_Vsnk 12
+#define P_Vsrc 8
+#define P_Vsnk 6
 #define P_Nsrc 4
 #define P_Nsnk 5
-#define P_Nt 1
+#define P_Nt 2
 #define P_NsrcHex 6
 #define P_NsnkHex 7
 #define P_Nc 3
