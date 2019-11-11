@@ -10,6 +10,12 @@ Each entry of the list is of format : (function_id, schedule_id).
 
 **IMPORTANT :** There are some directories that contain only a single program, with no schedule. Those programs won't be included in the final list as they don't need to be executed : they just have a speedup of 1, so if you want them in the final dataset, just include them with a speedup of 1.
 
+### filter_schedules.py
+
+Call this script instead of create_progs_list.py if you want a list of filtered programs. It generates a list of programs that will be executed, the difference with create_progs_list.py is that it discards some schedules.
+
+Each entry of the list is of format : (function_id, schedule_id).
+
 ### Phase 1 : generate Tiramisu object files
 Compile the Tiramisu codes and generate object files. This is where you must begin if your don't have Tiramisu object files.
 
