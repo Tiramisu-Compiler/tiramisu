@@ -32,14 +32,13 @@ int main(int, char **)
 
    int NsrcHex_f = 0;
    int NsnkHex_f = 0;
-   int Nr = 4;
-   int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, b;
+   int Nr = 6;
+   int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, nperm, b;
+   int iC1, iS1, iC2, iS2, jC1, jS1, jC2, jS2, kC1, kS1, kC2, kS2;
 
    // Halide buffers
-   //Halide::Buffer<double> b_C_r(Nr, Lt, Nsnk, Nsrc, "C_r");
-   //Halide::Buffer<double> b_C_i(Nr, Lt, Nsnk, Nsrc, "C_i");
-   Halide::Buffer<double> b_C_r(Lt, Nsnk, Nsrc, "C_r");
-   Halide::Buffer<double> b_C_i(Lt, Nsnk, Nsrc, "C_i");
+   Halide::Buffer<double> b_C_r(Nsnk, Nr, Nsrc, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(Nsnk, Nr, Nsrc, Lt, "C_i");
 
    Halide::Buffer<double> b_B1_prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B1_prop_r");
    Halide::Buffer<double> b_B1_prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B1_prop_i");
@@ -50,12 +49,12 @@ int main(int, char **)
    Halide::Buffer<double> b_B2_src_psi_r(Vsrc, Nsrc, "B2_psi_r");
    Halide::Buffer<double> b_B2_src_psi_i(Vsrc, Nsrc, "B2_psi_i");
 
-   Halide::Buffer<int> b_perms(2*Nq, Nperms, "perms");
+   Halide::Buffer<int> b_snk_blocks(2, Nr, "snk_blocks");
    Halide::Buffer<int> b_sigs(Nperms, "sigs");
-   Halide::Buffer<double> b_overall_weight(1, "overall_weight");
-   Halide::Buffer<int> b_snk_color_weights(Nq, Nw2, 2, "snk_color_weights");
-   Halide::Buffer<int> b_snk_spin_weights(Nq, Nw2, 2, "snk_spin_weights");
-   Halide::Buffer<double> b_snk_weights(Nw2, "snk_weights");
+   Halide::Buffer<int> b_snk_b(2, Nq, Nperms, "snk_b");
+   Halide::Buffer<int> b_snk_color_weights(2, Nq, Nw2, Nperms, Nr, "snk_color_weights");
+   Halide::Buffer<int> b_snk_spin_weights(2, Nq, Nw2, Nperms, Nr, "snk_spin_weights");
+   Halide::Buffer<double> b_snk_weights(Nw2, Nr, "snk_weights");
    Halide::Buffer<double> b_snk_psi_r(Nsnk, Vsnk, Vsnk, "snk_psi_re");
    Halide::Buffer<double> b_snk_psi_i(Nsnk, Vsnk, Vsnk, "snk_psi_im");
 
@@ -73,7 +72,19 @@ int main(int, char **)
                   for (jS = 0; jS < Ns; jS++) {
                      for (y = 0; y < Vsrc; y++) {
                         for (x = 0; x < Vsnk; x++) {
-                           if ((jC == iC) && (jS == iS)) {
+	                        double v1 = rand()%10;
+	                        double v2 = rand()%10;
+	                        double v3 = rand()%10;
+	                        double v4 = rand()%10;
+                           B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v1;
+                           B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v2;
+                           B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v3;
+                           B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = v4;
+			                  b_B1_prop_r(y, x, jS, jC, iS, iC, t, q) = v1;
+			                  b_B2_prop_r(y, x, jS, jC, iS, iC, t, q) = v2;
+			                  b_B1_prop_i(y, x, jS, jC, iS, iC, t, q) = v3;
+			                  b_B2_prop_i(y, x, jS, jC, iS, iC, t, q) = v4;
+                           /*if ((jC == iC) && (jS == iS)) {
                               B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
                               B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*cos(2*M_PI/6);
                               B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Lt)] = 1/mq*sin(2*M_PI/6);
@@ -92,7 +103,7 @@ int main(int, char **)
 			                     b_B2_prop_r(y, x, jS, jC, iS, iC, t, q) = 0.0;
 			                     b_B1_prop_i(y, x, jS, jC, iS, iC, t, q) = 0.0;
 			                     b_B2_prop_i(y, x, jS, jC, iS, iC, t, q) = 0.0;
-                           }
+                           }*/
                         }
                      }
                   }
@@ -186,51 +197,61 @@ int main(int, char **)
       src_weights_r1[wnum] = src_weights_r1_P[wnum];
       src_weights_r2[wnum] = src_weights_r2_P[wnum];
    }
-   double* overall_weight = (double*) malloc(1 * sizeof (double)); 
-   overall_weight[0] = 1.0;
-   b_overall_weight(0) = 1.0;
+   int* snk_color_weights_1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_color_weights_2 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_color_weights_r1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_color_weights_r2_1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_color_weights_r2_2 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_color_weights_r3 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_2 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_r1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_r2_1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_r2_2 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
+   int* snk_spin_weights_r3 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
    for (int nB1=0; nB1<Nw; nB1++) {
       for (int nB2=0; nB2<Nw; nB2++) {
-         /*snk_weights_1[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r1[nB1]*src_weights_r2[nB2];
-         snk_weights_2[nB1+Nw*nB2] = -1.0/sqrt(2) * src_weights_r2[nB1]*src_weights_r1[nB2];
-         snk_weights_r1[nB1+Nw*nB2] = src_weights_r1[nB1]*src_weights_r1[nB2];
-         snk_weights_r2_1[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r1[nB1]*src_weights_r2[nB2];
-         snk_weights_r2_2[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r2[nB1]*src_weights_r1[nB2];
-         snk_weights_r3[nB1+Nw*nB2] = src_weights_r2[nB1]*src_weights_r2[nB2];*/
-         b_snk_weights(nB1+Nw*nB2) = src_weights_r1_P[nB1]*src_weights_r1_P[nB2];
+         //snk_weights_2[nB1+Nw*nB2] = -1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
+         //snk_weights_r2_1[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r1_P[nB1]*src_weights_r2_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 0) = src_weights_r1_P[nB1]*src_weights_r1_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 1) = src_weights_r2_P[nB1]*src_weights_r2_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 2) = 1.0/sqrt(2) * src_weights_r1_P[nB1]*src_weights_r2_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 3) = 1.0/sqrt(2) * src_weights_r1_P[nB1]*src_weights_r2_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 4) = 1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
+         b_snk_weights(nB1+Nw*nB2, 5) = 1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
          for (int nq=0; nq<Nq; nq++) {
-/*            // A1g
-            snk_color_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB2,nq ,Nq)];
-            snk_color_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB2,nq ,Nq)];
+            // A1g
+            /*snk_color_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r1_P[index_2d(nB1,nq ,Nq)];
+            snk_spin_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r1_P[index_2d(nB1,nq ,Nq)];
+            snk_color_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r2_P[index_2d(nB2,nq ,Nq)];
+            snk_spin_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r2_P[index_2d(nB2,nq ,Nq)];
+            snk_color_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r2_P[index_2d(nB1,nq ,Nq)];
+            snk_spin_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r2_P[index_2d(nB1,nq ,Nq)];
+            snk_color_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r1_P[index_2d(nB2,nq ,Nq)];
+            snk_spin_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r1_P[index_2d(nB2,nq ,Nq)];*/
             // T1g_r1
-            snk_color_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_r1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_r1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB2,nq ,Nq)];
+            snk_color_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1_P[nB1][nq];
+            snk_spin_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1_P[nB1][nq];
+            snk_color_weights_r1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1_P[nB2][nq];
+            snk_spin_weights_r1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1_P[nB2][nq];
             // T1g_r2
-            snk_color_weights_r2_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_r2_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_r2_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_r2_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB2,nq ,Nq)];
-            snk_color_weights_r2_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_r2_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_r2_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_r2_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1[index_2d(nB2,nq ,Nq)];
+            snk_color_weights_r2_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1_P[nB1][nq];
+            snk_spin_weights_r2_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1_P[nB1][nq];
+            snk_color_weights_r2_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2_P[nB2][nq];
+            snk_spin_weights_r2_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2_P[nB2][nq];
+            snk_color_weights_r2_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2_P[nB1][nq];
+            snk_spin_weights_r2_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2_P[nB1][nq];
+            snk_color_weights_r2_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1_P[nB2][nq];
+            snk_spin_weights_r2_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1_P[nB2][nq];
             // T1g_r3 
-            snk_color_weights_r3[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_r3[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_r3[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_r3[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2[index_2d(nB2,nq ,Nq)]; */
-            b_snk_color_weights(nq,nB1+Nw*nB2,0) = src_color_weights_r1_P[nB1][nq];
+            snk_color_weights_r3[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2_P[nB1][nq];
+            snk_spin_weights_r3[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2_P[nB1][nq];
+            snk_color_weights_r3[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r2_P[nB2][nq];
+            snk_spin_weights_r3[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r2_P[nB2][nq];
+            /*b_snk_color_weights(nq,nB1+Nw*nB2,0) = src_color_weights_r1_P[nB1][nq];
             b_snk_spin_weights(nq,nB1+Nw*nB2,0) = src_spin_weights_r1_P[nB1][nq];
             b_snk_color_weights(nq,nB1+Nw*nB2,1) = src_color_weights_r1_P[nB2][nq];
-            b_snk_spin_weights(nq,nB1+Nw*nB2,1) = src_spin_weights_r1_P[nB2][nq];
+            b_snk_spin_weights(nq,nB1+Nw*nB2,1) = src_spin_weights_r1_P[nB2][nq];*/
          }
       }
    }
@@ -264,27 +285,151 @@ int main(int, char **)
       else {
          for (int q = 0; q < 2*Nq; q++) {
             perms[index_2d(permnum,q ,2*Nq)] = perms_array[i][q];
-            b_perms(q,permnum) = perms_array[i][q];
          }
          sigs[permnum] = sigs_array[i];
          b_sigs(permnum) = sigs_array[i];
          permnum += 1;
       }
    }
+   b_snk_blocks(0,0) = 1;
+   b_snk_blocks(1,0) = 1;
+   b_snk_blocks(0,1) = 2;
+   b_snk_blocks(1,1) = 2;
+   b_snk_blocks(0,2) = 1;
+   b_snk_blocks(1,2) = 2;
+   b_snk_blocks(0,3) = 2;
+   b_snk_blocks(1,3) = 1;
+   b_snk_blocks(0,4) = 1;
+   b_snk_blocks(1,4) = 2;
+   b_snk_blocks(0,5) = 2;
+   b_snk_blocks(1,5) = 1;
+
+
+   int snk_1_nq[Nb];
+   int snk_2_nq[Nb];
+   int snk_3_nq[Nb];
+   int snk_1_b[Nb];
+   int snk_2_b[Nb];
+   int snk_3_b[Nb];
+   int snk_1[Nb];
+   int snk_2[Nb];
+   int snk_3[Nb];
+   for (nperm=0; nperm<Nperms; nperm++) {
+      for (b=0; b<Nb; b++) {
+         snk_1[b] = perms[index_2d(nperm,Nq*b+0 ,2*Nq)] - 1;
+         snk_2[b] = perms[index_2d(nperm,Nq*b+1 ,2*Nq)] - 1;
+         snk_3[b] = perms[index_2d(nperm,Nq*b+2 ,2*Nq)] - 1;
+         snk_1_b[b] = (snk_1[b] - snk_1[b] % Nq) / Nq;
+         snk_2_b[b] = (snk_2[b] - snk_2[b] % Nq) / Nq;
+         snk_3_b[b] = (snk_3[b] - snk_3[b] % Nq) / Nq;
+         snk_1_nq[b] = snk_1[b] % Nq;
+         snk_2_nq[b] = snk_2[b] % Nq;
+         snk_3_nq[b] = snk_3[b] % Nq;
+         b_snk_b(b, 0, nperm) = snk_1_b[b];
+         b_snk_b(b, 1, nperm) = snk_2_b[b];
+         b_snk_b(b, 2, nperm) = snk_3_b[b];
+      }
+      for (wnum=0; wnum< Nw2; wnum++) {
+         b_snk_color_weights(0, 0, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 0) = snk_color_weights_r1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 0) = snk_spin_weights_r1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)]; 
+
+         b_snk_color_weights(0, 0, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 1) = snk_color_weights_r3[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 1) = snk_spin_weights_r3[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)]; 
+
+         b_snk_color_weights(0, 0, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 2) = snk_color_weights_r2_1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 2) = snk_spin_weights_r2_1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+
+         b_snk_color_weights(0, 0, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 3) = snk_color_weights_r2_1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 3) = snk_spin_weights_r2_1[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+
+         b_snk_color_weights(0, 0, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 4) = snk_color_weights_r2_2[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 4) = snk_spin_weights_r2_2[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)]; 
+
+         b_snk_color_weights(0, 0, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 0, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 1, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 1, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_2_b[0],wnum,snk_2_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(0, 2, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_spin_weights(0, 2, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_3_b[0],wnum,snk_3_nq[0] ,Nw2,Nq)];
+         b_snk_color_weights(1, 0, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 0, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_1_b[1],wnum,snk_1_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 1, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 1, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_2_b[1],wnum,snk_2_nq[1] ,Nw2,Nq)];
+         b_snk_color_weights(1, 2, wnum, nperm, 5) = snk_color_weights_r2_2[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)];
+         b_snk_spin_weights(1, 2, wnum, nperm, 5) = snk_spin_weights_r2_2[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2,Nq)]; 
+      }
+   }
    // Correlators
-   double* C_re = (double *) malloc(Nr * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
-   double* C_im = (double *) malloc(Nr * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
-   for (b=0; b<Nr; b++)
+   double* C_re = (double *) malloc(4 * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
+   double* C_im = (double *) malloc(4 * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
+   double* t_C_re = (double *) malloc(4 * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
+   double* t_C_im = (double *) malloc(4 * (Nsrc+NsrcHex_f) * (Nsnk+NsnkHex_f) * Lt * sizeof (double));
+   for (b=0; b<4; b++)
       for (m=0; m<Nsrc+NsrcHex_f; m++)
          for (n=0; n<Nsnk+NsnkHex_f; n++)
             for (t=0; t<Lt; t++) {
                C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] = 0.0;
                C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] = 0.0;
-               //b_C_r(t,n,m,b) = 0.0;
-               //b_C_i(t,n,m,b) = 0.0;
-               b_C_r(t,n,m) = 0.0;
-               b_C_i(t,n,m) = 0.0;
+               t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] = 0.0;
+               t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] = 0.0;
             }
+   for (b=0; b<Nr; b++)
+      for (m=0; m<Nsrc+NsrcHex_f; m++)
+         for (n=0; n<Nsnk+NsnkHex_f; n++)
+            for (t=0; t<Lt; t++) {
+               b_C_r(n,b,m,t) = 0.0;
+               b_C_i(n,b,m,t) = 0.0;
+            } 
    int space_symmetric = 0;
    int snk_entangled = 0;
 
@@ -324,9 +469,9 @@ int main(int, char **)
                 b_B2_src_psi_r.raw_buffer(),
                 b_B2_src_psi_i.raw_buffer(),
 
-				    b_perms.raw_buffer(),
+				    b_snk_blocks.raw_buffer(),
 				    b_sigs.raw_buffer(),
-				    b_overall_weight.raw_buffer(),
+				    b_snk_b.raw_buffer(),
 				    b_snk_color_weights.raw_buffer(),
 				    b_snk_spin_weights.raw_buffer(),
 				    b_snk_weights.raw_buffer(),
@@ -343,27 +488,52 @@ int main(int, char **)
     std::cout << "\nSpeedup = " << median(duration_vector_2)/median(duration_vector_1) << std::endl;
 
 #if RUN_CHECK
-    // Compare outputs.
-
-   for (b=1; b<Nr; b++)
+    // symmetrize and such
       for (m=0; m<Nsrc+NsrcHex_f; m++)
          for (n=0; n<Nsnk+NsnkHex_f; n++)
             for (t=0; t<Lt; t++) {
-               //printf("%4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], b_C_r(t,n,m,b), b_C_i(t,n,m,b));
-               //if ((std::abs(C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - b_C_r(t,n,m,b)) >= 0.01) ||
-	             //  (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - b_C_i(t,n,m,b)) >= 0.01))
-               printf("m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", m, n, t, C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], b_C_r(t,n,m), b_C_i(t,n,m));
-               if ((std::abs(C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - b_C_r(t,n,m)) >= 0.01) ||
-	               (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - b_C_i(t,n,m)) >= 0.01))
+               t_C_re[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
+               t_C_re[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] -= 1/sqrt(2) * b_C_r(n,3,m,t);
+               t_C_re[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] -= 1/sqrt(2) * b_C_r(n,4,m,t);
+               t_C_re[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,5,m,t);
+               t_C_re[index_4d(1,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += b_C_r(n,0,m,t);
+               t_C_re[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
+               t_C_re[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
+               t_C_re[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
+               t_C_re[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_r(n,5,m,t);
+               t_C_re[index_4d(3,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += b_C_r(n,1,m,t);
+               t_C_im[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
+               t_C_im[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] -= 1/sqrt(2) * b_C_i(n,3,m,t);
+               t_C_im[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] -= 1/sqrt(2) * b_C_i(n,4,m,t);
+               t_C_im[index_4d(0,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,5,m,t);
+               t_C_im[index_4d(1,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += b_C_i(n,0,m,t);
+               t_C_im[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
+               t_C_im[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
+               t_C_im[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
+               t_C_im[index_4d(2,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += 1/sqrt(2) * b_C_i(n,5,m,t);
+               t_C_im[index_4d(3,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] += b_C_i(n,1,m,t);
+            }
+    // Compare outputs.
+
+   for (b=0; b<4; b++) {
+      printf("\n");
+      for (m=0; m<Nsrc+NsrcHex_f; m++)
+         for (n=0; n<Nsnk+NsnkHex_f; n++)
+            for (t=0; t<Lt; t++) {
+               if ((std::abs(C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01) ||
+	               (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01))
 	            {
+                  printf("r=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", b, m, n, t, C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]);
 		            std::cout << "Error: different computed values for C_r or C_i!" << std::endl;
-		            //exit(1);
+		            exit(1);
 	            }
             }
+   }
 
 #endif
+   printf("Finished\n");
 
-//    std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
+    std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
 
     return 0;
 }

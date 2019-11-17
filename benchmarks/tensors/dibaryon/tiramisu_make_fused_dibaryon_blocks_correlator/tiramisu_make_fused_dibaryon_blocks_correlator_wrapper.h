@@ -16,7 +16,7 @@
 #define Ns 2
 #define Nw 9
 #define Nw2 81
-#define Nperms 36
+#define Nperms 9 //36
 #define Lt 2
 #define Vsrc 2
 #define Vsnk 4
@@ -32,7 +32,7 @@
 #define Ns 2
 #define Nw 9
 #define Nw2 81
-#define Nperms 36
+#define Nperms 9 //36
 #define Lt 4 // 1..32
 #define Vsrc 16 //64 //8, 64, 512
 #define Vsnk 16 //64 //8, 64, 512
