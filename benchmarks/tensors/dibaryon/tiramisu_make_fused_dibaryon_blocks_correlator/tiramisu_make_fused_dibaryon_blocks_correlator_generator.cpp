@@ -6,7 +6,7 @@
 
 using namespace tiramisu;
 
-#define VECTORIZED 0
+#define VECTORIZED 1
 #define PARALLEL 0
 
 // Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
@@ -1102,12 +1102,12 @@ void generate_function(std::string name)
           .then(C_update_i, n);
 
 #if VECTORIZED
-    B1_Blocal_r1_r_init.tag_vector_level(jSprime, Ns);
+/*    B1_Blocal_r1_r_init.tag_vector_level(jSprime, Ns);
     B1_Blocal_r1_i_init.tag_vector_level(jSprime, Ns);
     B1_Bsingle_r1_r_init.tag_vector_level(x2, Vsnk);
     B1_Bsingle_r1_i_init.tag_vector_level(x2, Vsnk);
     B1_Bdouble_r1_r_init.tag_vector_level(x2, Vsnk);
-    B1_Bdouble_r1_i_init.tag_vector_level(x2, Vsnk);
+    B1_Bdouble_r1_i_init.tag_vector_level(x2, Vsnk); */
 
     for (auto edge : B1_q2userEdges_r1) {
       edge.q_r->tag_vector_level(y, Vsrc);
@@ -1123,12 +1123,13 @@ void generate_function(std::string name)
 //      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
     }
 
+    /*
     B2_Blocal_r1_r_init.tag_vector_level(jSprime, Ns);
     B2_Blocal_r1_i_init.tag_vector_level(jSprime, Ns);
     B2_Bsingle_r1_r_init.tag_vector_level(x2, Vsnk);
     B2_Bsingle_r1_i_init.tag_vector_level(x2, Vsnk);
     B2_Bdouble_r1_r_init.tag_vector_level(x2, Vsnk);
-    B2_Bdouble_r1_i_init.tag_vector_level(x2, Vsnk);
+    B2_Bdouble_r1_i_init.tag_vector_level(x2, Vsnk); */
 
     for (auto edge : B2_q2userEdges_r1) {
       edge.q_r->tag_vector_level(y, Vsrc);
@@ -1144,12 +1145,12 @@ void generate_function(std::string name)
 //      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
     }
 
-    B1_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
+/*    B1_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
     B1_Blocal_r2_i_init.tag_vector_level(jSprime, Ns);
     B1_Bsingle_r2_r_init.tag_vector_level(x2, Vsnk);
     B1_Bsingle_r2_i_init.tag_vector_level(x2, Vsnk);
     B1_Bdouble_r2_r_init.tag_vector_level(x2, Vsnk);
-    B1_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk);
+    B1_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk); */
 
     for (auto edge : B1_q2userEdges_r2) {
       edge.q_r->tag_vector_level(y, Vsrc);
@@ -1165,12 +1166,12 @@ void generate_function(std::string name)
 //      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
     }
 
-    B2_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
+/*    B2_Blocal_r2_r_init.tag_vector_level(jSprime, Ns);
     B2_Blocal_r2_i_init.tag_vector_level(jSprime, Ns);
     B2_Bsingle_r2_r_init.tag_vector_level(x2, Vsnk);
     B2_Bsingle_r2_i_init.tag_vector_level(x2, Vsnk);
     B2_Bdouble_r2_r_init.tag_vector_level(x2, Vsnk);
-    B2_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk);
+    B2_Bdouble_r2_i_init.tag_vector_level(x2, Vsnk); */
 
     for (auto edge : B2_q2userEdges_r2) {
       edge.q_r->tag_vector_level(y, Vsrc);
@@ -1184,7 +1185,62 @@ void generate_function(std::string name)
     for (auto edge : B2_p2userEdges_r2) {
       edge.p_r->tag_vector_level(y, Vsrc);
 //      edge.bd_r->tag_vector_level(x2, Vsnk); // Disabled due to a an error
-    }
+    } 
+
+/*    (new_term_0_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_0_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r1_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r1_b1.get_imag())->tag_vector_level(wnum, Nw2);
+
+    (new_term_0_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_0_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r2_b1.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r2_b1.get_imag())->tag_vector_level(wnum, Nw2);
+
+    (new_term_0_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_0_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r1_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r1_b2.get_imag())->tag_vector_level(wnum, Nw2);
+
+    (new_term_0_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_0_r2_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_1_r2_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_2_r2_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_3_r2_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_4_r2_b2.get_imag())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r2_b2.get_real())->tag_vector_level(wnum, Nw2);
+    (new_term_5_r2_b2.get_imag())->tag_vector_level(wnum, Nw2); */
+
+    C_update_r.tag_vector_level(n, Nsnk);
+    //C_update_i.tag_vector_level(n, Nsnk);  
 #endif
 
 #if PARALLEL

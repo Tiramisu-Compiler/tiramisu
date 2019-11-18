@@ -9,7 +9,7 @@
 
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
-int nb_tests = 3;
+int nb_tests = 1;
 
 int main(int, char **)
 {
@@ -520,8 +520,8 @@ int main(int, char **)
       for (m=0; m<Nsrc+NsrcHex_f; m++)
          for (n=0; n<Nsnk+NsnkHex_f; n++)
             for (t=0; t<Lt; t++) {
-               if ((std::abs(C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01) ||
-	               (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01))
+               if ((std::abs(C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01*Vsnk*Vsnk) ||
+	               (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)] - t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]) >= 0.01*Vsnk*Vsnk))
 	            {
                   printf("r=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", b, m, n, t, C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], t_C_re[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)], t_C_im[index_4d(b,m,n,t, Nsrc+NsrcHex_f,Nsnk+NsnkHex_f,Lt)]);
 		            std::cout << "Error: different computed values for C_r or C_i!" << std::endl;
