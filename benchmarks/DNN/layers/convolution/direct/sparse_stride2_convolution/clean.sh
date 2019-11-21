@@ -1,0 +1,1 @@
+rm -rf generated_stride2_spconv.o.h generated_stride2_spconv.o mkl_result.txt tiramisu_result.txt stride2_spconv_wrapper stride2_spconv_generator spconv_mkldnn_result
