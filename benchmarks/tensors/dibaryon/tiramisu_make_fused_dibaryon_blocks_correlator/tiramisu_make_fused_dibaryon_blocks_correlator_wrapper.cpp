@@ -16,19 +16,22 @@ int main(int, char **)
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-   long kilo = 1024;
+    long mega = 1024*1024;
 
-   std::cout << "Array sizes" << std::endl;
-   std::cout << "Prop:" <<  std::endl;
-   std::cout << "	Max index size = " << Nc*Ns*Nc*Ns*Lt*Vsrc*Vsnk*Nq <<  std::endl;
-   std::cout << "	Array size = " << Nc*Ns*Nc*Ns*Lt*Vsrc*Vsnk*sizeof(std::complex<double>)/kilo << " kilobytes" << std::endl;
-   std::cout << "Blocal:" <<  std::endl;
-   std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
-   std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>) << " bytes" << std::endl;
-   std::cout << "Bsingle, Bdouble, Q, O & P:" <<  std::endl;
-   std::cout << "	Max index size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
-   std::cout << "	Array size = " << Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>) << " bytes" <<  std::endl;
-   std::cout << std::endl;
+    std::cout << "Array sizes" << std::endl;
+    std::cout << "Prop:" <<  std::endl;
+    std::cout << "	Max index size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt <<  std::endl;
+    std::cout << "	Array size = " << Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Lt*Lt*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
+    std::cout << "Blocal:" <<  std::endl;
+    std::cout << "	Max index size = " << Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
+    std::cout << "	Array size = " << Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/mega << " Mega bytes" << std::endl;
+    std::cout << "Q, O & P:" <<  std::endl;
+    std::cout << "	Max index size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
+    std::cout << "	Array size = " << Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
+    std::cout << "Bsingle, Bdouble:" <<  std::endl;
+    std::cout << "	Max index size = " << Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
+    std::cout << "	Array size = " << Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/mega << " Mega bytes" <<  std::endl;
+    std::cout << std::endl;
 
    int NsrcHex_f = 0;
    int NsnkHex_f = 0;
@@ -44,10 +47,10 @@ int main(int, char **)
    Halide::Buffer<double> b_B1_prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B1_prop_i");
    Halide::Buffer<double> b_B2_prop_r(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B2_prop_r");
    Halide::Buffer<double> b_B2_prop_i(Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq, "B2_prop_i");
-   Halide::Buffer<double> b_B1_src_psi_r(Vsrc, Nsrc, "B1_psi_r");
-   Halide::Buffer<double> b_B1_src_psi_i(Vsrc, Nsrc, "B1_psi_i");
-   Halide::Buffer<double> b_B2_src_psi_r(Vsrc, Nsrc, "B2_psi_r");
-   Halide::Buffer<double> b_B2_src_psi_i(Vsrc, Nsrc, "B2_psi_i");
+   Halide::Buffer<double> b_B1_src_psi_r(Nsrc, Vsrc, "B1_psi_r");
+   Halide::Buffer<double> b_B1_src_psi_i(Nsrc, Vsrc, "B1_psi_i");
+   Halide::Buffer<double> b_B2_src_psi_r(Nsrc, Vsrc, "B2_psi_r");
+   Halide::Buffer<double> b_B2_src_psi_i(Nsrc, Vsrc, "B2_psi_i");
 
    Halide::Buffer<int> b_snk_blocks(2, Nr, "snk_blocks");
    Halide::Buffer<int> b_sigs(Nperms, "sigs");
@@ -127,10 +130,10 @@ int main(int, char **)
          src_psi_B1_im[index_2d(x,m ,Nsrc)] = v2;
          src_psi_B2_re[index_2d(x,m ,Nsrc)] = v3;
          src_psi_B2_im[index_2d(x,m ,Nsrc)] = v4;
-         b_B1_src_psi_r(x,m) = v1;
-         b_B1_src_psi_i(x,m) = v2;
-         b_B2_src_psi_r(x,m) = v3;
-         b_B2_src_psi_i(x,m) = v4;
+         b_B1_src_psi_r(m,x) = v1;
+         b_B1_src_psi_i(m,x) = v2;
+         b_B2_src_psi_r(m,x) = v3;
+         b_B2_src_psi_i(m,x) = v4;
       }
    double* snk_psi_re = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
    double* snk_psi_im = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
@@ -211,8 +214,6 @@ int main(int, char **)
    int* snk_spin_weights_r3 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
    for (int nB1=0; nB1<Nw; nB1++) {
       for (int nB2=0; nB2<Nw; nB2++) {
-         //snk_weights_2[nB1+Nw*nB2] = -1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
-         //snk_weights_r2_1[nB1+Nw*nB2] = 1.0/sqrt(2) * src_weights_r1_P[nB1]*src_weights_r2_P[nB2];
          b_snk_weights(nB1+Nw*nB2, 0) = src_weights_r1_P[nB1]*src_weights_r1_P[nB2];
          b_snk_weights(nB1+Nw*nB2, 1) = src_weights_r2_P[nB1]*src_weights_r2_P[nB2];
          b_snk_weights(nB1+Nw*nB2, 2) = 1.0/sqrt(2) * src_weights_r1_P[nB1]*src_weights_r2_P[nB2];
@@ -220,15 +221,6 @@ int main(int, char **)
          b_snk_weights(nB1+Nw*nB2, 4) = 1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
          b_snk_weights(nB1+Nw*nB2, 5) = 1.0/sqrt(2) * src_weights_r2_P[nB1]*src_weights_r1_P[nB2];
          for (int nq=0; nq<Nq; nq++) {
-            // A1g
-            /*snk_color_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r1_P[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r1_P[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r2_P[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_1[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r2_P[index_2d(nB2,nq ,Nq)];
-            snk_color_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r2_P[index_2d(nB1,nq ,Nq)];
-            snk_spin_weights_2[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r2_P[index_2d(nB1,nq ,Nq)];
-            snk_color_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weight_r1_P[index_2d(nB2,nq ,Nq)];
-            snk_spin_weights_2[index_3d(1,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weight_r1_P[index_2d(nB2,nq ,Nq)];*/
             // T1g_r1
             snk_color_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_color_weights_r1_P[nB1][nq];
             snk_spin_weights_r1[index_3d(0,nB1+Nw*nB2,nq ,Nw2,Nq)] = src_spin_weights_r1_P[nB1][nq];
