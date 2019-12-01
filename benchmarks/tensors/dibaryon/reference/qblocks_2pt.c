@@ -20,7 +20,7 @@ int index_4d(int a, int b, int c, int d, int length2, int length3, int length4) 
 }
 int prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int x, int Nc, int Ns, int Vsrc, int Vsnk, int Nt) {
    //return x +Vsnk*( y +Vsrc*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t +Nt* q ))))));
-   return y +Vsnk*( x +Vsrc*( s1 +Ns*( c1 +Nc*( s2 +Ns*( c2 +Nc*( t +Nt* q ))))));
+   return y +Vsrc*( x +Vsnk*( s1 +Ns*( c1 +Nc*( s2 +Ns*( c2 +Nc*( t +Nt* q ))))));
 }
 int Q_index(int t, int c1, int s1, int c2, int s2, int x1, int c3, int s3, int y, int Nc, int Ns, int Vsrc, int Vsnk) {
    return y +Vsrc*( s3 +Ns*( c3 +Nc*( x1 +Vsnk*( s2 +Ns*( c2 +Nc*( s1 +Ns*( c1 +Nc*( t ))))))));

@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "qblocks_2pt.h"                                       /* DEPS */
-#include "qblocks_2pt_parameters.h"
+#include "qblocks_2pt_parameters.h"                                       /* DEPS */
 
 int main() {
   int Vsrc = P_Vsrc;
@@ -23,6 +23,23 @@ int main() {
   int Nw = P_Nw;
   int Nperms = P_Nperms;
 
+    long mega = 1024*1024;
+
+    printf("Array sizes\n");
+    printf("Prop:\n");
+    printf("	Max index size = %d ", Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nt);
+    printf("	Array size = %lu Mega bytes\n", Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nt*Nt*sizeof(double)/mega);
+    printf("Blocal:\n");
+    printf("	Max index size = %d ", Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns);
+    printf("	Array size = %lu Mega bytes\n", Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
+    printf("Q, O & P:\n");
+    printf("	Max index size = %d ", Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns);
+    printf("	Array size = %lu Mega bytes\n", Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
+    printf("Bsingle, Bdouble:\n");
+    printf("	Max index size = %d ", Nc*Ns*Nc*Ns*Nc*Ns);
+    printf("	Array size = %lu Mega bytes\n", Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
+
+  printf("%lu \n", __SIZE_MAX__);
    printf("starting block main\n");
    time_t start,end;
    time (&start);

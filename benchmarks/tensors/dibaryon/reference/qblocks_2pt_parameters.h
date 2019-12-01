@@ -6,8 +6,8 @@
 
 #if DATA_SET_1
 
-#define P_Vsrc 512
-#define P_Vsnk 512
+#define P_Vsrc 64
+#define P_Vsnk 64
 #define P_Nsrc 4
 #define P_Nsnk 4
 #define P_Nt 1
@@ -22,8 +22,8 @@
 
 #elif DATA_SET_2
 
-#define P_Vsrc 4
-#define P_Vsnk 4
+#define P_Vsrc 256
+#define P_Vsnk 256
 #define P_Nsrc 4
 #define P_Nsnk 4
 #define P_Nt 1

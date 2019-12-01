@@ -1358,9 +1358,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_Q_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r1_%d_%d", ic, is));
-        (B1_q2userEdges_r1[B1_r1_q_index]).q_r->store_in(B1_q_r1_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
-        (B1_q2userEdges_r1[B1_r1_q_index]).q_i->store_in(B1_q_r1_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r1_%d_%d", ic, is));
+        (B1_q2userEdges_r1[B1_r1_q_index]).q_r->store_in(B1_q_r1_r_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
+        (B1_q2userEdges_r1[B1_r1_q_index]).q_i->store_in(B1_q_r1_i_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
         B1_r1_q_index++;
         }
     int B1_r1_o_index=0;
@@ -1368,9 +1368,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_O_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r1_%d_%d", ic, is));
-        (B1_o2userEdges_r1[B1_r1_o_index]).o_r->store_in(B1_o_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
-        (B1_o2userEdges_r1[B1_r1_o_index]).o_i->store_in(B1_o_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r1_%d_%d", ic, is));
+        (B1_o2userEdges_r1[B1_r1_o_index]).o_r->store_in(B1_o_r1_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        (B1_o2userEdges_r1[B1_r1_o_index]).o_i->store_in(B1_o_r1_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
         B1_r1_o_index++;
         }
     int B1_r1_p_index=0;
@@ -1378,9 +1378,9 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B1_P_exprs_r1[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r1_%d_%d", kc, ks));
-        (B1_p2userEdges_r1[B1_r1_p_index]).p_r->store_in(B1_p_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
-        (B1_p2userEdges_r1[B1_r1_p_index]).p_i->store_in(B1_p_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r1_%d_%d", kc, ks));
+        (B1_p2userEdges_r1[B1_r1_p_index]).p_r->store_in(B1_p_r1_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        (B1_p2userEdges_r1[B1_r1_p_index]).p_i->store_in(B1_p_r1_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
         B1_r1_p_index++;
         }
     for (auto computations: B1_Blocal_r1_updates) {
@@ -1518,9 +1518,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_Q_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_q_r2_r_buf, B1_q_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r2_%d_%d", ic, is));
-        (B1_q2userEdges_r2[B1_r2_q_index]).q_r->store_in(B1_q_r2_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
-        (B1_q2userEdges_r2[B1_r2_q_index]).q_i->store_in(B1_q_r2_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_q_r2_r_buf, B1_q_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r2_%d_%d", ic, is));
+        (B1_q2userEdges_r2[B1_r2_q_index]).q_r->store_in(B1_q_r2_r_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
+        (B1_q2userEdges_r2[B1_r2_q_index]).q_i->store_in(B1_q_r2_i_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
         B1_r2_q_index++;
         }
     int B1_r2_o_index=0;
@@ -1528,9 +1528,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_O_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_o_r2_r_buf, B1_o_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r2_%d_%d", ic, is));
-        (B1_o2userEdges_r2[B1_r2_o_index]).o_r->store_in(B1_o_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
-        (B1_o2userEdges_r2[B1_r2_o_index]).o_i->store_in(B1_o_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_o_r2_r_buf, B1_o_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r2_%d_%d", ic, is));
+        (B1_o2userEdges_r2[B1_r2_o_index]).o_r->store_in(B1_o_r2_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        (B1_o2userEdges_r2[B1_r2_o_index]).o_i->store_in(B1_o_r2_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
         B1_r2_o_index++;
         }
     int B1_r2_p_index=0;
@@ -1538,9 +1538,9 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B1_P_exprs_r2[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B1_p_r2_r_buf, B1_p_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r2_%d_%d", kc, ks));
-        (B1_p2userEdges_r2[B1_r2_p_index]).p_r->store_in(B1_p_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
-        (B1_p2userEdges_r2[B1_r2_p_index]).p_i->store_in(B1_p_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_p_r2_r_buf, B1_p_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r2_%d_%d", kc, ks));
+        (B1_p2userEdges_r2[B1_r2_p_index]).p_r->store_in(B1_p_r2_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        (B1_p2userEdges_r2[B1_r2_p_index]).p_i->store_in(B1_p_r2_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
         B1_r2_p_index++;
         }
     for (auto computations: B1_Blocal_r2_updates) {
