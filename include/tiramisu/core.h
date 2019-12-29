@@ -4380,6 +4380,8 @@ public:
 
     static xfer create_xfer(std::string iter_domain, xfer_prop prop, tiramisu::expr expr,
                             tiramisu::function *fct);
+
+    virtual ~computation() {}
 };
 
 class input: public computation

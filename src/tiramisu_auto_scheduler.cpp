@@ -25,7 +25,8 @@ namespace tiramisu
 
     computation_graph auto_scheduler::create_initial_computation_graph(function *fct)
     {
-
+        computation_graph g{};
+        return std::move(g);
     }
 
     void auto_scheduler::parallelism_apply(block &b)
