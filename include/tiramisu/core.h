@@ -291,6 +291,8 @@ private:
 
     std::shared_ptr<cuda_ast::compiler> nvcc_compiler;
 
+protected:
+
     /**
       * Tag the dimension \p dim of the computation \p computation_name to
       * be parallelized.
@@ -400,8 +402,6 @@ private:
      */
     void rename_computations();
 
-
-protected:
 
     /**
       * Add a buffer to the function.
