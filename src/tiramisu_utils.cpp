@@ -7,6 +7,8 @@
 using std::string;
 using std::vector;
 
+namespace tiramisu
+{
 double median(vector<std::chrono::duration<double, std::milli>> scores)
 {
     double median;
@@ -93,4 +95,5 @@ void combine_dist_results(const std::string &test, std::vector<int> dims, int nu
     }
     output_file.flush();
     output_file.close();
+}
 }
