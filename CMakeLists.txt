@@ -19,13 +19,22 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
-	include/tiramisu/computation_graph.h
-	include/tiramisu/auto_scheduler.h
         )
+        
+if (${USE_AUTO_SCHEDULER})
+    set(HEADER_FILES ${HEADER_FILES}
+        include/tiramisu/auto_scheduler/core.h
+        include/tiramisu/auto_scheduler/evaluator.h
+        include/tiramisu/auto_scheduler/search_method.h
+        )
+endif()
 
 # Add CMake cpp files
-set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
+if (${USE_AUTO_SCHEDULER})
+    set(OBJS_AUTO_SCHEDULER auto_scheduler beam_search eval_dnn_model)
+endif()
 
 ### CMAKE FILE INTERNALS ###
 
@@ -145,7 +154,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -212,8 +221,24 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
+target_compile_options(tiramisu PRIVATE -fno-rtti)
+
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
+
+if (${USE_AUTO_SCHEDULER})
+    set(CMAKE_PREFIX_PATH ${LIBTORCH_PATH})
+    find_package(Torch REQUIRED)
+    
+    set(AUTO_SCHEDULER_CODE "")
+    foreach(obj ${OBJS_AUTO_SCHEDULER})
+        set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
+    endforeach()
+    
+    add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
+    target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib} ${TORCH_LIBRARIES})
+    target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
+endif()
 
 function(link_tags name)
     if (${is_gpu})

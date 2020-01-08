@@ -13,6 +13,9 @@ option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 
+# If you set this to true, you should correctly set LIBTORCH_PATH (see below)
+option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" TRUE)
+
 # Change with the cudnn library location
 set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location")
 
@@ -30,6 +33,9 @@ set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 # Example:
 # set(MKL_PREFIX "/data/scratch/baghdadi/libs/intel/mkl/")
 set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
+
+# The specified folder should contain the folders include and lib
+set(LIBTORCH_PATH "~/data/software/libtorch" CACHE PATH "LibTorch library path")
 
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
 
