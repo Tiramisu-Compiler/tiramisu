@@ -22,7 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/computation_graph.h>
+#include <tiramisu/auto_scheduler/core.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -41,8 +41,11 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
-class auto_scheduler;
 
+namespace auto_scheduler
+{
+class program_repr;
+}
 
 struct HalideCodegenOutput
 {
@@ -139,7 +142,7 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
-    friend auto_scheduler;
+    friend auto_scheduler::program_repr;
 
 private:
     /**
@@ -485,18 +488,6 @@ protected:
       * {C[0] -> D[1]; C[0]->D[2]}
       */
     isl_union_map *compute_dep_graph();
-
-    /**
-      * The Tiramisu autoscheduler starts by creating an initial
-      * ordered graph of computations. This graph represents the
-      * original computations and the order defined based on
-      * dependencens between these computations.
-      * Computations of the initial graph are then fused to form
-      * blocks. Each block is the result of fusing multiple
-      * computations. The final order of computations is derived
-      * from this ordered graph of computations.
-      */
-    computation_graph cg;
 
     /**
       * Get the arguments of the function.
