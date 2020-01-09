@@ -15,7 +15,7 @@ class evaluator
     
     public:
         virtual ~evaluator() {}
-        virtual float evaluate(program_repr const& prog_repr) =0;
+        virtual float evaluate(computation_graph const& cg) =0;
 };
 
 class eval_dnn_model : public evaluator
@@ -29,7 +29,7 @@ class eval_dnn_model : public evaluator
         eval_dnn_model(std::string const& model_path);
         virtual ~eval_dnn_model() {}
         
-        virtual float evaluate(program_repr const& prog_repr);
+        virtual float evaluate(computation_graph const& cg);
 };
 
 }

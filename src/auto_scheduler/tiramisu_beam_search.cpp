@@ -3,7 +3,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-void beam_search::search(program_repr const& initial_state)
+void beam_search::search(computation_graph const& cg)
 {
 
 }

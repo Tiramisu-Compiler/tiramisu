@@ -12,48 +12,37 @@ namespace tiramisu::auto_scheduler
 class evaluator;
 class search_method;
 
-class loop_iterator
+class iterator
 {
-    private:
-    
-    protected:
+    public:
+        std::string name;
         int low_bound;
         int up_bound;
         
-        std::vector<loop_iterator*> children;
-        std::vector<tiramisu::computation*> comps;
-        
-    public:
-        loop_iterator(int low_bound, int up_bound)
-            : low_bound(low_bound), up_bound(up_bound) {}
-            
-        ~loop_iterator()
-        {
-            for (loop_iterator* child : children)
-                delete child;
-        }
-        
-        void add_child(loop_iterator* child) { children.push_back(child); }
-        void add_computation(tiramisu::computation* comp) { comps.push_back(comp); }
-        
-        void set_low_bound(int low_bound) { this->low_bound = low_bound; }
-        void set_up_bound(int up_bound) { this->up_bound = up_bound; }
-        
-        std::vector<loop_iterator*> get_children() const { return children; }
-        std::vector<tiramisu::computation*> get_computations() { return comps; }
+        iterator(std::string const& name, int low_bound, int up_bound)
+            : name(name), low_bound(low_bound), up_bound(up_bound) {}
 };
 
-class program_repr
+class cg_node
 {
-    private:
-    
-    protected:
-        std::vector<loop_iterator*> iterators_tree;
-        
     public:
-        program_repr(tiramisu::function *fct);
+        std::vector<iterator> iterators;
+        tiramisu::computation* comp;
+        std::vector<cg_node*> children;
         
-        std::vector<loop_iterator*> get_iterators() const { return iterators_tree; }
+        ~cg_node()
+        {
+            for (cg_node* child : children)
+                delete child;
+        }
+};
+
+class computation_graph
+{
+    public:
+        std::vector<cg_node*> roots;
+        
+        computation_graph(tiramisu::function *fct);
 };
 
 class auto_scheduler
@@ -61,7 +50,7 @@ class auto_scheduler
     private:
         
     protected:
-        program_repr prog_repr;
+        computation_graph cg;
         
         search_method *searcher;
         evaluator *eval_func;

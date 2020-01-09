@@ -44,7 +44,7 @@ class xfer_prop;
 
 namespace auto_scheduler
 {
-class program_repr;
+class computation_graph;
 }
 
 struct HalideCodegenOutput
@@ -142,7 +142,7 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
-    friend auto_scheduler::program_repr;
+    friend auto_scheduler::computation_graph;
 
 private:
     /**

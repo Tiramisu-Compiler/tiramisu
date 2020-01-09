@@ -19,7 +19,7 @@ class search_method
             : eval_func(eval_func) {}
             
         virtual ~search_method() {}
-        virtual void search(program_repr const& initial_state) =0;
+        virtual void search(computation_graph const& cg) =0;
         
         void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
 };
@@ -35,7 +35,7 @@ class beam_search : public search_method
             : search_method(eval_func) {}
         
         virtual ~beam_search() {}
-        virtual void search(program_repr const& initial_state);
+        virtual void search(computation_graph const& cg);
 };
 
 }

@@ -9,7 +9,7 @@ eval_dnn_model::eval_dnn_model(std::string const& model_path)
     model = torch::jit::load(model_path);
 }
 
-float eval_dnn_model::evaluate(program_repr const& prog_repr)
+float eval_dnn_model::evaluate(computation_graph const& cg)
 {
 
 }
