@@ -9,27 +9,27 @@ namespace tiramisu::auto_scheduler
 
 class evaluator
 {
-    private:
+private:
     
-    protected:
+protected:
     
-    public:
-        virtual ~evaluator() {}
-        virtual float evaluate(computation_graph const& cg) =0;
+public:
+    virtual ~evaluator() {}
+    virtual float evaluate(computation_graph const& cg) =0;
 };
 
 class eval_dnn_model : public evaluator
 {
-    private:
+private:
     
-    protected:
-        torch::jit::script::Module model;
+protected:
+    torch::jit::script::Module model;
     
-    public:
-        eval_dnn_model(std::string const& model_path);
-        virtual ~eval_dnn_model() {}
+public:
+    eval_dnn_model(std::string const& model_path);
+    virtual ~eval_dnn_model() {}
         
-        virtual float evaluate(computation_graph const& cg);
+    virtual float evaluate(computation_graph const& cg);
 };
 
 }
