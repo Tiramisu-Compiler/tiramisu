@@ -221,7 +221,6 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
-target_compile_options(tiramisu PRIVATE -fno-rtti)
 
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
