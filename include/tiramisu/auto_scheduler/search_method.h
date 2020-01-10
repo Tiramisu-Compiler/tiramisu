@@ -7,11 +7,19 @@
 namespace tiramisu::auto_scheduler
 {
 
+/**
+  * An abstract class that represents a search method.
+  * Derive this class and give an implementation of
+  * the method "search" to implement a new search algorithm.
+  */
 class search_method
 {
 private:
     
 protected:
+    /**
+      * The evaluation function used by the search method.
+      */
     evaluator *eval_func;
     
 public:
@@ -19,11 +27,20 @@ public:
         : eval_func(eval_func) {}
             
     virtual ~search_method() {}
+    
+    /**
+      * The method to call to start a search.
+      * It takes as input a computation graph and returns a list of
+      * code transformations.
+      */
     virtual void search(computation_graph const& cg) =0;
         
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
 };
 
+/**
+  * Implements the beam search algorithm.
+  */
 class beam_search : public search_method
 {
 private:

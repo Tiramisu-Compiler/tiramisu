@@ -7,12 +7,19 @@ namespace tiramisu::auto_scheduler
 
 computation_graph::computation_graph(tiramisu::function *fct)
 {
-    const std::vector<computation*> comps = fct->get_computations();
+    const std::vector<computation*> computations = fct->get_computations();
     
-    for (computation* c : comps) 
+    for (computation* comp : computations) 
     {
-        c->dump_iteration_domain();
+        cg_node* node = new cg_node();
+        node->comp = comp;
+        
+        // Get computation iterators
+        
+        roots.push_back(node);
     }
+    
+    // Build the computation graph
 }
 
 auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func, 

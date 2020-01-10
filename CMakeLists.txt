@@ -33,7 +33,7 @@ endif()
 set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 if (${USE_AUTO_SCHEDULER})
-    set(OBJS_AUTO_SCHEDULER auto_scheduler beam_search eval_dnn_model)
+    set(OBJS_AUTO_SCHEDULER auto_scheduler beam_search simple_rnn_evaluator)
 endif()
 
 ### CMAKE FILE INTERNALS ###
