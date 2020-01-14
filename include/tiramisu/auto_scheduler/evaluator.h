@@ -4,6 +4,9 @@
 #include <torch/script.h>
 #include "core.h"
 
+#define MAX_NB_ITERATORS 4
+#define MAX_NB_ACCESSES 17
+
 namespace tiramisu::auto_scheduler
 {
 
@@ -25,7 +28,7 @@ public:
       * Takes as input a computation graph and returns
       * its evaluation.
       */
-    virtual float evaluate(computation_graph const& cg) =0;
+    virtual float evaluate(computation_graph const& cg, schedule_info const& sched) =0;
 };
 
 /**
@@ -44,15 +47,17 @@ protected:
       */
     torch::jit::script::Module model;
     
+    at::Tensor build_computation_repr(cg_node *node, schedule_info const& sched);
+    
 public:
     /**
-      * model_path is the path to the serialize PyTorch model.
+      * model_path is the path to the serialized PyTorch model.
       * The model must be serialized with TorchScript.
       */
     simple_rnn_evaluator(std::string const& model_path);
     virtual ~simple_rnn_evaluator() {}
         
-    virtual float evaluate(computation_graph const& cg);
+    virtual float evaluate(computation_graph const& cg, schedule_info const& sched);
 };
 
 }
