@@ -146,8 +146,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
     : cg(fct), searcher(searcher), eval_func(eval_func), fct(fct)
 {
     searcher->set_eval_func(eval_func);
-    
-    std::cout << eval_func->evaluate(cg, schedule_info(3)) << std::endl;
+    searcher->search(cg);
 }
 
 }

@@ -61,10 +61,11 @@ public:
     std::vector<int> tiling_factors;
     
     int unrolling_factor;
+    float eval;
     
     schedule_info(int nb_iterators)
         : interchanged(nb_iterators), tiled(nb_iterators), 
-          tiling_factors(nb_iterators), unrolling_factor(0) {}
+          tiling_factors(nb_iterators), unrolling_factor(0), eval(0.f) {}
 };
 
 /**
