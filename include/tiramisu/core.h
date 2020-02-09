@@ -22,7 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/auto_scheduler/core.h>
+#include <tiramisu/auto_scheduler/computation_graph.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
