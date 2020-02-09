@@ -7,6 +7,14 @@
 namespace tiramisu::auto_scheduler
 {
 
+enum optimization_type
+{
+    FUSION,
+    TILING,
+    INTERCHANGE,
+    UNROLLING
+};
+
 /**
   * An access matrix contains information
   * about the access pattern of a buffer.

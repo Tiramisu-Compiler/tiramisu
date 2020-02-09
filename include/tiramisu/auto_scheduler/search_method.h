@@ -37,7 +37,7 @@ public:
       * It takes as input a computation graph and returns a list of
       * code transformations.
       */
-    virtual void search(computation_graph const& cg) =0;
+    virtual void search(computation_graph& cg) =0;
         
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
 };
@@ -57,7 +57,7 @@ public:
         : search_method(eval_func, states_gen), beam_size(beam_size) {}
         
     virtual ~beam_search() {}
-    virtual void search(computation_graph const& cg);
+    virtual void search(computation_graph& cg);
 };
 
 }
