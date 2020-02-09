@@ -1,5 +1,5 @@
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![Build Status](https://travis-ci.org/Tiramisu-Compiler/tiramisu.svg?branch=master)](https://travis-ci.org/Tiramisu-Compiler/tiramisu)
+<!--- [![Build Status](https://travis-ci.org/Tiramisu-Compiler/tiramisu.svg?branch=master)](https://travis-ci.org/Tiramisu-Compiler/tiramisu)--->
 
 ## Overview
 
