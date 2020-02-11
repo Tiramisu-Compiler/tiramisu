@@ -48,7 +48,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
         }
         
         for (computation_graph *cg3 : foo2) {
-            cg3->next_optim_index = 2;
+            cg3->next_optim_index = 1;
             std::vector<computation_graph*> foo3 = g->generate_states(*cg3);
             
             for (computation_graph *cg4 : foo3) {

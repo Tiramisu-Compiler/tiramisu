@@ -56,8 +56,7 @@ void exhaustive_generator::generate_fusions(std::vector<cg_node*> const& tree_le
             if (tree_level[j]->unrolling_factor > 0)
                 continue;
 
-            int depth = tree_level[i]->depth;
-            if (tree_level[i]->iterators[depth].name == tree_level[j]->iterators[depth].name)
+            if (tree_level[i]->name == tree_level[j]->name)
             {
                 computation_graph* new_cg = new computation_graph();
                 cg_node *new_node = cg.copy_and_return_node(*new_cg, tree_level[i]);
@@ -82,16 +81,15 @@ void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computati
     // Generate tiling with dimension 2
     if (node->depth + 1 < branch_depth && node->unrolling_factor == 0)
     {
-        iterator it1 = node->iterators.back();
         for (int tiling_size1 : tiling_factors_list)
         {
-            if (!can_split_iterator(it1.up_bound - it1.low_bound + 1, tiling_size1))
+            if (!can_split_iterator(node->up_bound - node->low_bound + 1, tiling_size1))
                 continue;
                 
-            iterator it2 = node->children[0]->iterators.back();
+            cg_node *node2 = node->children[0];
             for (int tiling_size2 : tiling_factors_list)
             {
-                if (!can_split_iterator(it2.up_bound - it2.low_bound + 1, tiling_size2))
+                if (!can_split_iterator(node2->up_bound - node2->low_bound + 1, tiling_size2))
                     continue;
                     
                 computation_graph *new_cg = new computation_graph();
@@ -109,10 +107,10 @@ void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computati
                 // Generate tiling with dimension 3
                 if (node->depth + 2 < branch_depth)
                 {
-                    iterator it3 = node->children[0]->children[0]->iterators.back();
+                    cg_node *node3 = node2->children[0];
                     for (int tiling_size3 : tiling_factors_list)
                     {
-                        if (!can_split_iterator(it3.up_bound - it3.low_bound + 1, tiling_size3))
+                        if (!can_split_iterator(node3->up_bound - node3->low_bound + 1, tiling_size3))
                             continue;
                             
                         computation_graph* new_cg = new computation_graph();
@@ -166,6 +164,9 @@ void exhaustive_generator::generate_unrollings(cg_node *node, std::vector<comput
     {
         for (int unrolling_factor : unrolling_factors_list)
         {
+            if (!can_split_iterator(node->up_bound - node->low_bound + 1, unrolling_factor))
+                continue;
+                
             computation_graph* new_cg = new computation_graph();
             cg_node *new_node = cg.copy_and_return_node(*new_cg, node);
             

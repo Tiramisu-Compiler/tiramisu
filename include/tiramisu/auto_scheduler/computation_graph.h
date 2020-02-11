@@ -8,21 +8,6 @@ namespace tiramisu::auto_scheduler
 {
 
 /**
-  * An iterator is defined by its name, its lower
-  * bound and its upper bound.
-  */
-class iterator
-{
-public:
-    std::string name;
-    int low_bound;
-    int up_bound;
-        
-    iterator(std::string const& name = "", int low_bound = 0, int up_bound = 0)
-        : name(name), low_bound(low_bound), up_bound(up_bound) {}
-};
-
-/**
   * Computation graph node.
   * A node in the computation graph represents a loop level.
   */
@@ -35,9 +20,19 @@ public:
     int depth;
     
     /**
-      * Contains the iterators from the root to this level.
-      */
-    std::vector<iterator> iterators;
+     * Name of this loop level iterator.
+     */
+    std::string name;
+    
+    /**
+     * Lower bound of this loop level iterator.
+     */
+    int low_bound;
+    
+    /**
+     * Upper bound of this loop level iterator.
+     */
+    int up_bound;
 
     /**
      * List of the computations computed at this level.
@@ -74,6 +69,8 @@ public:
     cg_node* copy_and_return_node(cg_node *new_node, cg_node *node_to_find) const;
     
     int get_branch_depth() const;
+    
+    void update_depth(int depth);
 
     void print_node() const;
 };
@@ -145,11 +142,6 @@ public:
      * Inspect the tree rooted at node and apply any specified interchange.
      */
     static void transform_computation_graph_by_interchange(cg_node *node);
-    
-    /**
-     * Interchange it1 with it2 in the tree rooted at node.
-     */
-    static void interchange_iterators(cg_node *node, iterator const& it1, int it1_depth, iterator const& it2, int it2_depth);
 
     void print_graph() const;
 };

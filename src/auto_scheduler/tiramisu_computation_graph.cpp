@@ -23,19 +23,14 @@ cg_node* computation_graph::computation_to_cg_node(tiramisu::computation *comp)
     // Get computation iterators
     isl_set *iter_domain = comp->get_iteration_domain();
     int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
-    std::vector<iterator> iterators;
         
     for (int i = 0; i < nb_iterators; ++i)
     {
-        std::string iter_name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
-        int low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
-        int up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
-            
-        iterators.push_back(iterator(iter_name, low_bound, up_bound));
-
         cg_node *node = new cg_node();
         node->depth = i;
-        node->iterators = iterators;
+        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
+        node->low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
+        node->up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
 
         nodes.push_back(node);
     }
@@ -88,7 +83,9 @@ cg_node* cg_node::copy_and_return_node(cg_node *new_node, cg_node *node_to_find)
     }
 
     new_node->depth = depth;
-    new_node->iterators = iterators;
+    new_node->name = name;
+    new_node->low_bound = low_bound;
+    new_node->up_bound = up_bound;
     new_node->computations = computations;
     
     new_node->fused = fused;
@@ -152,6 +149,7 @@ void computation_graph::transform_computation_graph_by_tiling(cg_node *node)
         {
             cg_node *i_outer = node;
             cg_node *j_outer = new cg_node();
+            
             cg_node *i_inner = new cg_node();
             cg_node *j_inner = node->children[0];
             
@@ -161,54 +159,102 @@ void computation_graph::transform_computation_graph_by_tiling(cg_node *node)
             
             i_inner->name = i_outer->name + "_inner";
             i_outer->name = i_outer->name + "_outer";
+            
             j_outer->name = j_inner->name + "_outer";
             j_inner->name = j_inner->name + "_inner";
+            
+            i_outer->low_bound = 0;
+            i_outer->up_bound = (i_outer->up_bound - i_outer->low_bound + 1) / node->tiling_size1 - 1;
+            
+            j_outer->low_bound = 0;
+            j_outer->up_bound = (j_inner->up_bound - j_inner->low_bound + 1) / node->tiling_size2 - 1;
+            
+            i_inner->low_bound = 0;
+            i_inner->up_bound = node->tiling_size1 - 1;
+            
+            j_inner->low_bound = 0;
+            j_inner->up_bound = node->tiling_size2 - 1;
         }
         
         else if (node->tiling_dim == 3)
         {
-        
+            cg_node *i_outer = node;
+            cg_node *j_outer = new cg_node();
+            cg_node *k_outer = new cg_node();
+            
+            cg_node *i_inner = new cg_node();
+            cg_node *j_inner = node->children[0];
+            cg_node *k_inner = j_inner->children[0];
+            
+            i_outer->children[0] = j_outer;
+            j_outer->children.push_back(k_outer);
+            k_outer->children.push_back(i_inner);
+            i_inner->children.push_back(j_inner);
+            j_inner->children[0] = k_inner;
+            
+            i_inner->name = i_outer->name + "_inner";
+            i_outer->name = i_outer->name + "_outer";
+            
+            j_outer->name = j_inner->name + "_outer";
+            j_inner->name = j_inner->name + "_inner";
+            
+            k_outer->name = k_inner->name + "_outer";
+            k_inner->name = k_inner->name + "_inner";
+            
+            i_outer->low_bound = 0;
+            i_outer->up_bound = (i_outer->up_bound - i_outer->low_bound + 1) / node->tiling_size1 - 1;
+            
+            j_outer->low_bound = 0;
+            j_outer->up_bound = (j_inner->up_bound - j_inner->low_bound + 1) / node->tiling_size2 - 1;
+            
+            k_outer->low_bound = 0;
+            k_outer->up_bound = (k_inner->up_bound - k_inner->low_bound + 1) / node->tiling_size2 - 1;
+            
+            i_inner->low_bound = 0;
+            i_inner->up_bound = node->tiling_size1 - 1;
+            
+            j_inner->low_bound = 0;
+            j_inner->up_bound = node->tiling_size2 - 1;
+            
+            k_inner->low_bound = 0;
+            k_inner->up_bound = node->tiling_size3 - 1;
         }
         
         node->tiled = false;
+        node->update_depth(node->depth);
     }
     
     for (cg_node *child : node->children)
-        transform_computation_graph_by_tiling(node);
+        transform_computation_graph_by_tiling(child);
 }
 
 void computation_graph::transform_computation_graph_by_interchange(cg_node *node)
 {
     if (node->interchanged)
     {
-        int it1_depth = node->depth,
-            it2_depth = node->interchanged_with;
-            
         cg_node *tmp_node = node;
-        for (int i = it1_depth; i < it2_depth; ++i)
+        for (int i = node->depth; i < node->interchanged_with; ++i)
             tmp_node = tmp_node->children[0];
             
-        iterator it1 = node->iterators.back();
-        iterator it2 = tmp_node->iterators.back();
+        std::string tmp_str;
+        tmp_str = node->name;
+        node->name = tmp_node->name;
+        tmp_node->name = tmp_str;
             
-        interchange_iterators(node, it1, it1_depth, it2, it2_depth);
+        int tmp_int;
+        tmp_int = node->low_bound;
+        node->low_bound = tmp_node->low_bound;
+        tmp_node->low_bound = tmp_int;
+        
+        tmp_int = node->up_bound;
+        node->up_bound = tmp_node->up_bound;
+        tmp_node->up_bound = tmp_int;
+            
         node->interchanged = false;
     }
     
     for (cg_node *child : node->children)
         transform_computation_graph_by_interchange(child);
-}
-
-void computation_graph::interchange_iterators(cg_node *node, iterator const& it1, int it1_depth, iterator const& it2, int it2_depth)
-{
-    if (node->depth >= it1_depth)
-        node->iterators[it1_depth] = it2;
-        
-    if (node->depth >= it2_depth)
-        node->iterators[it2_depth] = it1;
-        
-    for (cg_node *child : node->children)
-        interchange_iterators(child, it1, it1_depth, it2, it2_depth);
 }
 
 int cg_node::get_branch_depth() const
@@ -228,6 +274,14 @@ int cg_node::get_branch_depth() const
     return ret;
 }
 
+void cg_node::update_depth(int depth)
+{
+    this->depth = depth;
+    
+    for (cg_node *child : children)
+        child->update_depth(depth + 1);
+}
+
 void computation_graph::print_graph() const
 {
     for (cg_node *root : roots)
@@ -239,9 +293,7 @@ void cg_node::print_node() const
     for (int i = 0; i < depth; ++i)
         std::cout << "\t";
 
-    iterator it = iterators.back();
-
-    std::cout << "for " << it.low_bound << " <= " << it.name << " < " << it.up_bound + 1 << std::endl;
+    std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << std::endl;
     
     for (tiramisu::computation* comp : computations) 
     {
