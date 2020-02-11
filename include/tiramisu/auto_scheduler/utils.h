@@ -12,8 +12,14 @@ enum optimization_type
     FUSION,
     TILING,
     INTERCHANGE,
-    UNROLLING
+    UNROLLING,
+    NB_OPTIMIZATIONS
 };
+
+inline bool can_split_iterator(int it_extent, int split_fact)
+{
+    return it_extent > split_fact && it_extent % split_fact == 0;
+}
 
 /**
   * An access matrix contains information

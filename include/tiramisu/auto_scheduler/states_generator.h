@@ -8,6 +8,7 @@ namespace tiramisu::auto_scheduler
 
 const std::vector<int> TILING_FACTORS_DEFAULT_LIST = {32, 64, 128};
 const std::vector<int> UNROLLING_FACTORS_DEFAULT_LIST = {4, 8, 16};
+const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, TILING, INTERCHANGE, UNROLLING};
 
 /**
  * Generate a set of computation graphs from a given
@@ -25,27 +26,26 @@ protected:
          apply_interchange,
          apply_unrolling;
 
+    std::vector<optimization_type> optimizations_order;
+
     std::vector<int> tiling_factors_list;
     std::vector<int> unrolling_factors_list;
 
 public:
     states_generator(bool apply_fusion = true, bool apply_tiling = true,
                      bool apply_interchange = true, bool apply_unrolling = true,
+                     std::vector<optimization_type> const& optimizations_order = DEFAULT_OPTIMIZATIONS_ORDER,
                      std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                      std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
         : apply_fusion(apply_fusion), apply_tiling(apply_tiling),
           apply_interchange(apply_interchange), apply_unrolling(apply_unrolling),
-          tiling_factors_list(tiling_factors_list), unrolling_factors_list(unrolling_factors_list) {}
+          optimizations_order(optimizations_order), tiling_factors_list(tiling_factors_list), 
+          unrolling_factors_list(unrolling_factors_list) {}
 
     virtual ~states_generator() {}
 
-    virtual std::vector<computation_graph*> generate_states(computation_graph& cg) =0;
-    
-    bool can_split_iterator(int it_extent, int split_fact)
-    {
-        return it_extent > split_fact && it_extent % split_fact == 0;
-    }
+    virtual std::vector<computation_graph*> generate_states(computation_graph const& cg) =0;
 };
 
 /**
@@ -65,13 +65,14 @@ protected:
 public:
     exhaustive_generator(bool apply_fusion = true, bool apply_tiling = true,
                          bool apply_interchange = true, bool apply_unrolling = true,
+                         std::vector<optimization_type> const& optimizations_order = DEFAULT_OPTIMIZATIONS_ORDER,
                          std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                          std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
         : states_generator(apply_fusion, apply_tiling, apply_interchange, apply_unrolling,
-                           tiling_factors_list, unrolling_factors_list) {}
+                           optimizations_order, tiling_factors_list, unrolling_factors_list) {}
 
-    virtual std::vector<computation_graph*> generate_states(computation_graph& cg);
+    virtual std::vector<computation_graph*> generate_states(computation_graph const& cg);
 };
 
 }

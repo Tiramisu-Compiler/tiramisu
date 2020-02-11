@@ -18,7 +18,7 @@ public:
     int low_bound;
     int up_bound;
         
-    iterator(std::string const& name, int low_bound, int up_bound)
+    iterator(std::string const& name = "", int low_bound = 0, int up_bound = 0)
         : name(name), low_bound(low_bound), up_bound(up_bound) {}
 };
 
@@ -42,7 +42,7 @@ public:
     /**
      * List of the computations computed at this level.
      */
-    std::vector<tiramisu::computation*> comp;
+    std::vector<tiramisu::computation*> computations;
 
     std::vector<cg_node*> children;
     
@@ -74,6 +74,8 @@ public:
     cg_node* copy_and_return_node(cg_node *new_node, cg_node *node_to_find) const;
     
     int get_branch_depth() const;
+
+    void print_node() const;
 };
 
 class computation_graph
@@ -83,11 +85,6 @@ protected:
      * The function represented by the computation graph.
      */
     tiramisu::function *fct;
-
-    /**
-     * The next optimization that the states generator will apply.
-     */
-    optimization_type next_optimization = optimization_type::FUSION;
 
 public:
     /**
@@ -100,6 +97,12 @@ public:
      * the computation graph.
      */
     float evaluation;
+
+    /**
+     * Index of the next optimization that the states generator
+     * will apply.
+     */
+    int next_optim_index = 0;
         
     /**
      * Create an empty computation graph.
@@ -122,8 +125,33 @@ public:
      */
     cg_node* copy_and_return_node(computation_graph& new_cg, cg_node *node_to_find) const;
 
-    optimization_type get_next_optimization() const { return next_optimization; }
-    void set_next_optimization(optimization_type next_opt) { next_optimization = next_opt; }
+    /**
+     * Transform the computation graph by applying the specified
+     * optimizations (see cg_node).
+     */
+    void transform_computation_graph();
+
+    /**
+     * Inspect the given tree level and apply any specified fusion.
+     */
+    static void transform_computation_graph_by_fusion(std::vector<cg_node*>& tree_level);
+    
+    /**
+     * Inspect the tree rooted at node and apply any specified tiling.
+     */
+    static void transform_computation_graph_by_tiling(cg_node *node);
+    
+    /**
+     * Inspect the tree rooted at node and apply any specified interchange.
+     */
+    static void transform_computation_graph_by_interchange(cg_node *node);
+    
+    /**
+     * Interchange it1 with it2 in the tree rooted at node.
+     */
+    static void interchange_iterators(cg_node *node, iterator const& it1, int it1_depth, iterator const& it2, int it2_depth);
+
+    void print_graph() const;
 };
 
 }

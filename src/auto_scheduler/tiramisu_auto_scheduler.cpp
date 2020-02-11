@@ -16,27 +16,54 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
     states_generator* g = new exhaustive_generator(true, true, true, true);
     std::vector<computation_graph*> foo = g->generate_states(cg);
     
-    std::cout << foo.size() << std::endl;
+    for (computation_graph *cg : foo) {
+        cg->print_graph();
+        std::cout << std::endl;
+    }
 
-    for (computation_graph* c : foo)
-    {
-        for (cg_node *node : c->roots)
-        {
-            cg_node *bar = node;
-            
-            while (true)
-            {
-                std::cout << bar->fused << " " << bar->fused_with << std::endl;
-                if (bar->children.size() == 0)
-                    break;
-                    
-                bar = bar->children[0];
-            }
-            
+    for (computation_graph* cg : foo)
+        cg->transform_computation_graph();
+
+    for (computation_graph *cg : foo) {
+        cg->print_graph();
+        std::cout << std::endl;
+    }
+    
+    for (computation_graph *cg : foo) {
+        cg->next_optim_index = 0;
+        std::vector<computation_graph*> foo2 = g->generate_states(*cg);
+        std::cout << cg->roots.size() << std::endl;
+        
+        for (computation_graph *cg2 : foo2) {
+            cg2->print_graph();
+            std::cout << std::endl;
+        }
+
+        for (computation_graph* cg2 : foo2)
+            cg2->transform_computation_graph();
+
+        for (computation_graph *cg2 : foo2) {
+            cg2->print_graph();
             std::cout << std::endl;
         }
         
-        std::cout << "END" << std::endl;
+        for (computation_graph *cg3 : foo2) {
+            cg3->next_optim_index = 2;
+            std::vector<computation_graph*> foo3 = g->generate_states(*cg3);
+            
+            for (computation_graph *cg4 : foo3) {
+                cg4->print_graph();
+                std::cout << std::endl;
+            }
+
+            for (computation_graph* cg4 : foo3)
+                cg4->transform_computation_graph();
+
+            for (computation_graph *cg4 : foo3) {
+                cg4->print_graph();
+                std::cout << std::endl;
+            }
+        }
     }
 }
 
