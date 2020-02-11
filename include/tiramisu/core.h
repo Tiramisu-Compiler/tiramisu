@@ -22,7 +22,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/auto_scheduler/computation_graph.h>
+#include <tiramisu/auto_scheduler/ast.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -44,7 +44,7 @@ class xfer_prop;
 
 namespace auto_scheduler
 {
-class computation_graph;
+class syntax_tree;
 }
 
 struct HalideCodegenOutput
@@ -142,7 +142,7 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
-    friend auto_scheduler::computation_graph;
+    friend auto_scheduler::syntax_tree;
 
 private:
     /**

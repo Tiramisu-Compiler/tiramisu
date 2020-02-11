@@ -29,7 +29,7 @@ public:
       * Takes as input a computation graph and returns
       * its evaluation.
       */
-    virtual float evaluate(computation_graph const& cg) =0;
+    virtual float evaluate(syntax_tree const& ast) =0;
 };
 
 }

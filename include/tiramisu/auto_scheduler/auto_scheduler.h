@@ -3,7 +3,7 @@
 
 #include <tiramisu/core.h>
 #include <tiramisu/expr.h>
-#include "computation_graph.h"
+#include "ast.h"
 #include "utils.h"
 
 namespace tiramisu::auto_scheduler
@@ -22,7 +22,7 @@ class auto_scheduler
 private:
         
 protected:
-    computation_graph cg;
+    syntax_tree ast;
         
     search_method *searcher;
     evaluator *eval_func;

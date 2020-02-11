@@ -3,37 +3,37 @@
 namespace tiramisu::auto_scheduler
 {
 
-std::vector<computation_graph*> exhaustive_generator::generate_states(computation_graph const& cg)
+std::vector<syntax_tree*> exhaustive_generator::generate_states(syntax_tree const& ast)
 {
-    std::vector<computation_graph*> states;
-    optimization_type next_optimization = optimizations_order[cg.next_optim_index];
+    std::vector<syntax_tree*> states;
+    optimization_type next_optimization = optimizations_order[ast.next_optim_index];
     
     switch(next_optimization)
     {
         case optimization_type::FUSION:
             if (apply_fusion)
-                generate_fusions(cg.roots, states, cg);
+                generate_fusions(ast.roots, states, ast);
 
             break;
 
         case optimization_type::TILING:
             if (apply_tiling)
-                for (cg_node *root : cg.roots)
-                    generate_tilings(root, states, cg);
+                for (ast_node *root : ast.roots)
+                    generate_tilings(root, states, ast);
             
             break;
 
         case optimization_type::INTERCHANGE:
             if (apply_interchange)
-                for (cg_node *root : cg.roots)
-                    generate_interchanges(root, states, cg);
+                for (ast_node *root : ast.roots)
+                    generate_interchanges(root, states, ast);
                     
             break;
 
         case optimization_type::UNROLLING:
             if (apply_unrolling)
-                for (cg_node *root : cg.roots)
-                    generate_unrollings(root, states, cg);
+                for (ast_node *root : ast.roots)
+                    generate_unrollings(root, states, ast);
                     
             break;
 
@@ -44,7 +44,7 @@ std::vector<computation_graph*> exhaustive_generator::generate_states(computatio
     return states;
 }
 
-void exhaustive_generator::generate_fusions(std::vector<cg_node*> const& tree_level, std::vector<computation_graph*>& states, computation_graph const& cg)
+void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_level, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
     for (int i = 0; i < tree_level.size(); ++i)
     {
@@ -58,23 +58,23 @@ void exhaustive_generator::generate_fusions(std::vector<cg_node*> const& tree_le
 
             if (tree_level[i]->name == tree_level[j]->name)
             {
-                computation_graph* new_cg = new computation_graph();
-                cg_node *new_node = cg.copy_and_return_node(*new_cg, tree_level[i]);
+                syntax_tree* new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, tree_level[i]);
                 
                 new_node->fused = true;
                 new_node->fused_with = j;
                 
-                new_cg->next_optim_index = (new_cg->next_optim_index + 1) % NB_OPTIMIZATIONS;
-                states.push_back(new_cg);
+                new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
+                states.push_back(new_ast);
             }
         }
     }
 
-    for (cg_node* node : tree_level)
-        generate_fusions(node->children, states, cg);
+    for (ast_node* node : tree_level)
+        generate_fusions(node->children, states, ast);
 }
 
-void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg)
+void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
     int branch_depth = node->get_branch_depth();
     
@@ -86,14 +86,14 @@ void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computati
             if (!can_split_iterator(node->up_bound - node->low_bound + 1, tiling_size1))
                 continue;
                 
-            cg_node *node2 = node->children[0];
+            ast_node *node2 = node->children[0];
             for (int tiling_size2 : tiling_factors_list)
             {
                 if (!can_split_iterator(node2->up_bound - node2->low_bound + 1, tiling_size2))
                     continue;
                     
-                computation_graph *new_cg = new computation_graph();
-                cg_node *new_node = cg.copy_and_return_node(*new_cg, node);
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                     
                 new_node->tiled = true;
                 new_node->tiling_dim = 2;
@@ -101,20 +101,20 @@ void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computati
                 new_node->tiling_size1 = tiling_size1;
                 new_node->tiling_size2 = tiling_size2;
                 
-                new_cg->next_optim_index = (new_cg->next_optim_index + 1) % NB_OPTIMIZATIONS;
-                states.push_back(new_cg);
+                new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
+                states.push_back(new_ast);
                 
                 // Generate tiling with dimension 3
                 if (node->depth + 2 < branch_depth)
                 {
-                    cg_node *node3 = node2->children[0];
+                    ast_node *node3 = node2->children[0];
                     for (int tiling_size3 : tiling_factors_list)
                     {
                         if (!can_split_iterator(node3->up_bound - node3->low_bound + 1, tiling_size3))
                             continue;
                             
-                        computation_graph* new_cg = new computation_graph();
-                        cg_node *new_node = cg.copy_and_return_node(*new_cg, node);
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                             
                         new_node->tiled = true;
                         new_node->tiling_dim = 3;
@@ -123,19 +123,19 @@ void exhaustive_generator::generate_tilings(cg_node *node, std::vector<computati
                         new_node->tiling_size2 = tiling_size2;
                         new_node->tiling_size3 = tiling_size3;
                             
-                        new_cg->next_optim_index = (new_cg->next_optim_index + 1) % NB_OPTIMIZATIONS;
-                        states.push_back(new_cg);
+                        new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
+                        states.push_back(new_ast);
                     }
                 }
             }
         }
     }
     
-    for (cg_node *child : node->children)
-        generate_tilings(child, states, cg);
+    for (ast_node *child : node->children)
+        generate_tilings(child, states, ast);
 }
 
-void exhaustive_generator::generate_interchanges(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg)
+void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
     if (node->unrolling_factor == 0)
     {
@@ -143,22 +143,22 @@ void exhaustive_generator::generate_interchanges(cg_node *node, std::vector<comp
         
         for (int i = node->depth + 1; i < branch_depth; ++i)
         {
-            computation_graph* new_cg = new computation_graph();
-            cg_node *new_node = cg.copy_and_return_node(*new_cg, node);
+            syntax_tree* new_ast = new syntax_tree();
+            ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
             
             new_node->interchanged = true;
             new_node->interchanged_with = i;
             
-            new_cg->next_optim_index = (new_cg->next_optim_index + 1) % NB_OPTIMIZATIONS;
-            states.push_back(new_cg);
+            new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
+            states.push_back(new_ast);
         }
     }
     
-    for (cg_node *child : node->children)
-        generate_interchanges(child, states, cg);
+    for (ast_node *child : node->children)
+        generate_interchanges(child, states, ast);
 }
 
-void exhaustive_generator::generate_unrollings(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg)
+void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
     if (node->unrolling_factor == 0)
     {
@@ -167,18 +167,18 @@ void exhaustive_generator::generate_unrollings(cg_node *node, std::vector<comput
             if (!can_split_iterator(node->up_bound - node->low_bound + 1, unrolling_factor))
                 continue;
                 
-            computation_graph* new_cg = new computation_graph();
-            cg_node *new_node = cg.copy_and_return_node(*new_cg, node);
+            syntax_tree* new_ast = new syntax_tree();
+            ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
             
             new_node->unrolling_factor = unrolling_factor;
 
-            new_cg->next_optim_index = (new_cg->next_optim_index + 1) % NB_OPTIMIZATIONS;
-            states.push_back(new_cg);
+            new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
+            states.push_back(new_ast);
         }
     }
     
-    for (cg_node *child : node->children)
-        generate_unrollings(child, states, cg);
+    for (ast_node *child : node->children)
+        generate_unrollings(child, states, ast);
 }
 
 }

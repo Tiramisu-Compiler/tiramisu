@@ -1,8 +1,8 @@
-#include <tiramisu/auto_scheduler/computation_graph.h>
+#include <tiramisu/auto_scheduler/ast.h>
 
 namespace tiramisu::auto_scheduler
 {
-computation_graph::computation_graph(tiramisu::function *fct)
+syntax_tree::syntax_tree(tiramisu::function *fct)
     : fct(fct)
 {
     const std::vector<computation*> computations = fct->get_computations();
@@ -12,13 +12,13 @@ computation_graph::computation_graph(tiramisu::function *fct)
         if (comp->get_expr().get_expr_type() == e_none)
             continue;
 
-        roots.push_back(computation_to_cg_node(comp));
+        roots.push_back(computation_to_ast_node(comp));
     }
 }
 
-cg_node* computation_graph::computation_to_cg_node(tiramisu::computation *comp)
+ast_node* syntax_tree::computation_to_ast_node(tiramisu::computation *comp)
 {
-    std::vector<cg_node*> nodes;
+    std::vector<ast_node*> nodes;
 
     // Get computation iterators
     isl_set *iter_domain = comp->get_iteration_domain();
@@ -26,7 +26,8 @@ cg_node* computation_graph::computation_to_cg_node(tiramisu::computation *comp)
         
     for (int i = 0; i < nb_iterators; ++i)
     {
-        cg_node *node = new cg_node();
+        ast_node *node = new ast_node();
+        
         node->depth = i;
         node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
         node->low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
@@ -43,39 +44,39 @@ cg_node* computation_graph::computation_to_cg_node(tiramisu::computation *comp)
     return nodes[0];
 }
 
-cg_node* computation_graph::copy_and_return_node(computation_graph& new_cg, cg_node *node_to_find) const
+ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const
 {
-    cg_node *ret_node = nullptr;
+    ast_node *ret_node = nullptr;
 
-    for (cg_node *root : roots) 
+    for (ast_node *root : roots) 
     {
-        cg_node *new_node = new cg_node();
+        ast_node *new_node = new ast_node();
 
-        cg_node *tmp = root->copy_and_return_node(new_node, node_to_find);
+        ast_node *tmp = root->copy_and_return_node(new_node, node_to_find);
         if (tmp != nullptr)
             ret_node = tmp;
 
-        new_cg.roots.push_back(new_node);
+        new_ast.roots.push_back(new_node);
     }
 
-    new_cg.fct = fct;
-    new_cg.next_optim_index = next_optim_index;
+    new_ast.fct = fct;
+    new_ast.next_optim_index = next_optim_index;
 
     return ret_node;
 }
 
-cg_node* cg_node::copy_and_return_node(cg_node *new_node, cg_node *node_to_find) const
+ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const
 {
-    cg_node *ret_node = nullptr;
+    ast_node *ret_node = nullptr;
 
     if (this == node_to_find)
         ret_node = new_node;
 
-    for (cg_node *child : children)
+    for (ast_node *child : children)
     {
-        cg_node *new_child = new cg_node();
+        ast_node *new_child = new ast_node();
 
-        cg_node *tmp = child->copy_and_return_node(new_child, node_to_find);
+        ast_node *tmp = child->copy_and_return_node(new_child, node_to_find);
         if (tmp != nullptr)
             ret_node = tmp;
 
@@ -105,28 +106,28 @@ cg_node* cg_node::copy_and_return_node(cg_node *new_node, cg_node *node_to_find)
     return ret_node;
 }
 
-void computation_graph::transform_computation_graph()
+void syntax_tree::transform_ast()
 {
-    transform_computation_graph_by_fusion(roots);
+    transform_ast_by_fusion(roots);
 
-    for (cg_node *node : roots)
+    for (ast_node *node : roots)
     {
-        transform_computation_graph_by_tiling(node);
-        transform_computation_graph_by_interchange(node);
+        transform_ast_by_tiling(node);
+        transform_ast_by_interchange(node);
     }
 }
 
-void computation_graph::transform_computation_graph_by_fusion(std::vector<cg_node*>& tree_level)
+void syntax_tree::transform_ast_by_fusion(std::vector<ast_node*>& tree_level)
 {
     for (int i = 0; i < tree_level.size(); ++i)
     {
-        cg_node *node_a = tree_level[i];
+        ast_node *node_a = tree_level[i];
         if (!node_a->fused)
             continue;
 
-        cg_node *node_b = tree_level[node_a->fused_with];
+        ast_node *node_b = tree_level[node_a->fused_with];
 
-        for (cg_node *child : node_b->children)
+        for (ast_node *child : node_b->children)
             node_a->children.push_back(child);
 
         for (tiramisu::computation *comp : node_b->computations)
@@ -137,21 +138,21 @@ void computation_graph::transform_computation_graph_by_fusion(std::vector<cg_nod
         --i;
     }
     
-    for (cg_node *node : tree_level)
-        transform_computation_graph_by_fusion(node->children);
+    for (ast_node *node : tree_level)
+        transform_ast_by_fusion(node->children);
 }
 
-void computation_graph::transform_computation_graph_by_tiling(cg_node *node)
+void syntax_tree::transform_ast_by_tiling(ast_node *node)
 {
     if (node->tiled)
     {
         if (node->tiling_dim == 2)
         {
-            cg_node *i_outer = node;
-            cg_node *j_outer = new cg_node();
+            ast_node *i_outer = node;
+            ast_node *j_outer = new ast_node();
             
-            cg_node *i_inner = new cg_node();
-            cg_node *j_inner = node->children[0];
+            ast_node *i_inner = new ast_node();
+            ast_node *j_inner = node->children[0];
             
             i_outer->children[0] = j_outer;
             j_outer->children.push_back(i_inner);
@@ -178,13 +179,13 @@ void computation_graph::transform_computation_graph_by_tiling(cg_node *node)
         
         else if (node->tiling_dim == 3)
         {
-            cg_node *i_outer = node;
-            cg_node *j_outer = new cg_node();
-            cg_node *k_outer = new cg_node();
+            ast_node *i_outer = node;
+            ast_node *j_outer = new ast_node();
+            ast_node *k_outer = new ast_node();
             
-            cg_node *i_inner = new cg_node();
-            cg_node *j_inner = node->children[0];
-            cg_node *k_inner = j_inner->children[0];
+            ast_node *i_inner = new ast_node();
+            ast_node *j_inner = node->children[0];
+            ast_node *k_inner = j_inner->children[0];
             
             i_outer->children[0] = j_outer;
             j_outer->children.push_back(k_outer);
@@ -224,15 +225,15 @@ void computation_graph::transform_computation_graph_by_tiling(cg_node *node)
         node->update_depth(node->depth);
     }
     
-    for (cg_node *child : node->children)
-        transform_computation_graph_by_tiling(child);
+    for (ast_node *child : node->children)
+        transform_ast_by_tiling(child);
 }
 
-void computation_graph::transform_computation_graph_by_interchange(cg_node *node)
+void syntax_tree::transform_ast_by_interchange(ast_node *node)
 {
     if (node->interchanged)
     {
-        cg_node *tmp_node = node;
+        ast_node *tmp_node = node;
         for (int i = node->depth; i < node->interchanged_with; ++i)
             tmp_node = tmp_node->children[0];
             
@@ -253,14 +254,14 @@ void computation_graph::transform_computation_graph_by_interchange(cg_node *node
         node->interchanged = false;
     }
     
-    for (cg_node *child : node->children)
-        transform_computation_graph_by_interchange(child);
+    for (ast_node *child : node->children)
+        transform_ast_by_interchange(child);
 }
 
-int cg_node::get_branch_depth() const
+int ast_node::get_branch_depth() const
 {
     int ret = depth;
-    const cg_node *node = this;
+    const ast_node *node = this;
     
     while (node->children.size() == 1 && node->computations.size() == 0)
     {
@@ -274,21 +275,21 @@ int cg_node::get_branch_depth() const
     return ret;
 }
 
-void cg_node::update_depth(int depth)
+void ast_node::update_depth(int depth)
 {
     this->depth = depth;
     
-    for (cg_node *child : children)
+    for (ast_node *child : children)
         child->update_depth(depth + 1);
 }
 
-void computation_graph::print_graph() const
+void syntax_tree::print_graph() const
 {
-    for (cg_node *root : roots)
+    for (ast_node *root : roots)
         root->print_node();
 }
 
-void cg_node::print_node() const
+void ast_node::print_node() const
 {
     for (int i = 0; i < depth; ++i)
         std::cout << "\t";
@@ -303,7 +304,7 @@ void cg_node::print_node() const
         std::cout << comp->get_name() << std::endl;
     }
 
-    for (cg_node *child : children)
+    for (ast_node *child : children)
         child->print_node();
 }
 

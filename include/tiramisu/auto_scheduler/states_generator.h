@@ -1,7 +1,7 @@
 #ifndef _TIRAMISU_AUTO_SCHEDULER_STATES_GENERATOR_
 #define _TIRAMISU_AUTO_SCHEDULER_STATES_GENERATOR_
 
-#include "computation_graph.h"
+#include "ast.h"
 
 namespace tiramisu::auto_scheduler
 {
@@ -11,8 +11,7 @@ const std::vector<int> UNROLLING_FACTORS_DEFAULT_LIST = {4, 8, 16};
 const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, TILING, INTERCHANGE, UNROLLING};
 
 /**
- * Generate a set of computation graphs from a given
- * computation graph.
+ * Generate a set of AST from a given AST.
  *
  * Inherit this class to implement a state generation behavior.
  */
@@ -45,7 +44,7 @@ public:
 
     virtual ~states_generator() {}
 
-    virtual std::vector<computation_graph*> generate_states(computation_graph const& cg) =0;
+    virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast) =0;
 };
 
 /**
@@ -55,10 +54,10 @@ public:
 class exhaustive_generator : public states_generator
 {
 private:
-    void generate_fusions(std::vector<cg_node*> const& tree_level, std::vector<computation_graph*>& states, computation_graph const& cg);
-    void generate_tilings(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg);
-    void generate_interchanges(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg);
-    void generate_unrollings(cg_node *node, std::vector<computation_graph*>& states, computation_graph const& cg);
+    void generate_fusions(std::vector<ast_node*> const& tree_level, std::vector<syntax_tree*>& states, syntax_tree const& ast);
+    void generate_tilings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
+    void generate_interchanges(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
+    void generate_unrollings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
 
 protected:
 
@@ -72,7 +71,7 @@ public:
         : states_generator(apply_fusion, apply_tiling, apply_interchange, apply_unrolling,
                            optimizations_order, tiling_factors_list, unrolling_factors_list) {}
 
-    virtual std::vector<computation_graph*> generate_states(computation_graph const& cg);
+    virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast);
 };
 
 }
