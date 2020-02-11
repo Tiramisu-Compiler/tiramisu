@@ -8,6 +8,9 @@
 #include "qblocks_2pt_parameters.h"                                       /* DEPS */
 
 int main() {
+
+	double myPI = 3.14159265390
+
   int Vsrc = P_Vsrc;
   int Vsnk = P_Vsnk;
   int Nt = P_Nt;
@@ -59,10 +62,10 @@ int main() {
                      for (y = 0; y < Vsrc; y++) {
                         for (x = 0; x < Vsnk; x++) {
                            if ((jC == iC) && (jS == iS)) {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
-                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
+                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*myPI/6);
+                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*myPI/6);
+                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*myPI/6);
+                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*myPI/6);
                            }
                            else {
                               B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;

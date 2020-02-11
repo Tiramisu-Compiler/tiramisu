@@ -86,8 +86,8 @@ void generate_function(std::string name)
 
     computation B1_Blocal_r1_r_init("B1_Blocal_r1_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Blocal_r1_i_init("B1_Blocal_r1_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
-    B1_Blocal_r1_r_init.add_predicate(x2==0);
-    B1_Blocal_r1_i_init.add_predicate(x2==0);
+    //B1_Blocal_r1_r_init.add_predicate(x2==0);
+    //B1_Blocal_r1_i_init.add_predicate(x2==0);
     computation B1_Bsingle_r1_r_init("B1_Bsingle_r1_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Bsingle_r1_i_init("B1_Bsingle_r1_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Bdouble_r1_r_init("B1_Bdouble_r1_r_init", {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime}, expr((double) 0));
@@ -138,7 +138,7 @@ void generate_function(std::string name)
             str_fmt("B1_q_r1_%d_%d", jc, js),
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, y},
             B1_Q_exprs_r1[jc][js]);
-        q_computation.add_predicate((x2==0)&&(m==0));
+        //q_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr q = q_computation(t, x, 0, 0, iCprime, iSprime, kCprime, kSprime, y);
 
@@ -153,7 +153,7 @@ void generate_function(std::string name)
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, y},
             // definition
             blocal_update_def);
-        blocal_update.add_predicate(x2==0);
+        //blocal_update.add_predicate(x2==0);
         B1_Blocal_r1_updates.push_back(blocal_update);
 
         // define single block
@@ -196,7 +196,7 @@ void generate_function(std::string name)
             // iterators
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             B1_O_exprs_r1[ic][is]);
-        o_computation.add_predicate((x2==0)&&(m==0));
+        //o_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr o = o_computation(t, x, 0, 0, jCprime, jSprime, kCprime, kSprime, y);
 
@@ -233,7 +233,7 @@ void generate_function(std::string name)
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             // definition
             B1_P_exprs_r1[kc][ks]);
-        p_computation.add_predicate((x2==0)&&(m==0));
+        //p_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr p = p_computation(t, x, 0, 0, jCprime, jSprime, kCprime, kSprime, y);
 
@@ -263,8 +263,8 @@ void generate_function(std::string name)
 
     computation B2_Blocal_r1_r_init("B2_Blocal_r1_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Blocal_r1_i_init("B2_Blocal_r1_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
-    B2_Blocal_r1_r_init.add_predicate(x==0);
-    B2_Blocal_r1_i_init.add_predicate(x==0);
+    //B2_Blocal_r1_r_init.add_predicate(x==0);
+    //B2_Blocal_r1_i_init.add_predicate(x==0);
     computation B2_Bsingle_r1_r_init("B2_Bsingle_r1_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Bsingle_r1_i_init("B2_Bsingle_r1_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Bdouble_r1_r_init("B2_Bdouble_r1_r_init", {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime}, expr((double) 0));
@@ -316,9 +316,10 @@ void generate_function(std::string name)
             str_fmt("B2_q_r1_%d_%d", jc, js),
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, y},
             B2_Q_exprs_r1[jc][js]);
-        q_computation.add_predicate((x==0)&&(m==0));
+        //q_computation.add_predicate(m==0);
+        //q_computation.add_predicate((x==0)&&(m==0));
 
-        complex_expr q = q_computation(t, 0, x2, 0, iCprime, iSprime, kCprime, kSprime, y);
+        complex_expr q = q_computation(t, x, x2, 0, iCprime, iSprime, kCprime, kSprime, y);
 
         // define local block
         complex_expr blocal_update_def = 
@@ -331,7 +332,7 @@ void generate_function(std::string name)
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, y},
             // definition
             blocal_update_def);
-        blocal_update.add_predicate(x==0);
+        //blocal_update.add_predicate(x==0);
         B2_Blocal_r1_updates.push_back(blocal_update);
 
         // define single block
@@ -374,9 +375,10 @@ void generate_function(std::string name)
             // iterators
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             B2_O_exprs_r1[ic][is]);
-        o_computation.add_predicate((x==0)&&(m==0));
+        //o_computation.add_predicate(m==0);
+        //o_computation.add_predicate((x==0)&&(m==0));
 
-        complex_expr o = o_computation(t, 0, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
+        complex_expr o = o_computation(t, x, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
 
         complex_expr bdouble_update_def =
           B2_Bdouble_r1_init(t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime) +
@@ -411,7 +413,8 @@ void generate_function(std::string name)
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             // definition
             B2_P_exprs_r1[kc][ks]);
-        p_computation.add_predicate((x==0)&&(m==0));
+        //p_computation.add_predicate(m==0);
+        //p_computation.add_predicate((x==0)&&(m==0));
 
         complex_expr p = p_computation(t, 0, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
 
@@ -440,8 +443,8 @@ void generate_function(std::string name)
 
     computation B1_Blocal_r2_r_init("B1_Blocal_r2_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Blocal_r2_i_init("B1_Blocal_r2_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
-    B1_Blocal_r2_r_init.add_predicate(x2==0);
-    B1_Blocal_r2_i_init.add_predicate(x2==0);
+    //B1_Blocal_r2_r_init.add_predicate(x2==0);
+    //B1_Blocal_r2_i_init.add_predicate(x2==0);
     computation B1_Bsingle_r2_r_init("B1_Bsingle_r2_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Bsingle_r2_i_init("B1_Bsingle_r2_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B1_Bdouble_r2_r_init("B1_Bdouble_r2_r_init", {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime}, expr((double) 0));
@@ -492,7 +495,7 @@ void generate_function(std::string name)
             str_fmt("B1_q_r2_%d_%d", jc, js),
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, y},
             B1_Q_exprs_r2[jc][js]);
-        q_computation.add_predicate((x2==0)&&(m==0));
+        //q_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr q = q_computation(t, x, 0, 0, iCprime, iSprime, kCprime, kSprime, y);
 
@@ -507,7 +510,7 @@ void generate_function(std::string name)
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, y},
             // definition
             blocal_update_def);
-        blocal_update.add_predicate(x2==0);
+        //blocal_update.add_predicate(x2==0);
         B1_Blocal_r2_updates.push_back(blocal_update);
 
         // define single block
@@ -550,7 +553,7 @@ void generate_function(std::string name)
             // iterators
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             B1_O_exprs_r2[ic][is]);
-        o_computation.add_predicate((x2==0)&&(m==0));
+        //o_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr o = o_computation(t, x, 0, 0, jCprime, jSprime, kCprime, kSprime, y);
 
@@ -587,7 +590,7 @@ void generate_function(std::string name)
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             // definition
             B1_P_exprs_r2[kc][ks]);
-        p_computation.add_predicate((x2==0)&&(m==0));
+        //p_computation.add_predicate((x2==0)&&(m==0));
 
         complex_expr p = p_computation(t, x, 0, 0, jCprime, jSprime, kCprime, kSprime, y);
 
@@ -616,8 +619,8 @@ void generate_function(std::string name)
 
     computation B2_Blocal_r2_r_init("B2_Blocal_r2_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Blocal_r2_i_init("B2_Blocal_r2_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
-    B2_Blocal_r2_r_init.add_predicate(x==0);
-    B2_Blocal_r2_i_init.add_predicate(x==0);
+    //B2_Blocal_r2_r_init.add_predicate(x==0);
+    //B2_Blocal_r2_i_init.add_predicate(x==0);
     computation B2_Bsingle_r2_r_init("B2_Bsingle_r2_r_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Bsingle_r2_i_init("B2_Bsingle_r2_i_init", {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime}, expr((double) 0));
     computation B2_Bdouble_r2_r_init("B2_Bdouble_r2_r_init", {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime}, expr((double) 0));
@@ -669,9 +672,10 @@ void generate_function(std::string name)
             str_fmt("B2_q_r2_%d_%d", jc, js),
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, y},
             B2_Q_exprs_r2[jc][js]);
-        q_computation.add_predicate((x==0)&&(m==0));
+        //q_computation.add_predicate(m==0);
+        //q_computation.add_predicate((x==0)&&(m==0));
 
-        complex_expr q = q_computation(t, 0, x2, 0, iCprime, iSprime, kCprime, kSprime, y);
+        complex_expr q = q_computation(t, x, x2, 0, iCprime, iSprime, kCprime, kSprime, y);
 
         // define local block
         complex_expr blocal_update_def = 
@@ -684,7 +688,7 @@ void generate_function(std::string name)
             {t, x, x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, y},
             // definition
             blocal_update_def);
-        blocal_update.add_predicate(x==0);
+        //blocal_update.add_predicate(x==0);
         B2_Blocal_r2_updates.push_back(blocal_update);
 
         // define single block
@@ -727,9 +731,10 @@ void generate_function(std::string name)
             // iterators
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             B2_O_exprs_r2[ic][is]);
-        o_computation.add_predicate((x==0)&&(m==0));
+        //o_computation.add_predicate(m==0);
+        //o_computation.add_predicate((x==0)&&(m==0));
 
-        complex_expr o = o_computation(t, 0, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
+        complex_expr o = o_computation(t, x, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
 
         complex_expr bdouble_update_def =
           B2_Bdouble_r2_init(t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime) +
@@ -764,9 +769,10 @@ void generate_function(std::string name)
             {t, x, x2, m, jCprime, jSprime, kCprime, kSprime, y},
             // definition
             B2_P_exprs_r2[kc][ks]);
-        p_computation.add_predicate((x==0)&&(m==0));
+        //p_computation.add_predicate(m==0);
+        //p_computation.add_predicate((x==0)&&(m==0));
 
-        complex_expr p = p_computation(t, 0, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
+        complex_expr p = p_computation(t, x, x2, 0, jCprime, jSprime, kCprime, kSprime, y);
 
         complex_expr bdouble_update_def =
           B2_Bdouble_r2_init(t, x, x2, m, jCprime, jSprime, kCprime, kSprime, iCprime, iSprime) -
@@ -1332,15 +1338,15 @@ void generate_function(std::string name)
     // Layer III
     // -------------------------------------------------------
 
-    buffer buf_B1_Blocal_r1_r("buf_B1_Blocal_r1_r",   {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
-    buffer buf_B1_Blocal_r1_i("buf_B1_Blocal_r1_i",   {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_r1_r("buf_B1_Blocal_r1_r",   {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_r1_i("buf_B1_Blocal_r1_i",   {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_r1_r("buf_B1_Bsingle_r1_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_r1_i("buf_B1_Bsingle_r1_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bdouble_r1_r("buf_B1_Bdouble_r1_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bdouble_r1_i("buf_B1_Bdouble_r1_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
 
-    B1_Blocal_r1_r_init.store_in(&buf_B1_Blocal_r1_r, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-    B1_Blocal_r1_i_init.store_in(&buf_B1_Blocal_r1_i, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B1_Blocal_r1_r_init.store_in(&buf_B1_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B1_Blocal_r1_i_init.store_in(&buf_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bsingle_r1_r_init.store_in(&buf_B1_Bsingle_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bsingle_r1_i_init.store_in(&buf_B1_Bsingle_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bdouble_r1_r_init.store_in(&buf_B1_Bdouble_r1_r, {jCprime, jSprime, kCprime, kSprime, iCprime, iSprime});
@@ -1358,9 +1364,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_Q_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r1_%d_%d", ic, is));
-        (B1_q2userEdges_r1[B1_r1_q_index]).q_r->store_in(B1_q_r1_r_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
-        (B1_q2userEdges_r1[B1_r1_q_index]).q_i->store_in(B1_q_r1_i_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_q_r1_r_buf, B1_q_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r1_%d_%d", ic, is));
+        (B1_q2userEdges_r1[B1_r1_q_index]).q_r->store_in(B1_q_r1_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        (B1_q2userEdges_r1[B1_r1_q_index]).q_i->store_in(B1_q_r1_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
         B1_r1_q_index++;
         }
     int B1_r1_o_index=0;
@@ -1368,9 +1374,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_O_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r1_%d_%d", ic, is));
-        (B1_o2userEdges_r1[B1_r1_o_index]).o_r->store_in(B1_o_r1_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
-        (B1_o2userEdges_r1[B1_r1_o_index]).o_i->store_in(B1_o_r1_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_o_r1_r_buf, B1_o_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r1_%d_%d", ic, is));
+        (B1_o2userEdges_r1[B1_r1_o_index]).o_r->store_in(B1_o_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B1_o2userEdges_r1[B1_r1_o_index]).o_i->store_in(B1_o_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B1_r1_o_index++;
         }
     int B1_r1_p_index=0;
@@ -1378,17 +1384,17 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B1_P_exprs_r1[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r1_%d_%d", kc, ks));
-        (B1_p2userEdges_r1[B1_r1_p_index]).p_r->store_in(B1_p_r1_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
-        (B1_p2userEdges_r1[B1_r1_p_index]).p_i->store_in(B1_p_r1_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_p_r1_r_buf, B1_p_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r1_%d_%d", kc, ks));
+        (B1_p2userEdges_r1[B1_r1_p_index]).p_r->store_in(B1_p_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B1_p2userEdges_r1[B1_r1_p_index]).p_i->store_in(B1_p_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B1_r1_p_index++;
         }
     for (auto computations: B1_Blocal_r1_updates) {
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_B1_Blocal_r1_r, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-      imag->store_in(&buf_B1_Blocal_r1_i, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      real->store_in(&buf_B1_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      imag->store_in(&buf_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     }
     for (auto computations: B1_Bsingle_r1_updates) {
       computation *real;
@@ -1411,15 +1417,15 @@ void generate_function(std::string name)
     }
     
 
-    buffer buf_B2_Blocal_r1_r("buf_B2_Blocal_r1_r", {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
-    buffer buf_B2_Blocal_r1_i("buf_B2_Blocal_r1_i", {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_r1_r("buf_B2_Blocal_r1_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_r1_i("buf_B2_Blocal_r1_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_r1_r("buf_B2_Bsingle_r1_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_r1_i("buf_B2_Bsingle_r1_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bdouble_r1_r("buf_B2_Bdouble_r1_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bdouble_r1_i("buf_B2_Bdouble_r1_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
 
-    B2_Blocal_r1_r_init.store_in(&buf_B2_Blocal_r1_r, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-    B2_Blocal_r1_i_init.store_in(&buf_B2_Blocal_r1_i, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B2_Blocal_r1_r_init.store_in(&buf_B2_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B2_Blocal_r1_i_init.store_in(&buf_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
 
     B2_Bsingle_r1_r_init.store_in(&buf_B2_Bsingle_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B2_Bsingle_r1_i_init.store_in(&buf_B2_Bsingle_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
@@ -1439,9 +1445,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B2_Q_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B2_q_r1_r_buf, B2_q_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_q_r1_%d_%d", ic, is));
-        (B2_q2userEdges_r1[B2_r1_q_index]).q_r->store_in(B2_q_r1_r_buf, {x2, iCprime, iSprime, kCprime, kSprime, y});
-        (B2_q2userEdges_r1[B2_r1_q_index]).q_i->store_in(B2_q_r1_i_buf, {x2, iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_q_r1_r_buf, B2_q_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_q_r1_%d_%d", ic, is));
+        (B2_q2userEdges_r1[B2_r1_q_index]).q_r->store_in(B2_q_r1_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        (B2_q2userEdges_r1[B2_r1_q_index]).q_i->store_in(B2_q_r1_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
         B2_r1_q_index++;
         }
     int B2_r1_o_index=0;
@@ -1449,9 +1455,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B2_O_exprs_r1[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B2_o_r1_r_buf, B2_o_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_o_r1_%d_%d", ic, is));
-        (B2_o2userEdges_r1[B2_r1_o_index]).o_r->store_in(B2_o_r1_r_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
-        (B2_o2userEdges_r1[B2_r1_o_index]).o_i->store_in(B2_o_r1_i_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_o_r1_r_buf, B2_o_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_o_r1_%d_%d", ic, is));
+        (B2_o2userEdges_r1[B2_r1_o_index]).o_r->store_in(B2_o_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B2_o2userEdges_r1[B2_r1_o_index]).o_i->store_in(B2_o_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B2_r1_o_index++;
         }
     int B2_r1_p_index=0;
@@ -1459,9 +1465,9 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B2_P_exprs_r1[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B2_p_r1_r_buf, B2_p_r1_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_p_r1_%d_%d", kc, ks));
-        (B2_p2userEdges_r1[B2_r1_p_index]).p_r->store_in(B2_p_r1_r_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
-        (B2_p2userEdges_r1[B2_r1_p_index]).p_i->store_in(B2_p_r1_i_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_p_r1_r_buf, B2_p_r1_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_p_r1_%d_%d", kc, ks));
+        (B2_p2userEdges_r1[B2_r1_p_index]).p_r->store_in(B2_p_r1_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B2_p2userEdges_r1[B2_r1_p_index]).p_i->store_in(B2_p_r1_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B2_r1_p_index++;
         }
 
@@ -1469,8 +1475,8 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_B2_Blocal_r1_r, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-      imag->store_in(&buf_B2_Blocal_r1_i, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      real->store_in(&buf_B2_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      imag->store_in(&buf_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     }
     for (auto computations: B2_Bsingle_r1_updates) {
       computation *real;
@@ -1492,15 +1498,15 @@ void generate_function(std::string name)
       imag->store_in(&buf_B2_Bdouble_r1_i, {jCprime, jSprime, kCprime, kSprime, iCprime, iSprime});
     }
 
-    buffer buf_B1_Blocal_r2_r("buf_B1_Blocal_r2_r",   {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
-    buffer buf_B1_Blocal_r2_i("buf_B1_Blocal_r2_i",   {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_r2_r("buf_B1_Blocal_r2_r",   {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_r2_i("buf_B1_Blocal_r2_i",   {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_r2_r("buf_B1_Bsingle_r2_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_r2_i("buf_B1_Bsingle_r2_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bdouble_r2_r("buf_B1_Bdouble_r2_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bdouble_r2_i("buf_B1_Bdouble_r2_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
 
-    B1_Blocal_r2_r_init.store_in(&buf_B1_Blocal_r2_r, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-    B1_Blocal_r2_i_init.store_in(&buf_B1_Blocal_r2_i, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B1_Blocal_r2_r_init.store_in(&buf_B1_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B1_Blocal_r2_i_init.store_in(&buf_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bsingle_r2_r_init.store_in(&buf_B1_Bsingle_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bsingle_r2_i_init.store_in(&buf_B1_Bsingle_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B1_Bdouble_r2_r_init.store_in(&buf_B1_Bdouble_r2_r, {jCprime, jSprime, kCprime, kSprime, iCprime, iSprime});
@@ -1518,9 +1524,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_Q_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_q_r2_r_buf, B1_q_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r2_%d_%d", ic, is));
-        (B1_q2userEdges_r2[B1_r2_q_index]).q_r->store_in(B1_q_r2_r_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
-        (B1_q2userEdges_r2[B1_r2_q_index]).q_i->store_in(B1_q_r2_i_buf, {x, iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_q_r2_r_buf, B1_q_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_q_r2_%d_%d", ic, is));
+        (B1_q2userEdges_r2[B1_r2_q_index]).q_r->store_in(B1_q_r2_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        (B1_q2userEdges_r2[B1_r2_q_index]).q_i->store_in(B1_q_r2_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
         B1_r2_q_index++;
         }
     int B1_r2_o_index=0;
@@ -1528,9 +1534,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B1_O_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B1_o_r2_r_buf, B1_o_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r2_%d_%d", ic, is));
-        (B1_o2userEdges_r2[B1_r2_o_index]).o_r->store_in(B1_o_r2_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
-        (B1_o2userEdges_r2[B1_r2_o_index]).o_i->store_in(B1_o_r2_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_o_r2_r_buf, B1_o_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_o_r2_%d_%d", ic, is));
+        (B1_o2userEdges_r2[B1_r2_o_index]).o_r->store_in(B1_o_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B1_o2userEdges_r2[B1_r2_o_index]).o_i->store_in(B1_o_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B1_r2_o_index++;
         }
     int B1_r2_p_index=0;
@@ -1538,17 +1544,17 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B1_P_exprs_r2[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B1_p_r2_r_buf, B1_p_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r2_%d_%d", kc, ks));
-        (B1_p2userEdges_r2[B1_r2_p_index]).p_r->store_in(B1_p_r2_r_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
-        (B1_p2userEdges_r2[B1_r2_p_index]).p_i->store_in(B1_p_r2_i_buf, {x, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B1_p_r2_r_buf, B1_p_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B1_p_r2_%d_%d", kc, ks));
+        (B1_p2userEdges_r2[B1_r2_p_index]).p_r->store_in(B1_p_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B1_p2userEdges_r2[B1_r2_p_index]).p_i->store_in(B1_p_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B1_r2_p_index++;
         }
     for (auto computations: B1_Blocal_r2_updates) {
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_B1_Blocal_r2_r, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-      imag->store_in(&buf_B1_Blocal_r2_i, {x, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      real->store_in(&buf_B1_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      imag->store_in(&buf_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     }
     for (auto computations: B1_Bsingle_r2_updates) {
       computation *real;
@@ -1570,15 +1576,15 @@ void generate_function(std::string name)
       imag->store_in(&buf_B1_Bdouble_r2_i, {jCprime, jSprime, kCprime, kSprime, iCprime, iSprime});
     }
 
-    buffer buf_B2_Blocal_r2_r("buf_B2_Blocal_r2_r", {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
-    buffer buf_B2_Blocal_r2_i("buf_B2_Blocal_r2_i", {Vsnk, Nsrc, Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_r2_r("buf_B2_Blocal_r2_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_r2_i("buf_B2_Blocal_r2_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_r2_r("buf_B2_Bsingle_r2_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_r2_i("buf_B2_Bsingle_r2_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bdouble_r2_r("buf_B2_Bdouble_r2_r", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bdouble_r2_i("buf_B2_Bdouble_r2_i", {Nc, Ns, Nc, Ns, Nc, Ns}, p_float64, a_temporary);
 
-    B2_Blocal_r2_r_init.store_in(&buf_B2_Blocal_r2_r, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-    B2_Blocal_r2_i_init.store_in(&buf_B2_Blocal_r2_i, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B2_Blocal_r2_r_init.store_in(&buf_B2_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+    B2_Blocal_r2_i_init.store_in(&buf_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
 
     B2_Bsingle_r2_r_init.store_in(&buf_B2_Bsingle_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     B2_Bsingle_r2_i_init.store_in(&buf_B2_Bsingle_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
@@ -1598,9 +1604,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B2_Q_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B2_q_r2_r_buf, B2_q_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_q_r2_%d_%d", ic, is));
-        (B2_q2userEdges_r2[B2_r2_q_index]).q_r->store_in(B2_q_r2_r_buf, {x2, iCprime, iSprime, kCprime, kSprime, y});
-        (B2_q2userEdges_r2[B2_r2_q_index]).q_i->store_in(B2_q_r2_i_buf, {x2, iCprime, iSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_q_r2_r_buf, B2_q_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_q_r2_%d_%d", ic, is));
+        (B2_q2userEdges_r2[B2_r2_q_index]).q_r->store_in(B2_q_r2_r_buf, {iCprime, iSprime, kCprime, kSprime, y});
+        (B2_q2userEdges_r2[B2_r2_q_index]).q_i->store_in(B2_q_r2_i_buf, {iCprime, iSprime, kCprime, kSprime, y});
         B2_r2_q_index++;
         }
     int B2_r2_o_index=0;
@@ -1608,9 +1614,9 @@ void generate_function(std::string name)
       for (int is = 0; is < Ns; is++) {
         if (B2_O_exprs_r2[ic][is].is_zero()) 
           continue;
-        allocate_complex_buffers(B2_o_r2_r_buf, B2_o_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_o_r2_%d_%d", ic, is));
-        (B2_o2userEdges_r2[B2_r2_o_index]).o_r->store_in(B2_o_r2_r_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
-        (B2_o2userEdges_r2[B2_r2_o_index]).o_i->store_in(B2_o_r2_i_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_o_r2_r_buf, B2_o_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_o_r2_%d_%d", ic, is));
+        (B2_o2userEdges_r2[B2_r2_o_index]).o_r->store_in(B2_o_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B2_o2userEdges_r2[B2_r2_o_index]).o_i->store_in(B2_o_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B2_r2_o_index++;
         }
     int B2_r2_p_index=0;
@@ -1618,9 +1624,9 @@ void generate_function(std::string name)
       for (int ks = 0; ks < Ns; ks++) {
         if (B2_P_exprs_r2[kc][ks].is_zero())
           continue;
-        allocate_complex_buffers(B2_p_r2_r_buf, B2_p_r2_i_buf, {Vsnk, Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_p_r2_%d_%d", kc, ks));
-        (B2_p2userEdges_r2[B2_r2_p_index]).p_r->store_in(B2_p_r2_r_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
-        (B2_p2userEdges_r2[B2_r2_p_index]).p_i->store_in(B2_p_r2_i_buf, {x2, jCprime, jSprime, kCprime, kSprime, y});
+        allocate_complex_buffers(B2_p_r2_r_buf, B2_p_r2_i_buf, {Nc, Ns, Nc, Ns, Vsrc}, str_fmt("buf_B2_p_r2_%d_%d", kc, ks));
+        (B2_p2userEdges_r2[B2_r2_p_index]).p_r->store_in(B2_p_r2_r_buf, {jCprime, jSprime, kCprime, kSprime, y});
+        (B2_p2userEdges_r2[B2_r2_p_index]).p_i->store_in(B2_p_r2_i_buf, {jCprime, jSprime, kCprime, kSprime, y});
         B2_r2_p_index++;
         }
 
@@ -1628,8 +1634,8 @@ void generate_function(std::string name)
       computation *real;
       computation *imag;
       std::tie(real, imag) = computations;
-      real->store_in(&buf_B2_Blocal_r2_r, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
-      imag->store_in(&buf_B2_Blocal_r2_i, {x2, m, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      real->store_in(&buf_B2_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
+      imag->store_in(&buf_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime});
     }
     for (auto computations: B2_Bsingle_r2_updates) {
       computation *real;
