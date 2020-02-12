@@ -3,37 +3,31 @@
 namespace tiramisu::auto_scheduler
 {
 
-std::vector<syntax_tree*> exhaustive_generator::generate_states(syntax_tree const& ast)
+std::vector<syntax_tree*> exhaustive_generator::generate_states(syntax_tree const& ast, optimization_type optim)
 {
     std::vector<syntax_tree*> states;
-    optimization_type next_optimization = optimizations_order[ast.next_optim_index];
     
-    switch(next_optimization)
+    switch(optim)
     {
         case optimization_type::FUSION:
-            if (apply_fusion)
-                generate_fusions(ast.roots, states, ast);
-
+            generate_fusions(ast.roots, states, ast);
             break;
 
         case optimization_type::TILING:
-            if (apply_tiling)
-                for (ast_node *root : ast.roots)
-                    generate_tilings(root, states, ast);
+            for (ast_node *root : ast.roots)
+                generate_tilings(root, states, ast);
             
             break;
 
         case optimization_type::INTERCHANGE:
-            if (apply_interchange)
-                for (ast_node *root : ast.roots)
-                    generate_interchanges(root, states, ast);
+            for (ast_node *root : ast.roots)
+                generate_interchanges(root, states, ast);
                     
             break;
 
         case optimization_type::UNROLLING:
-            if (apply_unrolling)
-                for (ast_node *root : ast.roots)
-                    generate_unrollings(root, states, ast);
+            for (ast_node *root : ast.roots)
+                generate_unrollings(root, states, ast);
                     
             break;
 
@@ -64,7 +58,6 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
                 new_node->fused = true;
                 new_node->fused_with = j;
                 
-                new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
                 states.push_back(new_ast);
             }
         }
@@ -101,7 +94,6 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                 new_node->tiling_size1 = tiling_size1;
                 new_node->tiling_size2 = tiling_size2;
                 
-                new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
                 states.push_back(new_ast);
                 
                 // Generate tiling with dimension 3
@@ -123,7 +115,6 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                         new_node->tiling_size2 = tiling_size2;
                         new_node->tiling_size3 = tiling_size3;
                             
-                        new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
                         states.push_back(new_ast);
                     }
                 }
@@ -149,7 +140,6 @@ void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syn
             new_node->interchanged = true;
             new_node->interchanged_with = i;
             
-            new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
             states.push_back(new_ast);
         }
     }
@@ -164,7 +154,8 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
     {
         for (int unrolling_factor : unrolling_factors_list)
         {
-            if (!can_split_iterator(node->up_bound - node->low_bound + 1, unrolling_factor))
+            if (node->up_bound - node->low_bound + 1 != unrolling_factor && 
+                !can_split_iterator(node->up_bound - node->low_bound + 1, unrolling_factor))
                 continue;
                 
             syntax_tree* new_ast = new syntax_tree();
@@ -172,7 +163,6 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
             
             new_node->unrolling_factor = unrolling_factor;
 
-            new_ast->next_optim_index = (new_ast->next_optim_index + 1) % NB_OPTIMIZATIONS;
             states.push_back(new_ast);
         }
     }

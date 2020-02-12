@@ -60,7 +60,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     }
 
     new_ast.fct = fct;
-    new_ast.next_optim_index = next_optim_index;
+    new_ast.search_depth = search_depth;
 
     return ret_node;
 }
@@ -233,6 +233,7 @@ void syntax_tree::transform_ast_by_interchange(ast_node *node)
 {
     if (node->interchanged)
     {
+        // Find the node to interchange with
         ast_node *tmp_node = node;
         for (int i = node->depth; i < node->interchanged_with; ++i)
             tmp_node = tmp_node->children[0];
@@ -283,7 +284,7 @@ void ast_node::update_depth(int depth)
         child->update_depth(depth + 1);
 }
 
-void syntax_tree::print_graph() const
+void syntax_tree::print_ast() const
 {
     for (ast_node *root : roots)
         root->print_node();
@@ -294,7 +295,7 @@ void ast_node::print_node() const
     for (int i = 0; i < depth; ++i)
         std::cout << "\t";
 
-    std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << std::endl;
+    std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << tiled << " " << interchanged << " " << unrolling_factor << std::endl;
     
     for (tiramisu::computation* comp : computations) 
     {

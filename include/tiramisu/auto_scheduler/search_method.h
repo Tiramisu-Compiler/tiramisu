@@ -1,6 +1,8 @@
 #ifndef _TIRAMISU_AUTO_SCHEDULER_SEARCH_METHOD_
 #define _TIRAMISU_AUTO_SCHEDULER_SEARCH_METHOD_
 
+#include <climits>
+
 #include "auto_scheduler.h"
 #include "states_generator.h"
 #include "evaluator.h"
@@ -8,6 +10,10 @@
 
 namespace tiramisu::auto_scheduler
 {
+
+const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, TILING, INTERCHANGE, UNROLLING};
+
+const int DEFAULT_MAX_DEPTH = INT_MAX;
 
 /**
   * An abstract class that represents a search method.
@@ -24,6 +30,9 @@ protected:
       */
     evaluator *eval_func;
 
+    /**
+     *
+     */
     states_generator* states_gen;
     
 public:
@@ -52,9 +61,11 @@ private:
 protected:
     int beam_size;
     
+    int max_depth;
+    
 public:
-    beam_search(int beam_size, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
-        : search_method(eval_func, states_gen), beam_size(beam_size) {}
+    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
+        : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
     virtual void search(syntax_tree const& ast);

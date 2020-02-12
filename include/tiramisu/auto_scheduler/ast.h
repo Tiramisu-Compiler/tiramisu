@@ -67,10 +67,19 @@ public:
      */
     ast_node* copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const;
     
+    /**
+     *
+     */
     int get_branch_depth() const;
     
+    /**
+     *
+     */
     void update_depth(int depth);
 
+    /**
+     * Print the subtree rooted at this node.
+     */
     void print_node() const;
 };
 
@@ -93,12 +102,11 @@ public:
      * the computation graph.
      */
     float evaluation;
-
+    
     /**
-     * Index of the next optimization that the states generator
-     * will apply.
+     *
      */
-    int next_optim_index = 0;
+    int search_depth = 0;
         
     /**
      * Create an empty computation graph.
@@ -142,7 +150,10 @@ public:
      */
     static void transform_ast_by_interchange(ast_node *node);
 
-    void print_graph() const;
+    /**
+     * Print the AST.
+     */
+    void print_ast() const;
 };
 
 }
