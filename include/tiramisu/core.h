@@ -22,7 +22,6 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/auto_scheduler/ast.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -45,6 +44,7 @@ class xfer_prop;
 namespace auto_scheduler
 {
 class syntax_tree;
+class evaluate_by_execution;
 }
 
 struct HalideCodegenOutput
@@ -58,6 +58,8 @@ struct HalideCodegenOutput
                         const std::map<std::string, tiramisu::buffer *> &buffers)
         : computation_list(computations), constant_list(constants), output_buffers(buffers) {}
 };
+
+Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
 
 HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     Halide::Internal::Stmt s,
@@ -143,6 +145,7 @@ class function
     friend tiramisu::wait;
     friend cuda_ast::generator;
     friend auto_scheduler::syntax_tree;
+    friend auto_scheduler::evaluate_by_execution;
 
 private:
     /**
@@ -1414,6 +1417,7 @@ class computation
     friend recv;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend auto_scheduler::evaluate_by_execution;
 
 private:
 
@@ -4160,6 +4164,7 @@ public:
     //@{
     virtual void unroll(var L, int fac);
     virtual void unroll(var L, int fac, var L_outer, var L_inner);
+    virtual void unroll(int L, int fac);
     //@}
 
     /**

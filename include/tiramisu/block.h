@@ -87,6 +87,7 @@ public:
     void tile(int L0, int L1, int L2, int sizeX, int sizeY, int sizeZ) override;
     void unroll(var L, int fac) override;
     void unroll(var L, int fac, var L_outer, var L_inner) override;
+    void unroll(int L, int fac) override;
     void vectorize(var L, int v) override;
     void vectorize(var L, int v, var L_outer, var L_inner) override;
     // @}
