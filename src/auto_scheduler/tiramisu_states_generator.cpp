@@ -42,21 +42,29 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
 {
     for (int i = 0; i < tree_level.size(); ++i)
     {
-        if (tree_level[i]->unrolling_factor > 0)
+        if (tree_level[i]->unrolled)
             continue;
 
         for (int j = i + 1; j < tree_level.size(); ++j)
         {
-            if (tree_level[j]->unrolling_factor > 0)
+            if (tree_level[j]->unrolled)
                 continue;
 
-            if (tree_level[i]->name == tree_level[j]->name)
+            if (tree_level[i]->name == tree_level[j]->name &&
+                tree_level[i]->low_bound == tree_level[j]->low_bound &&
+                tree_level[i]->up_bound == tree_level[j]->up_bound)
             {
                 syntax_tree* new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, tree_level[i]);
                 
-                new_node->fused = true;
-                new_node->fused_with = j;
+                optimization_info optim_info;
+                optim_info.type = optimization_type::FUSION;
+                optim_info.node = new_node;
+                
+                optim_info.nb_l = 2;
+                optim_info.l0 = i;
+                optim_info.l1 = j;
+                new_ast->optims_info.push_back(optim_info);
                 
                 states.push_back(new_ast);
             }
@@ -69,31 +77,39 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
 
 void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
-    int branch_depth = node->get_branch_depth();
+    int branch_depth = node->get_loop_levels_chain_depth();
     
     // Generate tiling with dimension 2
-    if (node->depth + 1 < branch_depth && node->unrolling_factor == 0)
+    if (node->depth + 1 < branch_depth && !node->unrolled)
     {
         for (int tiling_size1 : tiling_factors_list)
         {
-            if (!can_split_iterator(node->up_bound - node->low_bound + 1, tiling_size1))
+            if (!can_split_iterator(node->get_extent(), tiling_size1))
                 continue;
                 
             ast_node *node2 = node->children[0];
             for (int tiling_size2 : tiling_factors_list)
             {
-                if (!can_split_iterator(node2->up_bound - node2->low_bound + 1, tiling_size2))
+                if (!can_split_iterator(node2->get_extent(), tiling_size2))
                     continue;
                     
                 syntax_tree *new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                     
-                new_node->tiled = true;
-                new_node->tiling_dim = 2;
+                optimization_info optim_info;
+                optim_info.type = optimization_type::TILING;
+                optim_info.node = new_node;
                 
-                new_node->tiling_size1 = tiling_size1;
-                new_node->tiling_size2 = tiling_size2;
+                optim_info.nb_l = 2;
+                optim_info.l0 = node->depth;
+                optim_info.l1 = node->depth + 1;
                 
+                optim_info.l0_fact = tiling_size1;
+                optim_info.l1_fact = tiling_size2;
+                
+                new_node->get_all_computations(optim_info.comps);
+                
+                new_ast->optims_info.push_back(optim_info);
                 states.push_back(new_ast);
                 
                 // Generate tiling with dimension 3
@@ -102,19 +118,28 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                     ast_node *node3 = node2->children[0];
                     for (int tiling_size3 : tiling_factors_list)
                     {
-                        if (!can_split_iterator(node3->up_bound - node3->low_bound + 1, tiling_size3))
+                        if (!can_split_iterator(node3->get_extent(), tiling_size3))
                             continue;
                             
                         syntax_tree* new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                             
-                        new_node->tiled = true;
-                        new_node->tiling_dim = 3;
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::TILING;
+                        optim_info.node = new_node;
                         
-                        new_node->tiling_size1 = tiling_size1;
-                        new_node->tiling_size2 = tiling_size2;
-                        new_node->tiling_size3 = tiling_size3;
-                            
+                        optim_info.nb_l = 3;
+                        optim_info.l0 = node->depth;
+                        optim_info.l1 = node->depth + 1;
+                        optim_info.l2 = node->depth + 2;
+                        
+                        optim_info.l0_fact = tiling_size1;
+                        optim_info.l1_fact = tiling_size2;
+                        optim_info.l2_fact = tiling_size3;
+                        
+                        new_node->get_all_computations(optim_info.comps);
+                        
+                        new_ast->optims_info.push_back(optim_info);
                         states.push_back(new_ast);
                     }
                 }
@@ -128,18 +153,25 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
 
 void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
-    if (node->unrolling_factor == 0)
+    if (!node->unrolled)
     {
-        int branch_depth = node->get_branch_depth();
+        int branch_depth = node->get_loop_levels_chain_depth();
         
         for (int i = node->depth + 1; i < branch_depth; ++i)
         {
             syntax_tree* new_ast = new syntax_tree();
             ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
             
-            new_node->interchanged = true;
-            new_node->interchanged_with = i;
-            
+            optimization_info optim_info;
+            optim_info.type = optimization_type::INTERCHANGE;
+            optim_info.node = new_node;
+                
+            optim_info.nb_l = 2;
+            optim_info.l0 = node->depth;
+            optim_info.l1 = i;
+            new_node->get_all_computations(optim_info.comps);
+                
+            new_ast->optims_info.push_back(optim_info);
             states.push_back(new_ast);
         }
     }
@@ -150,19 +182,27 @@ void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syn
 
 void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
-    if (node->unrolling_factor == 0)
+    if (!node->unrolled)
     {
         for (int unrolling_factor : unrolling_factors_list)
         {
-            if (node->up_bound - node->low_bound + 1 != unrolling_factor && 
-                !can_split_iterator(node->up_bound - node->low_bound + 1, unrolling_factor))
+            if (node->get_extent() != unrolling_factor && 
+                !can_split_iterator(node->get_extent(), unrolling_factor))
                 continue;
                 
             syntax_tree* new_ast = new syntax_tree();
             ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
-            
-            new_node->unrolling_factor = unrolling_factor;
 
+            optimization_info optim_info;
+            optim_info.type = optimization_type::UNROLLING;
+            optim_info.node = new_node;
+                
+            optim_info.nb_l = 1;
+            optim_info.l0 = node->depth;
+            optim_info.l0_fact = unrolling_factor;
+            new_node->get_all_computations(optim_info.comps);
+                
+            new_ast->optims_info.push_back(optim_info);
             states.push_back(new_ast);
         }
     }

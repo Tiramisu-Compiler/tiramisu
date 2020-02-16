@@ -26,10 +26,52 @@ public:
     virtual ~evaluator() {}
     
     /**
-      * Takes as input a computation graph and returns
+      * Takes as input an abstract syntax tree and returns
       * its evaluation.
       */
     virtual float evaluate(syntax_tree const& ast) =0;
+};
+
+/**
+ * Evaluate programs by compiling and executing them.
+ */
+class evaluate_by_execution : public evaluator
+{
+private:
+
+protected:
+    std::vector<Halide::Target::Feature> halide_features = {
+        Halide::Target::AVX,
+        Halide::Target::SSE41,
+        //Halide::Target::AVX2,
+	    //Halide::Target::FMA,
+        Halide::Target::LargeBuffers
+    };
+    
+    Halide::Target halide_target;
+    std::vector<Halide::Argument> halide_arguments;
+
+	tiramisu::function *fct;
+    std::string obj_filename;
+    std::string wrapper_cmd;
+
+public:
+    evaluate_by_execution(tiramisu::function *fct, 
+						  std::vector<tiramisu::buffer*> const& arguments, 
+						  std::string const& obj_filename, 
+						  std::string const& wrapper_cmd);
+    
+	/**
+	 * Apply the optimizations specified by the syntax tree
+	 * using the Tiramisu API.
+	 */
+    void apply_optimizations(syntax_tree const& ast);
+    
+	/**
+	 * Apply the specified optimizations, compile the program
+	 * and execute it.
+	 */
+    virtual float evaluate(syntax_tree const& ast);
 };
 
 }

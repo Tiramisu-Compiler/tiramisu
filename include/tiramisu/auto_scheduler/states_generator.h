@@ -40,12 +40,12 @@ public:
 class exhaustive_generator : public states_generator
 {
 private:
+
+protected:
     void generate_fusions(std::vector<ast_node*> const& tree_level, std::vector<syntax_tree*>& states, syntax_tree const& ast);
     void generate_tilings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
     void generate_interchanges(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
     void generate_unrollings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast);
-
-protected:
 
 public:
     exhaustive_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,

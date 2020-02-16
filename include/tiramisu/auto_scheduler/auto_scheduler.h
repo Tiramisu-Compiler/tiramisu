@@ -22,12 +22,11 @@ class auto_scheduler
 private:
         
 protected:
+    tiramisu::function *fct;
     syntax_tree ast;
         
     search_method *searcher;
     evaluator *eval_func;
-        
-    tiramisu::function *fct;
         
 public:
     auto_scheduler(search_method *searcher, evaluator *eval_func,

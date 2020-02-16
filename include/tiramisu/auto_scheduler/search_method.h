@@ -31,7 +31,7 @@ protected:
     evaluator *eval_func;
 
     /**
-     *
+     * The search method use this attribute to generate new states.
      */
     states_generator* states_gen;
     
@@ -40,6 +40,8 @@ public:
         : eval_func(eval_func), states_gen(states_gen) {}
             
     virtual ~search_method() {}
+
+    void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     
     /**
       * The method to call to start a search.
@@ -47,8 +49,6 @@ public:
       * code transformations.
       */
     virtual void search(syntax_tree const& ast) =0;
-        
-    void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
 };
 
 /**
@@ -59,8 +59,14 @@ class beam_search : public search_method
 private:
     
 protected:
+    /**
+     * The beam size used by beam search.
+     */
     int beam_size;
     
+    /**
+     * The maximum depth of the search tree.
+     */
     int max_depth;
     
 public:
@@ -68,6 +74,12 @@ public:
         : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
+
+    /**
+      * The method to call to start a search.
+      * It takes as input an AST and returns a list of
+      * code transformations.
+      */
     virtual void search(syntax_tree const& ast);
 };
 
