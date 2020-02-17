@@ -41,7 +41,9 @@ void evaluate_by_execution::apply_optimizations(syntax_tree const& ast)
         switch (optim_info.type)
         {
             case optimization_type::FUSION:
-                
+                if (optim_info.comps[1]->get_predecessor() != nullptr)
+                    std::cout << optim_info.comps[1]->get_predecessor()->get_name() << std::endl;
+                optim_info.comps[0]->then(*optim_info.comps[1], optim_info.l0_fact);
                 break;
                 
             case optimization_type::TILING:
@@ -103,6 +105,7 @@ float evaluate_by_execution::evaluate(syntax_tree const& ast)
         comp->set_identity_schedule_based_on_iteration_domain();
         
     fct->remove_dimension_tags();
+    fct->clear_sched_graph();
     
     return exec_time;
 }

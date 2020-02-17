@@ -4,11 +4,7 @@ namespace tiramisu::auto_scheduler
 {
 
 void beam_search::search(syntax_tree const& ast)
-{
-    std::cout << ast.search_depth << std::endl;
-    ast.print_ast();
-    std::cout << "------------------------------------------------" << std::endl;
-    
+{    
     std::vector<syntax_tree*> children;
     optimization_type optim_type;
     int optim_index = ast.search_depth % NB_OPTIMIZATIONS;
