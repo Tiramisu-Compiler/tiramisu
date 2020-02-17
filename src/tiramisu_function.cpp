@@ -661,6 +661,12 @@ bool function::is_sched_graph_tree_dfs(computation * comp,
     return true;
 }
 
+void function::clear_sched_graph()
+{
+    sched_graph.clear();
+    sched_graph_reversed.clear();
+}
+
 bool function::is_sched_graph_tree()
 {
     DEBUG_FCT_NAME(3);

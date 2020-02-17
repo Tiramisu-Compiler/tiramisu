@@ -796,6 +796,11 @@ protected:
        * \brief Adds a new pair to the mapping field.
        */
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
+    
+    /**
+     * Clear any relation between computations defined by after, then or between.
+     */
+    void clear_sched_graph();
 
 public:
 
