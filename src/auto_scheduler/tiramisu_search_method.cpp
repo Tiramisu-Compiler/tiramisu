@@ -29,7 +29,14 @@ void beam_search::search(syntax_tree const& ast)
        
     // Evaluate children and sort them from smallest to highest evaluation
     for (syntax_tree *child : children)
-        ;//child->evaluation = eval_func->evaluate(*child);
+    {
+        child->evaluation = eval_func->evaluate(*child);
+        if (child->evaluation < best_evaluation)
+        {
+            best_evaluation = child->evaluation;
+            best_schedule = child->optims_info;
+        }
+    }
 
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;

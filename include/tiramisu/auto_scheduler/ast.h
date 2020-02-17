@@ -81,13 +81,13 @@ public:
 
     /**
      * Recompute the depth of each node of the tree rooted at
-	 * this node, with the given depth being the depth of this node.
+     * this node, with the given depth being the depth of this node.
      */
     void update_depth(int depth);
 
     /**
      * Fill the given array with all the computations computed 
-	 * at this level and the levels below.
+     * at this level and the levels below.
      */
     void get_all_computations(std::vector<tiramisu::computation*>& comps);
 

@@ -2,6 +2,7 @@
 #define _TIRAMISU_AUTO_SCHEDULER_SEARCH_METHOD_
 
 #include <climits>
+#include <cfloat>
 
 #include "auto_scheduler.h"
 #include "states_generator.h"
@@ -35,12 +36,17 @@ protected:
      */
     states_generator* states_gen;
     
+    float best_evaluation = FLT_MAX;
+    std::vector<optimization_info> best_schedule;
+    
 public:
     search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
         : eval_func(eval_func), states_gen(states_gen) {}
             
     virtual ~search_method() {}
 
+    float get_best_evaluation() const { return best_evaluation; }
+    std::vector<optimization_info>& get_best_schedule() { return best_schedule; }
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     
     /**

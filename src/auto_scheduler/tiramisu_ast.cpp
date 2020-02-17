@@ -345,13 +345,13 @@ int ast_node::get_loop_levels_chain_depth() const
     int ret = depth;
     const ast_node *node = this;
     
-    while (node->children.size() == 1 && node->computations.size() == 0)
+    while (node->children.size() == 1 && node->computations.size() == 0 && !node->unrolled)
     {
         ret++;
         node = node->children[0];
     }
     
-    if (node->children.size() == 0 || node->computations.size() > 0)
+    if ((node->children.size() == 0 || node->computations.size() > 0) && !node->unrolled)
         return ret + 1;
     
     return ret;

@@ -80,7 +80,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
     int branch_depth = node->get_loop_levels_chain_depth();
     
     // Generate tiling with dimension 2
-    if (node->depth + 1 < branch_depth && !node->unrolled)
+    if (node->depth + 1 < branch_depth)
     {
         for (int tiling_size1 : tiling_factors_list)
         {
