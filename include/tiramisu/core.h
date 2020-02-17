@@ -844,6 +844,11 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
+    
+    /**
+     * Remove, for every computation, every schedule.
+     */
+    void reset_schedules();
 
     /**
      * \brief For each computation, allocate a buffer and map the computation

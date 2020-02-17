@@ -1562,6 +1562,15 @@ void tiramisu::function::align_schedules()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
+void tiramisu::function::reset_schedules()
+{
+    for (computation *comp : get_computations())
+        comp->set_identity_schedule_based_on_iteration_domain();
+        
+    remove_dimension_tags();
+    clear_sched_graph();
+}
+
 void tiramisu::function::add_invariant(tiramisu::constant invar)
 {
     invariants.push_back(invar);

@@ -148,11 +148,7 @@ float evaluate_by_execution::evaluate(syntax_tree const& ast)
     std::cout << exec_time << std::endl;
     
     // Remove all the optimizations
-    for (tiramisu::computation *comp : fct->get_computations())
-        comp->set_identity_schedule_based_on_iteration_domain();
-        
-    fct->remove_dimension_tags();
-    fct->clear_sched_graph();
+    fct->reset_schedules();
     
     return exec_time;
 }
