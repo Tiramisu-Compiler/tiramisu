@@ -1763,6 +1763,16 @@ void tiramisu::function::add_gpu_thread_dimensions(std::string stmt_name, int di
             std::tuple<int, int, int>(dim0, dim1, dim2)));
 }
 
+void tiramisu::function::remove_dimension_tags()
+{
+    parallel_dimensions.clear();
+    vector_dimensions.clear();
+    distributed_dimensions.clear();
+    gpu_block_dimensions.clear();
+    gpu_thread_dimensions.clear();
+    unroll_dimensions.clear();
+}
+
 isl_union_set *tiramisu::function::get_trimmed_time_processor_domain() const
 {
     DEBUG_FCT_NAME(10);

@@ -329,6 +329,12 @@ private:
       * \p factor in the unrolling factor.
       */
     void add_unroll_dimension(std::string stmt_name, int L, int factor);
+    
+    /**
+     * Remove parallel, vectorized, distributed, unrolled and GPU tags
+     * on every computations.
+     */
+    void remove_dimension_tags();
 
     /**
      * Get live in/out computations in the function.

@@ -101,6 +101,8 @@ float evaluate_by_execution::evaluate(syntax_tree const& ast)
     // Remove all the optimizations
     for (tiramisu::computation *comp : fct->get_computations())
         comp->set_identity_schedule_based_on_iteration_domain();
+        
+    fct->remove_dimension_tags();
     
     return exec_time;
 }
