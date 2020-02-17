@@ -67,6 +67,9 @@ public:
 	 */
     void apply_optimizations(syntax_tree const& ast);
     
+    void apply_fusions(syntax_tree const& ast);
+    tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
+    
 	/**
 	 * Apply the specified optimizations, compile the program
 	 * and execute it.

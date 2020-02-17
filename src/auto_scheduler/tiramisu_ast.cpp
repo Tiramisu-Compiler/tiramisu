@@ -55,6 +55,22 @@ ast_node::ast_node(tiramisu::computation *comp)
     nodes.back()->computations.push_back(comp);
 }
 
+syntax_tree* syntax_tree::copy_ast() const
+{
+    syntax_tree *ast = new syntax_tree();
+    copy_and_return_node(*ast, nullptr);
+    
+    return ast;
+}
+
+ast_node* ast_node::copy_node() const
+{
+    ast_node *node = new ast_node();
+    copy_and_return_node(node, nullptr);
+    
+    return node;
+}
+
 ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const
 {
     ast_node *ret_node = nullptr;

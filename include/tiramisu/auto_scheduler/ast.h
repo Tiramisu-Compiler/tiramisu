@@ -72,6 +72,11 @@ public:
         for (ast_node* child : children)
             delete child;
     }
+    
+    /**
+     * Copy this node and return the copy.
+     */
+    ast_node* copy_node() const;
 
     /**
      * Copy the tree rooted at this node into new_node and return
@@ -163,6 +168,17 @@ public:
      * Create an AST from the given function.
      */
     syntax_tree(tiramisu::function *fct);
+    
+    ~syntax_tree()
+    {
+        for (ast_node *node : roots)
+            delete node;
+    }
+    
+    /**
+     * Copy this AST, and return the copy.
+     */
+    syntax_tree* copy_ast() const;
 
     /**
      * Copy this AST to new_ast and return
