@@ -18,6 +18,11 @@ class evaluator
 private:
     
 protected:
+    /**
+     * Apply the given optimization using the Tiramisu API.
+     */
+    void apply_optimizations(optimization_info const& optim_info);
+    
     tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, 
                                          int dimension);
     

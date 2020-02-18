@@ -9,35 +9,8 @@ namespace tiramisu::auto_scheduler
 
 void evaluator::apply_optimizations(syntax_tree const& ast)
 {
-    for (optimization_info optim_info : ast.optims_info)
-    {
-        // tiramisu::block can be used to apply the same optimization to a set of computations
-        tiramisu::block block(optim_info.comps);
-        
-        switch (optim_info.type)
-        {
-            case optimization_type::TILING:
-                if (optim_info.nb_l == 2)
-                    block.tile(optim_info.l0, optim_info.l1, 
-                               optim_info.l0_fact, optim_info.l1_fact);
-                
-                else if (optim_info.nb_l == 3)
-                    block.tile(optim_info.l0, optim_info.l1, optim_info.l2,
-                               optim_info.l0_fact, optim_info.l1_fact, optim_info.l2_fact);
-                break;
-                
-            case optimization_type::INTERCHANGE:
-                block.interchange(optim_info.l0, optim_info.l1);
-                break;
-                
-            case optimization_type::UNROLLING:
-                block.unroll(optim_info.l0, optim_info.l0_fact);
-                break;
-                
-            default:
-                break;
-        }
-    }
+    for (optimization_info const& optim_info : ast.optims_info)
+        apply_optimizations(optim_info);
     
     // Apply fusions
     if (ast.optims_info.size() > 0 && ast.optims_info.back().type == optimization_type::FUSION)
@@ -51,6 +24,36 @@ void evaluator::apply_optimizations(syntax_tree const& ast)
     
     else
         apply_fusions(ast);
+}
+
+void evaluator::apply_optimizations(optimization_info const& optim_info)
+{
+    // tiramisu::block can be used to apply the same optimization to a set of computations
+    tiramisu::block block(optim_info.comps);
+        
+    switch (optim_info.type)
+    {
+        case optimization_type::TILING:
+            if (optim_info.nb_l == 2)
+                block.tile(optim_info.l0, optim_info.l1, 
+                           optim_info.l0_fact, optim_info.l1_fact);
+                
+            else if (optim_info.nb_l == 3)
+                block.tile(optim_info.l0, optim_info.l1, optim_info.l2,
+                           optim_info.l0_fact, optim_info.l1_fact, optim_info.l2_fact);
+            break;
+                
+        case optimization_type::INTERCHANGE:
+            block.interchange(optim_info.l0, optim_info.l1);
+            break;
+                
+        case optimization_type::UNROLLING:
+            block.unroll(optim_info.l0, optim_info.l0_fact);
+            break;
+                
+        default:
+            break;
+    }
 }
 
 void evaluator::apply_fusions(syntax_tree const& ast)
@@ -171,10 +174,10 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
     std::vector<int> tiling_fact(MAX_NB_ITERATORS, 0);
     int unrolling_fact = 0;
     
-    int i = ast.optims_info.size() - 1;
-    while (i >= 0)
+    int opt_index = ast.optims_info.size() - 1;
+    while (opt_index >= 0)
     {
-        optimization_info const& optim_info = ast.optims_info[i];
+        optimization_info const& optim_info = ast.optims_info[opt_index];
         
         switch (optim_info.type)
         {
@@ -216,8 +219,12 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
         if (optim_info.optim_rank % NB_OPTIMIZATIONS == 0)
             break;
         
-        --i;
+        --opt_index;
     }
+    
+    for (int i = 0; i <= opt_index; ++i)
+        if (ast.optims_info[i].type != optimization_type::UNROLLING)
+            apply_optimizations(ast.optims_info[i]);
     
     // Create the vector representation of each computation
     for (int i = 0; i < nb_computations; ++i)
@@ -249,6 +256,9 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
         
         input[0][i] = get_computation_repr(dnn_sched, accesses);
     }
+    
+    // Remove all the optimizations
+    ast.fct->reset_schedules();
     
     // Call the DNN model
     std::vector<torch::jit::IValue> params = {input, length};
