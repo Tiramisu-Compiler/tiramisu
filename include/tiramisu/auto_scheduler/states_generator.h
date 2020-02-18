@@ -56,6 +56,26 @@ public:
     virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim);
 };
 
+/**
+ * Generate tilings and interchanges applied to shared
+ * loop of computations.
+ * Generate unrollings applied to innermost loop levels.
+ */
+class simple_generator : public states_generator
+{
+private:
+
+protected:
+
+public:
+    simple_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
+                     std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
+        
+        : states_generator(tiling_factors_list, unrolling_factors_list) {}
+        
+    virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim);
+};
+
 }
 
 #endif

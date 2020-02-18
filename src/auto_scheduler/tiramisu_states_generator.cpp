@@ -211,4 +211,166 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
         generate_unrollings(child, states, ast);
 }
 
+std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& ast, optimization_type optim)
+{
+    std::vector<syntax_tree*> states;
+    
+    std::vector<std::string> shared_levels_names;
+    std::vector<int> shared_levels_extents;
+    std::vector<int> innermost_extents;
+    
+    // Get shared iterators and innermost extents
+    std::vector<tiramisu::computation*> const& computations = ast.fct->get_computations();
+    
+    for (int i = 0; i < computations.size(); ++i)
+    {
+        std::vector<std::string> names;
+        std::vector<int> extents;
+        
+        isl_set *iter_domain = computations[i]->get_iteration_domain();
+        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+        
+        for (int j = 0; j < nb_iterators; ++j)
+        {
+            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
+            int low_bound = utility::get_bound(iter_domain, j, false).get_int_val();
+            int up_bound = utility::get_bound(iter_domain, j, true).get_int_val();
+            
+            names.push_back(name);
+            extents.push_back(up_bound - low_bound + 1);
+        }
+        
+        innermost_extents.push_back(extents.back());
+        
+        if (i == 0)
+        {
+            shared_levels_names = names;
+            shared_levels_extents = extents;
+            
+            continue;
+        }
+        
+        int j;
+        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
+            if (names[j] != shared_levels_names[j])
+                break;
+                
+        shared_levels_names.resize(j);
+        shared_levels_extents.resize(j);
+    }
+    
+    int nb_shared_iterators = shared_levels_extents.size();
+    
+    // Generate the specified optimization
+    switch (optim)
+    {
+        case optimization_type::TILING:
+            for (int i = 0; i < nb_shared_iterators - 1; ++i)
+            {
+                for (int tiling_size1 : tiling_factors_list)
+                {
+                    if (!can_split_iterator(shared_levels_extents[i], tiling_size1))
+                        continue;
+                        
+                    for (int tiling_size2 : tiling_factors_list)
+                    {
+                        if (!can_split_iterator(shared_levels_extents[i + 1], tiling_size2))
+                            continue;
+                            
+                        syntax_tree* new_ast = ast.copy_ast();
+                        
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::INTERCHANGE;
+                            
+                        optim_info.l0 = i;
+                        optim_info.l1 = i + 1;
+                        
+                        optim_info.l0_fact = tiling_size1;
+                        optim_info.l1_fact = tiling_size2;
+                            
+                        new_ast->optims_info.push_back(optim_info);
+                        states.push_back(new_ast);
+                            
+                        if (i + 2 >= nb_shared_iterators)
+                            continue;
+                            
+                        for (int tiling_size3 : tiling_factors_list)
+                        {
+                            if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size2))
+                                continue;
+                                
+                            syntax_tree* new_ast = ast.copy_ast();
+                            
+                            optimization_info optim_info;
+                            optim_info.type = optimization_type::INTERCHANGE;
+                                
+                            optim_info.l0 = i;
+                            optim_info.l1 = i + 1;
+                            optim_info.l2 = i + 2;
+                            
+                            optim_info.l0_fact = tiling_size1;
+                            optim_info.l1_fact = tiling_size2;
+                            optim_info.l2_fact = tiling_size3;
+                                
+                            new_ast->optims_info.push_back(optim_info);
+                            states.push_back(new_ast);
+                        }
+                    }
+                }
+            }
+            break;
+
+        case optimization_type::INTERCHANGE:
+            for (int i = 0; i < nb_shared_iterators; ++i)
+            {
+                for (int j = i + 1; j < nb_shared_iterators; ++j)
+                {
+                    syntax_tree* new_ast = ast.copy_ast();
+                    
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::INTERCHANGE;
+                        
+                    optim_info.l0 = i;
+                    optim_info.l1 = j;
+                        
+                    new_ast->optims_info.push_back(optim_info);
+                    states.push_back(new_ast);
+                }
+            } 
+            break;
+
+        case optimization_type::UNROLLING:     
+            for (int unrolling_fact : unrolling_factors_list)
+            {
+                bool use_factor = true;
+                for (int extent : innermost_extents)
+                {
+                    if (extent != unrolling_fact && !can_split_iterator(extent, unrolling_fact))
+                    {
+                        use_factor = false;
+                        break;
+                    }
+                }
+                
+                if (!use_factor)
+                    continue;
+                    
+                syntax_tree* new_ast = ast.copy_ast();
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::UNROLLING;
+                optim_info.l0_fact = unrolling_fact;
+                    
+                new_ast->optims_info.push_back(optim_info);
+                states.push_back(new_ast);
+            }
+            break;
+
+        default:
+            break;
+    }
+    
+    return states;
+}
+
 }
