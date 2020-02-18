@@ -61,13 +61,9 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
                 optim_info.type = optimization_type::FUSION;
                 optim_info.node = new_node;
                 
-                optim_info.comps.push_back(tree_level[i]->get_rightmost_computation());
-                optim_info.comps.push_back(tree_level[j]->get_leftmost_computation());
-                
                 optim_info.nb_l = 2;
                 optim_info.l0 = i;
                 optim_info.l1 = j;
-                optim_info.l0_fact = tree_level[i]->depth;
                 new_ast->optims_info.push_back(optim_info);
                 
                 states.push_back(new_ast);

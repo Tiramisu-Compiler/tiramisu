@@ -89,18 +89,6 @@ public:
      * this node, with the given depth being the depth of this node.
      */
     void update_depth(int depth);
-    
-    /**
-     * Get the computation at the leftmost side of the tree
-     * rooted at this node.
-     */
-    tiramisu::computation* get_leftmost_computation();
-    
-    /**
-     * Get the computation at the rightmost side of the tree
-     * rooted at this node.
-     */
-    tiramisu::computation* get_rightmost_computation();
 
     /**
      * Fill the given array with all the computations computed 

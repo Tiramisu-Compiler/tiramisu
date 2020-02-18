@@ -45,6 +45,8 @@ namespace auto_scheduler
 {
 class syntax_tree;
 class evaluate_by_execution;
+class simple_rnn_evaluator;
+class dnn_access_matrix;
 }
 
 struct HalideCodegenOutput
@@ -146,6 +148,8 @@ class function
     friend cuda_ast::generator;
     friend auto_scheduler::syntax_tree;
     friend auto_scheduler::evaluate_by_execution;
+    friend auto_scheduler::simple_rnn_evaluator;
+    friend auto_scheduler::dnn_access_matrix;
 
 private:
     /**

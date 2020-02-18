@@ -6,18 +6,21 @@ namespace tiramisu::auto_scheduler
 void beam_search::search(syntax_tree const& ast)
 {    
     std::vector<syntax_tree*> children;
-    optimization_type optim_type;
-    int optim_index = ast.search_depth % NB_OPTIMIZATIONS;
     
+    int optim_rank = -1;
+    if (ast.optims_info.size() > 0)
+        optim_rank = ast.optims_info.back().optim_rank;
+        
     // Look for an optimization that can be applied
-    do
+    int nb_optims_tried = 0;
+    while (children.size() == 0 && nb_optims_tried < NB_OPTIMIZATIONS)
     {
-        optim_type = DEFAULT_OPTIMIZATIONS_ORDER[optim_index];
+        optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[(optim_rank + 1) % NB_OPTIMIZATIONS];
         children = states_gen->generate_states(ast, optim_type);
         
-        optim_index = (optim_index + 1) % NB_OPTIMIZATIONS;
-        
-    } while (children.size() == 0 && optim_index != ast.search_depth % NB_OPTIMIZATIONS);
+        optim_rank++;
+        nb_optims_tried++;
+    }
        
     // Stop if no more optimizations can be applied
     if (children.size() == 0)
@@ -26,7 +29,9 @@ void beam_search::search(syntax_tree const& ast)
     // Evaluate children and sort them from smallest to highest evaluation
     for (syntax_tree *child : children)
     {
+        child->optims_info.back().optim_rank = optim_rank;
         child->evaluation = eval_func->evaluate(*child);
+        
         if (child->evaluation < best_evaluation)
         {
             best_evaluation = child->evaluation;

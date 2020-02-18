@@ -347,24 +347,6 @@ void ast_node::update_depth(int depth)
         child->update_depth(depth + 1);
 }
 
-tiramisu::computation* ast_node::get_leftmost_computation()
-{
-    ast_node *node = this;
-    while (node->children.size() != 0)
-        node = node->children[0];
-        
-    return node->computations[0];
-}
-
-tiramisu::computation* ast_node::get_rightmost_computation()
-{
-    ast_node *node = this;
-    while (node->children.size() != 0)
-        node = node->children.back();
-        
-    return node->computations.back();
-}
-
 void ast_node::get_all_computations(std::vector<tiramisu::computation*>& comps)
 {
     for (tiramisu::computation *c : computations)

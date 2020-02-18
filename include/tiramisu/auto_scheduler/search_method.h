@@ -46,7 +46,7 @@ public:
     virtual ~search_method() {}
 
     float get_best_evaluation() const { return best_evaluation; }
-    std::vector<optimization_info>& get_best_schedule() { return best_schedule; }
+    const std::vector<optimization_info>& get_best_schedule() const { return best_schedule; }
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     
     /**

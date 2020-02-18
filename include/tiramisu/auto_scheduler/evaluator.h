@@ -5,9 +5,6 @@
 #include "auto_scheduler.h"
 #include "utils.h"
 
-#define MAX_NB_ITERATORS 4
-#define MAX_NB_ACCESSES 17
-
 namespace tiramisu::auto_scheduler
 {
 
@@ -21,9 +18,23 @@ class evaluator
 private:
     
 protected:
+    tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, 
+                                         int dimension);
     
 public:
     virtual ~evaluator() {}
+    
+	/**
+	 * Apply the optimizations specified by the syntax tree
+	 * using the Tiramisu API.
+	 */
+    void apply_optimizations(syntax_tree const& ast);
+    
+    /**
+     * Schedule the computations so as to be in the order specified
+     * by the AST.
+     */
+    void apply_fusions(syntax_tree const& ast);
     
     /**
       * Takes as input an abstract syntax tree and returns
@@ -62,19 +73,50 @@ public:
 						  std::string const& wrapper_cmd);
     
 	/**
-	 * Apply the optimizations specified by the syntax tree
-	 * using the Tiramisu API.
-	 */
-    void apply_optimizations(syntax_tree const& ast);
-    
-    void apply_fusions(syntax_tree const& ast);
-    tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
-    
-	/**
 	 * Apply the specified optimizations, compile the program
 	 * and execute it.
 	 */
     virtual float evaluate(syntax_tree const& ast);
+};
+
+/**
+  * Implements an evaluation function that uses a simple
+  * RNN model.
+  *
+  * We use LibTorch to handle DNN models in C++.
+  */
+class simple_rnn_evaluator : public evaluator
+{
+private:
+
+protected:
+    /**
+     * The model to use as an evaluation function.
+     */
+    torch::jit::script::Module model;
+
+public:
+    /**
+      * model_path is the path to the serialized PyTorch model.
+      * The model must be serialized with TorchScript.
+      */
+    simple_rnn_evaluator(std::string const& model_path);
+    
+	/**
+	 * Call the model and return its evaluation.
+	 */
+    virtual float evaluate(syntax_tree const& ast);
+    
+    /**
+     * Transform the AST to a tensor that can be fed to the model.
+     */
+    at::Tensor get_computation_repr(dnn_schedule const& sched, std::vector<dnn_access_matrix> const& accesses);
+    
+    const int MAX_NB_ITERATORS = 4;
+    const int MAX_NB_ACCESSES = 17;
+    const int ITERATORS_REPR_SIZE = 5;
+    const int ACCESS_REPR_SIZE = MAX_NB_ITERATORS * (MAX_NB_ITERATORS + 1) + 1;
+    const int COMPUTATION_REPR_SIZE = 379;
 };
 
 }
