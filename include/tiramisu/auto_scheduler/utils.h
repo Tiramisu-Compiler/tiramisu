@@ -20,8 +20,6 @@ enum optimization_type
 
 struct optimization_info
 {
-    int optim_rank;
-    
     optimization_type type;
     std::vector<tiramisu::computation*> comps;
     
@@ -84,6 +82,28 @@ inline bool can_split_iterator(int it_extent, int split_fact)
 {
     return it_extent > split_fact && it_extent % split_fact == 0;
 }
+
+/**
+ * Apply the optimizations specified by the syntax tree
+ * using the Tiramisu API.
+ */
+void apply_optimizations(syntax_tree const& ast);
+    
+/**
+ * Apply the given optimization using the Tiramisu API.
+ */
+void apply_optimizations(optimization_info const& optim_info);
+    
+/**
+ * Schedule the computations so as to be in the order specified
+ * by the AST.
+ */
+void apply_fusions(syntax_tree const& ast);
+    
+/**
+ *
+ */
+tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
 
 }
 

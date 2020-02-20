@@ -1,4 +1,5 @@
 #include <tiramisu/auto_scheduler/states_generator.h>
+#include <tiramisu/auto_scheduler/evaluator.h>
 
 namespace tiramisu::auto_scheduler
 {
@@ -64,7 +65,7 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
                 optim_info.nb_l = 2;
                 optim_info.l0 = i;
                 optim_info.l1 = j;
-                new_ast->optims_info.push_back(optim_info);
+                new_ast->new_optims.push_back(optim_info);
                 
                 states.push_back(new_ast);
             }
@@ -109,7 +110,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                 
                 new_node->get_all_computations(optim_info.comps);
                 
-                new_ast->optims_info.push_back(optim_info);
+                new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
                 
                 // Generate tiling with dimension 3
@@ -139,7 +140,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                         
                         new_node->get_all_computations(optim_info.comps);
                         
-                        new_ast->optims_info.push_back(optim_info);
+                        new_ast->new_optims.push_back(optim_info);
                         states.push_back(new_ast);
                     }
                 }
@@ -171,7 +172,7 @@ void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syn
             optim_info.l1 = i;
             new_node->get_all_computations(optim_info.comps);
                 
-            new_ast->optims_info.push_back(optim_info);
+            new_ast->new_optims.push_back(optim_info);
             states.push_back(new_ast);
         }
     }
@@ -202,7 +203,7 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
             optim_info.l0_fact = unrolling_factor;
             new_node->get_all_computations(optim_info.comps);
                 
-            new_ast->optims_info.push_back(optim_info);
+            new_ast->new_optims.push_back(optim_info);
             states.push_back(new_ast);
         }
     }
@@ -215,12 +216,17 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 {
     std::vector<syntax_tree*> states;
     
+    // Apply previous optimizations
+    for (optimization_info const& optim_info : ast.previous_optims)
+        if (optim_info.type != optimization_type::UNROLLING)
+            apply_optimizations(optim_info);
+    
     std::vector<std::string> shared_levels_names;
     std::vector<int> shared_levels_extents;
     std::vector<int> innermost_extents;
     
     // Get shared iterators and innermost extents
-    std::vector<tiramisu::computation*> const& computations = ast.fct->get_computations();
+    std::vector<tiramisu::computation*> const& computations = ast.get_computations();
     
     for (int i = 0; i < computations.size(); ++i)
     {
@@ -280,15 +286,17 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                         syntax_tree* new_ast = ast.copy_ast();
                         
                         optimization_info optim_info;
-                        optim_info.type = optimization_type::INTERCHANGE;
+                        optim_info.type = optimization_type::TILING;
                             
+                        optim_info.nb_l = 2;
                         optim_info.l0 = i;
                         optim_info.l1 = i + 1;
                         
                         optim_info.l0_fact = tiling_size1;
                         optim_info.l1_fact = tiling_size2;
                             
-                        new_ast->optims_info.push_back(optim_info);
+                        optim_info.comps = new_ast->computations_list;
+                        new_ast->new_optims.push_back(optim_info);
                         states.push_back(new_ast);
                             
                         if (i + 2 >= nb_shared_iterators)
@@ -302,8 +310,9 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                             syntax_tree* new_ast = ast.copy_ast();
                             
                             optimization_info optim_info;
-                            optim_info.type = optimization_type::INTERCHANGE;
+                            optim_info.type = optimization_type::TILING;
                                 
+                            optim_info.nb_l = 3;
                             optim_info.l0 = i;
                             optim_info.l1 = i + 1;
                             optim_info.l2 = i + 2;
@@ -312,7 +321,8 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                             optim_info.l1_fact = tiling_size2;
                             optim_info.l2_fact = tiling_size3;
                                 
-                            new_ast->optims_info.push_back(optim_info);
+                            optim_info.comps = new_ast->computations_list;
+                            new_ast->new_optims.push_back(optim_info);
                             states.push_back(new_ast);
                         }
                     }
@@ -330,10 +340,12 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                     optimization_info optim_info;
                     optim_info.type = optimization_type::INTERCHANGE;
                         
+                    optim_info.nb_l = 2;
                     optim_info.l0 = i;
                     optim_info.l1 = j;
                         
-                    new_ast->optims_info.push_back(optim_info);
+                    optim_info.comps = new_ast->computations_list;
+                    new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }
             } 
@@ -359,9 +371,10 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 
                 optimization_info optim_info;
                 optim_info.type = optimization_type::UNROLLING;
+                optim_info.nb_l = 1;
                 optim_info.l0_fact = unrolling_fact;
                     
-                new_ast->optims_info.push_back(optim_info);
+                new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
             break;
@@ -369,6 +382,9 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
         default:
             break;
     }
+    
+    // Remove all the optimizations
+    ast.fct->reset_schedules();
     
     return states;
 }

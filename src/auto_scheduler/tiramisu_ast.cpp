@@ -16,6 +16,7 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
         node->parent = nullptr;
         
         roots.push_back(node);
+        computations_list.push_back(comp);
     }
 }
 
@@ -88,9 +89,12 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     }
 
     new_ast.fct = fct;
+    new_ast.computations_list = computations_list;
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;
-    new_ast.optims_info = optims_info;
+    new_ast.nb_explored_optims = nb_explored_optims;
+    new_ast.previous_optims = previous_optims;
+    new_ast.new_optims = new_optims;
 
     return ret_node;
 }
@@ -126,10 +130,10 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
 
 void syntax_tree::transform_ast()
 {
-    if (optims_info.size() == 0)
+    if (new_optims.size() == 0)
         return ;
         
-    optimization_info const& opt = optims_info.back();
+    optimization_info const& opt = new_optims.back();
     switch(opt.type)
     {
         case optimization_type::FUSION:

@@ -128,6 +128,11 @@ public:
       * AST root nodes.
       */
     std::vector<ast_node*> roots;
+    
+    /**
+     * The list of computations contained in this AST.
+     */
+    std::vector<tiramisu::computation*> computations_list;
 
     /**
      * An evaluation of the execution of the function represented by
@@ -137,15 +142,23 @@ public:
     
     /**
      * The depth of this AST in a search space procedure.
-	 * Depending on the search space procedure, it can be interpreted
-	 * as the number of optimizations that have been applied.
      */
     int search_depth = 0;
     
     /**
-     * List of the optimizations that the AST resulted from.
+     *
      */
-    std::vector<optimization_info> optims_info;
+    int nb_explored_optims = 0;
+    
+    /**
+     *
+     */
+    std::vector<optimization_info> previous_optims;
+    
+    /**
+     *
+     */
+    std::vector<optimization_info> new_optims;
         
     /**
      * Create an empty AST.
@@ -183,15 +196,31 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
+    
+    std::vector<optimization_info> get_schedule() const
+    {
+        std::vector<optimization_info> schedule = previous_optims;
+        for (optimization_info const& optim_info : new_optims)
+            schedule.push_back(optim_info);
+            
+        return schedule;
+    }
+    
+	void clear_new_optimizations()
+	{
+	    for (optimization_info const& optim_info : new_optims)
+	        previous_optims.push_back(optim_info);
+	        
+	    new_optims.clear();
+	}
 
-    /**
-     * Print the AST.
-     */
     void print_ast() const
 	{
 		for (ast_node *root : roots)
 			root->print_node();
 	}
+	
+	std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
 };
 
 }

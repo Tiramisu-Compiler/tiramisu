@@ -36,12 +36,14 @@ protected:
      */
     states_generator* states_gen;
     
+    bool transform_ast;
+    
     float best_evaluation = FLT_MAX;
     std::vector<optimization_info> best_schedule;
     
 public:
-    search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
-        : eval_func(eval_func), states_gen(states_gen) {}
+    search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr, bool transform_ast = true)
+        : eval_func(eval_func), states_gen(states_gen), transform_ast(transform_ast) {}
             
     virtual ~search_method() {}
 
@@ -54,7 +56,7 @@ public:
       * It takes as input an AST and returns a list of
       * code transformations.
       */
-    virtual void search(syntax_tree const& ast) =0;
+    virtual void search(syntax_tree& ast) =0;
 };
 
 /**
@@ -76,8 +78,8 @@ protected:
     int max_depth;
     
 public:
-    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
-        : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
+    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr, bool transform_ast = true)
+        : search_method(eval_func, states_gen, transform_ast), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
 
@@ -86,7 +88,7 @@ public:
       * It takes as input an AST and returns a list of
       * code transformations.
       */
-    virtual void search(syntax_tree const& ast);
+    virtual void search(syntax_tree& ast);
 };
 
 }

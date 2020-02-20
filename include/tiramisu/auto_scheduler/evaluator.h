@@ -18,28 +18,9 @@ class evaluator
 private:
     
 protected:
-    /**
-     * Apply the given optimization using the Tiramisu API.
-     */
-    void apply_optimizations(optimization_info const& optim_info);
-    
-    tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, 
-                                         int dimension);
     
 public:
     virtual ~evaluator() {}
-    
-	/**
-	 * Apply the optimizations specified by the syntax tree
-	 * using the Tiramisu API.
-	 */
-    void apply_optimizations(syntax_tree const& ast);
-    
-    /**
-     * Schedule the computations so as to be in the order specified
-     * by the AST.
-     */
-    void apply_fusions(syntax_tree const& ast);
     
     /**
       * Takes as input an abstract syntax tree and returns
