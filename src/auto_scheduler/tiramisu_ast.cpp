@@ -6,9 +6,11 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     : fct(fct)
 {
     const std::vector<computation*> computations = fct->get_computations();
+    std::vector<std::string> shared_levels_names;
     
-    for (computation *comp : computations) 
+    for (int i = 0; i < computations.size(); ++i) 
     {
+        tiramisu::computation *comp = computations[i];
         if (comp->get_expr().get_expr_type() == e_none)
             continue;
 
@@ -17,6 +19,41 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
         
         roots.push_back(node);
         computations_list.push_back(comp);
+
+        // Update shared levels and innermost extents        
+        std::vector<std::string> names;
+        std::vector<int> extents;
+        
+        isl_set *iter_domain = comp->get_iteration_domain();
+        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+        
+        for (int j = 0; j < nb_iterators; ++j)
+        {
+            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
+            int low_bound = utility::get_bound(iter_domain, j, false).get_int_val();
+            int up_bound = utility::get_bound(iter_domain, j, true).get_int_val();
+            
+            names.push_back(name);
+            extents.push_back(up_bound - low_bound + 1);
+        }
+        
+        innermost_extents.push_back(extents.back());
+        
+        if (i == 0)
+        {
+            shared_levels_names = names;
+            shared_levels_extents = extents;
+            
+            continue;
+        }
+        
+        int j;
+        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
+            if (names[j] != shared_levels_names[j])
+                break;
+                
+        shared_levels_names.resize(j);
+        shared_levels_extents.resize(j);
     }
 }
 
@@ -54,6 +91,7 @@ ast_node::ast_node(tiramisu::computation *comp)
         nodes[i]->children.push_back(nodes[i + 1]);
 
     nodes.back()->computations.push_back(comp);
+    nodes.back()->comps_accesses.push_back(dnn_accesses(comp, nb_iterators));
 }
 
 syntax_tree* syntax_tree::copy_ast() const
@@ -95,6 +133,8 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.nb_explored_optims = nb_explored_optims;
     new_ast.previous_optims = previous_optims;
     new_ast.new_optims = new_optims;
+    new_ast.shared_levels_extents = shared_levels_extents;
+    new_ast.innermost_extents = innermost_extents;
 
     return ret_node;
 }
@@ -124,6 +164,7 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->up_bound = up_bound;
     new_node->unrolled = unrolled;
     new_node->computations = computations;
+    new_node->comps_accesses = comps_accesses;
 
     return ret_node;
 }

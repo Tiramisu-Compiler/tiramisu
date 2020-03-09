@@ -30,27 +30,30 @@ struct optimization_info
     int l0_fact, l1_fact, l2_fact;
 };
 
-struct dnn_iterator
+class dnn_iterator
 {
-    std::string name;
+public:
     int low_bound;
     int up_bound;
     
-    bool interchanged = false;
-    bool tiled = false;
-    int tiling_fact = 0;
+    dnn_iterator(int low_bound, int up_bound)
+        : low_bound(low_bound), up_bound(up_bound) {}
 };
 
 class dnn_schedule
 {
 public:
     int nb_iterators;
-    std::vector<dnn_iterator> iterators;
-    
-    int unrolling_fact;
+
+    std::vector<bool> interchanged;
+    std::vector<bool> tiled;
+    std::vector<int> tiling_fact;
+    int unrolling_fact = 0;
     
     dnn_schedule(int nb_iterators) 
-        : nb_iterators(nb_iterators), iterators(nb_iterators), unrolling_fact(0) {}
+        : nb_iterators(nb_iterators), interchanged(nb_iterators, false),
+          tiled(nb_iterators, false), tiling_fact(nb_iterators, 0),
+          unrolling_fact(0) {}
 };
 
 class dnn_access_matrix
@@ -72,12 +75,28 @@ public:
     dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, tiramisu::computation *comp);
     
     void set_buffer_id(tiramisu::function *fct);
-    
-    static void create_accesses(tiramisu::expr const& e, int nb_iterators,
-                                std::vector<dnn_access_matrix>& accesses, 
-                                tiramisu::computation *comp);
 };
 
+class dnn_accesses
+{
+public:
+    tiramisu::computation* comp;
+    int nb_iterators;
+    std::vector<dnn_access_matrix> accesses_list;
+        
+    dnn_accesses(tiramisu::computation *comp, int nb_iterators)
+        : comp(comp), nb_iterators(nb_iterators)
+    {
+        create_accesses(comp->get_expr());
+    }
+        
+    void create_accesses(tiramisu::expr const& e);
+};
+
+/**
+ * Return true if an iterator having extent = it_extent can
+ * be split perfectly by a factor = split_fact.
+ */
 inline bool can_split_iterator(int it_extent, int split_fact)
 {
     return it_extent > split_fact && it_extent % split_fact == 0;

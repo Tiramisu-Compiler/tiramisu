@@ -5,6 +5,8 @@ namespace tiramisu::auto_scheduler
 
 void beam_search::search(syntax_tree& ast)
 {
+    std::cout << ast.search_depth << std::endl;
+    
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
         ast.clear_new_optimizations();
        

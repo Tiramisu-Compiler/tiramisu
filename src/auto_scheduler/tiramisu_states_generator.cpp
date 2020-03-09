@@ -216,55 +216,8 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 {
     std::vector<syntax_tree*> states;
     
-    // Apply previous optimizations
-    for (optimization_info const& optim_info : ast.previous_optims)
-        if (optim_info.type != optimization_type::UNROLLING)
-            apply_optimizations(optim_info);
-    
-    std::vector<std::string> shared_levels_names;
-    std::vector<int> shared_levels_extents;
-    std::vector<int> innermost_extents;
-    
-    // Get shared iterators and innermost extents
-    std::vector<tiramisu::computation*> const& computations = ast.get_computations();
-    
-    for (int i = 0; i < computations.size(); ++i)
-    {
-        std::vector<std::string> names;
-        std::vector<int> extents;
-        
-        isl_set *iter_domain = computations[i]->get_iteration_domain();
-        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
-        
-        for (int j = 0; j < nb_iterators; ++j)
-        {
-            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
-            int low_bound = utility::get_bound(iter_domain, j, false).get_int_val();
-            int up_bound = utility::get_bound(iter_domain, j, true).get_int_val();
-            
-            names.push_back(name);
-            extents.push_back(up_bound - low_bound + 1);
-        }
-        
-        innermost_extents.push_back(extents.back());
-        
-        if (i == 0)
-        {
-            shared_levels_names = names;
-            shared_levels_extents = extents;
-            
-            continue;
-        }
-        
-        int j;
-        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
-            if (names[j] != shared_levels_names[j])
-                break;
-                
-        shared_levels_names.resize(j);
-        shared_levels_extents.resize(j);
-    }
-    
+    const std::vector<int>& shared_levels_extents = ast.shared_levels_extents;
+    const std::vector<int>& innermost_extents = ast.innermost_extents;
     int nb_shared_iterators = shared_levels_extents.size();
     
     // Generate the specified optimization
@@ -374,6 +327,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                 optim_info.nb_l = 1;
                 optim_info.l0_fact = unrolling_fact;
                     
+                optim_info.comps = new_ast->computations_list;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
@@ -382,9 +336,6 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
         default:
             break;
     }
-    
-    // Remove all the optimizations
-    ast.fct->reset_schedules();
     
     return states;
 }

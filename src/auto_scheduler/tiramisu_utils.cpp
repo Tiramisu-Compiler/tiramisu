@@ -5,9 +5,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-void dnn_access_matrix::create_accesses(tiramisu::expr const& e, int nb_iterators,
-                                        std::vector<dnn_access_matrix>& accesses, 
-                                        tiramisu::computation *comp)
+void dnn_accesses::create_accesses(tiramisu::expr const& e)
 {   
     // Not an operation, stop the search
     if (e.get_expr_type() != tiramisu::e_op)
@@ -20,13 +18,13 @@ void dnn_access_matrix::create_accesses(tiramisu::expr const& e, int nb_iterator
         e.get_op_type() == tiramisu::o_dummy ||
         e.get_op_type() == tiramisu::o_buffer)
     {
-        accesses.push_back(dnn_access_matrix(nb_iterators, e, comp));
+        accesses_list.push_back(dnn_access_matrix(nb_iterators, e, comp));
         return ;
     }
     
     // We have an operation, we explore its operands
     for (int i = 0; i < e.get_n_arg(); ++i)
-        create_accesses(e.get_operand(i), nb_iterators, accesses, comp);
+        create_accesses(e.get_operand(i));
 }
 
 dnn_access_matrix::dnn_access_matrix(int nb_iterators, int nb_dims)

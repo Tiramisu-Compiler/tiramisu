@@ -94,9 +94,14 @@ public:
     virtual float evaluate(syntax_tree const& ast);
     
     /**
+     *
+     */
+    int represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input, std::vector<dnn_iterator>& iters);
+    
+    /**
      * Transform the AST to a tensor that can be fed to the model.
      */
-    at::Tensor get_computation_repr(dnn_schedule const& sched, std::vector<dnn_access_matrix> const& accesses);
+    at::Tensor get_computation_repr(std::vector<dnn_iterator> const& iters, dnn_schedule const& sched, dnn_accesses const& accesses);
     
     const int MAX_NB_ITERATORS = 4;
     const int MAX_NB_ACCESSES = 17;

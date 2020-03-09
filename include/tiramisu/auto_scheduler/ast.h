@@ -46,6 +46,11 @@ public:
      * List of the computations computed at this level.
      */
     std::vector<tiramisu::computation*> computations;
+    
+    /**
+     *
+     */
+    std::vector<dnn_accesses> comps_accesses;
 
 	/**
 	 * Next loop levels.
@@ -159,6 +164,16 @@ public:
      *
      */
     std::vector<optimization_info> new_optims;
+    
+    /**
+     *
+     */
+    std::vector<int> shared_levels_extents;
+    
+    /**
+     *
+     */
+    std::vector<int> innermost_extents;
         
     /**
      * Create an empty AST.
