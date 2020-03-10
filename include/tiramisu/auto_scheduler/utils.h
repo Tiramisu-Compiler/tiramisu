@@ -124,6 +124,11 @@ void apply_fusions(syntax_tree const& ast);
  */
 tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
 
+/**
+ *
+ */
+void parallelize_outermost_level(syntax_tree const& ast);
+
 }
 
 #endif

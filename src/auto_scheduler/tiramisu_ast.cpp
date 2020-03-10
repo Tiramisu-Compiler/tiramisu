@@ -6,54 +6,17 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     : fct(fct)
 {
     const std::vector<computation*> computations = fct->get_computations();
-    std::vector<std::string> shared_levels_names;
     
-    for (int i = 0; i < computations.size(); ++i) 
+    for (tiramisu::computation *comp : computations) 
     {
-        tiramisu::computation *comp = computations[i];
         if (comp->get_expr().get_expr_type() == e_none)
             continue;
-
+        
         ast_node *node = new ast_node(comp);
         node->parent = nullptr;
         
         roots.push_back(node);
         computations_list.push_back(comp);
-
-        // Update shared levels and innermost extents        
-        std::vector<std::string> names;
-        std::vector<int> extents;
-        
-        isl_set *iter_domain = comp->get_iteration_domain();
-        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
-        
-        for (int j = 0; j < nb_iterators; ++j)
-        {
-            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
-            int low_bound = utility::get_bound(iter_domain, j, false).get_int_val();
-            int up_bound = utility::get_bound(iter_domain, j, true).get_int_val();
-            
-            names.push_back(name);
-            extents.push_back(up_bound - low_bound + 1);
-        }
-        
-        innermost_extents.push_back(extents.back());
-        
-        if (i == 0)
-        {
-            shared_levels_names = names;
-            shared_levels_extents = extents;
-            
-            continue;
-        }
-        
-        int j;
-        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
-            if (names[j] != shared_levels_names[j])
-                break;
-                
-        shared_levels_names.resize(j);
-        shared_levels_extents.resize(j);
     }
 }
 
@@ -133,8 +96,6 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.nb_explored_optims = nb_explored_optims;
     new_ast.previous_optims = previous_optims;
     new_ast.new_optims = new_optims;
-    new_ast.shared_levels_extents = shared_levels_extents;
-    new_ast.innermost_extents = innermost_extents;
 
     return ret_node;
 }
@@ -382,6 +343,117 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
         i_inner->unrolled = true;
         i_inner->update_depth(i_outer->depth + 1);
     }
+}
+
+void syntax_tree::transform_ast_by_fusing_shared_levels()
+{
+    if (roots.size() <= 1)  
+        return ;
+        
+    std::vector<std::string> shared_levels_names;
+    for (int i = 0; i < computations_list.size(); ++i) 
+    {
+        tiramisu::computation *comp = computations_list[i];
+
+        // Update shared levels       
+        std::vector<std::string> names;
+        
+        isl_set *iter_domain = comp->get_iteration_domain();
+        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+        
+        for (int j = 0; j < nb_iterators; ++j)
+        {
+            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
+            names.push_back(name);
+        }
+        
+        if (i == 0)
+        {
+            shared_levels_names = names;
+            continue;
+        }
+        
+        int j;
+        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
+            if (names[j] != shared_levels_names[j])
+                break;
+                
+        shared_levels_names.resize(j);
+    }
+    
+    if (shared_levels_names.size() == 0)
+        return ;
+    
+    // Fuse shared levels
+    int nb_shared_levels = shared_levels_names.size();
+    std::vector<ast_node*> nodes_list;
+    std::vector<tiramisu::computation*> root_comps;
+    
+    for (int i = 1; i < roots.size(); ++i)
+    {
+        ast_node *node = roots[i];
+        for (int j = 0; j < nb_shared_levels - 1; ++j)
+            node = node->children[0];
+            
+        if (node->children.size() > 0)
+            nodes_list.push_back(node->children[0]);
+            
+        else
+        {
+            for (tiramisu::computation *comp : node->computations)
+                root_comps.push_back(comp);
+        }
+    }
+    
+    ast_node *subroot = roots[0];
+    for (int j = 0; j < nb_shared_levels - 1; ++j)
+        subroot = subroot->children[0];
+        
+    for (ast_node *node : nodes_list)
+        subroot->children.push_back(node);
+        
+    for (tiramisu::computation *comp : root_comps)
+        subroot->computations.push_back(comp);
+        
+    roots.resize(1);
+}
+
+std::vector<int> syntax_tree::get_shared_levels_extents() const
+{
+    std::vector<int> extents;
+    if (roots.size() != 1)
+        return extents;
+        
+    ast_node *node = roots[0];
+    while (true)
+    {
+        extents.push_back(node->up_bound - node->low_bound + 1);
+        if (node->children.size() != 1)
+            break;
+            
+        node = node->children[0];
+    }
+        
+    return extents;
+}
+
+std::vector<int> syntax_tree::get_innermost_extents() const
+{
+    std::vector<int> extents;
+    
+    for (ast_node *node : roots)
+        node->get_innermost_extents(extents);
+    
+    return extents;
+}
+
+void ast_node::get_innermost_extents(std::vector<int>& extents) const
+{
+    if (computations.size() > 0)
+        extents.push_back(up_bound - low_bound + 1);
+        
+    for (ast_node *child : children)
+        child->get_innermost_extents(extents);
 }
 
 void ast_node::update_depth(int depth)

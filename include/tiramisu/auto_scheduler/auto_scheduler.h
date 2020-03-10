@@ -27,10 +27,16 @@ protected:
         
     search_method *searcher;
     evaluator *eval_func;
+    
+    evaluate_by_execution *exec_evaluator = nullptr;
         
 public:
     auto_scheduler(search_method *searcher, evaluator *eval_func,
                    tiramisu::function *fct = tiramisu::global::get_implicit_function());
+                   
+    void schedule();
+                   
+    void set_exec_evaluator(evaluate_by_execution *exec_evaluator) { this->exec_evaluator = exec_evaluator; }
 };
 
 }

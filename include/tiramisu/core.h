@@ -48,6 +48,9 @@ class evaluate_by_execution;
 class simple_rnn_evaluator;
 class dnn_access_matrix;
 class simple_generator;
+
+struct optimization_info;
+void apply_optimizations(optimization_info const& optim_info);
 }
 
 struct HalideCodegenOutput
@@ -1441,6 +1444,8 @@ class computation
     friend tiramisu::wait;
     friend cuda_ast::generator;
     friend auto_scheduler::evaluate_by_execution;
+    
+    friend void auto_scheduler::apply_optimizations(auto_scheduler::optimization_info const& optim_info);
 
 private:
 

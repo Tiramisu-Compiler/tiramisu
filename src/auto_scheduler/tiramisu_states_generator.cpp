@@ -216,8 +216,8 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 {
     std::vector<syntax_tree*> states;
     
-    const std::vector<int>& shared_levels_extents = ast.shared_levels_extents;
-    const std::vector<int>& innermost_extents = ast.innermost_extents;
+    std::vector<int> shared_levels_extents = ast.get_shared_levels_extents();
+    std::vector<int> innermost_extents = ast.get_innermost_extents();
     int nb_shared_iterators = shared_levels_extents.size();
     
     // Generate the specified optimization
@@ -325,6 +325,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                 optimization_info optim_info;
                 optim_info.type = optimization_type::UNROLLING;
                 optim_info.nb_l = 1;
+                optim_info.l0 = -1;
                 optim_info.l0_fact = unrolling_fact;
                     
                 optim_info.comps = new_ast->computations_list;

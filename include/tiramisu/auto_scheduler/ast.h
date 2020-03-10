@@ -88,6 +88,8 @@ public:
      * a pointer to the copied version of node_to_find.
      */
     ast_node* copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const;
+    
+    void get_innermost_extents(std::vector<int>& extents) const;
 
     /**
      * Recompute the depth of each node of the tree rooted at
@@ -164,16 +166,6 @@ public:
      *
      */
     std::vector<optimization_info> new_optims;
-    
-    /**
-     *
-     */
-    std::vector<int> shared_levels_extents;
-    
-    /**
-     *
-     */
-    std::vector<int> innermost_extents;
         
     /**
      * Create an empty AST.
@@ -211,6 +203,11 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
+    
+    void transform_ast_by_fusing_shared_levels();
+    
+    std::vector<int> get_shared_levels_extents() const;
+    std::vector<int> get_innermost_extents() const;
     
     std::vector<optimization_info> get_schedule() const
     {

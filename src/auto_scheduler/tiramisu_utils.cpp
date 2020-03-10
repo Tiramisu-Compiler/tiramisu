@@ -150,7 +150,19 @@ void apply_optimizations(optimization_info const& optim_info)
             break;
                 
         case optimization_type::UNROLLING:
-            block.unroll(optim_info.l0, optim_info.l0_fact);
+            if (optim_info.l0 != -1)
+                block.unroll(optim_info.l0, optim_info.l0_fact);
+                
+            // Apply unrolling on the innermost level
+            else
+            {
+                std::vector<int> innermost_indices; 
+                for (tiramisu::computation *comp : optim_info.comps)
+                    innermost_indices.push_back(comp->get_loop_levels_number() - 1);
+                
+                for (int i = 0; i < innermost_indices.size(); ++i)
+                    optim_info.comps[i]->unroll(innermost_indices[i], optim_info.l0_fact);
+            }
             break;
                 
         default:
@@ -196,6 +208,12 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
         next_comp = apply_fusions(child, next_comp, new_dimension);
     
     return next_comp;
+}
+
+void parallelize_outermost_level(syntax_tree const& ast)
+{
+    for (tiramisu::computation *comp : ast.computations_list)
+        comp->tag_parallel_level(0);
 }
 
 }

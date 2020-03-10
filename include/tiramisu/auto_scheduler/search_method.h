@@ -41,6 +41,8 @@ protected:
     float best_evaluation = FLT_MAX;
     std::vector<optimization_info> best_schedule;
     
+    int nb_explored_schedules = 0;
+    
 public:
     search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr, bool transform_ast = true)
         : eval_func(eval_func), states_gen(states_gen), transform_ast(transform_ast) {}
@@ -49,6 +51,7 @@ public:
 
     float get_best_evaluation() const { return best_evaluation; }
     const std::vector<optimization_info>& get_best_schedule() const { return best_schedule; }
+    int get_nb_explored_schedules() const { return nb_explored_schedules; }
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     
     /**
