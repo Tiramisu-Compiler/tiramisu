@@ -12,7 +12,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, TILING, INTERCHANGE, UNROLLING};
+const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, UNROLLING, TILING, INTERCHANGE};
 
 const int DEFAULT_MAX_DEPTH = INT_MAX;
 
@@ -39,7 +39,7 @@ protected:
     int nb_explored_schedules = 0;
     
     float best_evaluation = FLT_MAX;
-    std::vector<optimization_info> best_schedule;
+    syntax_tree *best_ast = nullptr;
     
 public:
     search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
@@ -49,7 +49,7 @@ public:
 
     int get_nb_explored_schedules() const { return nb_explored_schedules; }
     float get_best_evaluation() const { return best_evaluation; }
-    const std::vector<optimization_info>& get_best_schedule() const { return best_schedule; }
+    syntax_tree* get_best_ast() const { return best_ast; }
     
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     

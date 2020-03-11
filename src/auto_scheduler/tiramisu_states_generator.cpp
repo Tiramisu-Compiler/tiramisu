@@ -216,14 +216,18 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 {
     std::vector<syntax_tree*> states;
     
-    std::vector<int> shared_levels_extents = ast.get_shared_levels_extents();
-    std::vector<int> innermost_extents = ast.get_innermost_extents();
-    int nb_shared_iterators = shared_levels_extents.size();
+    std::vector<int> shared_levels_extents;
+    std::vector<int> innermost_extents;
+    int nb_shared_iterators;
+    ast_node *node = ast.roots[0];
     
     // Generate the specified optimization
     switch (optim)
     {
         case optimization_type::TILING:
+            shared_levels_extents = ast.get_shared_levels_extents();
+            nb_shared_iterators = shared_levels_extents.size();
+            
             for (int i = 0; i < nb_shared_iterators - 1; ++i)
             {
                 for (int tiling_size1 : tiling_factors_list)
@@ -236,10 +240,12 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                         if (!can_split_iterator(shared_levels_extents[i + 1], tiling_size2))
                             continue;
                             
-                        syntax_tree* new_ast = ast.copy_ast();
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                         
                         optimization_info optim_info;
                         optim_info.type = optimization_type::TILING;
+                        optim_info.node = new_node;
                             
                         optim_info.nb_l = 2;
                         optim_info.l0 = i;
@@ -260,10 +266,12 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                             if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size2))
                                 continue;
                                 
-                            syntax_tree* new_ast = ast.copy_ast();
+                            syntax_tree* new_ast = new syntax_tree();
+                            ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                             
                             optimization_info optim_info;
                             optim_info.type = optimization_type::TILING;
+                            optim_info.node = new_node;
                                 
                             optim_info.nb_l = 3;
                             optim_info.l0 = i;
@@ -280,18 +288,26 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                         }
                     }
                 }
+                
+                if (node->children.size() > 0)
+                    node = node->children[0];
             }
             break;
 
         case optimization_type::INTERCHANGE:
+            shared_levels_extents = ast.get_shared_levels_extents();
+            nb_shared_iterators = shared_levels_extents.size();
+            
             for (int i = 0; i < nb_shared_iterators; ++i)
             {
                 for (int j = i + 1; j < nb_shared_iterators; ++j)
                 {
-                    syntax_tree* new_ast = ast.copy_ast();
+                    syntax_tree* new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                     
                     optimization_info optim_info;
                     optim_info.type = optimization_type::INTERCHANGE;
+                    optim_info.node = new_node;
                         
                     optim_info.nb_l = 2;
                     optim_info.l0 = i;
@@ -301,10 +317,15 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                     new_ast->new_optims.push_back(optim_info);
                     states.push_back(new_ast);
                 }
+                
+                if (node->children.size() > 0)
+                    node = node->children[0];
             } 
             break;
 
-        case optimization_type::UNROLLING:     
+        case optimization_type::UNROLLING:
+            innermost_extents = ast.get_innermost_extents();
+               
             for (int unrolling_fact : unrolling_factors_list)
             {
                 bool use_factor = true;

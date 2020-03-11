@@ -130,12 +130,8 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     return ret_node;
 }
 
-void syntax_tree::transform_ast()
+void syntax_tree::transform_ast(optimization_info const& opt)
 {
-    if (new_optims.size() == 0)
-        return ;
-        
-    optimization_info const& opt = new_optims.back();
     switch(opt.type)
     {
         case optimization_type::FUSION:
@@ -157,6 +153,14 @@ void syntax_tree::transform_ast()
         default:
             break;
     }
+}
+
+void syntax_tree::transform_ast()
+{
+    if (new_optims.size() == 0)
+        return ;
+        
+    transform_ast(new_optims.back());
 }
 
 void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)

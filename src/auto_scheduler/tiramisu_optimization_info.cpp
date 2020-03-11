@@ -16,9 +16,11 @@ void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_li
     std::vector<int> innermost_indices; 
     for (tiramisu::computation *comp : comps_list)
         innermost_indices.push_back(comp->get_loop_levels_number() - 1);
-                
+    
+    std::cout << "FOO" << std::endl;            
     for (int i = 0; i < innermost_indices.size(); ++i)
         comps_list[i]->unroll(innermost_indices[i], unroll_fact);
+    std::cout << "BAR" << std::endl;
 }
 
 void apply_optimizations(syntax_tree const& ast)
@@ -31,23 +33,7 @@ void apply_optimizations(syntax_tree const& ast)
             
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
-    
-    // The last optimization that has been generated is a fusion, so the given AST
-    // doesn't represent the new structure of the program. The AST is then transformed
-    // first, after that fusion is applied.
-    if (ast.new_optims.size() > 0 && ast.new_optims.back().type == optimization_type::FUSION)
-    {
-        syntax_tree *ast_copy = ast.copy_ast();
-        ast_copy->transform_ast_by_fusion(ast.new_optims.back());
-        
-        apply_fusions(*ast_copy);
-        delete ast_copy;
-    }
-    
-    // The AST correctly represents the structure of the program, so use it
-    // directly to apply fusions.
-    else
-        apply_fusions(ast);
+    apply_fusions(ast);
 }
 
 void apply_optimizations(optimization_info const& optim_info)

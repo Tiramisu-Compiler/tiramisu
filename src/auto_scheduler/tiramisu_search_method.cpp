@@ -5,6 +5,8 @@ namespace tiramisu::auto_scheduler
 
 void beam_search::search(syntax_tree& ast)
 {
+    ast.print_ast();
+    
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
         ast.clear_new_optimizations();
        
@@ -31,12 +33,15 @@ void beam_search::search(syntax_tree& ast)
     for (syntax_tree *child : children)
     {
         child->nb_explored_optims = nb_explored_optims;
+        if (eval_func->should_transform_ast(*child))
+            child->transform_ast();
+            
         child->evaluation = eval_func->evaluate(*child);
         
         if (child->evaluation < best_evaluation)
         {
             best_evaluation = child->evaluation;
-            best_schedule = child->get_schedule();
+            best_ast = child;
         }
         
         nb_explored_schedules++;
@@ -58,10 +63,7 @@ void beam_search::search(syntax_tree& ast)
 
     for (syntax_tree *child : children)
     {
-        child->search_depth = ast.search_depth + 1;
-        if (eval_func->should_transform_ast(*child))
-            child->transform_ast();
-        
+        child->search_depth = ast.search_depth + 1;        
         search(*child);
     }
 }

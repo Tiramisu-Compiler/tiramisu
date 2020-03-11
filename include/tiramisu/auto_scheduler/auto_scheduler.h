@@ -45,7 +45,7 @@ public:
      * Use the Tiramisu API to apply the schedule found by
      * find_schedule().
      */
-    void apply_schedule();
+    void apply_best_schedule();
 };
 
 }

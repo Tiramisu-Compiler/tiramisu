@@ -203,7 +203,12 @@ public:
     ast_node* copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const;
 
     /**
-     * Transform the AST by applying the specified optimizations.
+     * Transform the AST by applying the given optimization.
+     */
+    void transform_ast(optimization_info const& opt);
+    
+    /**
+     * Transform the AST by applying the last new optimization.
      */
     void transform_ast();
 

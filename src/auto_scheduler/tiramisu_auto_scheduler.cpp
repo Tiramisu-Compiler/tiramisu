@@ -30,9 +30,14 @@ void auto_scheduler::find_schedule()
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms " << std::endl;  
 }
 
-void auto_scheduler::apply_schedule()
+void auto_scheduler::apply_best_schedule()
 {
-    apply_optimizations(ast);
+    syntax_tree *best_ast = searcher->get_best_ast();
+    
+    apply_optimizations(*best_ast);
+    parallelize_outermost_levels(best_ast->computations_list);
+    
+    best_ast->print_ast();
 }
 
 }
