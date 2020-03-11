@@ -325,6 +325,8 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                 optimization_info optim_info;
                 optim_info.type = optimization_type::UNROLLING;
                 optim_info.nb_l = 1;
+                
+                // When l0 is set to -1, unrolling is applied to all innermost levels
                 optim_info.l0 = -1;
                 optim_info.l0_fact = unrolling_fact;
                     

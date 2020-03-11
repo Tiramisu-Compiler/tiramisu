@@ -3,6 +3,8 @@
 
 #include <tiramisu/core.h>
 #include "utils.h"
+#include "optimization_info.h"
+#include "dnn_accesses.h"
 
 namespace tiramisu::auto_scheduler
 {
@@ -48,7 +50,7 @@ public:
     std::vector<tiramisu::computation*> computations;
     
     /**
-     *
+     * A list containing the accesses of each computation.
      */
     std::vector<dnn_accesses> comps_accesses;
 
@@ -79,6 +81,11 @@ public:
     }
     
     /**
+     * Return the extent of this loop level.
+     */
+    int get_extent() const { return up_bound - low_bound + 1; }
+    
+    /**
      * Copy this node and return the copy.
      */
     ast_node* copy_node() const;
@@ -89,6 +96,10 @@ public:
      */
     ast_node* copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const;
     
+    /**
+     * Fill the given array with the extents of the innermost loop levels
+     * contained in this subtree.
+     */
     void get_innermost_extents(std::vector<int>& extents) const;
 
     /**
@@ -107,11 +118,6 @@ public:
      *
      */
     int get_loop_levels_chain_depth() const;
-    
-    /**
-     * Return the extent of this loop level.
-     */
-    int get_extent() const { return up_bound - low_bound + 1; }
 
     /**
      * Print the subtree rooted at this node.
@@ -153,7 +159,7 @@ public:
     int search_depth = 0;
     
     /**
-     *
+     * The total number of explored optimizations.
      */
     int nb_explored_optims = 0;
     
@@ -183,6 +189,8 @@ public:
             delete node;
     }
     
+    std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
+    
     /**
      * Copy this AST, and return the copy.
      */
@@ -204,11 +212,24 @@ public:
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
     
+    /**
+     * 
+     */
     void transform_ast_by_fusing_shared_levels();
     
+    /**
+     * Get the extents of the loop levels shared by all computations.
+     */
     std::vector<int> get_shared_levels_extents() const;
+    
+    /**
+     * Get the extents of all the innermost loop levels.
+     */
     std::vector<int> get_innermost_extents() const;
     
+    /**
+     * Return the schedule of this AST.
+     */
     std::vector<optimization_info> get_schedule() const
     {
         std::vector<optimization_info> schedule = previous_optims;
@@ -218,6 +239,10 @@ public:
         return schedule;
     }
     
+    /**
+     * Add the content of new_optims to previous_optims and
+     * clear new_optims.
+     */
 	void clear_new_optimizations()
 	{
 	    for (optimization_info const& optim_info : new_optims)
@@ -226,13 +251,10 @@ public:
 	    new_optims.clear();
 	}
 
-    void print_ast() const
-	{
-		for (ast_node *root : roots)
-			root->print_node();
-	}
-	
-	std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
+    /**
+     * Print the AST to stdout.
+     */
+    void print_ast() const;
 };
 
 }

@@ -24,11 +24,13 @@ set(HEADER_FILES
 if (${USE_AUTO_SCHEDULER})
     set(HEADER_FILES ${HEADER_FILES}
         include/tiramisu/auto_scheduler/auto_scheduler.h
+        include/tiramisu/auto_scheduler/utils.h
+        include/tiramisu/auto_scheduler/optimization_info.h
+        include/tiramisu/auto_scheduler/dnn_accesses.h
         include/tiramisu/auto_scheduler/ast.h
         include/tiramisu/auto_scheduler/evaluator.h
         include/tiramisu/auto_scheduler/states_generator.h
         include/tiramisu/auto_scheduler/search_method.h
-        include/tiramisu/auto_scheduler/utils.h
         )
 endif()
 
@@ -36,7 +38,7 @@ endif()
 set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
 if (${USE_AUTO_SCHEDULER})
-    set(OBJS_AUTO_SCHEDULER auto_scheduler utils ast evaluator states_generator search_method)
+    set(OBJS_AUTO_SCHEDULER auto_scheduler optimization_info dnn_accesses ast evaluator states_generator search_method)
 endif()
 
 ### CMAKE FILE INTERNALS ###

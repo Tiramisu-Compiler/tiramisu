@@ -23,10 +23,15 @@ public:
     virtual ~evaluator() {}
     
     /**
-      * Takes as input an abstract syntax tree and returns
-      * its evaluation.
-      */
+     * Takes as input an abstract syntax tree and returns
+     * its evaluation.
+     */
     virtual float evaluate(syntax_tree const& ast) =0;
+    
+    /**
+     * Indicates if the given ast should be transform by using ast.transform_ast().
+     */
+    virtual bool should_transform_ast(syntax_tree const& ast) = 0;
 };
 
 /**
@@ -63,6 +68,11 @@ public:
 	 * and execute it.
 	 */
     virtual float evaluate(syntax_tree const& ast);
+    
+    /**
+     * Indicates if the given ast should be transform by using ast.transform_ast().
+     */
+    virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
 };
 
 /**
@@ -74,6 +84,15 @@ public:
 class simple_rnn_evaluator : public evaluator
 {
 private:
+    /**
+     *
+     */
+    int represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input, std::vector<dnn_iterator>& iters);
+    
+    /**
+     * Transform the AST to a tensor that can be fed to the model.
+     */
+    at::Tensor get_computation_repr(std::vector<dnn_iterator> const& iters, dnn_schedule const& sched, dnn_accesses const& accesses);
 
 protected:
     /**
@@ -94,14 +113,9 @@ public:
     virtual float evaluate(syntax_tree const& ast);
     
     /**
-     *
+     * Indicates if the given ast should be transform by using ast.transform_ast().
      */
-    int represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input, std::vector<dnn_iterator>& iters);
-    
-    /**
-     * Transform the AST to a tensor that can be fed to the model.
-     */
-    at::Tensor get_computation_repr(std::vector<dnn_iterator> const& iters, dnn_schedule const& sched, dnn_accesses const& accesses);
+    virtual bool should_transform_ast(syntax_tree const& ast) { return false; }
     
     const int MAX_NB_ITERATORS = 4;
     const int MAX_NB_ACCESSES = 17;

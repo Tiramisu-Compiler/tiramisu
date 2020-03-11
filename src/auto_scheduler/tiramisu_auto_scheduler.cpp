@@ -16,7 +16,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
     ast.transform_ast_by_fusing_shared_levels();
 }
 
-void auto_scheduler::schedule()
+void auto_scheduler::find_schedule()
 {
     float initial_exec_time = exec_evaluator->evaluate(ast);
     
@@ -28,6 +28,11 @@ void auto_scheduler::schedule()
     std::cout << "Best evaluation : " << searcher->get_best_evaluation() << std::endl;
     std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms " << std::endl;  
+}
+
+void auto_scheduler::apply_schedule()
+{
+    apply_optimizations(ast);
 }
 
 }

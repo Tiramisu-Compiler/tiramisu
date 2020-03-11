@@ -184,6 +184,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 {
     ast_node *node = opt.node;
     
+    // 2 level tiling
     if (opt.nb_l == 2)
     {
         // Create the new loop structure
@@ -223,6 +224,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         j_inner->up_bound = opt.l1_fact - 1;
     }
         
+    // 3 level tiling
     else if (opt.nb_l == 3)
     {
         // Create the new loop structure
@@ -350,14 +352,14 @@ void syntax_tree::transform_ast_by_fusing_shared_levels()
     if (roots.size() <= 1)  
         return ;
         
+    // Get the names of the shared levels
     std::vector<std::string> shared_levels_names;
     for (int i = 0; i < computations_list.size(); ++i) 
     {
         tiramisu::computation *comp = computations_list[i];
 
-        // Update shared levels       
+        // Get the levels of comp
         std::vector<std::string> names;
-        
         isl_set *iter_domain = comp->get_iteration_domain();
         int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
         
@@ -366,7 +368,8 @@ void syntax_tree::transform_ast_by_fusing_shared_levels()
             std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
             names.push_back(name);
         }
-        
+
+        // Update the list of shared levels        
         if (i == 0)
         {
             shared_levels_names = names;
@@ -387,7 +390,7 @@ void syntax_tree::transform_ast_by_fusing_shared_levels()
     // Fuse shared levels
     int nb_shared_levels = shared_levels_names.size();
     std::vector<ast_node*> nodes_list;
-    std::vector<tiramisu::computation*> root_comps;
+    std::vector<tiramisu::computation*> comps_list;
     
     for (int i = 1; i < roots.size(); ++i)
     {
@@ -401,7 +404,7 @@ void syntax_tree::transform_ast_by_fusing_shared_levels()
         else
         {
             for (tiramisu::computation *comp : node->computations)
-                root_comps.push_back(comp);
+                comps_list.push_back(comp);
         }
     }
     
@@ -412,7 +415,7 @@ void syntax_tree::transform_ast_by_fusing_shared_levels()
     for (ast_node *node : nodes_list)
         subroot->children.push_back(node);
         
-    for (tiramisu::computation *comp : root_comps)
+    for (tiramisu::computation *comp : comps_list)
         subroot->computations.push_back(comp);
         
     roots.resize(1);
@@ -424,6 +427,8 @@ std::vector<int> syntax_tree::get_shared_levels_extents() const
     if (roots.size() != 1)
         return extents;
         
+    // Starting from the root, loop until we find a node with no children,
+    // or with more than one child.
     ast_node *node = roots[0];
     while (true)
     {
@@ -449,6 +454,8 @@ std::vector<int> syntax_tree::get_innermost_extents() const
 
 void ast_node::get_innermost_extents(std::vector<int>& extents) const
 {
+    // If this node contains computations, this loop level is then
+    // an innermost loop level for these computations.
     if (computations.size() > 0)
         extents.push_back(up_bound - low_bound + 1);
         
@@ -488,6 +495,12 @@ int ast_node::get_loop_levels_chain_depth() const
         return ret + 1;
     
     return ret;
+}
+
+void syntax_tree::print_ast() const
+{
+    for (ast_node *root : roots)
+	    root->print_node();
 }
 
 void ast_node::print_node() const

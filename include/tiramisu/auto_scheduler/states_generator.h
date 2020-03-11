@@ -10,8 +10,7 @@ const std::vector<int> TILING_FACTORS_DEFAULT_LIST = {32, 64, 128};
 const std::vector<int> UNROLLING_FACTORS_DEFAULT_LIST = {4, 8, 16};
 
 /**
- * Generate a set of AST from a given AST.
- *
+ * Generate a set of AST's from a given AST.
  * Inherit this class to implement a state generation behavior.
  */
 class states_generator
@@ -57,8 +56,7 @@ public:
 };
 
 /**
- * Generate tilings and interchanges applied to shared
- * loop of computations.
+ * Generate tilings and interchanges applied to shared loop levels.
  * Generate unrollings applied to innermost loop levels.
  */
 class simple_generator : public states_generator

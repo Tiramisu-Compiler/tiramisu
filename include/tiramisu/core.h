@@ -49,8 +49,7 @@ class simple_rnn_evaluator;
 class dnn_access_matrix;
 class simple_generator;
 
-struct optimization_info;
-void apply_optimizations(optimization_info const& optim_info);
+void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 }
 
 struct HalideCodegenOutput
@@ -1445,7 +1444,7 @@ class computation
     friend cuda_ast::generator;
     friend auto_scheduler::evaluate_by_execution;
     
-    friend void auto_scheduler::apply_optimizations(auto_scheduler::optimization_info const& optim_info);
+    friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 private:
 

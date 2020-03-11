@@ -36,22 +36,21 @@ protected:
      */
     states_generator* states_gen;
     
-    bool transform_ast;
+    int nb_explored_schedules = 0;
     
     float best_evaluation = FLT_MAX;
     std::vector<optimization_info> best_schedule;
     
-    int nb_explored_schedules = 0;
-    
 public:
-    search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr, bool transform_ast = true)
-        : eval_func(eval_func), states_gen(states_gen), transform_ast(transform_ast) {}
+    search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
+        : eval_func(eval_func), states_gen(states_gen) {}
             
     virtual ~search_method() {}
 
+    int get_nb_explored_schedules() const { return nb_explored_schedules; }
     float get_best_evaluation() const { return best_evaluation; }
     const std::vector<optimization_info>& get_best_schedule() const { return best_schedule; }
-    int get_nb_explored_schedules() const { return nb_explored_schedules; }
+    
     void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
     
     /**
@@ -81,8 +80,8 @@ protected:
     int max_depth;
     
 public:
-    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr, bool transform_ast = true)
-        : search_method(eval_func, states_gen, transform_ast), beam_size(beam_size), max_depth(max_depth) {}
+    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
+        : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
 

@@ -30,7 +30,6 @@ void beam_search::search(syntax_tree& ast)
     // Evaluate children and sort them from smallest to highest evaluation
     for (syntax_tree *child : children)
     {
-        child->print_ast();
         child->nb_explored_optims = nb_explored_optims;
         child->evaluation = eval_func->evaluate(*child);
         
@@ -60,7 +59,7 @@ void beam_search::search(syntax_tree& ast)
     for (syntax_tree *child : children)
     {
         child->search_depth = ast.search_depth + 1;
-        if (transform_ast)
+        if (eval_func->should_transform_ast(*child))
             child->transform_ast();
         
         search(*child);

@@ -34,7 +34,7 @@ float evaluate_by_execution::evaluate(syntax_tree const& ast)
 {
     // Apply all the optimizations
     apply_optimizations(ast);
-    parallelize_outermost_level(ast);
+    parallelize_outermost_levels(ast.computations_list);
     
     // Compile the program to an object file
     fct->lift_dist_comps();
