@@ -101,7 +101,7 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
         next_comp = last_comp;
     
     int new_dimension = dimension;
-    if (node->children.size() >= 2)
+    if (node->children.size() >= 1)
         new_dimension = node->depth;
     
     for (ast_node *child : node->children)

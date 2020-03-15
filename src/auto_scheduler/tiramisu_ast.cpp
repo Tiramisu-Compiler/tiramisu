@@ -448,7 +448,7 @@ std::vector<int> syntax_tree::get_shared_levels_extents() const
     while (true)
     {
         extents.push_back(node->up_bound - node->low_bound + 1);
-        if (node->children.size() != 1)
+        if (node->children.size() != 1 || node->computations.size() != 0)
             break;
             
         node = node->children[0];
