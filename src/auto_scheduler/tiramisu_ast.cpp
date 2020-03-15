@@ -313,41 +313,52 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
 
 void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
 {
-    ast_node *node = opt.node;
+    std::vector<ast_node*> nodes_list;
     
-    if (node->get_extent() <= opt.l0_fact)
-        node->unrolled = true;
+    // Apply unrolling on the node provided by opt
+    if (opt.l0 != -1)
+        nodes_list = {opt.node};
         
-    else 
+    // Apply unrolling on every innermost loop level
+    else
+        nodes_list = get_innermost_levels();
+    
+    for (ast_node *node : nodes_list)
     {
-        // Create the new loop structure
-        ast_node *i_outer = node;
-        ast_node *i_inner = new ast_node();
-        
-        // Chain the nodes
-        i_inner->computations = i_outer->computations;
-        i_inner->children = i_outer->children;
-        
-        i_outer->computations.clear();
-        i_outer->children.clear();
-        i_outer->children.push_back(i_inner);
-        
-        i_inner->parent = i_outer;
-        
-        // Rename the nodes
-        i_inner->name = i_outer->name + "_inner";
-        i_outer->name = i_outer->name + "_outer";
-        
-        // Set lower and upper bounds
-        i_outer->low_bound = 0;
-        i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
-        
-        i_inner->low_bound = 0;
-        i_inner->up_bound = opt.l0_fact - 1;
-        
-        // Finalize unrolling
-        i_inner->unrolled = true;
-        i_inner->update_depth(i_outer->depth + 1);
+        if (node->get_extent() <= opt.l0_fact)
+            node->unrolled = true;
+            
+        else 
+        {
+            // Create the new loop structure
+            ast_node *i_outer = node;
+            ast_node *i_inner = new ast_node();
+            
+            // Chain the nodes
+            i_inner->computations = i_outer->computations;
+            i_inner->children = i_outer->children;
+            
+            i_outer->computations.clear();
+            i_outer->children.clear();
+            i_outer->children.push_back(i_inner);
+            
+            i_inner->parent = i_outer;
+            
+            // Rename the nodes
+            i_inner->name = i_outer->name + "_inner";
+            i_outer->name = i_outer->name + "_outer";
+            
+            // Set lower and upper bounds
+            i_outer->low_bound = 0;
+            i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
+            
+            i_inner->low_bound = 0;
+            i_inner->up_bound = opt.l0_fact - 1;
+            
+            // Finalize unrolling
+            i_inner->unrolled = true;
+            i_inner->update_depth(i_outer->depth + 1);
+        }
     }
 }
 
@@ -465,6 +476,27 @@ void ast_node::get_innermost_extents(std::vector<int>& extents) const
         
     for (ast_node *child : children)
         child->get_innermost_extents(extents);
+}
+
+std::vector<ast_node*> syntax_tree::get_innermost_levels() const
+{
+    std::vector<ast_node*> levels;
+    
+    for (ast_node *node : roots)
+        node->get_innermost_levels(levels);
+        
+    return levels;
+}
+
+void ast_node::get_innermost_levels(std::vector<ast_node*>& levels)
+{
+    // If this node contains computations, this loop level is then
+    // an innermost loop level for these computations.
+    if (computations.size() > 0)
+        levels.push_back(this);
+        
+    for (ast_node *child : children)
+        child->get_innermost_levels(levels);
 }
 
 void ast_node::update_depth(int depth)

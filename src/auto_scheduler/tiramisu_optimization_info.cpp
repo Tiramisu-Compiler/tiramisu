@@ -16,11 +16,9 @@ void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_li
     std::vector<int> innermost_indices; 
     for (tiramisu::computation *comp : comps_list)
         innermost_indices.push_back(comp->get_loop_levels_number() - 1);
-    
-    std::cout << "FOO" << std::endl;            
+                
     for (int i = 0; i < innermost_indices.size(); ++i)
         comps_list[i]->unroll(innermost_indices[i], unroll_fact);
-    std::cout << "BAR" << std::endl;
 }
 
 void apply_optimizations(syntax_tree const& ast)

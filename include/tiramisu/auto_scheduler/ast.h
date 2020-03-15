@@ -101,6 +101,12 @@ public:
      * contained in this subtree.
      */
     void get_innermost_extents(std::vector<int>& extents) const;
+    
+    /**
+     * Fill the given array with the nodes representing the innermost loop levels
+     * contained in this subtree.
+     */
+    void get_innermost_levels(std::vector<ast_node*>& levels);
 
     /**
      * Recompute the depth of each node of the tree rooted at
@@ -231,6 +237,11 @@ public:
      * Get the extents of all the innermost loop levels.
      */
     std::vector<int> get_innermost_extents() const;
+    
+    /**
+     * Return the nodes representing the innermost loop levels.
+     */
+    std::vector<ast_node*> get_innermost_levels() const;
     
     /**
      * Return the schedule of this AST.

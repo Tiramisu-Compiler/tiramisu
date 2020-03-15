@@ -12,7 +12,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, UNROLLING, TILING, INTERCHANGE};
+const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {FUSION, TILING, INTERCHANGE, UNROLLING};
 
 const int DEFAULT_MAX_DEPTH = INT_MAX;
 
