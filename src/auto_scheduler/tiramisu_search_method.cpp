@@ -46,14 +46,14 @@ void beam_search::search(syntax_tree& ast)
         
         nb_explored_schedules++;
     }
-
-    std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
-        return a->evaluation < b->evaluation;
-    });
     
     // Stop if we reached the maximum depth
     if (ast.search_depth >= max_depth)
         return ;
+
+    std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
+        return a->evaluation < b->evaluation;
+    });
 
     // Search recursively on the best children
     for (int i = beam_size; i < children.size(); ++i)

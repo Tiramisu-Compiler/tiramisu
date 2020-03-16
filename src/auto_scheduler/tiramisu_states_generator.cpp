@@ -263,7 +263,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                             
                         for (int tiling_size3 : tiling_factors_list)
                         {
-                            if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size2))
+                            if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size3))
                                 continue;
                                 
                             syntax_tree* new_ast = new syntax_tree();
