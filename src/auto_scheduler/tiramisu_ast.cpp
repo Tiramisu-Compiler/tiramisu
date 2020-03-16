@@ -54,7 +54,7 @@ ast_node::ast_node(tiramisu::computation *comp)
         nodes[i]->children.push_back(nodes[i + 1]);
 
     nodes.back()->computations.push_back(comp);
-    nodes.back()->comps_accesses.push_back(dnn_accesses(comp, nb_iterators));
+    nodes.back()->comps_accesses.push_back(dnn_accesses(comp, nb_iterators, comp->get_function()));
 }
 
 syntax_tree* syntax_tree::copy_ast() const
@@ -336,9 +336,11 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             
             // Chain the nodes
             i_inner->computations = i_outer->computations;
+            i_inner->comps_accesses = i_outer->comps_accesses;
             i_inner->children = i_outer->children;
             
             i_outer->computations.clear();
+            i_outer->comps_accesses.clear();
             i_outer->children.clear();
             i_outer->children.push_back(i_inner);
             

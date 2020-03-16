@@ -3,6 +3,14 @@
 namespace tiramisu::auto_scheduler
 {
 
+dnn_accesses::dnn_accesses(tiramisu::computation *comp, int nb_iterators, tiramisu::function *fct)
+    : comp(comp), nb_iterators(nb_iterators)
+{
+    create_accesses(comp->get_expr());
+    for (dnn_access_matrix& matrix : accesses_list)
+        matrix.set_buffer_id(fct);
+}
+
 void dnn_accesses::create_accesses(tiramisu::expr const& e)
 {   
     // Not an operation, stop the search
@@ -55,7 +63,7 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             if (e.get_op_type() == o_sub)
                 minus = true;
                 
-            fill_matrix_row(i, e.get_operand(0), minus);
+            fill_matrix_row(i, e.get_operand(0), false);
             fill_matrix_row(i, e.get_operand(1), minus);
         }
         
@@ -102,6 +110,25 @@ void dnn_access_matrix::set_buffer_id(tiramisu::function *fct)
             
         buffer_id++;
     }
+}
+
+std::vector<dnn_iterator> 
+dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
+{
+    std::vector<dnn_iterator> iters_list;
+    
+    isl_set *iter_domain = comp.get_iteration_domain();
+    int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+    
+    for (int i = 0; i < nb_iterators; ++i)
+    {
+        int low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
+        int up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
+        
+        iters_list.push_back(dnn_iterator(low_bound, up_bound));
+    }
+    
+    return iters_list;
 }
 
 }

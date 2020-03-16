@@ -125,10 +125,7 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
     // Create the vector representation of each computation
     int comp_index = 0;
     for (ast_node *node : ast.roots)
-    {
-        std::vector<dnn_iterator> empty_iters;
-        comp_index = represent_node(node, sched, comp_index, dnn_input, empty_iters);
-    }
+        comp_index = represent_node(node, sched, comp_index, dnn_input);
     
     // Call the DNN model
     std::vector<torch::jit::IValue> params = {dnn_input, dnn_length};
@@ -137,20 +134,18 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
     return output.item().to<float>();
 }
 
-int simple_rnn_evaluator::represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input, std::vector<dnn_iterator>& iters)
-{
-    iters.push_back(dnn_iterator(node->low_bound, node->up_bound));
-    
+int simple_rnn_evaluator::represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input)
+{    
     for (int i = 0; i < node->computations.size(); ++i)
     {
+        std::vector<dnn_iterator> iters = dnn_iterator::get_iterators_from_computation(*node->computations[i]);
         dnn_input[0][comp_index] = get_computation_repr(iters, sched, node->comps_accesses[i]);
         comp_index++;
     }
     
     for (ast_node *child : node->children)
-        comp_index = represent_node(child, sched, comp_index, dnn_input, iters);
+        comp_index = represent_node(child, sched, comp_index, dnn_input);
     
-    iters.pop_back();
     return comp_index;
 }
 

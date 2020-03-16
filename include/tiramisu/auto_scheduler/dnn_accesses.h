@@ -15,6 +15,8 @@ public:
     
     dnn_iterator(int low_bound, int up_bound)
         : low_bound(low_bound), up_bound(up_bound) {}
+        
+    static std::vector<dnn_iterator> get_iterators_from_computation(tiramisu::computation const& comp);
 };
 
 class dnn_schedule
@@ -61,11 +63,7 @@ public:
     int nb_iterators;
     std::vector<dnn_access_matrix> accesses_list;
         
-    dnn_accesses(tiramisu::computation *comp, int nb_iterators)
-        : comp(comp), nb_iterators(nb_iterators)
-    {
-        create_accesses(comp->get_expr());
-    }
+    dnn_accesses(tiramisu::computation *comp, int nb_iterators, tiramisu::function *fct);
         
     void create_accesses(tiramisu::expr const& e);
 };
