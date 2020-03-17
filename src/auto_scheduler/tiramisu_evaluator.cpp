@@ -158,21 +158,12 @@ at::Tensor simple_rnn_evaluator::get_computation_repr(std::vector<dnn_iterator> 
     for (int i = 0; i < iters.size(); ++i)
     {
         ret[offset + 0] = iters[i].low_bound;
-        ret[offset + 1] = iters[i].up_bound;
+        ret[offset + 1] = iters[i].up_bound + 1;
         
         ret[offset + 2] = sched.interchanged[i];
         ret[offset + 3] = sched.tiled[i];
         ret[offset + 4] = sched.tiling_fact[i];
-    
-        offset += ITERATORS_REPR_SIZE;
-    }
-    
-    for (int i = iters.size(); i < MAX_NB_ITERATORS; ++i)
-    {
-        ret[offset + 2] = sched.interchanged[i];
-        ret[offset + 3] = sched.tiled[i];
-        ret[offset + 4] = sched.tiling_fact[i];
-           
+        
         offset += ITERATORS_REPR_SIZE;
     }
     
