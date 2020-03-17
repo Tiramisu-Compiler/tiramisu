@@ -131,7 +131,7 @@ float simple_rnn_evaluator::evaluate(syntax_tree const& ast)
     std::vector<torch::jit::IValue> params = {dnn_input, dnn_length};
     at::Tensor output = model.forward(params).toTensor();
     
-    return output.item().to<float>();
+    return -output.item().to<float>();
 }
 
 int simple_rnn_evaluator::represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input)
