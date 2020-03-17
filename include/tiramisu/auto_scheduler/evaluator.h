@@ -117,11 +117,11 @@ public:
      */
     virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
     
-    const int MAX_NB_ITERATORS = 4;
-    const int MAX_NB_ACCESSES = 17;
-    const int ITERATORS_REPR_SIZE = 5;
-    const int ACCESS_REPR_SIZE = MAX_NB_ITERATORS * (MAX_NB_ITERATORS + 1) + 1;
-    const int COMPUTATION_REPR_SIZE = 379;
+    static const int MAX_NB_ITERATORS = 4;
+    static const int MAX_NB_ACCESSES = 17;
+    static const int ITERATORS_REPR_SIZE = 5;
+    static const int ACCESS_REPR_SIZE = MAX_NB_ITERATORS * (MAX_NB_ITERATORS + 1) + 1;
+    static const int COMPUTATION_REPR_SIZE = 379;
 };
 
 }

@@ -2,6 +2,7 @@
 #define _TIRAMISU_AUTO_SCHEDULER_STATES_GENERATOR_
 
 #include "ast.h"
+#include "evaluator.h"
 
 namespace tiramisu::auto_scheduler
 {
@@ -64,12 +65,15 @@ class simple_generator : public states_generator
 private:
 
 protected:
+    int max_nb_iterators;
 
 public:
-    simple_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
+    simple_generator(int max_nb_iterators = simple_rnn_evaluator::MAX_NB_ITERATORS,
+                     std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                      std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
-        : states_generator(tiling_factors_list, unrolling_factors_list) {}
+        : states_generator(tiling_factors_list, unrolling_factors_list),    
+          max_nb_iterators(max_nb_iterators) {}
         
     virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim);
 };

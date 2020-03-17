@@ -226,7 +226,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
     {
         case optimization_type::TILING:
             shared_levels_extents = ast.get_shared_levels_extents();
-            nb_shared_iterators = shared_levels_extents.size();
+            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
             
             for (int i = 0; i < nb_shared_iterators - 1; ++i)
             {
@@ -296,7 +296,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
 
         case optimization_type::INTERCHANGE:
             shared_levels_extents = ast.get_shared_levels_extents();
-            nb_shared_iterators = shared_levels_extents.size();
+            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
             
             for (int i = 0; i < nb_shared_iterators; ++i)
             {
