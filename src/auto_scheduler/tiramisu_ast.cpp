@@ -17,7 +17,10 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
         
         roots.push_back(node);
         computations_list.push_back(comp);
+        computations_mapping[comp] = node->get_leftmost_node();
     }
+    
+    order_computations();
 }
 
 ast_node::ast_node(tiramisu::computation *comp)
@@ -51,10 +54,59 @@ ast_node::ast_node(tiramisu::computation *comp)
 
     // Chain the nodes together
     for (int i = 0; i < nodes.size() - 1; ++i)
+    {
         nodes[i]->children.push_back(nodes[i + 1]);
-
+        nodes[i + 1]->parent = nodes[i];
+    }
+    
     nodes.back()->computations.push_back(comp);
     nodes.back()->comps_accesses.push_back(dnn_accesses(comp, nb_iterators, comp->get_function()));
+}
+
+void syntax_tree::order_computations()
+{
+    if (roots.size() < 2)
+        return ;
+        
+    for (auto& sched_graph_node : fct->sched_graph)
+    {
+        tiramisu::computation *parent_comp = sched_graph_node.first;
+        for (auto& sched_graph_child : sched_graph_node.second)
+        {
+            tiramisu::computation *child_comp = sched_graph_child.first;
+            int level = sched_graph_child.second;
+            
+            if (level < 0)
+                continue;
+            
+            ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
+            ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
+            
+            if (child_comp_ast_node->children.empty())
+            {
+                for (tiramisu::computation *comp : child_comp_ast_node->computations)
+                    parent_comp_ast_node->computations.push_back(comp);
+                    
+                for (dnn_accesses const& accesses : child_comp_ast_node->comps_accesses)
+                    parent_comp_ast_node->comps_accesses.push_back(accesses);
+                    
+                computations_mapping[child_comp] = parent_comp_ast_node;
+            }
+            
+            else
+            {
+                for (ast_node *child : child_comp_ast_node->children)
+                {
+                    parent_comp_ast_node->children.push_back(child);
+                    child->parent = parent_comp_ast_node;
+                }
+            }
+                    
+            ast_node *root_node = child_comp_ast_node->get_root_node();
+            auto it = std::find(roots.begin(), roots.end(), root_node);
+            roots.erase(it);
+        }
+    }
 }
 
 syntax_tree* syntax_tree::copy_ast() const
@@ -128,6 +180,20 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->comps_accesses = comps_accesses;
 
     return ret_node;
+}
+
+ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level)
+{
+    ast_node *node = computations_mapping[comp];
+    int current_level = node->depth;
+    
+    while (current_level > level && node->parent != nullptr)
+    {
+        node = node->parent;
+        current_level--;
+    }
+    
+    return node;
 }
 
 void syntax_tree::transform_ast(optimization_info const& opt)
@@ -364,80 +430,6 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
     }
 }
 
-void syntax_tree::transform_ast_by_fusing_shared_levels()
-{
-    if (roots.size() <= 1)  
-        return ;
-        
-    // Get the names of the shared levels
-    std::vector<std::string> shared_levels_names;
-    for (int i = 0; i < computations_list.size(); ++i) 
-    {
-        tiramisu::computation *comp = computations_list[i];
-
-        // Get the levels of comp
-        std::vector<std::string> names;
-        isl_set *iter_domain = comp->get_iteration_domain();
-        int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
-        
-        for (int j = 0; j < nb_iterators; ++j)
-        {
-            std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, j);
-            names.push_back(name);
-        }
-
-        // Update the list of shared levels        
-        if (i == 0)
-        {
-            shared_levels_names = names;
-            continue;
-        }
-        
-        int j;
-        for (j = 0; j < names.size() && j < shared_levels_names.size(); ++j)
-            if (names[j] != shared_levels_names[j])
-                break;
-                
-        shared_levels_names.resize(j);
-    }
-    
-    if (shared_levels_names.size() == 0)
-        return ;
-    
-    // Fuse shared levels
-    int nb_shared_levels = shared_levels_names.size();
-    std::vector<ast_node*> nodes_list;
-    std::vector<tiramisu::computation*> comps_list;
-    
-    for (int i = 1; i < roots.size(); ++i)
-    {
-        ast_node *node = roots[i];
-        for (int j = 0; j < nb_shared_levels - 1; ++j)
-            node = node->children[0];
-            
-        if (node->children.size() > 0)
-            nodes_list.push_back(node->children[0]);
-            
-        else
-        {
-            for (tiramisu::computation *comp : node->computations)
-                comps_list.push_back(comp);
-        }
-    }
-    
-    ast_node *subroot = roots[0];
-    for (int j = 0; j < nb_shared_levels - 1; ++j)
-        subroot = subroot->children[0];
-        
-    for (ast_node *node : nodes_list)
-        subroot->children.push_back(node);
-        
-    for (tiramisu::computation *comp : comps_list)
-        subroot->computations.push_back(comp);
-        
-    roots.resize(1);
-}
-
 std::vector<int> syntax_tree::get_shared_levels_extents() const
 {
     std::vector<int> extents;
@@ -499,6 +491,36 @@ void ast_node::get_innermost_levels(std::vector<ast_node*>& levels)
         
     for (ast_node *child : children)
         child->get_innermost_levels(levels);
+}
+
+ast_node* ast_node::get_root_node()
+{
+    ast_node *node = this;
+    
+    while (node->parent != nullptr)
+        node = node->parent;
+    
+    return node;
+}
+
+ast_node* ast_node::get_leftmost_node()
+{
+    ast_node *node = this;
+    
+    while (!node->children.empty())
+        node = node->children[0];
+    
+    return node;
+}
+
+ast_node* ast_node::get_rightmost_node()
+{
+    ast_node *node = this;
+    
+    while (!node->children.empty())
+        node = node->children.back();
+    
+    return node;
 }
 
 void ast_node::update_depth(int depth)

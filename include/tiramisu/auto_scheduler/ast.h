@@ -107,6 +107,21 @@ public:
      * contained in this subtree.
      */
     void get_innermost_levels(std::vector<ast_node*>& levels);
+    
+    /**
+     * Get the root of the tree to which this node belongs to.
+     */
+    ast_node* get_root_node();
+    
+    /**
+     * Get the node located at the leftmost side of the tree.
+     */
+    ast_node* get_leftmost_node();
+    
+    /**
+     * Get the node located at the rightmost side of the tree.
+     */
+    ast_node* get_rightmost_node();
 
     /**
      * Recompute the depth of each node of the tree rooted at
@@ -134,6 +149,11 @@ public:
 class syntax_tree
 {
 private:
+    /**
+     * Transform the AST using the order specified by the user
+     * with the command "after".
+     */
+    void order_computations();
 
 protected:
 
@@ -152,6 +172,11 @@ public:
      * The list of computations contained in this AST.
      */
     std::vector<tiramisu::computation*> computations_list;
+    
+    /**
+     * A mapping between each computation and the node where it is contained.
+     */
+    std::unordered_map<tiramisu::computation*, ast_node*> computations_mapping;
 
     /**
      * An evaluation of the execution of the function represented by
@@ -195,8 +220,6 @@ public:
             delete node;
     }
     
-    std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
-    
     /**
      * Copy this AST, and return the copy.
      */
@@ -207,6 +230,11 @@ public:
      * a pointer to the copied version of node_to_find.
      */
     ast_node* copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const;
+    
+    /**
+     * Return the node corresponding to the given loop level of the given computation.
+     */
+    ast_node* find_node_by_level(tiramisu::computation *comp, int level);
 
     /**
      * Transform the AST by applying the given optimization.
@@ -222,11 +250,6 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
-    
-    /**
-     * 
-     */
-    void transform_ast_by_fusing_shared_levels();
     
     /**
      * Get the extents of the loop levels shared by all computations.
@@ -271,6 +294,8 @@ public:
      * Print the AST to stdout.
      */
     void print_ast() const;
+    
+    std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
 };
 
 }

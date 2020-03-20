@@ -5,6 +5,8 @@ namespace tiramisu::auto_scheduler
 
 void beam_search::search(syntax_tree& ast)
 {
+    ast.print_ast();
+    
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
         ast.clear_new_optimizations();
        
@@ -52,7 +54,6 @@ void beam_search::search(syntax_tree& ast)
     // Add the current AST to the list of children
     syntax_tree *ast_copy = ast.copy_ast();
     ast_copy->nb_explored_optims = nb_explored_optims;
-    ast_copy->evaluation = eval_func->evaluate(*ast_copy);
     children.push_back(ast_copy);
 
     // Sort children from smallest evaluation to largest

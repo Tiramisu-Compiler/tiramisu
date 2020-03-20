@@ -13,7 +13,6 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
     : fct(fct), ast(fct), searcher(searcher), eval_func(eval_func)
 {
     searcher->set_eval_func(eval_func);
-    ast.transform_ast_by_fusing_shared_levels();
 }
 
 void auto_scheduler::find_schedule()
@@ -21,6 +20,7 @@ void auto_scheduler::find_schedule()
     float initial_exec_time = exec_evaluator->evaluate(ast);
     
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    ast.evaluation = eval_func->evaluate(ast);
     searcher->search(ast);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     
