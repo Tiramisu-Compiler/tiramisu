@@ -16,7 +16,7 @@ void beam_search::search(syntax_tree& ast)
     int nb_optims_tried = 0;
     int nb_explored_optims = ast.nb_explored_optims;
     
-    while (children.size() == 0 && nb_optims_tried < NB_OPTIMIZATIONS)
+    while (children.size() == 0 && nb_optims_tried < NB_OPTIMIZATIONS && nb_explored_optims < max_depth)
     {
         optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[nb_explored_optims % NB_OPTIMIZATIONS];
         children = states_gen->generate_states(ast, optim_type);

@@ -33,13 +33,9 @@ void auto_scheduler::find_schedule()
 void auto_scheduler::apply_best_schedule()
 {
     syntax_tree *best_ast = searcher->get_best_ast();
-    
-    apply_optimizations(*best_ast);
-    parallelize_outermost_levels(best_ast->computations_list);
-    
     best_ast->print_ast();
     
-    float best_sched_exec_time = exec_evaluator->evaluate(ast);
+    float best_sched_exec_time = exec_evaluator->evaluate(*best_ast);
     std::cout << "Best schedule exec time : " << best_sched_exec_time << std::endl;
 }
 
