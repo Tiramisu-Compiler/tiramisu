@@ -26,7 +26,7 @@ public:
      * Takes as input an abstract syntax tree and returns
      * its evaluation.
      */
-    virtual float evaluate(syntax_tree const& ast) =0;
+    virtual float evaluate(syntax_tree& ast) =0;
     
     /**
      * Indicates if the given ast should be transform by using ast.transform_ast().
@@ -67,7 +67,7 @@ public:
 	 * Apply the specified optimizations, compile the program
 	 * and execute it.
 	 */
-    virtual float evaluate(syntax_tree const& ast);
+    virtual float evaluate(syntax_tree& ast);
     
     /**
      * Indicates if the given ast should be transform by using ast.transform_ast().
@@ -110,7 +110,7 @@ public:
 	/**
 	 * Call the model and return its evaluation.
 	 */
-    virtual float evaluate(syntax_tree const& ast);
+    virtual float evaluate(syntax_tree& ast);
     
     /**
      * Indicates if the given ast should be transform by using ast.transform_ast().
@@ -122,6 +122,30 @@ public:
     static const int ITERATORS_REPR_SIZE = 5;
     static const int ACCESS_REPR_SIZE = MAX_NB_ITERATORS * (MAX_NB_ITERATORS + 1) + 1;
     static const int COMPUTATION_REPR_SIZE = 379;
+};
+
+class tree_lstm_evaluator : public evaluator
+{
+private:
+
+protected:
+    FILE *model_write;
+    FILE *model_read;
+
+public:
+    int real_nb_iters;
+    bool is_reduction;
+    int nb_additions = 0;
+    int nb_substractions = 0;
+    int nb_multiplications = 0;
+    int nb_divisions = 0;
+    
+    
+    tree_lstm_evaluator(std::string const& cmd_path, std::vector<std::string> const& cmd_args);
+    
+    virtual float evaluate(syntax_tree& ast);
+    
+    virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
 };
 
 }

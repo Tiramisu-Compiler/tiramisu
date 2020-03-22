@@ -112,6 +112,50 @@ void dnn_access_matrix::set_buffer_id(tiramisu::function *fct)
     }
 }
 
+dnn_schedule::dnn_schedule(int nb_iterators, std::vector<optimization_info> const& optims_list)
+    : dnn_schedule(nb_iterators)
+{
+    for (optimization_info const& optim_info : optims_list)
+    {
+        switch (optim_info.type)
+        {
+            case optimization_type::TILING:
+                if (optim_info.nb_l == 2)
+                {
+                    tiled[optim_info.l0] = true;
+                    tiled[optim_info.l1] = true;
+                    
+                    tiling_fact[optim_info.l0] = optim_info.l0_fact;
+                    tiling_fact[optim_info.l1] = optim_info.l1_fact;
+                }
+                
+                else if (optim_info.nb_l == 3)
+                {
+                    tiled[optim_info.l0] = true;
+                    tiled[optim_info.l1] = true;
+                    tiled[optim_info.l2] = true;
+                    
+                    tiling_fact[optim_info.l0] = optim_info.l0_fact;
+                    tiling_fact[optim_info.l1] = optim_info.l1_fact;
+                    tiling_fact[optim_info.l2] = optim_info.l2_fact;
+                }
+                break;
+                
+            case optimization_type::INTERCHANGE:
+                interchanged[optim_info.l0] = true;
+                interchanged[optim_info.l1] = true;
+                break;
+                
+            case optimization_type::UNROLLING:
+                unrolling_fact = optim_info.l0_fact;
+                break;
+                
+            default:
+                break;
+        }
+    }
+}
+
 std::vector<dnn_iterator> 
 dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
 {
@@ -122,10 +166,11 @@ dnn_iterator::get_iterators_from_computation(tiramisu::computation const& comp)
     
     for (int i = 0; i < nb_iterators; ++i)
     {
+        std::string name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
         int low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
         int up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
         
-        iters_list.push_back(dnn_iterator(low_bound, up_bound));
+        iters_list.push_back(dnn_iterator(name, low_bound, up_bound));
     }
     
     return iters_list;

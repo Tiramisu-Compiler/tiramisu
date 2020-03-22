@@ -4,17 +4,20 @@
 #include <tiramisu/core.h>
 #include <tiramisu/expr.h>
 
+#include "optimization_info.h"
+
 namespace tiramisu::auto_scheduler
 {
 
 class dnn_iterator
 {
 public:
+    std::string name;
     int low_bound;
     int up_bound;
     
-    dnn_iterator(int low_bound, int up_bound)
-        : low_bound(low_bound), up_bound(up_bound) {}
+    dnn_iterator(std::string const& name, int low_bound, int up_bound)
+        : name(name), low_bound(low_bound), up_bound(up_bound) {}
         
     static std::vector<dnn_iterator> get_iterators_from_computation(tiramisu::computation const& comp);
 };
@@ -33,6 +36,8 @@ public:
         : nb_iterators(nb_iterators), interchanged(nb_iterators, false),
           tiled(nb_iterators, false), tiling_fact(nb_iterators, 0),
           unrolling_fact(0) {}
+          
+    dnn_schedule(int nb_iterators, std::vector<optimization_info> const& optims_list);
 };
 
 class dnn_access_matrix
