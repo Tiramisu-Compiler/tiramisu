@@ -152,6 +152,7 @@ enum class rank_t
   * Convert a Tiramisu type into the equivalent Halide type (if it exists),
   * otherwise show an error message (no automatic type conversion is performed).
   */
+#ifdef USE_HALIDE
 Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type);
 
 /**
@@ -159,6 +160,7 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type);
   * otherwise show an error message (no automatic type conversion is performed).
   */
 tiramisu::primitive_t halide_type_to_tiramisu_type(Halide::Type type);
+#endif
 }
 
 #endif

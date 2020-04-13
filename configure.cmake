@@ -1,8 +1,12 @@
 set(CMAKE_BUILD_TYPE DEBUG)
 
+option(CMAKE_C_COMPILER "clang" ON)
+option(CMAKE_CXX_COMPILER "clang++" ON)
+
 option(USE_GPU "Build with GPU support" OFF)
 
 option(USE_MPI "Build with MPI support" OFF)
+option(USE_HALIDE "Build with Halide support" OFF)
 
 option(USE_LIBPNG "Build with libpng for the Halide benchmark" FALSE)
 
@@ -11,7 +15,7 @@ option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
 option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
-option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
+option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" FALSE)
 
 # Change with the cudnn library location
 set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location")
@@ -31,7 +35,8 @@ set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 # set(MKL_PREFIX "/data/scratch/baghdadi/libs/intel/mkl/")
 set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
 
-set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
+#set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
+set(LLVM_CONFIG_BIN "/usr/bin/" CACHE PATH "Directory containing llvm-config executable")
 
 # Debug
 option(ENABLE_DEBUG "Enable debug printing" FALSE)
@@ -42,5 +47,6 @@ set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL 
 set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
 
 # Halide Paths
-set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide" CACHE PATH "Path to Halide source directory")
-set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/lib" CACHE PATH "Path to Halide library directory")
+set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide/build" CACHE PATH "Path to Halide source directory")
+set(HALIDE_INCLUDE_DIRECTORY "3rdParty/Halide/build/include" CACHE PATH "Path to Halide include directory")
+set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/build/lib" CACHE PATH "Path to Halide library directory")

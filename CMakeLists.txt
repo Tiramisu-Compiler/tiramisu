@@ -24,8 +24,11 @@ set(HEADER_FILES
         )
 
 # Add CMake cpp files
-set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
-
+if(${USE_HALIDE})
+    set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+else()
+    set(OBJS auto_scheduler expr block core codegen_c computation_graph debug function utils mpi externs)
+endif()
 
 ### CMAKE FILE INTERNALS ###
 
@@ -148,10 +151,17 @@ endif()
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+if(${USE_HALIDE})
 include_directories("include"
         "${ISL_INCLUDE_DIRECTORY}"
         "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
         "build")
+else()
+include_directories("include"
+        "${ISL_INCLUDE_DIRECTORY}"
+        "build")
+endif()
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
@@ -159,11 +169,13 @@ if (${USE_MPI})
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
-    set(CMAKE_CXX_COMPILER "g++")
+    set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
 
-find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
+if(${USE_HALIDE})
+   find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
+endif()
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 # Require LLVM 5.0 or greater to keep in line with Halide

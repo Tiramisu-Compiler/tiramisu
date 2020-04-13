@@ -11,6 +11,8 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 
+#include <queue>
+
 namespace tiramisu
 {
 
@@ -73,7 +75,9 @@ function::function(std::string name)
     assert(!name.empty() && ("Empty function name"));
 
     this->name = name;
+#ifdef USE_HALIDE
     this->halide_stmt = Halide::Internal::Stmt();
+#endif
     this->ast = NULL;
     this->context_set = NULL;
     this->use_low_level_scheduling_commands = false;
@@ -554,6 +558,7 @@ void tiramisu::function::dump_dep_graph()
     isl_union_map_dump(deps);
 }
 
+#ifdef USE_HALIDE
 void function::dump_halide_stmt() const
 {
     tiramisu::str_dump("\n\n");
@@ -561,6 +566,7 @@ void function::dump_halide_stmt() const
     std::cout << this->get_halide_stmt();
     tiramisu::str_dump("\n\n\n\n");
 }
+#endif
 
 void function::dump_trimmed_time_processor_domain() const
 {
@@ -775,12 +781,14 @@ const std::vector<tiramisu::constant> &function::get_invariants() const
   * This function should not be called before calling the code
   * generator.
   */
+#ifdef USE_HALIDE
 Halide::Internal::Stmt function::get_halide_stmt() const
 {
     assert(halide_stmt.defined() && ("Empty Halide statement"));
 
     return halide_stmt;
 }
+#endif
 
 /**
   * Return the isl context associated with this function.
@@ -1087,11 +1095,13 @@ void function::add_iterator_name(const std::string &iteratorName)
   * If the machine parameters are not supplied, it will detect one automatically.
   */
 // @{
+#ifdef USE_HALIDE
 void function::gen_halide_obj(const std::string &obj_file_name) const
 {
     Halide::Target target = Halide::get_host_target();
     gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
 }
+#endif
 // @}
 
 /**
@@ -1615,10 +1625,12 @@ void tiramisu::function::dump(bool exhaustive) const
         }
         std::cout << std::endl;
 
+#ifdef USE_HALIDE
         if (this->halide_stmt.defined())
         {
             std::cout << "Halide stmt " << this->halide_stmt << std::endl;
         }
+#endif
 
         std::cout << "Buffers" << std::endl;
         for (const auto &buf : this->buffers_list)
@@ -2076,8 +2088,10 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     if (gen_cuda_stmt) {
         this->gen_cuda_stmt();
     }
+#ifdef USE_HALIDE
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
+#endif
 }
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const

@@ -31,6 +31,8 @@
 #include <tiramisu/type.h>
 #include <string>
 #include <vector>
+#include <memory>
+
 #include "utils.h"
 
 namespace tiramisu

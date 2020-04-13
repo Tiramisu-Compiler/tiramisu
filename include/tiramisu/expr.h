@@ -16,8 +16,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <type_traits>
+#include <functional>
+#include <cassert>
 
-#include <Halide.h>
+#ifdef USE_HALIDE
+    #include <Halide.h>
+#endif
+
 #include <tiramisu/debug.h>
 #include <tiramisu/type.h>
 
@@ -1824,10 +1829,12 @@ public:
 /**
   * Convert a Tiramisu expression into a Halide expression.
   */
+#ifdef USE_HALIDE
 Halide::Expr halide_expr_from_tiramisu_expr(
     const tiramisu::computation *comp,
     std::vector<isl_ast_expr *> &index_expr,
     const tiramisu::expr &tiramisu_expr);
+#endif
 
 
 /**
