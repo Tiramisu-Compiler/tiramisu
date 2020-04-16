@@ -223,6 +223,7 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
+#add_library(tiramisu STATIC ${T_CODE})
 
 if(${USE_HALIDE})
     target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
