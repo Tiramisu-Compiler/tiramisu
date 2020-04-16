@@ -409,6 +409,7 @@ class if_condition : public statement
 public:
     if_condition(statement_ptr condition, statement_ptr then_body, statement_ptr else_body);
     if_condition(statement_ptr condition, statement_ptr then_body);
+    ~if_condition() {}
 
 public:
     void print(std::stringstream &ss, const std::string &base) override;

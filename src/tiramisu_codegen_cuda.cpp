@@ -22,12 +22,15 @@
 
 #include <string>
 #include <array>
+#include <algorithm>
+
 #include <tiramisu/cuda_ast.h>
 #include <isl/ast_type.h>
 #include <isl/ast.h>
 
 #include <fstream>
 #include <memory>
+#include <unistd.h>
 
 #ifdef _WIN32
 #define popen _popen

@@ -27,7 +27,7 @@ set(HEADER_FILES
 if(${USE_HALIDE})
     set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 else()
-    set(OBJS auto_scheduler expr block core codegen_c computation_graph debug function utils mpi externs)
+    set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils mpi codegen_cuda externs)
 endif()
 
 ### CMAKE FILE INTERNALS ###
