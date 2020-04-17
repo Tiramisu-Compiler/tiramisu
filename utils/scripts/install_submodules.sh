@@ -77,7 +77,7 @@ echo "Done installing isl"
 
 
 # Set LLVM_CONFIG and CLANG env variables
-export CLANG=clang #${LLVM_BIN_DIR}/clang
+export CLANG=g++ #clang #${LLVM_BIN_DIR}/clang
 export LLVM_CONFIG=llvm-config #${LLVM_BIN_DIR}/llvm-config
 
 

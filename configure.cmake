@@ -1,7 +1,7 @@
 set(CMAKE_BUILD_TYPE DEBUG)
 
-option(CMAKE_C_COMPILER "clang" ON)
-option(CMAKE_CXX_COMPILER "clang++" ON)
+option(CMAKE_C_COMPILER "gcc" ON)
+option(CMAKE_CXX_COMPILER "g++" ON)
 
 option(USE_GPU "Build with GPU support" OFF)
 
