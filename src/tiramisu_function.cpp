@@ -2091,6 +2091,8 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
 #ifdef USE_HALIDE
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
+#else
+    this->gen_c_code();
 #endif
 }
 
