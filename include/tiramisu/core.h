@@ -4389,6 +4389,42 @@ public:
         }
     }
 
+    tiramisu::expr operator()(std::vector<tiramisu::expr> & access_expressions)
+    {
+        if (access_expressions.size() != this->number_of_dims)
+        {
+            tiramisu::str_dump("Error - Incorrect access: " + this->get_name() + "(");
+            for (int i = 0; i < access_expressions.size(); i++)
+            {
+                tiramisu::expr e = access_expressions[i];
+                e.dump(false);
+                if (i != access_expressions.size() - 1)
+                    tiramisu::str_dump(", ");
+            }
+            tiramisu::str_dump(").\n");
+            tiramisu::str_dump("The number of access dimensions does not match that used in the declaration of " + this->get_name() + ".\n\n");
+            exit(1);
+        }
+
+        if (this->is_inline_computation()) {
+            std::vector<std::pair<var, expr>> substitutions;
+            for (auto const &variable: this->access_variables) {
+                // variable is an (index, variable_name) pair
+                substitutions.push_back(std::make_pair(var(variable.second, false),
+                                                       access_expressions[variable.first]));
+            }
+            // TODO add iteration space for expression
+            return this->expression.substitute(substitutions);
+        } else {
+            return tiramisu::expr(tiramisu::o_access,
+                                  this->get_name(),
+                                  access_expressions,
+                                  this->get_data_type());
+        }
+    }
+
+
+
     operator expr();
 
     static xfer create_xfer(std::string send_iter_domain, std::string recv_iter_domain, tiramisu::expr send_dest,
