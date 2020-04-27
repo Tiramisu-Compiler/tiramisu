@@ -43,12 +43,12 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
 {
     for (int i = 0; i < tree_level.size(); ++i)
     {
-        if (tree_level[i]->unrolled)
+        if (tree_level[i]->unrolled || tree_level[i]->get_extent() <= 1)
             continue;
 
         for (int j = i + 1; j < tree_level.size(); ++j)
         {
-            if (tree_level[j]->unrolled)
+            if (tree_level[j]->unrolled || tree_level[j]->get_extent() <= 1)
                 continue;
 
             if (tree_level[i]->name == tree_level[j]->name &&
@@ -154,7 +154,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
 
 void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
-    if (!node->unrolled)
+    if (!node->unrolled && node->get_extent() > 1)
     {
         int branch_depth = node->get_loop_levels_chain_depth();
         
@@ -183,7 +183,7 @@ void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syn
 
 void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<syntax_tree*>& states, syntax_tree const& ast)
 {
-    if (!node->unrolled)
+    if (!node->unrolled && node->get_extent() > 1)
     {
         for (int unrolling_factor : unrolling_factors_list)
         {
@@ -351,7 +351,7 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
                 optim_info.l0 = -1;
                 optim_info.l0_fact = unrolling_fact;
                     
-                optim_info.comps = new_ast->computations_list;
+                optim_info.comps = new_ast->get_innermost_computations();
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }

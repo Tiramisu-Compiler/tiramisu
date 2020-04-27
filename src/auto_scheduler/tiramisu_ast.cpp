@@ -144,6 +144,7 @@ void syntax_tree::order_computations()
     for (auto& sched_graph_node : fct->sched_graph)
     {
         tiramisu::computation *parent_comp = sched_graph_node.first;
+        
         for (auto& sched_graph_child : sched_graph_node.second)
         {
             tiramisu::computation *child_comp = sched_graph_child.first;
@@ -155,21 +156,41 @@ void syntax_tree::order_computations()
             ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
             ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
             
-            if (child_comp_ast_node->children.empty())
+            // Insert computations
+            if (!child_comp_ast_node->computations.empty())
             {
-                for (computation_info& comp_info : child_comp_ast_node->computations)
-                    parent_comp_ast_node->computations.push_back(comp_info);
+                if (parent_comp_ast_node->children.empty())
+                {
+                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                    {
+                        parent_comp_ast_node->computations.push_back(comp_info);
+                        computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
+                    }
+                }
+                
+                else
+                {
+                    ast_node *new_node = new ast_node();
                     
-                computations_mapping[child_comp] = parent_comp_ast_node;
+                    new_node->depth = child_comp_ast_node->depth;
+                    new_node->name = "dummy_iter";
+                    new_node->low_bound = 0;
+                    new_node->up_bound = 0;
+                    new_node->computations = child_comp_ast_node->computations;
+                    new_node->parent = parent_comp_ast_node;
+                    
+                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                        computations_mapping[comp_info.comp_ptr] = new_node;
+                        
+                    parent_comp_ast_node->children.push_back(new_node);
+                }
             }
             
-            else
+            // Insert children
+            for (ast_node *child : child_comp_ast_node->children)
             {
-                for (ast_node *child : child_comp_ast_node->children)
-                {
-                    parent_comp_ast_node->children.push_back(child);
-                    child->parent = parent_comp_ast_node;
-                }
+                parent_comp_ast_node->children.push_back(child);
+                child->parent = parent_comp_ast_node;
             }
                     
             ast_node *root_node = child_comp_ast_node->get_root_node();
@@ -456,7 +477,7 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
         
     // Apply unrolling on every innermost loop level
     else
-        nodes_list = get_innermost_levels();
+        nodes_list = get_innermost_nodes();
     
     for (ast_node *node : nodes_list)
     {
@@ -508,7 +529,10 @@ std::vector<int> syntax_tree::get_shared_levels_extents() const
     ast_node *node = roots[0];
     while (true)
     {
-        extents.push_back(node->up_bound - node->low_bound + 1);
+        if (node->get_extent() <= 1)
+            break;
+            
+        extents.push_back(node->get_extent());
         if (node->children.size() != 1 || node->computations.size() != 0)
             break;
             
@@ -530,34 +554,52 @@ std::vector<int> syntax_tree::get_innermost_extents() const
 
 void ast_node::get_innermost_extents(std::vector<int>& extents) const
 {
-    // If this node contains computations, this loop level is then
-    // an innermost loop level for these computations.
-    if (computations.size() > 0)
-        extents.push_back(up_bound - low_bound + 1);
+    if (children.empty() && get_extent() > 1)
+        extents.push_back(get_extent());
         
     for (ast_node *child : children)
         child->get_innermost_extents(extents);
 }
 
-std::vector<ast_node*> syntax_tree::get_innermost_levels() const
+std::vector<tiramisu::computation*> syntax_tree::get_innermost_computations()
 {
-    std::vector<ast_node*> levels;
+    std::vector<tiramisu::computation*> comps;
     
     for (ast_node *node : roots)
-        node->get_innermost_levels(levels);
+        node->get_innermost_computations(comps);
         
-    return levels;
+    return comps;
 }
 
-void ast_node::get_innermost_levels(std::vector<ast_node*>& levels)
+void ast_node::get_innermost_computations(std::vector<tiramisu::computation*>& comps)
 {
-    // If this node contains computations, this loop level is then
-    // an innermost loop level for these computations.
-    if (computations.size() > 0)
-        levels.push_back(this);
+    if (children.empty() && get_extent() > 1)
+    {
+        for (computation_info& comp_info : computations)
+            comps.push_back(comp_info.comp_ptr);
+    }
+    
+    for (ast_node *child : children)
+        child->get_innermost_computations(comps);
+}
+
+std::vector<ast_node*> syntax_tree::get_innermost_nodes() const
+{
+    std::vector<ast_node*> nodes;
+    
+    for (ast_node *node : roots)
+        node->get_innermost_nodes(nodes);
+        
+    return nodes;
+}
+
+void ast_node::get_innermost_nodes(std::vector<ast_node*>& nodes)
+{
+    if (children.empty() && get_extent() > 1)
+        nodes.push_back(this);
         
     for (ast_node *child : children)
-        child->get_innermost_levels(levels);
+        child->get_innermost_nodes(nodes);
 }
 
 ast_node* ast_node::get_root_node()
@@ -606,10 +648,13 @@ int syntax_tree::get_buffer_id(std::string const& buf_name) const
 
 void ast_node::update_depth(int depth)
 {
-    this->depth = depth;
+    if (get_extent() > 1)
+        this->depth = depth;
+    else
+        this->depth = depth - 1;
     
     for (ast_node *child : children)
-        child->update_depth(depth + 1);
+        child->update_depth(this->depth + 1);
 }
 
 void ast_node::get_all_computations(std::vector<tiramisu::computation*>& comps)
@@ -623,7 +668,7 @@ void ast_node::get_all_computations(std::vector<tiramisu::computation*>& comps)
 
 int ast_node::get_loop_levels_chain_depth() const
 {
-    int ret = depth;
+    int ret = depth + 1;
     const ast_node *node = this;
     
     while (node->children.size() == 1 && node->computations.size() == 0 && !node->unrolled)
@@ -631,9 +676,6 @@ int ast_node::get_loop_levels_chain_depth() const
         ret++;
         node = node->children[0];
     }
-    
-    if ((node->children.size() == 0 || node->computations.size() > 0) && !node->unrolled)
-        return ret + 1;
     
     return ret;
 }
@@ -646,10 +688,13 @@ void syntax_tree::print_ast() const
 
 void ast_node::print_node() const
 {
-    for (int i = 0; i < depth; ++i)
-        std::cout << "\t";
-
-    std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled << std::endl;
+    if (get_extent() > 1)
+    {
+        for (int i = 0; i < depth; ++i)
+            std::cout << "\t";
+            
+        std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled << std::endl;
+    }
     
     for (computation_info const& comp_info : computations) 
     {

@@ -132,10 +132,15 @@ public:
     void get_innermost_extents(std::vector<int>& extents) const;
     
     /**
+     * Get the computations located at the innermost loop levels of this subtree.
+     */
+    void get_innermost_computations(std::vector<tiramisu::computation*>& comps);
+    
+    /**
      * Fill the given array with the nodes representing the innermost loop levels
      * contained in this subtree.
      */
-    void get_innermost_levels(std::vector<ast_node*>& levels);
+    void get_innermost_nodes(std::vector<ast_node*>& nodes);
     
     /**
      * Get the root of the tree to which this node belongs to.
@@ -301,10 +306,15 @@ public:
      */
     std::vector<int> get_innermost_extents() const;
     
+    /*
+     * Get the computations located at the innermost loop levels.
+     */
+    std::vector<tiramisu::computation*> get_innermost_computations();
+    
     /**
      * Return the nodes representing the innermost loop levels.
      */
-    std::vector<ast_node*> get_innermost_levels() const;
+    std::vector<ast_node*> get_innermost_nodes() const;
     
     /**
      * Return the schedule of this AST.

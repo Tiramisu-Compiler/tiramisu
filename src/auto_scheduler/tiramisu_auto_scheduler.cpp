@@ -17,6 +17,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
 
 void auto_scheduler::find_schedule()
 {
+    fct->reset_schedules();
     float initial_exec_time = exec_evaluator->evaluate(ast);
     
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
