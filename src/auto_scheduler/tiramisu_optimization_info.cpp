@@ -84,7 +84,7 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
     
     if (node->computations.size() > 0)
     {
-        next_comp = node->computations[0];
+        next_comp = node->computations[0].comp_ptr;
         
         if (last_comp != nullptr)
             next_comp->after(*last_comp, dimension);
@@ -92,7 +92,7 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
         last_comp = next_comp;
         for (int i = 1; i < node->computations.size(); ++i)
         {
-            next_comp = node->computations[i];
+            next_comp = node->computations[i].comp_ptr;
             next_comp->after(*last_comp, node->depth);
         }
     }

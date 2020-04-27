@@ -45,6 +45,7 @@ namespace auto_scheduler
 {
 class syntax_tree;
 class ast_node;
+class computation_info;
 class evaluate_by_execution;
 class simple_rnn_evaluator;
 class dnn_access_matrix;
@@ -1443,7 +1444,9 @@ class computation
     friend recv;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend auto_scheduler::syntax_tree;
     friend auto_scheduler::ast_node;
+    friend auto_scheduler::computation_info;
     friend auto_scheduler::evaluate_by_execution;
     
     friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);

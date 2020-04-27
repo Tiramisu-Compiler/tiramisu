@@ -9,21 +9,31 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     
     for (tiramisu::computation *comp : computations) 
     {
+        // Get this computation buffer name
+        isl_map *storage_map = comp->access;
+        std::string buf_name = isl_map_get_tuple_name(storage_map, isl_dim_out);
+        
+        if (std::find(buffers_list.begin(), buffers_list.end(), buf_name) == buffers_list.end())
+            buffers_list.push_back(buf_name);
+            
+        buffers_mapping[comp->get_name()] = buf_name;
+        
         if (comp->get_expr().get_expr_type() == e_none)
             continue;
         
-        ast_node *node = new ast_node(comp);
+        // Insert this computation in the AST
+        ast_node *node = new ast_node(comp, this);
         node->parent = nullptr;
         
         roots.push_back(node);
         computations_list.push_back(comp);
         computations_mapping[comp] = node->get_leftmost_node();
     }
-    
+
     order_computations();
 }
 
-ast_node::ast_node(tiramisu::computation *comp)
+ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 {
     std::vector<ast_node*> nodes;
 
@@ -59,8 +69,71 @@ ast_node::ast_node(tiramisu::computation *comp)
         nodes[i + 1]->parent = nodes[i];
     }
     
-    nodes.back()->computations.push_back(comp);
-    nodes.back()->comps_accesses.push_back(dnn_accesses(comp, nb_iterators, comp->get_function()));
+    nodes.back()->computations.push_back(computation_info(comp, ast));
+}
+
+computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast)
+    : comp_ptr(comp), iters(dnn_iterator::get_iterators_from_computation(*comp)),
+      accesses(comp, iters.size(), comp->get_function()), buffer_nb_dims(iters.size()),
+      nb_additions(0), nb_substractions(0), nb_multiplications(0), nb_divisions(0)
+{
+    get_info_from_expr(comp->get_expr());
+    
+    // Check if this computation is a reduction
+    isl_map *storage_map = comp->access;
+    buffer_nb_dims = isl_map_dim(storage_map, isl_dim_out);
+    
+    if (buffer_nb_dims < iters.size())
+        is_reduction = true;
+    else
+        is_reduction = false;
+        
+    // Get buffer_id for the accesses of this computation
+    for (dnn_access_matrix& matrix : accesses.accesses_list)
+        matrix.buffer_id = ast->get_buffer_id_from_computation_name(matrix.buffer_name);
+}
+
+void computation_info::get_info_from_expr(tiramisu::expr const& e)
+{
+    // Not an operation, stop the search
+    if (e.get_expr_type() != tiramisu::e_op)
+        return ;
+        
+    // We have an access, stop the search
+    if (e.get_op_type() == tiramisu::o_access || 
+        e.get_op_type() == tiramisu::o_lin_index ||
+        e.get_op_type() == tiramisu::o_address_of || 
+        e.get_op_type() == tiramisu::o_dummy ||
+        e.get_op_type() == tiramisu::o_buffer)
+    {
+        return ;
+    }
+    
+    switch (e.get_op_type())
+    {
+        case o_add:
+            nb_additions++;
+            break;
+            
+        case o_sub:
+            nb_substractions++;
+            break;
+            
+        case o_mul:
+            nb_multiplications++;
+            break;
+            
+        case o_div:
+            nb_divisions++;
+            break;
+            
+        default:
+            break;
+    }
+    
+    // We have an operation, we explore its operands
+    for (int i = 0; i < e.get_n_arg(); ++i)
+        get_info_from_expr(e.get_operand(i));
 }
 
 void syntax_tree::order_computations()
@@ -84,11 +157,8 @@ void syntax_tree::order_computations()
             
             if (child_comp_ast_node->children.empty())
             {
-                for (tiramisu::computation *comp : child_comp_ast_node->computations)
-                    parent_comp_ast_node->computations.push_back(comp);
-                    
-                for (dnn_accesses const& accesses : child_comp_ast_node->comps_accesses)
-                    parent_comp_ast_node->comps_accesses.push_back(accesses);
+                for (computation_info& comp_info : child_comp_ast_node->computations)
+                    parent_comp_ast_node->computations.push_back(comp_info);
                     
                 computations_mapping[child_comp] = parent_comp_ast_node;
             }
@@ -177,7 +247,6 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->up_bound = up_bound;
     new_node->unrolled = unrolled;
     new_node->computations = computations;
-    new_node->comps_accesses = comps_accesses;
 
     return ret_node;
 }
@@ -244,8 +313,8 @@ void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
     for (ast_node *child : node2->children)
         node1->children.push_back(child);
 
-    for (tiramisu::computation *comp : node2->computations)
-        node1->computations.push_back(comp);
+    for (computation_info& comp_info : node2->computations)
+        node1->computations.push_back(comp_info);
 
     tree_level->erase(tree_level->begin() + opt.l1);
 }
@@ -402,11 +471,9 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             
             // Chain the nodes
             i_inner->computations = i_outer->computations;
-            i_inner->comps_accesses = i_outer->comps_accesses;
             i_inner->children = i_outer->children;
             
             i_outer->computations.clear();
-            i_outer->comps_accesses.clear();
             i_outer->children.clear();
             i_outer->children.push_back(i_inner);
             
@@ -523,6 +590,20 @@ ast_node* ast_node::get_rightmost_node()
     return node;
 }
 
+int syntax_tree::get_buffer_id_from_computation_name(std::string comp_name)
+{
+    return get_buffer_id(buffers_mapping[comp_name]);
+}
+
+int syntax_tree::get_buffer_id(std::string const& buf_name) const
+{
+    auto it = std::find(buffers_list.begin(), buffers_list.end(), buf_name);
+    if (it == buffers_list.end())
+        return -1;
+        
+    return std::distance(buffers_list.begin(), it);
+}
+
 void ast_node::update_depth(int depth)
 {
     this->depth = depth;
@@ -533,8 +614,8 @@ void ast_node::update_depth(int depth)
 
 void ast_node::get_all_computations(std::vector<tiramisu::computation*>& comps)
 {
-    for (tiramisu::computation *c : computations)
-        comps.push_back(c);
+    for (computation_info& comp_info : computations)
+        comps.push_back(comp_info.comp_ptr);
         
     for (ast_node *child : children)
         child->get_all_computations(comps);
@@ -570,12 +651,12 @@ void ast_node::print_node() const
 
     std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled << std::endl;
     
-    for (tiramisu::computation* comp : computations) 
+    for (computation_info const& comp_info : computations) 
     {
         for (int i = 0; i < depth + 1; ++i)
             std::cout << "\t";
             
-        std::cout << comp->get_name() << std::endl;
+        std::cout << comp_info.comp_ptr->get_name() << std::endl;
     }
 
     for (ast_node *child : children)

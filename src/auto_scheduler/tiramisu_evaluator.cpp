@@ -103,8 +103,7 @@ int simple_rnn_evaluator::represent_node(ast_node *node, dnn_schedule const& sch
 {    
     for (int i = 0; i < node->computations.size(); ++i)
     {
-        std::vector<dnn_iterator> iters = dnn_iterator::get_iterators_from_computation(*node->computations[i]);
-        dnn_input[0][comp_index] = get_computation_repr(iters, sched, node->comps_accesses[i]);
+        dnn_input[0][comp_index] = get_computation_repr(node->computations[i].iters, sched, node->computations[i].accesses);
         comp_index++;
     }
     
@@ -207,11 +206,11 @@ tree_lstm_evaluator::tree_lstm_evaluator(std::string const& cmd_path, std::vecto
 }
 
 float tree_lstm_evaluator::evaluate(syntax_tree& ast)
-{
+{/*
     tiramisu::computation *comp = ast.computations_list[0];
     ast_node *node = ast.roots[0]->get_leftmost_node();
     std::vector<dnn_iterator> iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
-    dnn_accesses& accesses = node->comps_accesses[0];
+    dnn_accesses& accesses = node->computations[0].accesses;
     
     std::string iterators_str = "\"iterators\" : {";
     
@@ -299,7 +298,7 @@ float tree_lstm_evaluator::evaluate(syntax_tree& ast)
         else
             computations_str += "false,";
             
-        computations_str += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
+        computations_str += "\"buffer_id\" : " + std::to_string(buffers_id[i]) + ",";
         computations_str += "\"access_matrix\" : [";
         
         for (int x = 0; x < matrix.matrix.size(); ++x)
@@ -460,7 +459,7 @@ float tree_lstm_evaluator::evaluate(syntax_tree& ast)
     float speedup = 0.f;
     fscanf(model_read, "%f", &speedup);
     
-    return speedup;
+    return speedup;*/
 }
 
 }

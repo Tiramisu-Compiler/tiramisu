@@ -7,8 +7,6 @@ dnn_accesses::dnn_accesses(tiramisu::computation *comp, int nb_iterators, tirami
     : comp(comp), nb_iterators(nb_iterators)
 {
     create_accesses(comp->get_expr());
-    for (dnn_access_matrix& matrix : accesses_list)
-        matrix.set_buffer_id(fct);
 }
 
 void dnn_accesses::create_accesses(tiramisu::expr const& e)
@@ -97,18 +95,6 @@ void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool min
             matrix[i][nb_iterators] = -e.get_int32_value();
         else
             matrix[i][nb_iterators] = e.get_int32_value();
-    }
-}
-
-void dnn_access_matrix::set_buffer_id(tiramisu::function *fct)
-{
-    buffer_id = 0;
-    for (auto const& map_el : fct->get_buffers())
-    {
-        if (map_el.first == buffer_name)
-            break;
-            
-        buffer_id++;
     }
 }
 

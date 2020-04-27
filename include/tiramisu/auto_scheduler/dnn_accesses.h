@@ -57,8 +57,6 @@ public:
     
     dnn_access_matrix(int nb_iterators, int nb_dims);
     dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, tiramisu::computation *comp);
-    
-    void set_buffer_id(tiramisu::function *fct);
 };
 
 class dnn_accesses

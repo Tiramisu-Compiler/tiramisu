@@ -133,14 +133,6 @@ protected:
     FILE *model_read;
 
 public:
-    int real_nb_iters;
-    bool is_reduction;
-    int nb_additions = 0;
-    int nb_substractions = 0;
-    int nb_multiplications = 0;
-    int nb_divisions = 0;
-    
-    
     tree_lstm_evaluator(std::string const& cmd_path, std::vector<std::string> const& cmd_args);
     
     virtual float evaluate(syntax_tree& ast);

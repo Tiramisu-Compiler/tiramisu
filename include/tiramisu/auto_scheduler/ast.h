@@ -9,9 +9,43 @@
 namespace tiramisu::auto_scheduler
 {
 
+class syntax_tree;
+
 /**
-  * A node in the AST represents a loop level.
-  */
+ *
+ */
+class computation_info
+{
+private:
+
+protected:
+
+public:
+    tiramisu::computation *comp_ptr;
+    
+    std::vector<dnn_iterator> iters;
+    dnn_accesses accesses;
+    
+    int buffer_nb_dims;
+    bool is_reduction;
+    
+    int nb_additions;
+    int nb_substractions;
+    int nb_multiplications;
+    int nb_divisions;
+    
+    computation_info(tiramisu::computation *comp, syntax_tree *ast);
+    
+    /**
+     * Compute nb_additions, nb_substractions, nb_multiplications and nb_divisions
+     * from the given expr.
+     */
+    void get_info_from_expr(tiramisu::expr const& e);
+};
+
+/**
+ * A node in the AST represents a loop level.
+ */
 class ast_node
 {
 private:
@@ -47,12 +81,7 @@ public:
     /**
      * List of the computations computed at this level.
      */
-    std::vector<tiramisu::computation*> computations;
-    
-    /**
-     * A list containing the accesses of each computation.
-     */
-    std::vector<dnn_accesses> comps_accesses;
+    std::vector<computation_info> computations;
 
 	/**
 	 * Next loop levels.
@@ -62,8 +91,8 @@ public:
     /**
      * Parent of this loop level.
      */
-    ast_node *parent;
-
+    ast_node *parent = nullptr;
+    
 	/**
 	 * Create an empty AST node.
 	 */
@@ -72,7 +101,7 @@ public:
 	/**
 	 * Create an AST node from the given computation.
 	 */
-	ast_node(tiramisu::computation *comp);
+	ast_node(tiramisu::computation *comp, syntax_tree* ast);
         
     ~ast_node()
     {
@@ -177,6 +206,17 @@ public:
      * A mapping between each computation and the node where it is contained.
      */
     std::unordered_map<tiramisu::computation*, ast_node*> computations_mapping;
+    
+    /**
+     * The list of buffers used by the program.
+     */
+    std::vector<std::string> buffers_list;
+    
+    /**
+     * A mapping between each computation and the name of the buffer where
+     * it is stored.
+     */
+    std::unordered_map<std::string, std::string> buffers_mapping;
 
     /**
      * An evaluation of the execution of the function represented by
@@ -277,6 +317,17 @@ public:
             
         return schedule;
     }
+    
+    /**
+     * Return the position, in the list of the buffers, of the buffer where
+     * the given computation is stored.
+     */
+    int get_buffer_id_from_computation_name(std::string comp_name);
+    
+    /**
+     * Return the position of the given buffer in the list of buffers.
+     */
+    int get_buffer_id(std::string const& buf_name) const;
     
     /**
      * Add the content of new_optims to previous_optims and
