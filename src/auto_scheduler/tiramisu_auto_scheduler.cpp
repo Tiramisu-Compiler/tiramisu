@@ -18,7 +18,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func,
 void auto_scheduler::find_schedule()
 {
     fct->reset_schedules();
-    float initial_exec_time = exec_evaluator->evaluate(ast);
+    initial_exec_time = exec_evaluator->evaluate(ast);
     
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     ast.evaluation = eval_func->evaluate(ast);
@@ -38,6 +38,7 @@ void auto_scheduler::apply_best_schedule()
     
     float best_sched_exec_time = exec_evaluator->evaluate(*best_ast);
     std::cout << "Best schedule exec time : " << best_sched_exec_time << std::endl;
+    std::cout << "Speedup : " << initial_exec_time / best_sched_exec_time << std::endl;
 }
 
 }

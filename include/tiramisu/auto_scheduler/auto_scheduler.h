@@ -29,6 +29,7 @@ protected:
     evaluator *eval_func;
     
     evaluate_by_execution *exec_evaluator = nullptr;
+    float initial_exec_time;
         
 public:
     auto_scheduler(search_method *searcher, evaluator *eval_func,
