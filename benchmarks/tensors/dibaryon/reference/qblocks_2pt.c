@@ -1,3 +1,4 @@
+
 #include <stdio.h> 
 #include <stdlib.h>
 #include <complex.h>
@@ -1115,7 +1116,7 @@ void make_two_nucleon_2pt(double* C_re,
            src_psi_B2_re, 
            src_psi_B2_im, 
            snk_psi_re,
-           snk_psi_im,
+           snk_psi_im, //); //,
            Nc,Ns,Vsrc,Vsnk,Nt,Nw,Nq,Nsrc,Nsnk,NsrcHex,NsnkHex,Nperms);
 	    double end_time = rtclock();
 	    total_time_tiramisu += (end_time - start_time);

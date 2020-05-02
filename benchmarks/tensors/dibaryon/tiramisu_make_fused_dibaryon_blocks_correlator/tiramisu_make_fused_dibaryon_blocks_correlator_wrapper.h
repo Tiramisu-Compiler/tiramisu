@@ -16,12 +16,12 @@
 #define Ns 2
 #define Nw 9
 #define Nw2 81
-#define Nperms 9 //36
-#define Lt 2
-#define Vsrc 2
-#define Vsnk 4
-#define Nsrc 2
-#define Nsnk 2
+#define Nperms 9
+#define Lt 10
+#define Vsrc 8
+#define Vsnk 8
+#define Nsrc 4
+#define Nsnk 4
 #define mq 1.0
 #define Nb 2
 
@@ -54,6 +54,8 @@
 #define Vsnk P_Vsnk
 #define Nsrc P_Nsrc
 #define Nsnk P_Nsnk
+#define NsrcHex P_NsrcHex
+#define NsnkHex P_NsnkHex
 #define mq P_mq
 #define Nb 2
 
@@ -64,7 +66,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_local_single_double_block"
+#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -81,6 +83,14 @@ extern "C" {
 #endif
 
 int tiramisu_make_fused_dibaryon_blocks_correlator(
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
