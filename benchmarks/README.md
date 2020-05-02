@@ -67,6 +67,30 @@ Example
         
 This will compile and run the baryon benchmark.
 
+# Auto-scheduler's benchmarks 
+Contains a set of benchmark programs that are used to evaluate the cost model of the auto-scheduler. 
+
+#### Prerequisites
+The same as for [Halide benchmarks](#Halide-benchmarks):
+1) [Libpng](http://www.libpng.org/pub/png/libpng.html)
+2) [Libjpeg](http://libjpeg.sourceforge.net/)
+
+Check the [Halide benchmarks](#Halide-benchmarks) section above for the installation and configuration.
+
+#### Run Benchmarks
+To run a given benchmark
+
+        cd auto-scheduler_benchmarks/<benchmark-name>
+        ./compile_and_run.sh
+        
+Example
+
+        cd auto-scheduler_benchmarks/heat3d
+        ./compile_and_run.sh
+        
+This will compile and run the heat3d benchmark.
+
+
 # Other Benchmarks
 #### Run Benchmarks
 
