@@ -93,6 +93,37 @@ public:
     virtual void search(syntax_tree& ast);
 };
 
+class beam_search_accuracy_evaluator : public beam_search
+{
+private:
+
+protected:
+    evaluator *exec_eval;
+    
+    std::vector<float> model_evals_list;
+    std::vector<float> exec_evals_list;
+    
+public:
+    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *model_eval = nullptr, evaluator *exec_eval = nullptr, states_generator *states_gen = nullptr)
+        : beam_search(beam_size, max_depth, model_eval, states_gen), exec_eval(exec_eval) {}
+        
+    virtual ~beam_search_accuracy_evaluator() {}
+    
+    void set_exec_eval(evaluator *exec_eval) { this->exec_eval = exec_eval; }
+
+    /**
+      * The method to call to start a search.
+      * It takes as input an AST and returns a list of
+      * code transformations.
+      */
+    virtual void search(syntax_tree& ast);
+    
+    /**
+     *
+     */
+    void print_evals_list() const;
+};
+
 }
 
 #endif
