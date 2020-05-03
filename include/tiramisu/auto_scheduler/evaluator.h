@@ -135,9 +135,35 @@ protected:
 public:
     tree_lstm_evaluator(std::string const& cmd_path, std::vector<std::string> const& cmd_args);
     
+	/**
+	 * Call the model and return its evaluation.
+	 */
     virtual float evaluate(syntax_tree& ast);
     
+    /**
+     * Indicates if the given ast should be transform by using ast.transform_ast().
+     */
     virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
+    
+    /**
+     * Return a JSON representation of the program represented by the AST.
+     */
+    std::string get_program_json(syntax_tree const& ast);
+    
+    /**
+     *
+     */
+    static void represent_iterators_from_nodes(ast_node *node, std::string& iterators_json);
+    
+    /**
+     *
+     */
+    static void represent_computations_from_nodes(ast_node *node, std::string& computations_json);
+    
+    /**
+     * Return a JSON representation of the schedule of the given AST.
+     */
+    std::string get_schedule_json(syntax_tree const& ast);
 };
 
 }

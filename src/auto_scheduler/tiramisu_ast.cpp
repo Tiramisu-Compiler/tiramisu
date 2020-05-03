@@ -1,4 +1,5 @@
 #include <tiramisu/auto_scheduler/ast.h>
+#include <tiramisu/auto_scheduler/evaluator.h>
 
 namespace tiramisu::auto_scheduler
 {
@@ -31,6 +32,12 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     }
 
     order_computations();
+    
+    // Get the JSON representation of this AST iterators
+    for (ast_node *node : roots)
+        tree_lstm_evaluator::represent_iterators_from_nodes(node, iterators_json);
+        
+    iterators_json.pop_back();
 }
 
 ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
@@ -234,6 +241,10 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
 
     new_ast.fct = fct;
     new_ast.computations_list = computations_list;
+    new_ast.buffers_list = buffers_list;
+    new_ast.buffers_mapping = buffers_mapping;
+    new_ast.iterators_json = iterators_json;
+    
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;
     new_ast.nb_explored_optims = nb_explored_optims;

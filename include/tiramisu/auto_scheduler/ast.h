@@ -222,6 +222,11 @@ public:
      * it is stored.
      */
     std::unordered_map<std::string, std::string> buffers_mapping;
+    
+    /**
+     *
+     */
+    std::string iterators_json;
 
     /**
      * An evaluation of the execution of the function represented by
