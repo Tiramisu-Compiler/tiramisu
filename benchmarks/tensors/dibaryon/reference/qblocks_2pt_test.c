@@ -4,10 +4,17 @@
 #include <math.h>
 #include <time.h>
 
-#include "qblocks_2pt.h"                                       /* DEPS */
+// #include "qblocks_2pt.h"                                       /* DEPS */
+#include "tiramisu_wrapper.h"
 #include "qblocks_2pt_parameters.h"                                       /* DEPS */
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
 int main() {
+
   int Vsrc = P_Vsrc;
   int Vsnk = P_Vsnk;
   int Nt = P_Nt;
@@ -23,23 +30,6 @@ int main() {
   int Nw = P_Nw;
   int Nperms = P_Nperms;
 
-    long mega = 1024*1024;
-
-    printf("Array sizes\n");
-    printf("Prop:\n");
-    printf("	Max index size = %d ", Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nt);
-    printf("	Array size = %lu Mega bytes\n", Nq*Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nt*Nt*sizeof(double)/mega);
-    printf("Blocal:\n");
-    printf("	Max index size = %d ", Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns);
-    printf("	Array size = %lu Mega bytes\n", Vsnk*Nsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
-    printf("Q, O & P:\n");
-    printf("	Max index size = %d ", Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns);
-    printf("	Array size = %lu Mega bytes\n", Vsnk*Vsrc*Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
-    printf("Bsingle, Bdouble:\n");
-    printf("	Max index size = %d ", Nc*Ns*Nc*Ns*Nc*Ns);
-    printf("	Array size = %lu Mega bytes\n", Nc*Ns*Nc*Ns*Nc*Ns*sizeof(double)/mega);
-
-  printf("%lu \n", __SIZE_MAX__);
    printf("starting block main\n");
    time_t start,end;
    time (&start);
@@ -59,10 +49,10 @@ int main() {
                      for (y = 0; y < Vsrc; y++) {
                         for (x = 0; x < Vsnk; x++) {
                            if ((jC == iC) && (jS == iS)) {
-                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*cos(2*M_PI/6);
-                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
-                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 1/mq*sin(2*M_PI/6);
+                              B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = cos(2*M_PI/6)/mq;
+                              B2_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = cos(2*M_PI/6)/mq;
+                              B1_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = sin(2*M_PI/6)/mq;
+                              B2_prop_im[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = sin(2*M_PI/6)/mq;
                            }
                            else {
                               B1_prop_re[prop_index(q,t,jC,jS,iC,iS,y,x ,Nc,Ns,Vsrc,Vsnk,Nt)] = 0;
@@ -175,27 +165,27 @@ int main() {
       }
    }
    printf("built wavefunctions\n");
-   double* C_B1_re = malloc(2 * Nsrc * Nsnk * Nt * sizeof (double));
-   double* C_B1_im = malloc(2 * Nsrc * Nsnk * Nt * sizeof (double));
+   double* C_B1_re = malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* C_B1_im = malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
    for (r=0; r<2; r++) {
-     for (m=0; m<Nsrc; m++) {
-        for (n=0; n<Nsnk; n++) {
+     for (m=0; m<NsrcHex; m++) {
+        for (n=0; n<NsnkHex; n++) {
            for (t=0; t<Nt; t++) {
-            C_B1_re[index_4d(r,m,n,t ,Nsrc,Nsnk,Nt)] = 0.0;
-            C_B1_im[index_4d(r,m,n,t ,Nsrc,Nsnk,Nt)] = 0.0;
+            C_B1_re[index_4d(r,m,n,t ,NsrcHex,NsnkHex,Nt)] = 0.0;
+            C_B1_im[index_4d(r,m,n,t ,NsrcHex,NsnkHex,Nt)] = 0.0;
             }
          }
       }
    }
-   make_nucleon_2pt(C_B1_re, C_B1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, snk_psi_B1_re, snk_psi_B1_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk);
+   tiramisu_make_nucleon_2pt(C_B1_re, C_B1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, NsrcHex, NsnkHex);
    printf("B=1 results\n");
-   for (m=0; m<Nsrc; m++) {
-      for (n=0; n<Nsnk; n++) {
+   for (m=0; m<NsrcHex; m++) {
+      for (n=0; n<NsnkHex; n++) {
          for (t=0; t<Nt; t++) {
-            printf("C_B1_G1g_r1[%d,%d,%d] = %4.9f + (%4.9f)I\n", m, n, t, C_B1_re[index_4d(0,m,n,t ,Nsrc,Nsnk,Nt)], C_B1_im[index_4d(0,m,n,t ,Nsrc,Nsnk,Nt)]);
+            printf("C_B1_G1g_r1[%d,%d,%d] = %4.9f + (%4.9f)I\n", m, n, t, C_B1_re[index_4d(0,m,n,t ,NsrcHex,NsnkHex,Nt)], C_B1_im[index_4d(0,m,n,t ,NsrcHex,NsnkHex,Nt)]);
          }
          for (t=0; t<Nt; t++) {
-            printf("C_B1_G1g_r2[%d,%d,%d] = %4.9f + (%4.9f)I\n", m, n, t, C_B1_re[index_4d(1,m,n,t ,Nsrc,Nsnk,Nt)], C_B1_im[index_4d(1,m,n,t ,Nsrc,Nsnk,Nt)]);
+            printf("C_B1_G1g_r2[%d,%d,%d] = %4.9f + (%4.9f)I\n", m, n, t, C_B1_re[index_4d(1,m,n,t ,NsrcHex,NsnkHex,Nt)], C_B1_im[index_4d(1,m,n,t ,NsrcHex,NsnkHex,Nt)]);
          }
       }
    }
@@ -214,7 +204,7 @@ int main() {
    int space_symmetric = 0;
    int snk_entangled = 0;
    printf("starting \n");
-   make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+   tiramisu_make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
    printf("B=2 results\n");
    int* Vtab = malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));
    for (m=0; m<Nsrc; m++) {
@@ -224,20 +214,20 @@ int main() {
    }
    for (m=0; m<NsrcHex; m++) {
       for (n=0; n<Nsnk; n++) {
-         //Vtab[index_2d(Nsrc+m,n,Nsnk+NsnkHex)] = Vsrc;
-         Vtab[index_2d(Nsrc+m,n,Nsnk+NsnkHex)] = 1;
+         Vtab[index_2d(Nsrc+m,n,Nsnk+NsnkHex)] = Vsrc;
+         //Vtab[index_2d(Nsrc+m,n,Nsnk+NsnkHex)] = 1;
       }
    }
    for (m=0; m<Nsrc; m++) {
       for (n=0; n<NsnkHex; n++) {
-         //Vtab[index_2d(m,Nsnk+n,Nsnk+NsnkHex)] = Vsnk;
-         Vtab[index_2d(m,Nsnk+n,Nsnk+NsnkHex)] = 1;
+         Vtab[index_2d(m,Nsnk+n,Nsnk+NsnkHex)] = Vsnk;
+         //Vtab[index_2d(m,Nsnk+n,Nsnk+NsnkHex)] = 1;
       }
    }
    for (m=0; m<NsrcHex; m++) {
       for (n=0; n<NsnkHex; n++) {
-         //Vtab[index_2d(Nsrc+m,Nsnk+n,Nsnk+NsnkHex)] = Vsrc*Vsnk;
-         Vtab[index_2d(Nsrc+m,Nsnk+n,Nsnk+NsnkHex)] = 1;
+         Vtab[index_2d(Nsrc+m,Nsnk+n,Nsnk+NsnkHex)] = Vsrc*Vsnk;
+         //Vtab[index_2d(Nsrc+m,Nsnk+n,Nsnk+NsnkHex)] = 1;
       }
    }
    for (m=0; m<Nsrc+NsrcHex; m++) {
@@ -260,16 +250,16 @@ int main() {
    for (m=0; m<Nsrc+NsrcHex; m++) {
       for (n=0; n<Nsnk+NsnkHex; n++) {
          for (t=0; t<Nt; t++) {
-            printf("R_B2_A1g[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(0,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,Nsrc,Nsnk,Nt)] * C_B1_re[index_4d(1,0,0,t ,Nsrc,Nsnk,Nt)]) );
+            printf("R_B2_A1g[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(0,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,NsrcHex,NsnkHex,Nt)] * C_B1_re[index_4d(1,0,0,t ,NsrcHex,NsnkHex,Nt)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("R_B2_T1g_r1[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(1,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,Nsrc,Nsnk,Nt)] * C_B1_re[index_4d(1,0,0,t ,Nsrc,Nsnk,Nt)]) );
+            printf("R_B2_T1g_r1[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(1,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,NsrcHex,NsnkHex,Nt)] * C_B1_re[index_4d(1,0,0,t ,NsrcHex,NsnkHex,Nt)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("R_B2_T1g_r2[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(2,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,Nsrc,Nsnk,Nt)] * C_B1_re[index_4d(1,0,0,t ,Nsrc,Nsnk,Nt)]) );
+            printf("R_B2_T1g_r2[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(2,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,NsrcHex,NsnkHex,Nt)] * C_B1_re[index_4d(1,0,0,t ,NsrcHex,NsnkHex,Nt)]) );
          }
          for (t=0; t<Nt; t++) {
-            printf("R_B2_T1g_r3[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(3,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,Nsrc,Nsnk,Nt)] * C_B1_re[index_4d(1,0,0,t ,Nsrc,Nsnk,Nt)]) );
+            printf("R_B2_T1g_r3[%d,%d,%d] = %4.9f \n", m, n, t, Vtab[index_2d(m,n,Nsnk+NsnkHex)]*C_re[index_4d(3,m,n,t ,Nsrc+NsrcHex,Nsnk+NsnkHex,Nt)] / (C_B1_re[index_4d(0,0,0,t ,NsrcHex,NsnkHex,Nt)] * C_B1_re[index_4d(1,0,0,t ,NsrcHex,NsnkHex,Nt)]) );
          }
       }
    }

@@ -4,7 +4,6 @@
 #include <math.h>
 #include <time.h>
 
-/* index functions */
 int index_2d(int a, int b, int length2) {
    return b +length2*( a );
 }
@@ -17,14 +16,11 @@ int index_4d(int a, int b, int c, int d, int length2, int length3, int length4) 
 int prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int x, int Nc_f, int Ns_f, int Vsrc_f, int Vsnk_f, int Nt_f) {
    return x +Vsnk_f*( y +Vsrc_f*( c2 +Nc_f*( s2 +Ns_f*( c1 +Nc_f*( s1 +Ns_f*( t +Nt_f* q ))))));
 }
-int Q_index(int c1, int s1, int c2, int s2, int c3, int s3, int y, int Nc_f, int Ns_f, int Vsrc_f) {
-   return y +Vsrc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
+int Blocal_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Nsrc_f) {
+   return m +Nsrc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
 }
-int Blocal_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Ns_frc_f) {
-   return m +Ns_frc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
-}
-int Bdouble_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Ns_frc_f) {
-   return m +Ns_frc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
+int Bdouble_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Nsrc_f) {
+   return m +Nsrc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
 }
 
 void make_local_block(double* Blocal_re, 
@@ -181,12 +177,14 @@ void make_local_snk_block(double* Blocal_re,
 
 void make_single_block(double* Bsingle_re, 
     double* Bsingle_im, 
+    double* Blocal_re, 
+    double* Blocal_im, 
     const double* prop_re,
     const double* prop_im, 
     const int* color_weights, 
     const int* spin_weights, 
     const double* weights, 
-    const double* psi_re,
+    const double* psi_re, 
     const double* psi_im,
     const int t,
     const int x1,
@@ -199,31 +197,25 @@ void make_single_block(double* Bsingle_re,
     const int Nw_f,
     const int Nq_f,
     const int Nsrc_f) {
-   /* indices */
+   /* loop indices */
    int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, y, wnum, m;
    /* subexpressions */
+   double prop_prod_02_re;
+   double prop_prod_02_im;
    double prop_prod_re;
    double prop_prod_im;
-   double* Q02_re = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
-   double* Q02_im = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
    /* initialize */
    for (iCprime=0; iCprime<Nc_f; iCprime++) {
       for (iSprime=0; iSprime<Ns_f; iSprime++) {
          for (kCprime=0; kCprime<Nc_f; kCprime++) {
             for (kSprime=0; kSprime<Ns_f; kSprime++) {
-               for (m=0; m<Nsrc_f; m++) {
-                  for (jCprime=0; jCprime<Nc_f; jCprime++) {
-                     for (jSprime=0; jSprime<Ns_f; jSprime++) {
-                        Bsingle_re[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
-                        Bsingle_im[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
-                     }
-                  }
-               }
-               for (jC=0; jC<Nc_f; jC++) {
-                  for (jS=0; jS<Ns_f; jS++) {
-                     for (y=0; y<Vsrc_f; y++) {
-                        Q02_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
-                        Q02_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
+               for (jCprime=0; jCprime<Nc_f; jCprime++) {
+                  for (jSprime=0; jSprime<Ns_f; jSprime++) {
+                     for (m=0; m<Nsrc_f; m++) {
+                        Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
+                        Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
+                        Bsingle_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
+                        Bsingle_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
                      }
                   }
                }
@@ -231,7 +223,7 @@ void make_single_block(double* Bsingle_re,
          }
       }
    }
-   /* build diquarks */
+   /* build local (no quark exchange) block */
    for (wnum=0; wnum<Nw_f; wnum++) {
       iC = color_weights[index_2d(wnum,0, Nq_f)];
       iS = spin_weights[index_2d(wnum,0, Nq_f)];
@@ -244,30 +236,21 @@ void make_single_block(double* Bsingle_re,
             for (kCprime=0; kCprime<Nc_f; kCprime++) {
                for (kSprime=0; kSprime<Ns_f; kSprime++) {
                   for (y=0; y<Vsrc_f; y++) {
-                     Q02_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     Q02_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                  }
-               }
-            }
-         }
-      }
-   }
-   /* build q2-exchange block */
-   for (iCprime=0; iCprime<Nc_f; iCprime++) {
-      for (iSprime=0; iSprime<Ns_f; iSprime++) {
-         for (kCprime=0; kCprime<Nc_f; kCprime++) {
-            for (kSprime=0; kSprime<Ns_f; kSprime++) {
-               for (jC=0; jC<Nc_f; jC++) {
-                  for (jS=0; jS<Ns_f; jS++) {
+                     prop_prod_02_re = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
+                     prop_prod_02_im = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
                      for (jCprime=0; jCprime<Nc_f; jCprime++) {
                         for (jSprime=0; jSprime<Ns_f; jSprime++) {
-                           for (y=0; y<Vsrc_f; y++) {
-                              prop_prod_re = Q02_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - Q02_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              prop_prod_im = Q02_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + Q02_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              for (m=0; m<Nsrc_f; m++) {
-                                 Bsingle_re[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
-                                 Bsingle_im[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
-                              }
+                           prop_prod_re = prop_prod_02_re * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_02_im * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           prop_prod_im = prop_prod_02_re * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_02_im * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           for (m=0; m<Nsrc_f; m++) {
+                              Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
+                              Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
+                           }
+                           prop_prod_re = prop_prod_02_re * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_02_im * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           prop_prod_im = prop_prod_02_re * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_02_im * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           for (m=0; m<Nsrc_f; m++) {
+                              Bsingle_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
+                              Bsingle_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
                            }
                         }
                      }
@@ -277,8 +260,6 @@ void make_single_block(double* Bsingle_re,
          }
       }
    }
-   free(Q02_re);
-   free(Q02_im);
 }
 
 void make_double_block(double* Bdouble_re, 
@@ -288,7 +269,7 @@ void make_double_block(double* Bdouble_re,
     const int* color_weights, 
     const int* spin_weights, 
     const double* weights, 
-    const double* psi_re,
+    const double* psi_re, 
     const double* psi_im,
     const int t,
     const int x1,
@@ -301,35 +282,25 @@ void make_double_block(double* Bdouble_re,
     const int Nw_f,
     const int Nq_f,
     const int Nsrc_f) {
-   /* indices */
-   int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, y, wnum, n;
+   /* loop indices */
+   int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, y, wnum, m;
    /* subexpressions */
+   double prop_prod_01_re;
+   double prop_prod_01_im;
+   double prop_prod_12_re;
+   double prop_prod_12_im;
    double prop_prod_re;
    double prop_prod_im;
-   double* Q12_re = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
-   double* Q12_im = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
-   double* Q01_re = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
-   double* Q01_im = (double *) malloc(Nt_f * Nc_f * Ns_f * Nc_f * Ns_f * Vsnk_f * Nc_f * Ns_f * Vsrc_f * sizeof (double));
    /* initialize */
    for (iCprime=0; iCprime<Nc_f; iCprime++) {
       for (iSprime=0; iSprime<Ns_f; iSprime++) {
          for (kCprime=0; kCprime<Nc_f; kCprime++) {
             for (kSprime=0; kSprime<Ns_f; kSprime++) {
-               for (n=0; n<Nsrc_f; n++) {
-                  for (jCprime=0; jCprime<Nc_f; jCprime++) {
-                     for (jSprime=0; jSprime<Ns_f; jSprime++) {
-                        Bdouble_re[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,n ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
-                        Bdouble_im[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,n ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
-                     }
-                  }
-               }
-               for (jC=0; jC<Nc_f; jC++) {
-                  for (jS=0; jS<Ns_f; jS++) {
-                     for (y=0; y<Vsrc_f; y++) {
-                        Q12_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
-                        Q12_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
-                        Q01_re[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
-                        Q01_im[Q_index(iCprime,iSprime,kCprime,kSprime,jC,jS,y ,Nc_f,Ns_f,Vsrc_f)] = 0.0;
+               for (jCprime=0; jCprime<Nc_f; jCprime++) {
+                  for (jSprime=0; jSprime<Ns_f; jSprime++) {
+                     for (m=0; m<Nsrc_f; m++) {
+                        Bdouble_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
+                        Bdouble_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] = 0.0;
                      }
                   }
                }
@@ -337,7 +308,7 @@ void make_double_block(double* Bdouble_re,
          }
       }
    }
-   /* build diquarks */
+   /* build local (no quark exchange) block */
    for (wnum=0; wnum<Nw_f; wnum++) {
       iC = color_weights[index_2d(wnum,0, Nq_f)];
       iS = spin_weights[index_2d(wnum,0, Nq_f)];
@@ -350,34 +321,19 @@ void make_double_block(double* Bdouble_re,
             for (kCprime=0; kCprime<Nc_f; kCprime++) {
                for (kSprime=0; kSprime<Ns_f; kSprime++) {
                   for (y=0; y<Vsrc_f; y++) {
-                     Q12_re[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     Q12_im[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     Q01_re[Q_index(jCprime,jSprime,kCprime,kSprime,kC,kS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     Q01_im[Q_index(jCprime,jSprime,kCprime,kSprime,kC,kS,y ,Nc_f,Ns_f,Vsrc_f)] += weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                  }
-               }
-            }
-         }
-      }
-   }
-   /* build q2-exchange block */
-   for (jCprime=0; jCprime<Nc_f; jCprime++) {
-      for (jSprime=0; jSprime<Ns_f; jSprime++) {
-         for (kCprime=0; kCprime<Nc_f; kCprime++) {
-            for (kSprime=0; kSprime<Ns_f; kSprime++) {
-               for (iC=0; iC<Nc_f; iC++) {
-                  for (iS=0; iS<Ns_f; iS++) {
+                     prop_prod_12_re = weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_12_im = weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_01_re = weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_01_im = weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
                      for (iCprime=0; iCprime<Nc_f; iCprime++) {
                         for (iSprime=0; iSprime<Ns_f; iSprime++) {
-                           for (y=0; y<Vsrc_f; y++) {
-                              prop_prod_re = Q12_re[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - Q12_im[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              prop_prod_im = Q12_re[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + Q12_im[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              prop_prod_re -= Q01_re[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(2,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - Q01_im[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(2,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              prop_prod_im -= Q01_re[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_im[prop_index(2,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + Q01_im[Q_index(jCprime,jSprime,kCprime,kSprime,iC,iS,y ,Nc_f,Ns_f,Vsrc_f)] * prop_re[prop_index(2,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                              for (n=0; n<Nsrc_f; n++) {
-                                 Bdouble_re[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,n ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,n ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,n ,Nsrc_f)] * prop_prod_im;
-                                 Bdouble_im[Bdouble_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,n ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,n ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,n ,Nsrc_f)] * prop_prod_re;
-                              }
+                           prop_prod_re = prop_prod_12_re * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_12_im * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           prop_prod_im = prop_prod_12_re * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_12_im * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           prop_prod_re -= prop_prod_01_re * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_01_im * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           prop_prod_im -= prop_prod_01_re * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_01_im * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           for (m=0; m<Nsrc_f; m++) {
+                              Bdouble_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
+                              Bdouble_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
                            }
                         }
                      }
@@ -387,10 +343,6 @@ void make_double_block(double* Bdouble_re,
          }
       }
    }
-   free(Q12_re);
-   free(Q12_im);
-   free(Q01_re);
-   free(Q01_im);
 }
 
 void make_dibaryon_correlator(double* C_re,
@@ -1014,20 +966,16 @@ void make_two_nucleon_2pt(double* C_re,
       double* B2_Bdouble_r1_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
       double* B2_Bdouble_r2_re = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
       double* B2_Bdouble_r2_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
-      for (x1 =0; x1<Vsnk_f; x1++) {
-         for (x2 =0; x2<Vsnk_f; x2++) {
-            for (t=0; t<Nt_f; t++) {
+      for (t=0; t<Nt_f; t++) {
+         for (x1 =0; x1<Vsnk_f; x1++) {
+            for (x2 =0; x2<Vsnk_f; x2++) {
                // create blocks
-               make_local_block(B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, t, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_local_block(B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, t, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_local_block(B2_Blocal_r1_re, B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, t, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_local_block(B2_Blocal_r2_re, B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, t, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
+               make_single_block(B1_Bsingle_r1_re, B1_Bsingle_r1_im, B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
+               make_single_block(B1_Bsingle_r2_re, B1_Bsingle_r2_im, B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
                make_double_block(B1_Bdouble_r1_re, B1_Bdouble_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
                make_double_block(B1_Bdouble_r2_re, B1_Bdouble_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, t, x1, x2, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
-               make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
+               make_single_block(B2_Bsingle_r1_re, B2_Bsingle_r1_im, B2_Blocal_r1_re, B2_Blocal_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
+               make_single_block(B2_Bsingle_r2_re, B2_Bsingle_r2_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
                make_double_block(B2_Bdouble_r1_re, B2_Bdouble_r1_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
                make_double_block(B2_Bdouble_r2_re, B2_Bdouble_r2_im, B2_prop_re, B2_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B2_re, src_psi_B2_im, t, x2, x1, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
                /* compute two nucleon correlators from blocks */
@@ -1055,10 +1003,8 @@ void make_two_nucleon_2pt(double* C_re,
                }
             }
          }
-      }
-      for (m=0; m<Nsrc_f; m++) {
-         for (n=0; n<Nsnk_f; n++) {
-            for (t=0; t<Nt_f; t++) {
+         for (m=0; m<Nsrc_f; m++) {
+            for (n=0; n<Nsnk_f; n++) {
                C_re[index_4d(0,m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_0_re[index_3d(m,n,t,Nsnk_f,Nt_f)];
                C_im[index_4d(0,m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_0_im[index_3d(m,n,t,Nsnk_f,Nt_f)];
                C_re[index_4d(1,m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_r1_re[index_3d(m,n,t,Nsnk_f,Nt_f)];
@@ -1114,8 +1060,8 @@ void make_two_nucleon_2pt(double* C_re,
       double* B2_Blocal_r1_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
       double* B2_Blocal_r2_re = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
       double* B2_Blocal_r2_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsrc_f * sizeof (double));
-      for (x =0; x<Vsnk_f; x++) {
-         for (t=0; t<Nt_f; t++) {
+      for (t=0; t<Nt_f; t++) {
+         for (x =0; x<Vsnk_f; x++) {
             // create blocks
             make_local_block(B1_Blocal_r1_re, B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_psi_B1_re, src_psi_B1_im, t, x, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
             make_local_block(B1_Blocal_r2_re, B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, src_psi_B1_re, src_psi_B1_im, t, x, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f);
@@ -1144,12 +1090,10 @@ void make_two_nucleon_2pt(double* C_re,
                make_dibaryon_hex_correlator(BB_H_r3_re, BB_H_r3_im, B2_Blocal_r2_re, B2_Blocal_r2_im, B1_Blocal_r2_re, B1_Blocal_r2_im, perms, sigs, space_symmetric*overall_weight, snk_color_weights_r3, snk_spin_weights_r3, snk_weights_r3, hex_snk_psi_re, hex_snk_psi_im, t, x, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_f,Nsnk_fHex,Nperms_f);
             }
          }
-      }
-      for (m=0; m<Nsrc_f; m++) {
-         for (n=0; n<Nsnk_fHex; n++) {
-            for (t=0; t<Nt_f; t++) {
+         for (m=0; m<Nsrc_f; m++) {
+            for (n=0; n<Nsnk_fHex; n++) {
                C_re[index_4d(0,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_0_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
-               C_im[index_4d(0,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_0_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)]; 
+               C_im[index_4d(0,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_0_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_re[index_4d(1,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_r1_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_im[index_4d(1,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_r1_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_re[index_4d(2,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_r2_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
@@ -1158,11 +1102,9 @@ void make_two_nucleon_2pt(double* C_re,
                C_im[index_4d(3,m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_r3_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
             }
          } 
-      } 
-      if (snk_entangled != 0 && Nsrc_f == Nsnk_f && Nsrc_fHex == Nsnk_fHex) {
-         for (m=0; m<Nsrc_fHex; m++) {
-            for (n=0; n<Nsnk_f; n++) {
-               for (t=0; t<Nt_f; t++) {
+         if (snk_entangled != 0 && Nsrc_f == Nsnk_f && Nsrc_fHex == Nsnk_fHex) {
+            for (m=0; m<Nsrc_fHex; m++) {
+               for (n=0; n<Nsnk_f; n++) {
                   C_re[index_4d(0,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_0_re[index_3d(m,n,t,Nsnk_fHex,Nt_f)];
                   C_im[index_4d(0,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = -BB_H_0_im[index_3d(m,n,t,Nsnk_fHex,Nt_f)];
                   C_re[index_4d(1,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = BB_H_r1_re[index_3d(m,n,t,Nsnk_fHex,Nt_f)];
@@ -1210,7 +1152,7 @@ void make_two_nucleon_2pt(double* C_re,
             for (t=0; t<Nt_f; t++) {
                C_re[index_4d(0,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_0_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_im[index_4d(0,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_0_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
-               C_re[index_4d(1,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_0_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
+               C_re[index_4d(1,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_r1_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_im[index_4d(1,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_r1_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_re[index_4d(2,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_r2_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
                C_im[index_4d(2,Nsrc_f+m,Nsnk_f+n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_r2_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)];
@@ -1239,8 +1181,8 @@ void make_two_nucleon_2pt(double* C_re,
       double* snk_B2_Blocal_r1_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsnk_f * sizeof (double));
       double* snk_B2_Blocal_r2_re = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsnk_f * sizeof (double));
       double* snk_B2_Blocal_r2_im = (double *) malloc(Nc_f * Ns_f * Nc_f * Ns_f * Nc_f * Ns_f * Nsnk_f * sizeof (double));
-      for (y =0; y<Vsrc_f; y++) {
-         for (t=0; t<Nt_f; t++) {
+      for (t=0; t<Nt_f; t++) {
+         for (y =0; y<Vsrc_f; y++) {
             // create blocks
             make_local_snk_block(snk_B1_Blocal_r1_re, snk_B1_Blocal_r1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, snk_psi_B1_re, snk_psi_B1_im, t, y, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsnk_f);
             make_local_snk_block(snk_B1_Blocal_r2_re, snk_B1_Blocal_r2_im, B1_prop_re, B1_prop_im, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_psi_B1_re, snk_psi_B1_im, t, y, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsnk_f);
@@ -1269,10 +1211,8 @@ void make_two_nucleon_2pt(double* C_re,
                make_hex_dibaryon_correlator(H_BB_r3_re, H_BB_r3_im, snk_B2_Blocal_r2_re, snk_B2_Blocal_r2_im, snk_B1_Blocal_r2_re, snk_B1_Blocal_r2_im, perms, sigs, space_symmetric*overall_weight, snk_color_weights_r3, snk_spin_weights_r3, snk_weights_r3, hex_src_psi_re, hex_src_psi_im, t, y, Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f,Nw_f,Nq_f,Nsrc_fHex,Nsnk_f,Nperms_f);
             }
          }
-      }
-      for (m=0; m<Nsrc_fHex; m++) {
-         for (n=0; n<Nsnk_f; n++) {
-            for (t=0; t<Nt_f; t++) {
+         for (m=0; m<Nsrc_fHex; m++) {
+            for (n=0; n<Nsnk_f; n++) {
                C_re[index_4d(0,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_BB_0_re[index_3d(m,n,t,Nsnk_f,Nt_f)];
                C_im[index_4d(0,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_BB_0_im[index_3d(m,n,t,Nsnk_f,Nt_f)];
                C_re[index_4d(1,Nsrc_f+m,n,t ,Nsrc_f+Nsrc_fHex,Nsnk_f+Nsnk_fHex,Nt_f)] = H_BB_r1_re[index_3d(m,n,t,Nsnk_f,Nt_f)];

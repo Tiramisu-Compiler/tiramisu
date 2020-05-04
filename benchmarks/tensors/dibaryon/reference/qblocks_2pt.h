@@ -2,11 +2,11 @@
 #define MARK_29681028_3ABA_81FF_EBA1_781947E184FF
 
 #if ((!defined USE_REFERENCE) && (!defined USE_TIRAMISU))
-    #define USE_REFERENCE 1
+    #define USE_REFERENCE 0
     #define USE_TIRAMISU 1
 #endif
 
-#define CHECK_CORRECTNESS_MAKE_CORRELATOR 1
+#define CHECK_CORRECTNESS_MAKE_CORRELATOR 0
 
 int index_2d(int a, int b, int length2);
 int index_3d(int a, int b, int c, int length2, int length3);
