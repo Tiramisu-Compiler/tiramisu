@@ -192,9 +192,7 @@ tree_lstm_evaluator::tree_lstm_evaluator(std::string const& cmd_path, std::vecto
             strcpy(argv[i + 1], cmd_args[i].c_str());
         }
         
-        std::cout << getpid() << std::endl;
         execv(cmd_path.c_str(), argv);
-        
         exit(1);
     }
     
