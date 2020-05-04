@@ -476,7 +476,7 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
             
             else
             {
-                comp_sched_json += "\"tiling_depth\" : 2,";
+                comp_sched_json += "\"tiling_depth\" : 3,";
                 comp_sched_json += "\"tiling_dims\" : [";
                 
                 comp_sched_json += "\"" + iterators_list[tile_l0].name + "\", " + "\"" + iterators_list[tile_l0 + 1].name + "\", " + "\"" + iterators_list[tile_l0 + 2].name + "\"";
