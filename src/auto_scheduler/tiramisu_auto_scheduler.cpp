@@ -28,6 +28,7 @@ void auto_scheduler::find_schedule()
     std::cout << "NB explored schedules : " << searcher->get_nb_explored_schedules() << std::endl;
     std::cout << "Best evaluation : " << searcher->get_best_evaluation() << std::endl;
     std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+    std::cout << "Initial evaluation : " << ast.evaluation << std::endl;
     std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms " << std::endl;  
 }
 
