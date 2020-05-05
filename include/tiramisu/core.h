@@ -1965,8 +1965,11 @@ private:
      *
      * {<i0, c0*10+c2>, <i1, c1*10+c3>}.
      */
+    protected:
+
     std::map<std::string, isl_ast_expr *> get_iterators_map();
 
+    private:
     /**
       * Return the names of iteration domain dimensions.
       */
@@ -4556,6 +4559,14 @@ public:
 	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
     {
     }
+
+    virtual bool is_send() const override;
+
+    virtual bool is_recv() const override;
+
+    virtual bool is_send_recv() const override;
+
+    virtual bool is_wait() const override;
 };
 
 class Input: public input{
