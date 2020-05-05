@@ -164,8 +164,7 @@ void simple_mcts::search(syntax_tree& ast)
         {
             optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[depth % NB_OPTIMIZATIONS];
             children = states_gen->generate_states(*ast_sample, optim_type);
-            depth++;
-            
+                        
             if (children.empty())
                 continue;
                 
