@@ -1,4 +1,5 @@
 #include <tiramisu/auto_scheduler/search_method.h>
+#include <random>
 
 namespace tiramisu::auto_scheduler
 {
@@ -148,10 +149,62 @@ void beam_search_accuracy_evaluator::search(syntax_tree& ast)
     }
 }
 
-void beam_search_accuracy_evaluator::print_evals_list() const
+void simple_mcts::search(syntax_tree& ast)
 {
-    for (int i = 0; i < model_evals_list.size(); ++i)
-        std::cout << model_evals_list[i] << " " << exec_evals_list[i] << std::endl;
+    std::default_random_engine rand_generator;
+    
+    std::vector<syntax_tree*> samples;
+    std::vector<syntax_tree*> children;
+    std::vector<double> softmax_values;
+    
+    for (int epoch = 0; epoch < nb_samples; ++epoch)
+    {
+        syntax_tree *ast_sample = &ast;
+        for (int depth = 0; depth < max_depth; ++depth)
+        {
+            optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[depth % NB_OPTIMIZATIONS];
+            children = states_gen->generate_states(*ast_sample, optim_type);
+            depth++;
+            
+            if (children.empty())
+                continue;
+                
+            for (syntax_tree *child : children)
+            {
+                if (eval_func->should_transform_ast(*child))
+                    child->transform_ast();
+                    
+                child->evaluation = eval_func->evaluate(*child);
+                nb_explored_schedules++;
+            }
+            
+            children.push_back(ast_sample->copy_ast());
+            softmax_values = compute_softmax(children);
+            
+            std::discrete_distribution<int> dist(softmax_values.begin(), softmax_values.end());
+            ast_sample = children[dist(rand_generator)];
+            
+            samples.push_back(ast_sample);
+            ast_sample->print_ast();
+        }
+    }
+    
+    if (samples.empty())
+        return ;
+    
+    std::sort(samples.begin(), samples.end(), [](syntax_tree *a, syntax_tree *b) {
+        return a->evaluation < b->evaluation;
+    });
+    
+    for (int i = 0; i < topk; ++i)
+    {
+        float exec_time = exec_eval->evaluate(*samples[i]);
+        if (exec_time < best_evaluation)
+        {
+            best_evaluation = exec_time;
+            best_ast = samples[i];
+        }
+    }
 }
 
 }

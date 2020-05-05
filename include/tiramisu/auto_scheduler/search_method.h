@@ -119,9 +119,56 @@ public:
     virtual void search(syntax_tree& ast);
     
     /**
-     *
+     * Print the evaluations given by the model and the evaluations
+     * given by execution.
      */
-    void print_evals_list() const;
+    void print_evals_list() const
+    {
+        for (int i = 0; i < model_evals_list.size(); ++i)
+            std::cout << model_evals_list[i] << " " << exec_evals_list[i] << std::endl;
+    }
+};
+
+class simple_mcts : public search_method
+{
+private:
+
+protected:
+    /**
+     * The number of times to sample schedules from the search tree.
+     */
+    int nb_samples;
+    
+    /**
+     * The number of schedules to execute at the end of the search
+     * to return the best schedule.
+     */
+    int topk;
+    
+    /**
+     * The maximum depth of the search tree.
+     */
+    int max_depth;
+    
+    /**
+     * An evaluator returning the execution time of a program.
+     */
+    evaluator *exec_eval;
+
+public:
+    simple_mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, evaluator *exec_eval = nullptr, states_generator *states_gen = nullptr)
+        : search_method(eval_func, states_gen), nb_samples(nb_samples), topk(topk), max_depth(max_depth), exec_eval(exec_eval) {}
+        
+    virtual ~simple_mcts() {}
+    
+    void set_exec_eval(evaluator *exec_eval) { this->exec_eval = exec_eval; }
+
+    /**
+      * The method to call to start a search.
+      * It takes as input an AST and returns a list of
+      * code transformations.
+      */
+    virtual void search(syntax_tree& ast);
 };
 
 }
