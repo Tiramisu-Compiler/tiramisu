@@ -2,6 +2,7 @@
 #include <tiramisu/utils.h>
 #include <cstdlib>
 #include <iostream>
+#include <complex>
 #include "benchmarks.h"
 
 #ifdef __cplusplus
