@@ -1,7 +1,7 @@
 set(CMAKE_BUILD_TYPE DEBUG)
 
-option(CMAKE_C_COMPILER "gcc" ON)
-option(CMAKE_CXX_COMPILER "g++" ON)
+#option(CMAKE_C_COMPILER "gcc" OFF)
+#option(CMAKE_CXX_COMPILER "g++" OFF)
 
 option(USE_GPU "Build with GPU support" OFF)
 
@@ -45,6 +45,7 @@ set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 # ISL paths
 set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL include directory")
 set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
+
 
 # Halide Paths
 set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide/build" CACHE PATH "Path to Halide source directory")
