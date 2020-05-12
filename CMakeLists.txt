@@ -7,7 +7,6 @@ set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
-
 # Add CMake header files
 set(HEADER_FILES
         include/tiramisu/block.h
@@ -19,9 +18,9 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
-	include/tiramisu/computation_graph.h
-	include/tiramisu/auto_scheduler.h
-        )
+        include/tiramisu/computation_graph.h
+        include/tiramisu/auto_scheduler.h
+)
 
 # Add CMake cpp files
 if(${USE_HALIDE})
@@ -247,7 +246,7 @@ function(build_g name generator result)
 if(${USE_HALIDE})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
 endif()
-    target_link_libraries(${name} ${LINK_FLAGS})
+    target_link_libraries(${name} tiramisu ${ISLLib} ${LINK_FLAGS})
     link_tags(${name})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${result}")
@@ -274,7 +273,7 @@ if(${USE_HALIDE})
 else()
     target_link_libraries(${name} tiramisu ${ISLLib})
 endif()
-    target_link_libraries(${name} ${LINK_FLAGS})
+    target_link_libraries(${name} tiramisu ${ISLLib} ${LINK_FLAGS})
     link_tags(${name})
 endfunction()
 
