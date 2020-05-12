@@ -22,6 +22,7 @@
 #ifdef USE_HALIDE
     #include <Halide.h>
 #endif
+
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
@@ -4560,13 +4561,13 @@ public:
     {
     }
 
-    virtual bool is_send() const override;
+    virtual bool is_send() const override { return false; }
 
-    virtual bool is_recv() const override;
+    virtual bool is_recv() const override { return false; }
 
-    virtual bool is_send_recv() const override;
+    virtual bool is_send_recv() const override { return false; }
 
-    virtual bool is_wait() const override;
+    virtual bool is_wait() const override { return false; }
 };
 
 class Input: public input{
