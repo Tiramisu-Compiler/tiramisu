@@ -173,7 +173,7 @@ void simple_mcts::search(syntax_tree& ast)
                 if (eval_func->should_transform_ast(*child))
                     child->transform_ast();
                     
-                child->evaluation = eval_func->evaluate(*child);
+                child->evaluation = -eval_func->evaluate(*child);
                 nb_explored_schedules++;
             }
             
