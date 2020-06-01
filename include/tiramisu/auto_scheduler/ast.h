@@ -227,6 +227,11 @@ public:
      *
      */
     std::string iterators_json;
+    
+    /**
+     *
+     */
+    std::string tree_structure_json;
 
     /**
      * An evaluation of the execution of the function represented by
@@ -297,6 +302,7 @@ public:
     void transform_ast();
 
     void transform_ast_by_fusion(optimization_info const& opt);
+    void transform_ast_by_unfuse(optimization_info const& opt);
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);

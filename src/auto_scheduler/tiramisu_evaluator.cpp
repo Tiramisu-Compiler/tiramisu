@@ -215,7 +215,7 @@ float tree_lstm_evaluator::evaluate(syntax_tree& ast)
     float speedup = 0.f;
     fscanf(model_read, "%f", &speedup);
     
-    return -speedup;
+    return -0;
 }
 
 std::string tree_lstm_evaluator::get_program_json(syntax_tree const& ast)
@@ -223,8 +223,10 @@ std::string tree_lstm_evaluator::get_program_json(syntax_tree const& ast)
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
     
     std::string computations_json = "\"computations\" : {";
+    int comp_absolute_order = 1;
+    
     for (ast_node *node : ast.roots)
-        represent_computations_from_nodes(node, computations_json);
+        represent_computations_from_nodes(node, computations_json, comp_absolute_order);
         
     computations_json.pop_back();
     computations_json += "}";
@@ -287,7 +289,8 @@ void tree_lstm_evaluator::represent_iterators_from_nodes(ast_node *node, std::st
     }
        
     if (printed_comp)
-        iter_json.pop_back(); 
+        iter_json.pop_back();
+        
     iter_json += "]";
         
     iterators_json += "\"" + node->name + "\" : {" + iter_json + "},";
@@ -296,11 +299,14 @@ void tree_lstm_evaluator::represent_iterators_from_nodes(ast_node *node, std::st
         represent_iterators_from_nodes(child, iterators_json);
 }
 
-void tree_lstm_evaluator::represent_computations_from_nodes(ast_node *node, std::string& computations_json)
+void tree_lstm_evaluator::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
 {
     for (computation_info const& comp_info : node->computations)
     {
-        std::string comp_json = "\"iterators\" : [";
+        std::string comp_json = "\"absolute_order\" : " + std::to_string(comp_absolute_order) + ","; 
+        comp_absolute_order++;
+        
+        comp_json += "\"iterators\" : [";
         
         for (int i = 0; i < comp_info.iters.size(); ++i)
         {
@@ -379,7 +385,7 @@ void tree_lstm_evaluator::represent_computations_from_nodes(ast_node *node, std:
     }
     
     for (ast_node *child : node->children)
-        represent_computations_from_nodes(child, computations_json);
+        represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
 
 std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
@@ -388,6 +394,7 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
     bool tiled = false;
     bool unrolled = false;
     
+    int unfuse_l0 = -1;
     int int_l0, int_l1;
     int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
     int unrolling_fact;
@@ -397,6 +404,10 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
     {
         switch (optim_info.type)
         {
+            case optimization_type::UNFUSE:
+                unfuse_l0 = optim_info.l0;
+                break;
+                
             case optimization_type::TILING:
                 tiled = true;
                 if (optim_info.nb_l == 2)
@@ -434,12 +445,13 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
     }
     
     // Transform the schedule to JSON
+    std::vector<dnn_iterator> iterators_list;
     std::string sched_json = "{";
     
     for (tiramisu::computation *comp : ast.computations_list)
     {
         std::string comp_sched_json;
-        std::vector<dnn_iterator> iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
+        iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
         
         comp_sched_json += "\"interchange_dims\" : [";
         
@@ -508,10 +520,75 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
         sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "},";
     }
     
-    sched_json.pop_back();
-    sched_json += "}\n";
+    // Add unfused iterator
+    sched_json += "\"unfuse_iterators\" : ["; 
+    if (unfuse_l0 != -1)
+        sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
+        
+    sched_json += "],";
     
+    // Add tree structure
+    sched_json += "\"tree_structure\": {";
+    sched_json += ast.tree_structure_json;
+    sched_json += "}";
+    
+    // End of encodage
+    sched_json += "}\n";
     return sched_json;
+}
+
+std::string tree_lstm_evaluator::get_tree_structure_json(syntax_tree const& ast)
+{
+    ast_node *node = ast.roots[0];
+    return get_tree_structure_json(node);
+}
+
+std::string tree_lstm_evaluator::get_tree_structure_json(ast_node *node)
+{
+    std::string json;
+    
+    json += "\"loop_name\" : \"" + node->name + "\",";
+    json += "\"computations_list\" : [";
+    
+    std::vector<std::string> comps_list;
+    for (computation_info const& comp_info : node->computations)
+        comps_list.push_back(comp_info.comp_ptr->get_name());
+        
+    for (ast_node *child : node->children)
+    {
+        if (child->get_extent() > 1)
+            continue;
+            
+        for (int j = 0; j < child->computations.size(); ++j)
+            comps_list.push_back(child->computations[j].comp_ptr->get_name());
+    }
+    
+    for (std::string comp_name : comps_list)
+        json += "\"" + comp_name + "\",";
+        
+    if (!comps_list.empty())
+        json.pop_back();
+        
+    json += "],";
+    
+    json += "\"child_list\" : [";
+    
+    bool has_children = false;
+    for (ast_node *child : node->children)
+    {
+        if (child->get_extent() == 1)
+            continue;
+            
+        json += "{" + get_tree_structure_json(child) + "},";
+        has_children = true;
+    }
+        
+    if (has_children)
+        json.pop_back();
+    
+    json += "]";
+    
+    return json;
 }
 
 }

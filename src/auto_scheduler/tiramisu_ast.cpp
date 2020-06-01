@@ -38,6 +38,9 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
         tree_lstm_evaluator::represent_iterators_from_nodes(node, iterators_json);
         
     iterators_json.pop_back();
+    
+    // Get the JSON representation of this tree
+    tree_structure_json = tree_lstm_evaluator::get_tree_structure_json(*this);
 }
 
 ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
@@ -243,7 +246,9 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.computations_list = computations_list;
     new_ast.buffers_list = buffers_list;
     new_ast.buffers_mapping = buffers_mapping;
+    
     new_ast.iterators_json = iterators_json;
+    new_ast.tree_structure_json = tree_structure_json;
     
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;
@@ -305,6 +310,10 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             transform_ast_by_fusion(opt);
             break;
             
+        case optimization_type::UNFUSE:
+            transform_ast_by_unfuse(opt);
+            break;
+            
         case optimization_type::TILING:
             transform_ast_by_tiling(opt);
             break;
@@ -349,6 +358,37 @@ void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
         node1->computations.push_back(comp_info);
 
     tree_level->erase(tree_level->begin() + opt.l1);
+}
+
+void syntax_tree::transform_ast_by_unfuse(optimization_info const& opt)
+{
+    ast_node *unfuse_node, *shared_node;
+    
+    int i = 0;
+    shared_node = roots[0];
+    
+    while (shared_node->children.size() == 1)
+    {
+        if (i == opt.l0)
+            unfuse_node = shared_node;
+            
+        shared_node = shared_node->children[0];
+        i++;
+    }
+    
+    std::vector<ast_node*> shared_node_children = shared_node->children;
+    ast_node *removed_node = unfuse_node->children[0];
+    unfuse_node->children.clear();
+    
+    for (ast_node *node : shared_node_children)
+    {
+        shared_node->children.clear();
+        shared_node->children.push_back(node);
+        
+        unfuse_node->children.push_back(removed_node->copy_node());
+    }
+    
+    tree_structure_json = tree_lstm_evaluator::get_tree_structure_json(*this);
 }
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)

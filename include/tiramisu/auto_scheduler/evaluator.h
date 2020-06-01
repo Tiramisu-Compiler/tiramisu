@@ -158,12 +158,22 @@ public:
     /**
      *
      */
-    static void represent_computations_from_nodes(ast_node *node, std::string& computations_json);
+    static void represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order);
     
     /**
      * Return a JSON representation of the schedule of the given AST.
      */
     std::string get_schedule_json(syntax_tree const& ast);
+    
+    /**
+     *
+     */
+    static std::string get_tree_structure_json(syntax_tree const& ast);
+    
+    /**
+     *
+     */
+    static std::string get_tree_structure_json(ast_node *node);
 };
 
 }

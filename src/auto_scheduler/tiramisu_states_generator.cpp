@@ -224,6 +224,37 @@ std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& a
     // Generate the specified optimization
     switch (optim)
     {
+        case optimization_type::UNFUSE:
+            shared_levels_extents = ast.get_shared_levels_extents();
+            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
+            
+            // Check if we can unfuse
+            if (shared_levels_extents.size() <= 1)
+                return states;
+                
+            for (int i = 0; i < shared_levels_extents.size() - 1; ++i)
+                node = node->children[0];
+                
+            if (node->children.size() <= 1)
+                return states;
+            
+            // Unfuse iterators
+            for (int i = 0; i < nb_shared_iterators - 1; ++i)
+            {
+                syntax_tree* new_ast = ast.copy_ast();
+                        
+                optimization_info optim_info;
+                optim_info.type = optimization_type::UNFUSE;
+                            
+                optim_info.nb_l = 1;
+                optim_info.l0 = i;
+                
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+            }
+            
+            break;
+            
         case optimization_type::TILING:
             shared_levels_extents = ast.get_shared_levels_extents();
             nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);

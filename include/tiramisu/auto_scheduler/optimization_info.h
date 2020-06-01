@@ -10,11 +10,12 @@ class ast_node;
 
 enum optimization_type
 {
-    FUSION,
+    UNFUSE,
     TILING,
     INTERCHANGE,
     UNROLLING,
-    NB_OPTIMIZATIONS
+    NB_OPTIMIZATIONS,
+    FUSION
 };
 
 /**
