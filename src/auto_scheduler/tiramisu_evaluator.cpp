@@ -215,7 +215,7 @@ float tree_lstm_evaluator::evaluate(syntax_tree& ast)
     float speedup = 0.f;
     fscanf(model_read, "%f", &speedup);
     
-    return -0;
+    return -speedup;
 }
 
 std::string tree_lstm_evaluator::get_program_json(syntax_tree const& ast)
