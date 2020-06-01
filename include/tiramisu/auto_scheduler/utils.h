@@ -6,13 +6,6 @@
 namespace tiramisu::auto_scheduler
 {
 
-class syntax_tree;
-
-/**
- *
- */
-std::vector<double> compute_softmax(std::vector<syntax_tree*> const& ast_list);
-
 /**
  * Return true if an iterator having extent = it_extent can
  * be split perfectly by a factor = split_fact.

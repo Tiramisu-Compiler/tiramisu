@@ -155,7 +155,7 @@ void simple_mcts::search(syntax_tree& ast)
     
     std::vector<syntax_tree*> samples;
     std::vector<syntax_tree*> children;
-    std::vector<double> softmax_values;
+    std::vector<double> children_evals;
     
     for (int epoch = 0; epoch < nb_samples; ++epoch)
     {
@@ -168,19 +168,23 @@ void simple_mcts::search(syntax_tree& ast)
             if (children.empty())
                 continue;
                 
+            children_evals.clear();
+            
             for (syntax_tree *child : children)
             {
                 if (eval_func->should_transform_ast(*child))
                     child->transform_ast();
                     
-                child->evaluation = -eval_func->evaluate(*child);
+                child->evaluation = eval_func->evaluate(*child);
+                children_evals.push_back(child->evaluation);
+                
                 nb_explored_schedules++;
             }
             
             children.push_back(ast_sample->copy_ast());
-            softmax_values = compute_softmax(children);
+            children_evals.push_back(ast_sample->evaluation);
             
-            std::discrete_distribution<int> dist(softmax_values.begin(), softmax_values.end());
+            std::discrete_distribution<int> dist(children_evals.begin(), children_evals.end());
             ast_sample = children[dist(rand_generator)];
             
             samples.push_back(ast_sample);
