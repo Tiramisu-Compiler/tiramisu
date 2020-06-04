@@ -48,6 +48,7 @@
 #define Ns P_Ns
 #define Nw P_Nw
 #define Nw2 Nw*Nw
+#define Nw2Hex 32
 #define Nperms P_Nperms
 #define Lt P_Nt
 #define Vsrc P_Vsrc
@@ -83,6 +84,9 @@ extern "C" {
 #endif
 
 int tiramisu_make_fused_dibaryon_blocks_correlator(
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
