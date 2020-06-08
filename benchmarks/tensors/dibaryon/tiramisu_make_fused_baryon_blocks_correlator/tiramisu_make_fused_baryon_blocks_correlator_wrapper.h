@@ -48,7 +48,6 @@
 #define Ns P_Ns
 #define Nw P_Nw
 #define Nw2 Nw*Nw
-#define Nw2Hex 32
 #define Nperms P_Nperms
 #define Lt P_Nt
 #define Vsrc P_Vsrc
@@ -67,7 +66,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
+#define TEST_NAME_STR       "tiramisu_make_fused_baryon_blocks_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -83,24 +82,7 @@ static double src_weights_r2_P[Nw] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt
 extern "C" {
 #endif
 
-int tiramisu_make_fused_dibaryon_blocks_correlator(
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
+int tiramisu_make_fused_baryon_blocks_correlator(
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
