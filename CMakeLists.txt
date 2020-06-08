@@ -159,7 +159,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -231,16 +231,13 @@ target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
 
 if (${USE_AUTO_SCHEDULER})
-    set(CMAKE_PREFIX_PATH ${LIBTORCH_PATH})
-    find_package(Torch REQUIRED)
-    
     set(AUTO_SCHEDULER_CODE "")
     foreach(obj ${OBJS_AUTO_SCHEDULER})
         set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
     endforeach()
     
     add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
-    target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib} ${TORCH_LIBRARIES})
+    target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
 endif()
 

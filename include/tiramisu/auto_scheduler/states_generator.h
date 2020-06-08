@@ -9,6 +9,7 @@ namespace tiramisu::auto_scheduler
 
 const std::vector<int> TILING_FACTORS_DEFAULT_LIST = {32, 64, 128};
 const std::vector<int> UNROLLING_FACTORS_DEFAULT_LIST = {4, 8, 16};
+const int DEFAULT_MAX_NB_ITERATORS = 4;
 
 /**
  * Generate a set of AST's from a given AST.
@@ -68,7 +69,7 @@ protected:
     int max_nb_iterators;
 
 public:
-    simple_generator(int max_nb_iterators = simple_rnn_evaluator::MAX_NB_ITERATORS,
+    simple_generator(int max_nb_iterators = DEFAULT_MAX_NB_ITERATORS,
                      std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                      std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         

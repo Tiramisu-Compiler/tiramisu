@@ -34,9 +34,6 @@ set(MPI_NODES "" CACHE PATH "Use of MPI node paths")
 # set(MKL_PREFIX "/data/scratch/baghdadi/libs/intel/mkl/")
 set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
 
-# The specified folder should contain the folders include and lib
-set(LIBTORCH_PATH "~/data/software/libtorch" CACHE PATH "LibTorch library path")
-
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
 
 # Debug

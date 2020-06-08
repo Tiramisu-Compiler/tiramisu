@@ -10,8 +10,6 @@
 #include <string>
 #include <vector>
 
-namespace tiramisu
-{
 double median(std::vector<std::chrono::duration<double, std::milli>> scores);
 void print_time(const std::string &file_name, const std::string &kernel_name,
                 const std::vector<std::string> &header_text,
@@ -294,6 +292,5 @@ public:
         return value;
     }
 };
-}
 
 #endif

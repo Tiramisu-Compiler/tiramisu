@@ -1,7 +1,6 @@
 #ifndef _TIRAMISU_AUTO_SCHEDULER_EVALUATOR_
 #define _TIRAMISU_AUTO_SCHEDULER_EVALUATOR_
 
-#include <torch/script.h>
 #include "auto_scheduler.h"
 #include "utils.h"
 
@@ -73,55 +72,6 @@ public:
      * Indicates if the given ast should be transform by using ast.transform_ast().
      */
     virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
-};
-
-/**
-  * Implements an evaluation function that uses a simple
-  * RNN model.
-  *
-  * We use LibTorch to handle DNN models in C++.
-  */
-class simple_rnn_evaluator : public evaluator
-{
-private:
-    /**
-     *
-     */
-    int represent_node(ast_node *node, dnn_schedule const& sched, int comp_index, at::Tensor& dnn_input);
-    
-    /**
-     * Transform the AST to a tensor that can be fed to the model.
-     */
-    at::Tensor get_computation_repr(std::vector<dnn_iterator> const& iters, dnn_schedule const& sched, dnn_accesses const& accesses);
-
-protected:
-    /**
-     * The model to use as an evaluation function.
-     */
-    torch::jit::script::Module model;
-
-public:
-    /**
-      * model_path is the path to the serialized PyTorch model.
-      * The model must be serialized with TorchScript.
-      */
-    simple_rnn_evaluator(std::string const& model_path);
-    
-	/**
-	 * Call the model and return its evaluation.
-	 */
-    virtual float evaluate(syntax_tree& ast);
-    
-    /**
-     * Indicates if the given ast should be transform by using ast.transform_ast().
-     */
-    virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
-    
-    static const int MAX_NB_ITERATORS = 4;
-    static const int MAX_NB_ACCESSES = 17;
-    static const int ITERATORS_REPR_SIZE = 5;
-    static const int ACCESS_REPR_SIZE = MAX_NB_ITERATORS * (MAX_NB_ITERATORS + 1) + 1;
-    static const int COMPUTATION_REPR_SIZE = 379;
 };
 
 class tree_lstm_evaluator : public evaluator
