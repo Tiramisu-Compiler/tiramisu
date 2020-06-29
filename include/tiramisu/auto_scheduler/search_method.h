@@ -93,6 +93,49 @@ public:
     virtual void search(syntax_tree& ast);
 };
 
+class beam_search_topk : public search_method
+{
+private:
+
+protected:
+    int beam_size;
+    
+    /**
+     * The number of schedules to execute at the end of the search
+     * to return the best schedule.
+     */
+    int topk;
+    
+    /**
+     * The maximum depth of the search tree.
+     */
+    int max_depth;
+    
+    std::vector<syntax_tree*> schedules;
+    
+    /**
+     * An evaluator returning the execution time of a program.
+     */
+    evaluation_function *exec_eval;
+
+public:
+    beam_search_topk(int beam_size, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
+        : search_method(eval_func, states_gen), beam_size(beam_size), topk(topk), max_depth(max_depth), exec_eval(exec_eval) {}
+        
+    virtual ~beam_search_topk() {}
+    
+    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
+
+    /**
+      * The method to call to start a search.
+      * It takes as input an AST and returns a list of
+      * code transformations.
+      */
+    virtual void search(syntax_tree& ast);
+    
+    void beam_search_subroutine(syntax_tree& ast);
+};
+
 class beam_search_accuracy_evaluator : public beam_search
 {
 private:
