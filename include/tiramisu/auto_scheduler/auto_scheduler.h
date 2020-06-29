@@ -9,7 +9,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-class evaluator;
+class evaluation_function;
 class search_method;
 
 /**
@@ -26,13 +26,13 @@ protected:
     syntax_tree ast;
         
     search_method *searcher;
-    evaluator *eval_func;
+    evaluation_function *eval_func;
     
     evaluate_by_execution *exec_evaluator = nullptr;
     float initial_exec_time;
         
 public:
-    auto_scheduler(search_method *searcher, evaluator *eval_func,
+    auto_scheduler(search_method *searcher, evaluation_function *eval_func,
                    tiramisu::function *fct = tiramisu::global::get_implicit_function());
                    
     void set_exec_evaluator(evaluate_by_execution *exec_evaluator) { this->exec_evaluator = exec_evaluator; }

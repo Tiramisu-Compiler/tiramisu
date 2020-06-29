@@ -29,12 +29,12 @@ protected:
     /**
       * The evaluation function used by the search method.
       */
-    evaluator *eval_func;
+    evaluation_function *eval_func;
 
     /**
      * The search method use this attribute to generate new states.
      */
-    states_generator* states_gen;
+    schedules_generator* states_gen;
     
     int nb_explored_schedules = 0;
     
@@ -42,7 +42,7 @@ protected:
     syntax_tree *best_ast = nullptr;
     
 public:
-    search_method(evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
+    search_method(evaluation_function *eval_func = nullptr, schedules_generator *states_gen = nullptr)
         : eval_func(eval_func), states_gen(states_gen) {}
             
     virtual ~search_method() {}
@@ -51,7 +51,7 @@ public:
     float get_best_evaluation() const { return best_evaluation; }
     syntax_tree* get_best_ast() const { return best_ast; }
     
-    void set_eval_func(evaluator *eval_func) { this->eval_func = eval_func; }
+    void set_eval_func(evaluation_function *eval_func) { this->eval_func = eval_func; }
     
     /**
       * The method to call to start a search.
@@ -80,7 +80,7 @@ protected:
     int max_depth;
     
 public:
-    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, states_generator *states_gen = nullptr)
+    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, schedules_generator *states_gen = nullptr)
         : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
@@ -98,18 +98,18 @@ class beam_search_accuracy_evaluator : public beam_search
 private:
 
 protected:
-    evaluator *exec_eval;
+    evaluation_function *exec_eval;
     
     std::vector<float> model_evals_list;
     std::vector<float> exec_evals_list;
     
 public:
-    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluator *model_eval = nullptr, evaluator *exec_eval = nullptr, states_generator *states_gen = nullptr)
+    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *model_eval = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
         : beam_search(beam_size, max_depth, model_eval, states_gen), exec_eval(exec_eval) {}
         
     virtual ~beam_search_accuracy_evaluator() {}
     
-    void set_exec_eval(evaluator *exec_eval) { this->exec_eval = exec_eval; }
+    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
 
     /**
       * The method to call to start a search.
@@ -129,7 +129,7 @@ public:
     }
 };
 
-class simple_mcts : public search_method
+class mcts : public search_method
 {
 private:
 
@@ -153,15 +153,15 @@ protected:
     /**
      * An evaluator returning the execution time of a program.
      */
-    evaluator *exec_eval;
+    evaluation_function *exec_eval;
 
 public:
-    simple_mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluator *eval_func = nullptr, evaluator *exec_eval = nullptr, states_generator *states_gen = nullptr)
+    mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
         : search_method(eval_func, states_gen), nb_samples(nb_samples), topk(topk), max_depth(max_depth), exec_eval(exec_eval) {}
         
-    virtual ~simple_mcts() {}
+    virtual ~mcts() {}
     
-    void set_exec_eval(evaluator *exec_eval) { this->exec_eval = exec_eval; }
+    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
 
     /**
       * The method to call to start a search.

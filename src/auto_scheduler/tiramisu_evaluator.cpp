@@ -15,7 +15,7 @@ evaluate_by_execution::evaluate_by_execution(tiramisu::function *fct,
                                              std::vector<tiramisu::buffer*> const& arguments, 
                                              std::string const& obj_filename, 
                                              std::string const& wrapper_cmd)
-    : evaluator(), fct(fct), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd)
+    : evaluation_function(), fct(fct), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd)
 {
     // Set Halide compilation features
     halide_target = Halide::get_host_target();
@@ -70,8 +70,8 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     return exec_time;
 }
 
-tree_lstm_evaluator::tree_lstm_evaluator(std::string const& cmd_path, std::vector<std::string> const& cmd_args)
-    : evaluator()
+evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args)
+    : evaluation_function()
 {
     pid_t pid = 0;
     int inpipe_fd[2];
@@ -110,7 +110,7 @@ tree_lstm_evaluator::tree_lstm_evaluator(std::string const& cmd_path, std::vecto
     model_read = fdopen(inpipe_fd[0], "r");
 }
 
-float tree_lstm_evaluator::evaluate(syntax_tree& ast)
+float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 {
     std::string prog_json = get_program_json(ast);
     std::string sched_json = get_schedule_json(ast);
@@ -125,7 +125,7 @@ float tree_lstm_evaluator::evaluate(syntax_tree& ast)
     return -speedup;
 }
 
-std::string tree_lstm_evaluator::get_program_json(syntax_tree const& ast)
+std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
     
@@ -141,7 +141,7 @@ std::string tree_lstm_evaluator::get_program_json(syntax_tree const& ast)
     return "{" + iterators_json + "," + computations_json + "}\n";
 }
 
-void tree_lstm_evaluator::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
+void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
 {
     if (node->get_extent() <= 1)
         return;
@@ -206,7 +206,7 @@ void tree_lstm_evaluator::represent_iterators_from_nodes(ast_node *node, std::st
         represent_iterators_from_nodes(child, iterators_json);
 }
 
-void tree_lstm_evaluator::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
+void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
 {
     for (computation_info const& comp_info : node->computations)
     {
@@ -295,7 +295,7 @@ void tree_lstm_evaluator::represent_computations_from_nodes(ast_node *node, std:
         represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
 
-std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
+std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast)
 {
     bool interchanged = false;
     bool tiled = false;
@@ -444,13 +444,13 @@ std::string tree_lstm_evaluator::get_schedule_json(syntax_tree const& ast)
     return sched_json;
 }
 
-std::string tree_lstm_evaluator::get_tree_structure_json(syntax_tree const& ast)
+std::string evaluate_by_learning_model::get_tree_structure_json(syntax_tree const& ast)
 {
     ast_node *node = ast.roots[0];
     return get_tree_structure_json(node);
 }
 
-std::string tree_lstm_evaluator::get_tree_structure_json(ast_node *node)
+std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
 {
     std::string json;
     

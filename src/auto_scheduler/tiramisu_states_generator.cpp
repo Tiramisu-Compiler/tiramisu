@@ -212,7 +212,7 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
         generate_unrollings(child, states, ast);
 }
 
-std::vector<syntax_tree*> simple_generator::generate_states(syntax_tree const& ast, optimization_type optim)
+std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_tree const& ast, optimization_type optim)
 {
     std::vector<syntax_tree*> states;
     

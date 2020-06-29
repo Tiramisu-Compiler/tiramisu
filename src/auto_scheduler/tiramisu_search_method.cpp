@@ -149,7 +149,7 @@ void beam_search_accuracy_evaluator::search(syntax_tree& ast)
     }
 }
 
-void simple_mcts::search(syntax_tree& ast)
+void mcts::search(syntax_tree& ast)
 {
     std::default_random_engine rand_generator;
     

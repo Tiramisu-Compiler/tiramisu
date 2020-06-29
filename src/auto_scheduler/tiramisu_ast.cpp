@@ -35,12 +35,12 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     
     // Get the JSON representation of this AST iterators
     for (ast_node *node : roots)
-        tree_lstm_evaluator::represent_iterators_from_nodes(node, iterators_json);
+        evaluate_by_learning_model::represent_iterators_from_nodes(node, iterators_json);
         
     iterators_json.pop_back();
     
     // Get the JSON representation of this tree
-    tree_structure_json = tree_lstm_evaluator::get_tree_structure_json(*this);
+    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 }
 
 ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
@@ -388,7 +388,7 @@ void syntax_tree::transform_ast_by_unfuse(optimization_info const& opt)
         unfuse_node->children.push_back(removed_node->copy_node());
     }
     
-    tree_structure_json = tree_lstm_evaluator::get_tree_structure_json(*this);
+    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 }
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)

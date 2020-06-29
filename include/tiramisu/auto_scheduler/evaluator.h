@@ -12,14 +12,14 @@ namespace tiramisu::auto_scheduler
   * Derive this class and implement the method "evaluate" to
   * create new evaluation functions.
   */
-class evaluator
+class evaluation_function
 {
 private:
     
 protected:
     
 public:
-    virtual ~evaluator() {}
+    virtual ~evaluation_function() {}
     
     /**
      * Takes as input an abstract syntax tree and returns
@@ -36,7 +36,7 @@ public:
 /**
  * Evaluate programs by compiling and executing them.
  */
-class evaluate_by_execution : public evaluator
+class evaluate_by_execution : public evaluation_function
 {
 private:
 
@@ -74,7 +74,7 @@ public:
     virtual bool should_transform_ast(syntax_tree const& ast) { return true; }
 };
 
-class tree_lstm_evaluator : public evaluator
+class evaluate_by_learning_model : public evaluation_function
 {
 private:
 
@@ -83,7 +83,7 @@ protected:
     FILE *model_read;
 
 public:
-    tree_lstm_evaluator(std::string const& cmd_path, std::vector<std::string> const& cmd_args);
+    evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args);
     
 	/**
 	 * Call the model and return its evaluation.

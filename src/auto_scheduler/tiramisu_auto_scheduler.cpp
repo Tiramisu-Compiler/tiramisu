@@ -7,7 +7,7 @@
 namespace tiramisu::auto_scheduler
 {
 
-auto_scheduler::auto_scheduler(search_method *searcher, evaluator *eval_func, 
+auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eval_func, 
                                tiramisu::function *fct)
                                
     : fct(fct), ast(fct), searcher(searcher), eval_func(eval_func)

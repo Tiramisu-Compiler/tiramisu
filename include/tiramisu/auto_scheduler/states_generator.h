@@ -15,7 +15,7 @@ const int DEFAULT_MAX_NB_ITERATORS = 4;
  * Generate a set of AST's from a given AST.
  * Inherit this class to implement a state generation behavior.
  */
-class states_generator
+class schedules_generator
 {
 private:
 
@@ -24,12 +24,12 @@ protected:
     std::vector<int> unrolling_factors_list;
 
 public:
-    states_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
+    schedules_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                      std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
         : tiling_factors_list(tiling_factors_list), unrolling_factors_list(unrolling_factors_list) {}
 
-    virtual ~states_generator() {}
+    virtual ~schedules_generator() {}
 
     virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim) =0;
 };
@@ -38,7 +38,7 @@ public:
  * Generate all combinations of the following optimizations :
  * Fusion, tiling, interchange, unrolling.
  */
-class exhaustive_generator : public states_generator
+class exhaustive_generator : public schedules_generator
 {
 private:
 
@@ -52,7 +52,7 @@ public:
     exhaustive_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                          std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
-        : states_generator(tiling_factors_list, unrolling_factors_list) {}
+        : schedules_generator(tiling_factors_list, unrolling_factors_list) {}
 
     virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim);
 };
@@ -61,7 +61,7 @@ public:
  * Generate tilings and interchanges applied to shared loop levels.
  * Generate unrollings applied to innermost loop levels.
  */
-class simple_generator : public states_generator
+class tree_structured_search_space : public schedules_generator
 {
 private:
 
@@ -69,11 +69,11 @@ protected:
     int max_nb_iterators;
 
 public:
-    simple_generator(int max_nb_iterators = DEFAULT_MAX_NB_ITERATORS,
+    tree_structured_search_space(int max_nb_iterators = DEFAULT_MAX_NB_ITERATORS,
                      std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                      std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
         
-        : states_generator(tiling_factors_list, unrolling_factors_list),    
+        : schedules_generator(tiling_factors_list, unrolling_factors_list),    
           max_nb_iterators(max_nb_iterators) {}
         
     virtual std::vector<syntax_tree*> generate_states(syntax_tree const& ast, optimization_type optim);
