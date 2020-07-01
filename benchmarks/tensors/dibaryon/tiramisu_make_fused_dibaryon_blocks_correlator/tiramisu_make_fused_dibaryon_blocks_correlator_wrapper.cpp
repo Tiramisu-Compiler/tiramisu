@@ -1,7 +1,9 @@
 #include "Halide.h"
 #include <tiramisu/utils.h>
+#include <tiramisu/mpi_comm.h>
 #include <cstdlib>
 #include <iostream>
+#include <complex>
 #include "benchmarks.h"
 
 #ifdef __cplusplus
@@ -65,6 +67,10 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, nperm, b;
    int iC1, iS1, iC2, iS2, jC1, jS1, jC2, jS2, kC1, kS1, kC2, kS2;
 
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+   if (rank == 0) {
     long mega = 1024*1024;
     std::cout << "Array sizes" << std::endl;
     std::cout << "Prop:" <<  std::endl;
@@ -82,12 +88,19 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
     std::cout << "	Max index size = " << Nc*Ns*Nc*Ns*Nc*Ns <<  std::endl;
     std::cout << "	Array size = " << Nc*Ns*Nc*Ns*Nc*Ns*sizeof(std::complex<double>)/kilo << " kilo bytes" <<  std::endl;
     std::cout << std::endl;
+   }
 
     int Nr = 6;
 
    // Halide buffers
-   Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Lt, "C_r");
-   Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Lt, "C_i");
+   Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Vsnk, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Vsnk, Lt, "C_i");
+   //Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Lt, "C_r");
+   //Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, Nr, Nsrc+NsrcHex, Lt, "C_i");
+
+   Halide::Buffer<int> b_src_color_weights(Nq, Nw, Nr, "src_color_weights");
+   Halide::Buffer<int> b_src_spin_weights(Nq, Nw, Nr, "src_spin_weights");
+   Halide::Buffer<double> b_src_weights(Nw, Nr, "src_weights");
 
    Halide::Buffer<int> b_snk_blocks(2, Nr, "snk_blocks");
    Halide::Buffer<int> b_snk_b(2, Nq, Nperms, "snk_b");
@@ -104,7 +117,9 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
     Halide::Buffer<double> b_B2_prop_r((double *)B2_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
     Halide::Buffer<double> b_B2_prop_i((double *)B2_prop_im, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
 
+   if (rank == 0) {
    printf("prop elem %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0));
+   }
 
     // psi
     Halide::Buffer<double> b_B1_src_psi_r((double *)src_psi_B1_re, {Nsrc, Vsrc});
@@ -126,6 +141,24 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    Halide::Buffer<int> b_sigs((int *)sigs, {Nperms});
 
    // Weights
+      for (int wnum=0; wnum< Nw; wnum++) {
+         b_src_weights(wnum, 0) = src_weights_r1[wnum];
+         b_src_weights(wnum, 1) = src_weights_r2[wnum];
+
+         b_src_color_weights(0, wnum, 0) = src_color_weights_r1[index_2d(wnum,0 ,Nq)];
+         b_src_spin_weights(0, wnum, 0) = src_spin_weights_r1[index_2d(wnum,0 ,Nq)];
+         b_src_color_weights(1, wnum, 0) = src_color_weights_r1[index_2d(wnum,1 ,Nq)];
+         b_src_spin_weights(1, wnum, 0) = src_spin_weights_r1[index_2d(wnum,1 ,Nq)];
+         b_src_color_weights(2, wnum, 0) = src_color_weights_r1[index_2d(wnum,2 ,Nq)];
+         b_src_spin_weights(2, wnum, 0) = src_spin_weights_r1[index_2d(wnum,2 ,Nq)];
+
+         b_src_color_weights(0, wnum, 1) = src_color_weights_r2[index_2d(wnum,0 ,Nq)];
+         b_src_spin_weights(0, wnum, 1) = src_spin_weights_r2[index_2d(wnum,0 ,Nq)];
+         b_src_color_weights(1, wnum, 1) = src_color_weights_r2[index_2d(wnum,1 ,Nq)];
+         b_src_spin_weights(1, wnum, 1) = src_spin_weights_r2[index_2d(wnum,1 ,Nq)];
+         b_src_color_weights(2, wnum, 1) = src_color_weights_r2[index_2d(wnum,2 ,Nq)];
+         b_src_spin_weights(2, wnum, 1) = src_spin_weights_r2[index_2d(wnum,2 ,Nq)];
+      }
    int* snk_color_weights_1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
    int* snk_color_weights_2 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
    int* snk_color_weights_r1 = (int *) malloc(2 * Nw2 * Nq * sizeof (int));
@@ -286,7 +319,6 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
       }
       for (int wnum=0; wnum< Nw2Hex; wnum++) {
          for (int q=0; q < 2*Nq; q++) {
-            printf("coords %d %d %d %d \n", nperm, wnum, q%Nq, (q-(q%Nq))/Nq );
             b_hex_snk_color_weights((q-(q%Nq))/Nq, q%Nq, wnum, nperm, 0) = hex_snk_color_weights_T1_r1[index_2d(wnum,perms[index_2d(nperm,q ,2*Nq)] ,2*Nq)];
             b_hex_snk_spin_weights((q-(q%Nq))/Nq, q%Nq, wnum, nperm, 0) = hex_snk_spin_weights_T1_r1[index_2d(wnum,perms[index_2d(nperm,q ,2*Nq)] ,2*Nq)];
             b_hex_snk_color_weights((q-(q%Nq))/Nq, q%Nq, wnum, nperm, 1) = hex_snk_color_weights_T1_r3[index_2d(wnum,perms[index_2d(nperm,q ,2*Nq)] ,2*Nq)];
@@ -314,11 +346,15 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    for (int b=0; b<Nr; b++)
       for (int m=0; m<Nsrc+NsrcHex; m++)
          for (int n=0; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++) {
-               b_C_r(n,b,m,t) = 0.0;
-               b_C_i(n,b,m,t) = 0.0;
+            for (int t=0; t<Lt; t++)  //{
+               //b_C_r(n,b,m,t) = 0.0;
+               //b_C_i(n,b,m,t) = 0.0;
+               for (int x=0; x<Vsnk; x++) {
+                  b_C_r(n,b,m,x,t) = 0.0;
+                  b_C_i(n,b,m,x,t) = 0.0;
             } 
 
+   if (rank == 0) {
    printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0,0));
    printf("prop 2 %4.9f + I %4.9f \n", b_B2_prop_r(0,0,0,0,0,0,0,0), b_B2_prop_i(0,0,0,0,0,0,0,0));
    printf("psi src 1 %4.9f + I %4.9f \n", b_B1_src_psi_r(0,0), b_B1_src_psi_i(0,0));
@@ -326,6 +362,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    printf("psi snk %4.9f + I %4.9f \n", b_snk_psi_r(0,0,0), b_snk_psi_i(0,0,0));
    printf("weights snk %4.1f \n", b_snk_weights(0,0));
    printf("sigs %d \n", b_sigs(0));
+   }
    tiramisu_make_fused_dibaryon_blocks_correlator(
 				    b_C_r.raw_buffer(),
 				    b_C_i.raw_buffer(),
@@ -349,6 +386,9 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
 		b_snk_psi_i.raw_buffer(),
 				    b_snk_blocks.raw_buffer(),
 				    b_sigs.raw_buffer(),
+				 b_src_color_weights.raw_buffer(),
+				 b_src_spin_weights.raw_buffer(),
+				 b_src_weights.raw_buffer(),
 				    b_snk_b.raw_buffer(),
 				    b_snk_color_weights.raw_buffer(),
 				    b_snk_spin_weights.raw_buffer(),
@@ -357,10 +397,48 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
 				    b_hex_snk_spin_weights.raw_buffer(),
 				    b_hex_snk_weights.raw_buffer());
 
-   printf("non-zero? %4.1f + I %4.1f ", b_C_r(0,2,0,0), b_C_i(0,2,0,0) );
+
+   if (rank == 0) {
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,0,0,0), b_C_i(0,0,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,0,0,0), b_C_i(0,1,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,0,0,0), b_C_i(0,2,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,0,0,0), b_C_i(0,3,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,0,0,0), b_C_i(0,4,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,0,0,0), b_C_i(0,5,0,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,Nsrc,0,0), b_C_i(0,0,Nsrc,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,Nsrc,0,0), b_C_i(0,1,Nsrc,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,Nsrc,0,0), b_C_i(0,2,Nsrc,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,Nsrc,0,0), b_C_i(0,3,Nsrc,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,Nsrc,0,0), b_C_i(0,4,Nsrc,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,Nsrc,0,0), b_C_i(0,5,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,0,Nsrc,0,0), b_C_i(Nsnk,0,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,1,Nsrc,0,0), b_C_i(Nsnk,1,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,2,Nsrc,0,0), b_C_i(Nsnk,2,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,3,Nsrc,0,0), b_C_i(Nsnk,3,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,4,Nsrc,0,0), b_C_i(Nsnk,4,Nsrc,0,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,5,Nsrc,0,0), b_C_i(Nsnk,5,Nsrc,0,0) ); 
+/*   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,0,0), b_C_i(0,0,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,0,0), b_C_i(0,1,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,0,0), b_C_i(0,2,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,0,0), b_C_i(0,3,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,0,0), b_C_i(0,4,0,0) );
+   printf("BB-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,0,0), b_C_i(0,5,0,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,0,Nsrc,0), b_C_i(0,0,Nsrc,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,1,Nsrc,0), b_C_i(0,1,Nsrc,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,2,Nsrc,0), b_C_i(0,2,Nsrc,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,3,Nsrc,0), b_C_i(0,3,Nsrc,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,4,Nsrc,0), b_C_i(0,4,Nsrc,0) );
+   printf("H-BB non-zero? %4.9e + I %4.9e \n", b_C_r(0,5,Nsrc,0), b_C_i(0,5,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,0,Nsrc,0), b_C_i(Nsnk,0,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,1,Nsrc,0), b_C_i(Nsnk,1,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,2,Nsrc,0), b_C_i(Nsnk,2,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,3,Nsrc,0), b_C_i(Nsnk,3,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,4,Nsrc,0), b_C_i(Nsnk,4,Nsrc,0) );
+   printf("H-H non-zero? %4.9e + I %4.9e \n", b_C_r(Nsnk,5,Nsrc,0), b_C_i(Nsnk,5,Nsrc,0) );  */
+   }
 
     // symmetrize and such
-      for (int m=0; m<Nsrc; m++)
+    /*  for (int m=0; m<Nsrc; m++)
          for (int n=0; n<Nsnk; n++)
             for (int t=0; t<Lt; t++) {
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
@@ -389,50 +467,207 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
             for (int t=0; t<Lt; t++) {
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,0,m,t);
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,0,m,t);
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,1,m,t);
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,1,m,t);
                C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
                C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,0,m,t);
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,0,m,t);
                C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
                C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,1,m,t);
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,1,m,t);
             }
       for (int m=0; m<Nsrc; m++)
          for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
             for (int t=0; t<Lt; t++) {
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,0,m,t);
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,0,m,t);
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,1,m,t);
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,1,m,t);
                C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
                C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,0,m,t);
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,0,m,t);
                C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
                C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,1,m,t);
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,1,m,t);
             }
       for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
          for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
             for (int t=0; t<Lt; t++) {
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,5,m,t);
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,4,m,t);
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,0,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,2,m,t);
                C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,1,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,5,m,t);
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,4,m,t);
                C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,0,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,2,m,t);
                C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,1,m,t);
+            }  */
+      for (int m=0; m<Nsrc; m++)
+         for (int n=0; n<Nsnk; n++)
+            for (int t=0; t<Lt; t++)
+               for (int x=0; x<Vsnk; x++) {
+                  double number0r = b_C_r(n,0,m,x,t);
+                  double number0i = b_C_i(n,0,m,x,t);
+                  double number1r = b_C_r(n,1,m,x,t);
+                  double number1i = b_C_i(n,1,m,x,t);
+                  double number2r = b_C_r(n,2,m,x,t);
+                  double number2i = b_C_i(n,2,m,x,t);
+                  double number3r = b_C_r(n,3,m,x,t);
+                  double number3i = b_C_i(n,3,m,x,t);
+                  double number4r = b_C_r(n,4,m,x,t);
+                  double number4i = b_C_i(n,4,m,x,t);
+                  double number5r = b_C_r(n,5,m,x,t);
+                  double number5i = b_C_i(n,5,m,x,t);
+                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number3r;
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number4r;
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number5r;
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number5r;
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number1r;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2i;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number3i;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number4i;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number5i;
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number5i;
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number1i;
             }
+       for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
+         for (int n=0; n<Nsnk; n++)
+            for (int t=0; t<Lt; t++)
+               for (int x=0; x<Vsnk; x++) {
+                  double number0r = b_C_r(n,0,m,x,t);
+                  double number0i = b_C_i(n,0,m,x,t);
+                  double number1r = b_C_r(n,1,m,x,t);
+                  double number1i = b_C_i(n,1,m,x,t);
+                  double number2r = b_C_r(n,2,m,x,t);
+                  double number2i = b_C_i(n,2,m,x,t);
+                  double number3r = b_C_r(n,3,m,x,t);
+                  double number3i = b_C_i(n,3,m,x,t);
+                  double number4r = b_C_r(n,4,m,x,t);
+                  double number4i = b_C_i(n,4,m,x,t);
+                  double number5r = b_C_r(n,5,m,x,t);
+                  double number5i = b_C_i(n,5,m,x,t);
+                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3r;
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number1r;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4i;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5i;
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3i;
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number1i;
+            }
+      for (int m=0; m<Nsrc; m++)
+         for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
+            for (int t=0; t<Lt; t++)
+               for (int x=0; x<Vsnk; x++) {
+                  double number0r = b_C_r(n,0,m,x,t);
+                  double number0i = b_C_i(n,0,m,x,t);
+                  double number1r = b_C_r(n,1,m,x,t);
+                  double number1i = b_C_i(n,1,m,x,t);
+                  double number2r = b_C_r(n,2,m,x,t);
+                  double number2i = b_C_i(n,2,m,x,t);
+                  double number3r = b_C_r(n,3,m,x,t);
+                  double number3i = b_C_i(n,3,m,x,t);
+                  double number4r = b_C_r(n,4,m,x,t);
+                  double number4i = b_C_i(n,4,m,x,t);
+                  double number5r = b_C_r(n,5,m,x,t);
+                  double number5i = b_C_i(n,5,m,x,t);
+                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3r;
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number1r;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4i;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5i;
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number3i;
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number1i;
+            }
+      for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
+         for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
+            for (int t=0; t<Lt; t++)
+               for (int x=0; x<Vsnk; x++) {
+                  double number0r = b_C_r(n,0,m,x,t);
+                  double number0i = b_C_i(n,0,m,x,t);
+                  double number1r = b_C_r(n,1,m,x,t);
+                  double number1i = b_C_i(n,1,m,x,t);
+                  double number2r = b_C_r(n,2,m,x,t);
+                  double number2i = b_C_i(n,2,m,x,t);
+                  double number4r = b_C_r(n,4,m,x,t);
+                  double number4i = b_C_i(n,4,m,x,t);
+                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number4r;
+               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0r;
+               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number2r;
+               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number1r;
+               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number4i;
+               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0i;
+               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number2i;
+               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number1i;
+            } 
 
+   if (rank == 0) {
    for (int b=0; b<4; b++) {
       printf("\n");
       for (int m=0; m<Nsrc+NsrcHex; m++)
@@ -441,10 +676,14 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   printf("r=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) \n", b, m, n, t, C_re[index_4d(b,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  C_im[index_4d(b,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)]);
             }
    }
+   }
 }
 
 int main(int, char **)
 {
+#ifdef WITH_MPI
+   int rank = tiramisu_MPI_init();
+
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
@@ -668,11 +907,14 @@ int main(int, char **)
    int space_symmetric = 0;
    int snk_entangled = 0;
 
+   if (rank == 0) {
    std::cout << "Start Tiramisu code." <<  std::endl;
+   }
 
    for (int i = 0; i < nb_tests; i++)
    {
-      std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
+      if (rank == 0)
+         std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
       auto start1 = std::chrono::high_resolution_clock::now();
 
        tiramisu_make_two_nucleon_2pt(t_C_re,
@@ -724,6 +966,7 @@ int main(int, char **)
       duration_vector_1.push_back(duration1);
    }
 
+   if (rank == 0) {
     std::cout << "End Tiramisu code." <<  std::endl;
 
    for (b=0; b<4; b++) {
@@ -778,6 +1021,10 @@ int main(int, char **)
    printf("Finished\n");
 
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
+   }
+
+    tiramisu_MPI_cleanup();
+#endif // WITH_MPI
 
     return 0;
 }
