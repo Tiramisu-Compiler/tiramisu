@@ -16,7 +16,7 @@ extern "C" {
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
 int nb_tests = 1;
-int randommode = 0;
+int randommode = 1;
 
 
 
@@ -39,8 +39,10 @@ void tiramisu_make_nucleon_2pt(double* C_re,
    int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, b;
    int iC1, iS1, iC2, iS2, jC1, jS1, jC2, jS2, kC1, kS1, kC2, kS2;
 
-    int rank;
+    int rank = 0;
+#ifdef WITH_MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
 
   // printf("hi I'm rank %d \n", rank);
 
@@ -198,10 +200,12 @@ void tiramisu_make_nucleon_2pt(double* C_re,
                   double number0i = b_C_i(n,0,m,x,t);
                   double number1r = b_C_r(n,1,m,x,t);
                   double number1i = b_C_i(n,1,m,x,t); 
+#ifdef WITH_MPI
                   MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+#endif
                   C_re[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0r;
                   C_re[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1r;
                   C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0i;
@@ -224,8 +228,10 @@ void tiramisu_make_nucleon_2pt(double* C_re,
 int main(int, char **)
 {
 
+   int rank = 0;
 #ifdef WITH_MPI
-   int rank = tiramisu_MPI_init();
+   rank = tiramisu_MPI_init();
+#endif
 
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
@@ -418,8 +424,9 @@ int main(int, char **)
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
    }
 
+#ifdef WITH_MPI
     tiramisu_MPI_cleanup();
-#endif // WITH_MPI
+#endif
 
     return 0;
 }

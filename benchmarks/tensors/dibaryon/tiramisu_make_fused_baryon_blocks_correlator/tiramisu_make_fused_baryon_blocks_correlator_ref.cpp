@@ -1,6 +1,7 @@
+#include <complex>
+// started as C code
 #include <stdio.h> 
 #include <stdlib.h>
-#include <complex.h>
 #include <math.h>
 #include <time.h>
 
@@ -17,9 +18,6 @@ int prop_index(int q, int t, int c1, int s1, int c2, int s2, int y, int x, int N
    return y +Vsrc_f*( x +Vsnk_f*( s1 +Ns_f*( c1 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( t +Nt_f* q ))))));
 }
 int Blocal_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Nsrc_f) {
-   return m +Nsrc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
-}
-int Bdouble_index(int c1, int s1, int c2, int s2, int c3, int s3, int m, int Nc_f, int Ns_f, int Nsrc_f) {
    return m +Nsrc_f*( s3 +Ns_f*( c3 +Nc_f*( s2 +Ns_f*( c2 +Nc_f*( s1 +Ns_f*( c1 ))))));
 }
 
@@ -45,10 +43,8 @@ void make_local_block(double* Blocal_re,
    /* loop indices */
    int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, y, wnum, m;
    /* subexpressions */
-   double prop_prod_02_re;
-   double prop_prod_02_im;
-   double prop_prod_re;
-   double prop_prod_im;
+   std::complex<double> prop_prod_02;
+   std::complex<double> prop_prod;
    /* initialize */
    for (iCprime=0; iCprime<Nc_f; iCprime++) {
       for (iSprime=0; iSprime<Ns_f; iSprime++) {
@@ -79,15 +75,20 @@ void make_local_block(double* Blocal_re,
             for (kCprime=0; kCprime<Nc_f; kCprime++) {
                for (kSprime=0; kSprime<Ns_f; kSprime++) {
                   for (y=0; y<Vsrc_f; y++) {
-                     prop_prod_02_re = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     prop_prod_02_im = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
+                     std::complex<double> prop_0(prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_0_p(prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2(prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2_p(prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_02 = weights[wnum] * ( prop_0 * prop_2 - prop_0_p * prop_2_p );
                      for (jCprime=0; jCprime<Nc_f; jCprime++) {
                         for (jSprime=0; jSprime<Ns_f; jSprime++) {
-                           prop_prod_re = prop_prod_02_re * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_02_im * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_im = prop_prod_02_re * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_02_im * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           std::complex<double> prop_1(prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                           prop_prod = prop_prod_02 * prop_1;
                            for (m=0; m<Nsrc_f; m++) {
-                              Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
-                              Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
+                              std::complex<double> psi(psi_re[index_2d(y,m ,Nsrc_f)], psi_im[index_2d(y,m ,Nsrc_f)]);
+                              std::complex<double> block = psi * prop_prod;
+                              Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += real(block);
+                              Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += imag(block);
                            }
                         }
                      }
@@ -236,21 +237,28 @@ void make_single_block(double* Bsingle_re,
             for (kCprime=0; kCprime<Nc_f; kCprime++) {
                for (kSprime=0; kSprime<Ns_f; kSprime++) {
                   for (y=0; y<Vsrc_f; y++) {
-                     prop_prod_02_re = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     prop_prod_02_im = weights[wnum] * ( (prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
+                     std::complex<double> prop_0(prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_0_p(prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2(prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2_p(prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_02 = weights[wnum] * ( prop_0 * prop_2 - prop_0_p * prop_2_p );
                      for (jCprime=0; jCprime<Nc_f; jCprime++) {
                         for (jSprime=0; jSprime<Ns_f; jSprime++) {
-                           prop_prod_re = prop_prod_02_re * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_02_im * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_im = prop_prod_02_re * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_02_im * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           std::complex<double> prop_1(prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                           prop_prod = prop_prod_02 * prop_1;
                            for (m=0; m<Nsrc_f; m++) {
-                              Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
-                              Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
+                              std::complex<double> psi(psi_re[index_2d(y,m ,Nsrc_f)], psi_im[index_2d(y,m ,Nsrc_f)]);
+                              std::complex<double> block = psi * prop_prod;
+                              Blocal_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += real(block);
+                              Blocal_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += imag(block);
                            }
-                           prop_prod_re = prop_prod_02_re * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_02_im * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_im = prop_prod_02_re * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_02_im * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                           std::complex<double> prop_1(prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                           prop_prod = prop_prod_02 * prop_1;
                            for (m=0; m<Nsrc_f; m++) {
-                              Bsingle_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
-                              Bsingle_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
+                              std::complex<double> psi(psi_re[index_2d(y,m ,Nsrc_f)], psi_im[index_2d(y,m ,Nsrc_f)]);
+                              std::complex<double> block = psi * prop_prod;
+                              Bsingle_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += real(block);
+                              Bsingle_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += imag(block);
                            }
                         }
                      }
@@ -316,24 +324,25 @@ void make_double_block(double* Bdouble_re,
       jS = spin_weights[index_2d(wnum,1, Nq_f)];
       kC = color_weights[index_2d(wnum,2, Nq_f)];
       kS = spin_weights[index_2d(wnum,2, Nq_f)];
-      for (jCprime=0; jCprime<Nc_f; jCprime++) {
-         for (jSprime=0; jSprime<Ns_f; jSprime++) {
+      for (iCprime=0; iCprime<Nc_f; iCprime++) {
+         for (iSprime=0; iSprime<Ns_f; iSprime++) {
             for (kCprime=0; kCprime<Nc_f; kCprime++) {
                for (kSprime=0; kSprime<Ns_f; kSprime++) {
                   for (y=0; y<Vsrc_f; y++) {
-                     prop_prod_12_re = weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     prop_prod_12_im = weights[wnum] * (prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     prop_prod_01_re = weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     prop_prod_01_im = weights[wnum] * (prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
-                     for (iCprime=0; iCprime<Nc_f; iCprime++) {
-                        for (iSprime=0; iSprime<Ns_f; iSprime++) {
-                           prop_prod_re = prop_prod_12_re * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_12_im * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_im = prop_prod_12_re * prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_12_im * prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_re -= prop_prod_01_re * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - prop_prod_01_im * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                           prop_prod_im -= prop_prod_01_re * prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + prop_prod_01_im * prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                     std::complex<double> prop_0(prop_re[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_0_p(prop_re[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC,iS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2(prop_re[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,kCprime,kSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2_p(prop_re[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC,kS,iCprime,iSprime,y,x2 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     prop_prod_02 = weights[wnum] * ( prop_0 * prop_2 - prop_0_p * prop_2_p );
+                     for (jCprime=0; jCprime<Nc_f; jCprime++) {
+                        for (jSprime=0; jSprime<Ns_f; jSprime++) {
+                           std::complex<double> prop_1(prop_re[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC,jS,jCprime,jSprime,y,x1 ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                           prop_prod = prop_prod_02 * prop_1;
                            for (m=0; m<Nsrc_f; m++) {
-                              Bdouble_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_re - psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_im;
-                              Bdouble_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += psi_re[index_2d(y,m ,Nsrc_f)] * prop_prod_im + psi_im[index_2d(y,m ,Nsrc_f)] * prop_prod_re;
+                              std::complex<double> psi(psi_re[index_2d(y,m ,Nsrc_f)], psi_im[index_2d(y,m ,Nsrc_f)]);
+                              std::complex<double> block = psi * prop_prod;
+                              Bdouble_re[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += real(block);
+                              Bdouble_im[Blocal_index(iCprime,iSprime,kCprime,kSprime,jCprime,jSprime,m ,Nc_f,Ns_f,Nsrc_f)] += imag(block);
                            }
                         }
                      }
@@ -384,7 +393,7 @@ void make_dibaryon_correlator(double* C_re,
    int iC1,iS1,jC1,jS1,kC1,kS1,iC2,iS2,jC2,jS2,kC2,kS2,wnum,nperm,b,n,m;
    int Nb_f = 2;
    int Nw2_f = Nw_f*Nw_f;
-   double term_re, term_im, new_term_re, new_term_im;
+   std::complex<double> term, new_term;
    /* build dibaryon */
    int snk_1_nq[Nb_f];
    int snk_2_nq[Nb_f];
@@ -421,39 +430,39 @@ void make_dibaryon_correlator(double* C_re,
          kC2 = snk_color_weights[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2_f,Nq_f)];
          kS2 = snk_spin_weights[index_3d(snk_3_b[1],wnum,snk_3_nq[1] ,Nw2_f,Nq_f)]; 
          for (m=0; m<Nsrc_f; m++) {
-            term_re = sigs[nperm] * overall_weight * snk_weights[wnum];
-            term_im = 0.0;
+            std::complex<double> term(sigs[nperm] * overall_weight * snk_weights[wnum], 0);
             for (b=0; b<Nb_f; b++) {
                if ((snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
-                  new_term_re = term_re * B1_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B1_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B1_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B1_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B1_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
                else if ((snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
-                  new_term_re = term_re * B2_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B2_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B2_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B2_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B2_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
                else if ((snk_1_b[b] == 0) && (snk_3_b[b] == 0)) {
-                  new_term_re = term_re * B1_Bsingle_re[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B1_Bsingle_im[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B1_Bsingle_im[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B1_Bsingle_re[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B1_Bsingle_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_Bsingle_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
                else if ((snk_1_b[b] == 1) && (snk_3_b[b] == 1)) {
-                  new_term_re = term_re * B2_Bsingle_re[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B2_Bsingle_im[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B2_Bsingle_im[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B2_Bsingle_re[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B2_Bsingle_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_Bsingle_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
                else if (((snk_1_b[b] == 0) && (snk_2_b[b] == 0)) || ((snk_2_b[b] == 0) && (snk_3_b[b] == 0))) {
-                  new_term_re = term_re * B1_Bdouble_re[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B1_Bdouble_im[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B1_Bdouble_im[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B1_Bdouble_re[Bdouble_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B1_Bdouble_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_Bdouble_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
                else if (((snk_1_b[b] == 1) && (snk_2_b[b] == 1)) || ((snk_2_b[b] == 1) && (snk_3_b[b] == 1))) {
-                  new_term_re = term_re * B2_Bdouble_re[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] - term_im * B2_Bdouble_im[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
-                  new_term_im = term_re * B2_Bdouble_im[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)] + term_im * B2_Bdouble_re[Bdouble_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)];
+                  std::complex<double> block(B2_Bdouble_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_Bdouble_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  new_term = term * block;
                }
-               term_re = new_term_re;
-               term_im = new_term_im;
+               term = new_term;
             }
             for (n=0; n<Nsnk_f; n++) {
-               C_re[index_3d(m,n,t,Nsnk_f,Nt_f)] += snk_psi_re[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)] * term_re - snk_psi_im[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)] * term_im;
-               C_im[index_3d(m,n,t,Nsnk_f,Nt_f)] += snk_psi_re[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)] * term_im + snk_psi_im[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)] * term_re;
+               std::complex<double> psi(snk_psi_re[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)], snk_psi_re[index_3d(x1,x2,n ,Vsnk_f,Nsnk_f)]);
+               std::complex<double> corr = term * psi;
+               C_re[index_3d(m,n,t,Nsnk_f,Nt_f)] += real(corr);
+               C_im[index_3d(m,n,t,Nsnk_f,Nt_f)] += imag(corr);
             }
          }
       }
@@ -631,6 +640,9 @@ void make_hex_correlator(double* C_re,
     const int* B2_src_spin_weights, 
     const double* B2_src_weights, 
     const double overall_weight, 
+    const int* src_color_weights, 
+    const int* src_spin_weights, 
+    const double* src_weights, 
     const int* snk_color_weights, 
     const int* snk_spin_weights, 
     const double* snk_weights, 
@@ -654,8 +666,8 @@ void make_hex_correlator(double* C_re,
    int iC1,iS1,jC1,jS1,kC1,kS1,iC2,iS2,jC2,jS2,kC2,kS2;
    int Nb_f = 2;
    int Nw2_f = Nw_f*Nw_f;
-   double B1_prop_prod_02_re, B1_prop_prod_02_im, B1_prop_prod_re, B1_prop_prod_im, B2_prop_prod_02_re, B2_prop_prod_02_im, B2_prop_prod_re, B2_prop_prod_im;
-   double prop_prod_re, prop_prod_im, new_prop_prod_re, new_prop_prod_im;
+   std::complex<double> B1_prop_prod_02, B1_prop_prod, B2_prop_prod_02, B2_prop_prod;
+   std::complex<double> prop_prod, new_prop_prod;
    /* build dibaryon */
    int snk_1_nq[Nb_f];
    int snk_2_nq[Nb_f];
@@ -703,10 +715,13 @@ void make_hex_correlator(double* C_re,
                      jS1 = B1_src_spin_weights[index_2d(wnum,1, Nq_f)];
                      kC1 = B1_src_color_weights[index_2d(wnum,2, Nq_f)];
                      kS1 = B1_src_spin_weights[index_2d(wnum,2, Nq_f)];
-                     B1_prop_prod_02_re = B1_src_weights[wnum] * ( (B1_prop_re[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_re[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B1_prop_im[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_im[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (B1_prop_re[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_re[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B1_prop_im[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_im[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     B1_prop_prod_02_im = B1_src_weights[wnum] * ( (B1_prop_re[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_im[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B1_prop_im[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_re[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (B1_prop_re[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_im[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B1_prop_im[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B1_prop_re[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     B1_prop_prod_re += B1_prop_prod_02_re * B1_prop_re[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B1_prop_prod_02_im * B1_prop_im[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                     B1_prop_prod_im += B1_prop_prod_02_re * B1_prop_im[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B1_prop_prod_02_im * B1_prop_re[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                     std::complex<double> prop_0(prop_re[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC1,iS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_0_p(prop_re[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC1,iS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2(prop_re[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC1,kS1,kC1prime,kS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2_p(prop_re[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC1,kS1,iC1prime,iS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_1(prop_re[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC1,jS1,jC1prime,jS1prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     B1_prop_prod_02 = weights[wnum] * ( prop_0 * prop_2 - prop_0_p * prop_2_p );
+                     B1_prop_prod += B1_prop_prod_02 * prop_1;
                   }
                   B2_prop_prod_re = 0;
                   B2_prop_prod_im = 0;
@@ -717,19 +732,23 @@ void make_hex_correlator(double* C_re,
                      jS2 = B2_src_spin_weights[index_2d(wnum,1, Nq_f)];
                      kC2 = B2_src_color_weights[index_2d(wnum,2, Nq_f)];
                      kS2 = B2_src_spin_weights[index_2d(wnum,2, Nq_f)];
-                     B2_prop_prod_02_re = B2_src_weights[wnum] * ( (B2_prop_re[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_re[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B2_prop_im[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_im[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (B2_prop_re[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_re[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B2_prop_im[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_im[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     B2_prop_prod_02_im = B2_src_weights[wnum] * ( (B2_prop_re[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_im[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B2_prop_im[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_re[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) - (B2_prop_re[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_im[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B2_prop_im[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] * B2_prop_re[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]) );
-                     B2_prop_prod_re += B2_prop_prod_02_re * B2_prop_re[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] - B2_prop_prod_02_im * B2_prop_im[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
-                     B2_prop_prod_im += B2_prop_prod_02_re * B2_prop_im[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)] + B2_prop_prod_02_im * B2_prop_re[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)];
+                     std::complex<double> prop_0(prop_re[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC2,iS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_0_p(prop_re[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(0,t,iC2,iS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2(prop_re[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC2,kS2,kC2prime,kS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_2_p(prop_re[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(2,t,kC2,kS2,iC2prime,iS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     std::complex<double> prop_1(prop_re[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)], prop_im[prop_index(1,t,jC2,jS2,jC2prime,jS2prime,y,x ,Nc_f,Ns_f,Vsrc_f,Vsnk_f,Nt_f)]);
+                     B2_prop_prod_02 = weights[wnum] * ( prop_0 * prop_2 - prop_0_p * prop_2_p );
+                     B2_prop_prod += B2_prop_prod_02 * prop_1;
                   }
-                  prop_prod_re = overall_weight * sigs[nperm] * snk_weights[wnumprime] * ( B1_prop_prod_re * B2_prop_prod_re - B1_prop_prod_im * B2_prop_prod_im );
-                  prop_prod_im = overall_weight * sigs[nperm] * snk_weights[wnumprime] * ( B1_prop_prod_re * B2_prop_prod_im + B1_prop_prod_im * B2_prop_prod_re );
+                  prop_prod = overall_weight * sigs[nperm] * snk_weights[wnumprime] * B1_prop_prod * B2_prop_prod;
                   for (m=0; m<Nsrc_fHex; m++) {
-                     new_prop_prod_re = hex_src_psi_re[index_2d(y,m ,Nsrc_fHex)] * prop_prod_re - hex_src_psi_im[index_2d(y,m ,Nsrc_fHex)] * prop_prod_im;
-                     new_prop_prod_im = hex_src_psi_re[index_2d(y,m ,Nsrc_fHex)] * prop_prod_im + hex_src_psi_im[index_2d(y,m ,Nsrc_fHex)] * prop_prod_re;
+                     std::complex<double> src_psi(hex_src_psi_re[index_2d(y,m ,Nsrc_fHex)],  hex_src_psi_re[index_2d(y,m ,Nsrc_fHex)]);
+                     new_prop_prod = prop_prod_re * src_psi;
                      for (n=0; n<Nsnk_fHex; n++) {
-                        C_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)] += hex_snk_psi_re[index_2d(x,n ,Nsnk_fHex)] * new_prop_prod_re - hex_snk_psi_im[index_2d(x,n ,Nsnk_fHex)] * new_prop_prod_im;
-                        C_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)] += hex_snk_psi_re[index_2d(x,n ,Nsnk_fHex)] * new_prop_prod_im + hex_snk_psi_im[index_2d(x,n ,Nsnk_fHex)] * new_prop_prod_re;
+                        std::complex<double> snk_psi(hex_snk_psi_re[index_2d(x,n ,Nsnk_fHex)], hex_snk_psi_im[index_2d(x,n ,Nsnk_fHex)]);
+                        std::complex<double> corr = new_prop_prod * snk_psi;
+                        C_re[index_3d(m,n,t ,Nsnk_fHex,Nt_f)] += real(corr);
+                        C_im[index_3d(m,n,t ,Nsnk_fHex,Nt_f)] += imag(corr);
                      }
                   }
                }
@@ -1287,9 +1306,12 @@ void make_nucleon_2pt(double* C_re,
             kC = src_color_weights_r1[index_2d(wnum,2, Nq_f)];
             kS = src_spin_weights_r1[index_2d(wnum,2, Nq_f)];
             for (m=0; m<Nsrc_f; m++) {
+               std::complex<double> block(Blocal_r1_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)], Blocal_r1_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
                for (n=0; n<Nsnk_f; n++) {
-                  C_re[index_4d(0,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r1[wnum] * (snk_psi_re[index_2d(x,n ,Nsnk_f)] * Blocal_r1_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)] - snk_psi_im[index_2d(x,n ,Nsnk_f)] * Blocal_r1_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
-                  C_im[index_4d(0,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r1[wnum] * (snk_psi_re[index_2d(x,n ,Nsnk_f)] * Blocal_r1_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)] - snk_psi_im[index_2d(x,n ,Nsnk_f)] * Blocal_r1_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  std::complex<double> psi(snk_psi_re[index_2d(x,n ,Nsnk_f)], snk_psi_im[index_2d(x,n ,Nsnk_f)]);
+                  std::complex<double> corr = block * psi;
+                  C_re[index_4d(0,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r1[wnum] * real(corr);
+                  C_im[index_4d(0,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r1[wnum] * imag(corr);
                }
             }
          }
@@ -1301,9 +1323,12 @@ void make_nucleon_2pt(double* C_re,
             kC = src_color_weights_r2[index_2d(wnum,2, Nq_f)];
             kS = src_spin_weights_r2[index_2d(wnum,2, Nq_f)];
             for (m=0; m<Nsrc_f; m++) {
+               std::complex<double> block(Blocal_r2_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)], Blocal_r2_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
                for (n=0; n<Nsnk_f; n++) {
-                  C_re[index_4d(1,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r2[wnum] * (snk_psi_re[index_2d(x,n ,Nsnk_f)] * Blocal_r2_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)] - snk_psi_im[index_2d(x,n ,Nsnk_f)] * Blocal_r2_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
-                  C_im[index_4d(1,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r2[wnum] * (snk_psi_re[index_2d(x,n ,Nsnk_f)] * Blocal_r2_im[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)] - snk_psi_im[index_2d(x,n ,Nsnk_f)] * Blocal_r2_re[Blocal_index(iC,iS,kC,kS,jC,jS,m ,Nc_f,Ns_f,Nsrc_f)]);
+                  std::complex<double> psi(snk_psi_re[index_2d(x,n ,Nsnk_f)], snk_psi_im[index_2d(x,n ,Nsnk_f)]);
+                  std::complex<double> corr = block * psi;
+                  C_re[index_4d(1,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r2[wnum] * real(corr);
+                  C_im[index_4d(1,m,n,t ,Nsrc_f,Nsnk_f,Nt_f)] += src_weights_r2[wnum] * imag(corr);
                }
             }
          }

@@ -67,8 +67,10 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, nperm, b;
    int iC1, iS1, iC2, iS2, jC1, jS1, jC2, jS2, kC1, kS1, kC2, kS2;
 
-    int rank;
+    int rank = 0;
+#ifdef WITH_MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
 
    if (rank == 0) {
     long mega = 1024*1024;
@@ -522,6 +524,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   double number4i = b_C_i(n,4,m,x,t);
                   double number5r = b_C_r(n,5,m,x,t);
                   double number5i = b_C_i(n,5,m,x,t);
+#ifdef WITH_MPI
                   MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
@@ -534,6 +537,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+#endif
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number3r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number4r;
@@ -571,6 +575,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   double number4i = b_C_i(n,4,m,x,t);
                   double number5r = b_C_r(n,5,m,x,t);
                   double number5i = b_C_i(n,5,m,x,t);
+#ifdef WITH_MPI
                   MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
@@ -583,6 +588,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+#endif
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
@@ -612,6 +618,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   double number4i = b_C_i(n,4,m,x,t);
                   double number5r = b_C_r(n,5,m,x,t);
                   double number5i = b_C_i(n,5,m,x,t);
+#ifdef WITH_MPI
                   MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
@@ -624,6 +631,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+#endif
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
@@ -649,6 +657,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   double number2i = b_C_i(n,2,m,x,t);
                   double number4r = b_C_r(n,4,m,x,t);
                   double number4i = b_C_i(n,4,m,x,t);
+#ifdef WITH_MPI
                   MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
@@ -657,6 +666,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                   MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
                   MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+#endif
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number4r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0r;
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number2r;
@@ -681,8 +691,10 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
 
 int main(int, char **)
 {
+   int rank = 0;
 #ifdef WITH_MPI
-   int rank = tiramisu_MPI_init();
+   rank = tiramisu_MPI_init();
+#endif
 
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
@@ -1023,6 +1035,7 @@ int main(int, char **)
     std::cout << "\n\n\033[1;32mSuccess: computed values are equal!\033[0m\n\n" << std::endl;
    }
 
+#ifdef WITH_MPI
     tiramisu_MPI_cleanup();
 #endif // WITH_MPI
 
