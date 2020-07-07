@@ -1,3 +1,6 @@
+#include "Halide.h"
+#include <tiramisu/utils.h>
+#include <tiramisu/mpi_comm.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <complex.h>
@@ -14,6 +17,8 @@
 
 
 int main() {
+#ifdef WITH_MPI
+   int rank = tiramisu_MPI_init();
 
   int Vsrc = P_Vsrc;
   int Vsnk = P_Vsnk;
@@ -30,16 +35,17 @@ int main() {
   int Nw = P_Nw;
   int Nperms = P_Nperms;
 
-   printf("starting block main\n");
+   if (rank == 0)
+      printf("starting block main\n");
    time_t start,end;
    time (&start);
    double dif;
    int iCprime, iSprime, jCprime, jSprime, kCprime, kSprime, iC, iS, jC, jS, kC, kS, x, x1, x2, t, y, nB1, nB2, q, n, m, wnum, i, k, r, b;
    double mq = P_mq;
-   double* B1_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B1_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B2_prop_re = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
-   double* B2_prop_im = malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B1_prop_re = (double*) malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B1_prop_im = (double*) malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B2_prop_re = (double*) malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
+   double* B2_prop_im = (double*) malloc(Nq * Nt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * sizeof (double));
    for (q = 0; q < Nq; q++) {
       for (t = 0; t < Nt; t++) {
          for (iC = 0; iC < Nc; iC++) {
@@ -68,17 +74,18 @@ int main() {
          }
       }
    }
-   printf("built props\n");
+   if (rank == 0)
+      printf("built props\n");
    int B1_G1g_r1_color_weights[9][3] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
    int B1_G1g_r1_spin_weights[9][3] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
    double B1_G1g_r1_weights[9] = {-2/ sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
    int B1_G1g_r2_color_weights[9][3] = { {0,1,2}, {0,2,1}, {1,0,2} ,{1,2,0}, {2,1,0}, {2,0,1}, {0,1,2}, {0,2,1}, {1,0,2} };
    int B1_G1g_r2_spin_weights[9][3] = { {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {1,0,1}, {1,0,1}, {1,0,1} };
    double B1_G1g_r2_weights[9] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -2/sqrt(2), 2/sqrt(2), 2/sqrt(2)};
-   int* src_color_weights_r1 = malloc(Nw * Nq * sizeof (int));
-   int* src_color_weights_r2 = malloc(Nw * Nq * sizeof (int));
-   int* src_spin_weights_r1 = malloc(Nw * Nq * sizeof (int));
-   int* src_spin_weights_r2 = malloc(Nw * Nq * sizeof (int));
+   int* src_color_weights_r1 = (int*) malloc(Nw * Nq * sizeof (int));
+   int* src_color_weights_r2 = (int*) malloc(Nw * Nq * sizeof (int));
+   int* src_spin_weights_r1 = (int*) malloc(Nw * Nq * sizeof (int));
+   int* src_spin_weights_r2 = (int*) malloc(Nw * Nq * sizeof (int));
    double src_weights_r1[Nw];
    double src_weights_r2[Nw];
    for (wnum = 0; wnum < Nw; wnum++) {
@@ -91,10 +98,11 @@ int main() {
       src_weights_r1[wnum] = B1_G1g_r1_weights[wnum];
       src_weights_r2[wnum] = B1_G1g_r2_weights[wnum];
    }
-   printf("built weights\n");
+   if (rank == 0)
+      printf("built weights\n");
    int perms_array[36][6] = { {1,2,3,4,5,6}, {1, 4, 3, 2, 5, 6}, {1, 6, 3, 2, 5, 4}, {1, 2, 3, 6, 5, 4}, {1, 4, 3, 6, 5, 2}, {1, 6, 3, 4, 5, 2}, {3, 2, 1, 4, 5, 6}, {3, 4, 1, 2, 5, 6}, {3, 6, 1, 2, 5, 4}, {3, 2, 1, 6, 5, 4}, {3, 4, 1, 6, 5, 2}, {3, 6, 1, 4, 5, 2}, {5, 2, 1, 4, 3, 6}, {5, 4, 1, 2, 3, 6}, {5, 6, 1, 2, 3, 4}, {5, 2, 1, 6, 3, 4}, {5, 4, 1, 6, 3, 2}, {5, 6, 1, 4, 3, 2}, {1, 2, 5, 4, 3, 6}, {1, 4, 5, 2, 3, 6}, {1, 6, 5, 2, 3, 4}, {1, 2, 5, 6, 3, 4}, {1, 4, 5, 6, 3, 2}, {1, 6, 5, 4, 3, 2}, {3, 2, 5, 4, 1, 6}, {3, 4, 5, 2, 1, 6}, {3, 6, 5, 2, 1, 4}, {3, 2, 5, 6, 1, 4}, {3, 4, 5, 6, 1, 2}, {3, 6, 5, 4, 1, 2}, {5, 2, 3, 4, 1, 6}, {5, 4, 3, 2, 1, 6}, {5, 6, 3, 2, 1, 4}, {5, 2, 3, 6, 1, 4}, {5, 4, 3, 6, 1, 2}, {5, 6, 3, 4, 1, 2} };
    int sigs_array[36] = {1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1};
-   int* perms = malloc(Nperms * 2*Nq * sizeof (int));
+   int* perms = (int*) malloc(Nperms * 2*Nq * sizeof (int));
    int sigs[Nperms];
    int permnum = 0;
    for (i = 0; i < 36; i++) {
@@ -112,11 +120,12 @@ int main() {
          permnum += 1;
       }
    }
-   printf("read %d perms \n", permnum);
-   double* src_psi_B1_re = malloc(Nsrc * Vsrc * sizeof (double));
-   double* src_psi_B1_im = malloc(Nsrc * Vsrc * sizeof (double));
-   double* src_psi_B2_re = malloc(Nsrc * Vsrc * sizeof (double));
-   double* src_psi_B2_im = malloc(Nsrc * Vsrc * sizeof (double));
+   if (rank == 0)
+      printf("read %d perms \n", permnum);
+   double* src_psi_B1_re = (double*) malloc(Nsrc * Vsrc * sizeof (double));
+   double* src_psi_B1_im = (double*) malloc(Nsrc * Vsrc * sizeof (double));
+   double* src_psi_B2_re = (double*) malloc(Nsrc * Vsrc * sizeof (double));
+   double* src_psi_B2_im = (double*) malloc(Nsrc * Vsrc * sizeof (double));
 
    for (k = 0; k < Nsrc; k++) {
       for (x = 0; x < Vsrc; x++) {
@@ -126,10 +135,10 @@ int main() {
          src_psi_B2_im[index_2d(x,k ,Nsrc)] = 0.0;
       }
    }
-   double* snk_psi_B1_re = malloc(Nsnk * Vsnk * sizeof (double));
-   double* snk_psi_B1_im = malloc(Nsnk * Vsnk * sizeof (double));
-   double* snk_psi_B2_re = malloc(Nsnk * Vsnk * sizeof (double));
-   double* snk_psi_B2_im = malloc(Nsnk * Vsnk * sizeof (double));
+   double* snk_psi_B1_re = (double*) malloc(Nsnk * Vsnk * sizeof (double));
+   double* snk_psi_B1_im = (double*) malloc(Nsnk * Vsnk * sizeof (double));
+   double* snk_psi_B2_re = (double*) malloc(Nsnk * Vsnk * sizeof (double));
+   double* snk_psi_B2_im = (double*) malloc(Nsnk * Vsnk * sizeof (double));
    for (k = 0; k < Nsnk; k++) {
       for (x = 0; x < Vsnk; x++) {
          snk_psi_B1_re[index_2d(x,k ,Nsnk)] = 1.0;
@@ -138,10 +147,10 @@ int main() {
          snk_psi_B2_im[index_2d(x,k ,Nsnk)] = 0.0;
       }
    }
-   double* hex_src_psi_re = malloc(NsrcHex * Vsrc * sizeof (double));
-   double* hex_src_psi_im = malloc(NsrcHex * Vsrc * sizeof (double));
-   double* hex_snk_psi_re = malloc(NsnkHex * Vsnk * sizeof (double));
-   double* hex_snk_psi_im = malloc(NsnkHex * Vsnk * sizeof (double));
+   double* hex_src_psi_re = (double*) malloc(NsrcHex * Vsrc * sizeof (double));
+   double* hex_src_psi_im = (double*) malloc(NsrcHex * Vsrc * sizeof (double));
+   double* hex_snk_psi_re = (double*) malloc(NsnkHex * Vsnk * sizeof (double));
+   double* hex_snk_psi_im = (double*) malloc(NsnkHex * Vsnk * sizeof (double));
    for (k = 0; k < NsrcHex; k++) {
       for (y = 0; y < Vsrc; y++) {
          hex_src_psi_re[index_2d(y,k ,NsrcHex)] = 1.0;
@@ -154,8 +163,8 @@ int main() {
          hex_snk_psi_im[index_2d(x,k ,NsnkHex)] = 0.0;
       }
    }
-   double* snk_psi_re = malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
-   double* snk_psi_im = malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
+   double* snk_psi_re = (double*) malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
+   double* snk_psi_im = (double*) malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
    for (k = 0; k < Nsnk; k++) {
       for (x = 0; x < Vsnk; x++) {
          for (y = 0; y < Vsnk; y++) {
@@ -164,9 +173,10 @@ int main() {
          }
       }
    }
-   printf("built wavefunctions\n");
-   double* C_B1_re = malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
-   double* C_B1_im = malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
+   if (rank == 0)
+      printf("built wavefunctions\n");
+   double* C_B1_re = (double*) malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
+   double* C_B1_im = (double*) malloc(2 * NsrcHex * NsnkHex * Nt * sizeof (double));
    for (r=0; r<2; r++) {
      for (m=0; m<NsrcHex; m++) {
         for (n=0; n<NsnkHex; n++) {
@@ -178,6 +188,7 @@ int main() {
       }
    }
    tiramisu_make_nucleon_2pt(C_B1_re, C_B1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, NsrcHex, NsnkHex);
+   if (rank == 0) {
    printf("B=1 results\n");
    for (m=0; m<NsrcHex; m++) {
       for (n=0; n<NsnkHex; n++) {
@@ -189,11 +200,13 @@ int main() {
          }
       }
    }
+   }
    time (&end);
    dif = difftime (end,start);
-   printf("total time %5.3f\n",dif); 
-   double* C_re = malloc(4 * (Nsrc+NsrcHex) * (Nsnk+NsnkHex) * Nt * sizeof (double));
-   double* C_im = malloc(4 * (Nsrc+NsrcHex) * (Nsnk+NsnkHex) * Nt * sizeof (double));
+   if (rank == 0)
+      printf("total time %5.3f\n",dif); 
+   double* C_re = (double*) malloc(4 * (Nsrc+NsrcHex) * (Nsnk+NsnkHex) * Nt * sizeof (double));
+   double* C_im = (double*) malloc(4 * (Nsrc+NsrcHex) * (Nsnk+NsnkHex) * Nt * sizeof (double));
    for (b=0; b<4; b++) {
       for (m=0; m<Nsrc+NsrcHex; m++) {
          for (n=0; n<Nsnk+NsnkHex; n++) {
@@ -235,10 +248,12 @@ int main() {
       snk_weights_T1_r2[wnum] = 0.0;
       snk_weights_T1_r3[wnum] = 0.0;
    }
-   printf("starting \n");
+   if (rank == 0)
+      printf("starting \n");
    tiramisu_make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
-   printf("B=2 results\n");
-   int* Vtab = malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));
+   if (rank == 0)
+      printf("B=2 results\n");
+   int* Vtab = (int*) malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));
    for (m=0; m<Nsrc; m++) {
       for (n=0; n<Nsnk; n++) {
          Vtab[index_2d(m,n,Nsnk+NsnkHex)] = 1;
@@ -262,6 +277,7 @@ int main() {
          //Vtab[index_2d(Nsrc+m,Nsnk+n,Nsnk+NsnkHex)] = 1;
       }
    }
+   if (rank == 0) {
    for (m=0; m<Nsrc+NsrcHex; m++) {
       for (n=0; n<Nsnk+NsnkHex; n++) {
          for (t=0; t<Nt; t++) {
@@ -295,8 +311,13 @@ int main() {
          }
       }
    }
+   }
    time (&end);
    dif = difftime (end,start);
-   printf("total time %5.3f\n",dif); 
+   if (rank == 0)
+      printf("total time %5.3f\n",dif); 
+
+    tiramisu_MPI_cleanup();
+#endif // WITH_MPI
    return 0;
 }

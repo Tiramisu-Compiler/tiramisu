@@ -194,20 +194,23 @@ void tiramisu_make_nucleon_2pt(double* C_re,
                } */
       for (int m=0; m<NsrcHex; m++)
          for (int n=0; n<NsnkHex; n++)
-            for (int t=0; t<Lt; t++) 
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t); 
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+            for (int t=0; t<Lt; t++)  {
+               double number0r;
+               double number0i;
+               double number1r;
+               double number1i; 
+               double this_number0r = b_C_r(n,0,m,rank,t);
+               double this_number0i = b_C_i(n,0,m,rank,t);
+               double this_number1r = b_C_r(n,1,m,rank,t);
+               double this_number1i = b_C_i(n,1,m,rank,t); 
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   C_re[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0r;
                   C_re[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1r;
                   C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0i;
-                  C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i;
+                  C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i; 
                }
 
    if (rank == 0) {
@@ -656,102 +659,45 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    }
 
     // symmetrize and such
-    /*  for (int m=0; m<Nsrc; m++)
-         for (int n=0; n<Nsnk; n++)
-            for (int t=0; t<Lt; t++) {
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,4,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,0,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,1,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,4,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,0,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,1,m,t);
-            }
-      for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
-         for (int n=0; n<Nsnk; n++)
-            for (int t=0; t<Lt; t++) {
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,0,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,1,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,0,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,1,m,t);
-            }
-      for (int m=0; m<Nsrc; m++)
-         for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++) {
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,4,m,t);
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_r(n,5,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,0,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,2,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_r(n,3,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_r(n,1,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,4,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * b_C_i(n,5,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,0,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,2,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * b_C_i(n,3,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= b_C_i(n,1,m,t);
-            }
-      for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
-         for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++) {
-               C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,4,m,t);
-               C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,0,m,t);
-               C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,2,m,t);
-               C_re[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_r(n,1,m,t);
-               C_im[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,4,m,t);
-               C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,0,m,t);
-               C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,2,m,t);
-               C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += b_C_i(n,1,m,t);
-            }  */
       for (int m=0; m<Nsrc; m++)
          for (int n=0; n<Nsnk; n++)
-            for (int t=0; t<Lt; t++)
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t);
-                  double number2r = b_C_r(n,2,m,x,t);
-                  double number2i = b_C_i(n,2,m,x,t);
-                  double number3r = b_C_r(n,3,m,x,t);
-                  double number3i = b_C_i(n,3,m,x,t);
-                  double number4r = b_C_r(n,4,m,x,t);
-                  double number4i = b_C_i(n,4,m,x,t);
-                  double number5r = b_C_r(n,5,m,x,t);
-                  double number5i = b_C_i(n,5,m,x,t);
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+            for (int t=0; t<Lt; t++) {
+                  double number0r;
+                  double number0i;
+                  double number1r;
+                  double number1i;
+                  double number2r;
+                  double number2i;
+                  double number3r;
+                  double number3i;
+                  double number4r;
+                  double number4i;
+                  double number5r;
+                  double number5i;
+                  double this_number0r = b_C_r(n,0,m,rank,t);
+                  double this_number0i = b_C_i(n,0,m,rank,t);
+                  double this_number1r = b_C_r(n,1,m,rank,t);
+                  double this_number1i = b_C_i(n,1,m,rank,t);
+                  double this_number2r = b_C_r(n,2,m,rank,t);
+                  double this_number2i = b_C_i(n,2,m,rank,t);
+                  double this_number3r = b_C_r(n,3,m,rank,t);
+                  double this_number3i = b_C_i(n,3,m,rank,t);
+                  double this_number4r = b_C_r(n,4,m,rank,t);
+                  double this_number4i = b_C_i(n,4,m,rank,t);
+                  double this_number5r = b_C_r(n,5,m,rank,t);
+                  double this_number5i = b_C_i(n,5,m,rank,t);
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2r, &number2r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2i, &number2i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3r, &number3r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3i, &number3i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4r, &number4r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4i, &number4i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5r, &number5r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5i, &number5i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number2r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number3r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number4r;
@@ -775,32 +721,43 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
             }
        for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
          for (int n=0; n<Nsnk; n++)
-            for (int t=0; t<Lt; t++)
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t);
-                  double number2r = b_C_r(n,2,m,x,t);
-                  double number2i = b_C_i(n,2,m,x,t);
-                  double number3r = b_C_r(n,3,m,x,t);
-                  double number3i = b_C_i(n,3,m,x,t);
-                  double number4r = b_C_r(n,4,m,x,t);
-                  double number4i = b_C_i(n,4,m,x,t);
-                  double number5r = b_C_r(n,5,m,x,t);
-                  double number5i = b_C_i(n,5,m,x,t);
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+            for (int t=0; t<Lt; t++) {
+                  double number0r;
+                  double number0i;
+                  double number1r;
+                  double number1i;
+                  double number2r;
+                  double number2i;
+                  double number3r;
+                  double number3i;
+                  double number4r;
+                  double number4i;
+                  double number5r;
+                  double number5i;
+                  double this_number0r = b_C_r(n,0,m,rank,t);
+                  double this_number0i = b_C_i(n,0,m,rank,t);
+                  double this_number1r = b_C_r(n,1,m,rank,t);
+                  double this_number1i = b_C_i(n,1,m,rank,t);
+                  double this_number2r = b_C_r(n,2,m,rank,t);
+                  double this_number2i = b_C_i(n,2,m,rank,t);
+                  double this_number3r = b_C_r(n,3,m,rank,t);
+                  double this_number3i = b_C_i(n,3,m,rank,t);
+                  double this_number4r = b_C_r(n,4,m,rank,t);
+                  double this_number4i = b_C_i(n,4,m,rank,t);
+                  double this_number5r = b_C_r(n,5,m,rank,t);
+                  double this_number5i = b_C_i(n,5,m,rank,t);
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2r, &number2r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2i, &number2i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3r, &number3r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3i, &number3i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4r, &number4r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4i, &number4i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5r, &number5r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5i, &number5i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
@@ -816,32 +773,43 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
             }
       for (int m=0; m<Nsrc; m++)
          for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++)
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t);
-                  double number2r = b_C_r(n,2,m,x,t);
-                  double number2i = b_C_i(n,2,m,x,t);
-                  double number3r = b_C_r(n,3,m,x,t);
-                  double number3i = b_C_i(n,3,m,x,t);
-                  double number4r = b_C_r(n,4,m,x,t);
-                  double number4i = b_C_i(n,4,m,x,t);
-                  double number5r = b_C_r(n,5,m,x,t);
-                  double number5i = b_C_i(n,5,m,x,t);
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number3i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number5i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+            for (int t=0; t<Lt; t++) {
+                  double number0r;
+                  double number0i;
+                  double number1r;
+                  double number1i;
+                  double number2r;
+                  double number2i;
+                  double number3r;
+                  double number3i;
+                  double number4r;
+                  double number4i;
+                  double number5r;
+                  double number5i;
+                  double this_number0r = b_C_r(n,0,m,rank,t);
+                  double this_number0i = b_C_i(n,0,m,rank,t);
+                  double this_number1r = b_C_r(n,1,m,rank,t);
+                  double this_number1i = b_C_i(n,1,m,rank,t);
+                  double this_number2r = b_C_r(n,2,m,rank,t);
+                  double this_number2i = b_C_i(n,2,m,rank,t);
+                  double this_number3r = b_C_r(n,3,m,rank,t);
+                  double this_number3i = b_C_i(n,3,m,rank,t);
+                  double this_number4r = b_C_r(n,4,m,rank,t);
+                  double this_number4i = b_C_i(n,4,m,rank,t);
+                  double this_number5r = b_C_r(n,5,m,rank,t);
+                  double this_number5i = b_C_i(n,5,m,rank,t);
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2r, &number2r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2i, &number2i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3r, &number3r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number3i, &number3i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4r, &number4r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4i, &number4i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5r, &number5r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number5i, &number5i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += 1/sqrt(2) * number4r;
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= 1/sqrt(2) * number5r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -= number0r;
@@ -857,24 +825,31 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
             }
       for (int m=Nsrc; m<Nsrc+NsrcHex; m++)
          for (int n=Nsnk; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++)
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t);
-                  double number2r = b_C_r(n,2,m,x,t);
-                  double number2i = b_C_i(n,2,m,x,t);
-                  double number4r = b_C_r(n,4,m,x,t);
-                  double number4i = b_C_i(n,4,m,x,t);
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number2i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number4i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
+            for (int t=0; t<Lt; t++) {
+                  double number0r;
+                  double number0i;
+                  double number1r;
+                  double number1i;
+                  double number2r;
+                  double number2i;
+                  double number4r;
+                  double number4i;
+                  double this_number0r = b_C_r(n,0,m,rank,t);
+                  double this_number0i = b_C_i(n,0,m,rank,t);
+                  double this_number1r = b_C_r(n,1,m,rank,t);
+                  double this_number1i = b_C_i(n,1,m,rank,t);
+                  double this_number2r = b_C_r(n,2,m,rank,t);
+                  double this_number2i = b_C_i(n,2,m,rank,t);
+                  double this_number4r = b_C_r(n,4,m,rank,t);
+                  double this_number4i = b_C_i(n,4,m,rank,t);
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2r, &number2r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number2i, &number2i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4r, &number4r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number4i, &number4i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                C_re[index_4d(0,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number4r;
                C_re[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0r;
                C_re[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number2r;
@@ -883,7 +858,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
                C_im[index_4d(1,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number0i;
                C_im[index_4d(2,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number2i;
                C_im[index_4d(3,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] += number1i;
-            }
+            } 
 
    if (rank == 0) {
    for (int b=0; b<4; b++) {

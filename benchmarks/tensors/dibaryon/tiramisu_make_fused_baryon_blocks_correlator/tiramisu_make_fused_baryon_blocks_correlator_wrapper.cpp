@@ -192,25 +192,46 @@ void tiramisu_make_nucleon_2pt(double* C_re,
                   C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += b_C_i(n,0,m,t);
                   C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += b_C_i(n,1,m,t);
                } */
+#ifdef WITH_MPI
       for (int m=0; m<NsrcHex; m++)
          for (int n=0; n<NsnkHex; n++)
-            for (int t=0; t<Lt; t++) 
-               for (int x=0; x<Vsnk; x++) {
-                  double number0r = b_C_r(n,0,m,x,t);
-                  double number0i = b_C_i(n,0,m,x,t);
-                  double number1r = b_C_r(n,1,m,x,t);
-                  double number1i = b_C_i(n,1,m,x,t); 
-#ifdef WITH_MPI
-                  MPI_Bcast(&number0r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number0i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1r, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-                  MPI_Bcast(&number1i, 1, MPI_DOUBLE, x, MPI_COMM_WORLD);
-#endif
+            for (int t=0; t<Lt; t++)  {
+               double number0r;
+               double number0i;
+               double number1r;
+               double number1i; 
+               double this_number0r = b_C_r(n,0,m,rank,t);
+               double this_number0i = b_C_i(n,0,m,rank,t);
+               double this_number1r = b_C_r(n,1,m,rank,t);
+               double this_number1i = b_C_i(n,1,m,rank,t); 
+               MPI_Allreduce(&this_number0r, &number0r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number0i, &number0i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1r, &number1r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(&this_number1i, &number1i, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   C_re[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0r;
                   C_re[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1r;
                   C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0i;
-                  C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i;
+                  C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i; 
                }
+#else
+      for (int m=0; m<NsrcHex; m++)
+         for (int n=0; n<NsnkHex; n++)
+            for (int t=0; t<Lt; t++)  {
+             for (int x=0; x<Vsnk; x++) {
+               double number0r;
+               double number0i;
+               double number1r;
+               double number1i; 
+               number0r = b_C_r(n,0,m,x,t);
+               number0i = b_C_i(n,0,m,x,t);
+               number1r = b_C_r(n,1,m,x,t);
+               number1i = b_C_i(n,1,m,x,t); 
+                  C_re[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0r;
+                  C_re[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1r;
+                  C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0i;
+                  C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i; 
+               }
+#endif
 
     if (rank == 0) {
    for (int b=0; b<2; b++) {
@@ -232,6 +253,8 @@ int main(int, char **)
 #ifdef WITH_MPI
    rank = tiramisu_MPI_init();
 #endif
+
+   srand(0);
 
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;

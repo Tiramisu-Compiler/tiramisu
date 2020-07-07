@@ -6,7 +6,7 @@
 
 using namespace tiramisu;
 
-#define VECTORIZED 1
+#define VECTORIZED 0
 #define PARALLEL 1
 
 // Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
@@ -393,9 +393,7 @@ void generate_function(std::string name)
     computation B2_Bdouble_r2_r_update("B2_Bdouble_r2_r_update", {t, x, x2, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B2_Bdouble_r2_r_init(t, x, x2, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + double_B2_r2.get_real());
     computation B2_Bdouble_r2_i_update("B2_Bdouble_r2_i_update", {t, x, x2, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B2_Bdouble_r2_i_init(t, x, x2, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + double_B2_r2.get_imag());
     
-    /*
-     * Computing src_B1_Blocal_r1
-     */
+     // Computing src_B1_Blocal_r1
 
     computation src_B1_Blocal_r1_r_init("src_B1_Blocal_r1_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
     computation src_B1_Blocal_r1_i_init("src_B1_Blocal_r1_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
@@ -428,11 +426,9 @@ void generate_function(std::string name)
     complex_expr src_B1_r1 = src_psi_B1 * src_B1_Blocal_r1_props(t, x, iCprime, iSprime, kCprime, kSprime, y, Nw-1, jCprime, jSprime);
 
     computation src_B1_Blocal_r1_r_update("src_B1_Blocal_r1_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B1_Blocal_r1_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B1_r1.get_real());
-    computation src_B1_Blocal_r1_i_update("src_B1_Blocal_r1_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B1_Blocal_r1_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B1_r1.get_imag());
+    computation src_B1_Blocal_r1_i_update("src_B1_Blocal_r1_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B1_Blocal_r1_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B1_r1.get_imag()); 
 
-    /*
-     * Computing src_B1_Blocal_r2
-     */
+     // Computing src_B1_Blocal_r2
 
     computation src_B1_Blocal_r2_r_init("src_B1_Blocal_r2_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
     computation src_B1_Blocal_r2_i_init("src_B1_Blocal_r2_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
@@ -467,9 +463,7 @@ void generate_function(std::string name)
     computation src_B1_Blocal_r2_r_update("src_B1_Blocal_r2_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B1_Blocal_r2_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B1_r2.get_real());
     computation src_B1_Blocal_r2_i_update("src_B1_Blocal_r2_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B1_Blocal_r2_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B1_r2.get_imag());
 
-    /*
-     * Computing src_B2_Blocal_r1
-     */
+     // Computing src_B2_Blocal_r1
 
     computation src_B2_Blocal_r1_r_init("src_B2_Blocal_r1_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
     computation src_B2_Blocal_r1_i_init("src_B2_Blocal_r1_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
@@ -504,9 +498,7 @@ void generate_function(std::string name)
     computation src_B2_Blocal_r1_r_update("src_B2_Blocal_r1_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B2_Blocal_r1_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B2_r1.get_real());
     computation src_B2_Blocal_r1_i_update("src_B2_Blocal_r1_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B2_Blocal_r1_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B2_r1.get_imag());
 
-    /*
-     * Computing src_B2_Blocal_r2
-     */
+     // Computing src_B2_Blocal_r2
 
     computation src_B2_Blocal_r2_r_init("src_B2_Blocal_r2_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
     computation src_B2_Blocal_r2_i_init("src_B2_Blocal_r2_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
@@ -541,20 +533,18 @@ void generate_function(std::string name)
     computation src_B2_Blocal_r2_r_update("src_B2_Blocal_r2_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B2_Blocal_r2_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B2_r2.get_real());
     computation src_B2_Blocal_r2_i_update("src_B2_Blocal_r2_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, src_B2_Blocal_r2_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + src_B2_r2.get_imag());
     
-    /*
-     * Computing snk_B1_Blocal_r1
-     */
+     // Computing snk_B1_Blocal_r1
 
     computation snk_B1_Blocal_r1_r_init("snk_B1_Blocal_r1_r_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
     computation snk_B1_Blocal_r1_i_init("snk_B1_Blocal_r1_i_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
 
     complex_computation snk_B1_Blocal_r1_init(&snk_B1_Blocal_r1_r_init, &snk_B1_Blocal_r1_i_init);
 
-    complex_expr snk_B1_r1_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr snk_B1_r1_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr snk_B1_r1_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr snk_B1_r1_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr snk_B1_r1_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), x, y);
+    complex_expr snk_B1_r1_prop_0 =  B1_prop(0, t, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), iCprime, iSprime, x, y);
+    complex_expr snk_B1_r1_prop_2 =  B1_prop(2, t, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), kCprime, kSprime, x, y);
+    complex_expr snk_B1_r1_prop_0p = B1_prop(0, t, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), kCprime, kSprime, x, y);
+    complex_expr snk_B1_r1_prop_2p = B1_prop(2, t, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), iCprime, iSprime, x, y);
+    complex_expr snk_B1_r1_prop_1 = B1_prop(1, t, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), jCprime, jSprime, x, y);
 
     complex_expr snk_B1_r1_diquark = ( snk_B1_r1_prop_0 * snk_B1_r1_prop_2 - snk_B1_r1_prop_0p * snk_B1_r1_prop_2p ) *  src_weights(0, wnumBlock);
 
@@ -578,20 +568,18 @@ void generate_function(std::string name)
     computation snk_B1_Blocal_r1_r_update("snk_B1_Blocal_r1_r_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B1_Blocal_r1_r_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B1_r1.get_real());
     computation snk_B1_Blocal_r1_i_update("snk_B1_Blocal_r1_i_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B1_Blocal_r1_i_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B1_r1.get_imag());
 
-    /*
-     * Computing snk_B1_Blocal_r2
-     */
+     // Computing snk_B1_Blocal_r2
 
     computation snk_B1_Blocal_r2_r_init("snk_B1_Blocal_r2_r_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
     computation snk_B1_Blocal_r2_i_init("snk_B1_Blocal_r2_i_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
 
     complex_computation snk_B1_Blocal_r2_init(&snk_B1_Blocal_r2_r_init, &snk_B1_Blocal_r2_i_init);
 
-    complex_expr snk_B1_r2_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr snk_B1_r2_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr snk_B1_r2_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr snk_B1_r2_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr snk_B1_r2_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), x, y);
+    complex_expr snk_B1_r2_prop_0 =  B1_prop(0, t, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), iCprime, iSprime, x, y);
+    complex_expr snk_B1_r2_prop_2 =  B1_prop(2, t, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), kCprime, kSprime, x, y);
+    complex_expr snk_B1_r2_prop_0p = B1_prop(0, t, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), kCprime, kSprime, x, y);
+    complex_expr snk_B1_r2_prop_2p = B1_prop(2, t, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), iCprime, iSprime, x, y);
+    complex_expr snk_B1_r2_prop_1 = B1_prop(1, t, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), jCprime, jSprime, x, y);
 
     complex_expr snk_B1_r2_diquark = ( snk_B1_r2_prop_0 * snk_B1_r2_prop_2 - snk_B1_r2_prop_0p * snk_B1_r2_prop_2p ) *  src_weights(1, wnumBlock);
 
@@ -613,22 +601,20 @@ void generate_function(std::string name)
     complex_expr snk_B1_r2 = snk_psi_B1 * snk_B1_Blocal_r2_props(t, y, iCprime, iSprime, kCprime, kSprime, x, Nw-1, jCprime, jSprime);
 
     computation snk_B1_Blocal_r2_r_update("snk_B1_Blocal_r2_r_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B1_Blocal_r2_r_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B1_r2.get_real());
-    computation snk_B1_Blocal_r2_i_update("snk_B1_Blocal_r2_i_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B1_Blocal_r2_i_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B1_r2.get_imag());
+    computation snk_B1_Blocal_r2_i_update("snk_B1_Blocal_r2_i_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B1_Blocal_r2_i_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B1_r2.get_imag()); 
 
-    /*
-     * Computing snk_B2_Blocal_r1
-     */
+     // Computing snk_B2_Blocal_r1
 
     computation snk_B2_Blocal_r1_r_init("snk_B2_Blocal_r1_r_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
     computation snk_B2_Blocal_r1_i_init("snk_B2_Blocal_r1_i_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
 
     complex_computation snk_B2_Blocal_r1_init(&snk_B2_Blocal_r1_r_init, &snk_B2_Blocal_r1_i_init);
 
-    complex_expr snk_B2_r1_prop_0 =  B2_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr snk_B2_r1_prop_2 =  B2_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr snk_B2_r1_prop_0p = B2_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr snk_B2_r1_prop_2p = B2_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr snk_B2_r1_prop_1 = B2_prop(1, t, jCprime, jSprime, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), x, y);
+    complex_expr snk_B2_r1_prop_0 =  B2_prop(0, t, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), iCprime, iSprime, x, y);
+    complex_expr snk_B2_r1_prop_2 =  B2_prop(2, t, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), kCprime, kSprime, x, y);
+    complex_expr snk_B2_r1_prop_0p = B2_prop(0, t, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), kCprime, kSprime, x, y);
+    complex_expr snk_B2_r1_prop_2p = B2_prop(2, t, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), iCprime, iSprime, x, y);
+    complex_expr snk_B2_r1_prop_1 = B2_prop(1, t, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), jCprime, jSprime, x, y);
 
     complex_expr snk_B2_r1_diquark = ( snk_B2_r1_prop_0 * snk_B2_r1_prop_2 - snk_B2_r1_prop_0p * snk_B2_r1_prop_2p ) *  src_weights(0, wnumBlock);
 
@@ -652,20 +638,18 @@ void generate_function(std::string name)
     computation snk_B2_Blocal_r1_r_update("snk_B2_Blocal_r1_r_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B2_Blocal_r1_r_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B2_r1.get_real());
     computation snk_B2_Blocal_r1_i_update("snk_B2_Blocal_r1_i_update", {t, y, iCprime, iSprime, kCprime, kSprime, x, jCprime, jSprime, n}, snk_B2_Blocal_r1_i_init(t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n) + snk_B2_r1.get_imag());
 
-    /*
-     * Computing snk_B2_Blocal_r2
-     */
+     // Computing snk_B2_Blocal_r2
 
     computation snk_B2_Blocal_r2_r_init("snk_B2_Blocal_r2_r_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
     computation snk_B2_Blocal_r2_i_init("snk_B2_Blocal_r2_i_init", {t, y, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n}, expr((double) 0));
 
     complex_computation snk_B2_Blocal_r2_init(&snk_B2_Blocal_r2_r_init, &snk_B2_Blocal_r2_i_init);
 
-    complex_expr snk_B2_r2_prop_0 =  B2_prop(0, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr snk_B2_r2_prop_2 =  B2_prop(2, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr snk_B2_r2_prop_0p = B2_prop(0, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr snk_B2_r2_prop_2p = B2_prop(2, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr snk_B2_r2_prop_1 = B2_prop(1, t, jCprime, jSprime, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), x, y);
+    complex_expr snk_B2_r2_prop_0 =  B2_prop(0, t, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), iCprime, iSprime, x, y);
+    complex_expr snk_B2_r2_prop_2 =  B2_prop(2, t, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), kCprime, kSprime, x, y);
+    complex_expr snk_B2_r2_prop_0p = B2_prop(0, t, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), kCprime, kSprime, x, y);
+    complex_expr snk_B2_r2_prop_2p = B2_prop(2, t, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), iCprime, iSprime, x, y);
+    complex_expr snk_B2_r2_prop_1 = B2_prop(1, t, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), jCprime, jSprime, x, y);
 
     complex_expr snk_B2_r2_diquark = ( snk_B2_r2_prop_0 * snk_B2_r2_prop_2 - snk_B2_r2_prop_0p * snk_B2_r2_prop_2p ) *  src_weights(1, wnumBlock);
 
@@ -864,7 +848,7 @@ void generate_function(std::string name)
     complex_expr H_H_term = hex_src_psi * hex_snk_psi * C_H_H_prop_update(t, x, r, y, Nperms-1, Nw2Hex-1, Nw2Hex-1);
 
     computation C_H_H_update_r("C_H_H_update_r", {t, x, r, y, mH, nH}, C_init_r(t, x, Nsrc+mH, r, Nsnk+nH) + H_H_term.get_real());
-    computation C_H_H_update_i("C_H_H_update_i", {t, x, r, y, mH, nH}, C_init_i(t, x, Nsrc+mH, r, Nsnk+nH) + H_H_term.get_imag()); 
+    computation C_H_H_update_i("C_H_H_update_i", {t, x, r, y, mH, nH}, C_init_i(t, x, Nsrc+mH, r, Nsnk+nH) + H_H_term.get_imag());
 
     // -------------------------------------------------------
     // Layer II
@@ -1168,7 +1152,7 @@ void generate_function(std::string name)
           .then(C_H_H_prop_update_i, wnumHexHex)
           .then(C_H_H_update_r, y) 
           .then(C_H_H_update_i, nH) 
-          ); 
+          );
 
 #if VECTORIZED
 
@@ -1211,6 +1195,14 @@ void generate_function(std::string name)
     B1_Bsingle_r1_i_update.store_in(&buf_B1_Bsingle_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B1_Bdouble_r1_r_update.store_in(&buf_B1_Bdouble_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B1_Bdouble_r1_i_update.store_in(&buf_B1_Bdouble_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_B1_Blocal_diquark_r1_r("buf_B1_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_diquark_r1_i("buf_B1_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Bdouble_diquark_r1_r("buf_B1_Bdouble_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Bdouble_diquark_r1_i("buf_B1_Bdouble_diquark_r1_i",   {1}, p_float64, a_temporary);
+    B1_Blocal_r1_r_diquark.store_in(&buf_B1_Blocal_diquark_r1_r, {0});
+    B1_Blocal_r1_i_diquark.store_in(&buf_B1_Blocal_diquark_r1_i, {0});
+    B1_Bdouble_r1_r_diquark.store_in(&buf_B1_Bdouble_diquark_r1_r, {0});
+    B1_Bdouble_r1_i_diquark.store_in(&buf_B1_Bdouble_diquark_r1_i, {0}); 
     buffer buf_B1_Blocal_props_r1_r("buf_B1_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Blocal_props_r1_i("buf_B1_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_props_r1_r("buf_B1_Bsingle_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
@@ -1248,6 +1240,14 @@ void generate_function(std::string name)
     B1_Bsingle_r2_i_update.store_in(&buf_B1_Bsingle_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B1_Bdouble_r2_r_update.store_in(&buf_B1_Bdouble_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B1_Bdouble_r2_i_update.store_in(&buf_B1_Bdouble_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_B1_Blocal_diquark_r2_r("buf_B1_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Blocal_diquark_r2_i("buf_B1_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Bdouble_diquark_r2_r("buf_B1_Bdouble_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_B1_Bdouble_diquark_r2_i("buf_B1_Bdouble_diquark_r2_i",   {1}, p_float64, a_temporary);
+    B1_Blocal_r2_r_diquark.store_in(&buf_B1_Blocal_diquark_r2_r, {0});
+    B1_Blocal_r2_i_diquark.store_in(&buf_B1_Blocal_diquark_r2_i, {0});
+    B1_Bdouble_r2_r_diquark.store_in(&buf_B1_Bdouble_diquark_r2_r, {0});
+    B1_Bdouble_r2_i_diquark.store_in(&buf_B1_Bdouble_diquark_r2_i, {0}); 
     buffer buf_B1_Blocal_props_r2_r("buf_B1_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Blocal_props_r2_i("buf_B1_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B1_Bsingle_props_r2_r("buf_B1_Bsingle_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
@@ -1285,6 +1285,14 @@ void generate_function(std::string name)
     B2_Bsingle_r1_i_update.store_in(&buf_B2_Bsingle_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B2_Bdouble_r1_r_update.store_in(&buf_B2_Bdouble_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B2_Bdouble_r1_i_update.store_in(&buf_B2_Bdouble_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_B2_Blocal_diquark_r1_r("buf_B2_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_diquark_r1_i("buf_B2_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Bdouble_diquark_r1_r("buf_B2_Bdouble_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Bdouble_diquark_r1_i("buf_B2_Bdouble_diquark_r1_i",   {1}, p_float64, a_temporary);
+    B2_Blocal_r1_r_diquark.store_in(&buf_B2_Blocal_diquark_r1_r, {0});
+    B2_Blocal_r1_i_diquark.store_in(&buf_B2_Blocal_diquark_r1_i, {0});
+    B2_Bdouble_r1_r_diquark.store_in(&buf_B2_Bdouble_diquark_r1_r, {0});
+    B2_Bdouble_r1_i_diquark.store_in(&buf_B2_Bdouble_diquark_r1_i, {0}); 
     buffer buf_B2_Blocal_props_r1_r("buf_B2_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Blocal_props_r1_i("buf_B2_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_props_r1_r("buf_B2_Bsingle_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
@@ -1322,6 +1330,14 @@ void generate_function(std::string name)
     B2_Bsingle_r2_i_update.store_in(&buf_B2_Bsingle_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B2_Bdouble_r2_r_update.store_in(&buf_B2_Bdouble_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     B2_Bdouble_r2_i_update.store_in(&buf_B2_Bdouble_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_B2_Blocal_diquark_r2_r("buf_B2_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Blocal_diquark_r2_i("buf_B2_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Bdouble_diquark_r2_r("buf_B2_Bdouble_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_B2_Bdouble_diquark_r2_i("buf_B2_Bdouble_diquark_r2_i",   {1}, p_float64, a_temporary);
+    B2_Blocal_r2_r_diquark.store_in(&buf_B2_Blocal_diquark_r2_r, {0});
+    B2_Blocal_r2_i_diquark.store_in(&buf_B2_Blocal_diquark_r2_i, {0});
+    B2_Bdouble_r2_r_diquark.store_in(&buf_B2_Bdouble_diquark_r2_r, {0});
+    B2_Bdouble_r2_i_diquark.store_in(&buf_B2_Bdouble_diquark_r2_i, {0}); 
     buffer buf_B2_Blocal_props_r2_r("buf_B2_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Blocal_props_r2_i("buf_B2_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_B2_Bsingle_props_r2_r("buf_B2_Bsingle_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
@@ -1347,6 +1363,10 @@ void generate_function(std::string name)
     src_B1_Blocal_r1_i_init.store_in(&buf_src_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B1_Blocal_r1_r_update.store_in(&buf_src_B1_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B1_Blocal_r1_i_update.store_in(&buf_src_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_src_B1_Blocal_diquark_r1_r("buf_src_B1_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_src_B1_Blocal_diquark_r1_i("buf_src_B1_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    src_B1_Blocal_r1_r_diquark.store_in(&buf_src_B1_Blocal_diquark_r1_r, {0});
+    src_B1_Blocal_r1_i_diquark.store_in(&buf_src_B1_Blocal_diquark_r1_i, {0});
     buffer buf_src_B1_Blocal_props_r1_r("buf_src_B1_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_src_B1_Blocal_props_r1_i("buf_src_B1_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     src_B1_Blocal_r1_r_props_init.store_in(&buf_src_B1_Blocal_props_r1_r, {jCprime, jSprime});
@@ -1360,6 +1380,10 @@ void generate_function(std::string name)
     src_B1_Blocal_r2_i_init.store_in(&buf_src_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B1_Blocal_r2_r_update.store_in(&buf_src_B1_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B1_Blocal_r2_i_update.store_in(&buf_src_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_src_B1_Blocal_diquark_r2_r("buf_src_B1_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_src_B1_Blocal_diquark_r2_i("buf_src_B1_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    src_B1_Blocal_r2_r_diquark.store_in(&buf_src_B1_Blocal_diquark_r2_r, {0});
+    src_B1_Blocal_r2_i_diquark.store_in(&buf_src_B1_Blocal_diquark_r2_i, {0});
     buffer buf_src_B1_Blocal_props_r2_r("buf_src_B1_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_src_B1_Blocal_props_r2_i("buf_src_B1_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     src_B1_Blocal_r2_r_props_init.store_in(&buf_src_B1_Blocal_props_r2_r, {jCprime, jSprime});
@@ -1373,6 +1397,10 @@ void generate_function(std::string name)
     src_B2_Blocal_r1_i_init.store_in(&buf_src_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B2_Blocal_r1_r_update.store_in(&buf_src_B2_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B2_Blocal_r1_i_update.store_in(&buf_src_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_src_B2_Blocal_diquark_r1_r("buf_src_B2_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_src_B2_Blocal_diquark_r1_i("buf_src_B2_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    src_B2_Blocal_r1_r_diquark.store_in(&buf_src_B2_Blocal_diquark_r1_r, {0});
+    src_B2_Blocal_r1_i_diquark.store_in(&buf_src_B2_Blocal_diquark_r1_i, {0});
     buffer buf_src_B2_Blocal_props_r1_r("buf_src_B2_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_src_B2_Blocal_props_r1_i("buf_src_B2_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     src_B2_Blocal_r1_r_props_init.store_in(&buf_src_B2_Blocal_props_r1_r, {jCprime, jSprime});
@@ -1386,6 +1414,10 @@ void generate_function(std::string name)
     src_B2_Blocal_r2_i_init.store_in(&buf_src_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B2_Blocal_r2_r_update.store_in(&buf_src_B2_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
     src_B2_Blocal_r2_i_update.store_in(&buf_src_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m});
+    buffer buf_src_B2_Blocal_diquark_r2_r("buf_src_B2_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_src_B2_Blocal_diquark_r2_i("buf_src_B2_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    src_B2_Blocal_r2_r_diquark.store_in(&buf_src_B2_Blocal_diquark_r2_r, {0});
+    src_B2_Blocal_r2_i_diquark.store_in(&buf_src_B2_Blocal_diquark_r2_i, {0});
     buffer buf_src_B2_Blocal_props_r2_r("buf_src_B2_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_src_B2_Blocal_props_r2_i("buf_src_B2_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     src_B2_Blocal_r2_r_props_init.store_in(&buf_src_B2_Blocal_props_r2_r, {jCprime, jSprime});
@@ -1399,6 +1431,10 @@ void generate_function(std::string name)
     snk_B1_Blocal_r1_i_init.store_in(&buf_snk_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B1_Blocal_r1_r_update.store_in(&buf_snk_B1_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B1_Blocal_r1_i_update.store_in(&buf_snk_B1_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
+    buffer buf_snk_B1_Blocal_diquark_r1_r("buf_snk_B1_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_snk_B1_Blocal_diquark_r1_i("buf_snk_B1_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    snk_B1_Blocal_r1_r_diquark.store_in(&buf_snk_B1_Blocal_diquark_r1_r, {0});
+    snk_B1_Blocal_r1_i_diquark.store_in(&buf_snk_B1_Blocal_diquark_r1_i, {0});
     buffer buf_snk_B1_Blocal_props_r1_r("buf_snk_B1_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_snk_B1_Blocal_props_r1_i("buf_snk_B1_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     snk_B1_Blocal_r1_r_props_init.store_in(&buf_snk_B1_Blocal_props_r1_r, {jCprime, jSprime});
@@ -1412,6 +1448,10 @@ void generate_function(std::string name)
     snk_B1_Blocal_r2_i_init.store_in(&buf_snk_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B1_Blocal_r2_r_update.store_in(&buf_snk_B1_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B1_Blocal_r2_i_update.store_in(&buf_snk_B1_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
+    buffer buf_snk_B1_Blocal_diquark_r2_r("buf_snk_B1_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_snk_B1_Blocal_diquark_r2_i("buf_snk_B1_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    snk_B1_Blocal_r2_r_diquark.store_in(&buf_snk_B1_Blocal_diquark_r2_r, {0});
+    snk_B1_Blocal_r2_i_diquark.store_in(&buf_snk_B1_Blocal_diquark_r2_i, {0});
     buffer buf_snk_B1_Blocal_props_r2_r("buf_snk_B1_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_snk_B1_Blocal_props_r2_i("buf_snk_B1_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     snk_B1_Blocal_r2_r_props_init.store_in(&buf_snk_B1_Blocal_props_r2_r, {jCprime, jSprime});
@@ -1425,6 +1465,10 @@ void generate_function(std::string name)
     snk_B2_Blocal_r1_i_init.store_in(&buf_snk_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B2_Blocal_r1_r_update.store_in(&buf_snk_B2_Blocal_r1_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B2_Blocal_r1_i_update.store_in(&buf_snk_B2_Blocal_r1_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
+    buffer buf_snk_B2_Blocal_diquark_r1_r("buf_snk_B2_Blocal_diquark_r1_r",   {1}, p_float64, a_temporary);
+    buffer buf_snk_B2_Blocal_diquark_r1_i("buf_snk_B2_Blocal_diquark_r1_i",   {1}, p_float64, a_temporary);
+    snk_B2_Blocal_r1_r_diquark.store_in(&buf_snk_B2_Blocal_diquark_r1_r, {0});
+    snk_B2_Blocal_r1_i_diquark.store_in(&buf_snk_B2_Blocal_diquark_r1_i, {0});
     buffer buf_snk_B2_Blocal_props_r1_r("buf_snk_B2_Blocal_props_r1_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_snk_B2_Blocal_props_r1_i("buf_snk_B2_Blocal_props_r1_i",   {Nc, Ns}, p_float64, a_temporary);
     snk_B2_Blocal_r1_r_props_init.store_in(&buf_snk_B2_Blocal_props_r1_r, {jCprime, jSprime});
@@ -1438,12 +1482,17 @@ void generate_function(std::string name)
     snk_B2_Blocal_r2_i_init.store_in(&buf_snk_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B2_Blocal_r2_r_update.store_in(&buf_snk_B2_Blocal_r2_r, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
     snk_B2_Blocal_r2_i_update.store_in(&buf_snk_B2_Blocal_r2_i, {iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, n});
+    buffer buf_snk_B2_Blocal_diquark_r2_r("buf_snk_B2_Blocal_diquark_r2_r",   {1}, p_float64, a_temporary);
+    buffer buf_snk_B2_Blocal_diquark_r2_i("buf_snk_B2_Blocal_diquark_r2_i",   {1}, p_float64, a_temporary);
+    snk_B2_Blocal_r2_r_diquark.store_in(&buf_snk_B2_Blocal_diquark_r2_r, {0});
+    snk_B2_Blocal_r2_i_diquark.store_in(&buf_snk_B2_Blocal_diquark_r2_i, {0});
     buffer buf_snk_B2_Blocal_props_r2_r("buf_snk_B2_Blocal_props_r2_r",   {Nc, Ns}, p_float64, a_temporary);
     buffer buf_snk_B2_Blocal_props_r2_i("buf_snk_B2_Blocal_props_r2_i",   {Nc, Ns}, p_float64, a_temporary);
     snk_B2_Blocal_r2_r_props_init.store_in(&buf_snk_B2_Blocal_props_r2_r, {jCprime, jSprime});
     snk_B2_Blocal_r2_i_props_init.store_in(&buf_snk_B2_Blocal_props_r2_i, {jCprime, jSprime});
     snk_B2_Blocal_r2_r_props.store_in(&buf_snk_B2_Blocal_props_r2_r, {jCprime, jSprime});
-    snk_B2_Blocal_r2_i_props.store_in(&buf_snk_B2_Blocal_props_r2_i, {jCprime, jSprime}); 
+    snk_B2_Blocal_r2_i_props.store_in(&buf_snk_B2_Blocal_props_r2_i, {jCprime, jSprime});
+
 
     /* Correlator */
 
@@ -1605,7 +1654,7 @@ void generate_function(std::string name)
     C_H_H_prop_update_i.store_in(&buf_C_H_H_prop_i, {0});
 
     C_H_H_update_r.store_in(&buf_C_r, {t, x, Nsrc+mH, r, Nsnk+nH});
-    C_H_H_update_i.store_in(&buf_C_i, {t, x, Nsrc+mH, r, Nsnk+nH});  
+    C_H_H_update_i.store_in(&buf_C_i, {t, x, Nsrc+mH, r, Nsnk+nH});
 
     // -------------------------------------------------------
     // Code Generation
