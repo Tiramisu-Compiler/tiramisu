@@ -9,37 +9,12 @@ using namespace tiramisu;
 #define VECTORIZED 0
 #define PARALLEL 1
 
-// Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
-struct Q2UserEdge {
-      computation *q_r, *q_i,
-                  *bs_r, *bs_i,
-                  *bl_r, *bl_i;
-};
-struct snkQ2UserEdge {
-      computation *q_r, *q_i,
-                  *bl_r, *bl_i;
-};
-
-struct O2UserEdge {
-      computation *o_r, *o_i,
-                  *bd_r, *bd_i;
-};
-
-// Similar to Q2UserEdge, used to record (sub)computation of P and the corresponding use in B1_Bdouble_r1
-struct P2UserEdge {
-      computation *p_r, *p_i,
-                  *bd_r, *bd_i;
-};
-
-/*
- * The goal is to generate code that implements the reference.
- * baryon_ref.cpp
- */
 void generate_function(std::string name)
 {
     tiramisu::init(name);
 
    int Nr = 6;
+   int NBS = 2;
    int b;
    int NsrcTot = Nsrc+NsrcHex;
    int NsnkTot = Nsnk+NsnkHex;
@@ -113,6 +88,8 @@ void generate_function(std::string name)
 
     complex_expr snk_psi_B1(snk_psi_B1_r(x, n), snk_psi_B1_i(x, n));
     complex_expr snk_psi_B2(snk_psi_B2_r(x, n), snk_psi_B2_i(x, n));
+    complex_expr snk_psi_B1_x2(snk_psi_B1_r(x2, n), snk_psi_B1_i(x2, n));
+    complex_expr snk_psi_B2_x2(snk_psi_B2_r(x2, n), snk_psi_B2_i(x2, n));
 
     complex_expr hex_src_psi(hex_src_psi_r(y, mH), hex_src_psi_i(y, mH));
     complex_expr hex_snk_psi(hex_snk_psi_r(x, nH), hex_snk_psi_i(x, nH));
@@ -749,10 +726,24 @@ void generate_function(std::string name)
 
     complex_computation C_BB_BB_prop_update(&C_BB_BB_prop_update_r, &C_BB_BB_prop_update_i);
 
-    complex_expr BB_BB_term = snk_psi * C_BB_BB_prop_update(t, x, x2, m, r, Nperms-1, Nw2-1);
+/*    complex_expr BB_BB_term = snk_psi * C_BB_BB_prop_update(t, x, x2, m, r, Nperms-1, Nw2-1);
 
     computation C_BB_BB_update_r("C_BB_BB_update_r", {t, x, x2, m, r, n}, C_init_r(t, x, m, r, n) + BB_BB_term.get_real());
-    computation C_BB_BB_update_i("C_BB_BB_update_i", {t, x, x2, m, r, n}, C_init_i(t, x, m, r, n) + BB_BB_term.get_imag());
+    computation C_BB_BB_update_i("C_BB_BB_update_i", {t, x, x2, m, r, n}, C_init_i(t, x, m, r, n) + BB_BB_term.get_imag()); */
+
+    complex_expr BB_BB_term_s = (snk_psi_B1 * snk_psi_B2_x2 + snk_psi_B1_x2 * snk_psi_B2) * C_BB_BB_prop_update(t, x, x2, m, r, Nperms-1, Nw2-1);
+    //complex_expr BB_BB_term_s = snk_psi_B1 * snk_psi_B2_x2 * C_BB_BB_prop_update(t, x, x2, m, r, Nperms-1, Nw2-1);
+    complex_expr BB_BB_term_b = snk_psi * C_BB_BB_prop_update(t, x, x2, m, r, Nperms-1, Nw2-1);
+
+    computation C_BB_BB_update_s_r("C_BB_BB_update_s_r", {t, x, x2, m, r, n}, C_init_r(t, x, m, r, n) + BB_BB_term_s.get_real());
+    C_BB_BB_update_s_r.add_predicate(n >= NBS);
+    computation C_BB_BB_update_s_i("C_BB_BB_update_s_i", {t, x, x2, m, r, n}, C_init_i(t, x, m, r, n) + BB_BB_term_s.get_imag());
+    C_BB_BB_update_s_i.add_predicate(n >= NBS);
+
+    computation C_BB_BB_update_b_r("C_BB_BB_update_b_r", {t, x, x2, m, r, n}, C_init_r(t, x, m, r, n) + BB_BB_term_b.get_real());
+    C_BB_BB_update_b_r.add_predicate(n < NBS);
+    computation C_BB_BB_update_b_i("C_BB_BB_update_b_i", {t, x, x2, m, r, n}, C_init_i(t, x, m, r, n) + BB_BB_term_b.get_imag());
+    C_BB_BB_update_b_i.add_predicate(n < NBS);
 
     // BB_H
     computation C_BB_H_prop_init_r("C_BB_H_prop_init_r", {t, x, m, r}, expr((double) 0));
@@ -1024,8 +1015,10 @@ void generate_function(std::string name)
           .then( *(BB_BB_new_term_5_r2_b2.get_imag()), wnum)
           .then(C_BB_BB_prop_update_r, wnum) 
           .then(C_BB_BB_prop_update_i, wnum)
-          .then(C_BB_BB_update_r, r) 
-          .then(C_BB_BB_update_i, n)
+          .then(C_BB_BB_update_b_r, r) 
+          .then(C_BB_BB_update_b_i, n)
+          .then(C_BB_BB_update_s_r, n) 
+          .then(C_BB_BB_update_s_i, n)
           );
 
     // BB_H
@@ -1574,8 +1567,10 @@ void generate_function(std::string name)
     C_BB_BB_prop_update_r.store_in(&buf_C_BB_BB_prop_r, {0});
     C_BB_BB_prop_update_i.store_in(&buf_C_BB_BB_prop_i, {0});
 
-    C_BB_BB_update_r.store_in(&buf_C_r, {t, x, m, r, n});
-    C_BB_BB_update_i.store_in(&buf_C_i, {t, x, m, r, n});
+    C_BB_BB_update_b_r.store_in(&buf_C_r, {t, x, m, r, n});
+    C_BB_BB_update_b_i.store_in(&buf_C_i, {t, x, m, r, n});
+    C_BB_BB_update_s_r.store_in(&buf_C_r, {t, x, m, r, n});
+    C_BB_BB_update_s_i.store_in(&buf_C_i, {t, x, m, r, n});
 
     // BB_H
 
