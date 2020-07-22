@@ -1,7 +1,7 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
-#include "../reference/qblocks_2pt_parameters.h"
+#include "../../dibaryon/reference/qblocks_2pt_parameters.h"
 
 #define Nq P_Nq
 #define Nc P_Nc
@@ -28,7 +28,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
+#define TEST_NAME_STR       "tiramisu_make_fused_baryon_blocks_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -36,24 +36,7 @@
 extern "C" {
 #endif
 
-int tiramisu_make_fused_dibaryon_blocks_correlator(
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
+int tiramisu_make_fused_baryon_blocks_correlator(
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,

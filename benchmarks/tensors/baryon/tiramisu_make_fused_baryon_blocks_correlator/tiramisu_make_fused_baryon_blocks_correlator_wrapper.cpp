@@ -66,20 +66,18 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     std::cout << std::endl;
     }
 
-    int Nr = 2;
-
    // Halide buffers
-   Halide::Buffer<double> b_C_r(NsnkHex, Nr, NsrcHex, Vsnk, Lt, "C_r");
-   Halide::Buffer<double> b_C_i(NsnkHex, Nr, NsrcHex, Vsnk, Lt, "C_i");
+   Halide::Buffer<double> b_C_r(NsnkHex, B1Nrows, NsrcHex, Vsnk, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(NsnkHex, B1Nrows, NsrcHex, Vsnk, Lt, "C_i");
 
-   Halide::Buffer<int> b_src_color_weights(Nq, Nw, Nr, "src_color_weights");
-   Halide::Buffer<int> b_src_spin_weights(Nq, Nw, Nr, "src_spin_weights");
-   Halide::Buffer<double> b_src_weights(Nw, Nr, "src_weights");
+   Halide::Buffer<int> b_src_color_weights(Nq, Nw, B1Nrows, "src_color_weights");
+   Halide::Buffer<int> b_src_spin_weights(Nq, Nw, B1Nrows, "src_spin_weights");
+   Halide::Buffer<double> b_src_weights(Nw, B1Nrows, "src_weights");
 
-   Halide::Buffer<int> b_snk_blocks(Nr, "snk_blocks");
-   Halide::Buffer<int> b_snk_color_weights(Nq, Nw, Nr, "snk_color_weights");
-   Halide::Buffer<int> b_snk_spin_weights(Nq, Nw, Nr, "snk_spin_weights");
-   Halide::Buffer<double> b_snk_weights(Nw, Nr, "snk_weights");
+   Halide::Buffer<int> b_snk_blocks(B1Nrows, "snk_blocks");
+   Halide::Buffer<int> b_snk_color_weights(Nq, Nw, B1Nrows, "snk_color_weights");
+   Halide::Buffer<int> b_snk_spin_weights(Nq, Nw, B1Nrows, "snk_spin_weights");
+   Halide::Buffer<double> b_snk_weights(Nw, B1Nrows, "snk_weights");
 
     // prop
     Halide::Buffer<double> b_B1_prop_r((double *)B1_prop_re, {Vsrc, Vsnk, Ns, Nc, Ns, Nc, Lt, Nq});
@@ -95,22 +93,23 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     Halide::Buffer<double> b_B1_snk_psi_i((double *)snk_psi_B1_im, {NsnkHex, Vsnk});
 
    // Weights
+ 
    int* snk_color_weights_r1 = (int *) malloc(Nw * Nq * sizeof (int));
    int* snk_color_weights_r2 = (int *) malloc(Nw * Nq * sizeof (int));
    int* snk_spin_weights_r1 = (int *) malloc(Nw * Nq * sizeof (int));
    int* snk_spin_weights_r2 = (int *) malloc(Nw * Nq * sizeof (int));
    for (int nB1=0; nB1<Nw; nB1++) {
-         b_src_weights(nB1, 0) = src_weights_r1_P[nB1];
-         b_src_weights(nB1, 1) = src_weights_r2_P[nB1];
-         b_snk_weights(nB1, 0) = src_weights_r1_P[nB1];
-         b_snk_weights(nB1, 1) = src_weights_r2_P[nB1];
+         b_src_weights(nB1, 0) = src_weights_r1[nB1];
+         b_src_weights(nB1, 1) = src_weights_r2[nB1];
+         b_snk_weights(nB1, 0) = src_weights_r1[nB1];
+         b_snk_weights(nB1, 1) = src_weights_r2[nB1];
          for (int nq=0; nq<Nq; nq++) {
             // G1g_r1
-            snk_color_weights_r1[index_2d(nB1,nq ,Nq)] = src_color_weights_r1_P[nB1][nq];
-            snk_spin_weights_r1[index_2d(nB1,nq ,Nq)] = src_spin_weights_r1_P[nB1][nq];
+            snk_color_weights_r1[index_2d(nB1,nq ,Nq)] = src_color_weights_r1[index_2d(nB1,nq ,Nq)];
+            snk_spin_weights_r1[index_2d(nB1,nq ,Nq)] = src_spin_weights_r1[index_2d(nB1,nq ,Nq)];
             // G1g_r2 
-            snk_color_weights_r2[index_2d(nB1,nq ,Nq)] = src_color_weights_r2_P[nB1][nq];
-            snk_spin_weights_r2[index_2d(nB1,nq ,Nq)] = src_spin_weights_r2_P[nB1][nq];
+            snk_color_weights_r2[index_2d(nB1,nq ,Nq)] = src_color_weights_r2[index_2d(nB1,nq ,Nq)];
+            snk_spin_weights_r2[index_2d(nB1,nq ,Nq)] = src_spin_weights_r2[index_2d(nB1,nq ,Nq)];
          }
    }
    b_snk_blocks(0) = 1;
@@ -145,7 +144,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
          b_snk_spin_weights(2, wnum, 1) = snk_spin_weights_r2[index_2d(wnum,2 ,Nq)];
       }
 
-   for (int b=0; b<Nr; b++)
+   for (int b=0; b<B1Nrows; b++)
       for (int m=0; m<NsrcHex; m++)
          for (int n=0; n<NsnkHex; n++)
             for (int t=0; t<Lt; t++) 
@@ -259,7 +258,6 @@ int main(int, char **)
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_1;
    std::vector<std::chrono::duration<double,std::milli>> duration_vector_2;
 
-   int Nr = 2;
    int q, t, iC, iS, jC, jS, y, x, x1, x2, m, n, k, wnum, b;
    int iC1, iS1, iC2, iS2, jC1, jS1, jC2, jS2, kC1, kS1, kC2, kS2;
 
@@ -330,6 +328,14 @@ int main(int, char **)
       }
    }
    // Weights
+   static int src_color_weights_r1_P[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,1,0}, {2,0,1} };
+   static int src_spin_weights_r1_P[Nw][Nq] = { {0,1,0}, {0,1,0}, {0,1,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0}, {1,0,0} };
+   static double src_weights_r1_P[Nw] = {-2/ sqrt(2), 2/sqrt(2), 2/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2)};
+
+   static int src_color_weights_r2_P[Nw][Nq] = { {0,1,2}, {0,2,1}, {1,0,2} ,{1,2,0}, {2,1,0}, {2,0,1}, {0,1,2}, {0,2,1}, {1,0,2} };
+   static int src_spin_weights_r2_P[Nw][Nq] = { {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {0,1,1}, {1,0,1}, {1,0,1}, {1,0,1} };
+   static double src_weights_r2_P[Nw] = {1/ sqrt(2), -1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -1/sqrt(2), 1/sqrt(2), -2/sqrt(2), 2/sqrt(2), 2/sqrt(2)};
+
    int* src_color_weights_r1 = (int *) malloc(Nw * Nq * sizeof (int));
    int* src_color_weights_r2 = (int *) malloc(Nw * Nq * sizeof (int));
    int* src_spin_weights_r1 = (int *) malloc(Nw * Nq * sizeof (int));

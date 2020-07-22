@@ -23,6 +23,8 @@ int main() {
   int Vsrc = P_Vsrc;
   int Vsnk = P_Vsnk;
   int Nt = P_Nt;
+  int NBS = P_NEntangled;
+  int Nw2Hex = P_Nw2Hex;
 
   int Nsrc = P_Nsrc;
   int NsrcHex = P_NsrcHex;
@@ -163,13 +165,13 @@ int main() {
          hex_snk_psi_im[index_2d(x,k ,NsnkHex)] = 0.0;
       }
    }
-   double* snk_psi_re = (double*) malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
-   double* snk_psi_im = (double*) malloc(Nsnk * Vsnk * Vsnk * sizeof (double));
-   for (k = 0; k < Nsnk; k++) {
+   double* snk_psi_re = (double*) malloc(NBS * Vsnk * Vsnk * sizeof (double));
+   double* snk_psi_im = (double*) malloc(NBS * Vsnk * Vsnk * sizeof (double));
+   for (k = 0; k < NBS; k++) {
       for (x = 0; x < Vsnk; x++) {
          for (y = 0; y < Vsnk; y++) {
-            snk_psi_re[index_3d(x,y,k ,Vsnk,Nsnk)] = 1.0;
-            snk_psi_im[index_3d(x,y,k ,Vsnk,Nsnk)] = 0.0;
+            snk_psi_re[index_3d(x,y,k ,Vsnk,NBS)] = 2.0;
+            snk_psi_im[index_3d(x,y,k ,Vsnk,NBS)] = 0.0;
          }
       }
    }
@@ -187,7 +189,7 @@ int main() {
          }
       }
    }
-   tiramisu_make_nucleon_2pt(C_B1_re, C_B1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, NsrcHex, NsnkHex);
+   tiramisu_make_nucleon_2pt(C_B1_re, C_B1_im, B1_prop_re, B1_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, NsrcHex, NsnkHex, 2);
    if (rank == 0) {
    printf("B=1 results\n");
    for (m=0; m<NsrcHex; m++) {
@@ -219,7 +221,6 @@ int main() {
    }
    int space_symmetric = 0;
    int snk_entangled = 0;
-   int Nw2Hex = 32;
    int* snk_color_weights_A1 = (int *) malloc(Nw2Hex * 2*Nq * sizeof (int));
    int* snk_color_weights_T1_r1 = (int *) malloc(Nw2Hex * 2*Nq * sizeof (int));
    int* snk_color_weights_T1_r2 = (int *) malloc(Nw2Hex * 2*Nq * sizeof (int));
@@ -234,23 +235,43 @@ int main() {
    double snk_weights_T1_r3[Nw2Hex];
    for (wnum = 0; wnum < Nw2Hex; wnum++) {
       for (q = 0; q < 2*Nq; q++) {
-         snk_color_weights_A1[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_color_weights_T1_r1[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_color_weights_T1_r2[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_color_weights_T1_r3[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_spin_weights_A1[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_spin_weights_T1_r1[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_spin_weights_T1_r2[index_2d(wnum,q ,2*Nq)] = 0;
-         snk_spin_weights_T1_r3[index_2d(wnum,q ,2*Nq)] = 0;
+         snk_color_weights_A1[index_2d(wnum,q ,2*Nq)] = q % Nc;
+         snk_color_weights_T1_r1[index_2d(wnum,q ,2*Nq)] = q % Nc;
+         snk_color_weights_T1_r2[index_2d(wnum,q ,2*Nq)] = q % Nc;
+         snk_color_weights_T1_r3[index_2d(wnum,q ,2*Nq)] = q % Nc;
       }
-      snk_weights_A1[wnum] = 0.0;
-      snk_weights_T1_r1[wnum] = 0.0;
-      snk_weights_T1_r2[wnum] = 0.0;
-      snk_weights_T1_r3[wnum] = 0.0;
+      snk_spin_weights_A1[index_2d(wnum,0 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r1[index_2d(wnum,0 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r2[index_2d(wnum,0 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r3[index_2d(wnum,0 ,2*Nq)] = 1;
+      snk_spin_weights_A1[index_2d(wnum,1 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r1[index_2d(wnum,1 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r2[index_2d(wnum,1 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r3[index_2d(wnum,1 ,2*Nq)] = 0;
+      snk_spin_weights_A1[index_2d(wnum,2 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r1[index_2d(wnum,2 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r2[index_2d(wnum,2 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r3[index_2d(wnum,2 ,2*Nq)] = 1;
+      snk_spin_weights_A1[index_2d(wnum,3 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r1[index_2d(wnum,3 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r2[index_2d(wnum,3 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r3[index_2d(wnum,3 ,2*Nq)] = 1;
+      snk_spin_weights_A1[index_2d(wnum,4 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r1[index_2d(wnum,4 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r2[index_2d(wnum,4 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r3[index_2d(wnum,4 ,2*Nq)] = 0;
+      snk_spin_weights_A1[index_2d(wnum,5 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r1[index_2d(wnum,5 ,2*Nq)] = 0;
+      snk_spin_weights_T1_r2[index_2d(wnum,5 ,2*Nq)] = 1;
+      snk_spin_weights_T1_r3[index_2d(wnum,5 ,2*Nq)] = 1;
+      snk_weights_A1[wnum] = -1.0/sqrt(2);
+      snk_weights_T1_r1[wnum] = 1.0;
+      snk_weights_T1_r2[wnum] = -1.0/sqrt(2);
+      snk_weights_T1_r3[wnum] = 1.0;
    }
    if (rank == 0)
       printf("starting \n");
-   tiramisu_make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+   tiramisu_make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, Nc, Ns, Vsrc, Vsnk, Nt, Nw, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms, 6, Nw2Hex, 2, NBS);
    if (rank == 0)
       printf("B=2 results\n");
    int* Vtab = (int*) malloc((Nsrc+NsrcHex) * (Nsnk+NsnkHex) * sizeof (int));

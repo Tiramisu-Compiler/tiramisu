@@ -26,7 +26,7 @@ HL_NUM_THREADS=${CORES}
 ## No need to modify the rest
 LIB_DIR=-L${TIRAMISU_PATH}/3rdParty/Halide/lib -L${TIRAMISU_PATH}/3rdParty/isl/build/lib -L${TIRAMISU_PATH}/build
 INCLUDE_DIR=-I${TIRAMISU_PATH}/include/ -I${TIRAMISU_PATH}/3rdParty/Halide/include/ -I${TIRAMISU_PATH}/build/ -I${TIRAMISU_PATH}/benchmarks/ -I${TIRAMISU_PATH}/benchmarks/tensors/dibaryon/tiramisu_make_fused_dibaryon_blocks_correlator  -I${TIRAMISU_PATH}/benchmarks/tensors/dibaryon/tiramisu_make_fused_baryon_blocks_correlator
-TIRAMISU_GENERATED_OBJ=../tiramisu_make_fused_dibaryon_blocks_correlator/generated_tiramisu_make_fused_dibaryon_blocks_correlator.o ../tiramisu_make_fused_baryon_blocks_correlator/generated_tiramisu_make_fused_baryon_blocks_correlator.o
+TIRAMISU_GENERATED_OBJ=../tiramisu_make_fused_dibaryon_blocks_correlator/generated_tiramisu_make_fused_dibaryon_blocks_correlator.o ../../baryon/tiramisu_make_fused_baryon_blocks_correlator/generated_tiramisu_make_fused_baryon_blocks_correlator.o
 #TIRAMISU_GENERATED_OBJ=/lustre/cache/NPLQCD/mlwagman/qlua_tiramisu/build2/parts/qlua/tree/sources/generated_tiramisu_make_fused_dibaryon_blocks_correlator.o  ../tiramisu_make_fused_baryon_blocks_correlator/generated_tiramisu_make_fused_baryon_blocks_correlator.o
 
 

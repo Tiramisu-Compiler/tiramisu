@@ -23,9 +23,7 @@ void generate_function(std::string name)
 {
     tiramisu::init(name);
 
-   int Nr = 2;
-
-   var r("r", 0, Nr),
+   var r("r", 0, B1Nrows),
 	q("q", 0, Nq),
 	wnum("wnum", 0, Nw),
 	wnumBlock("wnumBlock", 0, Nw),
@@ -267,8 +265,8 @@ void generate_function(std::string name)
 
     /* Correlator */
 
-    buffer buf_C_r("buf_C_r", {Lt, Vsnk, NsrcHex, Nr, NsnkHex}, p_float64, a_input);
-    buffer buf_C_i("buf_C_i", {Lt, Vsnk, NsrcHex, Nr, NsnkHex}, p_float64, a_input);
+    buffer buf_C_r("buf_C_r", {Lt, Vsnk, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
+    buffer buf_C_i("buf_C_i", {Lt, Vsnk, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
 
     C_r.store_in(&buf_C_r);
     C_i.store_in(&buf_C_i);

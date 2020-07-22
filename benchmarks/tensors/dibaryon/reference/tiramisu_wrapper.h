@@ -33,7 +33,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     const int Nw,
     const int Nq,
     const int NsrcHex,
-    const int NsnkHex);
+    const int NsnkHex,
+    const int Nr);
 
 void tiramisu_make_two_nucleon_2pt(double* C_re,
     double* C_im,
@@ -86,7 +87,11 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
     const int Nsnk,
     const int NsrcHex,
     const int NsnkHex,
-    const int Nperms);
+    const int Nperms,
+    const int Nr,
+    const int Nw2Hex,
+    const int Nb,
+    const int NEntangled);
 
 #ifdef __cplusplus
 }  // extern "C"
