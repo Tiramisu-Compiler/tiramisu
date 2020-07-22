@@ -230,6 +230,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
                   C_im[index_4d(0,m,n,t, NsrcHex,NsnkHex,Lt)] += number0i;
                   C_im[index_4d(1,m,n,t, NsrcHex,NsnkHex,Lt)] += number1i; 
                }
+            }
 #endif
 
     if (rank == 0) {
