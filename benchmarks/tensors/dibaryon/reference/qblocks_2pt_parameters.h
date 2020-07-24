@@ -24,6 +24,8 @@
 #define P_B1Nrows 2
 #define P_Nb 2
 #define P_mq 1.0
+#define P_sites_per_rank 4
+#define P_src_sites_per_rank 4
 
 #elif DATA_SET_2
 
@@ -41,9 +43,12 @@
 #define P_Nc 3
 #define P_Ns 2
 #define P_Nq 3
-#define P_Nr 6
+#define P_B2Nrows 6
+#define P_B1Nrows 2
 #define P_Nb 2
 #define P_mq 1.0
+#define P_sites_per_rank 4
+#define P_src_sites_per_rank 4
 
 #endif
 

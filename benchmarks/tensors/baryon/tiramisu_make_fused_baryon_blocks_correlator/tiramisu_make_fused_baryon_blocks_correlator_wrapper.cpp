@@ -16,7 +16,7 @@ extern "C" {
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
 int nb_tests = 1;
-int randommode = 1;
+int randommode = 0;
 
 
 
@@ -67,8 +67,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     }
 
    // Halide buffers
-   Halide::Buffer<double> b_C_r(NsnkHex, B1Nrows, NsrcHex, Vsnk, Lt, "C_r");
-   Halide::Buffer<double> b_C_i(NsnkHex, B1Nrows, NsrcHex, Vsnk, Lt, "C_i");
+   Halide::Buffer<double> b_C_r(NsnkHex, B1Nrows, NsrcHex, Vsnk/sites_per_rank, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(NsnkHex, B1Nrows, NsrcHex, Vsnk/sites_per_rank, Lt, "C_i");
 
    Halide::Buffer<int> b_src_color_weights(Nq, Nw, B1Nrows, "src_color_weights");
    Halide::Buffer<int> b_src_spin_weights(Nq, Nw, B1Nrows, "src_spin_weights");
@@ -89,8 +89,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     // psi
     Halide::Buffer<double> b_B1_src_psi_r((double *)src_psi_B1_re, {NsrcHex, Vsrc});
     Halide::Buffer<double> b_B1_src_psi_i((double *)src_psi_B1_im, {NsrcHex, Vsrc});
-    Halide::Buffer<double> b_B1_snk_psi_r((double *)snk_psi_B1_re, {NsnkHex, Vsnk});
-    Halide::Buffer<double> b_B1_snk_psi_i((double *)snk_psi_B1_im, {NsnkHex, Vsnk});
+    Halide::Buffer<double> b_B1_snk_psi_r((double *)snk_psi_B1_re, {NsnkHex, sites_per_rank, Vsnk/sites_per_rank});
+    Halide::Buffer<double> b_B1_snk_psi_i((double *)snk_psi_B1_im, {NsnkHex, sites_per_rank, Vsnk/sites_per_rank});
 
    // Weights
  
@@ -148,7 +148,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
       for (int m=0; m<NsrcHex; m++)
          for (int n=0; n<NsnkHex; n++)
             for (int t=0; t<Lt; t++) 
-               for (int x=0; x<Vsnk; x++) {
+               for (int x=0; x<Vsnk/sites_per_rank; x++) {
                   b_C_r(n,b,m,x,t) = 0.0;
                   b_C_i(n,b,m,x,t) = 0.0;
             } 
@@ -156,7 +156,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
    if (rank == 0) {
    printf("prop 1 %4.9f + I %4.9f \n", b_B1_prop_r(0,0,0,0,0,0,0,0), b_B1_prop_i(0,0,0,0,0,0,0,0));
    printf("psi src 1 %4.9f + I %4.9f \n", b_B1_src_psi_r(0,0), b_B1_src_psi_i(0,0));
-   printf("psi snk %4.9f + I %4.9f \n", b_B1_snk_psi_r(0,0,0), b_B1_snk_psi_i(0,0,0));
+   printf("psi snk %4.9f + I %4.9f \n", b_B1_snk_psi_r(0,0,0,0), b_B1_snk_psi_i(0,0,0,0));
    printf("weights snk %4.9f \n", b_snk_weights(0,0));
    }
    tiramisu_make_fused_baryon_blocks_correlator(
@@ -215,7 +215,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
 #else
       for (int m=0; m<NsrcHex; m++)
          for (int n=0; n<NsnkHex; n++)
-            for (int t=0; t<Lt; t++)  {
+            for (int t=0; t<Lt; t++)
              for (int x=0; x<Vsnk; x++) {
                double number0r;
                double number0i;

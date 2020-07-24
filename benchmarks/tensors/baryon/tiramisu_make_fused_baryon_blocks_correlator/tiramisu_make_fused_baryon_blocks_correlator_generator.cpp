@@ -9,16 +9,6 @@ using namespace tiramisu;
 #define VECTORIZED 1
 #define PARALLEL 1
 
-// Used to remember relevant (sub)computation of Q and its user computations (B1_Blocal_r1 and B1_Bsingle_r1)
-struct Q2UserEdge {
-      computation *q_r, *q_i,
-                  *bl_r, *bl_i;
-};
-
-/*
- * The goal is to generate code that implements the reference.
- * baryon_ref.cpp
- */
 void generate_function(std::string name)
 {
     tiramisu::init(name);
@@ -29,6 +19,8 @@ void generate_function(std::string name)
 	wnumBlock("wnumBlock", 0, Nw),
         t("t", 0, Lt),
 	x("x", 0, Vsnk),
+	x_out("x_out", 0, Vsnk/sites_per_rank),
+	x_in("x_in", 0, sites_per_rank),
         y("y", 0, Vsrc),
 	m("m", 0, NsrcHex),
 	n("n", 0, NsnkHex),
@@ -40,8 +32,8 @@ void generate_function(std::string name)
         kCprime("kCprime", 0, Nc),
         kSprime("kSprime", 0, Ns);
 
-   input C_r("C_r",      {t, x, m, r, n}, p_float64);
-   input C_i("C_i",      {t, x, m, r, n}, p_float64);
+   input C_r("C_r",      {t, x_out, m, r, n}, p_float64);
+   input C_i("C_i",      {t, x_out, m, r, n}, p_float64);
    input B1_prop_r("B1_prop_r",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
    input B1_prop_i("B1_prop_i",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
    input src_psi_B1_r("src_psi_B1_r",    {y, m}, p_float64);
@@ -64,108 +56,109 @@ void generate_function(std::string name)
      * Computing B1_Blocal_r1
      */
 
-    computation B1_Blocal_r1_r_init("B1_Blocal_r1_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
-    computation B1_Blocal_r1_i_init("B1_Blocal_r1_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
+    computation B1_Blocal_r1_r_init("B1_Blocal_r1_r_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
+    computation B1_Blocal_r1_i_init("B1_Blocal_r1_i_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
 
     complex_computation B1_Blocal_r1_init(&B1_Blocal_r1_r_init, &B1_Blocal_r1_i_init);
 
-    complex_expr B1_r1_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr B1_r1_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr B1_r1_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x, y);
-    complex_expr B1_r1_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x, y);
-    complex_expr B1_r1_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), x, y);
+    complex_expr B1_r1_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), x_out*sites_per_rank+x_in, y);
 
     complex_expr B1_r1_diquark = ( B1_r1_prop_0 * B1_r1_prop_2 - B1_r1_prop_0p * B1_r1_prop_2p ) *  src_weights(0, wnumBlock);
 
-    computation B1_Blocal_r1_r_props_init("B1_Blocal_r1_r_props_init", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
-    computation B1_Blocal_r1_i_props_init("B1_Blocal_r1_i_props_init", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
+    computation B1_Blocal_r1_r_props_init("B1_Blocal_r1_r_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
+    computation B1_Blocal_r1_i_props_init("B1_Blocal_r1_i_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
 
-    computation B1_Blocal_r1_r_diquark("B1_Blocal_r1_r_diquark", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r1_diquark.get_real());
-    computation B1_Blocal_r1_i_diquark("B1_Blocal_r1_i_diquark", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r1_diquark.get_imag());
+    computation B1_Blocal_r1_r_diquark("B1_Blocal_r1_r_diquark", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r1_diquark.get_real());
+    computation B1_Blocal_r1_i_diquark("B1_Blocal_r1_i_diquark", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r1_diquark.get_imag());
 
     complex_computation B1_Blocal_r1_diquark(&B1_Blocal_r1_r_diquark, &B1_Blocal_r1_i_diquark);
 
-    complex_expr B1_r1_props = B1_r1_prop_1 * B1_Blocal_r1_diquark(t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock);
+    complex_expr B1_r1_props = B1_r1_prop_1 * B1_Blocal_r1_diquark(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock);
 
-    computation B1_Blocal_r1_r_props("B1_Blocal_r1_r_props", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r1_r_props_init(t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r1_props.get_real());
-    computation B1_Blocal_r1_i_props("B1_Blocal_r1_i_props", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r1_i_props_init(t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r1_props.get_imag());
+    computation B1_Blocal_r1_r_props("B1_Blocal_r1_r_props", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r1_r_props_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r1_props.get_real());
+    computation B1_Blocal_r1_i_props("B1_Blocal_r1_i_props", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r1_i_props_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r1_props.get_imag());
 
     complex_computation B1_Blocal_r1_props(&B1_Blocal_r1_r_props, &B1_Blocal_r1_i_props);
 
-    complex_expr B1_r1 = src_psi_B1 * B1_Blocal_r1_props(t, x, iCprime, iSprime, kCprime, kSprime, y, Nw-1, jCprime, jSprime);
+    complex_expr B1_r1 = src_psi_B1 * B1_Blocal_r1_props(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, Nw-1, jCprime, jSprime);
 
-    computation B1_Blocal_r1_r_update("B1_Blocal_r1_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r1_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r1.get_real());
-    computation B1_Blocal_r1_i_update("B1_Blocal_r1_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r1_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r1.get_imag());
+    computation B1_Blocal_r1_r_update("B1_Blocal_r1_r_update", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r1_r_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r1.get_real());
+    computation B1_Blocal_r1_i_update("B1_Blocal_r1_i_update", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r1_i_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r1.get_imag());
 
     /*
      * Computing B1_Blocal_r2
      */
 
-    computation B1_Blocal_r2_r_init("B1_Blocal_r2_r_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
-    computation B1_Blocal_r2_i_init("B1_Blocal_r2_i_init", {t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
+    computation B1_Blocal_r2_r_init("B1_Blocal_r2_r_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
+    computation B1_Blocal_r2_i_init("B1_Blocal_r2_i_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m}, expr((double) 0));
 
     complex_computation B1_Blocal_r2_init(&B1_Blocal_r2_r_init, &B1_Blocal_r2_i_init);
 
-    complex_expr B1_r2_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr B1_r2_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr B1_r2_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x, y);
-    complex_expr B1_r2_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x, y);
-    complex_expr B1_r2_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), x, y);
+    complex_expr B1_r2_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r2_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r2_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(1, wnumBlock, 0), src_spin_weights(1, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r2_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r2_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), x_out*sites_per_rank+x_in, y);
 
     complex_expr B1_r2_diquark = ( B1_r2_prop_0 * B1_r2_prop_2 - B1_r2_prop_0p * B1_r2_prop_2p ) *  src_weights(1, wnumBlock);
 
-    computation B1_Blocal_r2_r_props_init("B1_Blocal_r2_r_props_init", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
-    computation B1_Blocal_r2_i_props_init("B1_Blocal_r2_i_props_init", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
+    computation B1_Blocal_r2_r_props_init("B1_Blocal_r2_r_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
+    computation B1_Blocal_r2_i_props_init("B1_Blocal_r2_i_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
 
-    computation B1_Blocal_r2_r_diquark("B1_Blocal_r2_r_diquark", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r2_diquark.get_real());
-    computation B1_Blocal_r2_i_diquark("B1_Blocal_r2_i_diquark", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r2_diquark.get_imag());
+    computation B1_Blocal_r2_r_diquark("B1_Blocal_r2_r_diquark", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r2_diquark.get_real());
+    computation B1_Blocal_r2_i_diquark("B1_Blocal_r2_i_diquark", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock}, B1_r2_diquark.get_imag());
 
     complex_computation B1_Blocal_r2_diquark(&B1_Blocal_r2_r_diquark, &B1_Blocal_r2_i_diquark);
 
-    complex_expr B1_r2_props = B1_r2_prop_1 * B1_Blocal_r2_diquark(t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock);
+    complex_expr B1_r2_props = B1_r2_prop_1 * B1_Blocal_r2_diquark(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock);
 
-    computation B1_Blocal_r2_r_props("B1_Blocal_r2_r_props", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r2_r_props_init(t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r2_props.get_real());
-    computation B1_Blocal_r2_i_props("B1_Blocal_r2_i_props", {t, x, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r2_i_props_init(t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r2_props.get_imag());
+    computation B1_Blocal_r2_r_props("B1_Blocal_r2_r_props", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r2_r_props_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r2_props.get_real());
+    computation B1_Blocal_r2_i_props("B1_Blocal_r2_i_props", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, wnumBlock, jCprime, jSprime}, B1_Blocal_r2_i_props_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime) + B1_r2_props.get_imag());
 
     complex_computation B1_Blocal_r2_props(&B1_Blocal_r2_r_props, &B1_Blocal_r2_i_props);
 
-    complex_expr B1_r2 = src_psi_B1 * B1_Blocal_r2_props(t, x, iCprime, iSprime, kCprime, kSprime, y, Nw-1, jCprime, jSprime);
+    complex_expr B1_r2 = src_psi_B1 * B1_Blocal_r2_props(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, Nw-1, jCprime, jSprime);
 
-    computation B1_Blocal_r2_r_update("B1_Blocal_r2_r_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r2_r_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r2.get_real());
-    computation B1_Blocal_r2_i_update("B1_Blocal_r2_i_update", {t, x, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r2_i_init(t, x, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r2.get_imag());
+    computation B1_Blocal_r2_r_update("B1_Blocal_r2_r_update", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r2_r_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r2.get_real());
+    computation B1_Blocal_r2_i_update("B1_Blocal_r2_i_update", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime, m}, B1_Blocal_r2_i_init(t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, jCprime, jSprime, m) + B1_r2.get_imag());
 
     /* Correlator */
 
-    computation C_prop_init_r("C_prop_init_r", {t, x, m, r}, expr((double) 0));
-    computation C_prop_init_i("C_prop_init_i", {t, x, m, r}, expr((double) 0));
-    computation C_init_r("C_init_r", {t, x, m, r, n}, expr((double) 0));
-    computation C_init_i("C_init_i", {t, x, m, r, n}, expr((double) 0));
+    computation C_init_r("C_init_r", {t, x_out, m, r, n}, expr((double) 0));
+    computation C_init_i("C_init_i", {t, x_out, m, r, n}, expr((double) 0));
+
+    computation C_prop_init_r("C_prop_init_r", {t, x_out, x_in, m, r}, expr((double) 0));
+    computation C_prop_init_i("C_prop_init_i", {t, x_out, x_in, m, r}, expr((double) 0));
     
     int b=0;
     /* r1, b = 0 */
-    complex_computation new_term_0_r1_b1("new_term_0_r1_b1", {t, x,  m, r, wnum}, B1_Blocal_r1_init(t, x, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
+    complex_computation new_term_0_r1_b1("new_term_0_r1_b1", {t, x_out, x_in,  m, r, wnum}, B1_Blocal_r1_init(t, x_out, x_in, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
     new_term_0_r1_b1.add_predicate(snk_blocks(r) == 1);
     /* r2, b = 0 */
-    complex_computation new_term_0_r2_b1("new_term_0_r2_b1", {t, x,  m, r, wnum}, B1_Blocal_r2_init(t, x, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
+    complex_computation new_term_0_r2_b1("new_term_0_r2_b1", {t, x_out, x_in,  m, r, wnum}, B1_Blocal_r2_init(t, x_out, x_in, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
     new_term_0_r2_b1.add_predicate(snk_blocks(r) == 2);
 
     complex_expr prefactor(cast(p_float64, snk_weights(r, wnum)), 0.0);
 
-    complex_expr term_res_b1 = new_term_0_r1_b1(t, x, m, r, wnum);
+    complex_expr term_res_b1 = new_term_0_r1_b1(t, x_out, x_in, m, r, wnum);
 
-    complex_expr snk_psi(snk_psi_r(x, n), snk_psi_i(x, n));
+    complex_expr snk_psi(snk_psi_r(x_out*sites_per_rank+x_in, n), snk_psi_i(x_out*sites_per_rank+x_in, n));
 
     complex_expr term_res = prefactor * term_res_b1;
 
-    computation C_prop_update_r("C_prop_update_r", {t, x, m, r, wnum}, C_prop_init_r(t, x, m, r) + term_res.get_real());
-    computation C_prop_update_i("C_prop_update_i", {t, x, m, r, wnum}, C_prop_init_i(t, x, m, r) + term_res.get_imag());
+    computation C_prop_update_r("C_prop_update_r", {t, x_out, x_in, m, r, wnum}, C_prop_init_r(t, x_out, x_in, m, r) + term_res.get_real());
+    computation C_prop_update_i("C_prop_update_i", {t, x_out, x_in, m, r, wnum}, C_prop_init_i(t, x_out, x_in, m, r) + term_res.get_imag());
 
     complex_computation C_prop_update(&C_prop_update_r, &C_prop_update_i);
 
-    complex_expr term = C_prop_update(t, x, m, r, Nw-1) * snk_psi;
+    complex_expr term = C_prop_update(t, x_out, x_in, m, r, Nw-1) * snk_psi;
 
-    computation C_update_r("C_update_r", {t, x, m, r, n}, C_init_r(t, x, m, r, n) + term.get_real());
-    computation C_update_i("C_update_i", {t, x, m, r, n}, C_init_i(t, x, m, r, n) + term.get_imag());
+    computation C_update_r("C_update_r", {t, x_out, x_in, m, r, n}, C_init_r(t, x_out, m, r, n) + term.get_real());
+    computation C_update_i("C_update_i", {t, x_out, x_in, m, r, n}, C_init_i(t, x_out, m, r, n) + term.get_imag());
 
     // -------------------------------------------------------
     // Layer II
@@ -179,7 +172,7 @@ void generate_function(std::string name)
     handle = &(handle
         ->then(B1_Blocal_r1_r_init, t)
         .then(B1_Blocal_r1_i_init, jSprime)
-        .then(B1_Blocal_r1_r_props_init, x)
+        .then(B1_Blocal_r1_r_props_init, x_in)
         .then(B1_Blocal_r1_i_props_init, jSprime)
         .then(B1_Blocal_r1_r_diquark, y)
         .then(B1_Blocal_r1_i_diquark, wnumBlock)
@@ -187,9 +180,9 @@ void generate_function(std::string name)
         .then(B1_Blocal_r1_i_props, jSprime)
         .then(B1_Blocal_r1_r_update, y)
         .then(B1_Blocal_r1_i_update, m)
-        .then(B1_Blocal_r2_r_init, x)
+        .then(B1_Blocal_r2_r_init, x_in)
         .then(B1_Blocal_r2_i_init, jSprime)
-        .then(B1_Blocal_r2_r_props_init, x)
+        .then(B1_Blocal_r2_r_props_init, x_in)
         .then(B1_Blocal_r2_i_props_init, jSprime)
         .then(B1_Blocal_r2_r_diquark, y)
         .then(B1_Blocal_r2_i_diquark, wnumBlock)
@@ -199,7 +192,7 @@ void generate_function(std::string name)
         .then(B1_Blocal_r2_i_update, m));
 
     handle = &(handle 
-          ->then(C_prop_init_r, x) 
+          ->then(C_prop_init_r, x_in) 
           .then(C_prop_init_i, r)
           .then( *(new_term_0_r1_b1.get_real()), r)
           .then( *(new_term_0_r1_b1.get_imag()), wnum)
@@ -265,8 +258,8 @@ void generate_function(std::string name)
 
     /* Correlator */
 
-    buffer buf_C_r("buf_C_r", {Lt, Vsnk, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
-    buffer buf_C_i("buf_C_i", {Lt, Vsnk, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
+    buffer buf_C_r("buf_C_r", {Lt, 1, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
+    buffer buf_C_i("buf_C_i", {Lt, 1, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
 
     C_r.store_in(&buf_C_r);
     C_i.store_in(&buf_C_i);
@@ -289,10 +282,10 @@ void generate_function(std::string name)
     C_prop_update_r.store_in(&buf_C_prop_r, {0});
     C_prop_update_i.store_in(&buf_C_prop_i, {0});
 
-    C_init_r.store_in(&buf_C_r, {t, x, m, r, n});
-    C_init_i.store_in(&buf_C_i, {t, x, m, r, n});
-    C_update_r.store_in(&buf_C_r, {t, x, m, r, n});
-    C_update_i.store_in(&buf_C_i, {t, x, m, r, n});
+    C_init_r.store_in(&buf_C_r, {t, x_out, m, r, n});
+    C_init_i.store_in(&buf_C_i, {t, x_out, m, r, n});
+    C_update_r.store_in(&buf_C_r, {t, x_out, m, r, n});
+    C_update_i.store_in(&buf_C_i, {t, x_out, m, r, n});
 
     // -------------------------------------------------------
     // Code Generation

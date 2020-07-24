@@ -92,10 +92,8 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    }
 
    // Halide buffers
-   Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Vsnk, Lt, "C_r");
-   Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Vsnk, Lt, "C_i");
-   //Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Lt, "C_r");
-   //Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Lt, "C_i");
+   Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Vsnk/sites_per_rank, Lt, "C_r");
+   Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, Vsnk/sites_per_rank, Lt, "C_i");
 
    Halide::Buffer<int> b_src_color_weights(Nq, Nw, B2Nrows, "src_color_weights");
    Halide::Buffer<int> b_src_spin_weights(Nq, Nw, B2Nrows, "src_spin_weights");
@@ -345,10 +343,8 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    for (int b=0; b<B2Nrows; b++)
       for (int m=0; m<Nsrc+NsrcHex; m++)
          for (int n=0; n<Nsnk+NsnkHex; n++)
-            for (int t=0; t<Lt; t++)  //{
-               //b_C_r(n,b,m,t) = 0.0;
-               //b_C_i(n,b,m,t) = 0.0;
-               for (int x=0; x<Vsnk; x++) {
+            for (int t=0; t<Lt; t++) 
+               for (int x=0; x<Vsnk/sites_per_rank; x++) {
                   b_C_r(n,b,m,x,t) = 0.0;
                   b_C_i(n,b,m,x,t) = 0.0;
             } 
@@ -852,8 +848,10 @@ int main(int, char **)
          src_psi_B2_re[index_2d(x,m ,Nsrc)] = v3 ;// / Vsrc;
          src_psi_B2_im[index_2d(x,m ,Nsrc)] = v4 ;// / Vsrc;
       }
-   double* snk_psi_re = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
-   double* snk_psi_im = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
+   double* snk_psi_re = (double *) malloc(Vsnk * Vsnk * NEntangled * sizeof (double));
+   double* snk_psi_im = (double *) malloc(Vsnk * Vsnk * NEntangled * sizeof (double));
+   double* all_snk_psi_re = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
+   double* all_snk_psi_im = (double *) malloc(Vsnk * Vsnk * Nsnk * sizeof (double));
    double* snk_psi_B1_re = (double *) malloc(Nsnk * Vsnk * sizeof (double));
    double* snk_psi_B1_im = (double *) malloc(Nsnk * Vsnk * sizeof (double));
    double* snk_psi_B2_re = (double *) malloc(Nsnk * Vsnk * sizeof (double));
@@ -876,11 +874,21 @@ int main(int, char **)
          snk_psi_B2_im[index_2d(x,n ,Nsnk)] = v4 ;// / Vsnk;
       }
    }
+   for (n = 0; n < NEntangled; n++)
+      for (x1 = 0; x1 < Vsnk; x1++)
+         for (x2 = 0; x2 < Vsnk; x2++) {
+            snk_psi_re[index_3d(x1,x2,n ,Vsnk,NEntangled)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] - snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)] - snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)];// / Vsnk;
+            snk_psi_im[index_3d(x1,x2,n ,Vsnk,NEntangled)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)] + snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)];// / Vsnk;
+            //snk_psi_re[index_3d(x1,x2,n ,Vsnk,Nsnk)] = 1;// / Vsnk;
+            //snk_psi_im[index_3d(x1,x2,n ,Vsnk,Nsnk)] = 0;// / Vsnk;
+         } 
    for (n = 0; n < Nsnk; n++)
       for (x1 = 0; x1 < Vsnk; x1++)
          for (x2 = 0; x2 < Vsnk; x2++) {
-            snk_psi_re[index_3d(x1,x2,n ,Vsnk,Nsnk)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] - snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)] - snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)];// / Vsnk;
-            snk_psi_im[index_3d(x1,x2,n ,Vsnk,Nsnk)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)] + snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)];// / Vsnk;
+            all_snk_psi_re[index_3d(x1,x2,n ,Vsnk,Nsnk)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] - snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)] - snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)];// / Vsnk;
+            all_snk_psi_im[index_3d(x1,x2,n ,Vsnk,Nsnk)] = snk_psi_B1_re[index_2d(x1,n ,Nsnk)]*snk_psi_B2_im[index_2d(x2,n ,Nsnk)] + snk_psi_B1_im[index_2d(x1,n ,Nsnk)]*snk_psi_B2_re[index_2d(x2,n ,Nsnk)] + snk_psi_B1_re[index_2d(x2,n ,Nsnk)]*snk_psi_B2_im[index_2d(x1,n ,Nsnk)] + snk_psi_B1_im[index_2d(x2,n ,Nsnk)]*snk_psi_B2_re[index_2d(x1,n ,Nsnk)];// / Vsnk;
+            //snk_psi_re[index_3d(x1,x2,n ,Vsnk,Nsnk)] = 1;// / Vsnk;
+            //snk_psi_im[index_3d(x1,x2,n ,Vsnk,Nsnk)] = 0;// / Vsnk;
          } 
    double* hex_src_psi_re = (double *) malloc(NsrcHex * Vsrc * sizeof (double));
    double* hex_src_psi_im = (double *) malloc(NsrcHex * Vsrc * sizeof (double));
@@ -1103,10 +1111,10 @@ int main(int, char **)
 	   std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
 	   auto start2 = std::chrono::high_resolution_clock::now();
 
-      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, snk_psi_re, snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B1_re, src_psi_B1_im, src_psi_B2_re, src_psi_B2_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B1_re, snk_psi_B1_im, snk_psi_B2_re, snk_psi_B2_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
            
 
-      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B2_re, src_psi_B2_im, src_psi_B1_re, src_psi_B1_im, snk_psi_re, snk_psi_im, snk_psi_B2_re, snk_psi_B2_im, snk_psi_B1_re, snk_psi_B1_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
+      make_two_nucleon_2pt(C_re, C_im, B1_prop_re, B1_prop_im, B2_prop_re, B2_prop_im, src_color_weights_r1, src_spin_weights_r1, src_weights_r1, src_color_weights_r2, src_spin_weights_r2, src_weights_r2, snk_color_weights_A1, snk_spin_weights_A1, snk_weights_A1, snk_color_weights_T1_r1, snk_spin_weights_T1_r1, snk_weights_T1_r1, snk_color_weights_T1_r2, snk_spin_weights_T1_r2, snk_weights_T1_r2, snk_color_weights_T1_r3, snk_spin_weights_T1_r3, snk_weights_T1_r3, perms, sigs, src_psi_B2_re, src_psi_B2_im, src_psi_B1_re, src_psi_B1_im, all_snk_psi_re, all_snk_psi_im, snk_psi_B2_re, snk_psi_B2_im, snk_psi_B1_re, snk_psi_B1_im, hex_src_psi_re, hex_src_psi_im, hex_snk_psi_re, hex_snk_psi_im, space_symmetric, snk_entangled, Nc, Ns, Vsrc, Vsnk, Lt, Nw, Nw2Hex, Nq, Nsrc, Nsnk, NsrcHex, NsnkHex, Nperms);
 
 	   auto end2 = std::chrono::high_resolution_clock::now();
 	   std::chrono::duration<double,std::milli> duration2 = end2 - start2;

@@ -24,8 +24,8 @@ KERNEL=$2
 source configure_paths.sh
 
 CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx2 -m64 $MPIINCLUDE $MPILIB -lmpi"
-CORES=512
-#CORES=8
+CORES=128
+#CORES=2
 
 # Compile options
 # - Make ${CXX} dump generated assembly
