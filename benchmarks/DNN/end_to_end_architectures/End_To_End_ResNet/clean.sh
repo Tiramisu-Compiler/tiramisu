@@ -1,0 +1,1 @@
+rm -rf end_to_end_resnet_mkldnn mkl_result.txt performance_CPU.csv tiramisu_result.txt wrapper_end_to_end_resnet_tiramisu mkl_result.txt tiramisu_result.txt
