@@ -1,0 +1,1 @@
+rm -rf generated_sparse_conv_relu_conv_relu_512_512_14_tiramisu.o.h generated_sparse_conv_relu_conv_relu_512_512_14_tiramisu.o mkl_result.txt tiramisu_result.txt wrapper_sparse_conv_relu_conv_relu sparse_conv_relu_conv_relu_generator conv_relu_conv_relu_mkldnn log.txt 
