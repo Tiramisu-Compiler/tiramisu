@@ -1,0 +1,1 @@
+rm -rf add_relu_generator_tiramisu_inplace_32_32_30 add_relu_inplace_32_32_30_tiramisu.o add_relu_inplace_32_32_30_tiramisu.o.h wrapper_nn_block_add_relu_inplace_32_32_30 add_relu_mkl mkl_result.txt tiramisu_result.txt
