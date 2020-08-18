@@ -1,10 +1,10 @@
-#include <tiramisu/auto_scheduler/states_generator.h>
+#include <tiramisu/auto_scheduler/schedules_generator.h>
 #include <tiramisu/auto_scheduler/evaluator.h>
 
 namespace tiramisu::auto_scheduler
 {
 
-std::vector<syntax_tree*> exhaustive_generator::generate_states(syntax_tree const& ast, optimization_type optim)
+std::vector<syntax_tree*> exhaustive_generator::generate_schedules(syntax_tree const& ast, optimization_type optim)
 {
     std::vector<syntax_tree*> states;
     
@@ -55,6 +55,7 @@ void exhaustive_generator::generate_fusions(std::vector<ast_node*> const& tree_l
                 tree_level[i]->low_bound == tree_level[j]->low_bound &&
                 tree_level[i]->up_bound == tree_level[j]->up_bound)
             {
+                // Copy the AST, and add fusion to the list of optimizations
                 syntax_tree* new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, tree_level[i]);
                 
@@ -94,6 +95,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                 if (!can_split_iterator(node2->get_extent(), tiling_size2))
                     continue;
                     
+                // Copy the AST, and add tiling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                     
@@ -122,6 +124,7 @@ void exhaustive_generator::generate_tilings(ast_node *node, std::vector<syntax_t
                         if (!can_split_iterator(node3->get_extent(), tiling_size3))
                             continue;
                             
+                        // Copy the AST, and add tiling to the list of optimizations
                         syntax_tree* new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                             
@@ -160,6 +163,7 @@ void exhaustive_generator::generate_interchanges(ast_node *node, std::vector<syn
         
         for (int i = node->depth + 1; i < branch_depth; ++i)
         {
+            // Copy the AST, and add interchange to the list of optimizations
             syntax_tree* new_ast = new syntax_tree();
             ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
             
@@ -191,6 +195,7 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
                 !can_split_iterator(node->get_extent(), unrolling_factor))
                 continue;
                 
+            // Copy the AST, and add unrolling to the list of optimizations
             syntax_tree* new_ast = new syntax_tree();
             ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 
@@ -212,14 +217,19 @@ void exhaustive_generator::generate_unrollings(ast_node *node, std::vector<synta
         generate_unrollings(child, states, ast);
 }
 
-std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_tree const& ast, optimization_type optim)
+std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(syntax_tree const& ast, optimization_type optim)
 {
+    // This method generates schedules applied on shared loops, so it does not
+    // support ASTs with more than one root.
+    if (ast.roots.size() > 1)
+        return std::vector<syntax_tree*>();
+        
     std::vector<syntax_tree*> states;
+    ast_node *node = ast.roots[0];
     
     std::vector<int> shared_levels_extents;
     std::vector<int> innermost_extents;
     int nb_shared_iterators;
-    ast_node *node = ast.roots[0];
     
     // Generate the specified optimization
     switch (optim)
@@ -232,15 +242,18 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
             if (shared_levels_extents.size() <= 1)
                 return states;
                 
+            // Go to the first node with more than one child
             for (int i = 0; i < shared_levels_extents.size() - 1; ++i)
                 node = node->children[0];
                 
+            // Stop if all nodes have only one child (nothing to unfuse).
             if (node->children.size() <= 1)
                 return states;
             
             // Unfuse iterators
             for (int i = 0; i < nb_shared_iterators - 1; ++i)
             {
+                // Copy the AST and add unfuse to the list of optimizations.
                 syntax_tree* new_ast = ast.copy_ast();
                         
                 optimization_info optim_info;
@@ -263,6 +276,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
             {
                 for (int tiling_size1 : tiling_factors_list)
                 {
+                    // Check if tiling_size1 splits perfectly this iterator
                     if (!can_split_iterator(shared_levels_extents[i], tiling_size1))
                         continue;
                         
@@ -271,6 +285,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
                         if (!can_split_iterator(shared_levels_extents[i + 1], tiling_size2))
                             continue;
                             
+                        // Copy the AST and add tiling with 2 dimensions to the list of optimizations
                         syntax_tree* new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                         
@@ -289,6 +304,8 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
                         new_ast->new_optims.push_back(optim_info);
                         states.push_back(new_ast);
                             
+                        // Cannot apply tiling with 3 dimensions,
+                        // continue to apply tiling with 2 dimensions.
                         if (i + 2 >= nb_shared_iterators)
                             continue;
                             
@@ -297,6 +314,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
                             if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size3))
                                 continue;
                                 
+                            // Copy the AST and add tiling with 3 dimensions to the list of optimizations
                             syntax_tree* new_ast = new syntax_tree();
                             ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                             
@@ -320,6 +338,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
                     }
                 }
                 
+                // Go to next node
                 if (node->children.size() > 0)
                     node = node->children[0];
             }
@@ -329,10 +348,13 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
             shared_levels_extents = ast.get_shared_levels_extents();
             nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
             
+            // To apply interchange, we pick all combinations of two iterators 
+            // in the shared loop levels.
             for (int i = 0; i < nb_shared_iterators; ++i)
             {
                 for (int j = i + 1; j < nb_shared_iterators; ++j)
                 {
+                    // Copy the AST and add interchange to the list of optimizations
                     syntax_tree* new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
                     
@@ -357,6 +379,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
         case optimization_type::UNROLLING:
             innermost_extents = ast.get_innermost_extents();
                
+            // Apply all possible unrolling factors to all innermost iterators
             for (int unrolling_fact : unrolling_factors_list)
             {
                 bool use_factor = true;
@@ -372,6 +395,7 @@ std::vector<syntax_tree*> tree_structured_search_space::generate_states(syntax_t
                 if (!use_factor)
                     continue;
                     
+                // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree* new_ast = ast.copy_ast();
 
                 optimization_info optim_info;

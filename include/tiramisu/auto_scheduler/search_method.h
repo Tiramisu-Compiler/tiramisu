@@ -5,7 +5,7 @@
 #include <cfloat>
 
 #include "auto_scheduler.h"
-#include "states_generator.h"
+#include "schedules_generator.h"
 #include "evaluator.h"
 #include "utils.h"
 
@@ -14,6 +14,7 @@ namespace tiramisu::auto_scheduler
 
 const std::vector<optimization_type> DEFAULT_OPTIMIZATIONS_ORDER = {UNFUSE, INTERCHANGE, TILING, UNROLLING};
 
+const int NB_OPTIMIZATIONS = DEFAULT_OPTIMIZATIONS_ORDER.size();
 const int DEFAULT_MAX_DEPTH = INT_MAX;
 
 /**
@@ -32,18 +33,36 @@ protected:
     evaluation_function *eval_func;
 
     /**
-     * The search method use this attribute to generate new states.
+     * The search method use this attribute to generate new schedules.
      */
-    schedules_generator* states_gen;
+    schedules_generator* scheds_gen;
     
+    /**
+     * The number of schedules explored.
+     */
     int nb_explored_schedules = 0;
     
+    /**
+     * The evaluation of the best schedule so far.
+     * At the end of search, contains the evaluation of the best AST found.
+     */
     float best_evaluation = FLT_MAX;
+    
+    /**
+     * The best AST so far.
+     * At the end of search, contains the best AST found.
+     */
     syntax_tree *best_ast = nullptr;
     
+    /**
+     * An evaluator returning the execution time of a program.
+     * Not mandatory, can be usefull for some search methods (like MCTS).
+     */
+    evaluate_by_execution *exec_eval = nullptr;
+    
 public:
-    search_method(evaluation_function *eval_func = nullptr, schedules_generator *states_gen = nullptr)
-        : eval_func(eval_func), states_gen(states_gen) {}
+    search_method(evaluation_function *eval_func = nullptr, schedules_generator *scheds_gen = nullptr)
+        : eval_func(eval_func), scheds_gen(scheds_gen) {}
             
     virtual ~search_method() {}
 
@@ -52,11 +71,12 @@ public:
     syntax_tree* get_best_ast() const { return best_ast; }
     
     void set_eval_func(evaluation_function *eval_func) { this->eval_func = eval_func; }
-    
+    void set_exec_eval(evaluate_by_execution *exec_eval) { this->exec_eval = exec_eval; }
+        
     /**
       * The method to call to start a search.
-      * It takes as input an AST and returns a list of
-      * code transformations.
+      * At the end of search, the best AST can be found in best_ast,
+      * and its evaluation in best_evaluation.
       */
     virtual void search(syntax_tree& ast) =0;
 };
@@ -80,98 +100,17 @@ protected:
     int max_depth;
     
 public:
-    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, schedules_generator *states_gen = nullptr)
-        : search_method(eval_func, states_gen), beam_size(beam_size), max_depth(max_depth) {}
+    beam_search(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, schedules_generator *scheds_gen = nullptr)
+        : search_method(eval_func, scheds_gen), beam_size(beam_size), max_depth(max_depth) {}
         
     virtual ~beam_search() {}
 
-    /**
-      * The method to call to start a search.
-      * It takes as input an AST and returns a list of
-      * code transformations.
-      */
     virtual void search(syntax_tree& ast);
 };
 
-class beam_search_topk : public search_method
-{
-private:
-
-protected:
-    int beam_size;
-    
-    /**
-     * The number of schedules to execute at the end of the search
-     * to return the best schedule.
-     */
-    int topk;
-    
-    /**
-     * The maximum depth of the search tree.
-     */
-    int max_depth;
-    
-    std::vector<syntax_tree*> schedules;
-    
-    /**
-     * An evaluator returning the execution time of a program.
-     */
-    evaluation_function *exec_eval;
-
-public:
-    beam_search_topk(int beam_size, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
-        : search_method(eval_func, states_gen), beam_size(beam_size), topk(topk), max_depth(max_depth), exec_eval(exec_eval) {}
-        
-    virtual ~beam_search_topk() {}
-    
-    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
-
-    /**
-      * The method to call to start a search.
-      * It takes as input an AST and returns a list of
-      * code transformations.
-      */
-    virtual void search(syntax_tree& ast);
-    
-    void beam_search_subroutine(syntax_tree& ast);
-};
-
-class beam_search_accuracy_evaluator : public beam_search
-{
-private:
-
-protected:
-    evaluation_function *exec_eval;
-    
-    std::vector<float> model_evals_list;
-    std::vector<float> exec_evals_list;
-    
-public:
-    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *model_eval = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
-        : beam_search(beam_size, max_depth, model_eval, states_gen), exec_eval(exec_eval) {}
-        
-    virtual ~beam_search_accuracy_evaluator() {}
-    
-    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
-
-    /**
-      * The method to call to start a search.
-      * It takes as input an AST and returns a list of
-      * code transformations.
-      */
-    virtual void search(syntax_tree& ast);
-    
-    /**
-     * Print the evaluations given by the model and the evaluations
-     * given by execution.
-     */
-    void print_evals_list() const
-    {
-        for (int i = 0; i < model_evals_list.size(); ++i)
-            std::cout << model_evals_list[i] << " " << exec_evals_list[i] << std::endl;
-    }
-};
-
+/**
+ * Implements the MCTS search method.
+ */
 class mcts : public search_method
 {
 private:
@@ -192,26 +131,105 @@ protected:
      * The maximum depth of the search tree.
      */
     int max_depth;
-    
-    /**
-     * An evaluator returning the execution time of a program.
-     */
-    evaluation_function *exec_eval;
 
 public:
-    mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluation_function *exec_eval = nullptr, schedules_generator *states_gen = nullptr)
-        : search_method(eval_func, states_gen), nb_samples(nb_samples), topk(topk), max_depth(max_depth), exec_eval(exec_eval) {}
+    mcts(int nb_samples, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
+        : search_method(eval_func, scheds_gen), nb_samples(nb_samples), 
+          topk(topk), max_depth(max_depth)
+    { set_exec_eval(exec_eval); }
         
     virtual ~mcts() {}
     
-    void set_exec_eval(evaluation_function *exec_eval) { this->exec_eval = exec_eval; }
-
-    /**
-      * The method to call to start a search.
-      * It takes as input an AST and returns a list of
-      * code transformations.
-      */
     virtual void search(syntax_tree& ast);
+};
+
+// ----------------------------------------------------------------------- //
+
+/**
+ * Same as beam search, but executes the topk schedules found, and return
+ * the best of them.
+ */
+class beam_search_topk : public search_method
+{
+private:
+
+protected:
+    /**
+     * The beam size used by beam search.
+     */
+    int beam_size;
+    
+    /**
+     * The number of schedules to execute at the end of the search
+     * to return the best schedule.
+     */
+    int topk;
+    
+    /**
+     * The maximum depth of the search tree.
+     */
+    int max_depth;
+    
+    /**
+     * The list of schedules found.
+     * Used to return the TOPK schedules.
+     */
+    std::vector<syntax_tree*> schedules;
+
+public:
+    beam_search_topk(int beam_size, int topk, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *eval_func = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
+        : search_method(eval_func, scheds_gen), beam_size(beam_size), 
+          topk(topk), max_depth(max_depth)
+    { set_exec_eval(exec_eval); } 
+        
+    virtual ~beam_search_topk() {}
+
+    virtual void search(syntax_tree& ast);
+    
+    /**
+     * A subroutine used by search(syntax_tree& ast);
+     */
+    void beam_search_subroutine(syntax_tree& ast);
+};
+
+/**
+ * Use this class if you want to assess the accuracy of the model by using beam search.
+ * This class performs beam search with the model, and also measures the execution time
+ * of each schedule found. This can be used to compare the predicted and the measured speedups.
+ */
+class beam_search_accuracy_evaluator : public beam_search
+{
+private:
+
+protected:
+    /**
+     * Stores the evaluation of each schedule with the model.
+     */
+    std::vector<float> model_evals_list;
+    
+    /**
+     * Stores the evaluation of each schedule with execution.
+     */
+    std::vector<float> exec_evals_list;
+    
+public:
+    beam_search_accuracy_evaluator(int beam_size, int max_depth = DEFAULT_MAX_DEPTH, evaluation_function *model_eval = nullptr, evaluate_by_execution *exec_eval = nullptr, schedules_generator *scheds_gen = nullptr)
+        : beam_search(beam_size, max_depth, model_eval, scheds_gen) 
+    { set_exec_eval(exec_eval); }
+        
+    virtual ~beam_search_accuracy_evaluator() {}
+
+    virtual void search(syntax_tree& ast);
+    
+    /**
+     * Print the evaluations given by the model and the evaluations
+     * given by execution.
+     */
+    void print_evals_list() const
+    {
+        for (int i = 0; i < model_evals_list.size(); ++i)
+            std::cout << model_evals_list[i] << " " << exec_evals_list[i] << std::endl;
+    }
 };
 
 }

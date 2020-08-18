@@ -3,84 +3,6 @@
 
 namespace tiramisu::auto_scheduler
 {
-syntax_tree::syntax_tree(tiramisu::function *fct)
-    : fct(fct)
-{
-    const std::vector<computation*> computations = fct->get_computations();
-    
-    for (tiramisu::computation *comp : computations) 
-    {
-        // Get this computation buffer name
-        isl_map *storage_map = comp->access;
-        std::string buf_name = isl_map_get_tuple_name(storage_map, isl_dim_out);
-        
-        if (std::find(buffers_list.begin(), buffers_list.end(), buf_name) == buffers_list.end())
-            buffers_list.push_back(buf_name);
-            
-        buffers_mapping[comp->get_name()] = buf_name;
-        
-        if (comp->get_expr().get_expr_type() == e_none)
-            continue;
-        
-        // Insert this computation in the AST
-        ast_node *node = new ast_node(comp, this);
-        node->parent = nullptr;
-        
-        roots.push_back(node);
-        computations_list.push_back(comp);
-        computations_mapping[comp] = node->get_leftmost_node();
-    }
-
-    order_computations();
-    
-    // Get the JSON representation of this AST iterators
-    for (ast_node *node : roots)
-        evaluate_by_learning_model::represent_iterators_from_nodes(node, iterators_json);
-        
-    iterators_json.pop_back();
-    
-    // Get the JSON representation of this tree
-    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
-}
-
-ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
-{
-    std::vector<ast_node*> nodes;
-
-    // Get computation iterators
-    isl_set *iter_domain = comp->get_iteration_domain();
-    int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
-
-    // The fist node is the one created by this constructor
-    this->depth = 0;
-    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
-    this->low_bound = utility::get_bound(iter_domain, 0, false).get_int_val();
-    this->up_bound = utility::get_bound(iter_domain, 0, true).get_int_val();
-
-    nodes.push_back(this);
-        
-    // Create the other nodes, one for each iterator
-    for (int i = 1; i < nb_iterators; ++i)
-    {
-        ast_node *node = new ast_node();
-        
-        node->depth = i;
-        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
-        node->low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
-        node->up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
-        
-        nodes.push_back(node);
-    }
-
-    // Chain the nodes together
-    for (int i = 0; i < nodes.size() - 1; ++i)
-    {
-        nodes[i]->children.push_back(nodes[i + 1]);
-        nodes[i + 1]->parent = nodes[i];
-    }
-    
-    nodes.back()->computations.push_back(computation_info(comp, ast));
-}
 
 computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast)
     : comp_ptr(comp), iters(dnn_iterator::get_iterators_from_computation(*comp)),
@@ -146,11 +68,94 @@ void computation_info::get_info_from_expr(tiramisu::expr const& e)
         get_info_from_expr(e.get_operand(i));
 }
 
+// ---------------------------------------------------------------------------- //
+
+syntax_tree::syntax_tree(tiramisu::function *fct)
+    : fct(fct)
+{
+    const std::vector<computation*> computations = fct->get_computations();
+    
+    for (tiramisu::computation *comp : computations) 
+    {
+        // Get this computation buffer name
+        isl_map *storage_map = comp->access;
+        std::string buf_name = isl_map_get_tuple_name(storage_map, isl_dim_out);
+        
+        if (std::find(buffers_list.begin(), buffers_list.end(), buf_name) == buffers_list.end())
+            buffers_list.push_back(buf_name);
+            
+        buffers_mapping[comp->get_name()] = buf_name;
+        
+        if (comp->get_expr().get_expr_type() == e_none)
+            continue;
+        
+        // Insert this computation in the AST
+        ast_node *node = new ast_node(comp, this);
+        node->parent = nullptr;
+        
+        roots.push_back(node);
+        computations_list.push_back(comp);
+        computations_mapping[comp] = node->get_leftmost_node();
+    }
+
+    // Order the computations by the order specified by the user using "after" commands
+    order_computations();
+    
+    // Get the JSON representation of this AST iterators
+    for (ast_node *node : roots)
+        evaluate_by_learning_model::represent_iterators_from_nodes(node, iterators_json);
+        
+    iterators_json.pop_back();
+    
+    // Get the JSON representation of this tree
+    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
+}
+
+ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
+{
+    std::vector<ast_node*> nodes;
+
+    // Get computation iterators
+    isl_set *iter_domain = comp->get_iteration_domain();
+    int nb_iterators = isl_set_dim(iter_domain, isl_dim_set);
+
+    // The fist node is the one created by this constructor
+    this->depth = 0;
+    this->name = isl_set_get_dim_name(iter_domain, isl_dim_set, 0);
+    this->low_bound = utility::get_bound(iter_domain, 0, false).get_int_val();
+    this->up_bound = utility::get_bound(iter_domain, 0, true).get_int_val();
+
+    nodes.push_back(this);
+        
+    // Create the other nodes, one for each iterator
+    for (int i = 1; i < nb_iterators; ++i)
+    {
+        ast_node *node = new ast_node();
+        
+        node->depth = i;
+        node->name = isl_set_get_dim_name(iter_domain, isl_dim_set, i);
+        node->low_bound = utility::get_bound(iter_domain, i, false).get_int_val();
+        node->up_bound = utility::get_bound(iter_domain, i, true).get_int_val();
+        
+        nodes.push_back(node);
+    }
+
+    // Chain the nodes together
+    for (int i = 0; i < nodes.size() - 1; ++i)
+    {
+        nodes[i]->children.push_back(nodes[i + 1]);
+        nodes[i + 1]->parent = nodes[i];
+    }
+    
+    nodes.back()->computations.push_back(computation_info(comp, ast));
+}
+
 void syntax_tree::order_computations()
 {
     if (roots.size() < 2)
         return ;
         
+    // We use the scheduling graph (fct->sched_graph) to find the computations order
     for (auto& sched_graph_node : fct->sched_graph)
     {
         tiramisu::computation *parent_comp = sched_graph_node.first;
@@ -180,6 +185,7 @@ void syntax_tree::order_computations()
                 
                 else
                 {
+                    // We have here a special case (see PFE manuscript page 46)
                     ast_node *new_node = new ast_node();
                     
                     new_node->depth = child_comp_ast_node->depth;
@@ -210,96 +216,12 @@ void syntax_tree::order_computations()
     }
 }
 
-syntax_tree* syntax_tree::copy_ast() const
+void syntax_tree::transform_ast()
 {
-    syntax_tree *ast = new syntax_tree();
-    copy_and_return_node(*ast, nullptr);
-    
-    return ast;
-}
-
-ast_node* ast_node::copy_node() const
-{
-    ast_node *node = new ast_node();
-    copy_and_return_node(node, nullptr);
-    
-    return node;
-}
-
-ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const
-{
-    ast_node *ret_node = nullptr;
-
-    for (ast_node *root : roots) 
-    {
-        ast_node *new_node = new ast_node();
-
-        ast_node *tmp = root->copy_and_return_node(new_node, node_to_find);
-        if (tmp != nullptr)
-            ret_node = tmp;
-
-        new_node->parent = nullptr;
-        new_ast.roots.push_back(new_node);
-    }
-
-    new_ast.fct = fct;
-    new_ast.computations_list = computations_list;
-    new_ast.buffers_list = buffers_list;
-    new_ast.buffers_mapping = buffers_mapping;
-    
-    new_ast.iterators_json = iterators_json;
-    new_ast.tree_structure_json = tree_structure_json;
-    
-    new_ast.evaluation = evaluation;
-    new_ast.search_depth = search_depth;
-    new_ast.nb_explored_optims = nb_explored_optims;
-    new_ast.previous_optims = previous_optims;
-    new_ast.new_optims = new_optims;
-
-    return ret_node;
-}
-
-ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const
-{
-    ast_node *ret_node = nullptr;
-
-    if (this == node_to_find)
-        ret_node = new_node;
-
-    for (ast_node *child : children)
-    {
-        ast_node *new_child = new ast_node();
-
-        ast_node *tmp = child->copy_and_return_node(new_child, node_to_find);
-        if (tmp != nullptr)
-            ret_node = tmp;
-
-        new_child->parent = new_node;
-        new_node->children.push_back(new_child);
-    }
-
-    new_node->depth = depth;
-    new_node->name = name;
-    new_node->low_bound = low_bound;
-    new_node->up_bound = up_bound;
-    new_node->unrolled = unrolled;
-    new_node->computations = computations;
-
-    return ret_node;
-}
-
-ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level)
-{
-    ast_node *node = computations_mapping[comp];
-    int current_level = node->depth;
-    
-    while (current_level > level && node->parent != nullptr)
-    {
-        node = node->parent;
-        current_level--;
-    }
-    
-    return node;
+    if (new_optims.size() == 0)
+        return ;
+        
+    transform_ast(new_optims.back());
 }
 
 void syntax_tree::transform_ast(optimization_info const& opt)
@@ -329,14 +251,6 @@ void syntax_tree::transform_ast(optimization_info const& opt)
         default:
             break;
     }
-}
-
-void syntax_tree::transform_ast()
-{
-    if (new_optims.size() == 0)
-        return ;
-        
-    transform_ast(new_optims.back());
 }
 
 void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
@@ -567,6 +481,117 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             i_inner->update_depth(i_outer->depth + 1);
         }
     }
+}
+
+syntax_tree* syntax_tree::copy_ast() const
+{
+    syntax_tree *ast = new syntax_tree();
+    copy_and_return_node(*ast, nullptr);
+    
+    return ast;
+}
+
+ast_node* ast_node::copy_node() const
+{
+    ast_node *node = new ast_node();
+    copy_and_return_node(node, nullptr);
+    
+    return node;
+}
+
+ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const
+{
+    ast_node *ret_node = nullptr;
+
+    // Copy all root nodes
+    for (ast_node *root : roots) 
+    {
+        ast_node *new_node = new ast_node();
+
+        ast_node *tmp = root->copy_and_return_node(new_node, node_to_find);
+        if (tmp != nullptr)
+            ret_node = tmp;
+
+        new_node->parent = nullptr;
+        new_ast.roots.push_back(new_node);
+    }
+
+    new_ast.fct = fct;
+    new_ast.computations_list = computations_list;
+    new_ast.buffers_list = buffers_list;
+    new_ast.buffers_mapping = buffers_mapping;
+    
+    new_ast.iterators_json = iterators_json;
+    new_ast.tree_structure_json = tree_structure_json;
+    
+    new_ast.evaluation = evaluation;
+    new_ast.search_depth = search_depth;
+    new_ast.nb_explored_optims = nb_explored_optims;
+    new_ast.previous_optims = previous_optims;
+    new_ast.new_optims = new_optims;
+
+    return ret_node;
+}
+
+ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const
+{
+    ast_node *ret_node = nullptr;
+
+    if (this == node_to_find)
+        ret_node = new_node;
+
+    // Recursively copy children
+    for (ast_node *child : children)
+    {
+        ast_node *new_child = new ast_node();
+
+        ast_node *tmp = child->copy_and_return_node(new_child, node_to_find);
+        if (tmp != nullptr)
+            ret_node = tmp;
+
+        new_child->parent = new_node;
+        new_node->children.push_back(new_child);
+    }
+
+    new_node->depth = depth;
+    new_node->name = name;
+    new_node->low_bound = low_bound;
+    new_node->up_bound = up_bound;
+    new_node->unrolled = unrolled;
+    new_node->computations = computations;
+
+    return ret_node;
+}
+
+std::vector<optimization_info> syntax_tree::get_schedule() const
+{
+    std::vector<optimization_info> schedule = previous_optims;
+    for (optimization_info const& optim_info : new_optims)
+        schedule.push_back(optim_info);
+            
+    return schedule;
+}
+
+void syntax_tree::clear_new_optimizations()
+{
+    for (optimization_info const& optim_info : new_optims)
+        previous_optims.push_back(optim_info);
+
+    new_optims.clear();
+}
+
+ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level)
+{
+    ast_node *node = computations_mapping[comp];
+    int current_level = node->depth;
+    
+    while (current_level > level && node->parent != nullptr)
+    {
+        node = node->parent;
+        current_level--;
+    }
+    
+    return node;
 }
 
 std::vector<int> syntax_tree::get_shared_levels_extents() const

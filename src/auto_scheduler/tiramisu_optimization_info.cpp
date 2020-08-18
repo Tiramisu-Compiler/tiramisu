@@ -14,15 +14,19 @@ void parallelize_outermost_levels(std::vector<tiramisu::computation*> const& com
 void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact)
 {
     std::vector<int> innermost_indices; 
+    
+    // For each computation, get the indice of its innermost loop level.
     for (tiramisu::computation *comp : comps_list)
         innermost_indices.push_back(comp->get_loop_levels_number() - 1);
                 
+    // Apply unrolling to innermost loop levels.
     for (int i = 0; i < innermost_indices.size(); ++i)
         comps_list[i]->unroll(innermost_indices[i], unroll_fact);
 }
 
 void apply_optimizations(syntax_tree const& ast)
 {
+    // Check ast.h for the difference between ast.previous_optims and ast.new_optims
     for (optimization_info const& optim_info : ast.previous_optims)
         apply_optimizations(optim_info);
         
@@ -74,6 +78,8 @@ void apply_fusions(syntax_tree const& ast)
 {
     tiramisu::computation *next_comp = nullptr;
     
+    // Use the "after" scheduling command to replicate the structure of the AST
+    // on the computations order.
     for (ast_node *root : ast.roots)
         next_comp = apply_fusions(root, next_comp, tiramisu::computation::root_dimension);
 }

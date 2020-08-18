@@ -11,15 +11,15 @@ class ast_node;
 enum optimization_type
 {
     UNFUSE,
+    FUSION,
     TILING,
     INTERCHANGE,
-    UNROLLING,
-    NB_OPTIMIZATIONS,
-    FUSION
+    UNROLLING
 };
 
 /**
- * Check apply_optimizations() to see how this structure is used.
+ * Stores information about an optimization.
+ * Check the function apply_optimizations() to see how this structure is used.
  */
 struct optimization_info
 {
@@ -49,15 +49,19 @@ struct optimization_info
     /**
      * The loop levels this optimization affects.
      * nb_l indicates the number of loop levels to consider.
-     * In the case of unrolling, if l0 == -1, unrolling is applied
+     *
+     * 1. In the case of unrolling, if l0 == -1, unrolling is applied
      * on all innermost levels.
+     *
+     * 2. In the case of fusion, l0 and l1 will contain the indices
+     * of the two nodes to fuse, in the tree level to which "node" belongs to.
      */
     int l0, l1, l2;
     
     /**
      * Contains the factors of each loop level.
      * For example, if the optimization is a 2 level tiling,
-     * l0_fact and l1_fact will contain the factors for each loop level.
+     * l0_fact and l1_fact will contain the tiling factors for each loop level.
      */
     int l0_fact, l1_fact, l2_fact;
 };
@@ -68,13 +72,12 @@ struct optimization_info
 void parallelize_outermost_levels(std::vector<tiramisu::computation*> const& comps_list);
 
 /**
- * Tag the innermost level of each computation to be unrolled by a factor of unroll_fact.
+ * Tag the innermost level of each computation to be unrolled by a factor = unroll_fact.
  */
 void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 /**
- * Apply the optimizations specified by the syntax tree
- * using the Tiramisu API.
+ * Apply the optimizations specified by the syntax tree using the Tiramisu API.
  */
 void apply_optimizations(syntax_tree const& ast);
     
@@ -89,7 +92,7 @@ void apply_optimizations(optimization_info const& optim_info);
 void apply_fusions(syntax_tree const& ast);
     
 /**
- *
+ * A recursive subroutine used by apply_fusions(syntax_tree const& ast).
  */
 tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
 

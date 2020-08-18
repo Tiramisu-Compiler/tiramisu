@@ -12,7 +12,7 @@ namespace tiramisu::auto_scheduler
 class syntax_tree;
 
 /**
- *
+ * Stores information about a computation.
  */
 class computation_info
 {
@@ -21,19 +21,42 @@ private:
 protected:
 
 public:
+    /**
+     * Pointer to the corresponding computation.
+     */
     tiramisu::computation *comp_ptr;
     
+    /**
+     * List of iterators of the computation.
+     */
     std::vector<dnn_iterator> iters;
+    
+    /**
+     * List of accesses of the computation.
+     */
     dnn_accesses accesses;
     
+    /**
+     * Number of dimensions of the output buffer.
+     */
     int buffer_nb_dims;
+    
+    /**
+     * True if this computation is a reduction.
+     */
     bool is_reduction;
     
+    /**
+     * Some metrics about the computation.
+     */
     int nb_additions;
     int nb_substractions;
     int nb_multiplications;
     int nb_divisions;
     
+    /**
+     * Get info about the given computation. The AST is needed to get some info.
+     */
     computation_info(tiramisu::computation *comp, syntax_tree *ast);
     
     /**
@@ -122,6 +145,9 @@ public:
     /**
      * Copy the tree rooted at this node into new_node and return
      * a pointer to the copied version of node_to_find.
+     *
+     * This function is used if you want to copy a tree, and need the new location
+     * of a node.
      */
     ast_node* copy_and_return_node(ast_node *new_node, ast_node *node_to_find) const;
     
@@ -170,7 +196,8 @@ public:
     void get_all_computations(std::vector<tiramisu::computation*>& comps);
 
     /**
-     *
+     * Starting from this node, get the number of nodes that have no computation,
+     * and only one child.
      */
     int get_loop_levels_chain_depth() const;
 
@@ -222,30 +249,21 @@ public:
      * it is stored.
      */
     std::unordered_map<std::string, std::string> buffers_mapping;
-    
-    /**
-     *
-     */
-    std::string iterators_json;
-    
-    /**
-     *
-     */
-    std::string tree_structure_json;
 
     /**
-     * An evaluation of the execution of the function represented by
-     * the AST.
+     * An evaluation given by a class of type evaluation_function.
      */
     float evaluation;
     
     /**
-     * The depth of this AST in a search space procedure.
+     * The depth of this AST in a search method.
+     * Used to keep track of the depth reached by a search method.
      */
     int search_depth = 0;
     
     /**
      * The total number of explored optimizations.
+     * Used to keep track of the number of optimizations explored by a search method.
      */
     int nb_explored_optims = 0;
     
@@ -258,6 +276,18 @@ public:
      *
      */
     std::vector<optimization_info> new_optims;
+    
+    /**
+     * The iterators in JSON format.
+     * Use by the class evaluate_by_learning_model.
+     */
+    std::string iterators_json;
+    
+    /**
+     * The structure represented by this AST in JSON format.
+     * Use by the class evaluate_by_learning_model.
+     */
+    std::string tree_structure_json;
         
     /**
      * Create an empty AST.
@@ -275,37 +305,53 @@ public:
             delete node;
     }
     
+    std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
+    
+    /**
+     * Transform the AST by applying the last optimization found.
+     */
+    void transform_ast();
+
+    /**
+     * Transform the AST by applying the given optimization.
+     */
+    void transform_ast(optimization_info const& opt);
+
+    /**
+     * These methods are used to transform the AST given a specific type of optimization.
+     */
+    void transform_ast_by_fusion(optimization_info const& opt);
+    void transform_ast_by_unfuse(optimization_info const& opt);
+    void transform_ast_by_tiling(optimization_info const& opt);
+    void transform_ast_by_interchange(optimization_info const& opt);
+    void transform_ast_by_unrolling(optimization_info const& opt);
+    
     /**
      * Copy this AST, and return the copy.
      */
     syntax_tree* copy_ast() const;
 
     /**
-     * Copy this AST to new_ast and return
-     * a pointer to the copied version of node_to_find.
+     * Copy this AST to new_ast and return a pointer to the copied version of node_to_find.
+     * Can be used if you want to copy this AST, and need to find the new location of a node.
      */
     ast_node* copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const;
+    
+    /**
+     * Return the schedule of this AST.
+     */
+    std::vector<optimization_info> get_schedule() const;
+    
+    /**
+     * Add the content of new_optims to previous_optims and
+     * clear new_optims.
+     */
+	void clear_new_optimizations();
     
     /**
      * Return the node corresponding to the given loop level of the given computation.
      */
     ast_node* find_node_by_level(tiramisu::computation *comp, int level);
-
-    /**
-     * Transform the AST by applying the given optimization.
-     */
-    void transform_ast(optimization_info const& opt);
-    
-    /**
-     * Transform the AST by applying the last new optimization.
-     */
-    void transform_ast();
-
-    void transform_ast_by_fusion(optimization_info const& opt);
-    void transform_ast_by_unfuse(optimization_info const& opt);
-    void transform_ast_by_tiling(optimization_info const& opt);
-    void transform_ast_by_interchange(optimization_info const& opt);
-    void transform_ast_by_unrolling(optimization_info const& opt);
     
     /**
      * Get the extents of the loop levels shared by all computations.
@@ -328,18 +374,6 @@ public:
     std::vector<ast_node*> get_innermost_nodes() const;
     
     /**
-     * Return the schedule of this AST.
-     */
-    std::vector<optimization_info> get_schedule() const
-    {
-        std::vector<optimization_info> schedule = previous_optims;
-        for (optimization_info const& optim_info : new_optims)
-            schedule.push_back(optim_info);
-            
-        return schedule;
-    }
-    
-    /**
      * Return the position, in the list of the buffers, of the buffer where
      * the given computation is stored.
      */
@@ -349,25 +383,11 @@ public:
      * Return the position of the given buffer in the list of buffers.
      */
     int get_buffer_id(std::string const& buf_name) const;
-    
-    /**
-     * Add the content of new_optims to previous_optims and
-     * clear new_optims.
-     */
-	void clear_new_optimizations()
-	{
-	    for (optimization_info const& optim_info : new_optims)
-	        previous_optims.push_back(optim_info);
-	        
-	    new_optims.clear();
-	}
 
     /**
      * Print the AST to stdout.
      */
     void print_ast() const;
-    
-    std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
 };
 
 }

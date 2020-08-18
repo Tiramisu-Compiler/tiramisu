@@ -73,6 +73,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
 evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args)
     : evaluation_function()
 {
+    // Create the pipe
     pid_t pid = 0;
     int inpipe_fd[2];
     int outpipe_fd[2];
@@ -89,7 +90,11 @@ evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_pa
         close(outpipe_fd[1]);
         close(inpipe_fd[0]);
         
+        // Here we are in a new process.
+        // Launch the program that evaluates schedules with the command cmd_path,
+        // and arguments cmd_args.
         char* argv[cmd_args.size() + 2];
+        
         argv[0] = (char*)malloc(sizeof(char) * (cmd_path.size() + 1));
         strcpy(argv[0], cmd_path.c_str());
         argv[cmd_args.size() + 1] = NULL;
@@ -112,13 +117,16 @@ evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_pa
 
 float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 {
+    // Get JSON representations for the program, and for the schedule
     std::string prog_json = get_program_json(ast);
     std::string sched_json = get_schedule_json(ast);
     
+    // Write the program JSON and the schedule JSON to model_write
     fputs(prog_json.c_str(), model_write);
     fputs(sched_json.c_str(), model_write);
     fflush(model_write);
     
+    // Read the evaluation from model_read.
     float speedup = 0.f;
     fscanf(model_read, "%f", &speedup);
     
@@ -127,8 +135,10 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
+    // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
     
+    // Use represent_computations_from_nodes to get JSON for computations
     std::string computations_json = "\"computations\" : {";
     int comp_absolute_order = 1;
     
@@ -138,76 +148,13 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     computations_json.pop_back();
     computations_json += "}";
     
+    // Return JSON of the program
     return "{" + iterators_json + "," + computations_json + "}\n";
-}
-
-void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
-{
-    if (node->get_extent() <= 1)
-        return;
-        
-    std::string iter_json;
-    
-    iter_json += "\"lower_bound\" : " + std::to_string(node->low_bound) + ",";
-    iter_json += "\"upper_bound\" : " + std::to_string(node->up_bound + 1) + ",";
-        
-    iter_json += "\"parent_iterator\" : ";
-    if (node->parent == nullptr)
-        iter_json += "null,";
-    else
-        iter_json += "\"" + node->parent->name + "\",";
-            
-    iter_json += "\"child_iterators\" : [";
-    bool printed_child = false;
-    
-    for (int i = 0; i < node->children.size(); ++i)
-    {
-        if (node->children[i]->get_extent() <= 1)
-            continue;
-            
-        iter_json += "\"" + node->children[i]->name + "\",";
-        printed_child = true;
-    }
-        
-    if (printed_child)
-        iter_json.pop_back();
-    iter_json += "],";
-        
-    iter_json += "\"computations_list\" : [";
-    bool printed_comp = false;
-    
-    for (int i = 0; i < node->computations.size(); ++i)
-    {
-        iter_json += "\"" + node->computations[i].comp_ptr->get_name() + "\",";
-        printed_comp = true;
-    }
-    
-    for (int i = 0; i < node->children.size(); ++i)
-    {
-        if (node->children[i]->get_extent() > 1)
-            continue;
-            
-        ast_node *dummy_child = node->children[i];
-        for (int j = 0; j < dummy_child->computations.size(); ++j)
-        {
-            iter_json += "\"" + dummy_child->computations[j].comp_ptr->get_name() + "\",";
-            printed_comp = true;
-        }
-    }
-       
-    if (printed_comp)
-        iter_json.pop_back();
-        
-    iter_json += "]";
-        
-    iterators_json += "\"" + node->name + "\" : {" + iter_json + "},";
-    
-    for (ast_node *child : node->children)
-        represent_iterators_from_nodes(child, iterators_json);
 }
 
 void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
 {
+    // Build the JSON for the computations stored in "node".
     for (computation_info const& comp_info : node->computations)
     {
         std::string comp_json = "\"absolute_order\" : " + std::to_string(comp_absolute_order) + ","; 
@@ -246,8 +193,9 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         comp_json += "\"number_of_multiplication\" : " + std::to_string(comp_info.nb_multiplications) + ",";
         comp_json += "\"number_of_division\" : " + std::to_string(comp_info.nb_divisions) + ",";
         
+        // Build JSON for the accesses of this computation
         comp_json += "\"accesses\" : [";
-        
+
         for (int i = 0; i < comp_info.accesses.accesses_list.size(); ++i)
         {
             dnn_access_matrix const& matrix  = comp_info.accesses.accesses_list[i];
@@ -291,6 +239,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         computations_json += "\"" + comp_info.comp_ptr->get_name() + "\" : {" + comp_json + "},";
     }
     
+    // Recursively get JSON for the rest of computations
     for (ast_node *child : node->children)
         represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
@@ -355,11 +304,14 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     std::vector<dnn_iterator> iterators_list;
     std::string sched_json = "{";
     
+    // Set the schedule for every computation
+    // For the moment, all computations share the same schedule
     for (tiramisu::computation *comp : ast.computations_list)
     {
         std::string comp_sched_json;
         iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
         
+        // JSON for interchange
         comp_sched_json += "\"interchange_dims\" : [";
         
         if (interchanged)
@@ -373,6 +325,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         
         comp_sched_json += "],";
         
+        // JSON for tiling
         comp_sched_json += "\"tiling\" : {";
         
         if (tiled)
@@ -412,6 +365,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         
         comp_sched_json += "},";
         
+        // JSON for unrolling
         comp_sched_json += "\"unrolling_factor\" : ";
         
         if (unrolled)
@@ -427,25 +381,96 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "},";
     }
     
-    // Add unfused iterator
+    // Write JSON information about unfused iterators (not specific to a computation)
     sched_json += "\"unfuse_iterators\" : ["; 
     if (unfuse_l0 != -1)
         sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
         
     sched_json += "],";
     
-    // Add tree structure
+    // Write the structure of the tree
     sched_json += "\"tree_structure\": {";
     sched_json += ast.tree_structure_json;
     sched_json += "}";
     
-    // End of encodage
+    // End of JSON
     sched_json += "}\n";
     return sched_json;
 }
 
+// ------------------------------------------------------------------------------------------ //
+
+void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
+{
+    if (node->get_extent() <= 1)
+        return;
+        
+    std::string iter_json;
+    
+    // Represent basic information about this iterator
+    iter_json += "\"lower_bound\" : " + std::to_string(node->low_bound) + ",";
+    iter_json += "\"upper_bound\" : " + std::to_string(node->up_bound + 1) + ",";
+        
+    iter_json += "\"parent_iterator\" : ";
+    if (node->parent == nullptr)
+        iter_json += "null,";
+    else
+        iter_json += "\"" + node->parent->name + "\",";
+            
+    iter_json += "\"child_iterators\" : [";
+    bool printed_child = false;
+    
+    for (int i = 0; i < node->children.size(); ++i)
+    {
+        if (node->children[i]->get_extent() <= 1)
+            continue;
+            
+        iter_json += "\"" + node->children[i]->name + "\",";
+        printed_child = true;
+    }
+        
+    if (printed_child)
+        iter_json.pop_back();
+    iter_json += "],";
+        
+    // Add the names of the computations computed at this loop level
+    iter_json += "\"computations_list\" : [";
+    bool has_computations = false;
+    
+    for (int i = 0; i < node->computations.size(); ++i)
+    {
+        iter_json += "\"" + node->computations[i].comp_ptr->get_name() + "\",";
+        has_computations = true;
+    }
+    
+    for (int i = 0; i < node->children.size(); ++i)
+    {
+        if (node->children[i]->get_extent() > 1)
+            continue;
+            
+        ast_node *dummy_child = node->children[i];
+        for (int j = 0; j < dummy_child->computations.size(); ++j)
+        {
+            iter_json += "\"" + dummy_child->computations[j].comp_ptr->get_name() + "\",";
+            has_computations = true;
+        }
+    }
+       
+    if (has_computations)
+        iter_json.pop_back();
+        
+    iter_json += "]";
+        
+    iterators_json += "\"" + node->name + "\" : {" + iter_json + "},";
+    
+    // Recursively represent other iterators
+    for (ast_node *child : node->children)
+        represent_iterators_from_nodes(child, iterators_json);
+}
+
 std::string evaluate_by_learning_model::get_tree_structure_json(syntax_tree const& ast)
 {
+    // For the moment, this only supports ASTs with one root node.
     ast_node *node = ast.roots[0];
     return get_tree_structure_json(node);
 }
@@ -455,6 +480,8 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     std::string json;
     
     json += "\"loop_name\" : \"" + node->name + "\",";
+    
+    // Add the name of the computations computed at this loop level
     json += "\"computations_list\" : [";
     
     std::vector<std::string> comps_list;
@@ -478,6 +505,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
         
     json += "],";
     
+    // Get tree structure for children of this node
     json += "\"child_list\" : [";
     
     bool has_children = false;
