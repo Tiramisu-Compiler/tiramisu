@@ -340,7 +340,7 @@ private:
     void add_unroll_dimension(std::string stmt_name, int L, int factor);
     
     /**
-     * Remove parallel, vectorized, distributed, unrolled and GPU tags
+     * \brief Remove parallel, vectorized, distributed, unrolled and GPU tags
      * on every computations.
      */
     void remove_dimension_tags();
@@ -807,7 +807,7 @@ protected:
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
     
     /**
-     * Clear any relation (defined by after, then or between) between computations.
+     * \brief Clear any relation (defined by after, then or between) between computations.
      */
     void clear_sched_graph();
 
@@ -855,7 +855,7 @@ public:
     void align_schedules();
     
     /**
-     * Remove, for every computation, every schedule.
+     * \brief Remove, for every computation, every schedule.
      */
     void reset_schedules();
 
