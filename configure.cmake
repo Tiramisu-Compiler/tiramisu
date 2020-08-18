@@ -13,8 +13,7 @@ option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 
-# If you set this to true, you should correctly set LIBTORCH_PATH (see below)
-option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" TRUE)
+option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" FALSE)
 
 # Change with the cudnn library location
 set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location")

@@ -36,6 +36,9 @@ void beam_search::search(syntax_tree& ast)
             
         child->evaluation = eval_func->evaluate(*child);
         
+        child->print_ast();
+        std::cout << "Evaluation : " << child->evaluation << std::endl << std::endl;
+        
         if (child->evaluation < best_evaluation)
         {
             best_evaluation = child->evaluation;

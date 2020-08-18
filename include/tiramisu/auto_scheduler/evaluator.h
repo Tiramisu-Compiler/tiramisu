@@ -26,7 +26,6 @@ public:
      * its evaluation.
      */
     virtual float evaluate(syntax_tree& ast) =0;
-
 };
 
 /**
@@ -70,10 +69,10 @@ public:
     /**
      * arguments : the input and output buffers of the program.
      */
-    evaluate_by_execution(tiramisu::function *fct, 
-						  std::vector<tiramisu::buffer*> const& arguments, 
+    evaluate_by_execution(std::vector<tiramisu::buffer*> const& arguments, 
 						  std::string const& obj_filename, 
-						  std::string const& wrapper_cmd);
+						  std::string const& wrapper_cmd,
+						  tiramisu::function *fct = tiramisu::global::get_implicit_function());
     
 	/**
 	 * Apply the specified optimizations, compile the program and execute it.

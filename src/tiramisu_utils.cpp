@@ -94,4 +94,3 @@ void combine_dist_results(const std::string &test, std::vector<int> dims, int nu
     output_file.flush();
     output_file.close();
 }
-

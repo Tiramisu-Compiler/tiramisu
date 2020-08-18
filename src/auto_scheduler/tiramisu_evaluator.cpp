@@ -11,10 +11,10 @@
 namespace tiramisu::auto_scheduler
 {
 
-evaluate_by_execution::evaluate_by_execution(tiramisu::function *fct, 
-                                             std::vector<tiramisu::buffer*> const& arguments, 
+evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> const& arguments, 
                                              std::string const& obj_filename, 
-                                             std::string const& wrapper_cmd)
+                                             std::string const& wrapper_cmd,
+                                             tiramisu::function *fct)
     : evaluation_function(), fct(fct), obj_filename(obj_filename), wrapper_cmd(wrapper_cmd)
 {
     // Set Halide compilation features

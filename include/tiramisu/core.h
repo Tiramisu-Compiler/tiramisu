@@ -807,7 +807,7 @@ protected:
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
     
     /**
-     * Clear any relation between computations defined by after, then or between.
+     * Clear any relation (defined by after, then or between) between computations.
      */
     void clear_sched_graph();
 
