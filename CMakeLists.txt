@@ -7,6 +7,7 @@ set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
+include(configure.cmake)
 
 # Add CMake header files
 set(HEADER_FILES
@@ -21,6 +22,7 @@ set(HEADER_FILES
         include/tiramisu/externs.h
         )
         
+# Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
 if (${USE_AUTO_SCHEDULER})
     set(HEADER_FILES ${HEADER_FILES}
         include/tiramisu/auto_scheduler/auto_scheduler.h
@@ -37,14 +39,12 @@ endif()
 # Add CMake cpp files
 set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
+# Add autoscheduler cpp files if USE_AUTO_SCHEDULER is TRUE in configure.cmake
 if (${USE_AUTO_SCHEDULER})
     set(OBJS_AUTO_SCHEDULER auto_scheduler optimization_info dnn_accesses ast evaluator schedules_generator search_method)
 endif()
 
 ### CMAKE FILE INTERNALS ###
-
-include(configure.cmake)
-
 if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
