@@ -123,6 +123,7 @@ void init();
   * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
 
 //*******************************************************
 
@@ -980,6 +981,15 @@ public:
       */
     void gen_c_code() const;
 
+    // ADD:FLEXNLP
+    /**
+      * \brief Generate autocopy statements for FlexNLP.
+      * \details This function generates automatic copy computations
+      * and adds them to the code to avoid to the user to do manual
+      * data loading to the device.
+      */
+    void gen_flexnlp_autocopy();
+
     /**
       * \brief Generate an object file that contains the compiled function.
       * \details This function relies on Halide to generate the object file.
@@ -1050,6 +1060,7 @@ public:
      * tiramisu program.
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
 
     /**
      * \brief Set the context of the function.
@@ -1090,6 +1101,11 @@ class buffer
 
 private:
     /**
+     * A boolean that indicates whether a buffer is a dummy buffer or not (used as default value for a buffer).
+     */
+    bool is_dummy;
+
+    /**
      * A boolean that indicates whether a buffer is allocated or not.
      */
     bool allocated;
@@ -1117,6 +1133,12 @@ private:
      * to do data transfert to gpu manually.
      */
     bool automatic_gpu_copy;
+
+    /**
+     * automatic_flexnlp_copy = true by default, is it set to false when the user wants
+     * to do data transfert to flexnlp manually.
+     */
+    bool automatic_flexnlp_copy;
 
     /**
       * The sizes of the dimensions of the buffer.  Assuming the following
@@ -1165,9 +1187,14 @@ protected:
     bool get_auto_allocate();
 
     /**
-      * Return whether the copy should be done automatically.
+      * Return whether the copy should be done automatically to the gpu device.
       */
     bool get_automatic_gpu_copy();
+
+    /**
+      * Return whether the copy should be done automatically to the flexnlp device.
+      */
+    bool get_automatic_flexnlp_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1175,6 +1202,11 @@ protected:
     void set_dim_size(int dim, int size);
 
 public:
+    /**
+      * \brief Default tiramisu constructor
+      */
+    buffer();
+
     /**
       * \brief Create a tiramisu buffer.
       *
@@ -1228,7 +1260,7 @@ public:
       * function the "implicit function").
       *
       * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
-      * This field is only set, when we creat a gpu buffer.
+      * This field is only set, when we create a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
@@ -1238,6 +1270,10 @@ public:
            tiramisu::function *fct = global::get_implicit_function(),
            std::string corr = "");
 
+    /**
+      * Return if this buffer is a dummy buffer or not (default buffer used for default buffer parameter values)
+      */
+    bool get_is_dummy();
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -1359,6 +1395,11 @@ public:
     void set_automatic_gpu_copy(bool automatic_gpu_copy);
 
     /**
+      * Set whether the FlexNLP copy should be done automatically.
+      */
+    void set_automatic_flexnlp_copy(bool automatic_flexnlp_copy);
+
+    /**
      * Return true if all extents of the buffer are literal integer
      * contants (e.g., 4, 10, 100, ...).
      */
@@ -1386,7 +1427,6 @@ public:
     void tag_gpu_local();
     /* Tag the buffer as located in the GPU constant memory. */
     void tag_gpu_constant();
-
 };
 
 /**
@@ -1673,6 +1713,18 @@ private:
     tiramisu::op_t lhs_access_type;
     tiramisu::op_t rhs_access_type;
     // @}
+
+    // ADD:FLEXNLP
+    /**
+      * This variable contains the computation's iteration variables
+      */
+    std::vector<tiramisu::var> iteration_variables;
+
+    /**
+      * Returns the iteration_variables vector containing each of the
+      * computation's iteration variables
+      */
+    std::vector<tiramisu::var> get_iteration_variables();
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -2674,7 +2726,7 @@ protected:
       * \endcode
       *
       */
-    computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+    computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device = tiramisu::buffer());
 
 public:
 
@@ -4499,6 +4551,67 @@ public:
     input(std::string name, std::vector<std::string> dimension_names,
 			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
 	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
+    {
+    }
+
+    // ADD:FLEXNLP
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * Declare an input.
+      *
+      * \p name is the name of the input.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the input.  It is used to define the size of the input.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
+      *
+      * \p cpu_buffer_to_map_to_device is the buffer that is mapped to this input
+      * in the device.
+      *
+      * Example:
+      *
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type float32, that is the mapping of the cpu_A buffer.
+      * We can first declare two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following buffer
+      *
+      * \code
+      * buffer cpu_A("cpu_A", {10,30}, p_float32, a_input);
+      * \endcode
+      *
+      * and then create the corresponding device input
+      *
+      * \code
+      * input A("A", {i,j}, p_float32, cpu_A);
+      * A.get_buffer()->tag_gpu_global()
+      * \endcode
+      *
+      * This declaration's advantage, is that the buffer cpu_A
+      * will get automatically copied to A's buffer which will be
+      * automatically allocated.
+      *
+     */
+    input(std::string name, std::vector<var> iterator_variables, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device):
+      computation::computation(name, iterator_variables, expr(), expr(t), false, t, cpu_buffer_to_map_to_device)
+    {
+    }
+
+    /**
+      * \overload
+      */
+      input(std::vector<var> iterator_variables, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device):
+        input(generate_new_computation_name(), iterator_variables, t, cpu_buffer_to_map_to_device)
     {
     }
 };

@@ -300,4 +300,45 @@ expr spmv(expr transposeA,
             tiramisu::p_uint8);
 }
 
+/**
+  FlexNLP-Tiramisu API
+*/
+
+/**
+  Run an LSTM Cell inference
+*/
+expr flexnlp_lstm_cell(const buffer &W_x, const buffer &W_h, const buffer &b_x, const buffer &b_h,
+                       const buffer &x,  const buffer &h_in, const buffer &h_out, const buffer &c_in, expr device_id)
+{
+    std::string fname;
+    fname = "tiramisu_flexnlp_lstm_cell";
+
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, W_x.get_name()),
+                var(p_void_ptr, W_h.get_name()),
+                var(p_void_ptr, b_x.get_name()),
+                var(p_void_ptr, b_h.get_name()),
+                var(p_void_ptr, x.get_name()),
+                var(p_void_ptr, h_in.get_name()),
+                var(p_void_ptr, h_out.get_name()),
+                var(p_void_ptr, c_in.get_name()),
+                cast(p_int32, device_id)
+            },
+            tiramisu::p_int32);
+}
+
+
+expr flexnlp_init(expr number_of_devices)
+{
+    std::string fname;
+    fname = "tiramisu_flexnlp_init";
+
+    return expr(o_call, fname,
+            {
+                cast(p_int32, number_of_devices)
+            },
+            tiramisu::p_int32);
+}
+
 }

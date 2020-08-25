@@ -4,6 +4,8 @@ option(USE_GPU "Build with GPU support" OFF)
 
 option(USE_MPI "Build with MPI support" OFF)
 
+option(USE_FLEXNLP "Build with FlexNLP support" ON)
+
 option(USE_LIBPNG "Build with libpng for the Halide benchmark" FALSE)
 
 option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)

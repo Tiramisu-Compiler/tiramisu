@@ -48,6 +48,13 @@ if (${USE_MKL_WRAPPERS})
     target_include_directories(mkl_wrapper PUBLIC ${MKL_PREFIX}/include)
 endif()
 
+# Need to define FLEXNLP_LIBRARIES and FLEXNLP_INCLUDE_DIRS
+#if (${USE_FLEXNLP})
+    add_library(flexnlp_wrapper STATIC "src/tiramisu_flexnlp_wrappers.cpp")
+    target_link_libraries(flexnlp_wrapper ${FLEXNLP_LIBRARIES})
+    target_include_directories(flexnlp_wrapper PUBLIC ${FLEXNLP_INCLUDE_DIRS})
+#endif()
+
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
 FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
 FILE(STRINGS benchmarks/automatic_comm/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)

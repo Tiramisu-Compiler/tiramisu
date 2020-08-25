@@ -1,0 +1,8 @@
+#ifndef __FLEXNLP_CONF_HEADER_
+#define __FLEXNLP_CONF_HEADER_
+
+#define INPUT_SIZE 16
+#define FEATURE_SIZE 256
+#define SEQ_LENGTH 100
+#define NUM_LAYERS 4
+#endif

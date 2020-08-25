@@ -2053,6 +2053,20 @@ expr spmv(expr transposeA,
  */
 expr cuda_stream_synchronize();
 
+/**
+  FlexNLP Functions
+ */
+
+/**
+ * Run a FlexNLP LSTM operator
+ */
+expr flexnlp_lstm_cell(const buffer &W_x, const buffer &W_h, const buffer &b_x, const buffer &b_h,
+                       const buffer &x, const buffer &h_in, const buffer &h_out, const buffer &c_in, expr device_id = 0);
+/**
+* Initializes the FlexNLP contect (pass how many FlexNLP devices to use)
+*/
+expr flexnlp_init(expr number_of_devices = 1);
+
 }
 
 #endif
