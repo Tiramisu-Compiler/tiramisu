@@ -10,8 +10,6 @@ bool perform_autoscheduling = false;
 // Path to python (please give absolute path)
 const std::string py_cmd_path = "/usr/bin/python;
 
-// Path to a script that executes the ML model (please give absolute path)
-
 const std::string py_interface_path = "/data/tiramisu/tutorials/tutorial_autoscheduler/model/main.py";
 
 int main(int argc, char **argv)
