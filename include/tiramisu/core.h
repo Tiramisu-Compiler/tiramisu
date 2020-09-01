@@ -990,6 +990,9 @@ public:
       */
     void gen_flexnlp_autocopy();
 
+    // TODO:FLEXNLP Add documentation
+    void gen_halide_bug_workaround_computations();
+
     /**
       * \brief Generate an object file that contains the compiled function.
       * \details This function relies on Halide to generate the object file.

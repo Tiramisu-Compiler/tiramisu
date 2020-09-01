@@ -2072,7 +2072,7 @@ void tiramisu::function::gen_flexnlp_autocopy(){
   for (auto comp : this->get_computations()){
     auto const &e = comp->get_expr(); // Get the computation's expression
     if (e.get_op_type() == tiramisu::o_call){ // If the computation is a function call
-      auto call_arguments = e.get_arguments(); // Get the function call's arguments
+      auto call_arguments = e.get_arguments(); // Get the function call's arguments (o_call arguments)
 
       // Get the computation's predecessor and successor
       computation *pred = comp->get_predecessor();
@@ -2211,6 +2211,75 @@ void tiramisu::function::gen_flexnlp_autocopy(){
   }
 }
 
+void tiramisu::function::gen_halide_bug_workaround_computations(){
+    // PART I : Go through input buffers (arguments) and make a computation that adds each buffer's first element
+    // PART II : Go through output buffers (arguments) and rewrite the first element at its place (dummy access to avoid Halide discarding the buffer)
+    auto b_dummy_input_accesses = new buffer("b_dummy_input_accesses", {1}, p_float32, a_temporary);
+    auto tmp_dummy_comp = new input("tmp_dummy_comp", {var("dummy_var", 0, 1)}, p_float32);
+    tmp_dummy_comp->store_in(b_dummy_input_accesses, {0});
+
+    auto accumulation_accesses = tiramisu::expr(0.f); // Used to accumulate accesses to each input (to create one dummy access computation)
+    computation* first_cpt = this->get_first_cpt(); // get the first computation (to add the dummy computation before it)
+
+    for (auto &buffer : this->get_arguments()){ // Go through the function argument buffers (those passed in the codegen function in the Tiramisu generator)
+      int nb_dims = buffer->get_n_dims(); // Get the buffer's number of dimensions
+      std::vector<tiramisu::expr> access_vector; // Will contain (0, 0.... 0) access (depending on the buffer's dimension)
+      std::vector<tiramisu::var> variables; // A vector that will contains variables var(0, DIM_SIZE) for each of the dimensions
+      std::vector<tiramisu::expr> store_vector;
+      
+      for (int i =0; i < nb_dims; i++){
+        access_vector.push_back(tiramisu::expr(0)); // prepare an access vector to the first element of the buffer
+        auto v = new var("i"+std::to_string(i), 0, buffer->get_dim_sizes()[i]); // Create a variable corresponding to the buffer sizes (0-> DIM_SIZE)
+        variables.push_back(*v); // create the variables buffer (used for declaring the buffer's associated input)
+        store_vector.push_back(expr(*v)); // Create the storing expression (used to map the input to the buffer in store_in)
+      }
+
+      // PART I
+      if (buffer->get_argument_type() == a_input && // Is an input buffer
+          (buffer->get_elements_type() == p_float32 || // Possible types
+          buffer->get_elements_type() == p_float64 ||
+          buffer->get_elements_type() == p_int32 ||
+          buffer->get_elements_type() == p_int64)){
+
+        // Create an input computation associated to the buffer
+        auto access_comp = new input("access_"+buffer->get_name(), variables, buffer->get_elements_type());
+        // Associate the computation to the buffer
+        access_comp->store_in(buffer, store_vector);
+        // Accumulate accesses to the different inputs (to make a dummy usage to avoid them being discarded by Halide when unused)
+        accumulation_accesses = accumulation_accesses + cast(p_float32, (*access_comp)(access_vector));
+      }
+
+      // PART II : for output buffers (copy the first element to itself)
+      if (buffer->get_argument_type() == a_output&& // Is an input buffer
+         buffer->get_elements_type() == p_float32){ // Only float32 type is supported TODO:FLEXNLP Support other types by making a buffer for each output (make a dedicated b_dummy_input_accesses buffer and a dedicated tmp_dummy_comp input for each output buffer)
+        // Create an input associated to the buffer
+        auto access_comp = new input("access_"+buffer->get_name(), variables, buffer->get_elements_type());
+
+        // Create a computation that copies the first element of the output buffer to the tmp buffer
+        auto copy_comp = new computation("copy_comp_"+buffer->get_name(), {}, (*access_comp)(access_vector));
+
+        // Create a computation that copies the tmp buffer content back to the output buffer (doesn't change the original value as we are rewriting the same value)
+        auto copy_back_comp = new computation("copy_back_comp_"+buffer->get_name(), {}, (*tmp_dummy_comp)(0));
+
+        // Store the computations
+        access_comp->store_in(buffer, store_vector); // Access to the buffer
+        copy_comp->store_in(tmp_dummy_comp->get_buffer(), {0}); // tmp contains one element
+        copy_back_comp->store_in(buffer, access_vector); // copy back copies back to the (0,0...) location (first element)
+
+        // Schedule the computations (copy first to tmp buffer => Then copy back to the output buffer => then the actual first computation)
+        (*copy_comp).then(*copy_back_comp, computation::root)
+                 .then(*first_cpt, computation::root);
+        first_cpt = copy_comp; // set current first computation to copy_comp which is the new first computation
+      }
+    }
+
+    // Create the dummy input accesses computation and schedule it, then store it in a dummy buffer
+    auto comp = new tiramisu::computation("dummy_input_accesses", {}, accumulation_accesses);
+    comp->then(*first_cpt, computation::root);
+    comp->store_in(b_dummy_input_accesses,{0});
+    first_cpt = comp;
+}
+
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
 {
     if (gen_cuda_stmt)
@@ -2240,6 +2309,8 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
   functions specific to architectures are called conditionally on
   the gen_architecture_flag parameter's value.
 */
+// TODO:FLEXNLP Fix the bug and delete workaround code ()
+#define USE_HALIDE_BUFFERS_BUG_WORKAROUND true
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag)
 {
     this->set_arguments(arguments);
@@ -2257,6 +2328,9 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     }
     if (gen_architecture_flag == tiramisu::hardware_architecture_t::arch_flexnlp)
         this->gen_flexnlp_autocopy();
+
+    if (USE_HALIDE_BUFFERS_BUG_WORKAROUND)
+        this->gen_halide_bug_workaround_computations();
 
     this->lift_dist_comps();
     this->gen_time_space_domain();

@@ -14,7 +14,7 @@
   * Set to true to enable printing the final (fully simplified)
   * generated Halide IR.
   */
-#define PRINT_FINAL_HALIDE_IR_AFTER_CODEGEN 0
+#define PRINT_FINAL_HALIDE_IR_AFTER_CODEGEN 1
 
 
 /**
@@ -22,7 +22,7 @@
   * Debugging here means printing the results of each Tiramisu pass.
   */
 #ifndef ENABLE_DEBUG
-#define ENABLE_DEBUG false
+#define ENABLE_DEBUG true
 #endif // ENABLE_DEBUG
 
 /**
@@ -32,7 +32,7 @@
   * (this will print detailed debugging information).
   */
 #ifndef DEBUG_LEVEL
-#define DEBUG_LEVEL 0
+#define DEBUG_LEVEL 10
 #endif // DEBUG_LEVEL
 
 namespace tiramisu
