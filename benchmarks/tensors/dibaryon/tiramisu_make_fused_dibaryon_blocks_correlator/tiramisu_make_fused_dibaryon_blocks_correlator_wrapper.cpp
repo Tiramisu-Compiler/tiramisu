@@ -13,10 +13,10 @@ extern "C" {
 #include "tiramisu_make_fused_dibaryon_blocks_correlator_wrapper.h"
 #include "tiramisu_make_fused_dibaryon_blocks_correlator_ref.cpp"
 
-#define RUN_REFERENCE 1
-#define RUN_CHECK 1
+#define RUN_REFERENCE 0
+#define RUN_CHECK 0
 int nb_tests = 1;
-int randommode = 0;
+int randommode = 1;
 
 
 
@@ -841,7 +841,7 @@ int main(int, char **)
 //            for (r=0; r<B2Nrows; r++)
               for (t=0; t<Lt; t++) {
                  if ((std::abs(C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] - t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk) ||
-	               (std::abs(C_im[index_4d(b,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk))
+	               (std::abs(C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk))
 	            {
                   printf("rp=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", rp, m, n, t, C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)], C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
 		            std::cout << "Error: different computed values for C_r or C_i!" << std::endl;

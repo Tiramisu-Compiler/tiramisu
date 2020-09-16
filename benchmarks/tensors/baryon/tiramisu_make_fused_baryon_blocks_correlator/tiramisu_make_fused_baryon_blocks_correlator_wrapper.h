@@ -1,7 +1,7 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
-#include "../../dibaryon/reference/qblocks_2pt_parameters.h"
+#include "../../utils/qblocks_2pt_parameters.h"
 
 #define Nq P_Nq
 #define Nc P_Nc
@@ -10,6 +10,7 @@
 #define Nw2 Nw*Nw
 #define Nw2Hex P_Nw2Hex
 #define Nperms P_Nperms
+#define B1Nperms P_B1Nperms
 #define Lt P_Nt
 #define Vsrc P_Vsrc
 #define Vsnk P_Vsnk
@@ -38,6 +39,7 @@ extern "C" {
 #endif
 
 int tiramisu_make_fused_baryon_blocks_correlator(
+			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,

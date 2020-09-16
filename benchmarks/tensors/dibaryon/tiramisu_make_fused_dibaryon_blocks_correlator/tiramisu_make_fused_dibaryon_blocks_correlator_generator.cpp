@@ -1,8 +1,8 @@
 #include <tiramisu/tiramisu.h>
 #include <string.h>
 #include "tiramisu_make_fused_dibaryon_blocks_correlator_wrapper.h"
-#include "../utils/complex_util.h"
-#include "../utils/util.h"
+#include "../../utils/complex_util.h"
+#include "../../utils/util.h"
 
 using namespace tiramisu;
 
