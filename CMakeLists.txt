@@ -7,7 +7,6 @@ set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
-
 # Add CMake header files
 set(HEADER_FILES
         include/tiramisu/block.h
@@ -19,13 +18,16 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
-	include/tiramisu/computation_graph.h
-	include/tiramisu/auto_scheduler.h
-        )
+        include/tiramisu/computation_graph.h
+        include/tiramisu/auto_scheduler.h
+)
 
 # Add CMake cpp files
-set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
-
+if(${USE_HALIDE})
+    set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+else()
+    set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils mpi codegen_cuda externs)
+endif()
 
 ### CMAKE FILE INTERNALS ###
 
@@ -53,7 +55,6 @@ FILE(STRINGS benchmarks/benchmark_list.txt TIRAMISU_BENCHMARKS_RAW)
 FILE(STRINGS benchmarks/automatic_comm/dist_benchmark_list.txt TIRAMISU_DIST_BENCHMARKS_RAW)
 FILE(STRINGS tutorials/developers_tutorial_list.txt TIRAMISU_DEVELOPERS_TUTORIALS_RAW)
 FILE(STRINGS tutorials/users_tutorial_list.txt TIRAMISU_USERS_TUTORIALS_RAW)
-
 
 macro(init_tags)
     set(is_gpu false)
@@ -145,13 +146,21 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+#set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+if(${USE_HALIDE})
 include_directories("include"
         "${ISL_INCLUDE_DIRECTORY}"
         "${HALIDE_SOURCE_DIRECTORY}/include" "${HALIDE_SOURCE_DIRECTORY}/tools"
         "build")
+else()
+include_directories("include"
+        "${ISL_INCLUDE_DIRECTORY}"
+        "build")
+endif()
 
 if (${USE_MPI})
     set(CMAKE_CXX_COMPILER "${MPI_BUILD_DIR}/bin/mpicxx")
@@ -159,11 +168,13 @@ if (${USE_MPI})
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
-    set(CMAKE_CXX_COMPILER "g++")
+    set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
 
-find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
+if(${USE_HALIDE})
+   find_library(HalideLib Halide PATHS ${HALIDE_LIB_DIRECTORY} NO_DEFAULT_PATH)
+endif()
 find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 
 # Require LLVM 5.0 or greater to keep in line with Halide
@@ -212,7 +223,14 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
-target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
+#add_library(tiramisu STATIC ${T_CODE})
+
+if(${USE_HALIDE})
+    target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
+else()
+    target_link_libraries(tiramisu ${ISLLib})
+endif()
+
 target_link_libraries(tiramisu ${LINK_FLAGS})
 
 function(link_tags name)
@@ -225,8 +243,10 @@ endfunction()
 
 function(build_g name generator result)
     add_executable(${name} ${generator} ${HEADER_FILES})
+if(${USE_HALIDE})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
-    target_link_libraries(${name} ${LINK_FLAGS})
+endif()
+    target_link_libraries(${name} tiramisu ${ISLLib} ${LINK_FLAGS})
     link_tags(${name})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${result}")
@@ -236,7 +256,9 @@ endfunction()
 
 function(build_halide_g name generator result)
     add_executable(${name} ${generator})
+if(${USE_HALIDE})
     target_link_libraries(${name} ${HalideLib})
+endif()
     target_link_libraries(${name} ${LINK_FLAGS})
     if (NOT result STREQUAL "")
         set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ${result})
@@ -246,8 +268,12 @@ endfunction()
 
 function(build_w name objs wrapper header)
     add_executable(${name} ${wrapper} ${objs} ${header})
+if(${USE_HALIDE})
     target_link_libraries(${name} tiramisu ${HalideLib} ${ISLLib})
-    target_link_libraries(${name} ${LINK_FLAGS})
+else()
+    target_link_libraries(${name} tiramisu ${ISLLib})
+endif()
+    target_link_libraries(${name} tiramisu ${ISLLib} ${LINK_FLAGS})
     link_tags(${name})
 endfunction()
 

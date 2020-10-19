@@ -15,6 +15,9 @@
 #include <iso646.h>
 #endif
 
+#include <cstring>
+#include <algorithm>
+
 namespace tiramisu
 {
 int send::next_msg_tag = 0;
@@ -1357,12 +1360,14 @@ void computation::dump() const
             tiramisu::str_dump("\n");
         }
 
+#ifdef USE_HALIDE
         tiramisu::str_dump("Halide statement: ");
         if (this->stmt.defined())
         {
             std::cout << this->stmt;
         }
         else
+#endif
         {
             tiramisu::str_dump("NULL");
         }
@@ -5679,6 +5684,7 @@ void tiramisu::buffer::dump(bool exhaustive) const
     }
 }
 
+#ifdef USE_HALIDE
 Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
 {
     Halide::Type t;
@@ -5729,6 +5735,7 @@ Halide::Type halide_type_from_tiramisu_type(tiramisu::primitive_t type)
     }
     return t;
 }
+#endif
 
 //----------------
 
@@ -5773,7 +5780,9 @@ void tiramisu::computation::init_computation(std::string iteration_space_str,
 
     // Initialize all the fields to NULL (useful for later asserts)
     access = NULL;
+#ifdef USE_HALIDE
     stmt = Halide::Internal::Stmt();
+#endif
     time_processor_domain = NULL;
     duplicate_number = 0;
     automatically_allocated_buffer = NULL;
@@ -5868,7 +5877,9 @@ tiramisu::computation::computation()
 {
     this->access = NULL;
     this->schedule = NULL;
+#ifdef USE_HALIDE
     this->stmt = Halide::Internal::Stmt();
+#endif
     this->time_processor_domain = NULL;
     this->duplicate_number = 0;
 
@@ -6293,10 +6304,12 @@ tiramisu::primitive_t tiramisu::computation::get_data_type() const
 /**
   * Return the Halide statement that assigns the computation to a buffer location.
   */
+#ifdef USE_HALIDE
 Halide::Internal::Stmt tiramisu::computation::get_generated_halide_stmt() const
 {
     return stmt;
 }
+#endif
 
 /**
  * Compare two computations.

@@ -38,6 +38,7 @@ def compile_tiramisu_code(prog):
     os.makedirs(dst_folder_path, exist_ok=True)
                 
     # Compile tiramisu code generator
+    #subprocess.run(["clang++", "-std=c++11", "-fno-rtti", "-DHALIDE_NO_JPEG", "-I%s/include" % TIRAMISU_ROOT, "-I%s/3rdParty/isl/include/" % TIRAMISU_ROOT, "-I%s/3rdParty/Halide/include" % TIRAMISU_ROOT, "-I%s/benchmarks" % TIRAMISU_ROOT, "-I%s/build" % TIRAMISU_ROOT, "-L%s/build" % TIRAMISU_ROOT, "-L%s/3rdParty/isl/build/lib" % TIRAMISU_ROOT, "-L%s/3rdParty/Halide/lib/" % TIRAMISU_ROOT, "-o", str(dst_folder_path / (sched_id + "_generator")), "-ltiramisu", "-lisl", "-lHalide", "-ldl", "-lpthread", "-lz", "-lm", "-Wl,-rpath,%s/build" % TIRAMISU_ROOT, str(src_folder_path / (sched_id + ".cpp")), "-ltiramisu", "-lisl", "-lHalide", "-ldl", "-lpthread", "-lz", "-lm"], check=True)
     subprocess.run(["g++", "-std=c++11", "-fno-rtti", "-DHALIDE_NO_JPEG", "-I%s/include" % TIRAMISU_ROOT, "-I%s/3rdParty/isl/include/" % TIRAMISU_ROOT, "-I%s/3rdParty/Halide/include" % TIRAMISU_ROOT, "-I%s/benchmarks" % TIRAMISU_ROOT, "-I%s/build" % TIRAMISU_ROOT, "-L%s/build" % TIRAMISU_ROOT, "-L%s/3rdParty/isl/build/lib" % TIRAMISU_ROOT, "-L%s/3rdParty/Halide/lib/" % TIRAMISU_ROOT, "-o", str(dst_folder_path / (sched_id + "_generator")), "-ltiramisu", "-lisl", "-lHalide", "-ldl", "-lpthread", "-lz", "-lm", "-Wl,-rpath,%s/build" % TIRAMISU_ROOT, str(src_folder_path / (sched_id + ".cpp")), "-ltiramisu", "-lisl", "-lHalide", "-ldl", "-lpthread", "-lz", "-lm"], check=True)
     
     # Make sure that the code generator is executable

@@ -15,17 +15,29 @@
 #include <tiramisu/expr.h>
 
 #include <string>
+
 #include "../include/tiramisu/expr.h"
+
+#ifdef USE_HALIDE
 #include "../3rdParty/Halide/src/Expr.h"
 #include "../3rdParty/Halide/src/Parameter.h"
+#endif
+
 #include "../include/tiramisu/debug.h"
+
+#ifdef USE_HALIDE
 #include "../3rdParty/Halide/src/IR.h"
+#endif
+
 #include "../include/tiramisu/core.h"
 
 namespace tiramisu
 {
 
 std::string generate_new_variable_name();
+
+#ifdef USE_HALIDE
+
 Halide::Expr make_comm_call(Halide::Type type, std::string func_name, std::vector<Halide::Expr> args);
 Halide::Expr halide_expr_from_tiramisu_type(tiramisu::primitive_t ptype);
 
@@ -50,6 +62,8 @@ Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t
 
     return res;
 }
+
+#endif
 
 std::vector<computation *> function::get_computation_by_name(std::string name) const
 {
@@ -1449,6 +1463,8 @@ void print_isl_ast_expr_vector(
     }
 }
 
+#ifdef USE_HALIDE
+
 template <typename T, int N>
 Halide::Expr halide_expr_from_isl_ast_expr_temp(isl_ast_expr *isl_expr)
 {
@@ -1583,6 +1599,9 @@ Halide::Expr halide_expr_from_isl_ast_expr(isl_ast_expr *isl_expr)
 }
 
 std::vector<std::pair<std::string, Halide::Expr>> let_stmts_vector;
+
+#endif
+
 std::vector<tiramisu::computation *> allocate_stmts_vector;
 
 // For each node of the ISL AST, the corresponding computation is stored.
@@ -1595,6 +1614,8 @@ tiramisu::computation *get_computation_annotated_in_a_node(isl_ast_node *node)
     isl_id_free(comp_id);
     return comp;
 }
+
+#ifdef USE_HALIDE
 
 Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Internal::Stmt &first,
                                                               const Halide::Internal::Stmt &second)
@@ -1611,6 +1632,8 @@ Halide::Internal::Stmt tiramisu::generator::make_halide_block(const Halide::Inte
         return Halide::Internal::Block::make(first, second);
     }
 }
+
+#endif
 
 void tiramisu::generator::extract_tags_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
                                                      std::vector<std::pair<std::string, std::string>> &tagged_stmts)
@@ -1680,6 +1703,8 @@ void tiramisu::generator::extract_tags_from_isl_node(const tiramisu::function &f
 
     DEBUG_INDENT(-4);
 }
+
+#ifdef USE_HALIDE
 
 Halide::Internal::Stmt
 tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, isl_ast_node *node, int level,
@@ -2546,6 +2571,8 @@ Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector
 
 }
 
+#endif
+
 isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *build, void *user)
 {
     return node;
@@ -2559,6 +2586,7 @@ isl_ast_node *for_code_generator_after_for(isl_ast_node *node, isl_ast_build *bu
   * are the indices for each dimension of the buffer.
   */
 
+#ifdef USE_HALIDE
 
 static inline Halide::Expr empty_index()
 {
@@ -2657,6 +2685,8 @@ Halide::Expr generator::linearize_access(int dims, std::vector<Halide::Expr> &st
 
     return index;
 }
+
+#endif
 
 tiramisu::expr generator::linearize_access(int dims, std::vector<tiramisu::expr> &strides, std::vector<tiramisu::expr> index_expr)
 {
@@ -2873,6 +2903,7 @@ std::pair<expr, expr> computation::create_tiramisu_assignment(std::vector<isl_as
  * The statement will assign the computations to a memory buffer based on the
  * access function provided in access.
  */
+#ifdef USE_HALIDE
 void computation::create_halide_assignment()
 {
     DEBUG_FCT_NAME(3);
@@ -3274,6 +3305,8 @@ void computation::create_halide_assignment()
 
     DEBUG_INDENT(-4);
 }
+#endif
+
 tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::vector<isl_ast_expr *> &index_expr,
                                            const tiramisu::expr &tiramisu_expr){
     tiramisu::expr result;
@@ -3368,6 +3401,8 @@ tiramisu::expr generator::replace_accesses(const tiramisu::function *fct, std::v
 
     return result;
 }
+
+#ifdef USE_HALIDE
 
 Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function *fct,
                                                        std::vector<isl_ast_expr *> &index_expr,
@@ -3958,6 +3993,8 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     }
 }
 
+#endif
+
 void tiramisu::generator::update_producer_expr_name(tiramisu::computation *comp, std::string name_to_replace,
                                                     std::string replace_with) {
     DEBUG_FCT_NAME(3);
@@ -4073,6 +4110,8 @@ void tiramisu::generator::_update_producer_expr_name(tiramisu::expr &current_exp
     DEBUG_FCT_NAME(3);
 }
 
+#ifdef USE_HALIDE
+
 Halide::Expr make_comm_call(Halide::Type type, std::string func_name, std::vector<Halide::Expr> args) {
     return Halide::Internal::Call::make(type, func_name, args, Halide::Internal::Call::CallType::Extern);
 }
@@ -4105,5 +4144,7 @@ Halide::Internal::Stmt generator::make_buffer_free(buffer * b) {
         return Halide::Internal::Free::make(b->get_name());
     }
 }
+
+#endif
 
 }

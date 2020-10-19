@@ -14,11 +14,11 @@ CORES=1
 
 # For Travis build we skip LLVM installation and use a custom binary.
 # Second argument specifies the custom path of the LLVM bin dir.
-if [ "$2" = "" ]; then
-    LLVM_BIN_DIR=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin
-else
-    LLVM_BIN_DIR="$2"
-fi
+#if [ "$2" = "" ]; then
+#    LLVM_BIN_DIR=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin
+#else
+#    LLVM_BIN_DIR="$2"
+#fi
 
 set -e
 . ${PROJECT_SRC_DIR}/utils/scripts/functions.sh
@@ -57,28 +57,28 @@ echo "Done installing isl"
 
 
 # Get LLVM installed
-if [ "$2" = "" ]; then
-    echo "#### Installing LLVM ####"
-    echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/llvm"
-    if [ ! -d "build" ]; then
-        echo_and_run_cmd "mkdir build/"
-    fi
-    if [ ! -d "prefix" ]; then
-        echo_and_run_cmd "mkdir prefix/"
-    fi
-    echo_and_run_cmd "cd build"
-    echo_and_run_cmd "$CMAKE -DHAVE_LIBEDIT=0 -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;NVPTX;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/ -DLLVM_EXTERNAL_CLANG_SOURCE_DIR=${PROJECT_SRC_DIR}/3rdParty/clang"
-    echo_and_run_cmd "make -j $CORES"
-    echo_and_run_cmd "make install"
-else
-    echo "#### Skipping LLVM Installation ####"
-fi
+#if [ "$2" = "" ]; then
+#    echo "#### Installing LLVM ####"
+#    echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/llvm"
+#    if [ ! -d "build" ]; then
+#        echo_and_run_cmd "mkdir build/"
+#    fi
+#    if [ ! -d "prefix" ]; then
+#        echo_and_run_cmd "mkdir prefix/"
+#    fi
+#    echo_and_run_cmd "cd build"
+#    echo_and_run_cmd "$CMAKE -DHAVE_LIBEDIT=0 -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;NVPTX;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/ -DLLVM_EXTERNAL_CLANG_SOURCE_DIR=${PROJECT_SRC_DIR}/3rdParty/clang"
+#    echo_and_run_cmd "make -j $CORES"
+#    echo_and_run_cmd "make install"
+#else
+#    echo "#### Skipping LLVM Installation ####"
+#fi
 
 
 
 # Set LLVM_CONFIG and CLANG env variables
-export CLANG=${LLVM_BIN_DIR}/clang
-export LLVM_CONFIG=${LLVM_BIN_DIR}/llvm-config
+export CLANG=g++ #clang #${LLVM_BIN_DIR}/clang
+export LLVM_CONFIG=llvm-config #${LLVM_BIN_DIR}/llvm-config
 
 
 

@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <iomanip>
 #include <fstream>
+#include <algorithm>
+#include <sstream>
+#include <cassert>
 
 using std::string;
 using std::vector;

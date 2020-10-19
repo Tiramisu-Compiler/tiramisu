@@ -5,6 +5,7 @@
 
 extern "C" {
 
+#ifdef USE_HALIDE
 int8_t *tiramisu_address_of_int8(halide_buffer_t *buffer, unsigned long index) {
     return &(((int8_t*)(buffer->host))[index]);
 }
@@ -44,11 +45,14 @@ float *tiramisu_address_of_float32(halide_buffer_t *buffer, unsigned long index)
 double *tiramisu_address_of_float64(halide_buffer_t *buffer, unsigned long index) {
     return &(((double*)(buffer->host))[index]);
 }
+#endif
 
 #ifdef WITH_MPI
+#ifdef USE_HALIDE
 void *tiramisu_address_of_wait(halide_buffer_t *buffer, unsigned long index) {
   return &(((MPI_Request*)(buffer->host))[index]);
 }
+#endif
 #endif
 
 }

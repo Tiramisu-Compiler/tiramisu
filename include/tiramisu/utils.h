@@ -1,7 +1,10 @@
 #ifndef _TIRAMISU_UTILS
 #define _TIRAMISU_UTILS
 
-#include "Halide.h"
+#ifdef USE_HALIDE
+    #include "Halide.h"
+#endif
+
 #include "tiramisu/debug.h"
 
 #include <chrono>
@@ -18,6 +21,8 @@ void print_time(const std::string &file_name, const std::string &kernel_name,
 // TODO(psuriana): init_buffer, print_buffer, copy_buffers, and compare_buffers
 // assume the buffers can only be at most 3 dimensions. Make the functions
 // able to handle arbitrary buffer dimension.
+
+#ifdef USE_HALIDE
 
 template<typename T>
 inline void init_buffer(Halide::Buffer<T> &buf, T val)
@@ -248,6 +253,7 @@ inline void init_2D_buffer_interleaving(Halide::Buffer<T> &buf, T val1, T val2)
         }
     }
 }
+#endif
 
 class tiramisu_timer
 {
