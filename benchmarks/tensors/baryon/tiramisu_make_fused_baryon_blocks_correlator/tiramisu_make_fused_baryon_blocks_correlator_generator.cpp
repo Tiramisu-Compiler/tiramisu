@@ -1,8 +1,8 @@
 #include <tiramisu/tiramisu.h>
 #include <string.h>
 #include "tiramisu_make_fused_baryon_blocks_correlator_wrapper.h"
-#include "../utils/complex_util.h"
-#include "../utils/util.h"
+#include "../../utils/complex_util.h"
+#include "../../utils/util.h"
 
 using namespace tiramisu;
 
@@ -14,6 +14,8 @@ void generate_function(std::string name)
     tiramisu::init(name);
 
    var r("r", 0, B1Nrows),
+	rp("rp", 0, B1Nrows),
+        nperm("nperm", 0, B1Nperms),
 	q("q", 0, Nq),
 	wnum("wnum", 0, Nw),
 	wnumBlock("wnumBlock", 0, Nw),
@@ -32,21 +34,22 @@ void generate_function(std::string name)
         kCprime("kCprime", 0, Nc),
         kSprime("kSprime", 0, Ns);
 
-   input C_r("C_r",      {t, x_out, m, r, n}, p_float64);
-   input C_i("C_i",      {t, x_out, m, r, n}, p_float64);
+   input C_r("C_r",      {t, x_out, rp, m, r, n}, p_float64);
+   input C_i("C_i",      {t, x_out, rp, m, r, n}, p_float64);
    input B1_prop_r("B1_prop_r",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
    input B1_prop_i("B1_prop_i",   {tri, t, iCprime, iSprime, jCprime, jSprime, x, y}, p_float64);
    input src_psi_B1_r("src_psi_B1_r",    {y, m}, p_float64);
    input src_psi_B1_i("src_psi_B1_i",    {y, m}, p_float64);
    input snk_psi_r("snk_psi_r", {x, n}, p_float64);
    input snk_psi_i("snk_psi_i", {x, n}, p_float64);
-   input src_color_weights("src_color_weights", {r, wnum, q}, p_int32);
-   input src_spin_weights("src_spin_weights", {r, wnum, q}, p_int32);
-   input src_weights("src_weights", {r, wnum}, p_float64);
-   input snk_color_weights("snk_color_weights", {r, wnum, q}, p_int32);
-   input snk_spin_weights("snk_spin_weights", {r, wnum, q}, p_int32);
+   input src_color_weights("src_color_weights", {rp, wnum, q}, p_int32);
+   input src_spin_weights("src_spin_weights", {rp, wnum, q}, p_int32);
+   input src_weights("src_weights", {rp, wnum}, p_float64);
+   input snk_color_weights("snk_color_weights", {r, nperm, wnum, q}, p_int32);
+   input snk_spin_weights("snk_spin_weights", {r, nperm, wnum, q}, p_int32);
    input snk_weights("snk_weights", {r, wnum}, p_float64);
-   input snk_blocks("snk_blocks", {r}, p_int32);
+   input src_spins("src_spins", {rp}, p_int32);
+   input sigs("sigs", {nperm}, p_int32);
 
     complex_computation B1_prop(&B1_prop_r, &B1_prop_i);
 
@@ -63,11 +66,16 @@ void generate_function(std::string name)
 
     complex_expr B1_r1_prop_0 =  B1_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
     complex_expr B1_r1_prop_2 =  B1_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
-    complex_expr B1_r1_prop_0p = B1_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
-    complex_expr B1_r1_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
     complex_expr B1_r1_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(0, wnumBlock, 1), src_spin_weights(0, wnumBlock, 1), x_out*sites_per_rank+x_in, y);
 
-    complex_expr B1_r1_diquark = ( B1_r1_prop_0 * B1_r1_prop_2 - B1_r1_prop_0p * B1_r1_prop_2p ) *  src_weights(0, wnumBlock);
+    complex_expr B1_r1_diquark = ( B1_r1_prop_0 * B1_r1_prop_2 ) *  src_weights(0, wnumBlock);
+
+    /*complex_expr B1_r1_prop_0s =  B1_prop(2, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_2s =  B1_prop(0, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_0ps = B1_prop(2, t, kCprime, kSprime, src_color_weights(0, wnumBlock, 2), src_spin_weights(0, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
+    complex_expr B1_r1_prop_2ps = B1_prop(0, t, iCprime, iSprime, src_color_weights(0, wnumBlock, 0), src_spin_weights(0, wnumBlock, 0), x_out*sites_per_rank+x_in, y);
+
+    complex_expr B1_r1_diquark = ( B1_r1_prop_0 * B1_r1_prop_2 - B1_r1_prop_0s * B1_r1_prop_2s ) *  src_weights(0, wnumBlock); */
 
     computation B1_Blocal_r1_r_props_init("B1_Blocal_r1_r_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
     computation B1_Blocal_r1_i_props_init("B1_Blocal_r1_i_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
@@ -104,7 +112,7 @@ void generate_function(std::string name)
     complex_expr B1_r2_prop_2p = B1_prop(2, t, iCprime, iSprime, src_color_weights(1, wnumBlock, 2), src_spin_weights(1, wnumBlock, 2), x_out*sites_per_rank+x_in, y);
     complex_expr B1_r2_prop_1 = B1_prop(1, t, jCprime, jSprime, src_color_weights(1, wnumBlock, 1), src_spin_weights(1, wnumBlock, 1), x_out*sites_per_rank+x_in, y);
 
-    complex_expr B1_r2_diquark = ( B1_r2_prop_0 * B1_r2_prop_2 - B1_r2_prop_0p * B1_r2_prop_2p ) *  src_weights(1, wnumBlock);
+    complex_expr B1_r2_diquark = ( B1_r2_prop_0 * B1_r2_prop_2 ) *  src_weights(1, wnumBlock);
 
     computation B1_Blocal_r2_r_props_init("B1_Blocal_r2_r_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
     computation B1_Blocal_r2_i_props_init("B1_Blocal_r2_i_props_init", {t, x_out, x_in, iCprime, iSprime, kCprime, kSprime, y, jCprime, jSprime}, expr((double) 0));
@@ -128,37 +136,37 @@ void generate_function(std::string name)
 
     /* Correlator */
 
-    computation C_init_r("C_init_r", {t, x_out, m, r, n}, expr((double) 0));
-    computation C_init_i("C_init_i", {t, x_out, m, r, n}, expr((double) 0));
+    computation C_init_r("C_init_r", {t, x_out, rp, m, r, n}, expr((double) 0));
+    computation C_init_i("C_init_i", {t, x_out, rp, m, r, n}, expr((double) 0));
 
-    computation C_prop_init_r("C_prop_init_r", {t, x_out, x_in, m, r}, expr((double) 0));
-    computation C_prop_init_i("C_prop_init_i", {t, x_out, x_in, m, r}, expr((double) 0));
+    computation C_prop_init_r("C_prop_init_r", {t, x_out, x_in, rp, m, r}, expr((double) 0));
+    computation C_prop_init_i("C_prop_init_i", {t, x_out, x_in, rp, m, r}, expr((double) 0));
     
     int b=0;
     /* r1, b = 0 */
-    complex_computation new_term_0_r1_b1("new_term_0_r1_b1", {t, x_out, x_in,  m, r, wnum}, B1_Blocal_r1_init(t, x_out, x_in, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
-    new_term_0_r1_b1.add_predicate(snk_blocks(r) == 1);
+    complex_computation new_term_0_r1_b1("new_term_0_r1_b1", {t, x_out, x_in, rp, m, r, nperm, wnum}, B1_Blocal_r1_init(t, x_out, x_in, snk_color_weights(r, nperm, wnum, 0), snk_spin_weights(r, nperm, wnum, 0), snk_color_weights(r, nperm, wnum, 2), snk_spin_weights(r, nperm, wnum, 2), snk_color_weights(r, nperm, wnum, 1), snk_spin_weights(r, nperm, wnum, 1), m));
+    new_term_0_r1_b1.add_predicate(src_spins(rp) == 1);
     /* r2, b = 0 */
-    complex_computation new_term_0_r2_b1("new_term_0_r2_b1", {t, x_out, x_in,  m, r, wnum}, B1_Blocal_r2_init(t, x_out, x_in, snk_color_weights(r, wnum, 0), snk_spin_weights(r, wnum, 0), snk_color_weights(r, wnum, 2), snk_spin_weights(r, wnum, 2), snk_color_weights(r, wnum, 1), snk_spin_weights(r, wnum, 1), m));
-    new_term_0_r2_b1.add_predicate(snk_blocks(r) == 2);
+    complex_computation new_term_0_r2_b1("new_term_0_r2_b1", {t, x_out, x_in, rp, m, r, nperm, wnum}, B1_Blocal_r2_init(t, x_out, x_in, snk_color_weights(r, nperm, wnum, 0), snk_spin_weights(r, nperm, wnum, 0), snk_color_weights(r, nperm, wnum, 2), snk_spin_weights(r, nperm, wnum, 2), snk_color_weights(r, nperm, wnum, 1), snk_spin_weights(r, nperm, wnum, 1), m));
+    new_term_0_r2_b1.add_predicate(src_spins(rp) == 2);
 
-    complex_expr prefactor(cast(p_float64, snk_weights(r, wnum)), 0.0);
+    complex_expr prefactor(cast(p_float64, snk_weights(r, wnum))*cast(p_float64, sigs(nperm)), 0.0);
 
-    complex_expr term_res_b1 = new_term_0_r1_b1(t, x_out, x_in, m, r, wnum);
+    complex_expr term_res_b1 = new_term_0_r1_b1(t, x_out, x_in, rp, m, r, nperm, wnum);
 
     complex_expr snk_psi(snk_psi_r(x_out*sites_per_rank+x_in, n), snk_psi_i(x_out*sites_per_rank+x_in, n));
 
     complex_expr term_res = prefactor * term_res_b1;
 
-    computation C_prop_update_r("C_prop_update_r", {t, x_out, x_in, m, r, wnum}, C_prop_init_r(t, x_out, x_in, m, r) + term_res.get_real());
-    computation C_prop_update_i("C_prop_update_i", {t, x_out, x_in, m, r, wnum}, C_prop_init_i(t, x_out, x_in, m, r) + term_res.get_imag());
+    computation C_prop_update_r("C_prop_update_r", {t, x_out, x_in, rp, m, r, nperm, wnum}, C_prop_init_r(t, x_out, x_in, rp, m, r) + term_res.get_real());
+    computation C_prop_update_i("C_prop_update_i", {t, x_out, x_in, rp, m, r, nperm, wnum}, C_prop_init_i(t, x_out, x_in, rp, m, r) + term_res.get_imag());
 
     complex_computation C_prop_update(&C_prop_update_r, &C_prop_update_i);
 
-    complex_expr term = C_prop_update(t, x_out, x_in, m, r, Nw-1) * snk_psi;
+    complex_expr term = C_prop_update(t, x_out, x_in, rp, m, r, B1Nperms-1, Nw-1) * snk_psi;
 
-    computation C_update_r("C_update_r", {t, x_out, x_in, m, r, n}, C_init_r(t, x_out, m, r, n) + term.get_real());
-    computation C_update_i("C_update_i", {t, x_out, x_in, m, r, n}, C_init_i(t, x_out, m, r, n) + term.get_imag());
+    computation C_update_r("C_update_r", {t, x_out, x_in, rp, m, r, n}, C_init_r(t, x_out, rp, m, r, n) + term.get_real());
+    computation C_update_i("C_update_i", {t, x_out, x_in, rp, m, r, n}, C_init_i(t, x_out, rp, m, r, n) + term.get_imag());
 
     // -------------------------------------------------------
     // Layer II
@@ -258,8 +266,8 @@ void generate_function(std::string name)
 
     /* Correlator */
 
-    buffer buf_C_r("buf_C_r", {Lt, 1, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
-    buffer buf_C_i("buf_C_i", {Lt, 1, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
+    buffer buf_C_r("buf_C_r", {Lt, Vsnk/sites_per_rank, B1Nrows, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
+    buffer buf_C_i("buf_C_i", {Lt, Vsnk/sites_per_rank, B1Nrows, NsrcHex, B1Nrows, NsnkHex}, p_float64, a_input);
 
     C_r.store_in(&buf_C_r);
     C_i.store_in(&buf_C_i);
@@ -282,10 +290,10 @@ void generate_function(std::string name)
     C_prop_update_r.store_in(&buf_C_prop_r, {0});
     C_prop_update_i.store_in(&buf_C_prop_i, {0});
 
-    C_init_r.store_in(&buf_C_r, {t, x_out, m, r, n});
-    C_init_i.store_in(&buf_C_i, {t, x_out, m, r, n});
-    C_update_r.store_in(&buf_C_r, {t, x_out, m, r, n});
-    C_update_i.store_in(&buf_C_i, {t, x_out, m, r, n});
+    C_init_r.store_in(&buf_C_r, {t, x_out, rp, m, r, n});
+    C_init_i.store_in(&buf_C_i, {t, x_out, rp, m, r, n});
+    C_update_r.store_in(&buf_C_r, {t, x_out, rp, m, r, n});
+    C_update_i.store_in(&buf_C_i, {t, x_out, rp, m, r, n});
 
     // -------------------------------------------------------
     // Code Generation
@@ -298,10 +306,11 @@ void generate_function(std::string name)
 	     src_color_weights.get_buffer(),
 	     src_spin_weights.get_buffer(),
 	     src_weights.get_buffer(),
-	     snk_blocks.get_buffer(), 
+	     src_spins.get_buffer(), 
 	     snk_color_weights.get_buffer(),
 	     snk_spin_weights.get_buffer(),
-	     snk_weights.get_buffer()
+	     snk_weights.get_buffer(),
+	     sigs.get_buffer()
         }, 
         "generated_tiramisu_make_fused_baryon_blocks_correlator.o");
 }

@@ -3,11 +3,15 @@
 
 #include "../../utils/qblocks_2pt_parameters.h"
 
+#define Mq P_Mq
+#define B0Nrows P_B0Nrows
+#define Mw P_Mw
+#define NsFull P_NsFull
 #define Nq P_Nq
 #define Nc P_Nc
 #define Ns P_Ns
 #define Nw P_Nw
-#define Nw2 P_Nw2
+#define Nw2 Nw*Nw
 #define Nw2Hex P_Nw2Hex
 #define Nperms P_Nperms
 #define Lt P_Nt
@@ -23,14 +27,13 @@
 #define B1Nrows P_B1Nrows
 #define NEntangled P_NEntangled
 #define sites_per_rank P_sites_per_rank
-#define src_sites_per_rank P_src_sites_per_rank
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_dibaryon_blocks_correaltor"
+#define TEST_NAME_STR       "tiramisu_make_pion_correaltor"
 
 #include <tiramisu/utils.h>
 
@@ -38,26 +41,7 @@
 extern "C" {
 #endif
 
-int tiramisu_make_fused_dibaryon_blocks_correlator(
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
-			    halide_buffer_t *,
+int tiramisu_make_pion_correlator(
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
