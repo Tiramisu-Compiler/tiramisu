@@ -269,7 +269,10 @@ void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
         node1->children.push_back(child);
 
     for (computation_info& comp_info : node2->computations)
+    {
         node1->computations.push_back(comp_info);
+        computations_mapping[comp_info.comp_ptr] = node1;
+    }
 
     tree_level->erase(tree_level->begin() + opt.l1);
 }
@@ -465,6 +468,12 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             
             i_inner->parent = i_outer;
             
+            // Location of computations have changed, update computations_mapping
+            for (computation_info& comp_info : i_inner->computations)
+            {
+                computations_mapping[comp_info.comp_ptr] = i_inner;
+            }
+            
             // Rename the nodes
             i_inner->name = i_outer->name + "_inner";
             i_outer->name = i_outer->name + "_outer";
@@ -516,6 +525,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
         new_ast.roots.push_back(new_node);
     }
 
+    // Copy AST data
     new_ast.fct = fct;
     new_ast.computations_list = computations_list;
     new_ast.buffers_list = buffers_list;
@@ -530,6 +540,9 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.previous_optims = previous_optims;
     new_ast.new_optims = new_optims;
 
+    // In new_ast, the location of computations have changed, so recompute computations_mapping
+    new_ast.recompute_computations_mapping();    
+    
     return ret_node;
 }
 
@@ -553,6 +566,7 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
         new_node->children.push_back(new_child);
     }
 
+    // Copy node data
     new_node->depth = depth;
     new_node->name = name;
     new_node->low_bound = low_bound;
@@ -561,6 +575,23 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->computations = computations;
 
     return ret_node;
+}
+
+void syntax_tree::recompute_computations_mapping()
+{
+    computations_mapping.clear();
+    
+    for (ast_node *root : roots)
+        recompute_computations_mapping(root);
+}
+    
+void syntax_tree::recompute_computations_mapping(ast_node *node)
+{
+    for (computation_info& comp_info : node->computations)
+        computations_mapping[comp_info.comp_ptr] = node;
+        
+    for (ast_node *child : node->children)
+        recompute_computations_mapping(child);
 }
 
 std::vector<optimization_info> syntax_tree::get_schedule() const

@@ -338,6 +338,16 @@ public:
     ast_node* copy_and_return_node(syntax_tree& new_ast, ast_node *node_to_find) const;
     
     /**
+     * Clear computations_mapping, and recompute the nodes where computations are stored.
+     */
+    void recompute_computations_mapping();
+    
+    /**
+     * Recursive subroutine used by void recompute_computations_mapping();
+     */
+    void recompute_computations_mapping(ast_node *node);
+    
+    /**
      * Return the schedule of this AST.
      */
     std::vector<optimization_info> get_schedule() const;
