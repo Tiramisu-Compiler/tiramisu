@@ -22,7 +22,7 @@ import plotly.express as px
 import sys
 sys.path.append("../src/")
 sys.path.append("../")
-from src.allrank.models.losses import lambdaLoss
+from allrank.models.losses import lambdaLoss
 from src.torch141.lr_scheduler import *
 from src.torch141.adamw import *
 
