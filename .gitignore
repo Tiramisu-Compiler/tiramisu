@@ -16,3 +16,5 @@ src/*.pyc
 configure_path.cmake
 configure.cmake
 3rdParty/isl/configure
+__pycache__
+.ipynb_checkpoints
