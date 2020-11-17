@@ -58,6 +58,7 @@ int main(int argc, char **argv)
     // within a loop that has i as iterator and is named "S0". The name is
     // useful for debugging.
     computation S0("S0", {i}, 3 + 4);
+    
     // Since the iterator i is declared to be 0<=i<10 (i.e., the iteration space of S0 is 0<=i<10),
     // the previous declaration of S0 is equivalent to the following C code
     // for (i = 0; i < 10; i++)

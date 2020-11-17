@@ -7,9 +7,14 @@
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/ast_build.h>
+#include <isl/flow.h>
 
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
+
+#include <fstream>
+
+#include <iostream>
 
 namespace tiramisu
 {
@@ -63,6 +68,34 @@ void function::add_buffer(std::pair <std::string, tiramisu::buffer *> buf)
     assert((buf.second != NULL) && ("Empty buffer."));
 
     this->buffers_list.insert(buf);
+}
+
+/*save inner schedules for computations*/
+void function::save_computation_default_schedules(){
+
+    for (auto const comp : this->get_computations())
+    {
+       comp->save_schedule_to_default() ;
+    }
+
+}
+
+/*restore function & computation to without computations */
+void function::restore_function_to_no_optimisations(){
+
+    std::cout<<"undo **";
+    for (auto const comp : this->get_computations())
+    {
+       comp->set_schedule_to_default() ;
+       std::cout<<"undo comput";
+    }
+   
+    this->vector_dimensions.clear();
+    this->unroll_dimensions.clear() ;
+
+    this->parallel_dimensions.clear();
+
+    
 }
 
 /**
@@ -2079,6 +2112,66 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->gen_halide_stmt();
     this->gen_halide_obj(obj_filename);
 }
+
+void tiramisu::function::codegen_select_schedule_number(int schedule_number,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt )
+                      {
+                          
+                      }
+void tiramisu::function::codegen_write_potential_schedules(std::string& path_name,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt )
+                      {// test write 2schudles
+
+                          this->save_computation_default_schedules();
+                            this->gen_ordering_schedules();
+                            this->align_schedules();
+
+                            std::ofstream out(path_name);
+
+                            out << "chedule1\n";
+                            out <<(isl_union_map_to_str(this->get_schedule())) ;
+                            out <<"\n";
+                            isl_union_map * map = this->compute_dep_graph();
+                            isl_union_access_info *info = isl_union_access_info_from_sink(map) ;
+                            info = isl_union_access_info_set_schedule_map(info,this->get_schedule()) ;
+
+                           // isl_union_flow* flow = isl_union_access_info_compute_flow(info) ;
+                        
+                            out <<(isl_union_map_to_str(map)) ;
+                            //out <<(isl_union_flow_to_str(flow)) ;
+                            out <<("\nacess info\n") ;
+                            out <<(isl_union_access_info_to_str(info)) ;
+
+                             isl_union_flow* flow = isl_union_access_info_compute_flow(info) ;
+
+                             out <<(isl_union_flow_to_str(flow)) ;
+
+                            out.close();
+
+                      }
+
+void tiramisu::function::save_computations_levels(){
+    for (auto const &graph1 :this->sched_graph){
+        
+            for(auto const &graph2:graph1.second){
+                this->backup_levels.insert({{graph1.first,graph2.first},graph2.second}) ;
+
+            }
+    }
+}
+
+void tiramisu::function::restore_computations_levels(){
+    for (auto const &graph1 :this->sched_graph){
+        
+            for(auto &graph2:graph1.second){
+                
+                this->sched_graph[graph1.first][graph2.first] = this->backup_levels[{graph1.first,graph2.first}]  ;
+               
+
+            }
+    }
+}
+ 
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const
 {

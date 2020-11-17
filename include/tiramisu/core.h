@@ -126,6 +126,12 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 
 //*******************************************************
 
+void codegen_select_schedule_number(int schedule_number,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+
+void codegen_write_potential_schedules(std::string& path_name,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false) ;
+
 /**
   * A class to represent functions in Tiramisu. A function in Tiramisu is composed of
   * a set of computations (tiramisu::computation).
@@ -141,7 +147,7 @@ class function
     friend cuda_ast::generator;
     friend auto_scheduler;
 
-private:
+public://priv
     /**
       * The name of the function.
       * Function names should not start with _ (an underscore).
@@ -401,7 +407,7 @@ private:
     void rename_computations();
 
 
-protected:
+public: // protected
 
     /**
       * Add a buffer to the function.
@@ -680,6 +686,10 @@ protected:
       */
     std::unordered_map<tiramisu::computation *,
     std::unordered_map<tiramisu::computation *, int>> sched_graph;
+
+    // first is for outermost , second is for inner 
+    std::map<std::pair<tiramisu::computation*,tiramisu::computation*>,int> backup_levels ;
+
 
     /**
       * Same as sched_graph, except in reverse order (from after to before).
@@ -980,6 +990,18 @@ public:
       */
     void gen_c_code() const;
 
+
+    /*save inner computations schedules to defaults schedules to restore */
+    void save_computation_default_schedules() ;
+
+    /*restore saved schedules to inner computations and undo all optimizations*/
+    void restore_function_to_no_optimisations();
+
+    void save_computations_levels() ;
+
+    void restore_computations_levels() ;
+
+
     /**
       * \brief Generate an object file that contains the compiled function.
       * \details This function relies on Halide to generate the object file.
@@ -1051,6 +1073,12 @@ public:
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
 
+    void codegen_select_schedule_number(int schedule_number,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+
+    void codegen_write_potential_schedules(std::string& path_name,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false) ;
+
     /**
      * \brief Set the context of the function.
      * \details A context is an ISL set that represents constraints over the
@@ -1088,7 +1116,7 @@ class buffer
     friend generator;
     friend cuda_ast::generator;
 
-private:
+public://priv
     /**
      * A boolean that indicates whether a buffer is allocated or not.
      */
@@ -1424,7 +1452,7 @@ class computation
     friend tiramisu::wait;
     friend cuda_ast::generator;
 
-private:
+public://priv
 
     /**
       * Access function.  A map indicating how each computation should be stored
@@ -1586,6 +1614,8 @@ private:
       * The schedules of the computation.
       */
     isl_map * schedule;
+
+    isl_map * default_schedule ;
 
     /**
       * TODO: use buffers directly from computations, no need to have
@@ -2637,6 +2667,11 @@ protected:
       * level scheduling functions or using this low level set_schedule function. The user
       * cannot mix the use of the two in the same program because they are not compatible.
       */
+
+    void  save_schedule_to_default();
+
+    void  set_schedule_to_default() ;
+
     // @{
     void set_schedule(isl_map *map);
     void set_schedule(std::string map_str);
@@ -3050,6 +3085,11 @@ public:
       */
     void after(computation &comp, tiramisu::var iterator);
 
+
+    /* change after level without change in real order between computations must be called after real usage of after between computation not automatic */
+
+    void after_change(computation &comp,tiramisu::var iterator) ;
+
     /**
       * This function is equivalent to
       *     void after(computation &comp, tiramisu::var iterator);
@@ -3082,6 +3122,10 @@ public:
       * \endcode
       */
     void after(computation &comp, int level);
+
+
+    /* same as after */
+    void after_change(computation &comp,int level);
 
     /**
       * Schedule this computation to run after the computation \p comp.
@@ -3527,6 +3571,7 @@ public:
         this->after(comp, lev);
     }
 
+
     /**
       * Generate the time-space domain of the computation.
       *
@@ -3611,6 +3656,10 @@ public:
      */
     isl_map *get_schedule() const;
 
+    
+    /* undo all optimisation on iteration method tiling*/
+    //void restore_default_schedule() ;
+
     /**
       * Tile the computation and then tag the outermost tile dimension
       * to be mapped to GPU blocks and tag the innermost tile dimensions
@@ -3672,6 +3721,11 @@ public:
       *
       */
     virtual void parallelize(var L);
+
+
+    /*check if the parallelize of the variable L is legal and correct*/
+
+    virtual bool parallelization_is_legal(var l);
 
     /**
        * Set the access relation of the computation.
@@ -3876,6 +3930,16 @@ public:
       \endcode
 
       */
+
+     //angles
+     /*
+      this perform a general polyhedral transformation i' = a*i +bj under det A=1 constraint for j' b!=0 & a >=0
+      with fuze_plans option that fuze max(a,b) plan of ay+bx=c into one but with assertion that either a=1 or b=1 with warning a>0 & b>0
+     */
+    virtual void angle_skew(var i, var j, int f_i , int f_j, bool fuze_plans, var ni, var nj);
+
+    virtual void angle_skew(int i , int j , int f_i , int f_j , bool fuze_plans); 
+    
     virtual void skew(var i, var j, int f, var ni, var nj);
 
     /**
@@ -4384,7 +4448,7 @@ public:
 
 class input: public computation
 {
-private:
+public://priv
 
     /**
       * Compute a vector of loop iterators from a vector of sizes.
