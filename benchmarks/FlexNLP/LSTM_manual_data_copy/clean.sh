@@ -1,0 +1,1 @@
+rm -rf generated_flexnlp_test.o.h generated_flexnlp_test.o wrapper_flexnlp_tiramisu_lstm_manual flexnlp_tiramisu_generator_lstm_manual

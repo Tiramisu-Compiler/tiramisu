@@ -30,16 +30,38 @@ int main(int argc, char **argv)
     // Declare CPU Output
     computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_init(1));
 
+    // We declare a computation to copy the Input
+    computation copy_input("copy_input", {l},
+          flexnlp_load_input(*input_cpu_input.get_buffer(), // Input
+                               0, // Offset in Host buffer
+                               SEQ_LENGTH * BATCH_SIZE * INPUT_SIZE) // Number of elements
+    );
+
+    // We declare a computation to copy the weights
+    computation copy_weights("copy_weights", {l},
+          flexnlp_load_weights(*input_cpu_W.get_buffer(), // Weights
+                               l * (4 * OUTPUT_SIZE * (INPUT_SIZE + HIDDEN_SIZE)), // Offset in host buffer (input_cpu_W)
+                               4 * OUTPUT_SIZE * (INPUT_SIZE + HIDDEN_SIZE)) // Number of elements
+    );
     // Runs the LSTM cell
     computation run_lstm("run_lstm", {l},
-          flexnlp_lstm_cell(*input_cpu_input.get_buffer(), *input_cpu_W.get_buffer(), // Weights
-                            *input_cpu_output.get_buffer(), *input_cpu_h_out.get_buffer(),
-                            l));
+          flexnlp_lstm_cell_manual(*input_cpu_input.get_buffer(), *input_cpu_W.get_buffer(), // Weights
+                                   *input_cpu_output.get_buffer(), *input_cpu_h_out.get_buffer(),
+                                   l));
+
+    computation copy_output("copy_output", {l},
+          flexnlp_store_output(*input_cpu_output.get_buffer(),
+                               0,
+                               BATCH_SIZE * OUTPUT_SIZE)
+    );
 
     // ----------------------------------------------------------------
     // Layer II:Apply schedules and specify computations order
     // ----------------------------------------------------------------
-    initialize_flexnlp.then(run_lstm, computation::root);
+    initialize_flexnlp.then(copy_input, computation::root)
+                      .then(copy_weights, l)
+                      .then(run_lstm, l)
+                      .then(copy_output, l);
 
     // ----------------------------------------------------------------
     // Layer III : Specify access to data

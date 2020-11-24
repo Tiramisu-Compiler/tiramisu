@@ -17,22 +17,24 @@ int main(int argc, char **argv)
     var gate("gate", 0, 4);
     var j("j", 0, HIDDEN_SIZE);
     var k("k", 0, INPUT_SIZE + HIDDEN_SIZE);
-    var o("o", 0, HIDDEN_SIZE);
+    var o("o", 0, OUTPUT_SIZE);
+    var o_b("o", 0, HIDDEN_SIZE/OUTPUT_SIZE);
+
 
     var l("l", 0, NUM_LAYERS);
 
     // Declare CPU Inputs
     input input_cpu_input("input_cpu_input", {s, b, i}, p_int8);
-    input input_cpu_W("input_cpu_W", {l, gate, o, k}, p_int8);
+    input input_cpu_W("input_cpu_W", {l, o_b, gate, o, k}, p_int8);
     input input_cpu_output("input_cpu_output", {s, b, j}, p_int8);
     input input_cpu_h_out("input_cpu_h_out", {l, b, j}, p_int8);
 
     // Declare CPU Output
-    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_init(1));
+    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_init(4));
 
     // Runs the LSTM cell
     computation run_lstm("run_lstm", {l},
-          flexnlp_lstm_cell(*input_cpu_input.get_buffer(), *input_cpu_W.get_buffer(), // Weights
+          flexnlp_lstm_cell_partitioned_multi_accelerator(*input_cpu_input.get_buffer(), *input_cpu_W.get_buffer(), // Weights
                             *input_cpu_output.get_buffer(), *input_cpu_h_out.get_buffer(),
                             l));
 

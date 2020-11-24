@@ -2226,7 +2226,7 @@ void tiramisu::function::gen_halide_bug_workaround_computations(){
       std::vector<tiramisu::expr> access_vector; // Will contain (0, 0.... 0) access (depending on the buffer's dimension)
       std::vector<tiramisu::var> variables; // A vector that will contains variables var(0, DIM_SIZE) for each of the dimensions
       std::vector<tiramisu::expr> store_vector;
-      
+
       for (int i =0; i < nb_dims; i++){
         access_vector.push_back(tiramisu::expr(0)); // prepare an access vector to the first element of the buffer
         auto v = new var("i"+std::to_string(i), 0, buffer->get_dim_sizes()[i]); // Create a variable corresponding to the buffer sizes (0-> DIM_SIZE)
@@ -2238,6 +2238,7 @@ void tiramisu::function::gen_halide_bug_workaround_computations(){
       if (buffer->get_argument_type() == a_input && // Is an input buffer
           (buffer->get_elements_type() == p_float32 || // Possible types
           buffer->get_elements_type() == p_float64 ||
+          buffer->get_elements_type() == p_int8 ||
           buffer->get_elements_type() == p_int32 ||
           buffer->get_elements_type() == p_int64)){
 
@@ -2250,8 +2251,9 @@ void tiramisu::function::gen_halide_bug_workaround_computations(){
       }
 
       // PART II : for output buffers (copy the first element to itself)
-      if (buffer->get_argument_type() == a_output&& // Is an input buffer
-         buffer->get_elements_type() == p_float32){ // Only float32 type is supported TODO:FLEXNLP Support other types by making a buffer for each output (make a dedicated b_dummy_input_accesses buffer and a dedicated tmp_dummy_comp input for each output buffer)
+      if (buffer->get_argument_type() == a_output&&( // Is an input buffer
+          buffer->get_elements_type() == p_int8 ||
+          buffer->get_elements_type() == p_float32)){ // Only float32 type is supported TODO:FLEXNLP Support other types by making a buffer for each output (make a dedicated b_dummy_input_accesses buffer and a dedicated tmp_dummy_comp input for each output buffer)
         // Create an input associated to the buffer
         auto access_comp = new input("access_"+buffer->get_name(), variables, buffer->get_elements_type());
 
@@ -2326,7 +2328,9 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
         else
             DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));
     }
-    if (gen_architecture_flag == tiramisu::hardware_architecture_t::arch_flexnlp)
+
+    // TODO:OMIT
+    if (false && gen_architecture_flag == tiramisu::hardware_architecture_t::arch_flexnlp)
         this->gen_flexnlp_autocopy();
 
     if (USE_HALIDE_BUFFERS_BUG_WORKAROUND)

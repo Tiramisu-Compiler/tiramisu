@@ -2057,11 +2057,28 @@ expr cuda_stream_synchronize();
   FlexNLP Functions
  */
 
+expr flexnlp_load_weights(const buffer &host_data, expr offset_host, expr num_elem, expr device_id = 0);
+expr flexnlp_load_input(const buffer &host_data, expr offset_host, expr num_elem, expr device_id = 0);
+expr flexnlp_store_output(const buffer &host_data, expr offset_host, expr num_elem, expr device_id = 0);
+
 /**
  * Run a FlexNLP LSTM operator
  */
-expr flexnlp_lstm_cell(const buffer &W_x, const buffer &W_h, const buffer &b_x, const buffer &b_h,
-                       const buffer &x, const buffer &h_in, const buffer &h_out, const buffer &c_in, expr device_id = 0);
+expr flexnlp_lstm_cell(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                       expr layer_number, expr device_id = 0, expr load_weight = true);
+expr flexnlp_lstm_cell_manual(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                              expr layer_number, expr device_id = 0);
+/**
+* Run a FlexNLP partitioned LSTM operator
+*/
+expr flexnlp_lstm_cell_partitioned(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                      expr layer_number, expr device_id = 0, expr load_weight = true);
+
+/**
+* Run a FlexNLP partitioned LSTM operator on multiple accelerators
+*/
+expr flexnlp_lstm_cell_partitioned_multi_accelerator(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out, expr layer_number);
+
 /**
 * Initializes the FlexNLP contect (pass how many FlexNLP devices to use)
 */
