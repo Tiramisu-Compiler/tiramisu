@@ -1,0 +1,1 @@
+rm -rf generated_sparse_vgg_block_512_512_28_tiramisu.o.h generated_sparse_vgg_block_512_512_28_tiramisu.o mkl_result.txt tiramisu_result.txt sparse_vgg_block_wrapper_512_512_28 sparse_vgg_block_generator_512_512_28 vgg_block_mkldnn log.txt

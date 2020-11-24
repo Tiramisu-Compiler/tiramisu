@@ -1,0 +1,1 @@
+rm -rf end_to_end_vgg19_mkldnn mkl_result.txt performance_CPU.csv tiramisu_result.txt wrapper_end_to_end_vgg19_tiramisu
