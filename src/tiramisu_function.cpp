@@ -161,7 +161,7 @@ void  tiramisu::function::add_mapping(std::pair<std::string,tiramisu::buffer *> 
  * of the fucntion.
  * Automatic_communication fonction verifies if the user wants to manage the copies manually or not.
  * By default, the data management will be done automatically, and the copies will be inserted
- * in the begining and at the end of the gpu funcion.
+ * in the beginning and at the end of the gpu funcion.
  * The inputs of the function will be copied to the device before the computations, and the
  * outputs of the functions will be copied back to the host at the end.
  * We have two cases copies to constant memory and the default case which is copies to the global memory.
@@ -179,6 +179,7 @@ void function::Automatic_communication(tiramisu::computation* c1, tiramisu::comp
     int i = 1;
     tiramisu::computation* first_cpt = c1;
     tiramisu::computation* last_cpt = c2;
+
     for (it = mp.begin(); it != mp.end(); ++it)
     {
         name = it->first;
@@ -189,31 +190,31 @@ void function::Automatic_communication(tiramisu::computation* c1, tiramisu::comp
             i++;
             switch (it->second->location)
             {
-            case cuda_ast::memory_location::constant:
-                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
-                {
-                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy(*(buff.find(name)->second),(*(it->second))));
-                    (*c).then((*first_cpt), computation::root);
-                    first_cpt = c;
-                }
-                break;
-            default:
-                if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
-                {
-                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy(*(buff.find(name)->second),(*(it->second))));
-                    (*c).then((*first_cpt), computation::root);
-                    first_cpt = c;
-                }
-                if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
-                {
-                    tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
-                        memcpy((*(it->second)),*(buff.find(name)->second)));
-                    (*last_cpt).then((*c), computation::root);
-                    last_cpt = c;
-                }
-                break;
+                case cuda_ast::memory_location::constant:
+                    if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
+                    {
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                            memcpy(*(buff.find(name)->second),(*(it->second))));
+                        (*c).then((*first_cpt), computation::root);
+                        first_cpt = c;
+                    }
+                    break;
+                default:
+                    if (buff.find(name)->second->get_argument_type() == tiramisu::a_input)
+                    {
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                            memcpy(*(buff.find(name)->second),(*(it->second))));
+                        (*c).then((*first_cpt), computation::root);
+                        first_cpt = c;
+                    }
+                    if (buff.find(name)->second->get_argument_type() == tiramisu::a_output)
+                    {
+                        tiramisu::computation* c =  new tiramisu::computation(cpt_name, {},
+                            memcpy((*(it->second)),*(buff.find(name)->second)));
+                        (*last_cpt).then((*c), computation::root);
+                        last_cpt = c;
+                    }
+                    break;
             }
         }
         else
@@ -2056,6 +2057,231 @@ void function::gen_time_space_domain()
     DEBUG_INDENT(-4);
 }
 
+// ADD:FLEXNLP
+// TODO:FLEXNLP (Fix docs)
+void tiramisu::function::gen_flexnlp_autocopy(){
+  // If automatic copy is on (if we pass parameters to flexnlp_lstm_cell),
+  // this code copies the weights, input and cell state at the right moment
+  // which is inside the layers loop for the weights and cell state
+  // and inside the sequence loop for the input and the output
+  std::cout << "Generating flexnlp autocopy" << std::endl;
+
+  // All the memory transfer computations will be mapped to this same buffer
+  auto b_dummy_flexnlp = new buffer("dummy_memcpy_flexnlp", {1}, p_int32, a_temporary);
+
+  for (auto comp : this->get_computations()){
+    auto const &e = comp->get_expr(); // Get the computation's expression
+    if (e.get_op_type() == tiramisu::o_call){ // If the computation is a function call
+      auto call_arguments = e.get_arguments(); // Get the function call's arguments (o_call arguments)
+
+      // Get the computation's predecessor and successor
+      computation *pred = comp->get_predecessor();
+      computation *succ = comp->get_successor();
+
+      if (e.get_name() == "tiramisu_flexnlp_lstm_cell"){ // If this is an lstm call
+          std::vector<tiramisu::var> v = comp->get_iteration_variables();
+
+          int number_of_loops = v.size();
+          if (number_of_loops == 0){ // Only one cell execution, just copy the weights and the input beforehand
+
+          }
+          else if (number_of_loops == 1){ // Consider the loop as a sequence loop
+
+          }
+          else{ // case >=2 (take two innermost loops and consider them as (LAYERS LOOP, SEQUENCE LOOP))
+            // Prepare vectors of variables for weights copy and final cell state copy
+            auto v_weights_and_cell_state = std::vector<tiramisu::var>(v.begin(), v.end() - 1); // All iteration variables but the last (sequence number)
+
+            // declare the data movement computations
+            tiramisu::computation* copy_weights = new tiramisu::computation(comp->get_name() + "_copy_weights", v_weights_and_cell_state,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_weights_to_device", {
+                                                              call_arguments[0], // W_x
+                                                              call_arguments[1], // W_h
+                                                              call_arguments[2], // b_x
+                                                              call_arguments[3], // b_h
+                                                              expr(v[number_of_loops - 2]), // layer number (l)
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+            // copy the initial cell state
+            tiramisu::computation* copy_cell_state = new tiramisu::computation(comp->get_name() + "_copy_cell_state", v_weights_and_cell_state,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_cell_state_to_device", {
+                                                              call_arguments[7], // c_in
+                                                              expr(v[number_of_loops - 2]), // layer number (l)
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+
+            // First copy input computation, for the first layer (l==0)
+            tiramisu::computation* copy_input = new tiramisu::computation(comp->get_name() + "_copy_input", v,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_input_to_device", {
+                                                              call_arguments[4], // x
+                                                              call_arguments[5], // h_in
+                                                              expr(v[number_of_loops - 1]), // sequence number (s)
+                                                              expr(v[number_of_loops - 2]), // layer number (l)
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+            copy_input->add_predicate(expr(o_eq, expr(v[number_of_loops - 2]), 0)); // Predicate to add an if statement (the computation is executed only if l==0)
+
+            // Second copy input computation, for the subsequent layers (l>0)
+            tiramisu::computation* copy_input2 = new tiramisu::computation(comp->get_name() + "copy_input2", v,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_input_to_device", {
+                                                              call_arguments[6], // previous layer's output
+                                                              call_arguments[5], // h_in
+                                                              expr(o_max, 0, v[number_of_loops - 1]), // sequence number (s)
+                                                              expr(v[number_of_loops - 2]), // layer number (l)
+
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+            copy_input2->add_predicate(expr(o_ne, expr(v[number_of_loops - 2]), 0)); // Predicate to add an if statement (the computation is executed only if l!=0)
+
+            // Create the copy output computation
+            tiramisu::computation* copy_output = new tiramisu::computation(comp->get_name() + "_copy_output", v,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_output_to_host", {
+                                                              call_arguments[6], // h_out
+                                                              expr(v[number_of_loops - 1]), // sequence number (s)
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+
+            tiramisu::computation* copy_output_to_h_in = new tiramisu::computation(comp->get_name() + "_copy_output_to_h_in", v,
+                                                            expr(o_call, "tiramisu_copy_vector", {
+                                                              call_arguments[5], // h_in
+                                                              call_arguments[6], // h_out
+                                                              expr(v[number_of_loops - 2]), // layer number (l)*
+                                                              expr(v[number_of_loops - 1]), // sequence number (s)
+                                                            }, p_int32));
+
+            tiramisu::computation* copy_final_cell_state = new tiramisu::computation(comp->get_name() + "copy_final_cell_state", v_weights_and_cell_state,
+                                                            expr(o_call, "tiramisu_flexnlp_copy_cell_state_to_host", {
+                                                              call_arguments[7], // c_in
+                                                              expr(v[number_of_loops - 2]), // layer number (l)
+                                                              call_arguments[8] // device number
+                                                            }, p_int32));
+
+            // Prepare the needed loop levels
+            int after_level_comp;
+            if (succ) // If comp is not the last computation, and has one after it (succ is not NULL).
+              after_level_comp = this->sched_graph[comp][succ]; // Get loop level that is set for comp and succ by (succ->after(comp, after_level_comp))
+            int before_level_comp = this->sched_graph[pred][comp];
+            // Get loop numbers equivalento the two innermost loops
+            std::vector<int> dimensions =
+                    comp->get_loop_level_numbers_from_dimension_names({v[number_of_loops - 2].get_name(), v[number_of_loops - 1].get_name()});
+
+
+            // Reschedule the computations
+            copy_weights->between(*pred, before_level_comp, *comp, dimensions[0]);
+
+            copy_cell_state->between(*copy_weights, dimensions[0], *comp, dimensions[0]);
+
+            copy_input->between(*copy_cell_state, v[number_of_loops - 2], *comp, v[number_of_loops - 1]);
+
+            copy_input2->between(*copy_input, v[number_of_loops - 1], *comp, v[number_of_loops - 1]);
+
+            if (succ) // If comp has a successor
+              copy_output->between(*comp, dimensions[1], *succ, after_level_comp);
+            else // If comp is the last computation
+              copy_output->after(*comp, dimensions[1]);
+
+            if (succ) // If comp has a successor
+              copy_output_to_h_in->between(*copy_output, dimensions[1], *succ, after_level_comp);
+            else // If comp is the last computation
+              copy_output_to_h_in->after(*copy_output, dimensions[1]);
+
+
+            if (succ) // If comp has a successor
+              copy_final_cell_state->between(*copy_output_to_h_in, dimensions[0], *succ, after_level_comp);
+            else // If comp is the last computation
+              copy_final_cell_state->after(*copy_output_to_h_in, dimensions[0]);
+
+            // Storing computations in the dummy buffer
+            copy_weights->store_in(b_dummy_flexnlp, {0});
+            copy_cell_state->store_in(b_dummy_flexnlp, {0});
+            copy_output_to_h_in->store_in(b_dummy_flexnlp, {0});
+
+            copy_input->store_in(b_dummy_flexnlp, {0});
+            copy_input2->store_in(b_dummy_flexnlp, {0});
+            copy_output->store_in(b_dummy_flexnlp, {0});
+            copy_final_cell_state->store_in(b_dummy_flexnlp, {0});
+
+          }
+        }else if (e.get_name() == "tiramisu_flexnlp_gru"){ // GRU case
+          std::cout << "GRU not supported yet by Tiramisu-FlexNLP" << std::endl;
+        }else{
+
+        }
+    }
+  }
+}
+
+void tiramisu::function::gen_halide_bug_workaround_computations(){
+    // PART I : Go through input buffers (arguments) and make a computation that adds each buffer's first element
+    // PART II : Go through output buffers (arguments) and rewrite the first element at its place (dummy access to avoid Halide discarding the buffer)
+    auto b_dummy_input_accesses = new buffer("b_dummy_input_accesses", {1}, p_float32, a_temporary);
+    auto tmp_dummy_comp = new input("tmp_dummy_comp", {var("dummy_var", 0, 1)}, p_float32);
+    tmp_dummy_comp->store_in(b_dummy_input_accesses, {0});
+
+    auto accumulation_accesses = tiramisu::expr(0.f); // Used to accumulate accesses to each input (to create one dummy access computation)
+    computation* first_cpt = this->get_first_cpt(); // get the first computation (to add the dummy computation before it)
+
+    for (auto &buffer : this->get_arguments()){ // Go through the function argument buffers (those passed in the codegen function in the Tiramisu generator)
+      int nb_dims = buffer->get_n_dims(); // Get the buffer's number of dimensions
+      std::vector<tiramisu::expr> access_vector; // Will contain (0, 0.... 0) access (depending on the buffer's dimension)
+      std::vector<tiramisu::var> variables; // A vector that will contains variables var(0, DIM_SIZE) for each of the dimensions
+      std::vector<tiramisu::expr> store_vector;
+
+      for (int i =0; i < nb_dims; i++){
+        access_vector.push_back(tiramisu::expr(0)); // prepare an access vector to the first element of the buffer
+        auto v = new var("i"+std::to_string(i), 0, buffer->get_dim_sizes()[i]); // Create a variable corresponding to the buffer sizes (0-> DIM_SIZE)
+        variables.push_back(*v); // create the variables buffer (used for declaring the buffer's associated input)
+        store_vector.push_back(expr(*v)); // Create the storing expression (used to map the input to the buffer in store_in)
+      }
+
+      // PART I
+      if (buffer->get_argument_type() == a_input && // Is an input buffer
+          (buffer->get_elements_type() == p_float32 || // Possible types
+          buffer->get_elements_type() == p_float64 ||
+          buffer->get_elements_type() == p_int8 ||
+          buffer->get_elements_type() == p_int32 ||
+          buffer->get_elements_type() == p_int64)){
+
+        // Create an input computation associated to the buffer
+        auto access_comp = new input("access_"+buffer->get_name(), variables, buffer->get_elements_type());
+        // Associate the computation to the buffer
+        access_comp->store_in(buffer, store_vector);
+        // Accumulate accesses to the different inputs (to make a dummy usage to avoid them being discarded by Halide when unused)
+        accumulation_accesses = accumulation_accesses + cast(p_float32, (*access_comp)(access_vector));
+      }
+
+      // PART II : for output buffers (copy the first element to itself)
+      if (buffer->get_argument_type() == a_output&&( // Is an input buffer
+          buffer->get_elements_type() == p_int8 ||
+          buffer->get_elements_type() == p_float32)){ // Only float32 type is supported TODO:FLEXNLP Support other types by making a buffer for each output (make a dedicated b_dummy_input_accesses buffer and a dedicated tmp_dummy_comp input for each output buffer)
+        // Create an input associated to the buffer
+        auto access_comp = new input("access_"+buffer->get_name(), variables, buffer->get_elements_type());
+
+        // Create a computation that copies the first element of the output buffer to the tmp buffer
+        auto copy_comp = new computation("copy_comp_"+buffer->get_name(), {}, (*access_comp)(access_vector));
+
+        // Create a computation that copies the tmp buffer content back to the output buffer (doesn't change the original value as we are rewriting the same value)
+        auto copy_back_comp = new computation("copy_back_comp_"+buffer->get_name(), {}, (*tmp_dummy_comp)(0));
+
+        // Store the computations
+        access_comp->store_in(buffer, store_vector); // Access to the buffer
+        copy_comp->store_in(tmp_dummy_comp->get_buffer(), {0}); // tmp contains one element
+        copy_back_comp->store_in(buffer, access_vector); // copy back copies back to the (0,0...) location (first element)
+
+        // Schedule the computations (copy first to tmp buffer => Then copy back to the output buffer => then the actual first computation)
+        (*copy_comp).then(*copy_back_comp, computation::root)
+                 .then(*first_cpt, computation::root);
+        first_cpt = copy_comp; // set current first computation to copy_comp which is the new first computation
+      }
+    }
+
+    // Create the dummy input accesses computation and schedule it, then store it in a dummy buffer
+    auto comp = new tiramisu::computation("dummy_input_accesses", {}, accumulation_accesses);
+    comp->then(*first_cpt, computation::root);
+    comp->store_in(b_dummy_input_accesses,{0});
+    first_cpt = comp;
+}
+
 void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
 {
     if (gen_cuda_stmt)
@@ -2074,6 +2300,46 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
     this->gen_time_space_domain();
     this->gen_isl_ast();
     if (gen_cuda_stmt) {
+        this->gen_cuda_stmt();
+    }
+    this->gen_halide_stmt();
+    this->gen_halide_obj(obj_filename);
+}
+
+/*
+  General codegen function for more than 2 possible architectures,
+  functions specific to architectures are called conditionally on
+  the gen_architecture_flag parameter's value.
+*/
+// TODO:FLEXNLP Fix the bug and delete workaround code ()
+#define USE_HALIDE_BUFFERS_BUG_WORKAROUND true
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag)
+{
+    this->set_arguments(arguments);
+    if (gen_architecture_flag == tiramisu::hardware_architecture_t::arch_nvidia_gpu ||
+        gen_architecture_flag == tiramisu::hardware_architecture_t::arch_flexnlp)
+    {
+        if(!this->mapping.empty())
+        {
+            tiramisu::computation* c1 = this->get_first_cpt();
+            tiramisu::computation* c2 = this->get_last_cpt();
+            Automatic_communication(c1,c2);
+        }
+        else
+            DEBUG(3, tiramisu::str_dump("You must specify the corresponding CPU buffer to each GPU buffer else you should do the communication manually"));
+    }
+
+    // TODO:OMIT
+    if (false && gen_architecture_flag == tiramisu::hardware_architecture_t::arch_flexnlp)
+        this->gen_flexnlp_autocopy();
+
+    if (USE_HALIDE_BUFFERS_BUG_WORKAROUND)
+        this->gen_halide_bug_workaround_computations();
+
+    this->lift_dist_comps();
+    this->gen_time_space_domain();
+    this->gen_isl_ast();
+    if (gen_architecture_flag == tiramisu::hardware_architecture_t::arch_nvidia_gpu){
         this->gen_cuda_stmt();
     }
     this->gen_halide_stmt();

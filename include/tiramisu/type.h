@@ -149,6 +149,21 @@ enum class rank_t
 };
 
 /**
+  * Types of hardware architectures to generate code for
+  * "arch_" stands for architecture.
+  * the numbers are used to give the possibility to the user
+  * to combine flags (use different devices of different
+  * architectures in the same code)
+  * TODO:FLEXNLP take off values
+  */
+enum class hardware_architecture_t
+{
+    arch_cpu,
+    arch_nvidia_gpu,
+    arch_flexnlp
+};
+
+/**
   * Convert a Tiramisu type into the equivalent Halide type (if it exists),
   * otherwise show an error message (no automatic type conversion is performed).
   */

@@ -184,7 +184,7 @@ enum class memory_location
     shared,
     local,
     constant,
-    reg,
+    reg
 };
 
 class abstract_node {

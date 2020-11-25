@@ -53,3 +53,9 @@ add_subdirectory(DNN/blocks/Add-ReLU/cpu_32_32_30)
 add_subdirectory(DNN/blocks/Add-ReLU/cpu_32_64_16)
 add_subdirectory(DNN/end_to_end_architectures/End_To_End_VGG19)
 add_subdirectory(DNN/end_to_end_architectures/End_To_End_ResNet)
+
+add_subdirectory(FlexNLP/LSTM)
+add_subdirectory(FlexNLP/LSTM_manual_data_copy)
+
+add_subdirectory(FlexNLP/LSTM_partitioned_same_accelerator)
+add_subdirectory(FlexNLP/LSTM_partitioned_multi_accelerators)

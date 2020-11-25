@@ -1730,15 +1730,15 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                     auto const &e = comp->get_expr();
                     auto buffer_1 = fct.get_buffers().at(e.get_operand(0).get_name());
                     auto buffer_2 = fct.get_buffers().at(e.get_operand(1).get_name());
-                    buffer * gpu_b, * host_b;
+                    buffer * device_b, * host_b;
                     bool to_host = false, from_host = false;
                     if (buffer_1->location != cuda_ast::memory_location::host && buffer_2->location == cuda_ast::memory_location::host) {
-                        gpu_b = buffer_1;
+                        device_b = buffer_1;
                         host_b = buffer_2;
                         to_host = true;
                     }
                     else if (buffer_1->location == cuda_ast::memory_location::host && buffer_2->location != cuda_ast::memory_location::host) {
-                        gpu_b = buffer_2;
+                        device_b = buffer_2;
                         host_b = buffer_1;
                         from_host = true;
                     }
@@ -1785,21 +1785,35 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
                                                           {loaded_symbol, Halide::Expr(0)},
                                                           Halide::Internal::Call::Extern);
 
-                    auto gpu_buffer = (gpu_b->location == cuda_ast::memory_location::constant)
-                                      ? Halide::Internal::Call::make(Halide::type_of<void *>(), gpu_b->get_name() + "_get_symbol", {}, Halide::Internal::Call::Extern)
-                                      : Halide::Internal::Variable::make(Halide::type_of<void *>(), gpu_b->get_name());
+                    auto device_buffer = (device_b->location == cuda_ast::memory_location::constant)
+                                      ? Halide::Internal::Call::make(Halide::type_of<void *>(), device_b->get_name() + "_get_symbol", {}, Halide::Internal::Call::Extern)
+                                      : Halide::Internal::Variable::make(Halide::type_of<void *>(), device_b->get_name());
                     auto host_result_buffer = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                                host_b->get_name() + ".buffer");
-                    if (to_host)
-                        block = Halide::Internal::Evaluate::make(
-                                Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_host",
-                                                             {buffer_address, gpu_buffer, size}, Halide::Internal::Call::Extern)
-                        );
-                    else if (from_host)
-                        block = Halide::Internal::Evaluate::make(
-                                Halide::Internal::Call::make(Halide::Int(32), (gpu_b->location == cuda_ast::memory_location::constant) ? "tiramisu_cuda_memcpy_to_symbol" : "tiramisu_cuda_memcpy_to_device",
-                                                             {gpu_buffer, buffer_address, size}, Halide::Internal::Call::Extern)
-                        );
+
+                    if (to_host){
+                      block = Halide::Internal::Evaluate::make(
+                              Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_host",
+                                                           {buffer_address, device_buffer, size}, Halide::Internal::Call::Extern)
+                      );
+                    }
+                    else if (from_host){
+                      // Get the correct memory copy function according to the architecture
+                      switch (device_b->location){
+                          // GPU case
+                          case cuda_ast::memory_location::constant:
+                              block = Halide::Internal::Evaluate::make(
+                                      Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_symbol",
+                                                                   {device_buffer, buffer_address, size}, Halide::Internal::Call::Extern)
+                              );
+                              break;
+                          default:
+                              block = Halide::Internal::Evaluate::make(
+                                      Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_memcpy_to_device",
+                                                                   {device_buffer, buffer_address, size}, Halide::Internal::Call::Extern)
+                              );
+                      }
+                    }
                 }
             }
             else
@@ -2431,7 +2445,7 @@ void function::gen_halide_stmt()
     for (const auto &b : this->get_buffers())
     {
         tiramisu::buffer *buf = b.second;
-        if (buf->get_argument_type() == tiramisu::a_temporary && buf->get_auto_allocate() == true && buf->location == cuda_ast::memory_location::global)
+        if (buf->get_argument_type() == tiramisu::a_temporary && buf->get_auto_allocate() == true && (buf->location == cuda_ast::memory_location::global))
         {
             auto free = generator::make_buffer_free(buf);
             if (freestmts.defined())
@@ -2938,7 +2952,7 @@ void computation::create_halide_assignment()
                                                                                            this->get_iterators_map());
         }
         // The majority of code generation for computations will fall into this first if statement as they are not library calls. This is the original code
-        // Some library calls take the usual lhs as an actual argument however, so we may need to compute it anyway for some library calls 
+        // Some library calls take the usual lhs as an actual argument however, so we may need to compute it anyway for some library calls
         if (!this->is_library_call() || this->lhs_argument_idx != -1) { // This has an LHS to compute.
             const char *buffer_name =
                     isl_space_get_tuple_name(
@@ -3091,7 +3105,7 @@ void computation::create_halide_assignment()
                     }
                 }
                 if (this->lhs_argument_idx != -1) {
-                    // The LHS is a parameter of the library call. We need to take the address of buffer at lhs_index as we assume that all 
+                    // The LHS is a parameter of the library call. We need to take the address of buffer at lhs_index as we assume that all
                     // library calls requiring the LHS buffer also take the index into that buffer as either a separate argument (o_lin_index)
                     // or as an address_of into the buffer
                     Halide::Expr result;
@@ -3108,12 +3122,12 @@ void computation::create_halide_assignment()
                                                               Halide::Internal::Call::Extern);
                     }
                     halide_call_args[lhs_argument_idx] = result;
-                } // else we don't care about the LHS 
+                } // else we don't care about the LHS
                 if (this->rhs_argument_idx != -1) { // THis library call also requires a RHS buffer and index, so process that
                     if (this->get_expr().get_op_type() == tiramisu::o_buffer) {
                       // TODO(Jess): Can we remove this assumption?? It will probably require adding yet another special index type (such as rhs_argument_index_index)
                         // In this case, we make a (correct for now) assumption that the last call arg gets the linear index and the rhs_argument_idx gets the buffer
-                        expr old = this->get_expr(); 
+                        expr old = this->get_expr();
                         expr mod_rhs(tiramisu::o_address,
                                      this->get_expr().get_name());
                         this->expression = mod_rhs;
@@ -3926,7 +3940,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                     Halide::Target::AVX,
                     Halide::Target::SSE41,
                     //Halide::Target::AVX2,
-	    	    //Halide::Target::FMA,
+                    //Halide::Target::FMA,
                     Halide::Target::LargeBuffers
             };
 
@@ -4095,13 +4109,15 @@ Halide::Expr halide_expr_from_tiramisu_type(tiramisu::primitive_t ptype) {
 
 Halide::Internal::Stmt generator::make_buffer_free(buffer * b) {
     assert(b != nullptr);
+
     if (b->location == cuda_ast::memory_location::global)
     {
         return Halide::Internal::Evaluate::make(
                 Halide::Internal::Call::make(Halide::Int(32), "tiramisu_cuda_free",
                                              {Halide::Internal::Variable::make(Halide::type_of<void *>(), b->get_name())}, Halide::Internal::Call::Extern)
         );
-    } else {
+    }
+    else {
         return Halide::Internal::Free::make(b->get_name());
     }
 }
