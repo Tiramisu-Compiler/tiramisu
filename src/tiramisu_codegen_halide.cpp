@@ -1910,10 +1910,10 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
                 {
-//                    result = Halide::Internal::Allocate::make(
-//                           buf->get_name(),
-//                           halide_type_from_tiramisu_type(buf->get_elements_type()),
-//                           halide_dim_sizes, Halide::Internal::const_true(), result);
+                    /* result = Halide::Internal::Allocate::make(
+                           buf->get_name(),
+                         halide_type_from_tiramisu_type(buf->get_elements_type()),
+                        halide_dim_sizes, Halide::Internal::const_true(), result);*/
                     result = make_buffer_alloc(buf, halide_dim_sizes, result);
 
 

@@ -3723,9 +3723,18 @@ public:
     virtual void parallelize(var L);
 
 
-    /*check if the parallelize of the variable L is legal and correct*/
+    /*check if the parallelize of the variable L is legal and correct
+    based on the computation's recursive dependencies only
+    */
 
     virtual bool parallelization_is_legal(var l);
+
+
+  /*check if the parallelize of the variable L is legal and correct i.e
+  the bounds for this loop level are constants and fixed
+
+  */
+    virtual bool unrolling_and_vectorization_is_legal(var l) ;
 
     /**
        * Set the access relation of the computation.

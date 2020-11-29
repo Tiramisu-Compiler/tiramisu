@@ -22,55 +22,43 @@ int main(int argc, char **argv)
     
     tiramisu::var i("i",0,100) ;
     tiramisu::var j("j",0,100) ;
-    tiramisu::var k("k",0,10) ;
-    tiramisu::var i0("i0",0,100) ;
-    tiramisu::var j0("j0",0,100) ;
-    tiramisu::var m("m"),l("l") ;
+    tiramisu::var k("j",0,100) ;
+    tiramisu::var i0("i0"),j0("j0") ;
 
-    tiramisu::var i1("i1");
-    tiramisu::var i2("i2");
-    tiramisu::var j1("j1");
-    tiramisu::var j2("j2");
+    tiramisu::computation C_init("C_init", {i,j}, (i+j));
 
-    tiramisu::computation C_init("C_init", {i,j,k}, (i+j));
-
-    tiramisu::computation S0 ("S0",{i,j,k},tiramisu::p_int32) ;
-    S0.set_expression( S0(i-1,j,k) + S0(i+1,j,k)+C_init(i,j,k) ) ;
+    tiramisu::computation S0 ("S0",{i,j},tiramisu::p_int32) ;
+    S0.set_expression( S0(i-1,j-1) + S0(i+1,j+1)+C_init(i,j) ) ;
 
     //tiramisu::computation S0("[M,b0,b1]->{c_x[j]: b0<=j<b1}", tiramisu::expr(), false, tiramisu::p_uint8 ,C_init.get_function()) ;
 
-    tiramisu::computation S1("S1",{i,j,k}, S0(i,j,k)+10 );
+    tiramisu::computation S1("S1",{i,j}, S0(i,j)+10 );
     
 
     
     //S0.get_access_relation();
 
 
-     //S0.angle_skew(i,j,2,1,true,i0,j0);
-
-     
+    // S0.angle_skew(i,j,2,1,true,i0,j0);
     //S0.parallelize(i0);
 
 
     S0.after(C_init,tiramisu::computation::root) ;
        // S0.after(C_init,j0) ;
    
-    S0.angle_skew(i,j,2,1,false,i0,j0) ;
-   // S0.vectorize(j0,20) ;
+   // S0.angle_skew(i,j,1,-1,false,i0,j0) ;
 
-    S1.after(S0,tiramisu::computation::root) ;
+     S1.after(S0,tiramisu::computation::root) ;
    
 
-        
+        std::cout<<"\ntepi\n" ;
       //  isl_union_map *map = S0.get_function()->compute_dep_graph() ; 
 
     //std::cout<<(isl_union_map_to_str(map)) ; 
 
     std::cout<<"\nfesdfchjksbdfchljubsdhjbjjj\n" ;
 
-    std::cout<<(isl_map_to_str(S0.get_access_relation())) ;
-    
-    std::cout<<(isl_map_to_str(S0.get_access_relation())) ;
+    //std::cout<<(isl_map_to_str(S0.get_access_relation())) ;
     
 
     std::cout<<"\nfesdfchjksbdfchljubsdhjbjjj\n" ;
@@ -82,27 +70,19 @@ int main(int argc, char **argv)
 
       std::cout<<"\nfesdfchjksbdfchljubsdhjbjjj\n" ;
 
-    tiramisu::buffer b_A("b_A", {100,100,10}, tiramisu::p_int32, tiramisu::a_temporary);
-    tiramisu::buffer b_A2("b_A2", {100,100,10}, tiramisu::p_int32, tiramisu::a_temporary);
-    tiramisu::buffer b_output("b_output", {100,100,10}, tiramisu::p_int32, tiramisu::a_output);
+    tiramisu::buffer b_A("b_A", {100,100}, tiramisu::p_int32, tiramisu::a_temporary);
+    tiramisu::buffer b_A2("b_A2", {100,100}, tiramisu::p_int32, tiramisu::a_temporary);
+    tiramisu::buffer b_output("b_output", {100,100}, tiramisu::p_int32, tiramisu::a_output);
 
     S0.get_function()->save_computation_default_schedules() ;
     S0.get_function()->save_computations_levels() ;
 
-     /* if(S0.parallelization_is_legal(k)){
-          std::cout<<"legal on ";
-      }
-      else{
-          std::cout<<"legal off ";
-      }*/
-      S0.tile(i0,j0,32,32,i1,i2,j1,j2);
-     if(S0.unrolling_and_vectorization_is_legal(j2)){
+      if(S0.parallelization_is_legal(i0)){
           std::cout<<"legal on ";
       }
       else{
           std::cout<<"legal off ";
       }
-
 
     //S1.after_change(S0,j) ;
    // S1.shift(i,2);
@@ -119,7 +99,7 @@ int main(int argc, char **argv)
     
     //S0.get_function()->restore_computations_levels() ;
 
-    C_init.store_in(&b_A);
+    C_init.store_in(&b_A2);
     S0.store_in(&b_A2);
     //S0.store_in(&b_output);
     S1.store_in(&b_output);

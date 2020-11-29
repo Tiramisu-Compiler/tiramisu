@@ -11,6 +11,7 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
 #include <cmath>  
+#include <regex>
 
 #ifdef _WIN32
 #include <iso646.h>
@@ -421,12 +422,21 @@ void tiramisu::computation::parallelize(tiramisu::var par_dim_var)
     DEBUG_INDENT(-4);
 }
 
+/*
+the dependency (1,1) vectors means [i,j] is used bt [i+1,j+1] which means this dep is scheduled before = true 
+*/
+
 bool is_dependency_scheduled_before_self(isl_map * dependency,isl_space * space )
 {
     isl_map * inf_map = isl_map_lex_lt(space) ;
     isl_map * intersection = isl_map_intersect(inf_map,dependency) ;
 
-    return isl_map_is_empty(intersection) ;
+    if (isl_map_is_empty(intersection))
+    return false ;
+    else
+    {
+        return true ;
+    }
 
 }
 
@@ -472,11 +482,11 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
         }
     }
 
-    this->schedule ;
+    
     
     space_map +="]" ;
 
-    std::string set_space = space_map ; //copy the set space 
+    std::string set_space = space_map+"}" ; //copy the set space 
 
     space_map +=  "->"+this->get_name()+"[" ;
     
@@ -513,34 +523,337 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
     bool over_all_legality = true ;
 
-    for (auto const &basics :all_basic_maps){
-        std::cout<<(isl_basic_map_to_str(basics)) ;
-        
-        if (
-            is_dependency_scheduled_before_self(
-                isl_map_from_basic_map(basics),
-                isl_basic_set_get_space(
-                    isl_basic_set_read_from_str(this->get_ctx(), set_space.c_str() )
-                                         )
-                                                 )
-            ){
 
 
-        }
-        else{
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+    std::cout<<"default_sch" ;
+    std::cout<<str_schedule ;
 
 
-        }
+    std::regex r(" *[a-z]+[0-9]* *= *0 *");  
+    std::regex r2(" 0 *,") ;
+    std::regex r3(", *0 *\\]");
+    std::regex r4("\\[0 *,") ;
+
+    std::string sch1 =  std::regex_replace(str_schedule, r," 0"); 
+    std::string compact_schedule_b = std::regex_replace(sch1, r2, "") ;
+    std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
+    std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
+
+    
+
+    std::cout<<compact_schedulef ;
+
+    isl_basic_map * compact_isl_schedule = isl_basic_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
+
+    isl_basic_map * schedule_reverse = isl_basic_map_copy(compact_isl_schedule) ;
+
+    schedule_reverse = isl_basic_map_reverse(schedule_reverse) ;
+
+    std::cout<<(isl_basic_map_to_str(schedule_reverse)) ;
+
+    /*
+        we are supposing that dependecy nb dims = compuation nb dims
+        which isnt the case always for example this code wont be handeled yet
+        for1
+            for2
+                input[i] = input[i+1] - input[i-1] 
+    */
+    
+    if( par_dim == 0){
+        //first dim outermost parallelism then domain limitation
+        // idea of inclusion must every thing still be contained inside that loop lvl
+            space_map = set_space.substr(0, set_space.size()-1);
+
+            // {[n]->{S0[t0,t1,t2] : t0 = n }}
+
+            std::string tmp = space_map ;
+            
+
+            space_map = "[n]->" + space_map +" : t0=n }" ;
+
+
+
+
+            isl_basic_set * set = isl_basic_set_read_from_str(this->get_ctx(),space_map.c_str()) ;
+
+            isl_basic_set * initial_set = isl_basic_set_copy(set) ;
+
+            isl_set * reversed_set = isl_set_apply(isl_set_from_basic_set(set),isl_map_from_basic_map(schedule_reverse)) ;
+
+            isl_set * iteration_set = NULL;
+
+            for (auto const &basics :all_basic_maps){
+                    
+                if ((over_all_legality)&&(!isl_map_is_identity(isl_map_from_basic_map(basics))))
+                {
+                    iteration_set = isl_set_apply(
+                                                isl_set_copy(reversed_set),
+                                                isl_map_from_basic_map(isl_basic_map_copy(basics))
+                                                ) ;
+
+                    if (isl_set_is_empty(isl_set_intersect(iteration_set,isl_set_copy(reversed_set)))){
+                            over_all_legality = false ;
+                    }
+                }
+            }
+
+
+    }
+    else{
+            //set construction
+            space_map = set_space.substr(0, set_space.size()-1);
+            // {[n]->{S0[t0,t1,t2] : t0 = n }}
+
+            std::string tmp = "[n0 " ;
+
+            for(int i=1;i<par_dim;i++){
+                tmp = tmp+", n"+std::to_string(i);
+            }
+            tmp = tmp +"]->" ;
+
+            tmp = tmp + space_map+ " : t0=n0 ";
+
+            for(int i=1;i<par_dim;i++){
+                tmp = tmp+" and t"+std::to_string(i)+"= n"+std::to_string(i);
+            }
+            tmp = tmp +" }";
+
+            std::cout<<"tmpin ";
+            std::cout<<tmp ;
+
+            space_map = "[n]->" + space_map +" : t"+std::to_string(par_dim-1)+"=n }" ;
+
+            std::cout<<("const space = "+space_map) ;
+            //isl_basic_set * set = isl_basic_set_read_from_str(this->get_ctx(),space_map.c_str()) ;
+            isl_basic_set * set = isl_basic_set_read_from_str(this->get_ctx(),tmp.c_str()) ;
+
+            isl_basic_set * initial_set = isl_basic_set_copy(set) ;
+
+            //std::cout<<(isl_basic_set_to_str(initial_set));
+            //std::cout<<(isl_basic_set_to_str(set));
+            
+
+            isl_set * reversed_set = isl_set_apply(isl_set_from_basic_set(set),isl_map_from_basic_map(schedule_reverse)) ;
+
+            //std::cout<<(isl_set_to_str(reversed_set));
+
+            isl_set * iteration_set = NULL;
+
+
+            for (auto const &basics :all_basic_maps){
+                    
+                if ((over_all_legality)&&(!isl_map_is_identity(isl_map_from_basic_map(basics))))
+                {
+                        
+
+                        std::cout<<" transformation start ";
+                        std::cout<<isl_basic_map_to_str(basics) ;
+                        std::cout<<isl_set_to_str(reversed_set) ;
+
+                        iteration_set = isl_set_apply(
+                                                isl_set_copy(reversed_set),
+                                                isl_map_from_basic_map(isl_basic_map_copy(basics))
+                                                ) ;
+
+                        std::cout<<isl_set_to_str(iteration_set) ;
+
+                                
+                        iteration_set = isl_set_apply(iteration_set,isl_map_from_basic_map(isl_basic_map_copy(compact_isl_schedule))) ;
+
+                        std::cout<<isl_set_to_str(iteration_set) ;
+                        std::cout<<" transformation end ";
+                        
+                        if ( 
+                            is_dependency_scheduled_before_self(
+                                isl_map_from_basic_map(basics),
+                                isl_basic_set_get_space(
+                                    isl_basic_set_read_from_str(this->get_ctx(), set_space.c_str() )
+                                                        )
+                                                                )
+                            ){
+                                    
+                                    std::cout<<" this is before me : ";
+
+                                    std::cout<<(isl_set_to_str(iteration_set)) ;
+
+                                    if (isl_map_is_empty(isl_set_lex_le_set(
+                                        iteration_set,
+                                        isl_set_from_basic_set(isl_basic_set_copy(initial_set))
+                                    )))
+                                    {
+                                        std::cout<<"valide dependecy";
+
+                                    }
+                                    else{
+                                        std::cout<<"invalide dependecy";
+                                        over_all_legality = false ;
+
+                                    }
+                        }
+                        else{
+                                    
+                                    std::cout<<" this is after me : ";
+                                     std::cout<<(isl_set_to_str(iteration_set)) ;
+
+                                    if (isl_map_is_empty(isl_set_lex_ge_set(
+                                        iteration_set,
+                                        isl_set_from_basic_set(isl_basic_set_copy(initial_set))
+                                    )))
+                                    {
+                                        std::cout<<"valide dependecy";
+
+                                    }
+                                    else{
+                                         std::cout<<"invalide dependecy";
+                                        over_all_legality = false ;
+
+                                    }
+
+                        }
+                } 
+            }
+
     }
 
 
-   /* isl_union_map_foreach_map(deps,fun_ptr,NULL ) ;*/
-
-    
-    
 
     DEBUG_INDENT(-4); 
-    return false ;
+    return over_all_legality ;
+
+}
+
+bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+  
+
+    
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+     
+
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({l.get_name()});
+
+    
+
+    this->check_dimensions_validity(dimensions);
+    
+
+    //int par_dim = dimensions[0];
+
+ 
+
+   
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+    std::cout<<"default_sch" ;
+    std::cout<<str_schedule ;
+    //__helide__code_gen halide_code_gen  unrolling code checks should be unrolled extents 
+
+    std::regex r(" *[a-z]+[0-9]* *= *0 *");  
+    std::regex r2(" 0 *,") ;
+    std::regex r3(", *0 *\\]");
+    std::regex r4("\\[0 *,") ;
+
+    std::string sch1 =  std::regex_replace(str_schedule, r," 0"); 
+    std::string compact_schedule_b = std::regex_replace(sch1, r2, "") ;
+    std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
+    std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
+
+    
+
+    std::cout<<isl_map_to_str(isl_map_reverse(isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()))) ;
+
+    isl_map * normal_schedule = isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
+
+    
+
+    std::string set_n = "[n0";
+    std::string set_var = "->{"+this->get_name()+"[" ;
+
+    int iteration = 1 ;
+    int dimention_index = 0;
+    bool var_found = false ;
+    
+
+    for(auto& variable_in:original_loop_level_names){
+         
+
+         if(!var_found)
+         {
+            set_n +=",n"+std::to_string(iteration) ;
+
+            if(variable_in==l.get_name())
+            {
+                    var_found = true ;
+                    set_n += "]" ;
+                    set_var += variable_in ;
+            }
+            else{
+                set_var +=   "n"+std::to_string(iteration)+"," ;
+                dimention_index ++ ;
+            }
+         }
+         else{
+
+             set_var += ","+variable_in ;
+
+         }
+
+         iteration++ ;
+     }
+
+     std::string set_complete = set_n + set_var +"]}" ;
+
+
+    std::cout<<set_complete ;
+    std::cout<<"-- was my set to use ";
+     
+
+    isl_set * reversed_set = isl_set_apply(
+         isl_set_read_from_str(this->get_ctx(),set_complete.c_str()),
+         reverse
+         );
+
+    isl_set * normal_set = isl_set_apply(reversed_set,normal_schedule) ;
+
+    std::cout<<("\n dim_number "+std::to_string(dimention_index)) ;
+    std::cout<<" final_pre res \n " ;
+    std::cout<<isl_set_to_str(normal_set) ;
+
+    isl_pw_aff * max = isl_set_dim_max(isl_set_copy(normal_set),dimention_index) ;
+    isl_pw_aff * min = isl_set_dim_min(isl_set_copy(normal_set),dimention_index) ;
+
+    
+
+    std::cout<<" max is ";
+    std::cout<<isl_pw_aff_to_str(max) ;
+    int n_piece_max = isl_pw_aff_n_piece(max) ;
+    std::cout<<" has n_piece : ";
+    std::cout<<n_piece_max;
+
+    std::cout<<" min is ";
+    std::cout<<isl_pw_aff_to_str(min) ;
+     int n_piece_min =  isl_pw_aff_n_piece(min) ;
+    std::cout<<" has n_piece : ";
+    std::cout<<n_piece_min;
+
+    
+
+
+     DEBUG_INDENT(-4); 
+    return ((n_piece_max==1)&&(n_piece_min==1)) ;
+
 
 }
 
