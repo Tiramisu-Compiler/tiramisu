@@ -95,8 +95,6 @@ If asked for a username/password
     Username:b
     Password:b
 
-Another tar.gz version of the VM image is available [here](http://groups.csail.mit.edu/commit/software/TiramisuVM.tar.gz).
-
 ## Getting Started
 - Build [Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu/).
 - Read the [Tutorials](https://github.com/Tiramisu-Compiler/tiramisu/blob/master/tutorials/README.md).
