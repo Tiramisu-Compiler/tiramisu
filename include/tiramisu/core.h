@@ -3730,12 +3730,38 @@ public:
     virtual bool parallelization_is_legal(var l);
 
 
+
+/*check if the parallelize of the variable L is legal and correct i.e
+  the bounds for this loop level are constants and fixed and no loop carried dependency */
+    virtual bool vectorization_is_legal(var l);
+
+
   /*check if the parallelize of the variable L is legal and correct i.e
   the bounds for this loop level are constants and fixed
 
   */
-    virtual bool unrolling_and_vectorization_is_legal(var l) ;
+    virtual bool unrolling_is_legal(var l) ;
 
+
+    /*
+    checks if program sens doesnt change after applying skewing i.e no change in depenadencies from uncalcaluted to calculated or viceversa
+    this method checks only the dependencies applied within this specific computation
+    */
+   virtual bool applied_schedule_is_legal();
+
+
+   /* 
+    checks if program sens doesnt change after applying skewing i.e no change in depenadencies from uncalcaluted to calculated or viceversa
+    this method checks  the dependencies applied from this computation to second
+    invoking hypothesis : 
+      the current schedules are aliegned and ordered correctly with gen_order for the specific optmization : is the objective to check
+      a saved  aliegned and ordered schedules (the original) is present in default_schedule is the reference is scheking the correctness
+
+      so : the users code must ivoke : gen_ordering_schedules then align_schedules before save_computation_default_schedules
+      then he transform any way he wants then he calls again gen_ordering_schedules then align_schedules before calling this method to check his legality
+
+   */
+    virtual bool applied_schedule_is_legal(tiramisu::computation second) ;
     /**
        * Set the access relation of the computation.
        *

@@ -428,11 +428,16 @@ the dependency (1,1) vectors means [i,j] is used bt [i+1,j+1] which means this d
 
 bool is_dependency_scheduled_before_self(isl_map * dependency,isl_space * space )
 {
+   
+
     isl_map * inf_map = isl_map_lex_lt(space) ;
+
+    
+
     isl_map * intersection = isl_map_intersect(inf_map,dependency) ;
 
     if (isl_map_is_empty(intersection))
-    return false ;
+        return false ;
     else
     {
         return true ;
@@ -571,8 +576,6 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
             
 
             space_map = "[n]->" + space_map +" : t0=n }" ;
-
-
 
 
             isl_basic_set * set = isl_basic_set_read_from_str(this->get_ctx(),space_map.c_str()) ;
@@ -723,7 +726,7 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
 }
 
-bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l)
+bool tiramisu::computation::unrolling_is_legal(tiramisu::var l)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -732,27 +735,13 @@ bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l
     assert(!this->get_name().empty());
     assert(this->get_function() != NULL);
 
-  
-
-    
      std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
-
-     
-
 
     std::vector<int> dimensions =
         this->get_loop_level_numbers_from_dimension_names({l.get_name()});
 
-    
-
     this->check_dimensions_validity(dimensions);
-    
 
-    //int par_dim = dimensions[0];
-
- 
-
-   
     std::string str_schedule(isl_map_to_str(this->schedule)) ;
     std::cout<<"default_sch" ;
     std::cout<<str_schedule ;
@@ -768,15 +757,11 @@ bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l
     std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
     std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
 
-    
-
     std::cout<<isl_map_to_str(isl_map_reverse(isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()))) ;
 
     isl_map * normal_schedule = isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
 
     isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
-
-    
 
     std::string set_n = "[n0";
     std::string set_var = "->{"+this->get_name()+"[" ;
@@ -785,7 +770,6 @@ bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l
     int dimention_index = 0;
     bool var_found = false ;
     
-
     for(auto& variable_in:original_loop_level_names){
          
 
@@ -805,17 +789,13 @@ bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l
             }
          }
          else{
-
              set_var += ","+variable_in ;
-
          }
 
          iteration++ ;
      }
 
-     std::string set_complete = set_n + set_var +"]}" ;
-
-
+    std::string set_complete = set_n + set_var +"]}" ;
     std::cout<<set_complete ;
     std::cout<<"-- was my set to use ";
      
@@ -849,14 +829,678 @@ bool tiramisu::computation::unrolling_and_vectorization_is_legal(tiramisu::var l
     std::cout<<n_piece_min;
 
     
-
-
      DEBUG_INDENT(-4); 
     return ((n_piece_max==1)&&(n_piece_min==1)) ;
 
 
 }
 
+bool tiramisu::computation::vectorization_is_legal(tiramisu::var l)
+{
+
+     DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({l.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+  
+    std::regex r(" *[a-z]+[0-9]* *= *0 *");  
+    std::regex r2(" 0 *,") ;
+    std::regex r3(", *0 *\\]");
+    std::regex r4("\\[0 *,") ;
+
+    std::string sch1 =  std::regex_replace(str_schedule, r," 0"); 
+    std::string compact_schedule_b = std::regex_replace(sch1, r2, "") ;
+    std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
+    std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
+
+    isl_map * normal_schedule = isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
+
+    std::string set_n = "[n0";
+    std::string set_var = "->{"+this->get_name()+"[" ;
+
+    int iteration = 1 ;
+    int dimention_index = 0;
+    bool var_found = false ;
+    
+    for(auto& variable_in:original_loop_level_names){
+         
+
+         if(!var_found)
+         {
+            set_n +=",n"+std::to_string(iteration) ;
+
+            if(variable_in==l.get_name())
+            {
+                    var_found = true ;
+                    set_n += "]" ;
+                    set_var += variable_in ;
+            }
+            else{
+                set_var +=   "n"+std::to_string(iteration)+"," ;
+                dimention_index ++ ;
+            }
+         }
+         else{
+             set_var += ","+variable_in ;
+         }
+
+         iteration++ ;
+     }
+
+    std::string set_complete = set_n + set_var +"]}" ;
+    std::cout<<set_complete ;
+    std::cout<<"-- was my set to reuse ";
+     
+
+    isl_set * reversed_set = isl_set_apply(
+         isl_set_read_from_str(this->get_ctx(),set_complete.c_str()),
+         reverse
+         );
+
+    isl_set * normal_set = isl_set_apply(isl_set_copy(reversed_set),normal_schedule) ;
+
+    std::cout<<("\n dim_number "+std::to_string(dimention_index)) ;
+    std::cout<<" final_pre res \n " ;
+    std::cout<<isl_set_to_str(normal_set) ;
+
+    isl_pw_aff * max = isl_set_dim_max(isl_set_copy(normal_set),dimention_index) ;
+    isl_pw_aff * min = isl_set_dim_min(isl_set_copy(normal_set),dimention_index) ;
+
+    int n_piece_max = isl_pw_aff_n_piece(max) ;
+    int n_piece_min =  isl_pw_aff_n_piece(min) ;
+  
+    bool validity = false ;
+
+    if((n_piece_max==1)&&(n_piece_min==1)){
+
+                isl_union_map * deps = this->get_function()->compute_dep_graph();
+
+                std::string space_map = "{" + this->get_name() +"[" ;
+
+                for(int i=0;i<this->number_of_dims ;i++){
+                    space_map += "t"+std::to_string(i) ;
+                    if(i!=this->number_of_dims -1){
+                            space_map += "," ;
+                    }
+                }
+                space_map +="]" ;
+                space_map +=  "->"+this->get_name()+"[" ;
+                
+                for(int i=0;i<this->number_of_dims ;i++){
+                    space_map += "tt"+std::to_string(i) ;
+                    if(i!=this->number_of_dims -1){
+                            space_map += "," ;
+                    }
+                }
+                space_map +="]}" ;
+
+                isl_space * space = isl_map_get_space(isl_map_read_from_str(this->get_ctx(),space_map.c_str()) ) ;
+
+                isl_map * my_map = isl_union_map_extract_map(deps,space) ;
+
+                std::vector<isl_basic_map *> all_basic_maps ;
+                
+                auto f = [](isl_basic_map * bmap,void * user) { 
+                    std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+                    myName.push_back(bmap) ;
+                    return isl_stat_ok;
+                };
+                
+                isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+                isl_map_foreach_basic_map(my_map,fun_ptr,(void * ) &all_basic_maps) ;
+
+                validity = true ;
+
+                for(auto& dependency:all_basic_maps){
+
+                    if(!isl_map_is_identity(isl_map_from_basic_map(dependency))){
+
+                            isl_set * image = isl_set_apply(isl_set_copy(reversed_set),isl_map_from_basic_map(dependency)) ;
+
+                            if (isl_set_is_empty(isl_set_intersect(
+                                reversed_set,
+                                image))==  isl_bool_false){
+                                        validity = false ;
+                                        break ;
+                            }
+                }
+                    }
+      
+    }
+
+     DEBUG_INDENT(-4); 
+    return validity;
+    
+
+    
+}
+
+
+bool tiramisu::computation::applied_schedule_is_legal(){
+    
+    
+    assert(this->schedule!=NULL) ;
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    isl_union_map * deps = this->get_function()->compute_dep_graph();
+
+    
+    int nb = this->number_of_dims ;
+    std::string space_map = "{" + this->get_name() +"[" ;
+
+    for(int i=0;i<nb;i++){
+        space_map += "t"+std::to_string(i) ;
+
+        if(i!=nb-1){
+                space_map += "," ;
+        }
+    }
+
+    space_map +=  "]->"+this->get_name()+"[" ;
+    
+    for(int i=0;i<nb;i++){
+        space_map += "tt"+std::to_string(i) ;
+
+        if(i!=nb-1){
+                space_map += "," ;
+        }
+    }
+    space_map +="]}" ;
+
+    isl_map * tyy =  isl_map_read_from_str(this->get_ctx(),space_map.c_str()) ;
+
+    isl_space * space = isl_map_get_space(tyy) ;
+
+    isl_map * my_map = isl_union_map_extract_map(deps,space) ;
+
+    std::vector<isl_basic_map *> all_basic_maps ;
+    
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+     
+        myName.push_back(bmap) ;
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+
+    isl_map_foreach_basic_map(my_map,fun_ptr,(void * ) &all_basic_maps) ;
+
+    //collection done
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+  
+    std::regex r(" *[a-z]+[0-9]* *= *0 *");  
+    std::regex r2(" 0 *,") ;
+    std::regex r3(", *0 *\\]");
+    std::regex r4("\\[0 *,") ;
+
+    std::string sch1 =  std::regex_replace(str_schedule, r," 0"); 
+    std::string compact_schedule_b = std::regex_replace(sch1, r2, "") ;
+    std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
+    std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
+
+    isl_map * normal_schedule = isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
+
+    std::string set_n = "[n0";
+    std::string set_var = "]->{"+this->get_name()+"[n0" ;
+
+    
+    
+  
+    
+    for(int i = 1;i<this->number_of_dims;i++)
+    {
+         
+         
+              set_n +=",n"+std::to_string(i) ;
+              set_var +=   ",n"+std::to_string(i);
+         
+     }
+
+    std::string set_complete = set_n + set_var +"]}" ;
+    std::cout<<set_complete ;
+    std::cout<<"-- was my set to reuse ";
+     
+    // withing my real computation space of csts
+    isl_set * constant_isl_set = isl_set_read_from_str(this->get_ctx(),set_complete.c_str()) ;
+
+    // my point after applying schedule
+    isl_set * first_scheduled_point = isl_set_apply(
+         isl_set_copy(constant_isl_set),
+         isl_map_copy(normal_schedule)
+         );
+    
+    std::cout<<" the scheduled time set is ";
+    std::cout<<isl_set_to_str(first_scheduled_point) ;
+
+
+
+    bool over_all_legality = true ;
+
+    for(auto& dependecy: all_basic_maps){
+        //first sort dep if it's before or after
+
+        std::cout<<" \n current dep : ";
+        std::cout<<isl_basic_map_to_str(dependecy) ;
+
+        if(is_dependency_scheduled_before_self(isl_map_from_basic_map(isl_basic_map_copy(dependecy)),isl_set_get_space(constant_isl_set))){
+
+            std::cout<<" she is before self ";
+
+            isl_set * set_after_dep = isl_set_apply(
+                isl_set_copy(constant_isl_set),
+                isl_map_from_basic_map(dependecy)
+                );
+
+            std::cout<<" the after dep set is ";
+            std::cout<<isl_set_to_str(set_after_dep) ;
+
+
+            isl_set * to_initial_result = isl_set_apply(set_after_dep,isl_map_copy(normal_schedule)) ;
+
+            std::cout<<" the to initial space set is ";
+            std::cout<<isl_set_to_str(to_initial_result) ;
+
+            isl_map * sup_result = isl_set_lex_lt_set(to_initial_result, isl_set_copy(first_scheduled_point)) ;
+
+            if(isl_map_is_empty(sup_result)){
+                    std::cout<<" she is correct ";
+                    
+            }
+            else{
+                    std::cout<<" she is correct ";
+                    over_all_legality = false ;
+                    break ;
+            }
+     
+
+        }
+        else{
+
+            std::cout<<" she is after self : must";
+
+            isl_set * set_after_dep = isl_set_apply(
+                isl_set_copy(constant_isl_set),
+                isl_map_from_basic_map(dependecy)
+                );
+
+            std::cout<<" the after dep set is ";
+            std::cout<<isl_set_to_str(set_after_dep) ;
+
+            isl_set * to_initial_result = isl_set_apply(set_after_dep,isl_map_copy(normal_schedule)) ;
+
+            std::cout<<" the to initial space set is ";
+            std::cout<<isl_set_to_str(to_initial_result) ;
+
+             isl_map * sup_result = isl_set_lex_lt_set(isl_set_copy(first_scheduled_point),to_initial_result) ;
+
+            if(isl_map_is_empty(sup_result)){
+                 std::cout<<" she is  correct ";
+            }
+            else{
+                 
+                  over_all_legality = false ;
+                  std::cout<<" she is not correct ";
+                    break ;
+            }
+            
+
+
+        }
+
+    }
+
+  
+
+    DEBUG_INDENT(-4);
+    
+    return over_all_legality ;
+
+}
+
+bool tiramisu::computation::applied_schedule_is_legal(tiramisu::computation second)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+    assert(!second.get_name().empty());
+    // default schedule with the correct user's schedule aliegned + made ready
+    assert(this->default_schedule!= NULL) ;
+    assert(second.default_schedule != NULL) ;
+    /* ==========================================
+        extarct C0 => Second dependencies from function
+    */
+
+    isl_union_map * deps = this->get_function()->compute_dep_graph() ;
+        
+        //construct the maps of the space needed
+    std::string space_map = "{"+this->get_name()+"[" ;
+
+    for(int i = 0 ; i< this->number_of_dims ; i++){
+
+        space_map+="i"+std::to_string(i) ;
+
+        if(i != (this->number_of_dims -1 ))
+        {
+            space_map +="," ;
+        }
+    }
+    space_map+="]->"+second.get_name()+"[" ;
+
+    for(int i = 0 ; i < second.number_of_dims ; i++){
+
+        space_map+="i"+std::to_string(i) ;
+
+        if(i != (second.number_of_dims -1 ))
+        {
+            space_map +="," ;
+        }
+    }
+    
+    space_map+="]}" ;
+
+    DEBUG(3, tiramisu::str_dump(" the space map is to extract deps : "+space_map));
+
+    isl_space * space = isl_map_get_space(
+        isl_map_read_from_str(this->get_ctx(),space_map.c_str())
+        ) ;
+
+    isl_map * my_map = isl_union_map_extract_map(deps,space) ;
+
+    DEBUG(3, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map))));
+
+    std::vector<isl_basic_map *> all_basic_maps ;
+    
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+     
+        myName.push_back(bmap) ;
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+
+    isl_map_foreach_basic_map(my_map,fun_ptr,(void * ) &all_basic_maps) ;
+
+
+   /* ==========================================
+        extarct correct/user's schedul of 2 computation
+    */
+   assert(this->get_function()->get_schedule()!= NULL) ;
+
+   int m1 = isl_map_dim(this->get_schedule(), isl_dim_out);
+   int m2 = isl_map_dim(second.get_schedule(), isl_dim_out);
+
+   assert(m1 == m2) ;
+
+   int m11 = isl_map_dim(this->default_schedule, isl_dim_out);
+   int m22 = isl_map_dim(second.default_schedule, isl_dim_out);
+
+    assert(m11 == m22) ;
+
+    DEBUG(3, tiramisu::str_dump(" the first original schedule of computation "+this->get_name()+" : "+std::string(isl_map_to_str(this->default_schedule))));
+    DEBUG(3, tiramisu::str_dump(" the first original schedule of computation "+second.get_name()+" : "+std::string(isl_map_to_str(second.default_schedule))));
+
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+this->get_name()+" : "+std::string(isl_map_to_str(this->get_schedule()))));
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+second.get_name()+" : "+std::string(isl_map_to_str(second.get_schedule()))));
+
+
+
+
+    //DEBUG(3, tiramisu::str_dump(" this schedule is : "+std::string(isl_map_to_str(this->get_schedule()))));
+    //DEBUG(3, tiramisu::str_dump(" the number of out dim syncronized is : "+std::to_string(m)));
+    //DEBUG(3, tiramisu::str_dump(" the first schedule in : "+std::to_string("m")))
+
+
+
+   /* ==========================================
+        sort & determine dependencies by nature (raw vs calculated) for the correct schedule
+        using default_schedules
+    */
+   std::string unificator ="[" ;
+
+   for(int i=0 ;i<m11 ;i++){
+       unificator+="i"+std::to_string(i) ;
+
+       if(i != (m11-1))
+       {
+           unificator+="," ;
+       }
+   }
+   unificator+="]" ;
+
+   std::string this_unificator = "{"+this->get_name()+unificator+"->"+unificator+"}" ;
+   std::string second_unificator = "{"+second.get_name()+unificator+"->"+unificator+"}" ;
+
+    isl_map * this_schedule_unif = isl_map_apply_range(
+        isl_map_copy(this->default_schedule),
+        isl_map_read_from_str(this->get_ctx(),this_unificator.c_str())
+        ) ;
+
+    isl_map * second_schedule_unif = isl_map_apply_range(
+        isl_map_copy(second.default_schedule),
+        isl_map_read_from_str(this->get_ctx(),second_unificator.c_str())
+        ) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unif))));
+    DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unif))));
+
+    std::unordered_map<std::string,bool> defined_maps ; // push deps as str
+    
+
+    std::string s0_set = "[" ;
+
+    for(int i=0 ;i<this->number_of_dims;i++)
+    {
+        s0_set+="n"+std::to_string(i) ;
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set +="," ;
+        }
+    }
+    s0_set +="]->{"+this->get_name()+"[" ;
+
+    for(int i=0 ;i<this->number_of_dims;i++)
+    {
+        s0_set+="n"+std::to_string(i) ;
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set +="," ;
+        }
+    }
+    s0_set +="]}" ;
+
+
+    DEBUG(3, tiramisu::str_dump(" initial set of first "+s0_set));
+
+    isl_set * first_set = isl_set_read_from_str(this->get_ctx(),s0_set.c_str()) ;// in S0
+
+
+
+    for (auto& depandancy:all_basic_maps){
+
+        DEBUG(10, tiramisu::str_dump(" the depandancy is : "+std::string(isl_basic_map_to_str(depandancy))));
+
+
+        isl_set * second_set = isl_set_apply(
+            isl_set_copy(first_set),
+            isl_map_from_basic_map(isl_basic_map_copy(depandancy))
+            ) ;
+        // in S1
+
+        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(this_schedule_unif)) ;
+        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unif)) ;
+
+        DEBUG(10, tiramisu::str_dump(" the first time stamp is "+std::string(isl_set_to_str(time_first))));
+        DEBUG(10, tiramisu::str_dump(" the second time stamp is "+std::string(isl_set_to_str(time_second))));
+
+        isl_map * result_sup = isl_set_lex_ge_set(
+            isl_set_copy(time_first),
+            isl_set_copy(time_second)
+        ) ;
+
+        if(isl_map_is_empty(result_sup))
+        {
+                defined_maps[std::string(isl_basic_map_to_str(depandancy))]  = false ;
+                 DEBUG(10, tiramisu::str_dump("this depandancy judge as calculated reference [false] "));
+        }
+        else{
+
+            isl_map * result_inf = isl_set_lex_le_set(
+            isl_set_copy(time_first),
+            isl_set_copy(time_second)
+            ) ;
+
+            if(isl_map_is_empty(result_inf))
+            {
+                  defined_maps[std::string(isl_basic_map_to_str(depandancy))]  = true ;
+                  DEBUG(10, tiramisu::str_dump("this depandancy judge as uncalculated reference [true] "));
+            }
+            else{
+                ERROR(" the dependency is not consistant inf or sup between the specified schedule the program is probably incorrect ",1) ;
+            }
+
+        }
+
+        
+    }
+    DEBUG(3, tiramisu::str_dump(" the list of dendencies nature is constructed now we check the respect of previous deps nature "));
+   
+    
+
+   /* ==========================================
+        check that the nature desnt change for the new schedules for C0 and Second
+    */
+    std::string unificator_current ="[" ;
+
+    // current schedule number of dimention is m1
+   for(int i=0 ;i<m1 ;i++){
+       unificator_current+="i"+std::to_string(i) ;
+
+       if(i != (m1-1))
+       {
+           unificator_current+="," ;
+       }
+   }
+   unificator_current+="]" ;
+
+   std::string current_this_unificator = "{"+this->get_name()+unificator_current+"->"+unificator_current+"}" ;
+   std::string current_second_unificator = "{"+second.get_name()+unificator_current+"->"+unificator_current+"}" ;
+
+    isl_map * current_this_schedule_unif = isl_map_apply_range(
+        isl_map_copy(this->get_schedule()),
+        isl_map_read_from_str(this->get_ctx(),current_this_unificator.c_str())
+        ) ;
+
+    isl_map * current_second_schedule_unif = isl_map_apply_range(
+        isl_map_copy(second.get_schedule()),
+        isl_map_read_from_str(this->get_ctx(),current_second_unificator.c_str())
+        ) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" new first schedule to test  adjusted into timestamp "+std::string(isl_map_to_str(current_this_schedule_unif))));
+    DEBUG(3, tiramisu::str_dump(" new second schedule to test adjusted into timestamp "+std::string(isl_map_to_str(current_second_schedule_unif))));
+
+    bool over_all_corectness = true ;
+
+    DEBUG(10, tiramisu::str_dump(" check the respect of previous deps nature start : "));
+    
+    for (auto& depandancy:all_basic_maps){
+
+        DEBUG(10, tiramisu::str_dump(" the depandancy is : "+std::string(isl_basic_map_to_str(depandancy))));
+
+
+        isl_set * second_set = isl_set_apply(
+            isl_set_copy(first_set),
+            isl_map_from_basic_map(isl_basic_map_copy(depandancy))
+            ) ;
+        // in S1
+
+        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(current_this_schedule_unif)) ;
+        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(current_second_schedule_unif)) ;
+
+        isl_map * result_sup = isl_set_lex_ge_set(
+            isl_set_copy(time_first),
+            isl_set_copy(time_second)
+        ) ;
+
+        if(isl_map_is_empty(result_sup))
+        {
+                //false
+            
+            if(defined_maps[std::string(isl_basic_map_to_str(depandancy))]==true)
+            {
+                over_all_corectness = false ;
+
+
+                DEBUG(10, tiramisu::str_dump(" depandancy violation calculated made uncalculated "));
+                break ;
+            }
+            DEBUG(10, tiramisu::str_dump(" depandancy is repspected by the new schedule as calculated"));
+                
+
+        }
+        else{
+
+            isl_map * result_inf = isl_set_lex_le_set(
+            isl_set_copy(time_first),
+            isl_set_copy(time_second)
+            ) ;
+
+            if(isl_map_is_empty(result_inf))
+            {
+                  //true
+
+                if(defined_maps[std::string(isl_basic_map_to_str(depandancy))]==false)
+                {
+                    over_all_corectness = false ;
+                    DEBUG(10, tiramisu::str_dump(" depandancy violation uncalculated made calculated "));
+                    break ;
+                 }
+                 DEBUG(10, tiramisu::str_dump(" depandancy is repspected by the new schedule as uncalculated"));
+
+            }
+            else{
+                ERROR(" the dependency in the final check is not consistant inf or sup between the specified schedule the program is probably incorrect ",1) ;
+            }
+
+        }
+
+        
+    }
+
+
+
+    DEBUG_INDENT(-4);
+
+    return over_all_corectness ;
+}
 
 void tiramisu::computation::tag_parallel_level(int par_dim)
 {
