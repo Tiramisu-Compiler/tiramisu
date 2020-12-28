@@ -625,6 +625,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
                 auto &associated_lets = comp->get_associated_let_stmts();
                 for (auto &statement: associated_lets) {
                     this->m_scalar_data.insert(std::make_pair(statement.first, std::make_pair(statement.second.get_data_type(), memory_location::reg)));
+                    this->gpu_local.insert(statement.first);
                 }
                 if (index_exprs.find(comp) == index_exprs.end())
                     index_exprs[comp] = comp->index_expr;

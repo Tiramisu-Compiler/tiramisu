@@ -2780,7 +2780,7 @@ tiramisu::expr generator::comp_to_buffer(tiramisu::computation *comp, std::vecto
             // scheduling is supported but currently we only
             // accept literal constants as anything else was not
             // needed til now.
-            assert(expr->get_access()[i].is_constant() && "Only constant accesses are supported.");
+            // assert(expr->get_access()[i].is_constant() && "Only constant accesses are supported.");
         }
 
         index = tiramisu::generator::linearize_access((int) dim_sizes.size(), strides, expr->get_access());
