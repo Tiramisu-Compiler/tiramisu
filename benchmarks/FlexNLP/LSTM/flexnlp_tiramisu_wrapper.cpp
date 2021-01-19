@@ -75,10 +75,11 @@ int main(int, char **)
   print_time("performance_CPU.csv", "FlexLSTM",
              {"Tiramisu"},
              {median(duration_vector)});
-
+/* Uncomment to show some resulting values
   for(int i = 0; i<100; i++){
     std::cout << " , " << (int) output[i];
   }
+*/
   std::cout << "Finished" << std::endl;
 
   return 0;
