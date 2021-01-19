@@ -29,7 +29,8 @@ int main(int argc, char **argv)
     input input_cpu_h_out("input_cpu_h_out", {l, b, j}, p_int8);
 
     // Declare CPU Output
-    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_init(4));
+    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_initialize(4));
+    computation finalize_flexnlp("finalize_flexnlp", {}, flexnlp_finalize());
 
     // Runs the LSTM cell
     computation run_lstm("run_lstm", {l},
@@ -40,7 +41,8 @@ int main(int argc, char **argv)
     // ----------------------------------------------------------------
     // Layer II:Apply schedules and specify computations order
     // ----------------------------------------------------------------
-    initialize_flexnlp.then(run_lstm, computation::root);
+    initialize_flexnlp.then(run_lstm, computation::root)
+                      .then(finalize_flexnlp, computation::root);
 
     // ----------------------------------------------------------------
     // Layer III : Specify access to data
@@ -48,6 +50,7 @@ int main(int argc, char **argv)
     buffer tmp_buf("tmp_buf", {1}, p_float32, a_temporary);
 
     initialize_flexnlp.store_in(&tmp_buf, {0});
+    finalize_flexnlp.store_in(&tmp_buf, {0});
     run_lstm.store_in(&tmp_buf, {0});
 
     // ----------------------------------------------------------------

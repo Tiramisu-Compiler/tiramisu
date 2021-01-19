@@ -12,9 +12,16 @@ FlexNLPContext* flexnlp_context;
 // this function creates the FlexNLPContext object which defines all of the
 // FlexNLPAccelerator objects, one for each accelerator used.
 extern "C"
-int tiramisu_flexnlp_init(int number_of_devices){
+int tiramisu_flexnlp_initialize(int number_of_devices){
   assert((number_of_devices > 0) && "You must use at least one FlexNLP device. flexnlp_init's parameter must be > 0");
   flexnlp_context = new FlexNLPContext(number_of_devices);
+  return 0;
+}
+
+// Destroys the FlexNLP context
+extern "C"
+int tiramisu_flexnlp_finalize(){
+  delete flexnlp_context;
   return 0;
 }
 
@@ -258,7 +265,7 @@ int tiramisu_flexnlp_run_partitioned_lstm_multi(void* x_in, void* w_in, void* ou
     if (layer_number > 0)
       x_in = output;
 
-    // Get the number of devices used (given to the flexnlp_init function)
+    // Get the number of devices used (given to the flexnlp_initialize function)
     int number_of_devices = flexnlp_context->get_number_of_devices();
     assert(ndevices_used <= number_of_devices && "There are not enough devices to perform this operation.");
 

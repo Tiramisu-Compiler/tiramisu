@@ -32,7 +32,7 @@ Go through your benchmark parameters (configure.h), and decide what parameters y
 3. Divisibility constraints on each constant : for example, I want `X_BL` to be a divisor of *224*.
 ### Identify the generator and the wrapper
 1. Find the generator file and add `#define __TIRAMISU_GENERATOR__` at the top of the file
-2. Find the generator file and add `#define __TIRAMISU_WRAPPER__` at the top of the file
+2. Find the wrapper file and add `#define __TIRAMISU_WRAPPER__` at the top of the file
 3. Add at the bottom of the `configure.h` file this piece of code which permits the tuner to overwrite parameter values.
 ```c
 #if defined(__TIRAMISU_WRAPPER__) || defined(__TIRAMISU_GENERATOR__)

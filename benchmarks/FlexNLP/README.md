@@ -14,7 +14,7 @@ This step consists on creating the C/C++ wrapper function that will call the Fle
 3. Add the tiramisu function's header at the bottom of the tiramisu/include/tiramisu/expr.h file.
 4. The function can now be called in any Tiramisu program.
 
-> For a simple example, you can check the `flexnlp_init` Tiramisu function (found in tiramisu/src/tiramisu_expr.cpp) corresponding to the tiramisu_flexnlp_init C/C++ function (found in tiramisu/src/tiramisu_flexnlp_wrappers.cpp).
+> For a simple example, you can check the `flexnlp_initialize` Tiramisu function (found in tiramisu/src/tiramisu_expr.cpp) corresponding to the tiramisu_flexnlp_initialize C/C++ function (found in tiramisu/src/tiramisu_flexnlp_wrappers.cpp).
 
 ### How Tiramisu function calls work
 In tiramisu, it's possible to call a Tiramisu function (Tiramisu functions are implemented in tiramisu_expr.cpp with headers in expr.h).
@@ -36,9 +36,10 @@ So a Tiramisu-FlexNLP function is defined on 3 levels :
 
 ## Writing a Tiramisu-FlexNLP program
 The process is the same as any tiramisu program, the only differences are that you have to :
-1. Call the `flexnlp_init` Tiramisu function, by giving it the number of FlexNLP devices to use. (This requires creating a computation that will call flexnlp_init(num_devices))
+1. Call the `flexnlp_initialize` Tiramisu function, by giving it the number of FlexNLP devices to use. (This requires creating a computation that will call flexnlp_initialize(num_devices))
 2. Call any FlexNLP functions (some need the device_id)
-3. Generate code by calling the tiramisu::codegen function and giving to it the tiramisu::hardware_architecture_t::arch_flexnlp flag e.g :
+3. Call the `flexnlp_finalize` Tiramisu function, it doesn't take any parameter. (This requires you to create a computation that will call flexnlp_finalize(), the function will return an integer)
+4. Generate code by calling the tiramisu::codegen function and giving to it the tiramisu::hardware_architecture_t::arch_flexnlp flag e.g :
 ```
 tiramisu::codegen({
         input_cpu_input.get_buffer(),
@@ -50,7 +51,8 @@ tiramisu::codegen({
 
 ## Available FlexNLP-Tiramisu functions
 ### Initialization
-- `flexnlp_init`: This function instanciates the FlexNLPContext global variable, it contains an object for each of the accelerators, it has one parameter which is the number of accelerators that will be used in the Tiramisu-FlexNLP program. (Look at **tiramisu/benchmarks/FlexNLP/LSTM/flexnlp_tiramisu_generator.cpp** for an example).
+- `flexnlp_initialize`: This function instanciates the FlexNLPContext global variable, it contains an object for each of the accelerators, it has one parameter which is the number of accelerators that will be used in the Tiramisu-FlexNLP program. (Look at **tiramisu/benchmarks/FlexNLP/LSTM/flexnlp_tiramisu_generator.cpp** for an example).
+- `flexnlp_finalize`: This function destroys the FlexNLPContext global variable, you have to run it at the end of the Tiramisu-FlexNLP program (Look at **tiramisu/benchmarks/FlexNLP/LSTM/flexnlp_tiramisu_generator.cpp** for an example).
 ### Data Copy Functions
 - `flexnlp_load_weights`: This function loads the weights to the FlexNLP device (in the weights SRAM), it has as parameters : the weights buffer, the offset according to the weights buffer, and the number of elements to copy. (Look at **tiramisu/benchmarks/FlexNLP/LSTM_manual_data_copy/flexnlp_tiramisu_generator.cpp** for an example).
 - `flexnlp_load_input`: This function is the same as `flexnlp_load_weights`, but for the Input.

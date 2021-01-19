@@ -1005,6 +1005,8 @@ public:
       *
       * \p bits indicate the bit-width of the target machine.
       *    must be 0 for unknown, or 32 or 64.
+      * \p hw_architecture indicate the hardware architecture, it has to be one
+      *    of arch_flexnlp, arch_cpu, arch_nvidia_gpu.
       * For a full list of supported values for \p os and \p arch please
       * check the documentation of Halide::Target
       * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
@@ -1013,12 +1015,24 @@ public:
 
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
+                        Halide::Target::Arch arch, int bits,
+                        const tiramisu::hardware_architecture_t hw_architecture) const;
+
+    /**
+      * \overload
+      */
+    void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                         Halide::Target::Arch arch, int bits) const;
 
     /**
       * \overload
       */
     void gen_halide_obj(const std::string &obj_file_name) const;
+
+    /**
+      * \overload
+      */
+    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const;
 
     /**
       * Generate a Halide stmt that represents the function.
