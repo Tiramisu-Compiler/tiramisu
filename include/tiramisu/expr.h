@@ -2080,9 +2080,15 @@ expr flexnlp_lstm_cell_partitioned(const buffer &x_in, const buffer &W_in, const
 expr flexnlp_lstm_cell_partitioned_multi_accelerator(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out, expr layer_number);
 
 /**
-* Initializes the FlexNLP contect (pass how many FlexNLP devices to use)
+* Initializes the FlexNLP context (pass how many FlexNLP devices to use)
 */
-expr flexnlp_init(expr number_of_devices = 1);
+expr flexnlp_initialize(expr number_of_devices = 1);
+
+/**
+* Destroys the FlexNLP context
+*/
+expr flexnlp_finalize();
+
 
 }
 

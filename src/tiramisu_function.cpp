@@ -1088,11 +1088,26 @@ void function::add_iterator_name(const std::string &iteratorName)
   * If the machine parameters are not supplied, it will detect one automatically.
   */
 // @{
+
+void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os, Halide::Target::Arch arch, int bits) const
+{
+  Halide::Target target = Halide::get_host_target();
+  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, tiramisu::hardware_architecture_t::arch_cpu);
+}
+
 void function::gen_halide_obj(const std::string &obj_file_name) const
 {
     Halide::Target target = Halide::get_host_target();
     gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
 }
+
+void function::gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const
+{
+  Halide::Target target = Halide::get_host_target();
+  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, hw_architecture);
+}
+
+
 // @}
 
 /**
@@ -2343,7 +2358,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
         this->gen_cuda_stmt();
     }
     this->gen_halide_stmt();
-    this->gen_halide_obj(obj_filename);
+    this->gen_halide_obj(obj_filename, gen_architecture_flag);
 }
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const

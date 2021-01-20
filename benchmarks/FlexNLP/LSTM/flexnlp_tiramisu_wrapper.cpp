@@ -8,6 +8,9 @@
 
 int main(int, char **)
 {
+  std::vector<double> duration_vector;
+  double start, end;
+
   const int hsize = HIDDEN_SIZE;
   const int isize = INPUT_SIZE;
   const int osize = hsize;
@@ -20,6 +23,28 @@ int main(int, char **)
   int8_t* output = (int8_t*) malloc(ntimestep*nbatch*hsize*sizeof(int8_t));
   int8_t* h_out = (int8_t*) malloc(nlayers*nbatch*hsize*sizeof(int8_t));
 
+  for(int i=0; i<ntimestep*nbatch*isize; i++)
+    if (i%3 == 0)
+      x_in[i] = (int8_t) 2;
+    else if (i%3 == 1)
+      x_in[i] = (int8_t) -3;
+    else
+      x_in[i] = (int8_t) 100;
+
+
+  for(int i=0; i<nlayers*4*osize*(isize+hsize); i++)
+    if (i%3 == 0)
+      w_in[i] = (int8_t) 2;
+    else if (i%3 == 1)
+      w_in[i] = (int8_t) -3;
+    else
+      w_in[i] = (int8_t) 100;
+
+  for(int i=0; i<nlayers*nbatch*hsize; i++)
+    h_out[i] = (int8_t) 3;
+
+  for(int i=0; i<ntimestep*nbatch*hsize; i++)
+    output[i] = (int8_t) 0;
 
   Halide::Buffer<int8_t> b_input(x_in, ntimestep, nbatch, isize);
   Halide::Buffer<int8_t> b_W(w_in, NUM_LAYERS, 4, osize, isize + hsize);
@@ -28,13 +53,33 @@ int main(int, char **)
 
   std::cout << "Buffers Initialized" << std::endl;
 
-	flexnlp_lstm(
-    b_input.raw_buffer(),
-    b_W.raw_buffer(),
-    b_output.raw_buffer(),
-    b_h_out.raw_buffer()
-  );
+  for (int i = 0; i < NB_TESTS; i++)
+  {
+    for(int i=0; i<nlayers*nbatch*hsize; i++)
+      h_out[i] = (int8_t) 3;
 
+    for(int i=0; i<ntimestep*nbatch*hsize; i++)
+      output[i] = (int8_t) 0;
+
+    start = rtclock();
+    flexnlp_lstm(
+      b_input.raw_buffer(),
+      b_W.raw_buffer(),
+      b_output.raw_buffer(),
+      b_h_out.raw_buffer()
+    );
+    end = rtclock();
+    duration_vector.push_back((end - start) * 1000);
+  }
+
+  print_time("performance_CPU.csv", "FlexLSTM",
+             {"Tiramisu"},
+             {median(duration_vector)});
+/* Uncomment to show some resulting values
+  for(int i = 0; i<100; i++){
+    std::cout << " , " << (int) output[i];
+  }
+*/
   std::cout << "Finished" << std::endl;
 
   return 0;

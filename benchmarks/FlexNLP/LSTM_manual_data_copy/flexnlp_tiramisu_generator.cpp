@@ -28,7 +28,8 @@ int main(int argc, char **argv)
     input input_cpu_h_out("input_cpu_h_out", {l, b, j}, p_int8);
 
     // Declare CPU Output
-    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_init(1));
+    computation initialize_flexnlp("initialize_flexnlp", {}, flexnlp_initialize(1));
+    computation finalize_flexnlp("finalize_flexnlp", {}, flexnlp_finalize());
 
     // We declare a computation to copy the Input
     computation copy_input("copy_input", {l},
@@ -61,7 +62,8 @@ int main(int argc, char **argv)
     initialize_flexnlp.then(copy_input, computation::root)
                       .then(copy_weights, l)
                       .then(run_lstm, l)
-                      .then(copy_output, l);
+                      .then(copy_output, l)
+                      .then(finalize_flexnlp, computation::root);
 
     // ----------------------------------------------------------------
     // Layer III : Specify access to data
@@ -69,6 +71,8 @@ int main(int argc, char **argv)
     buffer tmp_buf("tmp_buf", {1}, p_float32, a_temporary);
 
     initialize_flexnlp.store_in(&tmp_buf, {0});
+    finalize_flexnlp.store_in(&tmp_buf, {0});
+
     run_lstm.store_in(&tmp_buf, {0});
 
     // ----------------------------------------------------------------

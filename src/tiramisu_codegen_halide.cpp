@@ -3929,7 +3929,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 }
 
 void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
-                              Halide::Target::Arch arch, int bits) const
+                              Halide::Target::Arch arch, int bits, const tiramisu::hardware_architecture_t hw_architecture) const
 {
     // TODO(tiramisu): For GPU schedule, we need to set the features, e.g.
     // Halide::Target::OpenCL, etc.
@@ -3966,6 +3966,8 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
 
     m.compile(Halide::Outputs().object(obj_file_name));
     m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
+    if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
+        m.compile(Halide::Outputs().c_source(obj_file_name + "_generated.c"));
 
     if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);

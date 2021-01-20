@@ -576,14 +576,26 @@ expr flexnlp_lstm_cell_partitioned_multi_accelerator(const buffer &x_in, const b
             tiramisu::p_int32);
 }
 
-expr flexnlp_init(expr number_of_devices)
+expr flexnlp_initialize(expr number_of_devices)
 {
     std::string fname;
-    fname = "tiramisu_flexnlp_init";
+    fname = "tiramisu_flexnlp_initialize";
 
     return expr(o_call, fname,
             {
                 cast(p_int32, number_of_devices)
+            },
+            tiramisu::p_int32);
+}
+
+expr flexnlp_finalize()
+{
+    std::string fname;
+    fname = "tiramisu_flexnlp_finalize";
+
+    return expr(o_call, fname,
+            {
+              int32_t(0)
             },
             tiramisu::p_int32);
 }

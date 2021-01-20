@@ -55,14 +55,15 @@ void FlexNLPContext::initialize_flexnlp_context(){
 }
 
 FlexNLPContext::FlexNLPContext() : number_of_devices(1){
-  std::cout << "Creating the FlexNLP Context" << '\n';
+  //std::cout << "Creating the FlexNLP Context" << '\n';
   initialize_flexnlp_context();
 }
 
 FlexNLPContext::FlexNLPContext(int number_of_devices) : number_of_devices(number_of_devices){
-  std::cout << "Creating the FlexNLP Context" << '\n';
+  //std::cout << "Creating the FlexNLP Context" << '\n';
   initialize_flexnlp_context();
 }
+
 
 PETop* FlexNLPContext::get_accelerator_by_id(int device_id){
   PETop* accelerator = this->accelerators_objects[device_id];

@@ -90,7 +90,8 @@ class PETop
     int8_t* pe_w0 = spad1;
     int8_t* pe_o0 = spad2;
     int16_t* dp_accum = (int16_t*) malloc(ngate*osize*sizeof(int16_t));
-
+    for (int i = 0; i < ngate*osize; i++)
+      dp_accum[i] = (int16_t) 0;
     // ------ Accelerator Start
     runLoadStore(x_h_in, false, 0, nbatch*(isize+hsize));
     if (load_weight) {
