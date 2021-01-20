@@ -4,7 +4,7 @@
 
   for (int i = 0; i < 10; i++)
     for (int j = 0; j < 20; j++)
-      output[i, j] = input[i, j] + i + 2;
+      output[i, j] = input[i, j] + i + 4;
 */
 
 #include <tiramisu/tiramisu.h>
