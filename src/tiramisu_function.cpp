@@ -662,6 +662,12 @@ bool function::is_sched_graph_tree_dfs(computation * comp,
     return true;
 }
 
+void function::clear_sched_graph()
+{
+    sched_graph.clear();
+    sched_graph_reversed.clear();
+}
+
 bool function::is_sched_graph_tree()
 {
     DEBUG_FCT_NAME(3);
@@ -1572,6 +1578,15 @@ void tiramisu::function::align_schedules()
     DEBUG(3, tiramisu::str_dump("End of function"));
 }
 
+void tiramisu::function::reset_schedules()
+{
+    for (computation *comp : get_computations())
+        comp->set_identity_schedule_based_on_iteration_domain();
+        
+    remove_dimension_tags();
+    clear_sched_graph();
+}
+
 void tiramisu::function::add_invariant(tiramisu::constant invar)
 {
     invariants.push_back(invar);
@@ -1777,6 +1792,16 @@ void tiramisu::function::add_gpu_thread_dimensions(std::string stmt_name, int di
         std::pair<std::string, std::tuple<int, int, int>>(
             stmt_name,
             std::tuple<int, int, int>(dim0, dim1, dim2)));
+}
+
+void tiramisu::function::remove_dimension_tags()
+{
+    parallel_dimensions.clear();
+    vector_dimensions.clear();
+    distributed_dimensions.clear();
+    gpu_block_dimensions.clear();
+    gpu_thread_dimensions.clear();
+    unroll_dimensions.clear();
 }
 
 isl_union_set *tiramisu::function::get_trimmed_time_processor_domain() const

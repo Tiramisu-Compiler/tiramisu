@@ -7,6 +7,7 @@ set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
+include(configure.cmake)
 
 # Add CMake header files
 set(HEADER_FILES
@@ -19,18 +20,31 @@ set(HEADER_FILES
         include/tiramisu/expr.h
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
-	include/tiramisu/computation_graph.h
-	include/tiramisu/auto_scheduler.h
         )
+        
+# Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
+if (${USE_AUTO_SCHEDULER})
+    set(HEADER_FILES ${HEADER_FILES}
+        include/tiramisu/auto_scheduler/auto_scheduler.h
+        include/tiramisu/auto_scheduler/utils.h
+        include/tiramisu/auto_scheduler/optimization_info.h
+        include/tiramisu/auto_scheduler/dnn_accesses.h
+        include/tiramisu/auto_scheduler/ast.h
+        include/tiramisu/auto_scheduler/evaluator.h
+        include/tiramisu/auto_scheduler/schedules_generator.h
+        include/tiramisu/auto_scheduler/search_method.h
+        )
+endif()
 
 # Add CMake cpp files
-set(OBJS auto_scheduler expr block core codegen_halide codegen_c computation_graph debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
+set(OBJS expr block core codegen_halide codegen_c debug function utils codegen_halide_lowering codegen_from_halide mpi codegen_cuda externs)
 
+# Add autoscheduler cpp files if USE_AUTO_SCHEDULER is TRUE in configure.cmake
+if (${USE_AUTO_SCHEDULER})
+    set(OBJS_AUTO_SCHEDULER auto_scheduler optimization_info dnn_accesses ast evaluator schedules_generator search_method)
+endif()
 
 ### CMAKE FILE INTERNALS ###
-
-include(configure.cmake)
-
 if (${USE_GPU})
     find_package(CUDA REQUIRED)
     add_definitions(-DNVCC_PATH="${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
@@ -219,8 +233,20 @@ foreach (obj ${OBJS})
 endforeach ()
 
 add_library(tiramisu SHARED ${T_CODE})
+
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
+
+if (${USE_AUTO_SCHEDULER})
+    set(AUTO_SCHEDULER_CODE "")
+    foreach(obj ${OBJS_AUTO_SCHEDULER})
+        set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
+    endforeach()
+    
+    add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
+    target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib})
+    target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
+endif()
 
 function(link_tags name)
     if (${is_gpu})

@@ -22,7 +22,6 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/computation_graph.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -41,8 +40,18 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
-class auto_scheduler;
 
+namespace auto_scheduler
+{
+class syntax_tree;
+class ast_node;
+class computation_info;
+class evaluate_by_execution;
+class dnn_access_matrix;
+class simple_generator;
+
+void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
+}
 
 struct HalideCodegenOutput
 {
@@ -55,6 +64,8 @@ struct HalideCodegenOutput
                         const std::map<std::string, tiramisu::buffer *> &buffers)
         : computation_list(computations), constant_list(constants), output_buffers(buffers) {}
 };
+
+Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
 
 HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     Halide::Internal::Stmt s,
@@ -140,7 +151,11 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
-    friend auto_scheduler;
+    
+    friend auto_scheduler::syntax_tree;
+    friend auto_scheduler::evaluate_by_execution;
+    friend auto_scheduler::dnn_access_matrix;
+    friend auto_scheduler::simple_generator;
 
 private:
     /**
@@ -324,6 +339,12 @@ private:
       * \p factor in the unrolling factor.
       */
     void add_unroll_dimension(std::string stmt_name, int L, int factor);
+    
+    /**
+     * \brief Remove parallel, vectorized, distributed, unrolled and GPU tags
+     * on every computations.
+     */
+    void remove_dimension_tags();
 
     /**
      * Get live in/out computations in the function.
@@ -486,18 +507,6 @@ protected:
       * {C[0] -> D[1]; C[0]->D[2]}
       */
     isl_union_map *compute_dep_graph();
-
-    /**
-      * The Tiramisu autoscheduler starts by creating an initial
-      * ordered graph of computations. This graph represents the
-      * original computations and the order defined based on
-      * dependencens between these computations.
-      * Computations of the initial graph are then fused to form
-      * blocks. Each block is the result of fusing multiple
-      * computations. The final order of computations is derived
-      * from this ordered graph of computations.
-      */
-    computation_graph cg;
 
     /**
       * Get the arguments of the function.
@@ -797,6 +806,11 @@ protected:
        * \brief Adds a new pair to the mapping field.
        */
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
+    
+    /**
+     * \brief Clear any relation (defined by after, then or between) between computations.
+     */
+    void clear_sched_graph();
 
 public:
 
@@ -840,6 +854,11 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
+    
+    /**
+     * \brief Remove, for every computation, every schedule.
+     */
+    void reset_schedules();
 
     /**
      * \brief For each computation, allocate a buffer and map the computation
@@ -1480,6 +1499,12 @@ class computation
     friend recv;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend auto_scheduler::syntax_tree;
+    friend auto_scheduler::ast_node;
+    friend auto_scheduler::computation_info;
+    friend auto_scheduler::evaluate_by_execution;
+    
+    friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 private:
 
@@ -4238,6 +4263,7 @@ public:
     //@{
     virtual void unroll(var L, int fac);
     virtual void unroll(var L, int fac, var L_outer, var L_inner);
+    virtual void unroll(int L, int fac);
     //@}
 
     /**
