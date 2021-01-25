@@ -111,5 +111,61 @@ app1.lex_gt_set(app2).is_empty()
 
 
 
+#testing dep calculation 
+{ C_init[t1, t2, t3] -> C_init[0, 0, i = t1, 0, j = t2, 0, k = t3, 0] : 0 <= t1 <= 99 and 0 <= t2 <= 99 and 0 <= t3 <= 9 }
+{ S0[t5, t6, t7] -> S0[0, 10, i = t5, 0, j = t6, 0, k = t7, 0] : 0 <= t5 <= 99 and 0 <= t6 <= 99 and 0 <= t7 <= 9 }
+{ S1[t9, t10, t11] -> S1[0, 20, i = t9, 0, j = t10, 0, k = t11, 0] : 0 <= t9 <= 99 and 0 <= t10 <= 99 and 0 <= t11 <= 9 }
+
+{ C_init[i, j, k] -> b_A2[j' = j, k' = k];
+ S0[i, j, k] -> b_A2[ j' = j, k' = k]; 
+S0[i, j, k] -> b_A2[ j' = j, k' = -1 + k];
+ S0[i, j, k] -> b_output[ j' = 1 + j, k' = k];
+ S0[i, j, k] -> b_output[ j' = -1 + j, k' = k] }
+
+
+
+
+{ S0[i, j, k] -> b_A2[j, k] }
+{ C_init[i, j, k] -> b_A[j, k] }
+{ S1[i, j, k] -> b_output[j, k] }
+
+
+{ S0[i, j, k] -> b_A2[j, k] }
+{ C_init[i, j, k] -> b_A[j, k] }
+{ S1[i, j, k] -> b_output[j, k] }
+
+
+{ C_init[t1, t2, t3] -> [0, 0, i = t1, 0, j = t2, 0, k = t3, 0] : 0 <= t1 <= 99 and 0 <= t2 <= 99 and 0 <= t3 <= 9 ; S0[t5, t6, t7] -> [0, 10, i = t5, 0, j = t6, 0, k = t7, 0] : 0 <= t5 <= 99 and 0 <= t6 <= 99 and 0 <= t7 <= 9 ; S1[t9, t10, t11] -> [0, 20, i = t9, 0, j = t10, 0, k = t11, 0] : 0 <= t9 <= 99 and 0 <= t10 <= 99 and 0 <= t11 <= 9 }
+
+
+{ S0[i, j, k] -> b_A2[j, k] ; C_init[i, j, k] -> b_A[j, k] ; S1[i, j, k] -> b_output[j, k] }
+
+
+
+
+
+{ must_dependence: "{
+S0[t5 = 99, t6, t7] -> [S1[t9, t10 = t6, t11 = -1 + t7] -> b_output[t6, -1 + t7]] : 0 <= t6 <= 99 and 0 < t7 <= 9 and 0 <= t9 <= 99; 
+S0[t5 = 99, t6, t7 = 9] -> [S1[t9, t10 = t6, t11 = 9] -> b_output[t6, 9]] : 0 <= t6 <= 99 and 0 <= t9 <= 99;
+C_init[t1 = 99, t2 = 0, t3] -> [S0[t5 = 0, t6 = 0, t7 = t3] -> b_A2[0, t3]] : 0 <= t3 <= 9; 
+S0[t5, t6, t7] -> [S0[t5' = t5, t6' = 1 + t6, t7' = t7] -> b_A2[1 + t6, t7]] : 0 <= t5 <= 99 and 0 <= t6 <= 98 and 0 <= t7 <= 9; 
+S0[t5, t6 = 1, t7] -> [S0[t5' = 1 + t5, t6' = 0, t7' = t7] -> b_A2[0, t7]] : 0 <= t5 <= 98 and 0 <= t7 <= 9 }",
+
+
+ may_dependence: "{
+
+ S0[t5 = 99, t6, t7] -> [S1[t9, t10 = t6, t11 = -1 + t7] -> b_output[t6, -1 + t7]] : 0 <= t6 <= 99 and 0 < t7 <= 9 and 0 <= t9 <= 99;
+ S0[t5 = 99, t6, t7 = 9] -> [S1[t9, t10 = t6, t11 = 9] -> b_output[t6, 9]] : 0 <= t6 <= 99 and 0 <= t9 <= 99;
+ S0[t5, t6, t7] -> [S0[t5' = t5, t6' = 1 + t6, t7' = t7] -> b_A2[1 + t6, t7]] : 0 <= t5 <= 99 and 0 <= t6 <= 98 and 0 <= t7 <= 9;
+ S0[t5, t6 = 1, t7] -> [S0[t5' = 1 + t5, t6' = 0, t7' = t7] -> b_A2[0, t7]] : 0 <= t5 <= 98 and 0 <= t7 <= 9;
+ C_init[t1 = 99, t2 = 0, t3] -> [S0[t5 = 0, t6 = 0, t7 = t3] -> b_A2[0, t3]] : 0 <= t3 <= 9 }",
+
+ must_no_source: "{ C_init[t1, t2, t3] -> b_A[t2, t3] : 0 <= t1 <= 99 and 0 <= t2 <= 99 and 0 <= t3 <= 9 }",
+
+ may_no_source: "{ C_init[t1, t2, t3] -> b_A[t2, t3] : 0 <= t1 <= 99 and 0 <= t2 <= 99 and 0 <= t3 <= 9 }
+
+
+
+
 
 
