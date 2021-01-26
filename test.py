@@ -130,7 +130,7 @@ S0[i, j, k] -> b_A2[ j' = j, k' = -1 + k];
 { S1[i, j, k] -> b_output[j, k] }
 
 
-{ S0[i, j, k] -> b_A2[j, k] }
+{ S0[i, j, k] -> S0[i,j+1, k] }
 { C_init[i, j, k] -> b_A[j, k] }
 { S1[i, j, k] -> b_output[j, k] }
 
@@ -139,6 +139,16 @@ S0[i, j, k] -> b_A2[ j' = j, k' = -1 + k];
 
 
 { S0[i, j, k] -> b_A2[j, k] ; C_init[i, j, k] -> b_A[j, k] ; S1[i, j, k] -> b_output[j, k] }
+
+
+dep = isl.Map("{S0[i,j]->S0[i+1,j-1]}")
+
+sched = isl.Map("{S0[i,j]->[i+j,j]}")
+
+d = dep.apply_range(sched).apply_domain(sched)
+d
+d.equate(isl.dim_type.in_,0,isl.dim_type.out,0)
+
 
 
 

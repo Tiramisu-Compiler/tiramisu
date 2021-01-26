@@ -2461,6 +2461,7 @@ bool tiramisu::function::check_legality_for_function()
     isl_set * left_hs = NULL ;
     isl_set * right_hs = NULL ; // hand side
 
+    
 
 
     bool over_all_legality = true ;
@@ -2468,15 +2469,19 @@ bool tiramisu::function::check_legality_for_function()
 
     for(auto& space_dep:all_basic_maps)
     {
+
+        DEBUG(3, tiramisu::str_dump(" the map of deps is  "+std::string(isl_map_to_str(space_dep))));
+
         left_hs = isl_map_domain(isl_map_copy(space_dep)) ;
-        right_hs = isl_map_domain(isl_map_copy(space_dep)) ;
+        right_hs = isl_map_range(isl_map_copy(space_dep)) ;
 
 
-        std::string left_computation_name =  std::string(isl_space_get_tuple_name(
-            isl_set_get_space(left_hs),isl_dim_set)) ;
+        std::string left_computation_name =  isl_space_get_tuple_name(
+            isl_set_get_space(left_hs),isl_dim_set) ;
 
-        std::string right_computation_name =  std::string(isl_space_get_tuple_name(
-            isl_set_get_space(right_hs),isl_dim_set)) ;
+
+        std::string right_computation_name =  isl_space_get_tuple_name(
+            isl_set_get_space(right_hs),isl_dim_set) ;
 
             DEBUG(3, tiramisu::str_dump(" checking legality of deps "+left_computation_name+" -> "+right_computation_name));
 
@@ -2508,6 +2513,8 @@ bool tiramisu::function::check_legality_for_function()
             }
 
         }
+
+        
 
     }
 

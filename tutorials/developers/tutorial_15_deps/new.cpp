@@ -1,5 +1,3 @@
-
-
 #include <tiramisu/tiramisu.h>
 #include <isl/set.h>
 #include <isl/ctx.h>
@@ -112,11 +110,28 @@ int main(int argc, char **argv)
 
     tiramisu::function * fct = tiramisu::global::get_implicit_function();
 
+    // dependency analysis
+
     fct->performe_full_dependecy_analysis();
 
 
+    S0.angle_skew(i,j0,2,1,false,i1,j1) ;
 
+    if(S0.parallelization_is_legal(j1)){
+
+      S0.parallelize(j1);
+
+    }
+  
+    //S0.loop_reversal(j1,j2) ;
     
+    // full check of legality 
+    fct->check_legality_for_function() ;
+
+    S0.applied_schedule_is_legal() ;
+
+    S0.applied_schedule_is_legal(&S1) ;
+
     
 
      //S0.angle_skew(i,j0,1,1,false,i0,j0);

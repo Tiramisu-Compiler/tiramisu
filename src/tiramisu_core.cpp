@@ -486,8 +486,11 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
     DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(par_dim)));
 
-    //std::cout<<(isl_union_map_to_str(deps)) ;
-    //std::cout<<isl_map_to_str(this->schedule) ;
+    
+    std::cout<<isl_map_to_str(this->schedule) ;
+
+
+    
     
     int nb = this->number_of_dims ;
     std::string space_map = "{" + this->get_name() +"[" ;
@@ -517,15 +520,21 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
     }
     space_map +="]}" ;
 
+    std::cout<<(space_map) ;
+
+    
+
     isl_map * tyy =  isl_map_read_from_str(this->get_ctx(),space_map.c_str()) ;
 
     isl_space * space = isl_map_get_space(tyy) ;
 
-    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,space) ;
+    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space)) ;
 
-    isl_map * my_map2 = isl_union_map_extract_map(write_after_write_dep,space) ;
+    isl_map * my_map2 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space)) ;
 
-    isl_map * my_map3 = isl_union_map_extract_map(write_after_read_dep,space) ;
+    isl_map * my_map3 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space)) ;
+
+   
 
     std::vector<isl_basic_map *> all_basic_maps ;
     
@@ -553,7 +562,8 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
     DEBUG(10, tiramisu::str_dump(" schedule is  : "+str_schedule));
 
-    std::cout<<str_schedule ;
+    
+    
 
 
     std::regex r(" *[a-z]+[0-9]* *= *0 *");  
@@ -577,13 +587,7 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
     std::cout<<(isl_basic_map_to_str(schedule_reverse)) ;
 
-    /*
-        we are supposing that dependecy nb dims = compuation nb dims
-        which isnt the case always for example this code wont be handeled yet
-        for1
-            for2
-                input[i] = input[i+1] - input[i-1] 
-    */
+    
     
     if( par_dim == 0){
         
@@ -738,10 +742,11 @@ bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
 
     }
 
-
+   
 
     DEBUG_INDENT(-4); 
-    return over_all_legality ;
+    //return over_all_legality ;
+     return false ;
 
 }
 
