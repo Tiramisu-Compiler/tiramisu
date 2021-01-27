@@ -46,7 +46,6 @@ int main(int argc, char **argv)
 
     tiramisu::var i("i",0,100) ;
     tiramisu::var j("j",0,100) ;
-    tiramisu::var k("k",0,10) ;
     tiramisu::var i0("i0",1,99) ;
     tiramisu::var j0("j0",1,99) ;
     tiramisu::var m("m"),l("l") ;
@@ -95,7 +94,6 @@ int main(int argc, char **argv)
 
     // declaring buffers
     tiramisu::buffer b_A("b_A", {100}, tiramisu::p_int32, tiramisu::a_temporary);
-    tiramisu::buffer b_A2("b_A2", {100}, tiramisu::p_int32, tiramisu::a_temporary);
     tiramisu::buffer b_output("b_output", {100}, tiramisu::p_int32, tiramisu::a_output);
 
     // mapping the computations to buffers
@@ -110,139 +108,96 @@ int main(int argc, char **argv)
 
     tiramisu::function * fct = tiramisu::global::get_implicit_function();
 
-    // dependency analysis
+   /*
+   
+    performe a full dependecy analysis RAW/WAR/WAW and the result is stored in attributes inside the function
+    to invoke this method user must : define computations order & define the buffer mapped to each computation
+
+   */
 
     fct->performe_full_dependecy_analysis();
 
 
-    S0.angle_skew(i,j0,2,1,false,i1,j1) ;
+/*
+  the list of legality checks are methods that return a boolean :
+        True if it's legal & false if not
 
-    if(S0.parallelization_is_legal(j1)){
+  [they must be invoked after performe_full_dependecy_analysis() since they use these results ]
+*/
 
-      S0.parallelize(j1);
+    // full check of legality for this function
 
-    }
-  
-    //S0.loop_reversal(j1,j2) ;
-    
-    // full check of legality 
     fct->check_legality_for_function() ;
 
+  // legality check for reflexive dependencies S0 -> S0
     S0.applied_schedule_is_legal() ;
+
+  // legality check Previous_Comp -> Next_Comp  
 
     S0.applied_schedule_is_legal(&S1) ;
 
+   
+   /*
+      also for high level optimizations there methods that checks the legality ()
+   */
+
+  // only check for reflexive deps
+  S0.parallelization_is_legal(j0) ;
+
+  S0.vectorization_is_legal(j0) ;
+
+  S0.unrolling_is_legal(j0) ;
+
+  /*
+    in case of fuzed computations , using this method and including the list of computations fuzed together helps determine
+    if that loop level is indeed parallel or not by checking all the dependencies inside the loop 
     
+  */
 
-     //S0.angle_skew(i,j0,1,1,false,i0,j0);
-     //S0.tile(i0,j0,32,32,i1,i2,j1,j2);
+  //C_init.parallelization_is_legal(j0,{&S0,&S1}) ;
 
-    // S0.loop_reversal(j0,j1) ;
-
-     
-
-
-       // S0.after(C_init,j0) ;
-   
-    //S0.angle_skew(i,j,2,1,false,i0,j0) ;
-    //S0.tile(i,j,4,4,i1,i2,j1,j2);
-   // S0.vectorize(j0,20) ;
-   /* if(S0.applied_schedule_is_legal())
-    {
-      std::cout<<" schid is legal ";
-    }
-    else
-    {
-      std::cout<<" schid is notlegal ";
-    } */
-
-   
-   
-
-        
-    //  isl_union_map *map = S0.get_function()->compute_dep_graph() ; 
-
-    //std::cout<<(isl_union_map_to_str(map)) ; 
-
-    /*std::cout<<"\nfesdfchjksbdfchljubsdhjbjjj\n" ;
-
-    std::cout<<(isl_map_to_str(S0.get_access_relation())) ;
+    /*
+      warning : 
+      if tiling is called then user cannot use legality checks untill he calls 
+        1-gen_ordering_schedules
+        2-align_schedules
+        these are function methods
+    
     */
 
-    std::cout<<"\nfesdfchjksbdfchljubsdhjbjjj\n" ;
+
+   /*
+      We also introduce live_out_access i.e last computations to write to thier buffers ,
+
+      Remark : sometime not all the iteration domain of a computation is a live_out access (maybe only the last iteration for example)
+      to get this kind of information check the live_out_access private attribute (isl_union_map) that contain detailed information 
+   */
+
+  std::vector<tiramisu::computation * > live_out = fct->get_live_out_computations_from_buffers_deps() ;
+
+
+
+  /*
   
+      For new optimizations introduced he have general skewing
+      S0.angle_skew 
+  */
 
-   // S0.get_function()->gen_ordering_schedules() ;
-   // S0.get_function()->align_schedules() ;
-/*
+    //S0.angle_skew(i,j0,2,1,false,i1,j1) ;
 
-    std::cout<<(isl_union_map_to_str(S0.get_function()->get_schedule())) ;
-
-
-    S0.get_function()->gen_ordering_schedules() ;
-    S0.get_function()->align_schedules() ;
-
-   
+    /*
+      Loop reversal : changes iterations direction 0->100 to 100->0
+      
     */
-
-     
-    //S0.get_function()->save_computation_default_schedules() ;
-   // S0.get_function()->save_computations_levels() ;
-
-    // S0.get_function()->calculate_dep_flow();
-
-   //  S0.get_function()->get_live_out_computations_from_buffers_deps() ;
-
-     S0.applied_schedule_is_legal() ;
+   //S0.loop_reversal(j,j2) ;
 
     
 
-    //S1.after_change(S0,k) ;
-
-    //S0.get_function()->gen_ordering_schedules() ;
-    //S0.get_function()->align_schedules() ;
-
-    //S0.applied_schedule_is_legal(S1) ;
-
-
-     /* if(S0.parallelization_is_legal(k)){
-          std::cout<<"legal on ";
-      }
-      else{
-          std::cout<<"legal off ";
-      }*/
-
-      /*S0.tile(i0,j0,32,32,i1,i2,j1,j2);
-     if(S0.unrolling_is_legal(j2)){
-          std::cout<<"legal on ";
-      }
-      else{
-          std::cout<<"legal off ";
-      }*/
-
-
-    //S1.after_change(S0,j) ;
-   // S1.shift(i,2);
-
-    //S0.angle_skew(i,j,1,1,false,i0,j0) ;
-   // S0.parallelize(j0) ;
-   //S0.vectorize(j0,32) ;
-   // S0.unroll(j0,32) ;
-   // C_init.tile(i,j,32,32) ;
-    //S1.interchange(i,j) ;
-    
-
-    //S0.get_function()->restore_function_to_no_optimisations() ;
-    
-    //S0.get_function()->restore_computations_levels() ;
-
-    
     
 
     tiramisu::codegen({&b_output}, "new_1.o");
 
 
-    //tiramisu::codegen({&b_output}, "build/new.o");
 
     return 0;
     

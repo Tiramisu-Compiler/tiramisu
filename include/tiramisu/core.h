@@ -2752,14 +2752,20 @@ protected:
       * cannot mix the use of the two in the same program because they are not compatible.
       */
 
-    void  save_schedule_to_default();
-
-    void  set_schedule_to_default() ;
-
     // @{
     void set_schedule(isl_map *map);
     void set_schedule(std::string map_str);
     // @}
+
+    /*
+      stores the current schedule into default_schedule computation attribute
+    */
+    void  save_schedule_to_default();
+    /*
+      restores the default_schedule ( computation's attribute ) into schedule 
+    */
+
+    void  set_schedule_to_default() ;
 
     /**
       * Collapse all the iterations of a loop into one single iteration.
@@ -3814,6 +3820,12 @@ public:
     virtual bool parallelization_is_legal(var l);
 
 
+    /*
+      check for all computations specified as input + current computation
+      if parallelisation is legal considiring the dependency analysis with all these computations 
+    */
+    bool parallelization_is_legal(var par_dim_var,std::vector<tiramisu::computation *> fuze_statments);
+
 
 /*check if the parallelize of the variable L is legal and correct i.e
   the bounds for this loop level are constants and fixed and no loop carried dependency */
@@ -3830,7 +3842,7 @@ public:
     /*
     checks if program sens doesnt change after applying skewing i.e no change in depenadencies from uncalcaluted to calculated or viceversa
     this method checks only the dependencies applied within this specific computation
-    must be invoked after the call to function.calculate_flow_dep() methos
+    must be invoked after the call to function.calculate_dep_flow() methos
     */
    virtual bool applied_schedule_is_legal();
 
