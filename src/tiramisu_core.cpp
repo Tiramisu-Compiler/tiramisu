@@ -93,6 +93,7 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
 }
 
+
 void codegen_select_schedule_number(int schedule_number,
                       const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt )
                       {
@@ -105,6 +106,13 @@ void codegen_write_potential_schedules(std::string& path_name,
                           function *fct = global::get_implicit_function();
                         fct->codegen_write_potential_schedules(path_name,arguments, obj_filename, gen_cuda_stmt);
                       }
+
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const hardware_architecture_t gen_architecture_flag)
+{
+    function *fct = global::get_implicit_function();
+    fct->codegen(arguments, obj_filename, gen_architecture_flag);
+}
+
 
 //********************************************************
 
@@ -1089,6 +1097,37 @@ bool tiramisu::computation::applied_schedule_is_legal(){
     return over_all_legality ;
 
 }
+  
+void tiramisu::computation::unroll(int L0, int v)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    bool split_happened = this->separateAndSplit(L0, v);
+
+    if (split_happened)
+    {
+        // Tag the inner loop after splitting to be unrolled. That loop
+        // is supposed to have a constant extent.
+        this->get_update(0).tag_unroll_level(L0 + 1, v);
+    }
+    else
+    {
+        this->get_update(0).tag_unroll_level(L0, v);
+    }
+
+    this->get_function()->align_schedules();
+    
+    DEBUG_INDENT(-4);
+}
+
+void computation::dump_iteration_domain() const
+{
+    if (ENABLE_DEBUG)
+    {
+        isl_set_dump(this->get_iteration_domain());
+    }
+}
 
 bool tiramisu::computation::applied_schedule_is_legal(tiramisu::computation * second)
 {
@@ -1117,9 +1156,11 @@ bool tiramisu::computation::applied_schedule_is_legal(tiramisu::computation * se
         isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
 
 
+
         
         //construct the maps of the space needed
     std::string space_map = "{"+this->get_name()+"[" ;
+
 
     for(int i = 0 ; i< this->number_of_dims ; i++){
 
@@ -6936,12 +6977,18 @@ std::string str_from_is_null(void *ptr)
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
 
+bool tiramisu::buffer::get_is_dummy(){
+  return this->is_dummy;
+}
+
+tiramisu::buffer::buffer() : is_dummy(true){}
+
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct,
                          std::string corr):
-                         allocated(false), argtype(argt), auto_allocate(true),
-                         automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
+                         is_dummy(false), allocated(false), argtype(argt), auto_allocate(true),
+                         automatic_gpu_copy(true), automatic_flexnlp_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
@@ -6965,6 +7012,16 @@ void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 bool buffer::get_automatic_gpu_copy()
 {
     return this->automatic_gpu_copy;
+}
+
+void buffer::set_automatic_flexnlp_copy(bool automatic_flexnlp_copy)
+{
+    this->automatic_flexnlp_copy = automatic_flexnlp_copy;
+}
+
+bool buffer::get_automatic_flexnlp_copy()
+{
+    return this->automatic_flexnlp_copy;
 }
 
 
@@ -7341,11 +7398,16 @@ computation::computation(std::string iteration_domain_str, tiramisu::expr e,
     DEBUG_INDENT(-4);
 }
 
-computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+// ADD:FLEXNLP (Useful for the automatc memory transfers)
+std::vector<tiramisu::var> computation::get_iteration_variables(){
+  return this->iteration_variables;
+}
+
+computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device /*defaults to tiramisu::buffer()*/)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
+    this->iteration_variables = iterator_variables;
     DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
     std::string iteration_space_str = construct_iteration_domain(name, iterator_variables, predicate);
     DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
@@ -7368,11 +7430,19 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
         if (is_bounded) {
             std::string buffer_name = "_" + this->name + "_" + global::generate_new_buffer_name();
             // TODO: Memory leak in implicit buffers.
-            this->store_in(new tiramisu::buffer(buffer_name,
-                                                buffer_size,
-                                                this->get_data_type(),
-                                                a_temporary,
-                                                this->get_function()));
+            if (cpu_buffer_to_map_to_device.get_is_dummy())
+              this->store_in(new tiramisu::buffer(buffer_name,
+                                                  buffer_size,
+                                                  this->get_data_type(),
+                                                  a_temporary,
+                                                  this->get_function()));
+            else
+              this->store_in(new tiramisu::buffer(buffer_name,
+                                                  buffer_size,
+                                                  this->get_data_type(),
+                                                  a_temporary,
+                                                  this->get_function(),
+                                                  cpu_buffer_to_map_to_device.get_name()));
         } else {
             DEBUG(3, tiramisu::str_dump("The iterators of computation " + name +
                     " are not bounded. Skipping implicit buffer generation."));

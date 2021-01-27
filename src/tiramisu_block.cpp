@@ -189,6 +189,12 @@ void block::unroll(var L, int fac, var L_outer, var L_inner) {
     }
 }
 
+void block::unroll(int L, int fac) {
+    for (auto &child : this->children) {
+        child->unroll(L, fac);
+    }
+}
+
 void block::vectorize(var L, int v) {
     for (auto &child : this->children) {
         child->vectorize(L, v);

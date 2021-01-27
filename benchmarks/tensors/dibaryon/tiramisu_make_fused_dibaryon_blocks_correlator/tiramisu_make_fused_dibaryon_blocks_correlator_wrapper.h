@@ -1,14 +1,13 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
-#include "../reference/qblocks_2pt_parameters.h"
+#include "../../utils/qblocks_2pt_parameters.h"
 
 #define Nq P_Nq
 #define Nc P_Nc
 #define Ns P_Ns
 #define Nw P_Nw
- #define Nw2 P_Nw2
-//#define Nw2 Nw*Nw
+#define Nw2 P_Nw2
 #define Nw2Hex P_Nw2Hex
 #define Nperms P_Nperms
 #define Lt P_Nt

@@ -30,6 +30,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
      int *src_color_weights_r2,
      int *src_spin_weights_r2,
      double *src_weights_r2,
+     int *perms,
+     int *sigs,
      double* src_psi_B1_re, 
      double* src_psi_B1_im, 
      double* snk_psi_B1_re, 
@@ -75,8 +77,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
    Halide::Buffer<double> b_src_weights(Nw, B1Nrows, "src_weights");
 
    Halide::Buffer<int> b_src_spins(B1Nrows, "src_spins");
-   Halide::Buffer<int> b_snk_color_weights(Nq, Nw, B1Nrows, "snk_color_weights");
-   Halide::Buffer<int> b_snk_spin_weights(Nq, Nw, B1Nrows, "snk_spin_weights");
+   Halide::Buffer<int> b_snk_color_weights(Nq, Nw, B1Nperms, B1Nrows, "snk_color_weights");
+   Halide::Buffer<int> b_snk_spin_weights(Nq, Nw, B1Nperms, B1Nrows, "snk_spin_weights");
    Halide::Buffer<double> b_snk_weights(Nw, B1Nrows, "snk_weights");
 
     // prop
@@ -91,6 +93,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
     Halide::Buffer<double> b_B1_src_psi_i((double *)src_psi_B1_im, {NsrcHex, Vsrc});
     Halide::Buffer<double> b_B1_snk_psi_r((double *)snk_psi_B1_re, {NsnkHex, sites_per_rank, Vsnk/sites_per_rank});
     Halide::Buffer<double> b_B1_snk_psi_i((double *)snk_psi_B1_im, {NsnkHex, sites_per_rank, Vsnk/sites_per_rank});
+
+   Halide::Buffer<int> b_sigs((int *)sigs, {B1Nperms});
 
    // Weights
  
@@ -114,6 +118,10 @@ void tiramisu_make_nucleon_2pt(double* C_re,
    }
    b_src_spins(0) = 1;
    b_src_spins(1) = 2;
+   for (int nperm=0; nperm<B1Nperms; nperm++) {
+      int snk_1 = perms[index_2d(nperm,0 ,Nq)] - 1;
+      int snk_2 = perms[index_2d(nperm,1 ,Nq)] - 1;
+      int snk_3 = perms[index_2d(nperm,2 ,Nq)] - 1;
       for (int wnum=0; wnum< Nw; wnum++) {
          b_src_color_weights(0, wnum, 0) = snk_color_weights_r1[index_2d(wnum,0 ,Nq)];
          b_src_spin_weights(0, wnum, 0) = snk_spin_weights_r1[index_2d(wnum,0 ,Nq)];
@@ -129,20 +137,21 @@ void tiramisu_make_nucleon_2pt(double* C_re,
          b_src_color_weights(2, wnum, 1) = snk_color_weights_r2[index_2d(wnum,2 ,Nq)];
          b_src_spin_weights(2, wnum, 1) = snk_spin_weights_r2[index_2d(wnum,2 ,Nq)];
 
-         b_snk_color_weights(0, wnum, 0) = snk_color_weights_r1[index_2d(wnum,0 ,Nq)];
-         b_snk_spin_weights(0, wnum, 0) = snk_spin_weights_r1[index_2d(wnum,0 ,Nq)];
-         b_snk_color_weights(1, wnum, 0) = snk_color_weights_r1[index_2d(wnum,1 ,Nq)];
-         b_snk_spin_weights(1, wnum, 0) = snk_spin_weights_r1[index_2d(wnum,1 ,Nq)];
-         b_snk_color_weights(2, wnum, 0) = snk_color_weights_r1[index_2d(wnum,2 ,Nq)];
-         b_snk_spin_weights(2, wnum, 0) = snk_spin_weights_r1[index_2d(wnum,2 ,Nq)];
+         b_snk_color_weights(0, wnum, nperm, 0) = snk_color_weights_r1[index_2d(wnum,snk_1 ,Nq)];
+         b_snk_spin_weights(0, wnum, nperm, 0) = snk_spin_weights_r1[index_2d(wnum,snk_1 ,Nq)];
+         b_snk_color_weights(1, wnum, nperm, 0) = snk_color_weights_r1[index_2d(wnum,snk_2 ,Nq)];
+         b_snk_spin_weights(1, wnum, nperm, 0) = snk_spin_weights_r1[index_2d(wnum,snk_2 ,Nq)];
+         b_snk_color_weights(2, wnum, nperm, 0) = snk_color_weights_r1[index_2d(wnum,snk_3 ,Nq)];
+         b_snk_spin_weights(2, wnum, nperm, 0) = snk_spin_weights_r1[index_2d(wnum,snk_3 ,Nq)];
 
-         b_snk_color_weights(0, wnum, 1) = snk_color_weights_r2[index_2d(wnum,0 ,Nq)];
-         b_snk_spin_weights(0, wnum, 1) = snk_spin_weights_r2[index_2d(wnum,0 ,Nq)];
-         b_snk_color_weights(1, wnum, 1) = snk_color_weights_r2[index_2d(wnum,1 ,Nq)];
-         b_snk_spin_weights(1, wnum, 1) = snk_spin_weights_r2[index_2d(wnum,1 ,Nq)];
-         b_snk_color_weights(2, wnum, 1) = snk_color_weights_r2[index_2d(wnum,2 ,Nq)];
-         b_snk_spin_weights(2, wnum, 1) = snk_spin_weights_r2[index_2d(wnum,2 ,Nq)];
+         b_snk_color_weights(0, wnum, nperm, 1) = snk_color_weights_r2[index_2d(wnum,snk_1 ,Nq)];
+         b_snk_spin_weights(0, wnum, nperm, 1) = snk_spin_weights_r2[index_2d(wnum,snk_1 ,Nq)];
+         b_snk_color_weights(1, wnum, nperm, 1) = snk_color_weights_r2[index_2d(wnum,snk_2 ,Nq)];
+         b_snk_spin_weights(1, wnum, nperm, 1) = snk_spin_weights_r2[index_2d(wnum,snk_2 ,Nq)];
+         b_snk_color_weights(2, wnum, nperm, 1) = snk_color_weights_r2[index_2d(wnum,snk_3 ,Nq)];
+         b_snk_spin_weights(2, wnum, nperm, 1) = snk_spin_weights_r2[index_2d(wnum,snk_3 ,Nq)];
       }
+   }
 
    for (int rp=0; rp<B1Nrows; rp++)
       for (int m=0; m<NsrcHex; m++)
@@ -175,7 +184,8 @@ void tiramisu_make_nucleon_2pt(double* C_re,
 				    b_src_spins.raw_buffer(),
 				    b_snk_color_weights.raw_buffer(),
 				    b_snk_spin_weights.raw_buffer(),
-				    b_snk_weights.raw_buffer());
+				    b_snk_weights.raw_buffer(),
+				    b_sigs.raw_buffer());
 
    if (rank == 0) {
    printf("non-zero r1? %4.1f + I %4.1f ", b_C_r(0,0,0,0,0,0), b_C_i(0,0,0,0,0,0) );
@@ -344,6 +354,18 @@ int main(int, char **)
       src_weights_r1[wnum] = src_weights_r1_P[wnum];
       src_weights_r2[wnum] = src_weights_r2_P[wnum];
    }
+   int perms_array[2][3] = { {1,2,3}, {3,2,1} };
+   int sigs_array[2] = {1,-1};
+   int* perms = (int *) malloc(B1Nperms * Nq * sizeof (int));
+   int sigs[B1Nperms];
+   int permnum = 0;
+   for (int i = 0; i < B1Nperms; i++) {
+         for (int q = 0; q < Nq; q++) {
+            perms[index_2d(permnum,q ,Nq)] = perms_array[i][q];
+         }
+         sigs[permnum] = sigs_array[i];
+         permnum += 1;
+   }
    // Correlators
    double* C_re = (double *) malloc(B1Nrows * B1Nrows * (NsrcHex) * (NsnkHex) * Lt * sizeof (double));
    double* C_im = (double *) malloc(B1Nrows * B1Nrows * (NsrcHex) * (NsnkHex) * Lt * sizeof (double));
@@ -379,6 +401,8 @@ int main(int, char **)
            src_color_weights_r2,
            src_spin_weights_r2,
            src_weights_r2,
+           perms,
+           sigs,
            src_psi_B1_re, 
            src_psi_B1_im, 
            snk_psi_B1_re,

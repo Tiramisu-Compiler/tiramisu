@@ -15,6 +15,8 @@ The rest of the tutorials is written using the low level Tiramisu API (most user
 - [Developers Tutorial 07](developers/tutorial_07/tutorial_07.cpp): a complicated example of reduction and an update.
 - [Developers Tutorial 08](developers/tutorial_08/tutorial_08.cpp): tutorial 02 written using the low level Tiramisu API (this API allows full control over code generation).
 
+In addition, a tutorial for how to use the autoscheduler can be found in [tutorial_autoscheduler](tutorial_autoscheduler/).
+
 More examples can be found in the [tests](../tests/) folder. Please check the [README file](../tests/README.md) for a full list of examples for each Tiramisu feature.
 
 ## Run Tutorials
