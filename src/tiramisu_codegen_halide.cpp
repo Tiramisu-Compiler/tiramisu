@@ -1924,10 +1924,10 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
                 if (comp->get_expr().get_op_type() == tiramisu::o_allocate)
                 {
-//                    result = Halide::Internal::Allocate::make(
-//                           buf->get_name(),
-//                           halide_type_from_tiramisu_type(buf->get_elements_type()),
-//                           halide_dim_sizes, Halide::Internal::const_true(), result);
+                    /* result = Halide::Internal::Allocate::make(
+                           buf->get_name(),
+                         halide_type_from_tiramisu_type(buf->get_elements_type()),
+                        halide_dim_sizes, Halide::Internal::const_true(), result);*/
                     result = make_buffer_alloc(buf, halide_dim_sizes, result);
 
 
@@ -2081,11 +2081,11 @@ tiramisu::generator::halide_stmt_from_isl_node(const tiramisu::function &fct, is
 
                         int vector_length = fct.get_vector_length(tagged_stmts[tt].first, level);
 
-                        for (auto vd: fct.vector_dimensions) {
+                        /*for (auto vd: fct.vector_dimensions) {
                             DEBUG(3, "stmt = " + std::get<0>(vd) + ", level = " +
                                      std::to_string(std::get<1>(vd)) + ", length = " +
                                      std::to_string(std::get<2>(vd)));
-                        }
+                        }*/
 
                         DEBUG(3, tiramisu::str_dump("Tagged statements (before removing this tagged stmt):"));
                         size_t tttt = 0;

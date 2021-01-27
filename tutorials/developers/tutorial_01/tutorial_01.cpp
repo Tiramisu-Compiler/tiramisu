@@ -32,6 +32,8 @@
 // Every Tiramisu program needs to include the header file tiramisu/tiramisu.h
 // which defines classes for declaring and compiling Tiramisu expressions.
 #include <tiramisu/tiramisu.h>
+#include "math.h"
+
 
 using namespace tiramisu;
 
@@ -42,6 +44,7 @@ int main(int argc, char **argv)
     // It can have input and output arguments (buffers).  These arguments
     // are declared later in the tutorial.
     tiramisu::init("function0");
+    
 
     // -------------------------------------------------------
     // Layer I: provide the algorithm.
@@ -55,6 +58,7 @@ int main(int argc, char **argv)
     // within a loop that has i as iterator and is named "S0". The name is
     // useful for debugging.
     computation S0("S0", {i}, 3 + 4);
+    
     // Since the iterator i is declared to be 0<=i<10 (i.e., the iteration space of S0 is 0<=i<10),
     // the previous declaration of S0 is equivalent to the following C code
     // for (i = 0; i < 10; i++)
@@ -122,7 +126,7 @@ int main(int argc, char **argv)
   First we need to compile the generator (it requires the header files and libraries of Halide, ISL and Tiramisu which all
   should be built automatically if you follow the default installation process).
   
-  cd ${TIRAMISU_ROOT}/build
+  
   g++ -std=c++11 -fno-rtti -DHALIDE_NO_JPEG -I${TIRAMISU_ROOT}/include -I${TIRAMISU_ROOT}/3rdParty/isl/include/ -I${TIRAMISU_ROOT}/3rdParty/Halide/include -I${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/build -L${TIRAMISU_ROOT}/3rdParty/isl/build/lib -L${TIRAMISU_ROOT}/3rdParty/Halide/lib/ -o developers_tutorial_01_fct_generator  -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm -Wl,-rpath,${TIRAMISU_ROOT}/build ${TIRAMISU_ROOT}/tutorials/developers/tutorial_01/tutorial_01.cpp -ltiramisu -lisl -lHalide -ldl -lpthread -lz -lm   
   
   Run the generator to generate the object file.

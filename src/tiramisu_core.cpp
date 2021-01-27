@@ -10,6 +10,8 @@
 
 #include <tiramisu/debug.h>
 #include <tiramisu/core.h>
+#include <cmath>  
+#include <regex>
 
 #ifdef _WIN32
 #include <iso646.h>
@@ -91,11 +93,26 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
 }
 
+
+void codegen_select_schedule_number(int schedule_number,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt )
+                      {
+                            function *fct = global::get_implicit_function();
+                             fct->codegen_select_schedule_number(schedule_number,arguments, obj_filename, gen_cuda_stmt);
+                      }
+
+void codegen_write_potential_schedules(std::string& path_name,
+                      const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt ){
+                          function *fct = global::get_implicit_function();
+                        fct->codegen_write_potential_schedules(path_name,arguments, obj_filename, gen_cuda_stmt);
+                      }
+
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const hardware_architecture_t gen_architecture_flag)
 {
     function *fct = global::get_implicit_function();
     fct->codegen(arguments, obj_filename, gen_architecture_flag);
 }
+
 
 //********************************************************
 
@@ -413,6 +430,924 @@ void tiramisu::computation::parallelize(tiramisu::var par_dim_var)
     DEBUG_INDENT(-4);
 }
 
+/*
+the dependency (1,1) vectors means [i,j] is used bt [i+1,j+1] which means this dep is scheduled before = true 
+*/
+
+bool is_dependency_scheduled_before_self(isl_map * dependency,isl_space * space )
+{
+   
+
+    isl_map * inf_map = isl_map_lex_lt(space) ;
+
+    
+
+    isl_map * intersection = isl_map_intersect(inf_map,dependency) ;
+
+    if (isl_map_is_empty(intersection))
+        return false ;
+    else
+    {
+        return true ;
+    }
+
+}
+
+bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(par_dim_var.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+    assert(this->get_function()->dep_read_after_write != NULL ) ;
+    assert(this->get_function()->dep_write_after_write != NULL ) ;
+    assert(this->get_function()->dep_write_after_read != NULL ) ;
+
+    
+    DEBUG(3, tiramisu::str_dump(" var parallelization check is : "+par_dim_var.get_name()));
+
+    
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({par_dim_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    
+
+    int par_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+
+
+    DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(par_dim)));
+
+
+     // get the schedules to timestamps 
+    isl_map * schedule = isl_map_copy(this->schedule) ;
+
+    std::string empty_time  = "" ;
+
+    schedule = isl_map_set_tuple_name(schedule,isl_dim_out,empty_time.c_str()) ;
+
+    DEBUG(3, tiramisu::str_dump(" the schedule to time stamp is  : "+std::string(isl_map_to_str(schedule))));
+
+    // extracting deps
+
+     isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
+
+
+
+    isl_union_map * all_deps = isl_union_map_union(
+        read_after_write_dep,
+        write_after_read_dep
+        ) ;
+
+    // all the deps in 1 union map
+    all_deps = isl_union_map_union(all_deps,write_after_write_dep) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" all the dependencies are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    // all current schedules in 1 union map
+    isl_union_map * schedules = isl_union_map_from_map(schedule) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used schedules are  : "+std::string(isl_union_map_to_str(schedules))));
+
+    // application to discard unused dep & modelize them in thier time space
+
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy( schedules )) ;
+
+    all_deps = isl_union_map_apply_domain(all_deps,isl_union_map_copy( schedules )) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
+
+    bool over_all_legality = false ;
+
+    /*
+        equate adds restriction that both elements are equal
+        we suppose that legality is checked elsewhere ; so we need to check for loop caried dependencies only
+        if adding equation of == between input set & output set of map for a dimention strictly before the parallel one is empty means : 
+            dep is not a carried one for the parallel loop lvl
+
+        else 
+            if all previous equations added does not make the map empty then the last possiblity is:
+                dep is within the same loop iteration; then parallel is true ( true if equate doesnt make the map empty)
+                else it's false
+                
+    */
+    for(int i=0;i<par_dim;i++)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i) ;
+
+        if(isl_map_is_empty(equation_map))
+        {
+            over_all_legality = true ;
+            DEBUG(10, tiramisu::str_dump(" parallalization is legal "));
+            break ;
+        }
+    
+    }
+
+    if(!over_all_legality)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,par_dim,isl_dim_out,par_dim) ;
+
+        if(isl_map_is_empty(equation_map))
+        {
+            over_all_legality = false ;
+            DEBUG(3, tiramisu::str_dump(" parallalization is illegal "));
+        }
+        else{
+            over_all_legality = true ;
+            DEBUG(3, tiramisu::str_dump(" parallalization is legal "));
+        }
+    }
+
+
+    DEBUG_INDENT(-4); 
+    return over_all_legality ;
+  
+
+}
+
+bool tiramisu::computation::parallelization_is_legal(tiramisu::var par_dim_var,std::vector<tiramisu::computation *> fuze_statments)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(par_dim_var.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+    assert(this->get_function()->dep_read_after_write != NULL ) ;
+    assert(this->get_function()->dep_write_after_write != NULL ) ;
+    assert(this->get_function()->dep_write_after_read != NULL ) ;
+
+    
+    DEBUG(3, tiramisu::str_dump(" var parallelization check is : "+par_dim_var.get_name()));
+
+    
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({par_dim_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    
+
+    int par_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+    
+    DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(par_dim)));
+
+
+
+     // get the schedules to timestamps 
+    isl_map * schedule = isl_map_copy(this->schedule) ;
+
+    std::string empty_time  = "" ;
+
+    schedule = isl_map_set_tuple_name(schedule,isl_dim_out,empty_time.c_str()) ;
+
+    DEBUG(3, tiramisu::str_dump(" the schedule to time stamp is  : "+std::string(isl_map_to_str(schedule))));
+
+    // extracting deps
+
+     isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
+
+
+
+    isl_union_map * all_deps = isl_union_map_union(
+        read_after_write_dep,
+        write_after_read_dep
+        ) ;
+
+    // all the deps in 1 union map
+    all_deps = isl_union_map_union(all_deps,write_after_write_dep) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" all the dependencies are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    // all current schedules in 1 union map
+    isl_union_map * schedules = isl_union_map_from_map(schedule) ;
+
+
+    //all schedules adding 
+
+    isl_map * sche = NULL ;
+
+    for( auto& computation: fuze_statments)
+    {
+        sche = isl_map_copy(computation->get_schedule()) ;
+
+        sche = isl_map_set_tuple_name(sche,isl_dim_out,empty_time.c_str()) ;
+
+        schedules = isl_union_map_union(schedules,isl_union_map_from_map(sche)) ;
+
+    }
+
+
+    DEBUG(3, tiramisu::str_dump(" all the used schedules are  : "+std::string(isl_union_map_to_str(schedules))));
+
+    // application to discard unused dep & modelize them in thier time space
+
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy( schedules )) ;
+
+    all_deps = isl_union_map_apply_domain(all_deps,isl_union_map_copy( schedules )) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
+
+    bool over_all_legality = false ;
+
+    /*
+        equate adds restriction that both elements are equal
+        we suppose that legality is checked elsewhere ; so we need to check for loop caried dependencies only
+        if adding equation of == between input set & output set of map for a dimention strictly before the parallel one is empty means : 
+            dep is not a carried one for the parallel loop lvl
+
+        else 
+            if all previous equations added does not make the map empty then the last possiblity is:
+                dep is within the same loop iteration; then parallel is true ( true if equate doesnt make the map empty)
+                else it's false
+                
+    */
+    for(int i=0;i<par_dim;i++)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i) ;
+
+        if(isl_map_is_empty(equation_map))
+        {
+            over_all_legality = true ;
+            DEBUG(10, tiramisu::str_dump(" parallalization is legal "));
+            break ;
+        }
+    
+    }
+
+    if(!over_all_legality)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,par_dim,isl_dim_out,par_dim) ;
+
+        if(isl_map_is_empty(equation_map))
+        {
+            over_all_legality = false ;
+            DEBUG(3, tiramisu::str_dump(" parallalization is illegal "));
+        }
+        else{
+            over_all_legality = true ;
+            DEBUG(3, tiramisu::str_dump(" parallalization is legal "));
+        }
+    }
+
+
+    DEBUG_INDENT(-4); 
+    return over_all_legality ;
+}
+
+
+bool tiramisu::computation::unrolling_is_legal(tiramisu::var l)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({l.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+    
+    DEBUG(10, tiramisu::str_dump(" schedule is "+str_schedule));
+
+    isl_set * time_set = isl_map_range(isl_map_copy(this->schedule)) ;
+
+    int target_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+
+    DEBUG(3, tiramisu::str_dump(" target dim number is : "+std::to_string(target_dim)));
+
+    DEBUG(3, tiramisu::str_dump(" the time set is : "+std::string(isl_set_to_str(time_set))));
+
+    unsigned int n_dim = isl_set_n_dim(time_set) ;
+
+    
+    std::string set_n = "[n0";
+    std::string set_var = "->{"+this->get_name()+"[" ;
+
+    int iteration = 1 ;
+    int dimention_index = 0;
+    bool var_found = false ;
+
+
+    for(unsigned int i=0;i<n_dim;i++)
+    {
+        if(!var_found)
+         {
+            set_n +=",n"+std::to_string(iteration) ;
+
+            if(i==target_dim)
+            {
+                    var_found = true ;
+                    set_n += "]" ;
+                    set_var += l.get_name() ;
+            }
+            else{
+                set_var +=   "n"+std::to_string(iteration)+"," ;
+                dimention_index ++ ;
+            }
+         }
+         else{
+             set_var += ",t"+std::to_string(i) ;
+         }
+
+         iteration++ ;
+
+    }    
+
+    isl_map * normal_schedule = isl_map_copy(this->schedule) ;
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
+
+    std::string set_complete = set_n + set_var +"]}" ;
+    
+    DEBUG(10, tiramisu::str_dump(" constructed set to use: "+set_complete));
+
+    isl_set * reversed_set = isl_set_apply(
+         isl_set_read_from_str(this->get_ctx(),set_complete.c_str()),
+         reverse
+         );
+
+    DEBUG(10, tiramisu::str_dump(" to initial set  "+std::string(isl_set_to_str(reversed_set))));
+
+    isl_set * normal_set = isl_set_apply(reversed_set,normal_schedule) ;
+
+
+    DEBUG(10, tiramisu::str_dump(" dimention number is : "+std::to_string(dimention_index)));
+
+    DEBUG(3, tiramisu::str_dump(" set with applied constraintes : "+std::string(isl_set_to_str(normal_set) )));
+
+
+    
+    isl_pw_aff * max = isl_set_dim_max(isl_set_copy(normal_set),dimention_index) ;
+    isl_pw_aff * min = isl_set_dim_min(isl_set_copy(normal_set),dimention_index) ;
+
+    
+    // count the number of element that forms the max & min for the specified var
+  
+    std::cout<<isl_pw_aff_to_str(max) ;
+
+    DEBUG(3, tiramisu::str_dump(" max is  : "+std::string(isl_pw_aff_to_str(max) )));
+    DEBUG(3, tiramisu::str_dump(" min is  : "+std::string(isl_pw_aff_to_str(min))));
+
+
+    int n_piece_max = isl_pw_aff_n_piece(max) ;
+
+    int n_piece_min =  isl_pw_aff_n_piece(min) ;
+ 
+    if((n_piece_max==1)&&(n_piece_min==1))
+    {
+        DEBUG(3, tiramisu::str_dump(" max & min are both cst urolling legal")) ;
+    }
+    else{
+        DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible ")) ;
+    }
+
+     DEBUG_INDENT(-4); 
+    return ((n_piece_max==1)&&(n_piece_min==1)) ;
+
+
+}
+
+bool tiramisu::computation::vectorization_is_legal(tiramisu::var l)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    DEBUG(3, tiramisu::str_dump(" Vectorization is legal if both parallelization and unrolling are legal ")) ;
+    
+    bool validity = false; 
+
+    validity = this->unrolling_is_legal(l)
+                        &&this->parallelization_is_legal(l) ;
+
+    if(validity)
+    {
+        DEBUG(3, tiramisu::str_dump(" Vectorization is legal ")) ;
+    }
+    else{
+        DEBUG(3, tiramisu::str_dump(" Vectorization is illegal ")) ;
+    }
+
+    DEBUG_INDENT(-4); 
+    return validity;
+    
+
+    
+}
+
+
+bool tiramisu::computation::applied_schedule_is_legal(){
+    
+    
+    assert(this->schedule!=NULL) ;
+    assert(this->get_function()->dep_read_after_write!=NULL) ;
+    
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    //isl_union_map * deps = this->get_function()->compute_dep_graph();
+
+    isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
+
+
+    
+    int nb = this->number_of_dims ;
+    std::string space_map = "{" + this->get_name() +"[" ;
+
+    for(int i=0;i<nb;i++){
+        space_map += "t"+std::to_string(i) ;
+
+        if(i!=nb-1){
+                space_map += "," ;
+        }
+    }
+
+    space_map +=  "]->"+this->get_name()+"[" ;
+    
+    for(int i=0;i<nb;i++){
+        space_map += "tt"+std::to_string(i) ;
+
+        if(i!=nb-1){
+                space_map += "," ;
+        }
+    }
+    space_map +="]}" ;
+
+    isl_map * tyy =  isl_map_read_from_str(this->get_ctx(),space_map.c_str()) ;
+
+    isl_space * space = isl_map_get_space(tyy) ;
+
+    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space)) ;
+
+    isl_map * my_map2 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space)) ;
+
+    isl_map * my_map3 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space)) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" read after write deps are : "+std::string(isl_map_to_str(my_map1)))) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" write after read deps are : "+std::string(isl_map_to_str(my_map2)))) ;
+
+    std::vector<isl_basic_map *> all_basic_maps ;
+    
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+     
+        myName.push_back(bmap) ;
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+
+    isl_map_foreach_basic_map(my_map1,fun_ptr,(void * ) &all_basic_maps) ;
+
+    isl_map_foreach_basic_map(my_map2,fun_ptr,(void * ) &all_basic_maps) ;
+
+    isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps) ;
+
+    //collection done
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+
+    //TO-DO replace compact schedule with normal schedule under condition of no existance of free variables within it for better performence
+  
+    std::regex r(" *[a-z]+[0-9]* *= *0 *");  
+    std::regex r2(" 0 *,") ;
+    std::regex r3(", *0 *\\]");
+    std::regex r4("\\[0 *,") ;
+
+    std::string sch1 =  std::regex_replace(str_schedule, r," 0"); 
+    std::string compact_schedule_b = std::regex_replace(sch1, r2, "") ;
+    std::string compact_schedule = std::regex_replace(compact_schedule_b, r3, "]") ;
+    std::string compact_schedulef = std::regex_replace(compact_schedule, r4, "[") ;
+
+    DEBUG(10, tiramisu::str_dump(" compact schedule is : "+compact_schedulef)) ;
+
+    isl_map * normal_schedule = isl_map_read_from_str(this->get_ctx(),compact_schedulef.c_str()) ;
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule)) ;
+
+
+    std::string set_n = "[n0";
+    std::string set_var = "]->{"+this->get_name()+"[n0" ;
+
+    
+  
+    
+    for(int i = 1;i<this->number_of_dims;i++)
+    {
+         
+         
+              set_n +=",n"+std::to_string(i) ;
+              set_var +=   ",n"+std::to_string(i);
+         
+     }
+
+    std::string set_complete = set_n + set_var +"]}" ;
+   
+    DEBUG(10, tiramisu::str_dump(" set to test order is : "+set_complete)) ;
+     
+    // withing my real computation space of csts
+    isl_set * constant_isl_set = isl_set_read_from_str(this->get_ctx(),set_complete.c_str()) ;
+
+    // my point after applying schedule
+    isl_set * first_scheduled_point = isl_set_apply(
+         isl_set_copy(constant_isl_set),
+         isl_map_copy(normal_schedule)
+         );
+    
+
+    DEBUG(10, tiramisu::str_dump(" schedule time for identity : "+std::string(isl_set_to_str(first_scheduled_point) ))) ;
+
+
+
+    bool over_all_legality = true ;
+
+    for(auto& dependecy: all_basic_maps){
+        //first sort dep if it's before or after
+
+
+        DEBUG(10, tiramisu::str_dump("-> current dep : "+std::string(isl_basic_map_to_str(dependecy) ))) ;
+
+        
+
+        if(is_dependency_scheduled_before_self(isl_map_from_basic_map(isl_basic_map_copy(dependecy)),isl_set_get_space(constant_isl_set))){
+
+            
+
+            isl_set * set_after_dep = isl_set_apply(
+                isl_set_copy(constant_isl_set),
+                isl_map_from_basic_map(dependecy)
+                );
+
+           
+
+            DEBUG(10, tiramisu::str_dump(" dep is before self the set mapped is  : "+std::string(isl_set_to_str(set_after_dep) ))) ;
+
+
+            isl_set * to_initial_result = isl_set_apply(set_after_dep,isl_map_copy(normal_schedule)) ;
+
+
+            DEBUG(10, tiramisu::str_dump(" the mapped time stamp for target set from dep is : "+std::string(isl_set_to_str(to_initial_result) ))) ;
+
+            isl_map * sup_result = isl_set_lex_lt_set(to_initial_result, isl_set_copy(first_scheduled_point)) ;
+
+            if(isl_map_is_empty(sup_result)){
+                    DEBUG(10, tiramisu::str_dump("   this dep is correct  " )) ;
+                    
+            }
+            else{
+                    DEBUG(10, tiramisu::str_dump(" dep is not correct  " )) ;
+                    over_all_legality = false ;
+                    break ;
+            }
+     
+
+        }
+        else{
+
+
+            isl_set * set_after_dep = isl_set_apply(
+                isl_set_copy(constant_isl_set),
+                isl_map_from_basic_map(dependecy)
+                );
+
+
+            DEBUG(10, tiramisu::str_dump(" dep is after self the set mapped is  : "+std::string(isl_set_to_str(set_after_dep) ))) ;
+
+            isl_set * to_initial_result = isl_set_apply(set_after_dep,isl_map_copy(normal_schedule)) ;
+
+
+            DEBUG(10, tiramisu::str_dump(" the mapped time stamp for target set from dep is : "+std::string(isl_set_to_str(to_initial_result) ))) ;
+
+             isl_map * sup_result = isl_set_lex_lt_set(isl_set_copy(first_scheduled_point),to_initial_result) ;
+
+            if(isl_map_is_empty(sup_result)){
+                 DEBUG(10, tiramisu::str_dump("   this dep is correct  " )) ;
+            }
+            else{
+                 
+                over_all_legality = false ;
+                DEBUG(10, tiramisu::str_dump(" dep is not correct  " )) ;
+                break ;
+            }
+            
+
+
+        }
+
+    }
+
+  
+
+    DEBUG_INDENT(-4);
+    
+    return over_all_legality ;
+
+}
+  
+void tiramisu::computation::unroll(int L0, int v)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    bool split_happened = this->separateAndSplit(L0, v);
+
+    if (split_happened)
+    {
+        // Tag the inner loop after splitting to be unrolled. That loop
+        // is supposed to have a constant extent.
+        this->get_update(0).tag_unroll_level(L0 + 1, v);
+    }
+    else
+    {
+        this->get_update(0).tag_unroll_level(L0, v);
+    }
+
+    this->get_function()->align_schedules();
+    
+    DEBUG_INDENT(-4);
+}
+
+void computation::dump_iteration_domain() const
+{
+    if (ENABLE_DEBUG)
+    {
+        isl_set_dump(this->get_iteration_domain());
+    }
+}
+
+bool tiramisu::computation::applied_schedule_is_legal(tiramisu::computation * second)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+    assert(!second->get_name().empty());
+    
+    assert(this->get_function()->dep_read_after_write != NULL) ;
+    
+    /* ==========================================
+        extarct C0 => Second dependencies from function
+    */
+
+    
+    isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
+
+
+
+        
+        //construct the maps of the space needed
+    std::string space_map = "{"+this->get_name()+"[" ;
+
+
+    for(int i = 0 ; i< this->number_of_dims ; i++){
+
+        space_map+="i"+std::to_string(i) ;
+
+        if(i != (this->number_of_dims -1 ))
+        {
+            space_map +="," ;
+        }
+    }
+    space_map+="]->"+second->get_name()+"[" ;
+
+    for(int i = 0 ; i < second->number_of_dims ; i++){
+
+        space_map+="i"+std::to_string(i) ;
+
+        if(i != (second->number_of_dims -1 ))
+        {
+            space_map +="," ;
+        }
+    }
+    
+    space_map+="]}" ;
+
+    DEBUG(3, tiramisu::str_dump(" the space map is to extract deps : "+space_map));
+
+    isl_space * space = isl_map_get_space(
+        isl_map_read_from_str(this->get_ctx(),space_map.c_str())
+        ) ;
+
+
+    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space)) ;
+
+    isl_map * my_map2 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space)) ;
+
+    isl_map * my_map3 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space)) ;
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map1))));
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map2))));
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map3))));
+
+    std::vector<isl_basic_map *> all_basic_maps ;
+    
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+     
+        myName.push_back(bmap) ;
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+
+    isl_map_foreach_basic_map(my_map1,fun_ptr,(void * ) &all_basic_maps) ;
+
+    isl_map_foreach_basic_map(my_map2,fun_ptr,(void * ) &all_basic_maps) ;
+
+    isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps) ;
+
+
+   /* ==========================================
+        extarct schedul of 2 computation
+    */
+   assert(this->get_function()->get_schedule()!= NULL) ;
+
+   int m1 = isl_map_dim(this->get_schedule(), isl_dim_out);
+   int m2 = isl_map_dim(second->get_schedule(), isl_dim_out);
+
+   assert(m1 == m2) ;
+
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+this->get_name()+" : "+std::string(isl_map_to_str(this->get_schedule()))));
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+second->get_name()+" : "+std::string(isl_map_to_str(second->get_schedule()))));
+
+   /* ==========================================
+       making schedules comparable by mapping to the same time space
+    */
+   std::string unificator ="[" ;
+
+   for(int i=0 ;i<m1 ;i++){
+       unificator+="i"+std::to_string(i) ;
+
+       if(i != (m1-1))
+       {
+           unificator+="," ;
+       }
+   }
+   unificator+="]" ;
+
+   std::string this_unificator = "{"+this->get_name()+unificator+"->"+unificator+"}" ;
+   std::string second_unificator = "{"+second->get_name()+unificator+"->"+unificator+"}" ;
+
+    isl_map * this_schedule_unif = isl_map_apply_range(
+        isl_map_copy(this->schedule),
+        isl_map_read_from_str(this->get_ctx(),this_unificator.c_str())
+        ) ;
+
+    isl_map * second_schedule_unif = isl_map_apply_range(
+        isl_map_copy(second->schedule),
+        isl_map_read_from_str(this->get_ctx(),second_unificator.c_str())
+        ) ;
+
+
+    DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unif))));
+    DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unif))));
+
+    
+
+    std::string s0_set = "[" ;
+
+    for(int i=0 ;i<this->number_of_dims;i++)
+    {
+        s0_set+="n"+std::to_string(i) ;
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set +="," ;
+        }
+    }
+    s0_set +="]->{"+this->get_name()+"[" ;
+
+    for(int i=0 ;i<this->number_of_dims;i++)
+    {
+        s0_set+="n"+std::to_string(i) ;
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set +="," ;
+        }
+    }
+    s0_set +="]}" ;
+
+
+    DEBUG(3, tiramisu::str_dump(" initial set of first computation is : "+s0_set));
+
+    isl_set * first_set = isl_set_read_from_str(this->get_ctx(),s0_set.c_str()) ;// in S0
+
+    
+   /* ==========================================
+        always check that S0 is lex lesser than S1 , for that S1<S0 need always to be an empty relation 
+    */
+ 
+    bool over_all_corectness = true ;
+
+    DEBUG(10, tiramisu::str_dump(" check the respect of previous deps nature start : "));
+    
+    for (auto& depandancy:all_basic_maps){
+
+        DEBUG(10, tiramisu::str_dump(" the depandancy is : "+std::string(isl_basic_map_to_str(depandancy))));
+
+
+        isl_set * second_set = isl_set_apply(
+            isl_set_copy(first_set),
+            isl_map_from_basic_map(isl_basic_map_copy(depandancy))
+            ) ;
+        // in S1
+
+        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(this_schedule_unif)) ;
+        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unif)) ;
+
+        isl_map * result_sup = isl_set_lex_ge_set(
+            isl_set_copy(time_first),
+            isl_set_copy(time_second)
+        ) ;
+
+        if(!isl_map_is_empty(result_sup))
+        {
+             
+            over_all_corectness = false ;
+            DEBUG(10, tiramisu::str_dump(" depandancy is wrong by current schedule "));
+            break ;
+            
+        }
+        else{
+                DEBUG(10, tiramisu::str_dump(" this depandancy is respected by the current schedule  "));
+          
+        }
+
+        
+    }
+
+
+
+    DEBUG_INDENT(-4);
+
+    return over_all_corectness ;
+}
 
 void tiramisu::computation::tag_parallel_level(int par_dim)
 {
@@ -1298,29 +2233,6 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
     DEBUG_INDENT(-4);
 }
 
-void tiramisu::computation::unroll(int L0, int v)
-{
-    DEBUG_FCT_NAME(3);
-    DEBUG_INDENT(4);
-    
-    bool split_happened = this->separateAndSplit(L0, v);
-
-    if (split_happened)
-    {
-        // Tag the inner loop after splitting to be unrolled. That loop
-        // is supposed to have a constant extent.
-        this->get_update(0).tag_unroll_level(L0 + 1, v);
-    }
-    else
-    {
-        this->get_update(0).tag_unroll_level(L0, v);
-    }
-
-    this->get_function()->align_schedules();
-    
-    DEBUG_INDENT(-4);
-}
-
 void computation::dump_iteration_domain() const
 {
     if (ENABLE_DEBUG)
@@ -1634,6 +2546,16 @@ void tiramisu::computation::set_schedule(isl_map *map)
     this->schedule = map;
 }
 
+void tiramisu::computation::save_schedule_to_default(){
+    this->default_schedule = isl_map_copy(this->schedule) ;
+}
+
+void tiramisu::computation::set_schedule_to_default(){
+    if(this->default_schedule!=NULL){
+        this->set_schedule(this->default_schedule) ;
+       
+    }
+}
 
 void computation::set_low_level_schedule(std::string map_str)
 {
@@ -2240,7 +3162,7 @@ void tiramisu::computation::after(computation &comp, int level)
 
     DEBUG(3, tiramisu::str_dump("Scheduling " + this->get_name() + " to be executed after " +
                                 comp.get_name() + " at level " + std::to_string(level)));
-
+                                
     auto &graph = this->get_function()->sched_graph;
 
     auto &edges = graph[&comp];
@@ -2266,6 +3188,50 @@ void tiramisu::computation::after(computation &comp, int level)
 
     DEBUG(10, tiramisu::str_dump("sched_graph[" + comp.get_name() + ", " +
                                  this->get_name() + "] = " + std::to_string(level)));
+
+    DEBUG_INDENT(-4);
+}
+
+
+void tiramisu::computation::after_change(computation &comp,int level)
+{
+     DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    DEBUG(3, tiramisu::str_dump("Scheduling dynamic change " + this->get_name() + " to be executed after " +
+                                comp.get_name() + " at level " + std::to_string(level)));
+                                
+
+
+    this->get_function()->sched_graph[&comp][this] = level ;
+
+   
+
+    this->get_function()->sched_graph_reversed[this][&comp] = level;
+
+    
+
+    DEBUG_INDENT(-4);
+}
+
+
+
+void tiramisu::computation::after_change(computation &comp,tiramisu::var level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(level.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({level.get_name()});
+
+    assert(dimensions.size() == 1);
+
+    DEBUG(3, tiramisu::str_dump("The loop level that corresponds to " +
+        level.get_name() + " is " + std::to_string(dimensions[0])));
+
+    this->after_change(comp, dimensions[0]);
 
     DEBUG_INDENT(-4);
 }
@@ -3362,6 +4328,426 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
 
     return sched;
 }
+void computation::angle_skew(tiramisu::var L0_var, tiramisu::var L1_var,
+		       int f_i, int f_j ,bool fuze_plans ,
+		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
+{
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(new_L0_var.get_name().length() > 0);
+    assert(new_L1_var.get_name().length() > 0);
+    this->assert_names_not_assigned({new_L0_var.get_name(), new_L1_var.get_name()});
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+    this->angle_skew(L0, L1, f_i,f_j ,fuze_plans);
+    this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
+
+}
+
+void computation::angle_skew(int L0 , int L1 , int f_i , int f_j,bool fuze_plans)
+{
+    if (L0 + 1 != L1)
+    {
+	ERROR("Loop levels passed to angle_skew() should be consecutive. The first argument to angle_skew() should be the outer loop level.", true);
+    }
+
+    //assert(f_i!=0) ;
+    //assert(f_j>0) ;
+
+    if(fuze_plans)
+    {
+        if((f_i!=1)&&(f_j!=1)){
+            ERROR(" one of factor must be 1 of a or b", true);
+        }
+    }
+    int dim0 = loop_level_into_dynamic_dimension(L0);
+    int dim1 = loop_level_into_dynamic_dimension(L1);
+
+    assert(this->get_schedule() != NULL);
+    assert(dim0 >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Angle _ Skewing dimensions " + std::to_string(dim0)
+                                + " and " + std::to_string(dim1)));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Angle Skewing dimensions " + std::to_string(dim0)
+                                + " and " + std::to_string(dim1)));
+
+    std::string inDim0_str, inDim1_str;
+
+    std::string outDim1_str = generate_new_variable_name();
+
+    std::string outDim0_str = generate_new_variable_name() ;
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+    // -----------------------------------------------------------------
+    // Preparing a map to skew the duplicate computation.
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == dim0)
+                inDim0_str = dim_str;
+            else if (i == dim1)
+                inDim1_str = dim_str;
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    //std::cout<<("\n hello dimentions "+inDim0_str+" / "+inDim1_str+" \n") ;
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if ((i != dim1)&&(i!=dim0))
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else // i==dim1
+        {
+            if(i==dim1){
+                  map = map + outDim1_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim1_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            }
+            else{// i== dim 0 
+                  map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            }
+          
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    // f_j not used yet - test 
+    // compute all sigma , gamma such j = sigma*i + gamma*j
+
+   if(!fuze_plans)
+   {
+        int gamma = 0 ;
+        int sigma = 1 ;
+        bool found = false ;
+
+        assert(f_j!=0) ;
+        assert(f_i>=0) ;
+
+        if ( (f_j == 1 )||(f_i ==1 )){
+
+                    gamma = f_i -1 ;
+            
+        }
+        else{ // [b] positif & a un sens
+
+            if((f_j == -1)&&(f_i>1))
+            {
+                    gamma = 1; sigma = 0 ; //interchange 
+            }
+            else{
+
+                int i =0 ;
+                while((i<10)&&(!found)){
+                    if ((  (sigma * f_i )% abs(f_j) ) ==  1){
+                            found = true ;
+                    }
+                    else{
+                        sigma ++ ;
+                        i++;
+                    }
+                };
+
+                if(!found){
+                    ERROR(" det A too complex without gains ", true);
+                }
+
+                gamma = ( (sigma * f_i)-1 ) / f_j ;
+            }
+
+         }
+        map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            outDim0_str + " = (" + inDim0_str + "*"+std::to_string(f_i)+" + "+inDim1_str+"*"+std::to_string(f_j)+" ) and "
+            
+          +outDim1_str+" = ("+inDim0_str+"*"+std::to_string(gamma)+" + "+inDim1_str+"*"+std::to_string(sigma)+" ) }";
+          
+    
+    }
+    else{ 
+        // fuze many indepandants plans
+            assert(f_i>0);
+            assert(f_j>0) ;
+
+            if ( f_i > f_j)
+            {
+                assert(f_j == 1);
+                // change dim1 only
+                
+
+                map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+              outDim0_str + " = ( floor(" + inDim1_str + "/"+std::to_string(f_i)+") +"+inDim0_str+") and  "+outDim1_str+"="+inDim1_str+" }";
+
+            }
+            else{
+                assert(f_i == 1);
+                // implicite interchange
+
+                 map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+              outDim0_str + " = ( floor(" + inDim0_str + "/"+std::to_string(f_j)+") +"+inDim1_str+") and  "+outDim1_str+"="+inDim0_str+" }";
+
+            }
+
+    }
+
+    /*
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+          outDim0_str + " = ( floor(" + inDim1_str + "/"+std::to_string(f_i)+") +"+inDim0_str+") and  "+outDim1_str+"="+inDim1_str+" }";*/
+
+
+
+    DEBUG(3, tiramisu::str_dump("Transformation angle map (string format) : " + map));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    if (isl_map_is_injective(transformation_map) == isl_bool_true){
+        DEBUG(3, tiramisu::str_dump(" This map is injective  "));
+    }
+    else{
+        DEBUG(3, tiramisu::str_dump(" This map is not injective  "));
+    }
+
+    this->set_schedule(schedule);
+
+}
+
+void computation::loop_reversal(tiramisu::var old_var,tiramisu::var new_var)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(old_var.get_name().length() > 0);
+    assert(new_var.get_name().length() > 0);
+    this->assert_names_not_assigned({new_var.get_name()});
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({old_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->loop_reversal(L0);
+    this->update_names(original_loop_level_names, {new_var.get_name()}, dimensions[0], 1);
+
+    DEBUG_INDENT(-4);
+
+}
+
+void computation::loop_reversal(int L0)
+{
+     
+    int dim0 = loop_level_into_dynamic_dimension(L0);
+    assert(this->get_schedule() != NULL);
+    assert(dim0 >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump(" reversing the iteration direction " + std::to_string(dim0)));
+
+    std::string inDim0_str;
+
+    //std::string outDim1_str = generate_new_variable_name();
+
+    std::string outDim0_str = generate_new_variable_name() ;
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+    // -----------------------------------------------------------------
+    // Preparing a map to change computation schedule
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == dim0)
+                inDim0_str = dim_str;
+            
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if (i!=dim0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else // i==dim0
+        {
+          
+                  map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            
+          
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            outDim0_str + " = ( -1*" + inDim0_str + " ) }";
+          
+    
+
+    /*
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+          outDim0_str + " = ( floor(" + inDim1_str + "/"+std::to_string(f_i)+") +"+inDim0_str+") and  "+outDim1_str+"="+inDim1_str+" }";*/
+
+
+
+    DEBUG(3, tiramisu::str_dump("Transformation 1 var reversed map (string format) : " + map));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    
+
+    this->set_schedule(schedule);
+}
+
+
 
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
 		       int factor,
@@ -5913,6 +7299,8 @@ tiramisu::computation::computation()
 {
     this->access = NULL;
     this->schedule = NULL;
+    this->default_schedule = NULL;
+    
     this->stmt = Halide::Internal::Stmt();
     this->time_processor_domain = NULL;
     this->duplicate_number = 0;
@@ -6711,6 +8099,7 @@ void tiramisu::computation::store_in(buffer *buff)
     this->set_access(isl_map_to_str(map));
 
     isl_map_free(map);
+    //isl_map_free(this->default_schedule) ;
 
     DEBUG_INDENT(-4);
 }
