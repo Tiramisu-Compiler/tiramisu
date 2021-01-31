@@ -4020,6 +4020,22 @@ public:
       */
     virtual void skew(int i, int j, int k, int l, int factor);
 
+
+    /*
+    applied to a computation's loop level i : it inverts the execution order for this specific loop
+    i.e : original i : 0 -> n to :
+    reversed i : n -> 0
+
+    This command transforms the loop (i) into the loop (-i)
+  */
+    virtual void loop_reversal(var old_var,var new_var );
+
+    /**
+      * \overload
+      */
+    
+    virtual void loop_reversal(int i );
+
     /**
       * Split the loop level \p L0 of the iteration space into two
       * new loop levels.
