@@ -4009,6 +4009,160 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
     DEBUG_INDENT(-4);
 }
 
+void computation::loop_reversal(tiramisu::var old_var,tiramisu::var new_var)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(old_var.get_name().length() > 0);
+    assert(new_var.get_name().length() > 0);
+    this->assert_names_not_assigned({new_var.get_name()});
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({old_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->loop_reversal(L0);
+    this->update_names(original_loop_level_names, {new_var.get_name()}, dimensions[0], 1);
+
+    DEBUG_INDENT(-4);
+
+}
+
+void computation::loop_reversal(int L0)
+{
+     
+    int dim0 = loop_level_into_dynamic_dimension(L0);
+    assert(this->get_schedule() != NULL);
+    assert(dim0 >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump(" reversing the iteration direction " + std::to_string(dim0)));
+
+    std::string inDim0_str;
+
+    //std::string outDim1_str = generate_new_variable_name();
+
+    std::string outDim0_str = generate_new_variable_name() ;
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+    // -----------------------------------------------------------------
+    // Preparing a map to change computation schedule
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == dim0)
+                inDim0_str = dim_str;
+            
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if (i!=dim0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else // i==dim0
+        {
+          
+                  map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            
+          
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            outDim0_str + " = ( -1*" + inDim0_str + " ) }";
+          
+    
+
+
+
+    DEBUG(3, tiramisu::str_dump("Transformation 1 var reversed map (string format) : " + map));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    
+
+    this->set_schedule(schedule);
+}
+
 void computation::shift(tiramisu::var L0_var, int n)
 {
     DEBUG_FCT_NAME(3);
