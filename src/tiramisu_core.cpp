@@ -4163,6 +4163,242 @@ void computation::loop_reversal(int L0)
     this->set_schedule(schedule);
 }
 
+void computation::skewing_general(tiramisu::var L0_var, tiramisu::var L1_var,
+		       int f_i, int f_j ,
+		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
+{
+    assert(L0_var.get_name().length() > 0);
+    assert(L1_var.get_name().length() > 0);
+    assert(new_L0_var.get_name().length() > 0);
+    assert(new_L1_var.get_name().length() > 0);
+
+    this->assert_names_not_assigned({new_L0_var.get_name(), new_L1_var.get_name()});
+     std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({L0_var.get_name(), L1_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+    int L1 = dimensions[1];
+    this->skewing_general(L0, L1, f_i,f_j );
+    this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
+
+}
+
+void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
+{
+    if (L0 + 1 != L1)
+    {
+	ERROR("Loop levels passed to angle_skew() should be consecutive. The first argument to angle_skew() should be the outer loop level.", true);
+    }
+
+    assert(f_j!=0) ;
+    assert(f_i>=0) ;
+    
+
+   
+    int dim0 = loop_level_into_dynamic_dimension(L0);
+    int dim1 = loop_level_into_dynamic_dimension(L1);
+
+    assert(this->get_schedule() != NULL);
+    assert(dim0 >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Angle _ Skewing dimensions " + std::to_string(dim0)
+                                + " and " + std::to_string(dim1)));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Angle Skewing dimensions " + std::to_string(dim0)
+                                + " and " + std::to_string(dim1)));
+
+    std::string inDim0_str, inDim1_str;
+
+    std::string outDim1_str = generate_new_variable_name();
+
+    std::string outDim0_str = generate_new_variable_name() ;
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+    // -----------------------------------------------------------------
+    // Preparing a map to skew the duplicate computation.
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == dim0)
+                inDim0_str = dim_str;
+            else if (i == dim1)
+                inDim1_str = dim_str;
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if ((i != dim1)&&(i!=dim0))
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else // i==dim1
+        {
+            if(i==dim1){
+                  map = map + outDim1_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim1_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            }
+            else{// i== dim 0 
+                  map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            }
+          
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    
+    // compute all sigma , gamma such j = gamma*i + sigma*j
+    // under the condition that det (A) = 1
+    // i.e det(A) =  1
+
+  
+        int gamma = 0 ;
+        int sigma = 1 ;
+        bool found = false ;
+
+        
+
+        if ( (f_j == 1 )||(f_i ==1 )){
+
+                    gamma = f_i -1 ;
+                    sigma = 1 ;
+                    /* i.e  : since sigam = 1 is setted then
+
+                        f_i - gamma * f_j = 1 
+
+                        f_i = 1 : gamma = 0 (f_i-1) is enough
+                        f_j = 1 : gamma = f_i -1 
+                    
+                    */
+            
+        }
+        else{ // [b] positif & a un sens
+
+            if((f_j == -1)&&(f_i>1))
+            {
+                    gamma = 1; sigma = 0 ; //this enough to have det (A) = -1 
+            }
+            else{
+                // general case & solving the equation & finding basic solution for : f_i* sigma - f_j*gamma = 1 
+                // main condition that's not checked is :  f_i and f_j must be prime between themselfs
+
+                int i =0 ;
+                while((i<20)&&(!found)){
+                    if ((  (sigma * f_i )% abs(f_j) ) ==  1){
+                            found = true ;
+                    }
+                    else{
+                        sigma ++ ;
+                        i++;
+                    }
+                };
+
+                if(!found){
+                    // detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
+                    ERROR(" det A too complex without gains ", true);
+                }
+
+                gamma = ( (sigma * f_i)-1 ) / f_j ;
+            }
+
+         }
+        map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            outDim0_str + " = (" + inDim0_str + "*"+std::to_string(f_i)+" + "+inDim1_str+"*"+std::to_string(f_j)+" ) and "
+            
+          +outDim1_str+" = ("+inDim0_str+"*"+std::to_string(gamma)+" + "+inDim1_str+"*"+std::to_string(sigma)+" ) }";
+          
+    
+
+
+    DEBUG(3, tiramisu::str_dump("Transformation angle map (string format) : " + map));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    DEBUG(3, tiramisu::str_dump("Schedule after transformation is :  ",
+                                isl_map_to_str(schedule)));
+
+    this->set_schedule(schedule);
+
+}
+
+
 void computation::shift(tiramisu::var L0_var, int n)
 {
     DEBUG_FCT_NAME(3);

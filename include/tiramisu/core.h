@@ -4022,6 +4022,49 @@ public:
 
 
     /*
+      this perform a general polyhedral transformation i' = a*i +b*j under det(A)=1 constraint for j' : b!=0 & a >=0
+  
+     */
+
+    /**
+      * 
+      * 
+      * Apply a general polyhedral transformation on the loop levels \p i and \p j . 
+      *  and replaced with new var j' i' such as :
+      * i' = a*i +b*j under det(A)=1 constraint for j' 
+      * additional constraints for inputs are :  b!=0 & a >=0
+      *           a & b must be prime between themselfs
+      * This command transforms the loop (i, j) into the loop (a*i+b*j,j').
+      * For example if you have the following loop
+      *
+      * \code
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
+
+      * and apply
+
+      \code
+        a.skew(i, j, 1, 1, ni, nj);
+      \endcode
+
+      * you would get
+      *
+      \code
+      for (int i = 1; i < 2N; i++)
+        for (int j = max(i,N-i); j < Min(i,N) ; j++)
+          a[i-j][j] = a[i - j - 1][j] + a[i-j][j - 1];
+      \endcode
+
+      */
+
+    virtual void skewing_general(var i, var j, int f_i , int f_j, var ni, var nj);
+
+    virtual void skewing_general(int i , int j , int f_i , int f_j ); 
+    
+
+    /*
     applied to a computation's loop level i : it inverts the execution order for this specific loop
     i.e : original i : 0 -> n to :
     reversed i : n -> 0
