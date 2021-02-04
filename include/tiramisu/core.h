@@ -3947,6 +3947,9 @@ public:
       * The names of the new loop levels is \p ni and \p nj.
       *
       * This command transforms the loop (i, j) into the loop (i, f*i+j).
+      * 
+      * This method is requires the application of loop interchange afterwards to really change the execution order
+      * So using skewing() instead is highly recommended  
       * For example if you have the following loop
       *
       * \code
@@ -4031,7 +4034,8 @@ public:
       * 
       * Apply a general polyhedral transformation on the loop levels \p i and \p j . 
       *  and replaced with new var j' i' such as :
-      * i' = a*i +b*j under det(A)=1 constraint for j' 
+      * i' = a*i +b*j 
+      * guarentees that the automatically computed j' creates a new iteration domain where loop increment is always =1
       * additional constraints for inputs are :  b!=0 & a >=0
       *           a & b must be prime between themselfs
       * This command transforms the loop (i, j) into the loop (a*i+b*j,j').
@@ -4059,9 +4063,9 @@ public:
 
       */
 
-    virtual void skewing_general(var i, var j, int f_i , int f_j, var ni, var nj);
+    virtual void skewing(var i, var j, int f_i , int f_j, var ni, var nj);
 
-    virtual void skewing_general(int i , int j , int f_i , int f_j ); 
+    virtual void skewing(int i , int j , int f_i , int f_j ); 
     
 
     /*

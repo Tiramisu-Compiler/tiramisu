@@ -4163,7 +4163,7 @@ void computation::loop_reversal(int L0)
     this->set_schedule(schedule);
 }
 
-void computation::skewing_general(tiramisu::var L0_var, tiramisu::var L1_var,
+void computation::skewing(tiramisu::var L0_var, tiramisu::var L1_var,
 		       int f_i, int f_j ,
 		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
 {
@@ -4181,12 +4181,12 @@ void computation::skewing_general(tiramisu::var L0_var, tiramisu::var L1_var,
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
     int L1 = dimensions[1];
-    this->skewing_general(L0, L1, f_i,f_j );
+    this->skewing(L0, L1, f_i,f_j );
     this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
 
 }
 
-void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
+void computation::skewing(int L0 , int L1 , int f_i , int f_j)
 {
     if (L0 + 1 != L1)
     {
@@ -4311,8 +4311,29 @@ void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
     
     // compute all sigma , gamma such j = gamma*i + sigma*j
     // under the condition that det (A) = 1
-    // i.e det(A) =  1
+    // i.e det(A) =  1 for more detail why this condition is choosed view 
 
+    
+       // compute gcd of f_i / f_j
+    
+        int n1 = abs(f_i);
+        int n2 = abs(f_j) ;
+
+        while(n1 != n2)
+        {
+            if(n1 > n2)
+                n1 -= n2;
+            else
+                n2 -= n1;
+        }
+
+        
+      
+        DEBUG(3, tiramisu::str_dump("The gcd of f_i = "+std::to_string(f_i)+" and fj = "+std::to_string(f_j)+" is pgcd = "+std::to_string(n1)));
+
+        // update f_i and f_j to equivalent but prime between themselfs value
+        f_i = f_i / n1 ;
+        f_j = f_j / n1 ;
   
         int gamma = 0 ;
         int sigma = 1 ;
@@ -4324,12 +4345,12 @@ void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
 
                     gamma = f_i -1 ;
                     sigma = 1 ;
-                    /* i.e  : since sigam = 1 is setted then
+                    /* i.e  : since sigma = 1 is setted then
 
                         f_i - gamma * f_j = 1 
 
-                        f_i = 1 : gamma = 0 (f_i-1) is enough
-                        f_j = 1 : gamma = f_i -1 
+                        f_i = 1 : then gamma = 0 (f_i-1) is enough
+                        f_j = 1 : then gamma = f_i -1 
                     
                     */
             
@@ -4338,14 +4359,14 @@ void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
 
             if((f_j == -1)&&(f_i>1))
             {
-                    gamma = 1; sigma = 0 ; //this enough to have det (A) = -1 
+                    gamma = 1; sigma = 0 ; //this enough to have 
             }
             else{
-                // general case & solving the equation & finding basic solution for : f_i* sigma - f_j*gamma = 1 
-                // main condition that's not checked is :  f_i and f_j must be prime between themselfs
+                // general case & solving the Linear Diophantine equation & finding basic solution for : f_i* sigma - f_j*gamma = 1 
+                
 
                 int i =0 ;
-                while((i<20)&&(!found)){
+                while((i<100)&&(!found)){
                     if ((  (sigma * f_i )% abs(f_j) ) ==  1){
                             found = true ;
                     }
@@ -4357,7 +4378,7 @@ void computation::skewing_general(int L0 , int L1 , int f_i , int f_j)
 
                 if(!found){
                     // detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
-                    ERROR(" det A too complex without gains ", true);
+                    ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
                 }
 
                 gamma = ( (sigma * f_i)-1 ) / f_j ;

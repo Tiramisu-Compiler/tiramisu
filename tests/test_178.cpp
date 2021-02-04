@@ -23,10 +23,10 @@ void generate_function(std::string name, int size, int val0)
     // Schedule
     tiramisu::var ni("ni"), nj("nj"), nj2("nj2");
 
-     //skewing (1,1) with loop reversal on j valide
+     //skewing (1,1) with loop reversal on j valide skewing(3,3) = skewing(1,1)
      
 
-    result.skewing_general(i, j, 1, 1, ni, nj);
+    result.skewing(i, j, 3, 3, ni, nj);
     result.loop_reversal(nj,nj2) ;
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);

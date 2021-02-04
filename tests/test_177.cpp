@@ -22,7 +22,7 @@ void generate_function(std::string name, int size, int val0)
     // Schedule
     tiramisu::var ni("ni"), nj("nj"),nj2("nj2");
 
-    result.skewing_general(i, j, 1 , -1  , ni, nj);
+    result.skewing(i, j, 1 , -1  , ni, nj);
     
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);
