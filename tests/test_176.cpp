@@ -23,7 +23,7 @@ void generate_function(std::string name, int size, int val0)
     tiramisu::var ni("ni"), nj("nj");
 
     // skewing (1,1) valid in this case
-    result.skewing(i, j, 1, 1, ni, nj);
+    result.skew(i, j, 1, 1, ni, nj);
 
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);

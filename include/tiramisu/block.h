@@ -62,6 +62,7 @@ public:
     void interchange(int L0, int L1) override;
     void parallelize(var L) override;
     void shift(var L0, int n) override;
+    /*
     void skew(var i, var j, int f, var ni, var nj) override;
     void skew(var i, var j, var k, int factor, var ni, var nj, var nk) override;
     void skew(var i, var j, var k, var l, int factor,
@@ -72,6 +73,9 @@ public:
     void skew(int i, int j, int factor) override;
     void skew(int i, int j, int k, int factor) override;
     void skew(int i, int j, int k, int l, int factor) override;
+    */
+    void skew(var i, var j, int a, int b, var ni, var nj) override;
+    void skew(int i, int j, int a, int b) override;
     void split(var L0, int sizeX) override;
     void split(var L0, int sizeX, var L0_outer, var L0_inner) override;
     void split(int L0, int sizeX) override;

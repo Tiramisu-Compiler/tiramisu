@@ -3363,6 +3363,7 @@ isl_map *add_ineq_to_schedule_map(int duplicate_ID, int dim0, int in_dim_coeffic
     return sched;
 }
 
+/*
 void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
 		       int factor,
 		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
@@ -4008,6 +4009,7 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
 
     DEBUG_INDENT(-4);
 }
+*/
 
 void computation::loop_reversal(tiramisu::var old_var,tiramisu::var new_var)
 {
@@ -4055,7 +4057,7 @@ void computation::loop_reversal(int L0)
 
     //std::string outDim1_str = generate_new_variable_name();
 
-    std::string outDim0_str = generate_new_variable_name() ;
+    std::string outDim0_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -4163,7 +4165,8 @@ void computation::loop_reversal(int L0)
     this->set_schedule(schedule);
 }
 
-void computation::skewing(tiramisu::var L0_var, tiramisu::var L1_var,
+
+void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
 		       int f_i, int f_j ,
 		       tiramisu::var new_L0_var, tiramisu::var new_L1_var)
 {
@@ -4181,22 +4184,20 @@ void computation::skewing(tiramisu::var L0_var, tiramisu::var L1_var,
     this->check_dimensions_validity(dimensions);
     int L0 = dimensions[0];
     int L1 = dimensions[1];
-    this->skewing(L0, L1, f_i,f_j );
+    this->skew(L0, L1, f_i,f_j );
     this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
 
 }
 
-void computation::skewing(int L0 , int L1 , int f_i , int f_j)
+void computation::skew(int L0 , int L1 , int f_i , int f_j)
 {
     if (L0 + 1 != L1)
     {
-	ERROR("Loop levels passed to angle_skew() should be consecutive. The first argument to angle_skew() should be the outer loop level.", true);
+	    ERROR("Loop levels passed to angle_skew() should be consecutive. The first argument to angle_skew() should be the outer loop level.", true);
     }
 
-    assert(f_j!=0) ;
-    assert(f_i>=0) ;
-    
-
+    assert(f_j != 0);
+    assert(f_i >= 0);
    
     int dim0 = loop_level_into_dynamic_dimension(L0);
     int dim1 = loop_level_into_dynamic_dimension(L1);
@@ -4223,7 +4224,7 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
 
     std::string outDim1_str = generate_new_variable_name();
 
-    std::string outDim0_str = generate_new_variable_name() ;
+    std::string outDim0_str = generate_new_variable_name();
 
     int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
     std::vector<isl_id *> dimensions;
@@ -4248,7 +4249,6 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
             std::string dim_str = generate_new_variable_name();
             dimensions_str.push_back(dim_str);
             map = map + dim_str;
-
             if (i == dim0)
                 inDim0_str = dim_str;
             else if (i == dim1)
@@ -4260,8 +4260,6 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
             map = map + ",";
         }
     }
-
-    
 
     map = map + "] -> " + this->get_name() + "[";
 
@@ -4275,7 +4273,7 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
                                      dimensions_str[i].c_str(),
                                      NULL));
         }
-        else if ((i != dim1)&&(i!=dim0))
+        else if ((i != dim1) && (i!=dim0))
         {
             map = map + dimensions_str[i];
             dimensions.push_back(isl_id_alloc(
@@ -4290,16 +4288,13 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
             isl_id *id0 = isl_id_alloc(this->get_ctx(),
                                        outDim1_str.c_str(), NULL);
             dimensions.push_back(id0);
-
             }
             else{// i== dim 0 
                   map = map + outDim0_str;
             isl_id *id0 = isl_id_alloc(this->get_ctx(),
                                        outDim0_str.c_str(), NULL);
             dimensions.push_back(id0);
-
             }
-          
         }
 
         if (i != n_dims - 1)
@@ -4307,92 +4302,72 @@ void computation::skewing(int L0 , int L1 , int f_i , int f_j)
             map = map + ",";
         }
     }
+    // Computes gcd of f_i and f_j
 
-    
-    // compute all sigma , gamma such j = gamma*i + sigma*j
-    // under the condition that det (A) = 1
-    // i.e det(A) =  1 for more detail why this condition is choosed view 
+    int n1 = abs(f_i);
+    int n2 = abs(f_j);
 
-    
-       // compute gcd of f_i / f_j
-    
-        int n1 = abs(f_i);
-        int n2 = abs(f_j) ;
+    while(n1 != n2)
+    {
+        if(n1 > n2)
+            n1 -= n2;
+        else
+            n2 -= n1;
+    }
 
-        while(n1 != n2)
-        {
-            if(n1 > n2)
-                n1 -= n2;
-            else
-                n2 -= n1;
-        }
+    DEBUG(3, tiramisu::str_dump("The gcd of f_i = "+std::to_string(f_i)+" and fj = "+std::to_string(f_j)+" is pgcd = "+std::to_string(n1)));
 
-        
-      
-        DEBUG(3, tiramisu::str_dump("The gcd of f_i = "+std::to_string(f_i)+" and fj = "+std::to_string(f_j)+" is pgcd = "+std::to_string(n1)));
-
-        // update f_i and f_j to equivalent but prime between themselfs value
-        f_i = f_i / n1 ;
-        f_j = f_j / n1 ;
+    // Update f_i and f_j to equivalent but prime between themselfs value
+    f_i = f_i / n1;
+    f_j = f_j / n1;
   
-        int gamma = 0 ;
-        int sigma = 1 ;
-        bool found = false ;
+    int gamma = 0;
+    int sigma = 1;
+    bool found = false;
 
-        
+    if ((f_j == 1) || (f_i == 1)){
 
-        if ( (f_j == 1 )||(f_i ==1 )){
-
-                    gamma = f_i -1 ;
-                    sigma = 1 ;
-                    /* i.e  : since sigma = 1 is setted then
-
-                        f_i - gamma * f_j = 1 
-
-                        f_i = 1 : then gamma = 0 (f_i-1) is enough
-                        f_j = 1 : then gamma = f_i -1 
-                    
-                    */
-            
-        }
-        else{ // [b] positif & a un sens
-
-            if((f_j == -1)&&(f_i>1))
+        gamma = f_i - 1;
+        sigma = 1;
+        /* Since sigma = 1  then
+            f_i - gamma * f_j = 1 & using the previous condition :
+             - f_i = 1 : then gamma = 0 (f_i-1) is enough
+             - f_j = 1 : then gamma = f_i -1  */
+    }
+    else
+    { 
+        if((f_j == - 1) && (f_i > 1))
+        {
+            gamma = 1;
+            sigma = 0;    
+        }    
+        else
+        {   //General case : solving the Linear Diophantine equation & finding basic solution (sigma & gamma) for : f_i* sigma - f_j*gamma = 1 
+            int i =0;
+            while((i < 100) && (!found))
             {
-                    gamma = 1; sigma = 0 ; //this enough to have 
-            }
-            else{
-                // general case & solving the Linear Diophantine equation & finding basic solution for : f_i* sigma - f_j*gamma = 1 
-                
-
-                int i =0 ;
-                while((i<100)&&(!found)){
-                    if ((  (sigma * f_i )% abs(f_j) ) ==  1){
-                            found = true ;
-                    }
-                    else{
-                        sigma ++ ;
-                        i++;
-                    }
-                };
-
-                if(!found){
-                    // detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
-                    ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
+                if (((sigma * f_i ) % abs(f_j)) ==  1){
+                            found = true;
                 }
+                else{
+                    sigma ++;
+                    i++;
+                }
+            };
 
-                gamma = ( (sigma * f_i)-1 ) / f_j ;
+            if(!found){
+                // Detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
+                ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
             }
 
-         }
-        map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            gamma = ((sigma * f_i) - 1 ) / f_j;
+        }
+    }
+    
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
             outDim0_str + " = (" + inDim0_str + "*"+std::to_string(f_i)+" + "+inDim1_str+"*"+std::to_string(f_j)+" ) and "
-            
           +outDim1_str+" = ("+inDim0_str+"*"+std::to_string(gamma)+" + "+inDim1_str+"*"+std::to_string(sigma)+" ) }";
           
-    
-
-
     DEBUG(3, tiramisu::str_dump("Transformation angle map (string format) : " + map));
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());

@@ -26,7 +26,7 @@ void generate_function(std::string name, int size, int val0)
      //skewing (1,1) with loop reversal on j valide skewing(3,3) = skewing(1,1)
      
 
-    result.skewing(i, j, 3, 3, ni, nj);
+    result.skew(i, j, 3, 3, ni, nj);
     result.loop_reversal(nj,nj2) ;
 
     tiramisu::buffer buff_A("buff_A", {N, N}, tiramisu::p_uint8, a_input);
