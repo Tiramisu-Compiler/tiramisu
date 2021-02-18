@@ -3941,12 +3941,16 @@ public:
       * a negative value would mean a shift backward.
       */
     virtual void shift(var L0, int n);
+    
 
-    /**
+    /*
       * Apply loop skewing on the loop levels \p i and \p j with a skewing factor of \p f.
       * The names of the new loop levels is \p ni and \p nj.
       *
       * This command transforms the loop (i, j) into the loop (i, f*i+j).
+      * 
+      * This method is requires the application of loop interchange afterwards to really change the execution order
+      * This is legacy code that should not be used on new projects
       * For example if you have the following loop
       *
       * \code
@@ -3969,72 +3973,85 @@ public:
           a[i][j - i] = a[i - 1][j - i] + a[i][j - i - 1];
       \endcode
 
-      */
-    virtual void skew(var i, var j, int f, var ni, var nj);
-
-    /**
       * Apply loop skewing on the loop levels \p i, \p j and \p k with a skewing factor of \p f.
       * The names of the new loop levels is \p ni, \p nj and \p nk.
-      *
       * This command transforms the loop (i, j, k) into the loop (i, f*i+j, f*i+k).
-      */
-    virtual void skew(var i, var j, var k, int factor,
-                      var ni, var nj, var nk);
-
-    /**
+      * 
       * Apply loop skewing on the loop levels \p i, \p j, \p k, \p l with a skewing factor of \p f.
       * The names of the new loop levels is \p ni, \p nj, \p nk and \p nl.
-      *
       * This command transforms the loop (i, j, k, l) into the loop (i, f*i+j, f*i+k, f*i+l).
-      */
+
+    // @{
+    virtual void skew(var i, var j, int f, var ni, var nj);
+
+    virtual void skew(var i, var j, var k, int factor,
+                      var ni, var nj, var nk);
+   
     virtual void skew(var i, var j, var k, var l, int factor,
                       var ni, var nj, var nk, var nl);
 
-    /**
-      * \overload
-      */
     virtual void skew(var i, var j, int factor);
 
-    /**
-      * \overload
-      */
     virtual void skew(var i, var j, var k, int factor);
 
-    /**
-      * \overload
-      */
     virtual void skew(var i, var j, var k, var l, int factor);
 
-    /**
-      * \overload
-      */
     virtual void skew(int i, int j, int factor);
 
-    /**
-      * \overload
-      */
     virtual void skew(int i, int j, int k, int factor);
 
-    /**
-      * \overload
-      */
     virtual void skew(int i, int j, int k, int l, int factor);
+    // @}
+    */
+    
+    /**
+      * Apply skewing on the loop levels \p i and \p j and replace them with the new loop levels i' and j' such that:
+      * i' = a*i +b*j 
+      * j' is calculated automatically to guarantee that its increment is always 1.
 
+      * additional constraints for inputs are :  b!=0 & a >=0
+      *           a & b must be prime between themselfs
+      * This command transforms the loop (i, j) into the loop (a*i+b*j,j').
+      * For example if you have the following loop
+      *
+      * \code
+      for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+          a[i][j] = a[i - 1][j] + a[i][j - 1];
+       \endcode
 
-    /*
-    applied to a computation's loop level i : it inverts the execution order for this specific loop
-    i.e : original i : 0 -> n to :
-    reversed i : n -> 0
+      * and apply
 
-    This command transforms the loop (i) into the loop (-i)
-  */
-    virtual void loop_reversal(var old_var,var new_var );
+      \code
+        a.skew(i, j, 1, 1, ni, nj);
+      \endcode
+
+      * you would get
+      *
+      \code
+      for (int i = 1; i < 2N; i++)
+        for (int j = max(i,N-i); j < Min(i,N) ; j++)
+          a[i-j][j] = a[i - j - 1][j] + a[i-j][j - 1];
+      \endcode
+      */
+    // @{
+    virtual void skew(var i, var j, int a , int b, var ni, var nj);
+
+    virtual void skew(int i, int j, int a, int b); 
+    // @}
 
     /**
-      * \overload
-      */
+      * applied to a computation's loop level i : it inverts the execution order for this specific loop
+      * i.e : original i : 0 -> n to :
+      * reversed i : n -> 0
+      * This command transforms the loop (i) into the loop (-i)  
+    */
+   // @{
+    virtual void loop_reversal(var old_var, var new_var);
+
     
-    virtual void loop_reversal(int i );
+    virtual void loop_reversal(int i);
+    // @}
 
     /**
       * Split the loop level \p L0 of the iteration space into two

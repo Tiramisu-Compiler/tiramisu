@@ -39,7 +39,7 @@ test number `XX` in the file `tests/test_list.txt`.
 - .parallelize(): test_75
 - saxpy: test_71
 - skew(): 131, 132, 133, 134, 135, 136, 137, 138, 139,
-	  140
+	  140 [legacy removed code]
 - .store_at(): test_29, 30, 31, 38, 39, 82, 83
 - .shift(): test_15
 -  shift operator: test_06
@@ -54,3 +54,4 @@ test number `XX` in the file `tests/test_list.txt`.
 - 64 bit buffers: test_97
 - gen_communication() : 160
 - loop_reversal() : 175
+- skew() : 176 177 178

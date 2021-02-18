@@ -59,6 +59,7 @@ void block::shift(var L0, int n) {
     }
 }
 
+/*
 void block::skew(var i, var j, int f, var ni, var nj) {
     for (auto &child : this->children) {
         child->skew(i, j, f, ni, nj);
@@ -110,6 +111,19 @@ void block::skew(int i, int j, int k, int factor) {
 void block::skew(int i, int j, int k, int l, int factor) {
     for (auto &child : this->children) {
         child->skew(i, j, k, l, factor);
+    }
+}
+*/
+void block::skew(var i, var j, int a, int b, var ni, var nj) {
+    for (auto &child : this->children) {
+        child->skew(i, j, a, b, ni, nj);
+    }
+}
+
+
+void block::skew(int i, int j, int a, int b) {
+    for (auto &child : this->children) {
+        child->skew(i, j, a, b);
     }
 }
 
