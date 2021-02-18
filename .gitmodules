@@ -5,11 +5,11 @@
 	ignore = all
 [submodule "3rdParty/llvm"]
 	path = 3rdParty/llvm
-	url = https://git.llvm.org/git/llvm.git/
+	url = https://github.com/llvm-mirror/llvm.git
 	branch = release_50
 	ignore = all
 [submodule "3rdParty/clang"]
 	path = 3rdParty/clang
-	url = https://git.llvm.org/git/clang.git/
+	url = https://github.com/llvm-mirror/clang.git
 	branch = release_50
 	ignore = all
