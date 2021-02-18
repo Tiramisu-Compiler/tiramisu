@@ -91,6 +91,12 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
     fct->codegen(arguments, obj_filename, gen_cuda_stmt);
 }
 
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const hardware_architecture_t gen_architecture_flag)
+{
+    function *fct = global::get_implicit_function();
+    fct->codegen(arguments, obj_filename, gen_architecture_flag);
+}
+
 //********************************************************
 
 isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
@@ -1289,6 +1295,29 @@ void tiramisu::computation::unroll(tiramisu::var L0_var, int v, tiramisu::var L0
 
     this->get_function()->align_schedules();
 
+    DEBUG_INDENT(-4);
+}
+
+void tiramisu::computation::unroll(int L0, int v)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    bool split_happened = this->separateAndSplit(L0, v);
+
+    if (split_happened)
+    {
+        // Tag the inner loop after splitting to be unrolled. That loop
+        // is supposed to have a constant extent.
+        this->get_update(0).tag_unroll_level(L0 + 1, v);
+    }
+    else
+    {
+        this->get_update(0).tag_unroll_level(L0, v);
+    }
+
+    this->get_function()->align_schedules();
+    
     DEBUG_INDENT(-4);
 }
 
@@ -3980,6 +4009,160 @@ void computation::skew(int L0, int L1, int L2, int L3, int factor)
     DEBUG_INDENT(-4);
 }
 
+void computation::loop_reversal(tiramisu::var old_var,tiramisu::var new_var)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(old_var.get_name().length() > 0);
+    assert(new_var.get_name().length() > 0);
+    this->assert_names_not_assigned({new_var.get_name()});
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({old_var.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+    int L0 = dimensions[0];
+
+    this->loop_reversal(L0);
+    this->update_names(original_loop_level_names, {new_var.get_name()}, dimensions[0], 1);
+
+    DEBUG_INDENT(-4);
+
+}
+
+void computation::loop_reversal(int L0)
+{
+     
+    int dim0 = loop_level_into_dynamic_dimension(L0);
+    assert(this->get_schedule() != NULL);
+    assert(dim0 >= 0);
+    assert(dim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump(" reversing the iteration direction " + std::to_string(dim0)));
+
+    std::string inDim0_str;
+
+    //std::string outDim1_str = generate_new_variable_name();
+
+    std::string outDim0_str = generate_new_variable_name() ;
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+    // -----------------------------------------------------------------
+    // Preparing a map to change computation schedule
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == dim0)
+                inDim0_str = dim_str;
+            
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if (i!=dim0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else // i==dim0
+        {
+          
+                  map = map + outDim0_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            dimensions.push_back(id0);
+
+            
+          
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+            outDim0_str + " = ( -1*" + inDim0_str + " ) }";
+          
+    
+
+
+
+    DEBUG(3, tiramisu::str_dump("Transformation 1 var reversed map (string format) : " + map));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    
+
+    this->set_schedule(schedule);
+}
+
 void computation::shift(tiramisu::var L0_var, int n)
 {
     DEBUG_FCT_NAME(3);
@@ -5562,12 +5745,18 @@ std::string str_from_is_null(void *ptr)
     return (ptr != NULL) ? "Not NULL" : "NULL";
 }
 
+bool tiramisu::buffer::get_is_dummy(){
+  return this->is_dummy;
+}
+
+tiramisu::buffer::buffer() : is_dummy(true){}
+
 tiramisu::buffer::buffer(std::string name, std::vector<tiramisu::expr> dim_sizes,
                          tiramisu::primitive_t type,
                          tiramisu::argument_t argt, tiramisu::function *fct,
                          std::string corr):
-                         allocated(false), argtype(argt), auto_allocate(true),
-                         automatic_gpu_copy(true), dim_sizes(dim_sizes), fct(fct),
+                         is_dummy(false), allocated(false), argtype(argt), auto_allocate(true),
+                         automatic_gpu_copy(true), automatic_flexnlp_copy(true), dim_sizes(dim_sizes), fct(fct),
                          name(name), type(type), location(cuda_ast::memory_location::host)
 {
     assert(!name.empty() && "Empty buffer name");
@@ -5591,6 +5780,16 @@ void buffer::set_automatic_gpu_copy(bool automatic_gpu_copy)
 bool buffer::get_automatic_gpu_copy()
 {
     return this->automatic_gpu_copy;
+}
+
+void buffer::set_automatic_flexnlp_copy(bool automatic_flexnlp_copy)
+{
+    this->automatic_flexnlp_copy = automatic_flexnlp_copy;
+}
+
+bool buffer::get_automatic_flexnlp_copy()
+{
+    return this->automatic_flexnlp_copy;
 }
 
 
@@ -5965,11 +6164,16 @@ computation::computation(std::string iteration_domain_str, tiramisu::expr e,
     DEBUG_INDENT(-4);
 }
 
-computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t)
+// ADD:FLEXNLP (Useful for the automatc memory transfers)
+std::vector<tiramisu::var> computation::get_iteration_variables(){
+  return this->iteration_variables;
+}
+
+computation::computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device /*defaults to tiramisu::buffer()*/)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
+    this->iteration_variables = iterator_variables;
     DEBUG(3, tiramisu::str_dump(std::string("Constructing ") + std::string(schedule_this_computation?"a scheduled":"an unscheduled") + std::string(" computation.")));
     std::string iteration_space_str = construct_iteration_domain(name, iterator_variables, predicate);
     DEBUG(3, tiramisu::str_dump("Constructed iteration domain: " + iteration_space_str));
@@ -5992,11 +6196,19 @@ computation::computation(std::string name, std::vector<tiramisu::var> iterator_v
         if (is_bounded) {
             std::string buffer_name = "_" + this->name + "_" + global::generate_new_buffer_name();
             // TODO: Memory leak in implicit buffers.
-            this->store_in(new tiramisu::buffer(buffer_name,
-                                                buffer_size,
-                                                this->get_data_type(),
-                                                a_temporary,
-                                                this->get_function()));
+            if (cpu_buffer_to_map_to_device.get_is_dummy())
+              this->store_in(new tiramisu::buffer(buffer_name,
+                                                  buffer_size,
+                                                  this->get_data_type(),
+                                                  a_temporary,
+                                                  this->get_function()));
+            else
+              this->store_in(new tiramisu::buffer(buffer_name,
+                                                  buffer_size,
+                                                  this->get_data_type(),
+                                                  a_temporary,
+                                                  this->get_function(),
+                                                  cpu_buffer_to_map_to_device.get_name()));
         } else {
             DEBUG(3, tiramisu::str_dump("The iterators of computation " + name +
                     " are not bounded. Skipping implicit buffer generation."));

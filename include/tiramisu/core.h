@@ -22,7 +22,6 @@
 #include <tiramisu/debug.h>
 #include <tiramisu/expr.h>
 #include <tiramisu/type.h>
-#include <tiramisu/computation_graph.h>
 #include "cuda_ast.h"
 
 namespace tiramisu
@@ -41,8 +40,18 @@ class send_recv;
 class wait;
 class sync;
 class xfer_prop;
-class auto_scheduler;
 
+namespace auto_scheduler
+{
+class syntax_tree;
+class ast_node;
+class computation_info;
+class evaluate_by_execution;
+class dnn_access_matrix;
+class simple_generator;
+
+void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
+}
 
 struct HalideCodegenOutput
 {
@@ -55,6 +64,8 @@ struct HalideCodegenOutput
                         const std::map<std::string, tiramisu::buffer *> &buffers)
         : computation_list(computations), constant_list(constants), output_buffers(buffers) {}
 };
+
+Halide::Argument::Kind halide_argtype_from_tiramisu_argtype(tiramisu::argument_t type);
 
 HalideCodegenOutput halide_pipeline_to_tiramisu_function(
     Halide::Internal::Stmt s,
@@ -123,6 +134,7 @@ void init();
   * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
 
 //*******************************************************
 
@@ -139,7 +151,11 @@ class function
     friend generator;
     friend tiramisu::wait;
     friend cuda_ast::generator;
-    friend auto_scheduler;
+    
+    friend auto_scheduler::syntax_tree;
+    friend auto_scheduler::evaluate_by_execution;
+    friend auto_scheduler::dnn_access_matrix;
+    friend auto_scheduler::simple_generator;
 
 private:
     /**
@@ -323,6 +339,12 @@ private:
       * \p factor in the unrolling factor.
       */
     void add_unroll_dimension(std::string stmt_name, int L, int factor);
+    
+    /**
+     * \brief Remove parallel, vectorized, distributed, unrolled and GPU tags
+     * on every computations.
+     */
+    void remove_dimension_tags();
 
     /**
      * Get live in/out computations in the function.
@@ -485,18 +507,6 @@ protected:
       * {C[0] -> D[1]; C[0]->D[2]}
       */
     isl_union_map *compute_dep_graph();
-
-    /**
-      * The Tiramisu autoscheduler starts by creating an initial
-      * ordered graph of computations. This graph represents the
-      * original computations and the order defined based on
-      * dependencens between these computations.
-      * Computations of the initial graph are then fused to form
-      * blocks. Each block is the result of fusing multiple
-      * computations. The final order of computations is derived
-      * from this ordered graph of computations.
-      */
-    computation_graph cg;
 
     /**
       * Get the arguments of the function.
@@ -796,6 +806,11 @@ protected:
        * \brief Adds a new pair to the mapping field.
        */
     void add_mapping(std::pair<std::string, tiramisu::buffer *> p);
+    
+    /**
+     * \brief Clear any relation (defined by after, then or between) between computations.
+     */
+    void clear_sched_graph();
 
 public:
 
@@ -839,6 +854,11 @@ public:
       * or gen_time_processor_domain() are called.
       */
     void align_schedules();
+    
+    /**
+     * \brief Remove, for every computation, every schedule.
+     */
+    void reset_schedules();
 
     /**
      * \brief For each computation, allocate a buffer and map the computation
@@ -980,6 +1000,18 @@ public:
       */
     void gen_c_code() const;
 
+    // ADD:FLEXNLP
+    /**
+      * \brief Generate autocopy statements for FlexNLP.
+      * \details This function generates automatic copy computations
+      * and adds them to the code to avoid to the user to do manual
+      * data loading to the device.
+      */
+    void gen_flexnlp_autocopy();
+
+    // TODO:FLEXNLP Add documentation
+    void gen_halide_bug_workaround_computations();
+
     /**
       * \brief Generate an object file that contains the compiled function.
       * \details This function relies on Halide to generate the object file.
@@ -992,6 +1024,8 @@ public:
       *
       * \p bits indicate the bit-width of the target machine.
       *    must be 0 for unknown, or 32 or 64.
+      * \p hw_architecture indicate the hardware architecture, it has to be one
+      *    of arch_flexnlp, arch_cpu, arch_nvidia_gpu.
       * For a full list of supported values for \p os and \p arch please
       * check the documentation of Halide::Target
       * (http://halide-lang.org/docs/struct_halide_1_1_target.html).
@@ -1000,12 +1034,24 @@ public:
 
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
+                        Halide::Target::Arch arch, int bits,
+                        const tiramisu::hardware_architecture_t hw_architecture) const;
+
+    /**
+      * \overload
+      */
+    void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                         Halide::Target::Arch arch, int bits) const;
 
     /**
       * \overload
       */
     void gen_halide_obj(const std::string &obj_file_name) const;
+
+    /**
+      * \overload
+      */
+    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const;
 
     /**
       * Generate a Halide stmt that represents the function.
@@ -1050,6 +1096,7 @@ public:
      * tiramisu program.
      */
     void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
 
     /**
      * \brief Set the context of the function.
@@ -1090,6 +1137,11 @@ class buffer
 
 private:
     /**
+     * A boolean that indicates whether a buffer is a dummy buffer or not (used as default value for a buffer).
+     */
+    bool is_dummy;
+
+    /**
      * A boolean that indicates whether a buffer is allocated or not.
      */
     bool allocated;
@@ -1117,6 +1169,12 @@ private:
      * to do data transfert to gpu manually.
      */
     bool automatic_gpu_copy;
+
+    /**
+     * automatic_flexnlp_copy = true by default, is it set to false when the user wants
+     * to do data transfert to flexnlp manually.
+     */
+    bool automatic_flexnlp_copy;
 
     /**
       * The sizes of the dimensions of the buffer.  Assuming the following
@@ -1165,9 +1223,14 @@ protected:
     bool get_auto_allocate();
 
     /**
-      * Return whether the copy should be done automatically.
+      * Return whether the copy should be done automatically to the gpu device.
       */
     bool get_automatic_gpu_copy();
+
+    /**
+      * Return whether the copy should be done automatically to the flexnlp device.
+      */
+    bool get_automatic_flexnlp_copy();
 
     /**
      * Set the size of a dimension of the buffer.
@@ -1175,6 +1238,11 @@ protected:
     void set_dim_size(int dim, int size);
 
 public:
+    /**
+      * \brief Default tiramisu constructor
+      */
+    buffer();
+
     /**
       * \brief Create a tiramisu buffer.
       *
@@ -1228,7 +1296,7 @@ public:
       * function the "implicit function").
       *
       * \p corr is the name of the cpu buffer corresponding to a gpu buffer.
-      * This field is only set, when we creat a gpu buffer.
+      * This field is only set, when we create a gpu buffer.
       *
       * Buffer names should not start with _ (an underscore).
       * Names starting with _ are reserved names.
@@ -1238,6 +1306,10 @@ public:
            tiramisu::function *fct = global::get_implicit_function(),
            std::string corr = "");
 
+    /**
+      * Return if this buffer is a dummy buffer or not (default buffer used for default buffer parameter values)
+      */
+    bool get_is_dummy();
 
     /**
      * \brief Indicate when to allocate the buffer (i.e., the schedule).
@@ -1359,6 +1431,11 @@ public:
     void set_automatic_gpu_copy(bool automatic_gpu_copy);
 
     /**
+      * Set whether the FlexNLP copy should be done automatically.
+      */
+    void set_automatic_flexnlp_copy(bool automatic_flexnlp_copy);
+
+    /**
      * Return true if all extents of the buffer are literal integer
      * contants (e.g., 4, 10, 100, ...).
      */
@@ -1386,7 +1463,6 @@ public:
     void tag_gpu_local();
     /* Tag the buffer as located in the GPU constant memory. */
     void tag_gpu_constant();
-
 };
 
 /**
@@ -1423,6 +1499,12 @@ class computation
     friend recv;
     friend tiramisu::wait;
     friend cuda_ast::generator;
+    friend auto_scheduler::syntax_tree;
+    friend auto_scheduler::ast_node;
+    friend auto_scheduler::computation_info;
+    friend auto_scheduler::evaluate_by_execution;
+    
+    friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 private:
 
@@ -1673,6 +1755,18 @@ private:
     tiramisu::op_t lhs_access_type;
     tiramisu::op_t rhs_access_type;
     // @}
+
+    // ADD:FLEXNLP
+    /**
+      * This variable contains the computation's iteration variables
+      */
+    std::vector<tiramisu::var> iteration_variables;
+
+    /**
+      * Returns the iteration_variables vector containing each of the
+      * computation's iteration variables
+      */
+    std::vector<tiramisu::var> get_iteration_variables();
 
     /**
       * Apply a transformation on the domain of the schedule.
@@ -2674,7 +2768,7 @@ protected:
       * \endcode
       *
       */
-    computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t);
+    computation(std::string name, std::vector<tiramisu::var> iterator_variables, tiramisu::expr predicate, tiramisu::expr e, bool schedule_this_computation, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device = tiramisu::buffer());
 
 public:
 
@@ -3926,6 +4020,22 @@ public:
       */
     virtual void skew(int i, int j, int k, int l, int factor);
 
+
+    /*
+    applied to a computation's loop level i : it inverts the execution order for this specific loop
+    i.e : original i : 0 -> n to :
+    reversed i : n -> 0
+
+    This command transforms the loop (i) into the loop (-i)
+  */
+    virtual void loop_reversal(var old_var,var new_var );
+
+    /**
+      * \overload
+      */
+    
+    virtual void loop_reversal(int i );
+
     /**
       * Split the loop level \p L0 of the iteration space into two
       * new loop levels.
@@ -4169,6 +4279,7 @@ public:
     //@{
     virtual void unroll(var L, int fac);
     virtual void unroll(var L, int fac, var L_outer, var L_inner);
+    virtual void unroll(int L, int fac);
     //@}
 
     /**
@@ -4499,6 +4610,67 @@ public:
     input(std::string name, std::vector<std::string> dimension_names,
 			    std::vector<tiramisu::expr> dimension_sizes, primitive_t t):
 	computation(name, compute_iterators_from_sizes(dimension_names, dimension_sizes), expr(t), false)
+    {
+    }
+
+    // ADD:FLEXNLP
+    /**
+      * \brief Constructor for an input.
+      *
+      * \details
+      *
+      * Declare an input.
+      *
+      * \p name is the name of the input.
+      *
+      * \p iterator_variables is a vector that represents the dimensions of
+      * the input.  It is used to define the size of the input.
+      *
+      * \p t is the type of the input elements.
+      * Example of types include (p_uint8, p_uint16, p_uint32, ...).
+      * Types are defined in \ref tiramisu::primitive_t
+      *
+      * \p cpu_buffer_to_map_to_device is the buffer that is mapped to this input
+      * in the device.
+      *
+      * Example:
+      *
+      * To declare a buffer buf[20, 30] where the buffer elements
+      * are of type float32, that is the mapping of the cpu_A buffer.
+      * We can first declare two iterator variables
+      *
+      * \code
+      * var i("i", 0, 20), j("j", 0, 30);
+      * \endcode
+      *
+      * and then we can declare the following buffer
+      *
+      * \code
+      * buffer cpu_A("cpu_A", {10,30}, p_float32, a_input);
+      * \endcode
+      *
+      * and then create the corresponding device input
+      *
+      * \code
+      * input A("A", {i,j}, p_float32, cpu_A);
+      * A.get_buffer()->tag_gpu_global()
+      * \endcode
+      *
+      * This declaration's advantage, is that the buffer cpu_A
+      * will get automatically copied to A's buffer which will be
+      * automatically allocated.
+      *
+     */
+    input(std::string name, std::vector<var> iterator_variables, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device):
+      computation::computation(name, iterator_variables, expr(), expr(t), false, t, cpu_buffer_to_map_to_device)
+    {
+    }
+
+    /**
+      * \overload
+      */
+      input(std::vector<var> iterator_variables, primitive_t t, tiramisu::buffer cpu_buffer_to_map_to_device):
+        input(generate_new_computation_name(), iterator_variables, t, cpu_buffer_to_map_to_device)
     {
     }
 };

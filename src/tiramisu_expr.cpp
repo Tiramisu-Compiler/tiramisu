@@ -300,4 +300,304 @@ expr spmv(expr transposeA,
             tiramisu::p_uint8);
 }
 
+/**
+  FlexNLP-Tiramisu API
+*/
+
+expr flexnlp_load_weights(const buffer &host_data, expr offset_host, expr num_elem, expr device_id){
+  std::string fname;
+  fname = "tiramisu_flexnlp_load_weights";
+
+  return expr(o_call, fname,
+          {
+              var(p_void_ptr, host_data.get_name()),
+              cast(p_int32, offset_host),
+              cast(p_int32, num_elem),
+              cast(p_int32, device_id)
+          },
+          tiramisu::p_int32);
+}
+
+expr flexnlp_load_input(const buffer &host_data, expr offset_host, expr num_elem, expr device_id){
+  std::string fname;
+  fname = "tiramisu_flexnlp_load_input";
+
+  return expr(o_call, fname,
+          {
+              var(p_void_ptr, host_data.get_name()),
+              cast(p_int32, offset_host),
+              cast(p_int32, num_elem),
+              cast(p_int32, device_id)
+          },
+          tiramisu::p_int32);
+}
+
+expr flexnlp_store_output(const buffer &host_data, expr offset_host, expr num_elem, expr device_id){
+  std::string fname;
+  fname = "tiramisu_flexnlp_store_output";
+
+  return expr(o_call, fname,
+          {
+              var(p_void_ptr, host_data.get_name()),
+              cast(p_int32, offset_host),
+              cast(p_int32, num_elem),
+              cast(p_int32, device_id)
+          },
+          tiramisu::p_int32);
+}
+
+/**
+  Run an LSTM Cell inference
+*/
+expr flexnlp_lstm_cell(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                       expr layer_number, expr device_id, expr load_weight)
+{
+    /*
+      x_in :  [NTIMESTEPS][BATCH_SIZE][INPUT_SIZE]
+      w_in : [NUM_LAYERS][4][OUTPUT_SIZE][INPUT_SIZE + HIDDEN_SIZE]
+      output : [NTIMESTEPS][BATCH_SIZE][HIDDEN_SIZE]
+      layer_number :
+    */
+    std::string fname;
+    fname = "tiramisu_flexnlp_run_lstm";
+
+    std::vector<expr> sizes_X_in = x_in.get_dim_sizes();
+    std::vector<expr> sizes_W_in = W_in.get_dim_sizes();
+    std::vector<expr> sizes_output = output.get_dim_sizes();
+
+    expr batch_size = sizes_X_in[0];
+    expr timesteps = sizes_X_in[1];
+    expr input_size = sizes_X_in[2];
+
+    expr hidden_size = sizes_output[2];
+
+    // If weights can't fit, give an error message
+    /*
+    PETop* acc = flexnlp_context->get_accelerator_by_id(device_id.get_int_val());
+    int weights_memory_limit = acc->GetMemSize(1);
+    if (4*hidden_size.get_int_val()*(hidden_size.get_int_val() + input_size.get_int_val())>weights_memory_limit){
+      // Say that you need to use
+      ERROR("Can't run LSTM at once on a FlexNLP device, weights matrix is too larche to fit in the FlexNLP spad1 memory, please use the tiramisu_flexnlp_run_lstm_split version, and format the weights matrix as [NUM_LAYERS][HSIZE/O_SIZE][4][O_SIZE][HSIZE+ISIZE]", true)
+    }
+    */
+
+    expr n_layers, output_size;
+    if (sizes_W_in.size()<4){ // One single layer
+      n_layers = expr(1);
+      output_size = sizes_W_in[1];
+      layer_number = expr(-1);
+    }
+    else{
+      n_layers = sizes_W_in[0];
+      output_size = sizes_W_in[2];
+    }
+
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, x_in.get_name()),
+                var(p_void_ptr, W_in.get_name()),
+                var(p_void_ptr, output.get_name()),
+                var(p_void_ptr, h_out.get_name()),
+
+                cast(p_int32, input_size),
+                cast(p_int32, hidden_size),
+                cast(p_int32, output_size),
+                cast(p_int32, timesteps),
+                cast(p_int32, batch_size),
+
+                cast(p_int32, layer_number),
+
+                cast(p_int32, load_weight),
+                cast(p_int32, device_id)
+            },
+            tiramisu::p_int32);
+}
+
+expr flexnlp_lstm_cell_manual(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                       expr layer_number, expr device_id)
+{
+    /*
+      x_in :  [NTIMESTEPS][BATCH_SIZE][INPUT_SIZE]
+      w_in : [NUM_LAYERS][4][OUTPUT_SIZE][INPUT_SIZE + HIDDEN_SIZE]
+      output : [NTIMESTEPS][BATCH_SIZE][HIDDEN_SIZE]
+      layer_number :
+    */
+    std::string fname;
+    fname = "tiramisu_flexnlp_run_lstm_manual";
+
+    std::vector<expr> sizes_X_in = x_in.get_dim_sizes();
+    std::vector<expr> sizes_W_in = W_in.get_dim_sizes();
+    std::vector<expr> sizes_output = output.get_dim_sizes();
+
+    expr batch_size = sizes_X_in[0];
+    expr timesteps = sizes_X_in[1];
+    expr input_size = sizes_X_in[2];
+
+    expr hidden_size = sizes_output[2];
+
+    expr n_layers, output_size;
+    if (sizes_W_in.size()<4){ // One single layer
+      n_layers = expr(1);
+      output_size = sizes_W_in[1];
+      layer_number = expr(0);
+    }
+    else{
+      n_layers = sizes_W_in[0];
+      output_size = sizes_W_in[2];
+    }
+
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, x_in.get_name()),
+                var(p_void_ptr, W_in.get_name()),
+                var(p_void_ptr, output.get_name()),
+                var(p_void_ptr, h_out.get_name()),
+
+                cast(p_int32, input_size),
+                cast(p_int32, hidden_size),
+                cast(p_int32, output_size),
+                cast(p_int32, timesteps),
+                cast(p_int32, batch_size),
+
+                cast(p_int32, layer_number),
+
+                cast(p_int32, device_id)
+            },
+            tiramisu::p_int32);
+}
+
+/**
+  Run an LSTM Cell inference
+*/
+expr flexnlp_lstm_cell_partitioned(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out,
+                       expr layer_number, expr device_id, expr load_weight)
+{
+    /*
+      x_in :  [NTIMESTEPS][BATCH_SIZE][INPUT_SIZE]
+      w_in : [NUM_LAYERS][HIDDEN_SIZE/OUTPUT_SIZE][4][OUTPUT_SIZE][INPUT_SIZE + HIDDEN_SIZE]
+      output : [NTIMESTEPS][BATCH_SIZE][HIDDEN_SIZE]
+      layer_number :
+    */
+    std::string fname;
+    fname = "tiramisu_flexnlp_run_partitioned_lstm";
+
+    std::vector<expr> sizes_X_in = x_in.get_dim_sizes();
+    std::vector<expr> sizes_W_in = W_in.get_dim_sizes();
+    std::vector<expr> sizes_output = output.get_dim_sizes();
+
+    expr batch_size = sizes_X_in[0];
+    expr timesteps = sizes_X_in[1];
+    expr input_size = sizes_X_in[2];
+
+    expr hidden_size = sizes_output[2];
+
+    expr n_layers, output_size;
+    if (sizes_W_in.size()<4){ // One single layer
+      n_layers = expr(1);
+      output_size = sizes_W_in[2];
+      layer_number = expr(-1);
+    }
+    else{
+      n_layers = sizes_W_in[0];
+      output_size = sizes_W_in[3];
+    }
+
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, x_in.get_name()),
+                var(p_void_ptr, W_in.get_name()),
+                var(p_void_ptr, output.get_name()),
+                var(p_void_ptr, h_out.get_name()),
+
+                cast(p_int32, input_size),
+                cast(p_int32, hidden_size),
+                cast(p_int32, output_size),
+                cast(p_int32, timesteps),
+                cast(p_int32, batch_size),
+
+                cast(p_int32, layer_number),
+
+                cast(p_int32, load_weight),
+                cast(p_int32, device_id)
+            },
+            tiramisu::p_int32);
+}
+
+/**
+  Run an LSTM Cell inference split among hidden_size/output_size accelerators
+*/
+expr flexnlp_lstm_cell_partitioned_multi_accelerator(const buffer &x_in, const buffer &W_in, const buffer &output, const buffer &h_out, expr layer_number)
+{
+    /*
+      x_in :  [NTIMESTEPS][BATCH_SIZE][INPUT_SIZE]
+      w_in : [NUM_LAYERS][HIDDEN_SIZE/OUTPUT_SIZE][4][OUTPUT_SIZE][INPUT_SIZE + HIDDEN_SIZE]
+      output : [NTIMESTEPS][BATCH_SIZE][HIDDEN_SIZE]
+      layer_number :
+    */
+    std::string fname;
+    fname = "tiramisu_flexnlp_run_partitioned_lstm_multi";
+
+    std::vector<expr> sizes_X_in = x_in.get_dim_sizes();
+    std::vector<expr> sizes_W_in = W_in.get_dim_sizes();
+    std::vector<expr> sizes_output = output.get_dim_sizes();
+
+    expr batch_size = sizes_X_in[0];
+    expr timesteps = sizes_X_in[1];
+    expr input_size = sizes_X_in[2];
+
+    expr hidden_size = sizes_output[2];
+
+    expr n_layers, output_size;
+    if (sizes_W_in.size()<4){ // One single layer
+      n_layers = expr(1);
+      output_size = sizes_W_in[2];
+      layer_number = expr(-1);
+    }
+    else{
+      n_layers = sizes_W_in[0];
+      output_size = sizes_W_in[3];
+    }
+
+    return expr(o_call, fname,
+            {
+                var(p_void_ptr, x_in.get_name()),
+                var(p_void_ptr, W_in.get_name()),
+                var(p_void_ptr, output.get_name()),
+                var(p_void_ptr, h_out.get_name()),
+
+                cast(p_int32, input_size),
+                cast(p_int32, hidden_size),
+                cast(p_int32, output_size),
+                cast(p_int32, timesteps),
+                cast(p_int32, batch_size),
+
+                cast(p_int32, layer_number)
+            },
+            tiramisu::p_int32);
+}
+
+expr flexnlp_initialize(expr number_of_devices)
+{
+    std::string fname;
+    fname = "tiramisu_flexnlp_initialize";
+
+    return expr(o_call, fname,
+            {
+                cast(p_int32, number_of_devices)
+            },
+            tiramisu::p_int32);
+}
+
+expr flexnlp_finalize()
+{
+    std::string fname;
+    fname = "tiramisu_flexnlp_finalize";
+
+    return expr(o_call, fname,
+            {
+              int32_t(0)
+            },
+            tiramisu::p_int32);
+}
+
 }

@@ -1,0 +1,1 @@
+rm -rf generated_spconv_relu_maxpool.o.h generated_spconv_relu_maxpool.o mkl_result.txt tiramisu_result.txt spconv_relu_maxpool_wrapper_3_16_224 spconv_relu_maxpool_generator_3_16_224 conv_relu_maxpool_mkldnn

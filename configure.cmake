@@ -4,6 +4,8 @@ option(USE_GPU "Build with GPU support" OFF)
 
 option(USE_MPI "Build with MPI support" OFF)
 
+option(USE_FLEXNLP "Build with FlexNLP support" ON)
+
 option(USE_LIBPNG "Build with libpng for the Halide benchmark" FALSE)
 
 option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
@@ -12,6 +14,8 @@ option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
+
+option(USE_AUTO_SCHEDULER "Build the Tiramisu auto-scheduler" FALSE)
 
 # Change with the cudnn library location
 set(CUDNN_LOCATION /data/scratch/akkas/cudnn7 CACHE PATH "CUDNN library location")

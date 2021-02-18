@@ -69,10 +69,11 @@ This section provides a short description of how to build Tiramisu.  A more deta
 
     - Note: Make sure `<TIRAMISU_ROOT_DIR>` is absolute path!
 
-3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, or if you want to run the BLAS benchmarks.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
+3) Optional: configure the tiramisu build by editing `configure.cmake`.  Needed only if you want to generate MPI or GPU code, run the BLAS benchmarks, or if you want to build the autoscheduler module.  A description of what each variable is and how it should be set is provided in comments in `configure.cmake`.
 
     - To use the GPU backend, set `USE_GPU` to `TRUE`. If the CUDA library is not found automatically while building Tiramisu, the user will be prompt to provide the path to the CUDA library.
     - To use the distributed backend, set `USE_MPI` to `TRUE`. If the MPI library is not found automatically, set the following variables: MPI_INCLUDE_DIR, MPI_LIB_DIR, and MPI_LIB_FLAGS.
+    - To build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE`.
 
 4) Build the main Tiramisu library
 
@@ -80,6 +81,10 @@ This section provides a short description of how to build Tiramisu.  A more deta
         cd build
         cmake ..
         make -j tiramisu
+        
+5) If you want to build the autoscheduler module, set `USE_AUTO_SCHEDULER` to `TRUE` in `configure.cmake`, and after building Tiramisu :
+
+        make tiramisu_auto_scheduler
 
 ## Tiramisu on a Virtual Machine
 Users can use the Tiramisu [virtual machine disk image](http://groups.csail.mit.edu/commit/software/TiramisuVM.zip).  The image is created using virtual box (5.2.12) and has Tiramisu already pre-compiled and ready for use. It was compiled using the same instructions in this README file.
@@ -94,8 +99,6 @@ If asked for a username/password
 
     Username:b
     Password:b
-
-Another tar.gz version of the VM image is available [here](http://groups.csail.mit.edu/commit/software/TiramisuVM.tar.gz).
 
 ## Getting Started
 - Build [Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu/).
