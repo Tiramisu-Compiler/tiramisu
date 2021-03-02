@@ -26,7 +26,7 @@ void generate_function(std::string name, int size, int val0)
     result.store_in(&buff_A);
 
     // Analysis
-    performe_full_dependecy_analysis() ;     
+    performe_full_dependency_analysis() ;     
 
     // start adding optimizations
     result.tile(i,j,4,4,i1,j1,i2,j2);

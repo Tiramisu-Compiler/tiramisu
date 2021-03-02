@@ -137,23 +137,22 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
 
 /**
- * Full check of legality for this function using dependency analysis 
- * must be used after invoking : performe_full_dependecy_analysis()
+ * Full check of schedule legality for this function using dependency analysis 
+ * must be used after invoking : performe_full_dependency_analysis()
  */
 bool check_legality_of_function();
 
 
 /**
- * Performe a full dependecy analysis RAW/WAR/WAW and the result is stored in attributes inside the function
- * To invoke this method user must : define computations order & define the buffer mapped to each computation using :
- *   tiramisu::prepare_schedules_for_legality_checks()
+ * Performe a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
+ * Before invoking this method, the user must call tiramisu::prepare_schedules_for_legality_checks() and must define the buffer associated with each computation.
  */
-void performe_full_dependecy_analysis();
+void performe_full_dependency_analysis();
 
 
 /**
  * Prepare the schedules of the computations for legality checks for this implicit function by :
- * Aligning the schedules dimentions and generating the order between them 
+ * Aligning the schedules dimensions and generating the order between them 
  */
 void prepare_schedules_for_legality_checks() ;
 
@@ -215,50 +214,49 @@ private:
     isl_ctx *ctx;
 
     /**
-      * isl_union_map that describes the true dependences with regard to the buffer i.e : the read after write dependences ,
+      * isl_union_map that describes the true dependencies considering buffers access (the read after write dependencies),
       * the relation describes for each read access the last previous write access that writes into the same buffer element
-      * all isl_maps in the union_isl_map are represented in this format :
-      * last_write -> [read_access -> used_buffer ]
-      * you may use isl range_factor_domain , range_factor_range ... to the extract a more simple relation 
-      * useful to keep the correctness & legality checks
+      * all isl_maps in the union_isl_map are represented in the format:
+      * last_write -> [read_access -> used_buffer]
+      * Isl methods (isl_map_range_factor_domain and isl_map_range_factor_range) could be used to the extract a more simple relation.
+      * Useful to check correctness with legality checks.
       */
 
     isl_union_map * dep_read_after_write ;
 
     /**
-      * isl_union_map that describes the false dependences with regard to the buffer i.e : the write after write dependences ,
+      * isl_union_map that describes the false dependencies considering buffers access (the write after write dependencies),
       * the relation describes for each write access the last previous write access that write into the same buffer element
-      * all isl_maps in the union_isl_map are represented in this format :
-      * last_write -> [write_access -> used_buffer ]
-      * you may use isl range_factor_domain , range_factor_range ... to the extract a more simple relation 
-      * useful to keep the correctness & legality checks
+      * all isl_maps in the union_isl_map are represented in the format:
+      * last_write -> [write_access -> used_buffer]
+      * Isl methods (isl_map_range_factor_domain and isl_map_range_factor_range) could be used to the extract a more simple relation.
+      * Useful to check correctness with legality checks.
       */
 
     isl_union_map * dep_write_after_write ; 
 
     
     /**
-      * isl_union_map that describes the false dependences with regard to the buffer i.e : the write after read dependences ,
-      * the relation describes for each write access  all the previous read access that used a the previous value [a buffer element] before current write 
-      * all isl_maps in the union_isl_map are represented in this format :
-      * read_access_with_previous_value-> [ write_access -> used_buffer ]
-      * you may use isl range_factor_domain , range_factor_range ... to the extract a more simple relation 
-      * useful to keep the correctness & legality checks
+      * isl_union_map that describes the false dependencies considering buffers access (the write after read dependencies),
+      * the relation describes for each write access all the previous read access that used a the previous value [a buffer element] before current write 
+      * all isl_maps in the union_isl_map are represented in the format:
+      * read_access_with_the_previous_value-> [ write_access -> used_buffer]
+      * Isl methods (isl_map_range_factor_domain and isl_map_range_factor_range) could be used to the extract a more simple relation.
+      * Useful to check correctness with legality checks.
       */
 
     isl_union_map * dep_write_after_read ;
 
     /**
-     * 
-     *  union map describes the access ex : compulation[i,j]-> buffer1[i,j]
-     *  the read access that have no specific write before them i.e: the value is external
+     *  A union map that describes the live-in access (e.g., compulation[i,j]-> buffer1[i,j]).
+     *  Read accesses that have no write before them (i.e., the value is external).
     */
     isl_union_map * live_in_access ;
 
 
     /**
-    *  Union map describes the access ex : compulation[i,j]-> buffer1[i,j] 
-    *  The last write access that have no specific write after them i.e: the last writer instruction to the buffer
+    *  A union map that describes the live-out access (e.g., compulation[i,j]-> buffer1[i,j]).
+    *  Write access that do not have another write after them (i.e., last written value into the buffer).
     */
     isl_union_map * live_out_access ;
 
@@ -1189,39 +1187,38 @@ public:
     void set_context_set(isl_set *context);
 
     /**
-      * Compute flow and performe DATA ANALYSIS for this function with all it's computations including Reads after write ,write after write ,Write after read,live_out_access , live_in_access
-      * the moment of the call the computations order and thier buffers must be defined , the schedules must be the default ones with no optimisations applied , 
-      * this method should be invoked directly after mapping computations to thier buffers layer
-      * the result are the stored in attributes "live_out_access, live_in_access,  deps_read_after_write , dep_write_after_write ... " 
-      * after the call the user is free to change & optimize the schedules
-      * the stored attributes helps judge legality of new schedules using : method in the computation class,
-      * check_legality_for_function() method in the function class
-      * It also computes live_out and live_in access for this function
+      * Computes flow and performe data analysis for this function with all it's computations.
+      * This includes Reads after write, Write after write, Write after read, live_out_access, and live_in_access.
+      * The moment of the call, the computations order and their buffers must be defined, the schedules must be the default ones with no optimizations applied. 
+      * So this method should be invoked directly after mapping computations to their buffers.
+      * Result is the stored in the attributes of the function "live_out_access, live_in_access, deps_read_after_write, deps_write_after_write ...".
+      * These attributes helps to check the legality of schedules using \p check_legality_for_function() method in the function class, 
+      * or \p involved_subset_of_dependencies_is_legal() method in the computation class.
+      * This method also computes live_out and live_in access for this function.
+      * After the call the user is free to change & optimize the schedules.
       */
-    void performe_full_dependecy_analysis();
+    void performe_full_dependency_analysis();
   
     /**
-     *  Uses the dependece analysis to check if the current schedules of all computations are legal
-     *  must be invoked after the correct call to performe_full_dependecy_analysis()
+     *  Uses the dependency analysis to check if the current schedules of all computations are legal
+     *  must be invoked after the correct call to \p performe_full_dependency_analysis()
     */
     bool check_legality_for_function();
 
     /**
      * Calculate all the dependencies in the function RAW/WAW/WAR & store in the function's attributes
-     * uses default_schedule so schedules must be ordered (after) & same length & stored in the schedules for each computations using:
+     * All schedules must be ordered (after or then), and with same length using:
      * 1-gen_ordering_schedules
      * 2-align_schedules
     */
     void calculate_dep_flow() ;
 
     /**
-     * Align schedules dimentions and adds the computation's order to them, 
+     * Align schedules dimensions and adds the computation's order to them. 
      * This is done to correctly invoke calculate_dep_flow() method that performs dependence analysis
      * It calls gen_ordering_schedules() and align_schedules() function's methods internally
     */
     void prepare_schedules_for_legality_checks() ;
-
-
 
 };
 
@@ -4160,14 +4157,14 @@ public:
 
 
     /**
-     * Checks the correctness of a SUBSET OF DEPENDENCES after applying changes on the schedules ( tiling , skewing , shifting ...)
-     * The checked SUBSET OF DEPENDENCES is the set of dependences mapping from this computation (this) to second computation (second)
-     * This methods returns a boolean : True if this subset of dependences is respected, otherwise False
-     * It relies fully on the dependence analysis result, so the method performe_full_dependecy_analysis() must stricly be invoked before.
-     * Also, To correctly invoke this method : schedules must be aliegned (same out dimention size) and ordered  :
-     *    This could be done easily by invoking prepare_schedules_for_legality_checks() method 
+     * Checks the correctness of a subset of dependencies after applying changes on the schedules (e.g., tiling, skewing, and shifting).
+     * The checked subset of dependencies is the set of dependencies mapping from this computation (this) to second computation (second).
+     * This methods returns a boolean: True if this subset of dependencies is respected, otherwise False.
+     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is highly mandatory. 
     */
-    virtual bool involved_subset_of_dependences_is_legal(tiramisu::computation * second) ;
+    virtual bool involved_subset_of_dependencies_is_legal(tiramisu::computation * second) ;
 
 
 

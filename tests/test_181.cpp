@@ -31,7 +31,7 @@ void generate_function(std::string name, int size, int val0)
     result2.store_in(&buff_A);
 
     // analysis
-    performe_full_dependecy_analysis() ;     
+    performe_full_dependency_analysis() ;     
 
     // start adding optimizations
     result.skew(i, j, 1, -1, ni, nj);
@@ -39,7 +39,7 @@ void generate_function(std::string name, int size, int val0)
     // legality check of function
     prepare_schedules_for_legality_checks() ;
 
-    assert(result.involved_subset_of_dependences_is_legal(&result2) == true);
+    assert(result.involved_subset_of_dependencies_is_legal(&result2) == true);
     assert(check_legality_of_function() == true) ;
 
     // Code generation

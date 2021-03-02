@@ -104,10 +104,10 @@ bool check_legality_of_function()
 }
 
 
-void performe_full_dependecy_analysis()
+void performe_full_dependency_analysis()
 {
     function *fct = global::get_implicit_function();
-    fct->performe_full_dependecy_analysis() ;
+    fct->performe_full_dependency_analysis() ;
 }
 
 void prepare_schedules_for_legality_checks()
@@ -4415,7 +4415,7 @@ void computation::skew(int L0 , int L1 , int f_i , int f_j)
 }
 
 
-bool tiramisu::computation::involved_subset_of_dependences_is_legal(tiramisu::computation * second)
+bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::computation * second)
 {
 
     DEBUG_FCT_NAME(3);
@@ -4425,57 +4425,57 @@ bool tiramisu::computation::involved_subset_of_dependences_is_legal(tiramisu::co
     assert(this->get_function() != NULL);
     assert(!second->get_name().empty());
     
-    assert(this->get_function()->dep_read_after_write != NULL) ;
+    assert(this->get_function()->dep_read_after_write != NULL);
     
     //extract this => Second dependencies from function
 
     isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
-        isl_union_map_copy(this->get_function()->dep_read_after_write)) ;
+        isl_union_map_copy(this->get_function()->dep_read_after_write));
 
     isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
-        isl_union_map_copy(this->get_function()->dep_write_after_read)) ;
+        isl_union_map_copy(this->get_function()->dep_write_after_read));
 
     isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
-        isl_union_map_copy(this->get_function()->dep_write_after_write)) ;
+        isl_union_map_copy(this->get_function()->dep_write_after_write));
 
 
     //construct the maps of the space needed
-    std::string space_map = "{"+this->get_name()+"[" ;
+    std::string space_map = "{" + this->get_name() + "[";
 
     for(int i = 0 ; i< this->number_of_dims ; i++){
 
-        space_map+="i"+std::to_string(i) ;
+        space_map += "i" + std::to_string(i);
 
-        if(i != (this->number_of_dims -1 ))
+        if(i != (this->number_of_dims - 1))
         {
-            space_map +="," ;
+            space_map += ",";
         }
     }
-    space_map+="]->"+second->get_name()+"[" ;
+    space_map += "]->" + second->get_name() + "[";
 
     for(int i = 0 ; i < second->number_of_dims ; i++){
 
-        space_map+="i"+std::to_string(i) ;
+        space_map+= "i" + std::to_string(i) ;
 
         if(i != (second->number_of_dims -1 ))
         {
-            space_map +="," ;
+            space_map += "," ;
         }
     }
     
-    space_map+="]}" ;
+    space_map += "]}" ;
 
     DEBUG(3, tiramisu::str_dump(" the space map is to extract deps : "+space_map));
 
     isl_space * space = isl_map_get_space(
         isl_map_read_from_str(this->get_ctx(),space_map.c_str())
-        ) ;
+        );
 
-    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space)) ;
+    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space));
 
-    isl_map * my_map2 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space)) ;
+    isl_map * my_map2 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space));
 
-    isl_map * my_map3 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space)) ;
+    isl_map * my_map3 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space));
 
     DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map1))));
 
@@ -4488,23 +4488,23 @@ bool tiramisu::computation::involved_subset_of_dependences_is_legal(tiramisu::co
 
     auto f = [](isl_basic_map * bmap,void * user) { 
 
-        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user) ;
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user);
      
-        myName.push_back(bmap) ;
+        myName.push_back(bmap);
         return isl_stat_ok;
     };
     
-    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f) ;
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f);
 
-    isl_map_foreach_basic_map(my_map1,fun_ptr,(void * ) &all_basic_maps) ;
+    isl_map_foreach_basic_map(my_map1,fun_ptr,(void * ) &all_basic_maps);
 
-    isl_map_foreach_basic_map(my_map2,fun_ptr,(void * ) &all_basic_maps) ;
+    isl_map_foreach_basic_map(my_map2,fun_ptr,(void * ) &all_basic_maps);
 
-    isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps) ;
+    isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps);
 
 
     /* ==========================================
-        extarct schedul of 2 computation
+        extract schedules of 2 computation
     */
    assert(this->get_function()->get_schedule()!= NULL) ;
 
@@ -4520,47 +4520,47 @@ bool tiramisu::computation::involved_subset_of_dependences_is_legal(tiramisu::co
        making schedules comparable by mapping to the same time space
     */
   
-    std::string empty ="" ;
+    std::string empty = "" ;
 
-    isl_map * this_schedule_unif = isl_map_set_tuple_name(
+    isl_map * this_schedule_unify = isl_map_set_tuple_name(
         isl_map_copy(this->schedule),
         isl_dim_out,
         empty.c_str()
-        ) ;
+        );
 
 
-    isl_map * second_schedule_unif = isl_map_set_tuple_name(
+    isl_map * second_schedule_unify = isl_map_set_tuple_name(
         isl_map_copy(second->schedule),
         isl_dim_out,
         empty.c_str()
-        ) ;
+        );
     
-    DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unif))));
-    DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unif))));
+    DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unify))));
+    DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unify))));
 
     
 
-    std::string s0_set = "[" ;
+    std::string s0_set = "[";
 
     for(int i=0 ;i<this->number_of_dims;i++)
     {
-        s0_set+="n"+std::to_string(i) ;
+        s0_set += "n" + std::to_string(i) ;
         if(i != (this->number_of_dims -1 ))
         {
-            s0_set +="," ;
+            s0_set += ",";
         }
     }
-    s0_set +="]->{"+this->get_name()+"[" ;
+    s0_set += "]->{" + this->get_name() + "[";
 
-    for(int i=0 ;i<this->number_of_dims;i++)
+    for(int i=0 ;i < this->number_of_dims; i++)
     {
-        s0_set+="n"+std::to_string(i) ;
+        s0_set += "n" + std::to_string(i);
         if(i != (this->number_of_dims -1 ))
         {
-            s0_set +="," ;
+            s0_set += "," ;
         }
     }
-    s0_set +="]}" ;
+    s0_set += "]}" ;
 
 
     DEBUG(3, tiramisu::str_dump(" initial set of first computation is : "+s0_set));
@@ -4572,44 +4572,44 @@ bool tiramisu::computation::involved_subset_of_dependences_is_legal(tiramisu::co
         always check that S0 is lex inferior than S1 , for that : S1>=S0 need always to be empty
     */
  
-    bool over_all_corectness = true ;
+    bool overall_corectness = true ;
 
     DEBUG(10, tiramisu::str_dump(" check the respect of previous deps nature start : "));
     
-    for (auto& depandancy:all_basic_maps)
+    for (auto& dependency:all_basic_maps)
     {
 
-        DEBUG(10, tiramisu::str_dump(" the depandancy is : "+std::string(isl_basic_map_to_str(depandancy))));
+        DEBUG(10, tiramisu::str_dump(" the dependency is : "+std::string(isl_basic_map_to_str(dependency))));
 
         isl_set * second_set = isl_set_apply(
             isl_set_copy(first_set),
-            isl_map_from_basic_map(isl_basic_map_copy(depandancy))
-            ) ;
+            isl_map_from_basic_map(isl_basic_map_copy(dependency))
+            );
         // in S1
 
-        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(this_schedule_unif)) ;
-        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unif)) ;
+        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(this_schedule_unify));
+        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unify));
 
         isl_map * result_sup = isl_set_lex_ge_set(
             isl_set_copy(time_first),
             isl_set_copy(time_second)
-        ) ;
+        );
 
-        if( isl_map_is_empty(result_sup) == false )
+        if(isl_map_is_empty(result_sup) == false)
         {
-            over_all_corectness = false ;
-            DEBUG(10, tiramisu::str_dump(" depandancy is wrong by current schedule "));
-            break ;
+            overall_corectness = false;
+            DEBUG(10, tiramisu::str_dump(" dependency is wrong by current schedule "));
+            break;
         }
         else
         {
-                DEBUG(10, tiramisu::str_dump(" this depandancy is respected by the current schedule  "));          
+                DEBUG(10, tiramisu::str_dump(" this dependency is respected by the current schedule  "));          
         }
     }
 
     DEBUG_INDENT(-4);
 
-    return over_all_corectness ;
+    return overall_corectness;
 }
 
 

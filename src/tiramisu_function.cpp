@@ -229,7 +229,7 @@ void tiramisu::function::calculate_dep_flow()
 
     read_access = isl_union_map_intersect_domain(read_access, isl_union_set_copy(iteration_domains));
 
-    //combine reads previous with thier access to establish the read access S0[i,j] -> buf2[j] in read 
+    //combine reads previous with their access to establish the read access S0[i,j] -> buf2[j] in read 
 
     DEBUG(3, tiramisu::str_dump("the overall function schedule is : "+std::string(isl_union_map_to_str(isl_schedule))));
 
@@ -253,7 +253,7 @@ void tiramisu::function::calculate_dep_flow()
 
     DEBUG(3, tiramisu::str_dump(" read after write True dependencies are in the form { last_write_access -> the read statement } : "+std::string(isl_union_map_to_str(read_after_write_dep))));
        
-    DEBUG(3, tiramisu::str_dump(" live-in : the computations / statments with these read access have not been written in this function (outside value)  : "+std::string(isl_union_map_to_str(read_from_outside))));
+    DEBUG(3, tiramisu::str_dump(" live-in : the computations / statement with these read access have not been written in this function (outside value)  : "+std::string(isl_union_map_to_str(read_from_outside))));
     
 
     info = isl_union_access_info_from_sink(isl_union_map_copy(write_access));
@@ -2565,18 +2565,15 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::performe_full_dependecy_analysis()
+void tiramisu::function::performe_full_dependency_analysis()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-
     // align schedules and order schedules
-    this->gen_ordering_schedules() ;
-    this->align_schedules() ;
-
+    this->gen_ordering_schedules();
+    this->align_schedules();
     // could save default schedules and order here
-
-    this->calculate_dep_flow() ;
+    this->calculate_dep_flow();
     
     DEBUG_INDENT(-4);
 
@@ -2584,91 +2581,85 @@ void tiramisu::function::performe_full_dependecy_analysis()
 
 bool tiramisu::function::check_legality_for_function()
 {
-
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
-    assert(this->dep_read_after_write!=NULL) ;
+    assert(this->dep_read_after_write!=NULL);
 
-    this->gen_ordering_schedules() ;
-    this->align_schedules() ;
+    this->gen_ordering_schedules();
+    this->align_schedules();
 
     isl_union_map * all_deps = isl_union_map_range_factor_domain(
-        isl_union_map_copy(this->dep_read_after_write)) ;
+        isl_union_map_copy(this->dep_read_after_write));
 
     all_deps = isl_union_map_union(all_deps,
-        isl_union_map_range_factor_domain(isl_union_map_copy(this->dep_write_after_read))) ;
+        isl_union_map_range_factor_domain(isl_union_map_copy(this->dep_write_after_read)));
 
     all_deps = isl_union_map_union(all_deps, 
-        isl_union_map_range_factor_domain(isl_union_map_copy(this->dep_write_after_write))) ;
+        isl_union_map_range_factor_domain(isl_union_map_copy(this->dep_write_after_write)));
 
     isl_union_map * universe_of_all_deps = isl_union_map_universe(all_deps);
 
-    std::vector<isl_map *> all_basic_maps ;
+    std::vector<isl_map *> all_basic_maps;
     
     auto f = [](isl_map * bmap,void * user) { 
 
-        std::vector<isl_map *>& myName = *reinterpret_cast<std::vector<isl_map*>*>(user) ;
+        std::vector<isl_map *>& myName = *reinterpret_cast<std::vector<isl_map*>*>(user);
      
         myName.push_back(bmap) ;
         return isl_stat_ok;
     };
     
-    isl_stat (*fun_ptr)(isl_map * p,void * m) = (f) ;
+    isl_stat (*fun_ptr)(isl_map * p,void * m) = (f);
 
-    isl_union_map_foreach_map(universe_of_all_deps,fun_ptr,(void * ) &all_basic_maps) ;
+    isl_union_map_foreach_map(universe_of_all_deps,fun_ptr,(void * ) &all_basic_maps);
 
-    isl_set * left_hs = NULL ;
-    isl_set * right_hs = NULL ; // hand side
+    isl_set * left_hs = NULL;
+    isl_set * right_hs = NULL; // hand side
 
-    computation * left_comp = NULL ;
+    computation * left_comp = NULL;
     computation * right_comp = NULL;
 
     std::string left_computation_name =  "";
     std::string right_computation_name = "";
 
-    bool over_all_legality = true ;
+    bool over_all_legality = true;
     
-
     for(auto& space_dep:all_basic_maps)
     {
-
         DEBUG(3, tiramisu::str_dump(" the map of deps is  "+std::string(isl_map_to_str(space_dep))));
 
-        left_hs = isl_map_domain(isl_map_copy(space_dep)) ;
-        right_hs = isl_map_range(isl_map_copy(space_dep)) ;
+        left_hs = isl_map_domain(isl_map_copy(space_dep));
+        right_hs = isl_map_range(isl_map_copy(space_dep));
 
         left_computation_name =  isl_space_get_tuple_name(
-            isl_set_get_space(left_hs),isl_dim_set) ;
+            isl_set_get_space(left_hs),isl_dim_set);
 
         right_computation_name =  isl_space_get_tuple_name(
-            isl_set_get_space(right_hs),isl_dim_set) ;
+            isl_set_get_space(right_hs),isl_dim_set);
 
         DEBUG(3, tiramisu::str_dump(" checking legality of dependences "+left_computation_name+" -> "+right_computation_name));
         
-        left_comp = this->get_computation_by_name(left_computation_name)[0] ;
-        right_comp = this->get_computation_by_name(right_computation_name)[0]  ;
+        left_comp = this->get_computation_by_name(left_computation_name)[0];
+        right_comp = this->get_computation_by_name(right_computation_name)[0];
 
-
-        if( left_comp->involved_subset_of_dependences_is_legal(right_comp) == false )
+        if( left_comp->involved_subset_of_dependencies_is_legal(right_comp) == false )
         {
-                over_all_legality = false;
-                break;
+            over_all_legality = false;
+            break;
         }
-        
-
     }
 
     DEBUG_INDENT(-4);
 
-    return over_all_legality ;
+    return over_all_legality;
 }
 
 
 void tiramisu::function::prepare_schedules_for_legality_checks()
 {
-    this->align_schedules() ;
-    this->gen_ordering_schedules() ;
+    this->align_schedules();
+    this->gen_ordering_schedules();
 }
 
 
