@@ -116,6 +116,24 @@ void prepare_schedules_for_legality_checks()
     fct->prepare_schedules_for_legality_checks() ;
 }
 
+bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_parallelization_is_legal(i,fuzed_computations);
+}
+
+bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_unrolling_is_legal(i,fuzed_computations);
+}
+
+bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_vectorization_is_legal(i,fuzed_computations);
+}
+
 
 //********************************************************
 
@@ -4612,6 +4630,112 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
     return overall_corectness;
 }
 
+bool computation::unrolling_is_legal(var l)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({l.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+    
+    DEBUG(10, tiramisu::str_dump(" schedule is "+str_schedule));
+
+    isl_set * time_set = isl_map_range(isl_map_copy(this->schedule)) ;
+
+    int target_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+
+    DEBUG(3, tiramisu::str_dump(" target dim number is : "+std::to_string(target_dim)));
+
+    DEBUG(3, tiramisu::str_dump(" the time set is : "+std::string(isl_set_to_str(time_set))));
+
+    unsigned int n_dim = isl_set_n_dim(time_set);
+    
+    std::string set_n = "[n0";
+    std::string set_var = "->{"+this->get_name()+"[";
+
+    int iteration = 1 ;
+    int dimension_index = 0;
+    bool var_found = false ;
+
+
+    for(unsigned int i=0;i<n_dim;i++)
+    {
+        if(!var_found)
+        {
+            set_n +=",n"+std::to_string(iteration);
+
+            if(i == target_dim)
+            {
+                    var_found = true ;
+                    set_n += "]" ;
+                    set_var += l.get_name();
+            }
+            else{
+                set_var +=   "n"+std::to_string(iteration)+",";
+                dimension_index ++ ;
+            }
+        }
+        else
+        {
+             set_var += ",t"+std::to_string(i);
+        }
+        iteration++;
+
+    }    
+
+    isl_map * normal_schedule = isl_map_copy(this->schedule);
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule));
+
+    std::string set_complete = set_n + set_var +"]}";
+
+    isl_set * reversed_set = isl_set_apply(
+         isl_set_read_from_str(this->get_ctx(),set_complete.c_str()),
+         reverse);
+
+    DEBUG(10, tiramisu::str_dump(" to initial set  "+std::string(isl_set_to_str(reversed_set))));
+
+    isl_set * normal_set = isl_set_apply(reversed_set,normal_schedule) ;
+
+    DEBUG(10, tiramisu::str_dump(" dimension number is : "+std::to_string(dimension_index)));
+
+    DEBUG(3, tiramisu::str_dump(" set with applied constraints : "+std::string(isl_set_to_str(normal_set) )));
+    
+    isl_pw_aff * max = isl_set_dim_max(isl_set_copy(normal_set),dimension_index) ;
+    isl_pw_aff * min = isl_set_dim_min(isl_set_copy(normal_set),dimension_index) ;
+
+    // count the number of element that forms the max & min for the specified var
+
+    DEBUG(3, tiramisu::str_dump(" max is  : "+std::string(isl_pw_aff_to_str(max) )));
+    DEBUG(3, tiramisu::str_dump(" min is  : "+std::string(isl_pw_aff_to_str(min))));
+
+
+    int n_piece_max = isl_pw_aff_n_piece(max) ;
+
+    int n_piece_min =  isl_pw_aff_n_piece(min) ;
+ 
+    if((n_piece_max == 1) && (n_piece_min == 1))
+    {
+        DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal")) ;
+    }
+    else{
+        DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible ")) ;
+    }
+
+    DEBUG_INDENT(-4); 
+
+    return ((n_piece_max == 1) && (n_piece_min == 1)) ;
+
+}
 
 
 void computation::shift(tiramisu::var L0_var, int n)

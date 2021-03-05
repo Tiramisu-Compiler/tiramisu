@@ -156,6 +156,24 @@ void performe_full_dependency_analysis();
  */
 void prepare_schedules_for_legality_checks() ;
 
+ /**
+     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+  */
+  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+  /**
+  * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+  */
+  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+  /**
+  * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+  */
+  bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
 //*******************************************************
 
 /**
@@ -1219,6 +1237,29 @@ public:
      * It calls gen_ordering_schedules() and align_schedules() function's methods internally
     */
     void prepare_schedules_for_legality_checks() ;
+
+
+    /**
+     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+    */
+    // @{
+    bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+    bool loop_parallelization_is_legal(int parallel_dim, std::vector<tiramisu::computation *> fuzed_computations);
+    // @}
+
+    /**
+     * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+    */
+    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+    /**
+     * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+    */
+    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
 
 };
 
@@ -4162,11 +4203,16 @@ public:
      * This methods returns a boolean: True if this subset of dependencies is respected, otherwise False.
      * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
-     * so invoking \p prepare_schedules_for_legality_checks() method before is highly mandatory. 
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */
     virtual bool involved_subset_of_dependencies_is_legal(tiramisu::computation * second) ;
 
-
+     
+    /**
+     * Checks if it's possible to unroll the loop level \p l for this computation.
+     * This is True when the bounds of the loop are constants. 
+     **/
+    virtual bool unrolling_is_legal(var l) ;
 
     /**
       * Split the loop level \p L0 of the iteration space into two
