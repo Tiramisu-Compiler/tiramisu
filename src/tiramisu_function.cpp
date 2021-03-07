@@ -2662,5 +2662,219 @@ void tiramisu::function::prepare_schedules_for_legality_checks()
     this->gen_ordering_schedules();
 }
 
+bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(i.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL ) ;
+    assert(this->dep_write_after_write != NULL ) ;
+    assert(this->dep_write_after_read != NULL ) ;
+    assert(fuzed_computations.size()>0) ;
+
+    computation * first_computation = fuzed_computations[0]  ;
+    
+    DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
+
+    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        first_computation->get_loop_level_numbers_from_dimension_names({i.get_name()});
+
+    first_computation->check_dimensions_validity(dimensions);
+
+    bool result = true ;
+
+    for(auto& computation:fuzed_computations)
+    {
+        if(computation->unrolling_is_legal(i) == false)
+        {
+            result = false;
+            break;
+        }
+    }
+
+    DEBUG_INDENT(-4);
+
+    return result ;
+}
+
+bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var, std::vector<tiramisu::computation *> fuzed_computations )
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(par_dim_var.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL ) ;
+    assert(this->dep_write_after_write != NULL ) ;
+    assert(this->dep_write_after_read != NULL ) ;
+    assert(fuzed_computations.size()>0) ;
+
+    computation * first_computation = fuzed_computations[0]  ;
+    
+    DEBUG(3, tiramisu::str_dump(" var parallelization check is : "+par_dim_var.get_name()));
+
+    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        first_computation->get_loop_level_numbers_from_dimension_names({par_dim_var.get_name()});
+
+    first_computation->check_dimensions_validity(dimensions);
+
+    bool result = this->loop_parallelization_is_legal(dimensions[0],fuzed_computations) ;
+
+    DEBUG_INDENT(-4);
+
+    return result ;
+}
+
+
+bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::vector<tiramisu::computation *> fuzed_computations)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL ) ;
+    assert(this->dep_write_after_write != NULL ) ;
+    assert(this->dep_write_after_read != NULL ) ;
+    assert(fuzed_computations.size()>0) ;
+
+    computation * first_computation = fuzed_computations[0]  ;
+    
+    std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
+
+    int par_dim = tiramisu::loop_level_into_dynamic_dimension(dim_parallel);
+
+    DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(par_dim)));
+
+    // Extracting deps
+
+     isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_read_after_write)) ;
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_read)) ;
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->dep_write_after_write)) ;
+
+    isl_union_map * all_deps = isl_union_map_union(
+        read_after_write_dep,
+        write_after_read_dep
+        ) ;
+
+    // all the deps in 1 union map
+    all_deps = isl_union_map_union(all_deps,write_after_write_dep) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the dependencies involved are : "+std::string(isl_union_map_to_str(all_deps))));
+
+    // all current schedules in 1 union map
+    std::string empty_union = "{}" ;
+    std::string empty_time  = "" ;
+
+    isl_union_map * schedules = isl_union_map_read_from_str(this->get_isl_ctx(),empty_union.c_str()) ;
+
+    isl_map * schedule_itr = NULL ;
+
+    for( auto& computation: fuzed_computations)
+    {
+        schedule_itr = isl_map_copy(computation->get_schedule()) ;
+
+        schedule_itr = isl_map_set_tuple_name(schedule_itr,isl_dim_out,empty_time.c_str()) ;
+
+        schedules = isl_union_map_union(schedules,isl_union_map_from_map(schedule_itr)) ;
+
+    }
+
+    DEBUG(3, tiramisu::str_dump(" all the used schedules are  : "+std::string(isl_union_map_to_str(schedules))));
+
+    // application to discard unused dep & represent them in their time space
+
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules)) ;
+
+    all_deps = isl_union_map_apply_domain(all_deps,isl_union_map_copy(schedules)) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps) ;
+
+    DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
+
+    bool overall_legality = false ;
+
+    /*
+        isl_equate adds restriction that both domain and range positions are equal
+        we suppose that legality of the lexicographical order is checked elsewhere, so we only need to check for loop caried dependencies.
+        if adding equation of == between input set & output set of map for a dimension strictly before the parallel one is empty means: 
+            dep is not a carried one for the parallel loop lvl, so parallelism is legal.
+
+        else 
+            if all previous equations added does not make the map empty then the last possibility is:
+                dep is within the same loop iteration, parallel is true ( true if equate doesn't make the map empty)
+                else it's false
+                
+    */
+    for(int i=0;i<par_dim;i++)
+    {
+        equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i) ;
+
+        if(isl_map_is_empty(equation_map))
+        {
+            overall_legality = true ;
+            DEBUG(10, tiramisu::str_dump(" parallelization is legal "));
+            break ;
+        }
+    
+    }
+
+    if(!overall_legality)
+    {
+        isl_map * equation_map_final = isl_map_equate(isl_map_copy(equation_map),isl_dim_in,par_dim,isl_dim_out,par_dim) ;
+
+        if(isl_map_is_equal(equation_map,equation_map_final) == isl_bool_false)
+        {
+            overall_legality = false ;
+            DEBUG(3, tiramisu::str_dump(" parallelization is illegal "));
+        }
+        else{
+            overall_legality = true ;
+            DEBUG(3, tiramisu::str_dump(" parallelization is legal "));
+        }
+    }
+
+
+    DEBUG_INDENT(-4); 
+    return overall_legality ;
+
+
+}
+
+bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(i.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL ) ;
+    assert(this->dep_write_after_write != NULL ) ;
+    assert(this->dep_write_after_read != NULL ) ;
+    assert(fuzed_computations.size()>0) ;
+
+    DEBUG(3, tiramisu::str_dump(" vectorization check for var : "+i.get_name()));
+
+    bool result = this->loop_unrolling_is_legal(i,fuzed_computations) 
+                && this->loop_parallelization_is_legal(i,fuzed_computations)  ;
+
+    DEBUG(3, tiramisu::str_dump(" vectorization legality is : "+result));
+
+    DEBUG_INDENT(-4);
+
+    return result;
+}
+
 
 }
