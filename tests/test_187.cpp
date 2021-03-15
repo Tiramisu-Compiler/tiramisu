@@ -1,11 +1,11 @@
 #include <tiramisu/tiramisu.h>
 
-#include "wrapper_test_185.h"
+#include "wrapper_test_187.h"
 
 using namespace tiramisu;
 
 /**
- * Test skewing command.
+ * Test parallelization legality.
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -38,6 +38,7 @@ void generate_function(std::string name, int size, int val0)
     result.skew(i,j,1,-1,i1,j1);
 
     assert(loop_parallelization_is_legal(i1,{&result}) == true);
+    assert(loop_parallelization_is_legal(j1,{&result}) == false);
 
     result.parallelize(i1);
 

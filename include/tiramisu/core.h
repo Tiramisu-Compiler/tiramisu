@@ -1290,7 +1290,7 @@ public:
      * This method only tests the dependencies between the computations specified in the input and ignore the rest.
      * must be invoked after the correct call to \p performe_full_dependency_analysis()
     */
-    bool check_partiel_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
+    bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
 };
 

@@ -5,7 +5,7 @@
 using namespace tiramisu;
 
 /**
- * Test skewing command.
+ * Test unrolling legality.
  */
 
 void generate_function(std::string name, int size, int val0)

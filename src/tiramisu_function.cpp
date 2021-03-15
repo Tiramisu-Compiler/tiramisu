@@ -2655,7 +2655,7 @@ bool tiramisu::function::check_legality_for_function()
     return over_all_legality;
 }
 
-bool tiramisu::function::check_partiel_legality_in_function(std::vector<tiramisu::computation* > involved_computations)
+bool tiramisu::function::check_partial_legality_in_function(std::vector<tiramisu::computation* > involved_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3069,6 +3069,8 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
 
     int schedule_dim_number = 0;
 
+    int max_dynamic_number = 0;
+
     std::vector<int> all_schedule_dim_numbers;
 
     for(int i=0;i<dimensions.size();i++)
@@ -3077,6 +3079,11 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
         dynamic_var_mapping[schedule_dim_number] = vars_subjected_to_shifting[i];
         all_schedule_dim_numbers.push_back(schedule_dim_number);
         DEBUG(3, tiramisu::str_dump(" -> "+vars_subjected_to_shifting[i].get_name()+" lvl number in schedule is : "+std::to_string(schedule_dim_number)));
+
+        if(schedule_dim_number > max_dynamic_number)
+        {
+            max_dynamic_number = schedule_dim_number;
+        }
     }
 
     std::sort(all_schedule_dim_numbers.begin(), all_schedule_dim_numbers.end()); 
@@ -3385,6 +3392,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
             //check if delta is singleton
             isl_set * deltas = isl_map_deltas(isl_map_copy(dependency_map));
             deltas = isl_set_project_out(deltas,isl_dim_param,0,m1);
+            deltas = isl_set_project_out(deltas,isl_dim_set,max_dynamic_number+2,(m1-2)-max_dynamic_number);
             if(!isl_set_is_singleton(deltas))
             {
                 DEBUG(5, tiramisu::str_dump(" -### dependendency contains constants !! fusion aborted "));
@@ -3449,6 +3457,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
             //check if delta is singleton
             isl_set * deltas = isl_map_deltas(isl_map_copy(dependency_map));
             deltas = isl_set_project_out(deltas,isl_dim_param,0,m1);
+            deltas = isl_set_project_out(deltas,isl_dim_set,max_dynamic_number+2,(m1-2)-max_dynamic_number);
             if(!isl_set_is_singleton(deltas))
             {
                 DEBUG(5, tiramisu::str_dump(" -### dependendency contains constants !! fusion aborted "));

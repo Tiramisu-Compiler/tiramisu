@@ -5,7 +5,7 @@
 using namespace tiramisu;
 
 /**
- * Test skewing command.
+ * Test vectorization legality
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -42,6 +42,8 @@ void generate_function(std::string name, int size, int val0)
 
 
     assert(check_legality_of_function() == true);
+
+    result.parallelize(j1);
 
     // Code generation
     tiramisu::codegen({&buff_A}, "build/generated_fct_test_" + std::string(TEST_NUMBER_STR) + ".o");

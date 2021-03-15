@@ -3,8 +3,8 @@
 
 
 // Define these values for each new test
-#define TEST_NAME_STR       "parallelism_check"
-#define TEST_NUMBER_STR     "185"
+#define TEST_NAME_STR       "auto shifting check"
+#define TEST_NUMBER_STR     "189"
 // Data size
 #define SIZE0 1
 #define SIZE1 10
