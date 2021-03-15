@@ -152,9 +152,13 @@ void performe_full_dependency_analysis();
 
 /**
  * Prepare the schedules of the computations for legality checks for this implicit function by :
- * Aligning the schedules dimensions and generating the order between them 
+ * Aligning the schedules dimensions and generating the order between them.
+ * If reset_static_dimesion is set to true then the computations static dimensions would be resetted to 0.
+ * The execution order and static dimensions would be redefined back from \p sched_graph. i.e. the static dimensions manually specified with the low level interface would be lost.
+ * Resetting static dimensions would allow to make changes to \p sched_graph using after or then, these changes would be correctly evaluated by the legality checks.
+ * 
  */
-void prepare_schedules_for_legality_checks() ;
+void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 
  /**
      * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
@@ -1234,9 +1238,10 @@ public:
     /**
      * Align schedules dimensions and adds the computation's order to them. 
      * This is done to correctly invoke calculate_dep_flow() method that performs dependence analysis
-     * It calls gen_ordering_schedules() and align_schedules() function's methods internally
+     * It calls gen_ordering_schedules() and align_schedules() function's methods internally.
+     * if \p reset_static_dimesion is true then it will also call function.reset_all_static_dims_to_zero() before ordering.
     */
-    void prepare_schedules_for_legality_checks() ;
+    void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false) ;
 
 
     /**
@@ -1260,6 +1265,32 @@ public:
      * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
     */
     bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+
+    /**
+     * resets all the static beta dimensions in all the computations to Zero.
+     * This would allow the execution of fuction.generate_ordering many times without issues.
+     * Although, the static beta dimenesion and ordering that are not specified using the scheduling graph (after or then) would be lost.
+    */
+    void reset_all_static_dims_to_zero();
+
+    /**
+     * Automatically computes the shifting parameters for variables \p vars_subjected_to_shifting that would allow to legally fuse \p current computation,
+     * with the vector of computations \p previous_computations if it is possible.
+     * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
+     * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
+     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
+    */
+    std::vector<std::tuple<tiramisu::var,int>> correcting_loop_fusion_with_shifting(std::vector<tiramisu::computation*> previous_computations, tiramisu::computation current, std::vector<tiramisu::var> vars_subjected_to_shifting);
+
+    /**
+     * Uses the dependency analysis to check if the specified schedules of computations are legal.
+     * This method only tests the dependencies between the computations specified in the input and ignore the rest.
+     * must be invoked after the correct call to \p performe_full_dependency_analysis()
+    */
+    bool check_partiel_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
 };
 
