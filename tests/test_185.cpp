@@ -5,7 +5,7 @@
 using namespace tiramisu;
 
 /**
- * Test skewing command.
+ * Test parallelization legality.
  */
 
 void generate_function(std::string name, int size, int val0)
@@ -38,6 +38,7 @@ void generate_function(std::string name, int size, int val0)
     result.skew(i,j,1,1,i1,j1);
 
     assert(loop_parallelization_is_legal(j1,{&result}) == true);
+    assert(loop_parallelization_is_legal(i1,{&result}) == false);
 
     result.parallelize(j1);
 

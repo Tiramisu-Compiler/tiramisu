@@ -110,10 +110,10 @@ void performe_full_dependency_analysis()
     fct->performe_full_dependency_analysis() ;
 }
 
-void prepare_schedules_for_legality_checks()
+void prepare_schedules_for_legality_checks(bool reset_static_dimesion)
 {
     function *fct = global::get_implicit_function();
-    fct->prepare_schedules_for_legality_checks() ;
+    fct->prepare_schedules_for_legality_checks(reset_static_dimesion);
 }
 
 bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
@@ -4609,8 +4609,8 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
         isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unify));
 
         isl_map * result_sup = isl_set_lex_ge_set(
-            isl_set_copy(time_first),
-            isl_set_copy(time_second)
+            time_first,
+            time_second
         );
 
         if(isl_map_is_empty(result_sup) == false)
@@ -4623,9 +4623,23 @@ bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::c
         {
                 DEBUG(10, tiramisu::str_dump(" this dependency is respected by the current schedule  "));          
         }
+
+        isl_set_free(second_set);
+        isl_map_free(result_sup);
     }
 
     DEBUG_INDENT(-4);
+
+    isl_map_free(this_schedule_unify);
+    isl_map_free(second_schedule_unify);
+
+    isl_map_free(my_map1);
+    isl_map_free(my_map2);
+    isl_map_free(my_map3);
+
+    isl_union_map_free(write_after_read_dep);
+    isl_union_map_free(read_after_write_dep);
+    isl_union_map_free(write_after_write_dep);
 
     return overall_corectness;
 }
@@ -4732,6 +4746,8 @@ bool computation::unrolling_is_legal(var l)
     }
 
     DEBUG_INDENT(-4); 
+
+    isl_set_free(normal_set);
 
     return ((n_piece_max == 1) && (n_piece_min == 1)) ;
 
