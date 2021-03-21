@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
     // Some parameters for the search methods
     const int beam_size = 2;
-    const int max_depth = 4;
+    const int max_depth = 6;
 
     const int nb_samples = 5;
     const int topk = 1;

@@ -9,6 +9,7 @@ namespace tiramisu::auto_scheduler
 
 const std::vector<int> TILING_FACTORS_DEFAULT_LIST = {32, 64, 128};
 const std::vector<int> UNROLLING_FACTORS_DEFAULT_LIST = {4, 8, 16};
+const std::vector<std::tuple<int,int>> SKEWING_FACTORS_DEFAULT_LIST = {{1,1}, {1,2}, {2,1}};
 const int DEFAULT_MAX_NB_ITERATORS = 7;
 
 /**
@@ -30,11 +31,17 @@ protected:
      */
     std::vector<int> unrolling_factors_list;
 
+    /**
+     * A list of skewing factors to apply when skewing is applied.
+     */
+    std::vector<std::tuple<int,int>> skewing_factors_list;
+
 public:
     schedules_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
-                        std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST)
+                        std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST,
+                        std::vector<std::tuple<int,int>> skewing_factors_list = SKEWING_FACTORS_DEFAULT_LIST)
         
-        : tiling_factors_list(tiling_factors_list), unrolling_factors_list(unrolling_factors_list) {}
+        : tiling_factors_list(tiling_factors_list), unrolling_factors_list(unrolling_factors_list), skewing_factors_list(skewing_factors_list) {}
 
     virtual ~schedules_generator() {}
 

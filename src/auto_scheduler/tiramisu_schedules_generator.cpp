@@ -229,6 +229,7 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
     
     std::vector<int> shared_levels_extents;
     std::vector<int> innermost_extents;
+    std::vector<ast_node*> innermost_nodes;
     int nb_shared_iterators;
     
     // Generate the specified optimization
@@ -377,6 +378,12 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             break;
 
         case optimization_type::UNROLLING:
+            node->get_innermost_nodes(innermost_nodes);
+            // If one of the innermost loops is skewed unrolling can't be applied
+            for (ast_node* inner_most_node: innermost_nodes)
+                if (inner_most_node->skewed)
+                    return states;
+
             innermost_extents = ast.get_innermost_extents();
                
             // Apply all possible unrolling factors to all innermost iterators
@@ -433,6 +440,36 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
                 if (node->children.size() > 0)
                     node = node->children[0];
+            }
+            break;
+
+        case optimization_type::SKEWING:
+            shared_levels_extents = ast.get_shared_levels_extents();
+            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
+
+            // Since the only loops that can be skewed are the two outermost loops, we always have one possible combination of loops, we can only vary parameters
+            if (nb_shared_iterators<2)
+                return states;
+
+            for (std::tuple<int,int> factors: skewing_factors_list) {
+
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree* new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::SKEWING;
+                optim_info.node = new_node;
+
+                optim_info.nb_l = 2;
+                optim_info.l0 = 0;
+                optim_info.l1 = 1;
+                optim_info.l0_fact = std::get<0>(factors);
+                optim_info.l1_fact = std::get<1>(factors);
+
+                optim_info.comps = new_ast->computations_list;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
             }
             break;
 

@@ -252,6 +252,10 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             transform_ast_by_paralellize(opt);
             break;
 
+        case optimization_type::SKEWING:
+            transform_ast_by_skewing(opt);
+            break;
+
         default:
             break;
     }
@@ -499,6 +503,19 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
 void syntax_tree::transform_ast_by_paralellize(const optimization_info &info) {
     // Just sets the parallilezed tag to true
     info.node->parallelized = true;
+}
+
+void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
+    ast_node *node_1 = info.node;
+    ast_node *node_2 = node_1->children[0];
+
+    // To reflect that the node is skewed when printing the tree
+    node_1->name = node_1->name +"-Skewed(" + std::to_string(info.l0) + ")";
+    node_2->name = node_2->name +"-Skewed(" + std::to_string(info.l1) + ")";
+
+    // set skewed to true to avoid unrolling these nodes
+    node_1->skewed = true;
+    node_2->skewed = true;
 }
 
 syntax_tree* syntax_tree::copy_ast() const

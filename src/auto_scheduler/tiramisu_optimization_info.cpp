@@ -74,7 +74,11 @@ void apply_optimizations(optimization_info const& optim_info)
             for (auto comp: optim_info.comps)
                 comp->tag_parallel_level(optim_info.l0);
             break;
-                
+
+        case optimization_type::SKEWING:
+            block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
+            break;
+
         default:
             break;
     }
@@ -150,6 +154,10 @@ void print_optim(optimization_info optim)
 
         case optimization_type::PARALLELIZE:
             std::cout << "Parallelize" << " L" << optim.l0 << std::endl;
+            break;
+
+        case optimization_type::SKEWING:
+            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact << std::endl;
             break;
 
         default:

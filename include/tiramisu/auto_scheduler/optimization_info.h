@@ -15,7 +15,8 @@ enum optimization_type
     TILING,
     INTERCHANGE,
     UNROLLING,
-    PARALLELIZE
+    PARALLELIZE,
+    SKEWING
 };
 
 /**
