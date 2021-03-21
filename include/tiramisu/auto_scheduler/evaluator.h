@@ -116,7 +116,7 @@ public:
      * Return a JSON representation of the program represented by the AST.
      * Uses the function : represent_computations_from_nodes. 
      */
-    std::string get_program_json(syntax_tree const& ast);
+    static std::string get_program_json(syntax_tree const& ast);
     
     /**
      * A recursive subroutine that represents in JSON the computations of a given tree.
@@ -126,7 +126,7 @@ public:
     /**
      * Return a JSON representation of the schedule of the given AST.
      */
-    std::string get_schedule_json(syntax_tree const& ast);
+    static std::string get_schedule_json(syntax_tree const& ast);
     
     // --------------------------------------------------------------------------------- //
     

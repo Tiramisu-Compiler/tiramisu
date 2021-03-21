@@ -453,7 +453,7 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
             for (std::tuple<int,int> factors: skewing_factors_list) {
 
-                // Copy the AST and add interchange to the list of optimizations
+                // Copy the AST and add skewing to the list of optimizations
                 syntax_tree* new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 

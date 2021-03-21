@@ -15,6 +15,37 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eva
     searcher->set_eval_func(eval_func);
 }
 
+void auto_scheduler::sample_search_space(std::string filename)
+{
+    fct->reset_schedules();
+    initial_exec_time = exec_evaluator->evaluate(ast);
+    ast.evaluation = initial_exec_time;
+    std::string program_json = evaluate_by_learning_model::get_program_json(ast);
+    std::vector<std::string> schedules_annotations;
+
+    searcher->search_save(ast, &schedules_annotations);
+
+    std::string output_json;
+    output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
+                  "\n\t\"program_annotation\" : " + program_json + ", " +
+                  "\n\t\"initial_execution_time\" : " + std::to_string(initial_exec_time) + ", " +
+                  "\n\t\"schedules_list\" : [\n" ;
+
+    for (std::string schedules_annot : schedules_annotations)
+        output_json += schedules_annot + ",\n";
+    if (!schedules_annotations.empty()){
+        // remove the last comma
+        output_json.pop_back();
+        output_json.pop_back();
+        output_json += "\n";
+    }
+    output_json += "\t] \n}\n";
+
+    std::ofstream file(filename);
+    file << output_json;
+    file.close();
+}
+
 void auto_scheduler::find_schedule()
 {
     fct->reset_schedules();

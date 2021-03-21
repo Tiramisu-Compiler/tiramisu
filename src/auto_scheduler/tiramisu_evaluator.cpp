@@ -58,7 +58,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     int status = system(gcc_cmd.c_str());
     
     // Execute the wrapper and get execution time
-    double exec_time = 0.f;
+    double exec_time = std::numeric_limits<double>::infinity();
     FILE *pipe = popen(wrapper_cmd.c_str(), "r");
     
     fscanf(pipe, "%lf", &exec_time);
