@@ -97,6 +97,44 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
     fct->codegen(arguments, obj_filename, gen_architecture_flag);
 }
 
+bool check_legality_of_function()
+{
+    function *fct = global::get_implicit_function();
+    return fct->check_legality_for_function() ;
+}
+
+
+void performe_full_dependency_analysis()
+{
+    function *fct = global::get_implicit_function();
+    fct->performe_full_dependency_analysis() ;
+}
+
+void prepare_schedules_for_legality_checks(bool reset_static_dimesion)
+{
+    function *fct = global::get_implicit_function();
+    fct->prepare_schedules_for_legality_checks(reset_static_dimesion);
+}
+
+bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_parallelization_is_legal(i,fuzed_computations);
+}
+
+bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_unrolling_is_legal(i,fuzed_computations);
+}
+
+bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+{
+    function *fct = global::get_implicit_function();
+    return fct->loop_vectorization_is_legal(i,fuzed_computations);
+}
+
+
 //********************************************************
 
 isl_set *tiramisu::computation::get_iteration_domains_of_all_definitions()
@@ -4391,6 +4429,327 @@ void computation::skew(int L0 , int L1 , int f_i , int f_j)
                                 isl_map_to_str(schedule)));
 
     this->set_schedule(schedule);
+
+}
+
+
+bool tiramisu::computation::involved_subset_of_dependencies_is_legal(tiramisu::computation * second)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+    assert(!second->get_name().empty());
+    
+    assert(this->get_function()->dep_read_after_write != NULL);
+    
+    //extract this => Second dependencies from function
+
+    isl_union_map * read_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_read_after_write));
+
+    isl_union_map * write_after_read_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_read));
+
+    isl_union_map * write_after_write_dep = isl_union_map_range_factor_domain(
+        isl_union_map_copy(this->get_function()->dep_write_after_write));
+
+
+    //construct the maps of the space needed
+    std::string space_map = "{" + this->get_name() + "[";
+
+    for(int i = 0 ; i< this->number_of_dims ; i++){
+
+        space_map += "i" + std::to_string(i);
+
+        if(i != (this->number_of_dims - 1))
+        {
+            space_map += ",";
+        }
+    }
+    space_map += "]->" + second->get_name() + "[";
+
+    for(int i = 0 ; i < second->number_of_dims ; i++){
+
+        space_map+= "i" + std::to_string(i) ;
+
+        if(i != (second->number_of_dims -1 ))
+        {
+            space_map += "," ;
+        }
+    }
+    
+    space_map += "]}" ;
+
+    DEBUG(3, tiramisu::str_dump(" the space map is to extract deps : "+space_map));
+
+    isl_space * space = isl_map_get_space(
+        isl_map_read_from_str(this->get_ctx(),space_map.c_str())
+        );
+
+    isl_map * my_map1 = isl_union_map_extract_map(read_after_write_dep,isl_space_copy(space));
+
+    isl_map * my_map2 = isl_union_map_extract_map(write_after_read_dep,isl_space_copy(space));
+
+    isl_map * my_map3 = isl_union_map_extract_map(write_after_write_dep,isl_space_copy(space));
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map1))));
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map2))));
+
+    DEBUG(10, tiramisu::str_dump(" the extracted deps are : "+std::string(isl_map_to_str(my_map3))));
+
+    std::vector<isl_basic_map *> all_basic_maps ;
+    
+
+    auto f = [](isl_basic_map * bmap,void * user) { 
+
+        std::vector<isl_basic_map *>& myName = *reinterpret_cast<std::vector<isl_basic_map*>*>(user);
+     
+        myName.push_back(bmap);
+        return isl_stat_ok;
+    };
+    
+    isl_stat (*fun_ptr)(isl_basic_map * p,void * m) = (f);
+
+    isl_map_foreach_basic_map(my_map1,fun_ptr,(void * ) &all_basic_maps);
+
+    isl_map_foreach_basic_map(my_map2,fun_ptr,(void * ) &all_basic_maps);
+
+    isl_map_foreach_basic_map(my_map3,fun_ptr,(void * ) &all_basic_maps);
+
+
+    /* ==========================================
+        extract schedules of 2 computation
+    */
+   assert(this->get_function()->get_schedule()!= NULL) ;
+
+   int m1 = isl_map_dim(this->get_schedule(), isl_dim_out);
+   int m2 = isl_map_dim(second->get_schedule(), isl_dim_out);
+
+   assert(m1 == m2) ;
+
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+this->get_name()+" : "+std::string(isl_map_to_str(this->get_schedule()))));
+    DEBUG(3, tiramisu::str_dump(" the current schedule of computation "+second->get_name()+" : "+std::string(isl_map_to_str(second->get_schedule()))));
+
+    /* ==========================================
+       making schedules comparable by mapping to the same time space
+    */
+  
+    std::string empty = "" ;
+
+    isl_map * this_schedule_unify = isl_map_set_tuple_name(
+        isl_map_copy(this->schedule),
+        isl_dim_out,
+        empty.c_str()
+        );
+
+
+    isl_map * second_schedule_unify = isl_map_set_tuple_name(
+        isl_map_copy(second->schedule),
+        isl_dim_out,
+        empty.c_str()
+        );
+    
+    DEBUG(3, tiramisu::str_dump(" first schedule adjusted into timestamp "+std::string(isl_map_to_str(this_schedule_unify))));
+    DEBUG(3, tiramisu::str_dump(" second schedule adjusted into timestamp "+std::string(isl_map_to_str(second_schedule_unify))));
+
+    
+
+    std::string s0_set = "[";
+
+    for(int i=0 ;i<this->number_of_dims;i++)
+    {
+        s0_set += "n" + std::to_string(i) ;
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set += ",";
+        }
+    }
+    s0_set += "]->{" + this->get_name() + "[";
+
+    for(int i=0 ;i < this->number_of_dims; i++)
+    {
+        s0_set += "n" + std::to_string(i);
+        if(i != (this->number_of_dims -1 ))
+        {
+            s0_set += "," ;
+        }
+    }
+    s0_set += "]}" ;
+
+
+    DEBUG(3, tiramisu::str_dump(" initial set of first computation is : "+s0_set));
+
+    isl_set * first_set = isl_set_read_from_str(this->get_ctx(),s0_set.c_str()) ;// in S0
+
+    
+   /* ==========================================
+        always check that S0 is lex inferior than S1 , for that : S1>=S0 need always to be empty
+    */
+ 
+    bool overall_corectness = true ;
+
+    DEBUG(10, tiramisu::str_dump(" check the respect of previous deps nature start : "));
+    
+    for (auto& dependency:all_basic_maps)
+    {
+
+        DEBUG(10, tiramisu::str_dump(" the dependency is : "+std::string(isl_basic_map_to_str(dependency))));
+
+        isl_set * second_set = isl_set_apply(
+            isl_set_copy(first_set),
+            isl_map_from_basic_map(isl_basic_map_copy(dependency))
+            );
+        // in S1
+
+        isl_set * time_first = isl_set_apply(isl_set_copy(first_set),isl_map_copy(this_schedule_unify));
+        isl_set * time_second = isl_set_apply(isl_set_copy(second_set),isl_map_copy(second_schedule_unify));
+
+        isl_map * result_sup = isl_set_lex_ge_set(
+            time_first,
+            time_second
+        );
+
+        if(isl_map_is_empty(result_sup) == false)
+        {
+            overall_corectness = false;
+            DEBUG(10, tiramisu::str_dump(" dependency is wrong by current schedule "));
+            break;
+        }
+        else
+        {
+                DEBUG(10, tiramisu::str_dump(" this dependency is respected by the current schedule  "));          
+        }
+
+        isl_set_free(second_set);
+        isl_map_free(result_sup);
+    }
+
+    DEBUG_INDENT(-4);
+
+    isl_map_free(this_schedule_unify);
+    isl_map_free(second_schedule_unify);
+
+    isl_map_free(my_map1);
+    isl_map_free(my_map2);
+    isl_map_free(my_map3);
+
+    isl_union_map_free(write_after_read_dep);
+    isl_union_map_free(read_after_write_dep);
+    isl_union_map_free(write_after_write_dep);
+
+    return overall_corectness;
+}
+
+bool computation::unrolling_is_legal(var l)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    assert(l.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->get_function() != NULL);
+
+    std::vector<std::string> original_loop_level_names = this->get_loop_level_names();
+
+    std::vector<int> dimensions =
+        this->get_loop_level_numbers_from_dimension_names({l.get_name()});
+
+    this->check_dimensions_validity(dimensions);
+
+    std::string str_schedule(isl_map_to_str(this->schedule)) ;
+    
+    DEBUG(10, tiramisu::str_dump(" schedule is "+str_schedule));
+
+    isl_set * time_set = isl_map_range(isl_map_copy(this->schedule)) ;
+
+    int target_dim = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
+
+    DEBUG(3, tiramisu::str_dump(" target dim number is : "+std::to_string(target_dim)));
+
+    DEBUG(3, tiramisu::str_dump(" the time set is : "+std::string(isl_set_to_str(time_set))));
+
+    unsigned int n_dim = isl_set_n_dim(time_set);
+    
+    std::string set_n = "[n0";
+    std::string set_var = "->{"+this->get_name()+"[";
+
+    int iteration = 1 ;
+    int dimension_index = 0;
+    bool var_found = false ;
+
+
+    for(unsigned int i=0;i<n_dim;i++)
+    {
+        if(!var_found)
+        {
+            set_n +=",n"+std::to_string(iteration);
+
+            if(i == target_dim)
+            {
+                    var_found = true ;
+                    set_n += "]" ;
+                    set_var += l.get_name();
+            }
+            else{
+                set_var +=   "n"+std::to_string(iteration)+",";
+                dimension_index ++ ;
+            }
+        }
+        else
+        {
+             set_var += ",t"+std::to_string(i);
+        }
+        iteration++;
+
+    }    
+
+    isl_map * normal_schedule = isl_map_copy(this->schedule);
+
+    isl_map * reverse = isl_map_reverse(isl_map_copy(normal_schedule));
+
+    std::string set_complete = set_n + set_var +"]}";
+
+    isl_set * reversed_set = isl_set_apply(
+         isl_set_read_from_str(this->get_ctx(),set_complete.c_str()),
+         reverse);
+
+    DEBUG(10, tiramisu::str_dump(" to initial set  "+std::string(isl_set_to_str(reversed_set))));
+
+    isl_set * normal_set = isl_set_apply(reversed_set,normal_schedule) ;
+
+    DEBUG(10, tiramisu::str_dump(" dimension number is : "+std::to_string(dimension_index)));
+
+    DEBUG(3, tiramisu::str_dump(" set with applied constraints : "+std::string(isl_set_to_str(normal_set) )));
+    
+    isl_pw_aff * max = isl_set_dim_max(isl_set_copy(normal_set),dimension_index) ;
+    isl_pw_aff * min = isl_set_dim_min(isl_set_copy(normal_set),dimension_index) ;
+
+    // count the number of element that forms the max & min for the specified var
+
+    DEBUG(3, tiramisu::str_dump(" max is  : "+std::string(isl_pw_aff_to_str(max) )));
+    DEBUG(3, tiramisu::str_dump(" min is  : "+std::string(isl_pw_aff_to_str(min))));
+
+
+    int n_piece_max = isl_pw_aff_n_piece(max) ;
+
+    int n_piece_min =  isl_pw_aff_n_piece(min) ;
+ 
+    if((n_piece_max == 1) && (n_piece_min == 1))
+    {
+        DEBUG(3, tiramisu::str_dump(" max & min are both cst unrolling legal")) ;
+    }
+    else{
+        DEBUG(3, tiramisu::str_dump(" max & min are not cst unrolling impossible ")) ;
+    }
+
+    DEBUG_INDENT(-4); 
+
+    isl_set_free(normal_set);
+
+    return ((n_piece_max == 1) && (n_piece_min == 1)) ;
 
 }
 

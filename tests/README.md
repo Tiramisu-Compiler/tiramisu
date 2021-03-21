@@ -55,3 +55,8 @@ test number `XX` in the file `tests/test_list.txt`.
 - gen_communication() : 160
 - loop_reversal() : 175
 - skew() : 176 177 178
+- dependence analysis & legality check: 179 180 181 182 183 184
+- parallelism check : 185,187
+- unrolling check : 186
+- vectorization check : 188
+- .correcting_loop_fusion_with_shifting() + partial legality 189 190 191 
