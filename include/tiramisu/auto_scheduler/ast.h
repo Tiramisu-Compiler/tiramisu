@@ -102,6 +102,11 @@ public:
     bool unrolled = false;
 
     /**
+     * True if the loop level has been parallelized
+     */
+    bool parallelized = false;
+
+    /**
      * List of the computations computed at this level.
      */
     std::vector<computation_info> computations;
@@ -325,6 +330,7 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
+    void transform_ast_by_paralellize(const optimization_info &info);
     
     /**
      * Copy this AST, and return the copy.
@@ -398,6 +404,13 @@ public:
      * Print the AST to stdout.
      */
     void print_ast() const;
+
+    /**
+     * Print information about the applied optimizations
+     */
+    void print_new_optims() const;
+
+    void print_previous_optims() const;
 };
 
 }

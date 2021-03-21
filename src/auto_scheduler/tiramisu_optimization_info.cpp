@@ -68,6 +68,12 @@ void apply_optimizations(optimization_info const& optim_info)
             else
                 unroll_innermost_levels(optim_info.comps, optim_info.l0_fact);
             break;
+
+        case optimization_type::PARALLELIZE:
+            // tiramisu::block doesn't implement tag_parallel_level(int), the solution is to iterate over computations and parallelize each
+            for (auto comp: optim_info.comps)
+                comp->tag_parallel_level(optim_info.l0);
+            break;
                 
         default:
             break;
@@ -116,4 +122,38 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
     return next_comp;
 }
 
+void print_optim(optimization_info optim)
+{
+    switch(optim.type) {
+        case optimization_type::FUSION:
+            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            break;
+
+        case optimization_type::UNFUSE:
+            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            break;
+
+        case optimization_type::INTERCHANGE:
+            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1  << std::endl;
+            break;
+
+        case optimization_type::TILING:
+            std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
+            if (optim.nb_l == 3)
+                std::cout << " L" << optim.l2 << " " << optim.l2_fact;
+            std::cout << std::endl;
+            break;
+
+        case optimization_type::UNROLLING:
+            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact << std::endl;
+            break;
+
+        case optimization_type::PARALLELIZE:
+            std::cout << "Parallelize" << " L" << optim.l0 << std::endl;
+            break;
+
+        default:
+            break;
+    }
+}
 }

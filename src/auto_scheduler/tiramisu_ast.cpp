@@ -247,7 +247,11 @@ void syntax_tree::transform_ast(optimization_info const& opt)
         case optimization_type::UNROLLING:
             transform_ast_by_unrolling(opt);
             break;
-            
+
+        case optimization_type::PARALLELIZE:
+            transform_ast_by_paralellize(opt);
+            break;
+
         default:
             break;
     }
@@ -490,6 +494,11 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
             i_inner->update_depth(i_outer->depth + 1);
         }
     }
+}
+
+void syntax_tree::transform_ast_by_paralellize(const optimization_info &info) {
+    // Just sets the parallilezed tag to true
+    info.node->parallelized = true;
 }
 
 syntax_tree* syntax_tree::copy_ast() const
@@ -793,14 +802,29 @@ void syntax_tree::print_ast() const
 	    root->print_node();
 }
 
+void syntax_tree::print_new_optims() const
+{
+    for (optimization_info optim: new_optims)
+        print_optim(optim);
+}
+
+void syntax_tree::print_previous_optims() const
+{
+    for (optimization_info optim: previous_optims)
+        print_optim(optim);
+}
+
 void ast_node::print_node() const
 {
     if (get_extent() > 1)
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
-            
-        std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled << std::endl;
+
+        std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled;
+        if (parallelized)
+            std::cout << " | P";
+        std::cout << std::endl;
     }
     
     for (computation_info const& comp_info : computations) 

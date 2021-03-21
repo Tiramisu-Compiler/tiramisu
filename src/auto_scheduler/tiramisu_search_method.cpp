@@ -35,7 +35,10 @@ void beam_search::search(syntax_tree& ast)
         child->transform_ast();
             
         child->evaluation = eval_func->evaluate(*child);
-        
+
+        child->print_previous_optims();
+        std::cout << "-----------" << std::endl;
+        child->print_new_optims();
         child->print_ast();
         std::cout << "Evaluation : " << child->evaluation << std::endl << std::endl;
         
@@ -62,12 +65,13 @@ void beam_search::search(syntax_tree& ast)
         return a->evaluation < b->evaluation;
     });
 
-    // Search recursively on the best children
+    // keep the top 'beam_size' children and delete the rest
     for (int i = beam_size; i < children.size(); ++i)
         delete children[i];
         
     children.resize(std::min(beam_size, (int)children.size()));
 
+    // Search recursively on the best children
     for (syntax_tree *child : children)
     {
         child->search_depth = ast.search_depth + 1;        

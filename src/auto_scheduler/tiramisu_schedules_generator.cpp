@@ -412,6 +412,30 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             }
             break;
 
+        case optimization_type::PARALLELIZE:
+            shared_levels_extents = ast.get_shared_levels_extents();
+            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
+            for (int i = 0; i < nb_shared_iterators; ++i)
+            {
+                // Copy the AST and add parallelization to the list of optimizations
+                syntax_tree* new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                optimization_info optim_info;
+                optim_info.type = optimization_type::PARALLELIZE;
+                optim_info.node = new_node;
+
+                optim_info.nb_l = 1;
+                optim_info.l0 = i;
+
+                optim_info.comps = new_ast->computations_list;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+
+                if (node->children.size() > 0)
+                    node = node->children[0];
+            }
+            break;
+
         default:
             break;
     }
