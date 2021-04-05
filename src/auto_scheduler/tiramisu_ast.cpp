@@ -154,9 +154,31 @@ void syntax_tree::order_computations()
 {
     if (roots.size() < 2)
         return ;
-        
-    // We use the scheduling graph (fct->sched_graph) to find the computations order
+
+    //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
+    std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
+    std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
     for (auto& sched_graph_node : fct->sched_graph)
+        for (auto& sched_graph_child : sched_graph_node.second)
+            rs_comps.push_back(sched_graph_child.first);
+
+    for (tiramisu::computation* comp: this->computations_list)
+        if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
+            nrs_comps.push_back(comp);
+
+    std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
+
+    for (tiramisu::computation* comp: nrs_comps){
+        tiramisu::computation* current_comp= comp;
+        while (fct->sched_graph.find(current_comp) != fct->sched_graph.end()) {
+            auto sched_graph_l = fct->sched_graph[current_comp];
+            sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
+            current_comp = sched_graph_l.begin()->first;
+        }
+    }
+
+    // We use the sorted scheduling graph to construct the computations AST
+    for (auto& sched_graph_node : sorted_sched_graph)
     {
         tiramisu::computation *parent_comp = sched_graph_node.first;
         
@@ -641,6 +663,9 @@ ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level
 {
     ast_node *node = computations_mapping[comp];
     int current_level = node->depth;
+
+    if (node->name == "dummy_iter")
+        node = node->parent; // because dummy iterators are not counted as a loop level
     
     while (current_level > level && node->parent != nullptr)
     {
