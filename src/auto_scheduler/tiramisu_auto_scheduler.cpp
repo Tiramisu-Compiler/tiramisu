@@ -18,7 +18,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eva
 void auto_scheduler::sample_search_space(std::string filename)
 {
     fct->reset_schedules();
-    initial_exec_time = exec_evaluator->evaluate(ast);
+    initial_exec_time = exec_evaluator->evaluate_timeout(ast);
     ast.evaluation = initial_exec_time;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;

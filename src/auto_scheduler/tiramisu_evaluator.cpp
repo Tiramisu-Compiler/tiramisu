@@ -70,6 +70,54 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     return exec_time;
 }
 
+float evaluate_by_execution::evaluate_timeout(syntax_tree& ast)
+{
+    // Apply all the optimizations
+    apply_optimizations(ast);
+
+    // Compile the program to an object file
+    fct->lift_dist_comps();
+    fct->gen_time_space_domain();
+    fct->gen_isl_ast();
+    fct->gen_halide_stmt();
+
+    Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
+                                             Halide::Internal::LoweredFunc::External,
+                                             fct->get_halide_stmt());
+
+    m.compile(Halide::Outputs().object(obj_filename));
+
+    // Turn the object file to a shared library
+    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    int status = system(gcc_cmd.c_str());
+
+    // Execute the wrapper and get execution time
+    double exec_time = std::numeric_limits<double>::infinity();
+
+    if (std::getenv("EVAL_TIMEOUT")!=NULL){ // check if a timeout is defined for the execution time
+        std::string timeout_cmd = std::string("timeout ") + std::getenv("EVAL_TIMEOUT") + std::string(" ") + wrapper_cmd;
+        FILE *pipe = popen(timeout_cmd.c_str(), "r");
+        fscanf(pipe, "%lf", &exec_time);
+        auto returnCode = pclose(pipe)/256;
+
+        if (returnCode == 124){ // a potential issue here is that the 124 exit code is returned by another error
+            std::cerr << "error: Execution time exceeded the defined timeout "<< std::getenv("EVAL_TIMEOUT")<< "s"<< std::endl;
+            exit(1);
+        }
+    }
+    else{
+        FILE *pipe = popen(wrapper_cmd.c_str(), "r");
+
+        fscanf(pipe, "%lf", &exec_time);
+        pclose(pipe);
+    }
+
+    // Remove all the optimizations
+    fct->reset_schedules();
+
+    return exec_time;
+}
+
 evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args)
     : evaluation_function()
 {

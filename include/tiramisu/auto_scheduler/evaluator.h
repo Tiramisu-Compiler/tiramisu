@@ -78,6 +78,12 @@ public:
 	 * Apply the specified optimizations, compile the program and execute it.
 	 */
     virtual float evaluate(syntax_tree& ast);
+
+    /**
+     * Apply the specified optimizations, compile the program and execute it.
+     * If the environment variable EVAL_TIMEOUT is defined, this method raises an error when the execution time exceeds EVAL_TIMEOUT
+     */
+    float evaluate_timeout(syntax_tree &ast);
 };
 
 /**
