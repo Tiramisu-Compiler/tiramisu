@@ -620,6 +620,8 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->low_bound = low_bound;
     new_node->up_bound = up_bound;
     new_node->unrolled = unrolled;
+    new_node->skewed = skewed;
+    new_node->parallelized = parallelized;
     new_node->computations = computations;
 
     return ret_node;
