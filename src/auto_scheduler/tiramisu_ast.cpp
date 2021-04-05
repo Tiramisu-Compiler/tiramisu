@@ -14,6 +14,12 @@ computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast
     // Check if this computation is a reduction
     isl_map *storage_map = comp->access;
     buffer_nb_dims = isl_map_dim(storage_map, isl_dim_out);
+
+    write_access_relation = isl_map_to_str(storage_map);
+    storage_buffer_id = ast->get_buffer_id_from_computation_name(comp_ptr->name);
+
+    data_type_str = str_from_tiramisu_type_primitive(comp_ptr->get_data_type());
+    data_type_size = get_data_type_size();
     
     if (buffer_nb_dims < iters.size())
         is_reduction = true;
@@ -23,6 +29,34 @@ computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast
     // Get buffer_id for the accesses of this computation
     for (dnn_access_matrix& matrix : accesses.accesses_list)
         matrix.buffer_id = ast->get_buffer_id_from_computation_name(matrix.buffer_name);
+}
+
+int computation_info::get_data_type_size(){
+    switch (comp_ptr->get_data_type())
+    {
+        case tiramisu::p_uint8:
+            return 1;
+        case tiramisu::p_int8:
+            return 1;
+        case tiramisu::p_uint16:
+            return 2;
+        case tiramisu::p_int16:
+            return 2;
+        case tiramisu::p_uint32:
+            return 4;
+        case tiramisu::p_int32:
+            return 4;
+        case tiramisu::p_uint64:
+            return 8;
+        case tiramisu::p_int64:
+            return 8;
+        case tiramisu::p_float32:
+            return 4;
+        case tiramisu::p_float64:
+            return 8;
+        case tiramisu::p_boolean:
+            return 1;
+    }
 }
 
 void computation_info::get_info_from_expr(tiramisu::expr const& e)

@@ -26,7 +26,17 @@ void auto_scheduler::sample_search_space(std::string filename)
     searcher->search_save(ast, &schedules_annotations);
 
     std::string output_json;
+
+    std::string nb_exec = "\"default\"";
+    if (std::getenv("NB_EXEC")!=NULL)
+        nb_exec = std::string(std::getenv("NB_EXEC"));
+
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
+                  "\n\t\"parameters\" : {" +
+                  "\n\t\t\"beam_size\" : " + std::getenv("BEAM_SIZE") + ", " +
+                  "\n\t\t\"max_depth\" : " + std::getenv("MAX_DEPTH") + ", " +
+                  "\n\t\t\"nb_exec\" : " + nb_exec +
+                  "\n\t}, " +
                   "\n\t\"program_annotation\" : " + program_json + ", " +
                   "\n\t\"initial_execution_time\" : " + std::to_string(initial_exec_time) + ", " +
                   "\n\t\"schedules_list\" : [\n" ;

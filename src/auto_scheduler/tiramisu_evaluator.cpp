@@ -240,6 +240,11 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         comp_json += "\"number_of_subtraction\" : " + std::to_string(comp_info.nb_substractions) + ",";
         comp_json += "\"number_of_multiplication\" : " + std::to_string(comp_info.nb_multiplications) + ",";
         comp_json += "\"number_of_division\" : " + std::to_string(comp_info.nb_divisions) + ",";
+
+        comp_json += "\"write_access_relation\" : \"" +  comp_info.write_access_relation + "\",";
+        comp_json += "\"write_buffer_id\" : " +  std::to_string(comp_info.storage_buffer_id) + ",";
+        comp_json += "\"data_type\" : \"" +  comp_info.data_type_str + "\",";
+        comp_json += "\"data_type_size\" : " +  std::to_string(comp_info.data_type_size) + ",";
         
         // Build JSON for the accesses of this computation
         comp_json += "\"accesses\" : [";
@@ -297,11 +302,16 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     bool interchanged = false;
     bool tiled = false;
     bool unrolled = false;
+    bool skewed = false;
+    bool parallelized = false;
     
     int unfuse_l0 = -1;
     int int_l0, int_l1;
     int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
     int unrolling_fact;
+    int skewing_fact_l0, skewing_fact_l1;
+    int skewing_l0, skewing_l1;
+    int parallelized_level;
     
     // Get information about the schedule
     for (optimization_info const& optim_info : ast.new_optims)
@@ -341,6 +351,19 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
             case optimization_type::UNROLLING:
                 unrolled = true;
                 unrolling_fact = optim_info.l0_fact;
+                break;
+
+            case optimization_type::PARALLELIZE:
+                parallelized = true;
+                parallelized_level = optim_info.l0;
+                break;
+
+            case optimization_type::SKEWING:
+                skewed = true;
+                skewing_fact_l0 = optim_info.l0_fact;
+                skewing_fact_l1 = optim_info.l1_fact;
+                skewing_l0 = optim_info.l0;
+                skewing_l1 = optim_info.l1;
                 break;
                 
             default:
@@ -418,9 +441,32 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         
         if (unrolled)
         {
-            comp_sched_json += "\"" + std::to_string(unrolling_fact) + "\"";
+            comp_sched_json += "\"" + std::to_string(unrolling_fact) + "\",";
         }
-        
+        else
+        {
+            comp_sched_json += "null,";
+        }
+
+        // Parallelization tag
+        comp_sched_json += "\"parallelized_dim\" : ";
+        if (parallelized)
+        {
+            comp_sched_json += "\"" + iterators_list[parallelized_level].name + "\",";
+        }
+        else
+        {
+            comp_sched_json += "null, ";
+
+        }
+
+        // Skewing info
+        comp_sched_json += "\"skewing\" : ";
+        if (skewed)
+        {
+            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
+            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"]}";
+        }
         else
         {
             comp_sched_json += "null";

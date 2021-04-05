@@ -45,7 +45,27 @@ public:
      * True if this computation is a reduction.
      */
     bool is_reduction;
-    
+
+    /**
+     * A string representing the ISL write access relation of the computation.
+     */
+    std::string write_access_relation;
+
+    /**
+     * The ID of the buffer where the computation is stored
+     */
+    int storage_buffer_id;
+
+    /**
+     * A string representing the data type of the computation
+     */
+    std::string data_type_str;
+
+    /**
+     * Size of the data type in Bytes
+     */
+    int data_type_size;
+
     /**
      * Some metrics about the computation.
      */
@@ -64,6 +84,11 @@ public:
      * from the given expr.
      */
     void get_info_from_expr(tiramisu::expr const& e);
+
+    /**
+     * Returns the size of the computation's data type in Bytes
+     */
+    int get_data_type_size();
 };
 
 /**
