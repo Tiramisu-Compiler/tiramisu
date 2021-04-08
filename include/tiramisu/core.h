@@ -2492,7 +2492,7 @@ private:
       * The second computation created using separate can be accessed with
       * get_update().
       */
-    void separate(int dim, tiramisu::expr N, int v);
+    void separate(int dim, tiramisu::expr N, int v, tiramisu::expr lower_bound);
 
     /**
       * Like separate, but the precise separate points are specified in _separate_points. _max is the loop max.
@@ -4312,6 +4312,16 @@ public:
       *     void split(var L0, int sizeX);
       */
     virtual void split(int L0, int sizeX);
+
+     /**
+      * Split the loop level \p L0 of the iteration space into two
+      * new loop levels.
+      *
+      * \p sizeX is the extent (size) of the inner loop created after
+      * splitting.
+      * Takes into consideration the lower bound so that max() and min() would not appear if possible(implicit shifting).
+      */
+    virtual void split_with_lower_bound(int L0, int sizeX, std::string lower_bound);
 
     /**
      * Fold the storage of the computation.

@@ -743,7 +743,7 @@ std::string computation::get_dimension_name_for_loop_level(int loop_level)
  * we create a new computation. That is better than just keeping the same original
  * computation and addin a new schedule to it for the separated computation.
  */
-void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
+void tiramisu::computation::separate(int dim, tiramisu::expr N, int v, tiramisu::expr lower_bound)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -767,6 +767,16 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
         // operator, but that is more time consuming to implement than replacing the string directly.
         int pos = N_without_cast.find("cast");
         N_without_cast = N_without_cast.erase(pos, 4);
+    }
+
+    std::string lower_without_cast = lower_bound.to_str();
+    while (lower_without_cast.find("cast") != std::string::npos) // while there is a "cast" in the expression
+    {
+        // Remove "cast" from the string, we do not need it.
+        // An alternative to this would be to actually mutate the expression N and remove the cast
+        // operator, but that is more time consuming to implement than replacing the string directly.
+        int pos = lower_without_cast.find("cast");
+        lower_without_cast = lower_without_cast.erase(pos, 4);
     }
 
     std::string constraint;
@@ -794,13 +804,13 @@ void tiramisu::computation::separate(int dim, tiramisu::expr N, int v)
     constraint += "]: ";
 
     std::string constraint1 = constraint +
-                                this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*(floor((" + N_without_cast + ")/" + std::to_string(v) + ")))}";
+                        this->get_dimension_name_for_loop_level(dim) + " < (" + std::to_string(v) + "*( floor((" + N_without_cast + ")/" + std::to_string(v) + ")) +"+lower_without_cast+" )}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint1));
 
     // We create the constraint (i >= v*floor(N/v))
     DEBUG(3, tiramisu::str_dump("Constructing the constraint (i>=v*(floor(N/v)))"));
     std::string constraint2 = constraint +
-                                this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*(floor((" + N_without_cast + ")/" + std::to_string(v) + ")))}";
+                    this->get_dimension_name_for_loop_level(dim) + " >= (" + std::to_string(v) + "*(floor((" + N_without_cast + ")/" + std::to_string(v) + ")) +"+lower_without_cast+" )}";
     DEBUG(3, tiramisu::str_dump("The constraint is:" + constraint2));
 
     //////////////////////////////////////////////////////////////////////////////
@@ -5881,6 +5891,16 @@ bool computation::separateAndSplit(int L0, int v)
         tiramisu::expr(o_cast, global::get_loop_iterator_data_type(),
                        tiramisu::utility::get_bound(this->get_trimmed_time_processor_domain(), L0, false));
 
+    std::string lower_without_cast = loop_lower_bound.to_str();
+    while (lower_without_cast.find("cast") != std::string::npos) // while there is a "cast" in the expression
+    {
+        // Remove "cast" from the string, we do not need it.
+        // An alternative to this would be to actually mutate the expression N and remove the cast
+        // operator, but that is more time consuming to implement than replacing the string directly.
+        int pos = lower_without_cast.find("cast");
+        lower_without_cast = lower_without_cast.erase(pos, 4);
+    }
+
     tiramisu::expr loop_bound = loop_upper_bound - loop_lower_bound +
             tiramisu::expr(o_cast, global::get_loop_iterator_data_type(), tiramisu::expr((int32_t) 1));
     loop_bound = loop_bound.simplify();
@@ -5901,7 +5921,7 @@ bool computation::separateAndSplit(int L0, int v)
      * two different schedules.  Their schedule restricts them to a smaller domain
      * (the full or the separated domains) and schedule one after the other.
      */
-    this->separate(L0, loop_bound, v);
+    this->separate(L0, loop_bound, v,loop_lower_bound);
 
     // Make a copy of the schedule before splitting so that we revert the
     // schedule if splitting did not have any effect (i.e., did not happen).
@@ -5910,7 +5930,8 @@ bool computation::separateAndSplit(int L0, int v)
     /**
      * Split the full computation since the full computation will be vectorized.
      */
-    this->get_update(0).split(L0, v);
+    //this->get_update(0).split(L0, v);
+    this->get_update(0).split_with_lower_bound(L0, v,lower_without_cast);
 
     // Compute the depth after scheduling.
     int depth = this->compute_maximal_AST_depth();
@@ -6120,6 +6141,153 @@ void computation::split(int L0, int sizeX)
           outDim0_str + " = floor(" + inDim0_str + "/" +
           std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
           inDim0_str + "%" + std::to_string(sizeX) + ") and " + static_dim_str + " = 0}";
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    for (int i = 0; i < dimensions.size(); i++)
+        transformation_map = isl_map_set_dim_id(
+                                 transformation_map, isl_dim_out, i, isl_id_copy(dimensions[i]));
+
+    transformation_map = isl_map_set_tuple_id(
+                             transformation_map, isl_dim_in,
+                             isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(transformation_map, isl_dim_out, id_range);
+
+    DEBUG(3, tiramisu::str_dump("Transformation map : ",
+                                isl_map_to_str(transformation_map)));
+
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+
+    DEBUG(3, tiramisu::str_dump("Schedule after splitting: ", isl_map_to_str(schedule)));
+
+    this->set_schedule(schedule);
+
+    DEBUG_INDENT(-4);
+}
+
+
+void computation::split_with_lower_bound(int L0, int sizeX, std::string lower_bound)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    int inDim0 = loop_level_into_dynamic_dimension(L0);
+
+    assert(this->get_schedule() != NULL);
+    assert(inDim0 >= 0);
+    assert(inDim0 < isl_space_dim(isl_map_get_space(this->get_schedule()), isl_dim_out));
+    assert(sizeX >= 1);
+
+    isl_map *schedule = this->get_schedule();
+    int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+
+    schedule = isl_map_copy(schedule);
+    schedule = isl_map_set_tuple_id(schedule, isl_dim_out,
+                                    isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL));
+
+
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Splitting dimension " + std::to_string(inDim0)
+                                + " with split size " + std::to_string(sizeX)));
+
+    std::string inDim0_str;
+
+    std::string outDim0_str = generate_new_variable_name();
+    std::string static_dim_str = generate_new_variable_name();
+    std::string outDim1_str = generate_new_variable_name();
+
+    int n_dims = isl_map_dim(this->get_schedule(), isl_dim_out);
+    std::vector<isl_id *> dimensions;
+    std::vector<std::string> dimensions_str;
+    std::string map = "{";
+
+    // -----------------------------------------------------------------
+    // Preparing a map to split the duplicate computation.
+    // -----------------------------------------------------------------
+
+    map = map + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+        }
+        else
+        {
+            std::string dim_str = generate_new_variable_name();
+            dimensions_str.push_back(dim_str);
+            map = map + dim_str;
+
+            if (i == inDim0)
+            {
+                inDim0_str = dim_str;
+            }
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "] -> " + this->get_name() + "[";
+
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else if (i != inDim0)
+        {
+            map = map + dimensions_str[i];
+            dimensions.push_back(isl_id_alloc(
+                                     this->get_ctx(),
+                                     dimensions_str[i].c_str(),
+                                     NULL));
+        }
+        else
+        {
+            map = map + outDim0_str + ", " + static_dim_str + ", " + outDim1_str;
+            isl_id *id0 = isl_id_alloc(this->get_ctx(),
+                                       outDim0_str.c_str(), NULL);
+            isl_id *id2 = isl_id_alloc(this->get_ctx(),
+                                       static_dim_str.c_str(), NULL);
+            isl_id *id1 = isl_id_alloc(this->get_ctx(),
+                                       outDim1_str.c_str(), NULL);
+            dimensions.push_back(id0);
+            dimensions.push_back(id2);
+            dimensions.push_back(id1);
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    /**
+     * The main idea is to avoid a case when the iterations dont start from 0.
+     * let assume it start from 1, in that case after splitting of \p i into \p i1 & \p i2 with factor 4, the result would be:
+     *  in first iteration of \p i1 would would compute \p i2 = [1,2,3,4] then [5,6,7,8]
+     *  Whereas in the legacy version in first iteration of \p i1 would would compute \p i2 = [1,2,3]  then [4,5,6,7]
+     * 
+    */
+    inDim0_str =  "("+inDim0_str +" - "+lower_bound+")";
+
+    map = map + "] : " + dimensions_str[0] + " = " + std::to_string(duplicate_ID) + " and " +
+          outDim0_str + " = floor(" + inDim0_str + "/" +
+          std::to_string(sizeX) + ") and " + outDim1_str + " = (" +
+          inDim0_str + " %" + std::to_string(sizeX) + ") and " + static_dim_str + " = 0}";
+
 
     isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
 
