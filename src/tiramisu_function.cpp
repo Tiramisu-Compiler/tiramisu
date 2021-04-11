@@ -30,27 +30,41 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 
     assert(map != NULL);
     int mdim = isl_map_dim(map, isl_dim_out);
-    assert(max_dim >= mdim);
+    //assert(max_dim >= mdim);
 
-    DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
-
-    const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
-
-    map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
-
-    for (int i = mdim; i < max_dim; i++)
+    // in case where the max_dim is bigger than this map dimension, we add zeros to the schedule.
+    if(max_dim >= mdim)
     {
-        isl_space *sp = isl_map_get_space(map);
-        isl_local_space *lsp = isl_local_space_from_space(sp);
-        isl_constraint *cst = isl_constraint_alloc_equality(lsp);
-        cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, i, 1);
-        map = isl_map_add_constraint(map, cst);
+        DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
+
+        const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
+
+        map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
+
+        for (int i = mdim; i < max_dim; i++)
+        {
+            isl_space *sp = isl_map_get_space(map);
+            isl_local_space *lsp = isl_local_space_from_space(sp);
+            isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, i, 1);
+            map = isl_map_add_constraint(map, cst);
+        }
+
+        map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
+
+        DEBUG(10, tiramisu::str_dump("After alignment, map = ",
+                                    isl_map_to_str(map)));
+    }
+    else
+    {
+      // in case where the max_dim is smaller than this map dimension, we project_out (delete) additional dimensions
+       
+        DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
+        map = isl_map_project_out(map,isl_dim_out,max_dim,mdim-max_dim);
+        DEBUG(10, tiramisu::str_dump("After alignment, map = ",
+                                    isl_map_to_str(map)));
     }
 
-    map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
-
-    DEBUG(10, tiramisu::str_dump("After alignment, map = ",
-                                 isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
     return map;
@@ -1678,9 +1692,12 @@ int tiramisu::function::get_max_schedules_range_dim() const
     int max_dim = 0;
     for (const auto &comp : this->get_computations())
     {
-        isl_map *sched = comp->get_schedule();
-        int m = isl_map_dim(sched, isl_dim_out);
-        max_dim = std::max(max_dim, m);
+        if(comp->schedule_this_computation){
+
+            isl_map *sched = comp->get_schedule();
+            int m = isl_map_dim(sched, isl_dim_out);
+            max_dim = std::max(max_dim, m);
+        }
     }
 
     DEBUG_INDENT(-4);
@@ -1736,11 +1753,13 @@ void tiramisu::function::align_schedules()
 
     for (auto &comp : this->get_computations())
     {
+        
         isl_map *dup_sched = comp->get_schedule();
         assert((dup_sched != NULL) && "Schedules should be set before calling align_schedules");
         dup_sched = isl_map_align_range_dims(dup_sched, max_dim);
         comp->set_schedule(dup_sched);
         comp->name_unnamed_time_space_dimensions();
+        
     }
 
     DEBUG_INDENT(-4);

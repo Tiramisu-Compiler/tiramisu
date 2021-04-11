@@ -134,6 +134,8 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
 
     // Order the computations by the order specified by the user using "after" commands
     order_computations();
+
+    create_initial_isl_state();
     
     // Get the JSON representation of this AST iterators
     for (ast_node *node : roots)
@@ -305,7 +307,7 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             break;
 
         case optimization_type::PARALLELIZE:
-            transform_ast_by_paralellize(opt);
+            transform_ast_by_parallelism(opt);
             break;
 
         case optimization_type::SKEWING:
@@ -375,6 +377,8 @@ void syntax_tree::transform_ast_by_unfuse(optimization_info const& opt)
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 {
     ast_node *node = opt.node;
+
+    stage_isl_states();
     
     // 2 level tiling
     if (opt.nb_l == 2)
@@ -414,6 +418,42 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         j_inner->low_bound = 0;
         j_inner->up_bound = opt.l1_fact - 1;
+
+        /**
+         * Applying tiling to the nodes schedule and states
+        */
+        std::vector<computation_info*> all_data;
+        
+        //collect computations to tile
+        j_inner->collect_all_computation(all_data);
+
+        for(computation_info* info:all_data)
+        {
+            std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+            
+            std::string outer_name = loop_names[i_outer->depth];
+            std::string inner_name = loop_names[i_outer->depth+1];
+
+            std::string ii_outer = outer_name+"_outer";
+            std::string jj_outer = inner_name+"_outer";
+            std::string ii_inner = outer_name+"_inner";
+            std::string jj_inner = inner_name+"_inner";
+            
+            info->comp_ptr->tile(var(outer_name),var(inner_name)
+                                ,opt.l0_fact,opt.l1_fact,
+                                var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
+           
+            std::string f = "";
+            for(auto& str:loop_names)
+            {
+                f+=str+" ";
+            }
+            std::cout<<"DF2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
+           
+           
+        }
+
+
     }
         
     // 3 level tiling
@@ -469,13 +509,54 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         k_inner->low_bound = 0;
         k_inner->up_bound = opt.l2_fact - 1;
+
+        /**
+         * Applying to staging
+        */
+        std::vector<computation_info*> all_data;
+        
+        //collect computations to tile
+        j_inner->collect_all_computation(all_data);
+
+        for(computation_info* info:all_data)
+        {
+            std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
+            
+            std::string outer_name = loop_names[i_outer->depth];
+            std::string inner_name = loop_names[i_outer->depth+1];
+            std::string inner_name2 = loop_names[i_outer->depth+2];
+
+            std::string ii_outer = outer_name+"_outer";
+            std::string jj_outer = inner_name+"_outer";
+            std::string kk_outer = inner_name2+"_outer";
+            std::string ii_inner = outer_name+"_inner";
+            std::string jj_inner = inner_name+"_inner";
+            std::string kk_inner = inner_name2+"_inner";
+            
+            info->comp_ptr->tile(var(outer_name),var(inner_name),var(inner_name2)
+                                ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
+                                var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
+           
+            std::string f = "";
+            for(auto& str:loop_names)
+            {
+                f+=str+" ";
+            }
+            std::cout<<"DF2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
+        }
+
     }
 
     node->update_depth(node->depth);
+
+    recover_isl_states();
 }
 
+
 void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
-{
+{ 
+    stage_isl_states();
+
     ast_node *node1 = opt.node;
     
     // Find the node to interchange with
@@ -484,19 +565,45 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
         node2 = node2->children[0];
             
     // Rename the two nodes
-    std::string tmp_str;
-    tmp_str = node1->name;
+    std::string tmp_str =  node1->name;
     node1->name = node2->name;
     node2->name = tmp_str;
             
-    int tmp_int;
-    tmp_int = node1->low_bound;
+    int tmp_int  = node1->low_bound;
     node1->low_bound = node2->low_bound;
     node2->low_bound = tmp_int;
         
     tmp_int = node1->up_bound;
     node1->up_bound = node2->up_bound;
     node2->up_bound = tmp_int;
+
+
+    /**
+     * Applying to staging
+    */
+    std::vector<tiramisu::computation*> all_data;
+        
+    //collect computations to tile
+    node2->get_all_computations(all_data);
+
+    for(computation* info:all_data)
+    {
+        std::vector<std::string> loop_names = info->get_loop_level_names();
+            
+        std::string outer_name = loop_names[node1->depth];
+        std::string inner_name = loop_names[node2->depth];
+    
+        info->interchange(var(outer_name),var(inner_name));
+           
+        std::string f = "";
+        for(auto& str:loop_names)
+        {
+            f+=str+" ";
+        }
+        std::cout<<" vars "<<f<<" interchange : "<<outer_name<<" & "<<inner_name ;
+    }
+
+    recover_isl_states();
 }
 
 void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
@@ -556,22 +663,62 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
     }
 }
 
-void syntax_tree::transform_ast_by_paralellize(const optimization_info &info) {
+void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
     // Just sets the parallilezed tag to true
     info.node->parallelized = true;
 }
 
 void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
+    stage_isl_states();
+
     ast_node *node_1 = info.node;
     ast_node *node_2 = node_1->children[0];
 
-    // To reflect that the node is skewed when printing the tree
-    node_1->name = node_1->name +"-Skewed(" + std::to_string(info.l0) + ")";
-    node_2->name = node_2->name +"-Skewed(" + std::to_string(info.l1) + ")";
+    int number_space_outer =   node_1->up_bound - node_1->low_bound ;
+    int inner_space =  node_2->up_bound - node_2->low_bound ;
 
-    // set skewed to true to avoid unrolling these nodes
+    std::string new_1 = "skew" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
+    std::string new_2 = "skew2";
+
+    node_2->low_bound = 0;
+    node_1->low_bound = info.l0_fact * node_1->low_bound + info.l0_fact *node_2->low_bound; 
+    node_1->up_bound = node_1->low_bound + info.l0_fact * number_space_outer + info.l0_fact *inner_space ;
+    node_2->up_bound =  (( number_space_outer * inner_space )/(node_1->up_bound - node_1->low_bound)) + 1;
+
+    std::vector<computation_info*> all_data;
+        
+    std::string outer_name = "";
+    std::string inner_name = "";
+
+    //collect computations to tile
+    node_2->collect_all_computation(all_data);
+
+    for(computation_info* info_comp:all_data)
+    {
+        std::vector<std::string> loop_names = info_comp->comp_ptr->get_loop_level_names();
+            
+        outer_name = loop_names[node_1->depth];
+        inner_name = loop_names[node_1->depth+1];
+    
+        info_comp->comp_ptr->skew(var(outer_name),var(inner_name),
+            info.l0_fact,info.l1_fact,
+            var(outer_name+new_1),var(inner_name+new_2));
+           
+        std::string f = "";
+        for(auto& str:loop_names)
+        {
+            f+=str+" ";
+        }
+        std::cout<<" vars "<<f<<" Skewing : "<<outer_name<<" & "<<inner_name ;
+    }
+
+    node_1->name = outer_name+new_1;
+    node_2->name = inner_name+new_2;
+
     node_1->skewed = true;
     node_2->skewed = true;
+
+    recover_isl_states();
 }
 
 syntax_tree* syntax_tree::copy_ast() const
@@ -657,6 +804,12 @@ ast_node* ast_node::copy_and_return_node(ast_node *new_node, ast_node *node_to_f
     new_node->skewed = skewed;
     new_node->parallelized = parallelized;
     new_node->computations = computations;
+
+    //new_node->isl_states = isl_states;
+    for(auto state:isl_states)
+    {
+        new_node->isl_states.push_back(state);
+    }
 
     return ret_node;
 }
@@ -826,6 +979,24 @@ ast_node* ast_node::get_rightmost_node()
     return node;
 }
 
+void syntax_tree::get_shared_nodes_from_outermost(std::vector<ast_node*>& shared) const
+{
+    if(this->roots.size() == 1)
+    {
+        shared.push_back(roots[0]);
+        roots[0]->get_shared_nodes_from_outermost(shared);
+    }
+}
+
+void ast_node::get_shared_nodes_from_outermost(std::vector<ast_node*>& shared) const
+{
+    if(this->children.size() == 1)
+    {
+        shared.push_back(children[0]);
+        children[0]->get_shared_nodes_from_outermost(shared);
+    }
+}
+
 int syntax_tree::get_buffer_id_from_computation_name(std::string comp_name)
 {
     return get_buffer_id(buffers_mapping[comp_name]);
@@ -915,6 +1086,189 @@ void ast_node::print_node() const
 
     for (ast_node *child : children)
         child->print_node();
+}
+
+state_computation::state_computation(computation * origin)
+{
+    this->staging_computation =  origin;
+    this->current_schedule = isl_map_copy(origin->get_schedule());
+    is_state_staged = false;
+}
+
+
+state_computation::state_computation(state_computation const& reference)
+{
+    this->staging_computation =  reference.get_computation_unstated();
+    this->current_schedule = isl_map_copy(reference.get_inner_isl_map());
+    is_state_staged = false;
+}
+
+/*
+state_computation::state_computation(state_computation * reference)
+{
+    this->staging_computation =  reference->get_computation_unstated();
+    this->current_schedule = isl_map_copy(this->staging_computation->get_schedule());
+    is_state_staged = false;
+}*/
+
+
+void state_computation::move_schedule_to_staging()
+{
+    isl_map * tmp = this->staging_computation->get_schedule();
+
+    this->staging_computation->set_schedule(this->current_schedule);
+
+    this->current_schedule = tmp;
+
+    is_state_staged = true;
+}
+
+
+void state_computation::recover_schedule_from_staging()
+{
+    isl_map * tmp = this->staging_computation->get_schedule();
+
+    this->staging_computation->set_schedule(this->current_schedule);
+
+    this->current_schedule = tmp;
+
+    is_state_staged = false;
+}
+
+computation * state_computation::get_computation_staged()
+{
+    this->move_schedule_to_staging();
+    return this->staging_computation;
+}
+
+computation * state_computation::get_computation_unstated() const
+{
+     return this->staging_computation;
+}
+isl_map * state_computation::get_inner_isl_map() const
+{ 
+    return this->current_schedule; 
+}  
+
+bool state_computation::is_this_state_staged() const
+{
+    return is_state_staged;
+}
+
+void ast_node::print_isl_states() const
+{
+    for(auto& info:this->isl_states)
+    {
+        std::cout<<(std::string(isl_map_to_str(info.get_inner_isl_map()))) ;
+    }
+
+    for(ast_node* child:children)
+    {
+        child->print_isl_states();
+    }
+}
+
+
+void ast_node::create_initial_states()
+{
+    for(auto& info:this->computations)
+    {
+        this->isl_states.push_back(state_computation(info.comp_ptr));
+    }
+
+    for(ast_node* child:children)
+    {
+        child->create_initial_states();
+    }
+}
+
+
+void ast_node::stage_isl_states()
+{
+    for(auto& obj:this->isl_states)
+    {
+        obj.move_schedule_to_staging();
+    }
+    for(ast_node* child:children)
+    {
+        child->stage_isl_states();
+    }
+}
+
+
+void ast_node::recover_isl_states()
+{
+    for(auto& obj:this->isl_states)
+    {
+        obj.recover_schedule_from_staging();
+    }
+    for(ast_node* child:children)
+    {
+        child->recover_isl_states();
+    }
+
+}
+
+void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
+{
+    for(auto& info:this->computations)
+    {
+        vector.push_back(&info);
+    }
+
+    for(ast_node* child:children)
+    {
+        child->collect_all_computation(vector);
+    }
+}
+
+void syntax_tree::print_isl_states() const
+{
+    for(ast_node* root:this->roots)
+    {
+        root->print_isl_states();
+    }
+
+}
+
+void syntax_tree::create_initial_isl_state() const
+{
+    for(ast_node* root:this->roots)
+    {
+        root->create_initial_states();
+    }
+
+}
+
+void syntax_tree::stage_isl_states() const
+{
+    for(ast_node* root:this->roots)
+    {
+        root->stage_isl_states();
+    }
+
+}
+
+void syntax_tree::recover_isl_states() const
+{
+    for(ast_node* root:this->roots)
+    {
+        root->recover_isl_states();
+    }
+
+}
+
+bool syntax_tree::ast_is_legal() const
+{
+    stage_isl_states();
+
+    this->fct->prepare_schedules_for_legality_checks(false);
+
+    bool result = this->fct->check_legality_for_function();
+    recover_isl_states();
+
+    return result;
+
 }
 
 }

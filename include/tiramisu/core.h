@@ -49,6 +49,8 @@ class computation_info;
 class evaluate_by_execution;
 class dnn_access_matrix;
 class simple_generator;
+class state_computation;
+class ml_model_schedules_generator;
 
 void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 }
@@ -1726,7 +1728,8 @@ class computation
     friend auto_scheduler::ast_node;
     friend auto_scheduler::computation_info;
     friend auto_scheduler::evaluate_by_execution;
-    
+    friend auto_scheduler::state_computation;
+    friend auto_scheduler::ml_model_schedules_generator;
     friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 private:

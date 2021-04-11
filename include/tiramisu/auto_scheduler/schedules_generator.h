@@ -36,6 +36,28 @@ protected:
      */
     std::vector<std::tuple<int,int>> skewing_factors_list;
 
+    /**
+     * Max Number of dimension to explore for unrolling, starting from the innermost loop level,
+    */
+    int unrolling_search_deapth = 3;
+
+    /**
+     * Max Number of dimension to explore for parallelism, starting from the outermost loop level.
+     * stops at first found.
+    */
+    int parallelism_search_deapth = 3;
+
+    /**
+     * Max Number of dimension to explore for unrolling, starting from the innermost loop level
+    */
+    int vectorization_search_deapth = 3;
+
+    /**
+     * The number of diffrent skewing proposed, skewing versions that enable inner parallelism in our case.
+    */
+    int skewing_inner_parallelism_number = 3;
+
+
 public:
     schedules_generator(std::vector<int> const& tiling_factors_list = TILING_FACTORS_DEFAULT_LIST,
                         std::vector<int> const& unrolling_factors_list = UNROLLING_FACTORS_DEFAULT_LIST,

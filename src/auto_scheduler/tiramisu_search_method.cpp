@@ -29,28 +29,52 @@ void beam_search::search(syntax_tree& ast)
         return ;
        
     // Evaluate children and sort them from smallest to highest evaluation
-    for (syntax_tree *child : children)
-    {
-        child->nb_explored_optims = nb_explored_optims;
-        child->transform_ast();
-            
-        child->evaluation = eval_func->evaluate(*child);
+    
 
-        child->print_previous_optims();
-        std::cout << "-----------" << std::endl;
-        child->print_new_optims();
-        child->print_ast();
-        std::cout << "Evaluation : " << child->evaluation << std::endl << std::endl;
-        
-        if (child->evaluation < best_evaluation)
-        {
-            best_evaluation = child->evaluation;
-            best_ast = child;
+   // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
+    {
+        (*iterator)->nb_explored_optims = nb_explored_optims;
+        (*iterator)->transform_ast();
+
+        if ((*iterator)->ast_is_legal() == false) {
+
+            // print deleted Ast 
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            (*iterator)->print_isl_states();
+            std::cout << "\n<illegal>\n";
+            iterator = children.erase(iterator);
+        }
+        else {
+
+            // evaluate and print Ast 
+            (*iterator)->evaluation = eval_func->evaluate(*(*iterator));
+
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl << std::endl;
+            (*iterator)->print_isl_states();
+            std::cout << "\n<legal>\n";
+
+            if ((*iterator)->evaluation < best_evaluation)
+            {
+                best_evaluation = (*iterator)->evaluation;
+                best_ast = (*iterator);
+            }
+
+            ++iterator;
+
         }
         
         nb_explored_schedules++;
     }
-    
+
     // Stop if we reached the maximum depth
     if (nb_explored_optims >= max_depth)
         return ;
@@ -61,6 +85,13 @@ void beam_search::search(syntax_tree& ast)
     children.push_back(ast_copy);
 
     // Sort children from smallest evaluation to largest
+    
+    std::cout<<"\noriginal list\n" ;
+    for (syntax_tree *child : children)
+    {
+        std::cout<<child->evaluation<<"+";
+    }
+
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;
     });
@@ -68,8 +99,15 @@ void beam_search::search(syntax_tree& ast)
     // keep the top 'beam_size' children and delete the rest
     for (int i = beam_size; i < children.size(); ++i)
         delete children[i];
+    
         
     children.resize(std::min(beam_size, (int)children.size()));
+
+    std::cout<<"\nremaining list\n" ;
+    for (syntax_tree *child : children)
+    {
+        std::cout<<child->evaluation<<"+";
+    }
 
     // Search recursively on the best children
     for (syntax_tree *child : children)

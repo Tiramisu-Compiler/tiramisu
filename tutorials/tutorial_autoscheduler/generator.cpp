@@ -5,61 +5,55 @@
 using namespace tiramisu;
 
 // Set to true to perform autoscheduling
-bool perform_autoscheduling = false;
+
 
 // Path to python (please give absolute path)
-const std::string py_cmd_path = "/usr/bin/python";
+const std::string py_cmd_path = "/usr/bin/python3";
 
 // Path to a script that executes the ML model (please give absolute path)
-const std::string py_interface_path = "/data/tiramisu/tutorials/tutorial_autoscheduler/model/main.py";
+const std::string py_interface_path = "/home/nassim/Desktop/tiramisu_raw/tutorials/tutorial_autoscheduler/model/main.py";
 
 int main(int argc, char **argv)
 {
     tiramisu::init("conv");
     
-    var n("n", 0, 8), fout("fout", 0, 2), y("y", 0, 1024), x("x", 0, 1024), fin("fin", 0, 3) , 
-        k_y("k_y", 0, 3), k_x("k_x", 0, 3) , y_pad("y_pad", 0, 1026) , x_pad("x_pad", 0, 1026);
+    var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024);
     
     // Declare computations
-    input bias("bias", {fout}, p_int32);
-    input src("src", {n, fin, y_pad, x_pad}, p_int32);
-    input weights("weights", {n, fout, y, x}, p_int32);
 
-    computation conv_init("conv_init", {n, fout, y, x}, bias(fout));
-    computation conv("conv", {n, fout, y, x, fin, k_y, k_x}, p_int32);
-    conv.set_expression(conv(n, fout, y, x, fin, k_y, k_x) + src(n, fin, y + k_y, x + k_x) * weights(fout, fin, k_y, k_x));
-    
-    conv_init.then(conv, x);
+    input src("src", {x, y}, p_int32);
+
+
+    computation conv("conv", {t,x,y}, p_int32);
+    conv.set_expression( src(x+1,y) + src(x,y+1) + src(x,y) );
     
     // Declare buffers
-    buffer buf_bias("buf_bias", {2}, p_int32, a_input);
-    buffer buf_src("buf_src", {8, 3, 1026, 1026}, p_int32, a_input);
-    buffer buf_weights("buf_weights", {2, 3, 3, 3}, p_int32, a_input);
     
-    buffer buf_output("buf_output", {8, 2, 1024, 1024}, p_int32, a_output);
+    buffer buf_output("buf_output", {1024, 1024}, p_int32, a_output);
 
-    bias.store_in(&buf_bias);
-    src.store_in(&buf_src);
-    weights.store_in(&buf_weights);
+    src.store_in(&buf_output);
     
-    conv_init.store_in(&buf_output);
-    conv.store_in(&buf_output, {n, fout, y, x});
+    conv.store_in(&buf_output, {x, y});
+
+    prepare_schedules_for_legality_checks();
+    performe_full_dependency_analysis();
+
+    bool perform_autoscheduling = false;
+
+    perform_autoscheduling=true;
     
     // Generate a program with no schedule
     if (!perform_autoscheduling)
     {
         tiramisu::codegen({
-            &buf_output, 
-            &buf_bias, 
-            &buf_src, 
-            &buf_weights
+            &buf_output
         }, "function.o");
        
         return 0;
     }
 
     // Some parameters for the search methods
-    const int beam_size = 2;
+    const int beam_size = 4;
     const int max_depth = 6;
 
     const int nb_samples = 5;
@@ -69,7 +63,7 @@ int main(int argc, char **argv)
     auto_scheduler::schedules_generator *scheds_gen = new auto_scheduler::ml_model_schedules_generator();
     
     // An evaluation function that measures execution time by compiling and executing the program
-    auto_scheduler::evaluate_by_execution *exec_eval = new auto_scheduler::evaluate_by_execution({&buf_output, &buf_bias, &buf_src, &buf_weights}, 
+    auto_scheduler::evaluate_by_execution *exec_eval = new auto_scheduler::evaluate_by_execution({&buf_output}, 
                                       "function.o", "./wrapper");
     
     // An evaluation function that uses an ML model to estimate speedup

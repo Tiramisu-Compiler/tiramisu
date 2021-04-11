@@ -230,7 +230,13 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
     std::vector<int> shared_levels_extents;
     std::vector<int> innermost_extents;
     std::vector<ast_node*> innermost_nodes;
+
+    std::vector<ast_node*> shared_nodes;
+    std::vector<tiramisu::computation*> involved_computations;
+
     int nb_shared_iterators;
+
+    int nb_try = 0;
     
     // Generate the specified optimization
     switch (optim)
@@ -278,12 +284,12 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                 for (int tiling_size1 : tiling_factors_list)
                 {
                     // Check if tiling_size1 splits perfectly this iterator
-                    if (!can_split_iterator(shared_levels_extents[i], tiling_size1))
+                    if (!can_split_iterator_sup(shared_levels_extents[i], tiling_size1))
                         continue;
                         
                     for (int tiling_size2 : tiling_factors_list)
                     {
-                        if (!can_split_iterator(shared_levels_extents[i + 1], tiling_size2))
+                        if (!can_split_iterator_sup(shared_levels_extents[i + 1], tiling_size2))
                             continue;
                             
                         // Copy the AST and add tiling with 2 dimensions to the list of optimizations
@@ -312,7 +318,7 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                             
                         for (int tiling_size3 : tiling_factors_list)
                         {
-                            if (!can_split_iterator(shared_levels_extents[i + 2], tiling_size3))
+                            if (!can_split_iterator_sup(shared_levels_extents[i + 2], tiling_size3))
                                 continue;
                                 
                             // Copy the AST and add tiling with 3 dimensions to the list of optimizations
@@ -378,99 +384,195 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             break;
 
         case optimization_type::UNROLLING:
+            
+            
+
+            ast.stage_isl_states();
+            
             node->get_innermost_nodes(innermost_nodes);
-            // If one of the innermost loops is skewed unrolling can't be applied
-            for (ast_node* inner_most_node: innermost_nodes)
-                if (inner_most_node->skewed)
-                    return states;
 
-            innermost_extents = ast.get_innermost_extents();
-               
+            std::reverse(innermost_nodes.begin(),innermost_nodes.end());
+            //search for possible unrolling from the bottom loop until one is found
             // Apply all possible unrolling factors to all innermost iterators
-            for (int unrolling_fact : unrolling_factors_list)
+            //test unrolling for all inner nodes until we find a valid
+            for (ast_node* inner_most_node: innermost_nodes)
             {
-                bool use_factor = true;
-                for (int extent : innermost_extents)
-                {
-                    if (extent != unrolling_fact && !can_split_iterator(extent, unrolling_fact))
-                    {
-                        use_factor = false;
-                        break;
-                    }
-                }
-                
-                if (!use_factor)
-                    continue;
-                    
-                // Copy the AST and add unrolling to the list of optimizations
-                syntax_tree* new_ast = ast.copy_ast();
+                std::vector<tiramisu::computation*> involved_computations;
+                inner_most_node->get_innermost_computations(involved_computations);
 
-                optimization_info optim_info;
-                optim_info.type = optimization_type::UNROLLING;
-                optim_info.nb_l = 1;
-                
-                // When l0 is set to -1, unrolling is applied to all innermost levels
-                optim_info.l0 = -1;
-                optim_info.l0_fact = unrolling_fact;
-                    
-                optim_info.comps = new_ast->get_innermost_computations();
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
+                std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+            
+                std::string loop_name = loop_names[inner_most_node->depth];
+
+                bool result = ast.fct->loop_unrolling_is_legal(var(loop_name),involved_computations);
+
+                if(result) // unrollable: test all possible values
+                {
+                    ast.recover_isl_states();
+
+                    for (int unrolling_fact : unrolling_factors_list)
+                    {
+                        // Copy the AST and add unrolling to the list of optimizations
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
+
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::UNROLLING;
+                        optim_info.nb_l = 1;
+                        
+                        // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
+                        optim_info.l0 = new_node->depth;
+                        optim_info.l0_fact = unrolling_fact;
+                        // select this node
+                        optim_info.node = new_node;
+                        optim_info.comps = new_ast->get_innermost_computations();
+                        new_ast->new_optims.push_back(optim_info);
+                        states.push_back(new_ast);
+                    }
+                    ast.stage_isl_states();
+                }
+
+                nb_try++;
+
+                if(nb_try == this->unrolling_search_deapth)
+                {
+                    break;
+                }
             }
+            ast.recover_isl_states();
+
+    
             break;
 
         case optimization_type::PARALLELIZE:
-            shared_levels_extents = ast.get_shared_levels_extents();
-            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
-            for (int i = 0; i < nb_shared_iterators; ++i)
+
+            //ast.print_isl_states();
+            //ast.print_ast();
+            
+            ast.stage_isl_states();
+
+            //for shared nodes the list of involved computations is always the same.
+            // that's only the case when we compute test shared loop levels only (not always the case). 
+
+            ast.get_shared_nodes_from_outermost(shared_nodes);
+
+            if(shared_nodes.size() > 0)
             {
-                // Copy the AST and add parallelization to the list of optimizations
-                syntax_tree* new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
-                optimization_info optim_info;
-                optim_info.type = optimization_type::PARALLELIZE;
-                optim_info.node = new_node;
-
-                optim_info.nb_l = 1;
-                optim_info.l0 = i;
-
-                optim_info.comps = new_ast->computations_list;
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
-
-                if (node->children.size() > 0)
-                    node = node->children[0];
+                shared_nodes[0]->get_all_computations(involved_computations);
             }
+            else
+            {
+                return states;
+            }
+
+
+            for (ast_node* commun_node: shared_nodes)
+            {
+                std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+            
+                std::string loop_name = loop_names[commun_node->depth];
+                
+                bool result = ast.fct->loop_parallelization_is_legal(var(loop_name),involved_computations);
+
+                if(result) // unrollable: test all possible values
+                {
+                    ast.recover_isl_states();
+
+                    // Copy the AST and add unrolling to the list of optimizations
+                    syntax_tree* new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::PARALLELIZE;
+                    optim_info.nb_l = 1;
+                    
+                    optim_info.l0 = new_node->depth;
+                    optim_info.l0_fact = 0;
+                    // select this node
+                    optim_info.node = new_node;
+
+                    optim_info.comps = involved_computations;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
+                
+
+                    ast.stage_isl_states();
+                    
+                }
+
+                nb_try++;
+
+                if(nb_try == this->parallelism_search_deapth)
+                {
+                    break;
+                }
+            }
+
+            ast.recover_isl_states();
+
             break;
 
         case optimization_type::SKEWING:
-            shared_levels_extents = ast.get_shared_levels_extents();
-            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
 
-            // Since the only loops that can be skewed are the two outermost loops, we always have one possible combination of loops, we can only vary parameters
-            if (nb_shared_iterators<2)
-                return states;
-
-            for (std::tuple<int,int> factors: skewing_factors_list) {
-
-                // Copy the AST and add skewing to the list of optimizations
-                syntax_tree* new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
-
-                optimization_info optim_info;
-                optim_info.type = optimization_type::SKEWING;
-                optim_info.node = new_node;
-
-                optim_info.nb_l = 2;
-                optim_info.l0 = 0;
-                optim_info.l1 = 1;
-                optim_info.l0_fact = std::get<0>(factors);
-                optim_info.l1_fact = std::get<1>(factors);
-
+            /* 
                 optim_info.comps = new_ast->computations_list;
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
+            }*/
+
+            ast.stage_isl_states();
+            //for shared nodes the list of involved computations is always the same.
+            // that's only the case when we compute test shared loop levels only (not always the case). 
+            ast.get_shared_nodes_from_outermost(shared_nodes);
+
+            if(shared_nodes.size() > 1)
+            {
+                shared_nodes[0]->get_all_computations(involved_computations);
+                shared_nodes.pop_back();//removes 2nd loop level, first is enough 
             }
+            else
+            {
+                return states;
+            }
+
+            for (ast_node* commun_node: shared_nodes)
+            {
+                std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+            
+                std::string loop_name = loop_names[commun_node->depth];
+                std::string loop_name_inner = loop_names[commun_node->depth+1];
+                
+                auto result_skewing = ast.fct->skewing_local_solver(involved_computations,
+                        var(loop_name),var(loop_name_inner),
+                        skewing_inner_parallelism_number
+                        );
+
+                if(std::get<1>(result_skewing).size() > 0) // inner parallelism have solutions
+                {
+                    ast.recover_isl_states();
+                    for(auto& param:std::get<1>(result_skewing))
+                    {
+                        // Copy the AST and add unrolling to the list of optimizations
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::SKEWING;
+                        optim_info.node = new_node;
+
+                        optim_info.nb_l = 2;
+                        optim_info.l0 = new_node->depth;
+                        optim_info.l1 = new_node->depth+1;
+                        optim_info.l0_fact = std::get<0>(param);
+                        optim_info.l1_fact = std::get<1>(param);
+
+                        optim_info.comps = involved_computations;
+                        new_ast->new_optims.push_back(optim_info);
+                        states.push_back(new_ast);
+                    }
+                    ast.stage_isl_states();
+                }
+            }
+
+            ast.recover_isl_states();
             break;
 
         default:
