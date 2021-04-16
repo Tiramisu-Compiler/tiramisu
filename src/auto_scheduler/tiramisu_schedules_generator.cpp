@@ -278,76 +278,84 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
         case optimization_type::TILING:
             shared_levels_extents = ast.get_shared_levels_extents();
             nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
+
+            //shared nodes minus last shred node
+            ast.get_shared_nodes_from_outermost(shared_nodes);
+            shared_nodes.pop_back();
+
+            // use nb try as to count if we reached last commun possible node (to disable 3layers tiling);
+            nb_try = 0;
             
-            for (int i = 0; i < nb_shared_iterators - 1; ++i)
+            for (auto& node_iterator:shared_nodes)
             {
                 for (int tiling_size1 : tiling_factors_list)
-                {
+                {   
                     // Check if tiling_size1 splits perfectly this iterator
-                    if (!can_split_iterator_sup(shared_levels_extents[i], tiling_size1))
-                        continue;
-                        
-                    for (int tiling_size2 : tiling_factors_list)
+                    if (can_split_iterator_sup(node_iterator->get_node_loop_extent(), tiling_size1))
                     {
-                        if (!can_split_iterator_sup(shared_levels_extents[i + 1], tiling_size2))
-                            continue;
-                            
-                        // Copy the AST and add tiling with 2 dimensions to the list of optimizations
-                        syntax_tree* new_ast = new syntax_tree();
-                        ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
-                        
-                        optimization_info optim_info;
-                        optim_info.type = optimization_type::TILING;
-                        optim_info.node = new_node;
-                            
-                        optim_info.nb_l = 2;
-                        optim_info.l0 = i;
-                        optim_info.l1 = i + 1;
-                        
-                        optim_info.l0_fact = tiling_size1;
-                        optim_info.l1_fact = tiling_size2;
-                            
-                        optim_info.comps = new_ast->computations_list;
-                        new_ast->new_optims.push_back(optim_info);
-                        states.push_back(new_ast);
-                            
-                        // Cannot apply tiling with 3 dimensions,
-                        // continue to apply tiling with 2 dimensions.
-                        if (i + 2 >= nb_shared_iterators)
-                            continue;
-                            
-                        for (int tiling_size3 : tiling_factors_list)
+                        for (int tiling_size2 : tiling_factors_list)
                         {
-                            if (!can_split_iterator_sup(shared_levels_extents[i + 2], tiling_size3))
-                                continue;
+                            if (can_split_iterator_sup(node_iterator->children[0]->get_node_loop_extent(), tiling_size2))
+                            {
+                                // Copy the AST and add tiling with 2 dimensions to the list of optimizations
+                                syntax_tree* new_ast = new syntax_tree();
+                                ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
                                 
-                            // Copy the AST and add tiling with 3 dimensions to the list of optimizations
-                            syntax_tree* new_ast = new syntax_tree();
-                            ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
-                            
-                            optimization_info optim_info;
-                            optim_info.type = optimization_type::TILING;
-                            optim_info.node = new_node;
+                                optimization_info optim_info;
+                                optim_info.type = optimization_type::TILING;
+                                optim_info.node = new_node; 
+                                optim_info.nb_l = 2;
+                                optim_info.l0 = node_iterator->depth;
+                                optim_info.l1 = node_iterator->depth + 1;
+                                optim_info.l0_fact = tiling_size1;
+                                optim_info.l1_fact = tiling_size2;  
+                                optim_info.comps = new_ast->computations_list;
+                                new_ast->new_optims.push_back(optim_info);
+                                states.push_back(new_ast);
+                                    
+                                // Cannot apply tiling with 3 dimensions,
+                                // continue to apply tiling with 2 dimensions.
+                                /*if ((nb_try + 2) >= shared_nodes.size())
+                                    continue;*/
                                 
-                            optim_info.nb_l = 3;
-                            optim_info.l0 = i;
-                            optim_info.l1 = i + 1;
-                            optim_info.l2 = i + 2;
-                            
-                            optim_info.l0_fact = tiling_size1;
-                            optim_info.l1_fact = tiling_size2;
-                            optim_info.l2_fact = tiling_size3;
-                                
-                            optim_info.comps = new_ast->computations_list;
-                            new_ast->new_optims.push_back(optim_info);
-                            states.push_back(new_ast);
+                                if((nb_try + 1) < shared_nodes.size())
+                                {
+                                    for (int tiling_size3 : tiling_factors_list)
+                                    {
+                                        if (can_split_iterator_sup(node_iterator->children[0]->children[0]->get_node_loop_extent(), tiling_size3))
+                                        {
+                                            // Copy the AST and add tiling with 3 dimensions to the list of optimizations
+                                            syntax_tree* new_ast = new syntax_tree();
+                                            ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
+                                            
+                                            optimization_info optim_info;
+                                            optim_info.type = optimization_type::TILING;
+                                            optim_info.node = new_node;
+                                                
+                                            optim_info.nb_l = 3;
+                                            optim_info.l0 = node_iterator->depth;
+                                            optim_info.l1 = node_iterator->depth + 1;
+                                            optim_info.l2 = node_iterator->depth + 2;
+                                            
+                                            optim_info.l0_fact = tiling_size1;
+                                            optim_info.l1_fact = tiling_size2;
+                                            optim_info.l2_fact = tiling_size3;
+                                                
+                                            optim_info.comps = new_ast->computations_list;
+                                            new_ast->new_optims.push_back(optim_info);
+                                            states.push_back(new_ast);
+                                            
+                                        }
+                                    }
+                                }
+
+                            }  
                         }
+
                     }
                 }
                 
-                // Go to next node
-                if (node->children.size() > 0)
-                    node = node->children[0];
+                nb_try++;
             }
             break;
 
@@ -378,8 +386,6 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                     states.push_back(new_ast);
                 }
                 
-                if (node->children.size() > 0)
-                    node = node->children[0];
             } 
             break;
 

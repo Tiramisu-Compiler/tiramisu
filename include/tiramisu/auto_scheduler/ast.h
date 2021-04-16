@@ -356,6 +356,12 @@ public:
      * pushs all the computations inside this node recursively 
     */
     void collect_all_computation(std::vector<computation_info*>& vector);
+
+    /**
+     * get the extent of this node, i.e:
+     * return upper_bound - lower_bound
+    */
+    int get_node_loop_extent() const;
 };
 
 class syntax_tree

@@ -448,7 +448,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<"DF2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
+            std::cout<<" Tiling 2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
            
            
         }
@@ -542,7 +542,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<"DF2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
+            std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
         }
 
     }
@@ -1220,6 +1220,10 @@ void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
     {
         child->collect_all_computation(vector);
     }
+}
+int ast_node::get_node_loop_extent() const
+{
+    return this->up_bound - this->low_bound;
 }
 
 void syntax_tree::print_isl_states() const

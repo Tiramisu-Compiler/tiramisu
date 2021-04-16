@@ -18,6 +18,8 @@ int main(int argc, char **argv)
     tiramisu::init("conv");
     
     var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024);
+
+    var t2("t2"),t1("t1"),y1("y1"),x1("x1"),y2("y2"),x2("x2") ,x0("x0");
     
     // Declare computations
 
@@ -45,6 +47,10 @@ int main(int argc, char **argv)
     // Generate a program with no schedule
     if (!perform_autoscheduling)
     {
+        //conv.skew(t,x,2,1,t1,x0);
+        //conv.tile(x0,y,64,32,x1,y1,x2,y2);
+        //conv.parallelize(x1);
+
         tiramisu::codegen({
             &buf_output
         }, "function.o");
@@ -74,7 +80,7 @@ int main(int argc, char **argv)
     auto_scheduler::mcts *mcts = new auto_scheduler::mcts(nb_samples, topk, max_depth, model_eval, exec_eval, scheds_gen);
     
     // Create the autoscheduler and start search
-    auto_scheduler::auto_scheduler as(bs, model_eval);
+    auto_scheduler::auto_scheduler as(bs, exec_eval);
     as.set_exec_evaluator(exec_eval);
     as.find_schedule();
     as.apply_best_schedule();
