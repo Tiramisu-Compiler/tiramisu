@@ -142,47 +142,74 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         return ;
 
     // Evaluate children and sort them from smallest to highest evaluation
-    for (syntax_tree *child : children)
+    // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
     {
+        syntax_tree *child = *iterator;
         child->nb_explored_optims = nb_explored_optims;
         child->transform_ast();
 
-        if (std::getenv("AS_VERBOSE")!=NULL)
-            if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-                child->print_previous_optims();
-                std::cout << "-----------" << std::endl;
-                child->print_new_optims();
-                child->print_ast();
+        if (child->ast_is_legal() == false) {
+            if (std::getenv("AS_VERBOSE")!=NULL)
+                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
+                    // print deleted Ast
+                    child->print_previous_optims();
+                    std::cout << "\n-----------" << std::endl;
+                    child->print_new_optims();
+                    child->print_ast();
+                    child->print_isl_states();
+                    std::cout << "\n<illegal>\n";
+                    iterator = children.erase(iterator);
+                }
+        }
+        else {
+
+            // print and evaluate Ast
+
+            if (std::getenv("AS_VERBOSE")!=NULL)
+                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
+                    child->print_previous_optims();
+                    std::cout << "\n-----------" << std::endl;
+                    child->print_new_optims();
+                    child->print_ast();
+                    child->print_isl_states();
+                    std::cout << "\n<legal>\n";
+                }
+
+            child->evaluation = eval_func->evaluate(*child);
+
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
+
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
+
+            if (std::isfinite(child->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_time\" : " + std::to_string(child->evaluation) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_time\" : null\n}\n";
+
+            schedules_annotations->push_back(schedule_annot);
+
+            if (std::getenv("AS_VERBOSE")!=NULL)
+                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
+                    std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+                    std::cout << "Evaluation : " << child->evaluation << std::endl;
+                    std::cout << "===================================" << std::endl << std::endl;
+                }
+
+            if (std::isinf(child->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+            if (child->evaluation < best_evaluation)
+            {
+                best_evaluation = child->evaluation;
+                best_ast = child;
             }
 
-        child->evaluation =  eval_func->evaluate(*child);
+            ++iterator;
 
-        std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
-
-        //remove the last two characters }\n
-        schedule_annot.pop_back();
-        schedule_annot.pop_back();
-
-        if (std::isfinite(child->evaluation)) // the evaluation is not finite mean that the schedule didn't run
-            schedule_annot += ", \n\"execution_time\" : " + std::to_string(child->evaluation) + "\n}\n";
-        else
-            schedule_annot += ", \n\"execution_time\" : null\n}\n";
-
-        schedules_annotations->push_back(schedule_annot);
-
-        if (std::getenv("AS_VERBOSE")!=NULL)
-            if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-                std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
-                std::cout << "Evaluation : " << child->evaluation << std::endl << std::endl;
-            }
-
-        if (std::isinf(child->evaluation))
-            std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
-
-        if (child->evaluation < best_evaluation)
-        {
-            best_evaluation = child->evaluation;
-            best_ast = child;
         }
 
         nb_explored_schedules++;
