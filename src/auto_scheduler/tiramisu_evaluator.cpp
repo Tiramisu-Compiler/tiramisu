@@ -311,6 +311,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     int unrolling_fact;
     int skewing_fact_l0, skewing_fact_l1;
     int skewing_l0, skewing_l1;
+    int skew_extent_l0, skew_extent_l1;
     int parallelized_level;
     
     // Get information about the schedule
@@ -364,6 +365,9 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
                 skewing_fact_l1 = optim_info.l1_fact;
                 skewing_l0 = optim_info.l0;
                 skewing_l1 = optim_info.l1;
+                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
+                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
+                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
                 break;
                 
             default:
@@ -465,7 +469,8 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         if (skewed)
         {
             comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
-            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"]}";
+            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
+            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"]}";
         }
         else
         {
