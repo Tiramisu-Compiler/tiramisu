@@ -412,38 +412,40 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
                 bool result = ast.fct->loop_unrolling_is_legal(var(loop_name),involved_computations);
 
+
                 if(result) // unrollable: test all possible values
                 {
                     ast.recover_isl_states();
 
                     for (int unrolling_fact : unrolling_factors_list)
                     {
-                        // Copy the AST and add unrolling to the list of optimizations
-                        syntax_tree* new_ast = new syntax_tree();
-                        ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
 
-                        optimization_info optim_info;
-                        optim_info.type = optimization_type::UNROLLING;
-                        optim_info.nb_l = 1;
-                        
-                        // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
-                        optim_info.l0 = new_node->depth;
-                        optim_info.l0_fact = unrolling_fact;
-                        // select this node
-                        optim_info.node = new_node;
-                        optim_info.comps = new_ast->get_innermost_computations();
-                        new_ast->new_optims.push_back(optim_info);
-                        states.push_back(new_ast);
+                        if(can_split_iterator(inner_most_node->get_extent(),unrolling_fact))
+                        {
+                            // Copy the AST and add unrolling to the list of optimizations
+                            syntax_tree* new_ast = new syntax_tree();
+                            ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
+
+                            optimization_info optim_info;
+                            optim_info.type = optimization_type::UNROLLING;
+                            optim_info.nb_l = 1;
+                            
+                            // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
+                            optim_info.l0 = new_node->depth;
+                            optim_info.l0_fact = unrolling_fact;
+                            // select this node
+                            optim_info.node = new_node;
+                            optim_info.comps = new_ast->get_innermost_computations();
+                            new_ast->new_optims.push_back(optim_info);
+                            states.push_back(new_ast);
+                        }
+    
                     }
                     ast.stage_isl_states();
                 }
 
                 nb_try++;
 
-                if(nb_try == this->unrolling_search_deapth)
-                {
-                    break;
-                }
             }
             ast.recover_isl_states();
 

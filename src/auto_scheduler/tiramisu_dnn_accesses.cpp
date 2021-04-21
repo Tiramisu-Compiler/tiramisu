@@ -47,6 +47,54 @@ dnn_access_matrix::dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, 
     buffer_name = e.get_name();
 }
 
+void dnn_access_matrix::print_access_matrix() const
+{
+    std::cout<<buffer_name<<":";
+    for(auto& line:this->matrix)
+    {
+
+        for(int val:line)
+        {
+            std::cout<<val<<" ";
+        }
+        std::cout<<",";
+        
+    }
+    std::cout<<"\n";
+}
+
+void dnn_access_matrix::transforme_matrix_by_skewing()
+{
+    for(int i=0;i<matrix.size();i++)
+    {
+        for(int j=0;j<matrix[i].size();j++)
+        {
+            matrix[i][j]+=1;
+        }
+    }
+}
+
+/*
+dnn_access_matrix::dnn_access_matrix(dnn_access_matrix const& reference)
+{
+    this->buffer_id = reference.buffer_id;
+    this->buffer_name = reference.buffer_name;
+    this->comp = reference.comp;
+    this->nb_dims = reference.nb_dims;
+    this->nb_iterators = reference.nb_iterators;
+    
+    for(auto& line:reference.matrix)
+    {
+        std::vector<int> line_in;
+        for(int val:line)
+        {
+            line_in.push_back(val);
+        }
+        this->matrix.push_back(line_in);
+    }
+}
+*/
+
 void dnn_access_matrix::fill_matrix_row(int i, tiramisu::expr const& e, bool minus)
 {
     if (e.get_expr_type() == tiramisu::e_op)
@@ -103,6 +151,18 @@ dnn_accesses::dnn_accesses(tiramisu::computation *comp, int nb_iterators, tirami
     create_accesses(comp->get_expr());
 }
 
+/*
+dnn_accesses::dnn_accesses(dnn_accesses const& reference)
+{
+    this->comp = reference.comp;
+    this->nb_iterators = reference.nb_iterators;
+    for(auto access:reference.accesses_list)
+    {
+        this->accesses_list.push_back(access);
+    }
+}
+*/
+
 void dnn_accesses::create_accesses(tiramisu::expr const& e)
 {   
     // Not an operation, stop the search
@@ -123,6 +183,24 @@ void dnn_accesses::create_accesses(tiramisu::expr const& e)
     // We have an operation, we recursively explore its operands
     for (int i = 0; i < e.get_n_arg(); ++i)
         create_accesses(e.get_operand(i));
+}
+void dnn_accesses::print_all_access() const
+{
+    for(auto& matrix:this->accesses_list)
+    {
+        matrix.print_access_matrix();
+    }
+}
+
+void dnn_accesses::modify_accesses_by_skewing(int alpha,int beta)
+{
+    //test case modify by +1 to all the matrix
+
+    //here we must compute sigma/gamma
+    for(auto& access:this->accesses_list)
+    {
+        access.transforme_matrix_by_skewing();
+    }
 }
 
 }

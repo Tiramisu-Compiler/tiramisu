@@ -22,7 +22,7 @@
   * Debugging here means printing the results of each Tiramisu pass.
   */
 #ifndef ENABLE_DEBUG
-#define ENABLE_DEBUG true
+#define ENABLE_DEBUG false
 #endif // ENABLE_DEBUG
 
 /**
