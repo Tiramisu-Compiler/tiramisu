@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     
     var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024);
 
-    var  yy("yy", 0, 1023), xx("xx", 0, 1023);
+    var  yy("yy", 1, 1023), xx("xx", 1, 1023);
 
     var t2("t2"),t1("t1"),y1("y1"),x1("x1"),y2("y2"),x2("x2") ,x0("x0");
     
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
 
     computation conv("conv", {t,xx,yy}, p_int32);
-    conv.set_expression( src(xx+1,yy) + src(xx,yy+1) + src(xx,yy) );
+    conv.set_expression( src(xx,yy-1) + src(xx-1,yy) + src(xx,yy) );
     
     // Declare buffers
     

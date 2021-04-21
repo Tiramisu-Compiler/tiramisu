@@ -553,7 +553,7 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                         skewing_inner_parallelism_number
                         );
 
-                if(std::get<1>(result_skewing).size() > 0) // inner parallelism have solutions
+                if(std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
                 {
                     ast.recover_isl_states();
                     for(auto& param:std::get<1>(result_skewing))
@@ -578,6 +578,65 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                     }
                     ast.stage_isl_states();
                 }
+
+                if(std::get<0>(result_skewing).size() > 0) // outer parallelism has solutions
+                {
+                    ast.recover_isl_states();
+                    for(auto& param:std::get<0>(result_skewing))
+                    {
+                        // Copy the AST and add unrolling to the list of optimizations
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::SKEWING;
+                        optim_info.node = new_node;
+
+                        optim_info.nb_l = 2;
+                        optim_info.l0 = new_node->depth;
+                        optim_info.l1 = new_node->depth+1;
+                        optim_info.l0_fact = std::get<0>(param);
+                        optim_info.l1_fact = std::get<1>(param);
+
+                        optim_info.comps = involved_computations;
+                        new_ast->new_optims.push_back(optim_info);
+                        states.push_back(new_ast);
+                    }
+                    ast.stage_isl_states();
+                }
+
+                if(std::get<2>(result_skewing).size() > 0) // locality has solutions
+                {
+                    ast.recover_isl_states();
+                    for(auto& param:std::get<2>(result_skewing))
+                    {
+                        // Copy the AST and add unrolling to the list of optimizations
+                        syntax_tree* new_ast = new syntax_tree();
+                        ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+
+                        optimization_info optim_info;
+                        optim_info.type = optimization_type::SKEWING;
+                        optim_info.node = new_node;
+
+                        optim_info.nb_l = 2;
+                        optim_info.l0 = new_node->depth;
+                        optim_info.l1 = new_node->depth+1;
+                        optim_info.l0_fact = std::get<0>(param);
+                        optim_info.l1_fact = std::get<1>(param);
+
+                        if((optim_info.l0 > 0) && (optim_info.l1 >0))
+                        {//require loop reversal for correctness
+                            optim_info.l2_fact= -1;
+                        }
+
+                        optim_info.comps = involved_computations;
+                        new_ast->new_optims.push_back(optim_info);
+                        states.push_back(new_ast);
+                    }
+                    ast.stage_isl_states();
+                }
+
+
             }
 
             ast.recover_isl_states();

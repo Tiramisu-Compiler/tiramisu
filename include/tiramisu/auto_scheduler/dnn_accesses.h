@@ -82,8 +82,8 @@ public:
     /**
      * transforms the matrix by skewing
     */
-    void transforme_matrix_by_skewing();
-    
+    void transforme_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
+
 };
 
 /**
@@ -120,7 +120,7 @@ public:
 
     void print_all_access() const;
 
-    void modify_accesses_by_skewing(int alpha,int beta);
+    void modify_accesses_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 };
 
 }

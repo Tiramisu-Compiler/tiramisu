@@ -126,9 +126,9 @@ void computation_info::get_info_from_expr(tiramisu::expr const& e)
         get_info_from_expr(e.get_operand(i));
 }
 
-void computation_info::set_accesses_changes_with_skewing()
+void computation_info::set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
-    this->accesses.modify_accesses_by_skewing(0,0);
+    this->accesses.modify_accesses_by_skewing(first_node_depth,alpha,beta,gamma,sigma);
 }
 
 // ---------------------------------------------------------------------------- //
@@ -421,7 +421,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         // Chain the nodes
 
-        std::cout<<"RS_";
         i_inner->children.push_back(j_inner);
         //i_outer->children[0] = j_outer;
 
@@ -435,12 +434,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             j_inner->isl_states.push_back(states);
         }
         
-        /*std::cout<<"INFO_copu_s22";
-        for(auto states:j_outer->computations)
-        {
-            j_inner->computations.push_back(states);
-        }
-        std::cout<<"INFO_copu_s222";*/
 
         j_inner->computations = j_outer->computations;
 
@@ -450,7 +443,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 
         j_outer->children.push_back(i_inner);
 
-        std::cout<<"RS_FIN";
+
         
         j_outer->parent = i_outer;
         i_inner->parent = j_outer;
@@ -528,7 +521,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         ast_node *k_inner = new ast_node();
  
         // Chain the nodes
-        std::cout<<"RS_";
 
         i_inner->children.push_back(j_inner);
         j_inner->children.push_back(k_inner);
@@ -542,14 +534,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         {
             k_inner->isl_states.push_back(states);
         }
-        /*
-        std::cout<<"INFO_copu_s7";
-        for(auto states:k_outer->computations)
-        {
-            k_inner->computations.push_back(states);
-        }
-        std::cout<<"INFO_copu_s4";
-        */
+        
         k_inner->computations = k_outer->computations;
 
         k_outer->children.clear();
@@ -564,7 +549,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         j_inner->parent = i_inner;
         k_inner->parent = j_inner;
 
-        std::cout<<"RS_FIN";
             
         // Rename the nodes
         i_inner->name = i_outer->name + "_inner";
@@ -788,6 +772,11 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
         info_comp->comp_ptr->skew(var(outer_name),var(inner_name),
             info.l0_fact,info.l1_fact,
             var(outer_name+new_1),var(inner_name+new_2));
+
+        if(info.l2_fact == -1)
+        {//reversal on second loop
+            info_comp->comp_ptr->loop_reversal(var(inner_name+new_2),var(inner_name+new_2+"_R"));
+        }
            
         std::string f = "";
         for(auto& str:loop_names)
@@ -802,7 +791,8 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
 
     node_1->skewed = true;
     node_2->skewed = true;
-    node_2->transforme_accesses_with_skewing(1,1);
+    
+    node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
 
     recover_isl_states();
 }
@@ -1268,20 +1258,74 @@ void ast_node::print_computations_accesses() const
 void ast_node::transforme_accesses_with_skewing(int a,int b)
 {
     /*
-        compute isl set here
+        compute isl Map of transformation here
     */
-    this->set_accesses_changes_with_skewing();
+    int f_i = a;
+    int f_j = b;
+  
+    int gamma = 0;
+    int sigma = 1;
+
+    bool found = false;
+
+    if ((f_j == 1) || (f_i == 1)){
+
+        gamma = f_i - 1;
+        sigma = 1;
+        /* Since sigma = 1  then
+            f_i - gamma * f_j = 1 & using the previous condition :
+             - f_i = 1 : then gamma = 0 (f_i-1) is enough
+             - f_j = 1 : then gamma = f_i -1  */
+    }
+    else
+    { 
+        if((f_j == - 1) && (f_i > 1))
+        {
+            gamma = 1;
+            sigma = 0;    
+        }    
+        else
+        {   //General case : solving the Linear Diophantine equation & finding basic solution (sigma & gamma) for : f_i* sigma - f_j*gamma = 1 
+            int i =0;
+            while((i < 100) && (!found))
+            {
+                if (((sigma * f_i ) % abs(f_j)) ==  1){
+                            found = true;
+                }
+                else{
+                    sigma ++;
+                    i++;
+                }
+            };
+
+            if(!found){
+                // Detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
+                ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
+            }
+
+            gamma = ((sigma * f_i) - 1 ) / f_j;
+        }
+    }
+
+    std::string transformation_map = "{[i,j]->["+std::to_string(f_i)+"*i"+std::to_string(f_j)+"*j ,"
+                                                +std::to_string(gamma)+"*i"+std::to_string(sigma)+"*j]}";
+    
+    std::cout<<"\n transformation map:"<<transformation_map;
+
+    
+
+    this->set_accesses_changes_with_skewing(this->depth,f_i,f_j,gamma,sigma);
 }
 
-void ast_node::set_accesses_changes_with_skewing()
+void ast_node::set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
     for(auto& comp:this->computations)
     {
-        comp.set_accesses_changes_with_skewing();
+        comp.set_accesses_changes_with_skewing(first_node_depth,alpha,beta,gamma,sigma);
     }
     for(ast_node* child:children)
     {
-        child->set_accesses_changes_with_skewing();
+        child->set_accesses_changes_with_skewing(first_node_depth,alpha,beta,gamma,sigma);
     }
 }
 

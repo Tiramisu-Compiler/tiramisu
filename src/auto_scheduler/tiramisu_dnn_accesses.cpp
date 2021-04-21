@@ -63,15 +63,73 @@ void dnn_access_matrix::print_access_matrix() const
     std::cout<<"\n";
 }
 
-void dnn_access_matrix::transforme_matrix_by_skewing()
+void dnn_access_matrix::transforme_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
+    
+
+    /**
+     * We change bases as it is done in linear algebra
+    */
+    //we search for 
+
+    int first_target = -1;
+    int second_target = -1;
+
     for(int i=0;i<matrix.size();i++)
-    {
-        for(int j=0;j<matrix[i].size();j++)
+    { // for all the buffer dimensions
+        if(matrix[i][first_node_depth] == 1)
         {
-            matrix[i][j]+=1;
+            if(first_target == -1)
+            {
+                first_target = i;
+            }
+            else
+            {
+                first_target = -2; //disable change
+            }
         }
+        if(matrix[i][first_node_depth+1] == 1)
+        {
+            if(second_target == -1)
+            {
+                second_target = i;
+            }
+            else
+            {
+                second_target = -2; //disable change
+            }
+        }   
     }
+
+    if((first_target >=0) && (second_target >= 0))
+    {// both have lines general case access change
+        int cst_1 = matrix[first_target][matrix[first_target].size()-1];
+
+        int cst_2 = matrix[second_target][matrix[second_target].size()-1];
+
+        //transform
+        int cst_new_1 = cst_1*alpha+cst_2*beta;
+        int cst_new_2 = cst_1*gamma+cst_2*sigma;
+
+        matrix[first_target][matrix[first_target].size()-1] = cst_new_1;
+        matrix[second_target][matrix[second_target].size()-1] = cst_new_2;
+
+    }
+    else
+    {
+        if(first_target >=0)
+        {// special case where only one is concrete buffer mapping (first)
+            matrix[first_target][matrix[first_target].size()-1] *=alpha ;
+        }
+
+        if(second_target >=0)
+        {// special case where only one is concrete buffer mapping (second)
+            matrix[second_target][matrix[second_target].size()-1] *=sigma ;
+        }
+
+    }
+
+
 }
 
 /*
@@ -192,14 +250,12 @@ void dnn_accesses::print_all_access() const
     }
 }
 
-void dnn_accesses::modify_accesses_by_skewing(int alpha,int beta)
+void dnn_accesses::modify_accesses_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
 {
-    //test case modify by +1 to all the matrix
 
-    //here we must compute sigma/gamma
     for(auto& access:this->accesses_list)
     {
-        access.transforme_matrix_by_skewing();
+        access.transforme_matrix_by_skewing(first_node_depth,alpha,beta,gamma,sigma);
     }
 }
 

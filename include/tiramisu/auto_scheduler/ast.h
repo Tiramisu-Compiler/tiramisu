@@ -163,7 +163,7 @@ public:
     /**
      * modifies the accesses by skewing
     */
-    void set_accesses_changes_with_skewing();
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
     
     /**
      * Compute nb_additions, nb_substractions, nb_multiplications and nb_divisions
@@ -358,7 +358,7 @@ public:
     */
     void transforme_accesses_with_skewing(int a,int b);
 
-    void set_accesses_changes_with_skewing();
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 
     /**
      * create initial isl_states from current computations
