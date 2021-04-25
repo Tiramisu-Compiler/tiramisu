@@ -31,6 +31,30 @@ computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast
         matrix.buffer_id = ast->get_buffer_id_from_computation_name(matrix.buffer_name);
 }
 
+/*
+computation_info::computation_info(computation_info const& reference)
+:accesses(reference.accesses)
+{
+    std::cout<<"IN123";
+    this->iters = reference.iters;
+    std::cout<<"ZZZZ";
+
+    this->buffer_nb_dims = reference.buffer_nb_dims;
+    this->is_reduction = reference.is_reduction;
+    this->nb_additions = reference.nb_additions;
+    this->nb_divisions = reference.nb_divisions;
+    this->nb_multiplications = reference.nb_multiplications;
+    this->nb_substractions = reference.nb_substractions;
+    this->storage_buffer_id = reference.storage_buffer_id;
+    this->write_access_relation = reference.write_access_relation;
+    this->data_type_str = reference.data_type_str;
+    this->data_type_size = reference.data_type_size;
+
+    std::cout<<"INFO_C";
+    
+}
+*/
+
 int computation_info::get_data_type_size(){
     switch (comp_ptr->get_data_type())
     {
@@ -100,6 +124,11 @@ void computation_info::get_info_from_expr(tiramisu::expr const& e)
     // We have an operation, we explore its operands
     for (int i = 0; i < e.get_n_arg(); ++i)
         get_info_from_expr(e.get_operand(i));
+}
+
+void computation_info::set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
+{
+    this->accesses.modify_accesses_by_skewing(first_node_depth,alpha,beta,gamma,sigma);
 }
 
 // ---------------------------------------------------------------------------- //
@@ -385,15 +414,36 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
     {
         // Create the new loop structure
         ast_node *i_outer = node;
-        ast_node *j_outer = new ast_node();
+        ast_node *j_outer = node->children[0];
             
         ast_node *i_inner = new ast_node();
-        ast_node *j_inner = node->children[0];
+        ast_node *j_inner = new ast_node();
             
         // Chain the nodes
-        i_outer->children[0] = j_outer;
-        j_outer->children.push_back(i_inner);
+
         i_inner->children.push_back(j_inner);
+        //i_outer->children[0] = j_outer;
+
+        for(auto& states:j_outer->children)
+        {
+            j_inner->children.push_back(states);
+        }
+
+        for(auto states:j_outer->isl_states)
+        {
+            j_inner->isl_states.push_back(states);
+        }
+        
+
+        j_inner->computations = j_outer->computations;
+
+        j_outer->children.clear();
+        j_outer->isl_states.clear();
+        j_outer->computations.clear();
+
+        j_outer->children.push_back(i_inner);
+
+
         
         j_outer->parent = i_outer;
         i_inner->parent = j_outer;
@@ -403,15 +453,15 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         i_inner->name = i_outer->name + "_inner";
         i_outer->name = i_outer->name + "_outer";
             
-        j_outer->name = j_inner->name + "_outer";
-        j_inner->name = j_inner->name + "_inner";
+        j_inner->name = j_outer->name + "_inner";
+        j_outer->name = j_outer->name + "_outer";
             
         // Set lower and upper bounds
         i_outer->low_bound = 0;
         i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
             
         j_outer->low_bound = 0;
-        j_outer->up_bound = j_inner->get_extent() / opt.l1_fact - 1;
+        j_outer->up_bound = j_outer->get_extent() / opt.l1_fact - 1;
             
         i_inner->low_bound = 0;
         i_inner->up_bound = opt.l0_fact - 1;
@@ -438,11 +488,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             std::string jj_outer = inner_name+"_outer";
             std::string ii_inner = outer_name+"_inner";
             std::string jj_inner = inner_name+"_inner";
-            
-            info->comp_ptr->tile(var(outer_name),var(inner_name)
-                                ,opt.l0_fact,opt.l1_fact,
-                                var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
-           
+
             std::string f = "";
             for(auto& str:loop_names)
             {
@@ -450,6 +496,12 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             }
             std::cout<<" Tiling 2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
            
+            
+            info->comp_ptr->tile(var(outer_name),var(inner_name)
+                                ,opt.l0_fact,opt.l1_fact,
+                                var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
+           
+            
            
         }
 
@@ -461,45 +513,62 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
     {
         // Create the new loop structure
         ast_node *i_outer = node;
-        ast_node *j_outer = new ast_node();
-        ast_node *k_outer = new ast_node();
+        ast_node *j_outer = node->children[0];
+        ast_node *k_outer = j_outer->children[0];
             
         ast_node *i_inner = new ast_node();
-        ast_node *j_inner = node->children[0];
-        ast_node *k_inner = j_inner->children[0];
-            
+        ast_node *j_inner = new ast_node();
+        ast_node *k_inner = new ast_node();
+ 
         // Chain the nodes
-        i_outer->children[0] = j_outer;
-        j_outer->children.push_back(k_outer);
-        k_outer->children.push_back(i_inner);
+
         i_inner->children.push_back(j_inner);
-        j_inner->children[0] = k_inner;
+        j_inner->children.push_back(k_inner);
+
+        for(auto& states:k_outer->children)
+        {
+            k_inner->children.push_back(states);
+        }
+
+        for(auto states:k_outer->isl_states)
+        {
+            k_inner->isl_states.push_back(states);
+        }
+        
+        k_inner->computations = k_outer->computations;
+
+        k_outer->children.clear();
+        k_outer->isl_states.clear();
+        k_outer->computations.clear();
+
+        k_outer->children.push_back(i_inner);
         
         j_outer->parent = i_outer;
         k_outer->parent = j_outer;
         i_inner->parent = k_outer;
         j_inner->parent = i_inner;
         k_inner->parent = j_inner;
+
             
         // Rename the nodes
         i_inner->name = i_outer->name + "_inner";
         i_outer->name = i_outer->name + "_outer";
             
-        j_outer->name = j_inner->name + "_outer";
-        j_inner->name = j_inner->name + "_inner";
+        j_inner->name = j_outer->name + "_inner";
+        j_outer->name = j_outer->name + "_outer";
             
-        k_outer->name = k_inner->name + "_outer";
-        k_inner->name = k_inner->name + "_inner";
+        k_inner->name = k_outer->name + "_inner";
+        k_outer->name = k_outer->name + "_outer";
             
         // Set lower and upper bounds
         i_outer->low_bound = 0;
         i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
             
         j_outer->low_bound = 0;
-        j_outer->up_bound = j_inner->get_extent() / opt.l1_fact - 1;
+        j_outer->up_bound = j_outer->get_extent() / opt.l1_fact - 1;
             
         k_outer->low_bound = 0;
-        k_outer->up_bound = k_inner->get_extent() / opt.l2_fact - 1;
+        k_outer->up_bound = k_outer->get_extent() / opt.l2_fact - 1;
             
         i_inner->low_bound = 0;
         i_inner->up_bound = opt.l0_fact - 1;
@@ -522,18 +591,18 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         {
             std::vector<std::string> loop_names = info->comp_ptr->get_loop_level_names();
             
-            std::string outer_name = loop_names[i_outer->depth];
-            std::string inner_name = loop_names[i_outer->depth+1];
-            std::string inner_name2 = loop_names[i_outer->depth+2];
+            std::string outer_name_1 = loop_names[i_outer->depth];
+            std::string outer_name_2 = loop_names[i_outer->depth+1];
+            std::string inner_name_3 = loop_names[i_outer->depth+2];
 
-            std::string ii_outer = outer_name+"_outer";
-            std::string jj_outer = inner_name+"_outer";
-            std::string kk_outer = inner_name2+"_outer";
-            std::string ii_inner = outer_name+"_inner";
-            std::string jj_inner = inner_name+"_inner";
-            std::string kk_inner = inner_name2+"_inner";
+            std::string ii_outer = outer_name_1+"_outer";
+            std::string jj_outer = outer_name_2+"_outer";
+            std::string kk_outer = inner_name_3+"_outer";
+            std::string ii_inner = outer_name_1+"_inner";
+            std::string jj_inner = outer_name_2+"_inner";
+            std::string kk_inner = inner_name_3+"_inner";
             
-            info->comp_ptr->tile(var(outer_name),var(inner_name),var(inner_name2)
+            info->comp_ptr->tile(var(outer_name_1),var(outer_name_2),var(inner_name_3)
                                 ,opt.l0_fact,opt.l1_fact,opt.l2_fact,
                                 var(ii_outer),var(jj_outer),var(kk_outer),var(ii_inner),var(jj_inner),var(kk_inner));
            
@@ -542,7 +611,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
+            std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name_1<<" & "<<outer_name_2 ;
         }
 
     }
@@ -677,8 +746,8 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     int number_space_outer =   node_1->up_bound - node_1->low_bound ;
     int inner_space =  node_2->up_bound - node_2->low_bound ;
 
-    std::string new_1 = "skew" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
-    std::string new_2 = "skew2";
+    std::string new_1 = "_skew_" + std::to_string(info.l0_fact) +"_"+std::to_string(info.l1_fact) ;
+    std::string new_2 = "_skew";
 
     node_2->low_bound = 0;
     node_1->low_bound = info.l0_fact * node_1->low_bound + info.l0_fact *node_2->low_bound; 
@@ -703,6 +772,11 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
         info_comp->comp_ptr->skew(var(outer_name),var(inner_name),
             info.l0_fact,info.l1_fact,
             var(outer_name+new_1),var(inner_name+new_2));
+
+        if(info.l2_fact == -1)
+        {//reversal on second loop
+            info_comp->comp_ptr->loop_reversal(var(inner_name+new_2),var(inner_name+new_2+"_R"));
+        }
            
         std::string f = "";
         for(auto& str:loop_names)
@@ -717,6 +791,8 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
 
     node_1->skewed = true;
     node_2->skewed = true;
+    
+    node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
 
     recover_isl_states();
 }
@@ -1013,11 +1089,9 @@ int syntax_tree::get_buffer_id(std::string const& buf_name) const
 
 void ast_node::update_depth(int depth)
 {
-    if (get_extent() > 1)
-        this->depth = depth;
-    else
-        this->depth = depth - 1;
-    
+ 
+    this->depth = depth;
+   
     for (ast_node *child : children)
         child->update_depth(this->depth + 1);
 }
@@ -1065,12 +1139,12 @@ void syntax_tree::print_previous_optims() const
 
 void ast_node::print_node() const
 {
-    if (get_extent() > 1)
+    if (true)//get_extent() > 1
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
 
-        std::cout << "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled;
+        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled;
         if (parallelized)
             std::cout << " | P";
         std::cout << std::endl;
@@ -1168,6 +1242,92 @@ void ast_node::print_isl_states() const
     }
 }
 
+void ast_node::print_computations_accesses() const
+{
+    std::cout<<"\n";
+    for(auto const& comp:this->computations)
+    {
+        comp.accesses.print_all_access();
+    }
+    for(ast_node* child:this->children)
+    {
+        child->print_computations_accesses();
+    }
+}
+
+void ast_node::transforme_accesses_with_skewing(int a,int b)
+{
+    /*
+        compute isl Map of transformation here
+    */
+    int f_i = a;
+    int f_j = b;
+  
+    int gamma = 0;
+    int sigma = 1;
+
+    bool found = false;
+
+    if ((f_j == 1) || (f_i == 1)){
+
+        gamma = f_i - 1;
+        sigma = 1;
+        /* Since sigma = 1  then
+            f_i - gamma * f_j = 1 & using the previous condition :
+             - f_i = 1 : then gamma = 0 (f_i-1) is enough
+             - f_j = 1 : then gamma = f_i -1  */
+    }
+    else
+    { 
+        if((f_j == - 1) && (f_i > 1))
+        {
+            gamma = 1;
+            sigma = 0;    
+        }    
+        else
+        {   //General case : solving the Linear Diophantine equation & finding basic solution (sigma & gamma) for : f_i* sigma - f_j*gamma = 1 
+            int i =0;
+            while((i < 100) && (!found))
+            {
+                if (((sigma * f_i ) % abs(f_j)) ==  1){
+                            found = true;
+                }
+                else{
+                    sigma ++;
+                    i++;
+                }
+            };
+
+            if(!found){
+                // Detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
+                ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
+            }
+
+            gamma = ((sigma * f_i) - 1 ) / f_j;
+        }
+    }
+
+    std::string transformation_map = "{[i,j]->["+std::to_string(f_i)+"*i"+std::to_string(f_j)+"*j ,"
+                                                +std::to_string(gamma)+"*i"+std::to_string(sigma)+"*j]}";
+    
+    std::cout<<"\n transformation map:"<<transformation_map;
+
+    
+
+    this->set_accesses_changes_with_skewing(this->depth,f_i,f_j,gamma,sigma);
+}
+
+void ast_node::set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma)
+{
+    for(auto& comp:this->computations)
+    {
+        comp.set_accesses_changes_with_skewing(first_node_depth,alpha,beta,gamma,sigma);
+    }
+    for(ast_node* child:children)
+    {
+        child->set_accesses_changes_with_skewing(first_node_depth,alpha,beta,gamma,sigma);
+    }
+}
 
 void ast_node::create_initial_states()
 {
@@ -1273,6 +1433,14 @@ bool syntax_tree::ast_is_legal() const
 
     return result;
 
+}
+
+void syntax_tree::print_computations_accesses() const
+{
+    for(ast_node* root:this->roots)
+    {
+        root->print_computations_accesses();
+    }
 }
 
 }

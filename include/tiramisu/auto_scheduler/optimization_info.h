@@ -65,7 +65,7 @@ struct optimization_info
      * For example, if the optimization is a 2 level tiling,
      * l0_fact and l1_fact will contain the tiling factors for each loop level.
      */
-    int l0_fact, l1_fact, l2_fact;
+    int l0_fact = 0, l1_fact = 0, l2_fact = 0;
 };
 
 /**

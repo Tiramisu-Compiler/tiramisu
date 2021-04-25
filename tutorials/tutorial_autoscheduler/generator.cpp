@@ -19,6 +19,8 @@ int main(int argc, char **argv)
     
     var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024);
 
+    var  yy("yy", 1, 1023), xx("xx", 1, 1023);
+
     var t2("t2"),t1("t1"),y1("y1"),x1("x1"),y2("y2"),x2("x2") ,x0("x0");
     
     // Declare computations
@@ -26,8 +28,8 @@ int main(int argc, char **argv)
     input src("src", {x, y}, p_int32);
 
 
-    computation conv("conv", {t,x,y}, p_int32);
-    conv.set_expression( src(x+1,y) + src(x,y+1) + src(x,y) );
+    computation conv("conv", {t,xx,yy}, p_int32);
+    conv.set_expression( src(xx,yy-1) + src(xx-1,yy) + src(xx,yy) );
     
     // Declare buffers
     
@@ -35,7 +37,7 @@ int main(int argc, char **argv)
 
     src.store_in(&buf_output);
     
-    conv.store_in(&buf_output, {x, y});
+    conv.store_in(&buf_output, {xx, yy});
 
     prepare_schedules_for_legality_checks();
     performe_full_dependency_analysis();

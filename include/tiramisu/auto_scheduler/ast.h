@@ -153,6 +153,17 @@ public:
      * Get info about the given computation. The AST is needed to get some info.
      */
     computation_info(tiramisu::computation *comp, syntax_tree *ast);
+
+
+    /**
+     * Copy constructor
+    */
+    //computation_info(computation_info const& reference);
+
+    /**
+     * modifies the accesses by skewing
+    */
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
     
     /**
      * Compute nb_additions, nb_substractions, nb_multiplications and nb_divisions
@@ -336,6 +347,18 @@ public:
      * Print the subtree of isl_states
     */
     void print_isl_states() const;
+
+    /**
+     * prints the computations's accesses of this AST
+    */
+    void print_computations_accesses() const;
+
+    /**
+     * Changes the access within computation_info after applying the skewing optimization
+    */
+    void transforme_accesses_with_skewing(int a,int b);
+
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 
     /**
      * create initial isl_states from current computations
@@ -563,6 +586,11 @@ public:
      * Print the AST to stdout.
      */
     void print_ast() const;
+
+    /**
+     * prints the computations's accesses of this AST
+    */
+    void print_computations_accesses() const;
 
     /**
      * Print information about the applied optimizations
