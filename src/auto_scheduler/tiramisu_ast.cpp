@@ -630,8 +630,12 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
     
     // Find the node to interchange with
     ast_node *node2 = node1;
-    for (int i = opt.l0; i < opt.l1; ++i)
+    //for (int i = opt.l0; i < opt.l1; ++i)
+    //    node2 = node2->children[0];
+    while(node2->depth < opt.l1)
+    {
         node2 = node2->children[0];
+    }
             
     // Rename the two nodes
     std::string tmp_str =  node1->name;

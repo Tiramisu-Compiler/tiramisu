@@ -360,26 +360,36 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             break;
 
         case optimization_type::INTERCHANGE:
-            shared_levels_extents = ast.get_shared_levels_extents();
-            nb_shared_iterators = std::min((int)shared_levels_extents.size(), max_nb_iterators);
+            
+            ast.get_shared_nodes_from_outermost(shared_nodes);
+
+            if(shared_nodes.size() > 0)
+            {
+                shared_nodes[0]->get_all_computations(involved_computations);
+            }
+            else
+            {
+                return states;
+            }
+
             
             // To apply interchange, we pick all combinations of two iterators 
             // in the shared loop levels.
-            for (int i = 0; i < nb_shared_iterators; ++i)
+            for (int i = 0; i < shared_nodes.size(); ++i)
             {
-                for (int j = i + 1; j < nb_shared_iterators; ++j)
+                for (int j = i + 1; j < shared_nodes.size(); ++j)
                 {
                     // Copy the AST and add interchange to the list of optimizations
                     syntax_tree* new_ast = new syntax_tree();
-                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
                     
                     optimization_info optim_info;
                     optim_info.type = optimization_type::INTERCHANGE;
                     optim_info.node = new_node;
                         
                     optim_info.nb_l = 2;
-                    optim_info.l0 = i;
-                    optim_info.l1 = j;
+                    optim_info.l0 = shared_nodes[i]->depth;
+                    optim_info.l1 = shared_nodes[j]->depth;
                         
                     optim_info.comps = new_ast->computations_list;
                     new_ast->new_optims.push_back(optim_info);
