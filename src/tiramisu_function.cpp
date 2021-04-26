@@ -172,7 +172,34 @@ void tiramisu::function::calculate_dep_flow()
 
     DEBUG(3, tiramisu::str_dump(" generating depandencies graph"));
 
-     isl_union_map * ref_graph = isl_union_map_reverse(this->compute_dep_graph());
+    isl_union_map * ref_res = this->compute_dep_graph();
+
+    if(ref_res == NULL)
+    {
+        // no deps fill with empty union maps
+
+        std::string str_map = "{}";
+
+        this->dep_read_after_write = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());
+
+        this->dep_write_after_read = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->dep_write_after_write = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->live_in_access = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->live_out_access = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        DEBUG(3, tiramisu::str_dump(" No deps detected just empty maps "));
+
+        DEBUG_INDENT(-4);
+
+        return ;
+    }
+
+    isl_union_map * ref_graph = isl_union_map_reverse(ref_res);
+
+    
 
     DEBUG(3, tiramisu::str_dump(" the referencing union map is for dependecy analysis: "+std::string(isl_union_map_to_str(ref_graph))));
 
@@ -2925,6 +2952,14 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
 
+    if(isl_union_map_is_empty(all_deps))
+    {
+        DEBUG(3, tiramisu::str_dump(" No dependencies , parallelism is legal by default "));
+        DEBUG_INDENT(-4);
+        return true;
+
+    }
+
     isl_map * equation_map = isl_map_from_union_map(all_deps);
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
@@ -3706,13 +3741,23 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     // application to discard unused dep & modeling them in their time space
 
-    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules)) ;
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules));
 
-    all_deps = isl_union_map_apply_domain(all_deps,schedules) ;
+    all_deps = isl_union_map_apply_domain(all_deps,schedules);
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
 
-    isl_map * equation_map = isl_map_from_union_map(all_deps) ;
+    if(isl_union_map_is_empty(all_deps))
+    {
+        DEBUG(3, tiramisu::str_dump(" No dependencies to be solved => skewing not necessary & no skewing proposed "));
+
+        legal_process = 0 ; // disables skewing
+        DEBUG_INDENT(-4);
+        return {NULL,NULL,NULL,NULL,NULL};
+        
+    }
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps);
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
 
@@ -3792,7 +3837,10 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     double second_int=0.0;
     double tan_value = 0.0;
 
-    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+
+    //std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+
     isl_map * normal_map_calculator = isl_map_read_from_str(this->get_isl_ctx(),normal_map_str.c_str());
 
     std::string upper_domain_str = "{[a,b] : a>0 and b>0 }";
@@ -3818,6 +3866,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     /**
      * strongly solve for parallelism & weakly solve for legality
     */
+   int iteration = 0;
 
     for(auto dependency:all_basic_maps)
     {
@@ -4060,6 +4109,8 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
                     }
                     
                 }
+
+                iteration++;
             }
            
             
@@ -4072,7 +4123,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     }
 
 
-    if(isl_map_is_empty(equation_map))
+    if((iteration == 0) || (isl_map_is_empty(equation_map)))
     {
         legal_process = 0;
         DEBUG(3, tiramisu::str_dump(" Lack of dependencies within scope "));
@@ -4338,6 +4389,13 @@ std::tuple<
             DEBUG(3, tiramisu::str_dump("# lower inner parallism solution set :"+std::string(isl_set_to_str(lower_set))));
 
             isl_set * solution = isl_set_lexmin(isl_set_copy(lower_set));
+
+            if(isl_set_is_empty(solution) != isl_bool_false)
+            {
+                isl_set_free(solution);
+                break;
+            }
+
             DEBUG(3, tiramisu::str_dump(" choosen inner parallism "+std::string(isl_set_to_str(solution))));
 
             isl_basic_set * result = isl_set_polyhedral_hull(solution);
