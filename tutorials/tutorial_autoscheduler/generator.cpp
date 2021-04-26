@@ -29,8 +29,8 @@ int main(int argc, char **argv)
 
 
     computation conv("conv", {t,xx,yy}, p_int32);
-    conv.set_expression( src(xx,yy-1) + src(xx-1,yy) + src(xx,yy) );
-    
+    conv.set_expression(  2*src(xx,yy));
+    //conv.set_expression( src(xx-1,yy-1) + src(xx-1,yy)+src(xx-1,yy+1)+src(xx,yy-1)        + src(xx,yy+1)+src(xx+1,yy-1)+src(xx+1,yy)+src(xx+1,yy+1) );
     // Declare buffers
     
     buffer buf_output("buf_output", {1024, 1024}, p_int32, a_output);
