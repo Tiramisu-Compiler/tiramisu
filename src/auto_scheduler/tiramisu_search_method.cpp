@@ -162,6 +162,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                     child->print_ast();
                     child->print_isl_states();
                     std::cout << "\n<illegal>\n";
+                    delete child;
                     iterator = children.erase(iterator);
                 }
         }
@@ -177,6 +178,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                     child->print_ast();
                     child->print_isl_states();
                     std::cout << "\n<legal>\n";
+                    child->print_computations_accesses();
                 }
 
             child->evaluation = eval_func->evaluate(*child);
