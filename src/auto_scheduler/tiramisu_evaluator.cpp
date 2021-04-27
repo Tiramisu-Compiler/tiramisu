@@ -470,7 +470,58 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         {
             comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
             comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
-            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"]}";
+            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"], ";
+
+            // Adding the access matrices transformed by skewing
+
+            // get the comp_info corresponding to the current computation
+            ast_node* comp_node = ast.computations_mapping.at(comp);
+            std::vector<dnn_access_matrix> comp_accesses_list;
+            for (auto comp_i: comp_node->computations)
+            {
+                if (comp_i.comp_ptr == comp)
+                {
+                    comp_accesses_list = comp_i.accesses.accesses_list;
+                    break;
+                }
+            }
+
+            // Build JSON of the transformed accesses
+            comp_sched_json += "\"transformed_accesses\" : [";
+
+            for (int i = 0; i < comp_accesses_list.size(); ++i)
+            {
+                dnn_access_matrix const& matrix  = comp_accesses_list[i];
+                comp_sched_json += "{";
+
+                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
+                comp_sched_json += "\"access_matrix\" : [";
+
+                for (int x = 0; x < matrix.matrix.size(); ++x)
+                {
+                    comp_sched_json += "[";
+                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
+                    {
+                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
+                        if (y != matrix.matrix[x].size() - 1)
+                            comp_sched_json += ", ";
+                    }
+
+                    comp_sched_json += "]";
+                    if (x != matrix.matrix.size() - 1)
+                        comp_sched_json += ",";
+                }
+
+                comp_sched_json += "]";
+
+                comp_sched_json += "}";
+
+                if (i != comp_accesses_list.size() - 1)
+                    comp_sched_json += ",";
+            }
+
+            comp_sched_json += "]}";
+
         }
         else
         {
