@@ -17,9 +17,13 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eva
 
 void auto_scheduler::sample_search_space(std::string filename)
 {
+    std::chrono::steady_clock::time_point sampling_start = std::chrono::steady_clock::now();
     fct->reset_schedules();
     initial_exec_time = exec_evaluator->evaluate_timeout(ast);
     ast.evaluation = initial_exec_time;
+    if (std::getenv("AS_VERBOSE")!=NULL)
+        if (std::stoi(std::getenv("AS_VERBOSE"))==1)
+            std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
@@ -54,6 +58,13 @@ void auto_scheduler::sample_search_space(std::string filename)
     std::ofstream file(filename);
     file << output_json;
     file.close();
+
+    std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
+    if (std::getenv("AS_VERBOSE")!=NULL)
+        if (std::stoi(std::getenv("AS_VERBOSE"))==1){
+            std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
+            std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
+        }
 }
 
 void auto_scheduler::find_schedule()
