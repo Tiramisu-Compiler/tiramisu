@@ -239,16 +239,16 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         comp_json += "],";
         
-        comp_json += "\"real_dimensions\" : [";
-        
-        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
-        {
-            comp_json += "\"" + comp_info.iters[i].name + "\"";
-            if (i != comp_info.buffer_nb_dims - 1)
-                comp_json += ",";
-        }
-        
-        comp_json += "],";
+//        comp_json += "\"real_dimensions\" : [";
+//
+//        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
+//        {
+//            comp_json += "\"" + comp_info.iters[i].name + "\"";
+//            if (i != comp_info.buffer_nb_dims - 1)
+//                comp_json += ",";
+//        }
+//
+//        comp_json += "],";
         
         comp_json += "\"comp_is_reduction\" : ";
         if (comp_info.is_reduction)
@@ -276,7 +276,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
             comp_json += "{";
             
             comp_json += "\"access_is_reduction\" : ";
-            if (i == 0 && comp_info.is_reduction)
+            if (comp_info.storage_buffer_id==matrix.buffer_id)
                 comp_json += "true,";
             else
                 comp_json += "false,";

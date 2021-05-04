@@ -56,31 +56,15 @@ computation_info::computation_info(computation_info const& reference)
 */
 
 int computation_info::get_data_type_size(){
-    switch (comp_ptr->get_data_type())
-    {
-        case tiramisu::p_uint8:
-            return 1;
-        case tiramisu::p_int8:
-            return 1;
-        case tiramisu::p_uint16:
-            return 2;
-        case tiramisu::p_int16:
-            return 2;
-        case tiramisu::p_uint32:
-            return 4;
-        case tiramisu::p_int32:
-            return 4;
-        case tiramisu::p_uint64:
-            return 8;
-        case tiramisu::p_int64:
-            return 8;
-        case tiramisu::p_float32:
-            return 4;
-        case tiramisu::p_float64:
-            return 8;
-        case tiramisu::p_boolean:
-            return 1;
-    }
+    if (comp_ptr->get_data_type()==tiramisu::p_boolean)
+        return 1;
+    // extract the the data size from the data type string
+    std::string type_str = str_from_tiramisu_type_primitive(comp_ptr->get_data_type());
+    size_t i = 0;
+    for ( ; i < type_str.length(); i++ ){ if ( std::isdigit(type_str[i]) ) break; }
+    std::string data_size_str = type_str.substr(i, type_str.length() - i );
+    int data_size = std::atoi(type_str.c_str())/8;
+    return data_size;
 }
 
 void computation_info::get_info_from_expr(tiramisu::expr const& e)
