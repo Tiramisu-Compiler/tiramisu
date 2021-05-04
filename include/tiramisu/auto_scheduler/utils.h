@@ -24,6 +24,27 @@ inline bool can_split_iterator_sup(int it_extent, int split_fact)
     return it_extent > split_fact;
 }
 
+/**
+ * Returns the minimal value of a vector of measurements
+ */
+inline float min_eval(std::vector<float> measurements)
+{
+    return *std::min_element(measurements.begin(), measurements.end());
+}
+
+/**
+ * Formats a vector of measurements into a string
+ */
+inline std::string measurements_to_str(std::vector<float> measurements)
+{
+    std::string str_array="[";
+    for (float measure: measurements)
+        str_array+= " " + std::to_string(measure) + ",";
+    str_array.pop_back(); // remove the last ","
+    str_array+= "]";
+
+    return str_array;
+}
 }
 
 #endif

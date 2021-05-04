@@ -70,7 +70,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     return exec_time;
 }
 
-float evaluate_by_execution::evaluate_timeout(syntax_tree& ast)
+std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout)
 {
     // Apply all the optimizations
     apply_optimizations(ast);
@@ -91,31 +91,45 @@ float evaluate_by_execution::evaluate_timeout(syntax_tree& ast)
     std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
 
-    // Execute the wrapper and get execution time
-    double exec_time = std::numeric_limits<double>::infinity();
-
-    if (std::getenv("EVAL_TIMEOUT")!=NULL){ // check if a timeout is defined for the execution time
-        std::string timeout_cmd = std::string("timeout ") + std::getenv("EVAL_TIMEOUT") + std::string(" ") + wrapper_cmd;
-        FILE *pipe = popen(timeout_cmd.c_str(), "r");
-        fscanf(pipe, "%lf", &exec_time);
-        auto returnCode = pclose(pipe)/256;
-
-        if (returnCode == 124){ // a potential issue here is that the 124 exit code is returned by another error
-            std::cerr << "error: Execution time exceeded the defined timeout "<< std::getenv("EVAL_TIMEOUT")<< "s"<< std::endl;
-            exit(1);
-        }
+    // define the execution command of the wrapper
+    std::string cmd = wrapper_cmd;
+    if (timeout!=0) {// check if a timeout is defined for the execution time
+        int nb_exec = 30; //by default
+        if (std::getenv("NB_EXEC")!=NULL)
+            nb_exec = std::stoi(std::getenv("NB_EXEC"));
+        float cumulative_timeout = timeout * nb_exec; // the timeout for the total number of executions
+        cmd = std::string("timeout ") + std::to_string(cumulative_timeout) + std::string(" ") + wrapper_cmd;
     }
-    else{
-        FILE *pipe = popen(wrapper_cmd.c_str(), "r");
 
-        fscanf(pipe, "%lf", &exec_time);
-        pclose(pipe);
+
+    // execute the command
+    FILE *pipe = popen(cmd.c_str(), "r");
+
+    // read the output into a string
+    char buf[100];
+    std::string output;
+    while (fgets(buf, 100, pipe))
+        output += buf;
+
+    // close the pipe and check if the timeout has been reached
+    auto returnCode = pclose(pipe)/256;
+    if (exit_on_timeout && (timeout!=0) && (returnCode == 124)){ // a potential issue here is that the 124 exit code is returned by another error
+        std::cerr << "error: Execution time exceeded the defined timeout "<< timeout << "s *"<< std::getenv("NB_EXEC") << "execution" << std::endl;
+        exit(1);
     }
+
+    // parse the output into a vector of floats
+    std::vector<float> measurements;
+    std::istringstream iss(output);
+    std::copy(std::istream_iterator<float>(iss), std::istream_iterator<float>(), std::back_inserter(measurements));
+
+    if (measurements.empty()) // if there is no output this means that the execution failed
+        measurements.push_back(std::numeric_limits<float>::infinity());
 
     // Remove all the optimizations
     fct->reset_schedules();
 
-    return exec_time;
+    return measurements;
 }
 
 evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args)

@@ -19,14 +19,18 @@ void auto_scheduler::sample_search_space(std::string filename)
 {
     std::chrono::steady_clock::time_point sampling_start = std::chrono::steady_clock::now();
     fct->reset_schedules();
-    initial_exec_time = exec_evaluator->evaluate_timeout(ast);
+    float initial_timeout = 0;
+    if (std::getenv("INITIAL_TIMEOUT")!=NULL)
+        initial_timeout = std::stof(std::getenv("INITIAL_TIMEOUT"));
+    std::vector<float> initial_measurements = exec_evaluator->get_measurements(ast, true, initial_timeout);
+    initial_exec_time = min_eval(initial_measurements);
     ast.evaluation = initial_exec_time;
     if (std::getenv("AS_VERBOSE")!=NULL)
         if (std::stoi(std::getenv("AS_VERBOSE"))==1)
             std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
-
+    searcher->set_exec_eval(exec_evaluator);
     searcher->search_save(ast, &schedules_annotations);
 
     std::string output_json;
