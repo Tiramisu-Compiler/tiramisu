@@ -85,7 +85,7 @@ public:
      * Explores the search space and saves the explored schedules on a json file along with the measured
      * execution time of each schedule
      */
-    void sample_search_space(std::string filename = "./schedules_sample.json");
+    void sample_search_space(std::string filename = "./schedules_sample.json", bool timeout_schedules=true);
 };
 
 }

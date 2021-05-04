@@ -15,7 +15,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eva
     searcher->set_eval_func(eval_func);
 }
 
-void auto_scheduler::sample_search_space(std::string filename)
+void auto_scheduler::sample_search_space(std::string filename, bool timeout_schedules)
 {
     std::chrono::steady_clock::time_point sampling_start = std::chrono::steady_clock::now();
     fct->reset_schedules();
@@ -38,8 +38,10 @@ void auto_scheduler::sample_search_space(std::string filename)
     empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
     schedules_annotations.push_back(empty_schedule_json);
 
-    //define a timeout for scheduler evaluation, the max between 100times the initial exec_time (converted to seconds) and 3s per run
-    float schedule_timeout = std::max(initial_exec_time*100/1000, (float)3.0);
+    float schedule_timeout = 0;
+    if (timeout_schedules)
+        //define a timeout for scheduler evaluation, the max between 100times the initial exec_time (converted to seconds) and 3s per run
+        schedule_timeout = std::max(initial_exec_time*100/1000, (float)3.0);
 
     searcher->set_exec_eval(exec_evaluator);
     searcher->search_save(ast, &schedules_annotations, schedule_timeout);
