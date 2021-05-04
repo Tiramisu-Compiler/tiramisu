@@ -33,6 +33,13 @@ void auto_scheduler::sample_search_space(std::string filename)
     searcher->set_exec_eval(exec_evaluator);
     searcher->search_save(ast, &schedules_annotations);
 
+    // add the no_schedule version to the schedule list
+    std::string empty_schedule_json = evaluate_by_learning_model::get_schedule_json(ast);
+    empty_schedule_json.pop_back(); // remove the last two characters }\n
+    empty_schedule_json.pop_back();
+    empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
+    schedules_annotations.push_back(empty_schedule_json);
+
     std::string output_json;
 
     std::string nb_exec = "\"default\"";
