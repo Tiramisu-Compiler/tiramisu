@@ -123,8 +123,14 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     std::istringstream iss(output);
     std::copy(std::istream_iterator<float>(iss), std::istream_iterator<float>(), std::back_inserter(measurements));
 
-    if (measurements.empty()) // if there is no output this means that the execution failed
+    if (measurements.empty() && (returnCode != 124)) // if there is no output and the cmd didn't timeout, this means that the execution failed
         measurements.push_back(std::numeric_limits<float>::infinity());
+
+    else if (measurements.empty() && (returnCode == 124) && (timeout!=0)){  //if there is no output and the cmd timed out, this means that no execution finished before timeout
+        measurements.push_back(timeout*1000); // converted to ms
+        std::cout<< "Execution timed out"<< std::endl;
+    }
+
 
     // Remove all the optimizations
     fct->reset_schedules();

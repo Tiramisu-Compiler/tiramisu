@@ -119,7 +119,7 @@ void beam_search::search(syntax_tree& ast)
     }
 }
 
-void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations)
+void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
 {
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
         ast.clear_new_optimizations();
@@ -181,7 +181,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                     child->print_computations_accesses();
                 }
 
-            std::vector<float> measurements = exec_eval->get_measurements(*child);
+            std::vector<float> measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
             child->evaluation = min_eval(measurements);
 
             std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
@@ -244,7 +244,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     for (syntax_tree *child : children)
     {
         child->search_depth = ast.search_depth + 1;
-        search_save(*child, schedules_annotations);
+        search_save(*child, schedules_annotations, schedule_timeout);
     }
 }
 
@@ -312,7 +312,7 @@ void mcts::search(syntax_tree& ast)
     }
 }
 
-void mcts::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations)
+void mcts::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
 {
     std::cerr<< "mcts::search_save not yet implemented" << std::endl;
     exit(1);
@@ -342,7 +342,7 @@ void beam_search_topk::search(syntax_tree& ast)
     }
 }
 
-void beam_search_topk::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations)
+void beam_search_topk::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
 {
     std::cerr<< "beam_search_topk::search_save not yet implemented" << std::endl;
     exit(1);

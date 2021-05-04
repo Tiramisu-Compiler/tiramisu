@@ -38,8 +38,11 @@ void auto_scheduler::sample_search_space(std::string filename)
     empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
     schedules_annotations.push_back(empty_schedule_json);
 
+    //define a timeout for scheduler evaluation, the max between 100times the initial exec_time (converted to seconds) and 3s per run
+    float schedule_timeout = std::max(initial_exec_time*100/1000, (float)3.0);
+
     searcher->set_exec_eval(exec_evaluator);
-    searcher->search_save(ast, &schedules_annotations);
+    searcher->search_save(ast, &schedules_annotations, schedule_timeout);
 
     std::string output_json;
 
