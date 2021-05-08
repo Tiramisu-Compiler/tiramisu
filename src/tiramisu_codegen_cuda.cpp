@@ -706,6 +706,34 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
     }
 
     cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_user(isl_ast_node *node) {
+        if ( (get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_allocate) )
+        {
+            std::cout << "DEBUG: cuda_ast::generator::cuda_stmt_handle_isl_user tiramisu::o_allocate\n";
+            tiramisu::computation * alloc_at = get_computation_annotated_in_a_node(node);
+            tiramisu::expr allocate_expression =  alloc_at->get_expr();
+            std::string buffer_name = allocate_expression.get_name();
+            tiramisu::buffer *buf = alloc_at->fct->get_buffers().find(buffer_name)->second;
+            auto cuda_ast_buffer = get_buffer(buf->get_name());
+            if ( !buf->get_auto_allocate() )
+            {
+                std::cout << "DEBUG: returning cuda_ast for ALLOC of " << buf->get_name() << "\n";
+                return cuda_ast::statement_ptr{ new cuda_ast::allocate(cuda_ast_buffer) };
+            }
+        }
+        if ( get_computation_annotated_in_a_node(node)->get_expr().get_op_type() == tiramisu::o_free )
+        {
+            std::cout << "DEBUG: cuda_ast::generator::cuda_stmt_handle_isl_user tiramisu::o_free\n";
+            tiramisu::computation * dealloc_at = get_computation_annotated_in_a_node(node);
+            tiramisu::expr deallocate_expression =  dealloc_at->get_expr();
+            std::string buffer_name = deallocate_expression.get_name();
+            tiramisu::buffer *buf = dealloc_at->fct->get_buffers().find(buffer_name)->second;
+            auto cuda_ast_buffer = get_buffer(buf->get_name());
+            if ( !buf->get_auto_deallocate() )
+            {
+                std::cout << "DEBUG: returning cuda_ast for FREE of " << buf->get_name() << "\n";
+                return cuda_ast::statement_ptr{ new cuda_ast::free(cuda_ast_buffer) };
+            }
+        }
         isl_ast_expr_ptr expr{isl_ast_node_user_get_expr(node)};
         return cuda_stmt_handle_isl_expr(expr, node);
     }
@@ -749,9 +777,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
 
                 if (buf->location != cuda_ast::memory_location::constant) {
                     allocations.push_back(cuda_ast::statement_ptr{new cuda_ast::allocate(cuda_ast_buffer)});
-                    frees.push_back(cuda_ast::statement_ptr{new cuda_ast::free(cuda_ast_buffer)});
                 }
-
 
                 buf->mark_as_allocated();
 
@@ -762,6 +788,13 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
                     hf->set_pointer_return();
                     const_buffer_declaration.push_back(cuda_ast::statement_ptr{hf});
                 }
+            }
+
+            if ( buf->get_argument_type() == tiramisu::a_temporary && buf->get_auto_deallocate() )
+            {
+                auto cuda_ast_buffer = generator.get_buffer(buf->get_name());
+                if (buf->location != cuda_ast::memory_location::constant)
+                    frees.push_back(cuda_ast::statement_ptr{new cuda_ast::free(cuda_ast_buffer)});
             }
         }
         for (auto &a : allocations)
