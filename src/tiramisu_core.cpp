@@ -1552,6 +1552,84 @@ tiramisu::computation *buffer::allocate_at(tiramisu::computation &C, int level)
     return alloc;
 }
 
+
+tiramisu::computation *buffer::deallocate_at(tiramisu::computation &C, tiramisu::var level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(level.get_name().length() > 0);
+
+    std::vector<int> dimensions =
+        C.get_loop_level_numbers_from_dimension_names({level.get_name()});
+
+    assert(dimensions.size() == 1);
+
+    int L0 = dimensions[0];
+
+    C.check_dimensions_validity({L0});
+
+    tiramisu::computation *alloc = this->deallocate_at(C, L0);
+
+    DEBUG_INDENT(-4);
+
+    return alloc;
+}
+
+tiramisu::computation *buffer::deallocate_at(tiramisu::computation &C, int level)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(level >= tiramisu::computation::root_dimension);
+    assert(level < (int) isl_set_dim(C.get_iteration_domain(), isl_dim_set));
+
+    DEBUG(3, tiramisu::str_dump("Computing the iteration domain for the deallocate() operation"));
+    DEBUG(3, tiramisu::str_dump("Computation name " + C.get_name() + ", Level = " + std::to_string(level)));
+
+    isl_set *iter = C.get_iteration_domains_of_all_definitions();
+
+    DEBUG(3, tiramisu::str_dump(
+              "The union of iteration domains of the computations with which we deallocate (all their definitions): ",
+              isl_set_to_str(iter)));
+
+    int projection_dimension = level + 1;
+    if (projection_dimension != 0)
+        iter = isl_set_project_out(isl_set_copy(iter),
+                                   isl_dim_set,
+                                   projection_dimension,
+                                   isl_set_dim(iter, isl_dim_set) - projection_dimension);
+    else
+    {
+        iter = isl_set_read_from_str(C.get_ctx(), "{[0]}");
+    }
+    std::string new_name = "_deallocation_" + C.get_name();
+    iter = isl_set_set_tuple_name(iter, new_name.c_str());
+    std::string iteration_domain_str = isl_set_to_str(iter);
+
+    DEBUG(3, tiramisu::str_dump(
+              "Computed iteration domain for the deallocate() operation",
+              isl_set_to_str(iter)));
+
+    tiramisu::expr *new_expression = new tiramisu::expr(tiramisu::o_free, this->get_name());
+
+    DEBUG(3, tiramisu::str_dump("The expression of the deallocation operation"); new_expression->dump(false));
+
+    tiramisu::computation *alloc = new tiramisu::computation(iteration_domain_str,
+            *new_expression,
+            true, p_none, C.get_function());
+
+    this->set_auto_deallocate(false);
+
+    DEBUG(3, tiramisu::str_dump("The computation representing the deallocate() operator:");
+          alloc->dump());
+
+    DEBUG_INDENT(-4);
+
+    return alloc;
+}
+
+
 void buffer::set_auto_allocate(bool auto_allocation)
 {
     this->auto_allocate = auto_allocation;
@@ -1560,6 +1638,16 @@ void buffer::set_auto_allocate(bool auto_allocation)
 bool buffer::get_auto_allocate()
 {
     return this->auto_allocate;
+}
+
+void buffer::set_auto_deallocate(bool auto_deallocation)
+{
+    this->auto_deallocate = auto_deallocation;
+}
+
+bool buffer::get_auto_deallocate()
+{
+    return this->auto_deallocate;
 }
 
 void computation::set_schedule(std::string map_str)
