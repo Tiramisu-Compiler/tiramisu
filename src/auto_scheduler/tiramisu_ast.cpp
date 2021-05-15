@@ -1431,4 +1431,101 @@ void syntax_tree::print_computations_accesses() const
     }
 }
 
+std::string syntax_tree::get_schedule_str()
+{
+    std::vector<optimization_info> schedule_vect = this->get_schedule();
+    std::string schedule_str;
+
+    for (auto optim: schedule_vect)
+    {
+        switch(optim.type) {
+            case optimization_type::FUSION:
+                schedule_str += "F(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                break;
+
+            case optimization_type::UNFUSE:
+                schedule_str += "F(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                break;
+
+            case optimization_type::INTERCHANGE:
+                schedule_str += "I(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                break;
+
+            case optimization_type::TILING:
+                if (optim.nb_l == 2)
+                    schedule_str += "T2(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
+                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
+                else if (optim.nb_l == 3)
+                    schedule_str += "T3(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+",L"+std::to_string(optim.l2)+","+
+                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+std::to_string(optim.l2_fact)+"),";
+                break;
+
+            case optimization_type::UNROLLING:
+                schedule_str += "U(L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
+                break;
+
+            case optimization_type::PARALLELIZE:
+                schedule_str += "P(L"+std::to_string(optim.l0)+"),";
+                break;
+
+            case optimization_type::SKEWING:
+                schedule_str += "S(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
+                                std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
+                break;
+
+            default:
+                break;
+        }
+        if (!schedule_vect.empty())
+            schedule_str.pop_back(); // remove last comma
+    }
+
+    return schedule_str;
+}
+
+    candidate_trace::candidate_trace(syntax_tree *ast, int candidate_id)
+{
+    this->evaluation = ast->evaluation;
+    this->exploration_depth = ast->search_depth+1;
+    this->candidate_id = candidate_id;
+    this->schedule_str = ast->get_schedule_str();
+}
+
+candidate_trace::~candidate_trace() {
+    for (candidate_trace *child_candidate:this->child_candidates)
+        delete child_candidate;
+}
+
+void candidate_trace::add_child_path(syntax_tree *ast, int candidate_id)
+{
+    candidate_trace *child_candidate = new candidate_trace(ast, candidate_id);
+    this->child_candidates.push_back(child_candidate);
+    this->child_mappings.insert({ast, child_candidate});
+}
+
+std::string candidate_trace::get_exploration_trace_json()
+{
+    std::string trace_json = "{ \"id\": "+std::to_string(this->candidate_id)+
+            ", \"schedule\": \"" + this->schedule_str + "\"" +
+            ", \"depth\": " + std::to_string(this->exploration_depth) +
+            ", \"evaluation\": " + std::to_string(this->evaluation) +
+            ", \"children\": [";
+
+    if (!this->child_candidates.empty())
+    {
+        trace_json += "\n";
+        for (auto child_candidate: this->child_candidates)
+            trace_json += child_candidate->get_exploration_trace_json() + ",";
+        trace_json.pop_back(); // remove last comma
+    }
+
+    trace_json += "]}\n";
+
+    return trace_json;
+}
+
+int candidate_trace::get_candidate_id() const {
+    return candidate_id;
+}
+
 }

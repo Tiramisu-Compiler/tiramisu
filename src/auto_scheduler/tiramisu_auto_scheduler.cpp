@@ -37,6 +37,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     empty_schedule_json.pop_back();
     empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
     schedules_annotations.push_back(empty_schedule_json);
+    // initialize the exploration trace root
+    candidate_trace exploration_trace_root = candidate_trace(&ast, 0);
 
     float schedule_timeout = 0;
     if (timeout_schedules)
@@ -44,7 +46,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         schedule_timeout = std::max(initial_exec_time*100/1000, (float)3.0);
 
     searcher->set_exec_eval(exec_evaluator);
-    searcher->search_save(ast, &schedules_annotations, schedule_timeout);
+    searcher->search_save(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
     std::string output_json;
 
@@ -70,7 +72,11 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         output_json.pop_back();
         output_json += "\n";
     }
-    output_json += "\t] \n}\n";
+    output_json += "\t], \n";
+
+    output_json += "\"exploration_trace\": " + exploration_trace_root.get_exploration_trace_json();
+
+    output_json += " \n}\n";
 
     std::ofstream file(filename);
     file << output_json;

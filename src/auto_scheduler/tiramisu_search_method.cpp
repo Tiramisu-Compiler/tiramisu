@@ -119,7 +119,7 @@ void beam_search::search(syntax_tree& ast)
     }
 }
 
-void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
+void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
         ast.clear_new_optimizations();
@@ -184,6 +184,8 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
             std::vector<float> measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
             child->evaluation = min_eval(measurements);
 
+            parent_trace->add_child_path(child, schedules_annotations->size());
+
             std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
 
             //remove the last two characters }\n
@@ -228,6 +230,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     syntax_tree *ast_copy = ast.copy_ast();
     ast_copy->nb_explored_optims = nb_explored_optims;
     children.push_back(ast_copy);
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
 
     // Sort children from smallest evaluation to largest
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
@@ -244,7 +247,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     for (syntax_tree *child : children)
     {
         child->search_depth = ast.search_depth + 1;
-        search_save(*child, schedules_annotations, schedule_timeout);
+        search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
 }
 
@@ -312,7 +315,7 @@ void mcts::search(syntax_tree& ast)
     }
 }
 
-void mcts::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
+void mcts::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
     std::cerr<< "mcts::search_save not yet implemented" << std::endl;
     exit(1);
@@ -342,7 +345,7 @@ void beam_search_topk::search(syntax_tree& ast)
     }
 }
 
-void beam_search_topk::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, float schedule_timeout)
+void beam_search_topk::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
     std::cerr<< "beam_search_topk::search_save not yet implemented" << std::endl;
     exit(1);

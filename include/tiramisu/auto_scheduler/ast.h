@@ -617,7 +617,72 @@ public:
      * Check the correctness of the list of applied structurel optimizations
     */
     bool ast_is_legal() const;
+
+    /**
+     * Encodes the transformations applied to the ast as a string, this is used for saving the exploration trace while
+     * sampling schedules
+     */
+    std::string get_schedule_str();
 };
+
+/**
+ * The candidate_trace class is used to recursively record the visited candidates during the search space exploration
+ */
+class candidate_trace
+{
+private:
+    /**
+     * A numerical id is assigned for each explored candidate
+     */
+    int candidate_id;
+
+public:
+    int get_candidate_id() const;
+
+private:
+    /**
+     * The search depth where this candidate was visited
+     */
+    int exploration_depth;
+
+    /**
+     * candidate's evaluation
+     */
+    float evaluation;
+
+    /**
+     * The applied schedule, encoded as a string
+     */
+    std::string schedule_str;
+
+    /**
+     * The child candidates that are derived from this candidate
+     */
+    std::vector<candidate_trace*> child_candidates;
+
+public:
+
+    candidate_trace(syntax_tree* ast, int candidate_id);
+
+    ~candidate_trace();
+
+    /**
+     * Initializes a new child candidate from an AST and adds it to the children list
+     */
+    void add_child_path(syntax_tree* ast, int candidate_id);
+
+    /**
+     * Recursively exports the exploration trace into a JSON format
+     */
+    std::string get_exploration_trace_json();
+
+    /**
+     * A mapping between ASTs and explored child candidates
+     */
+    std::unordered_map<syntax_tree*, candidate_trace*> child_mappings;
+
+};
+
 
 }
 
