@@ -204,27 +204,57 @@ void syntax_tree::order_computations()
     if (roots.size() < 2)
         return ;
 
+    std::unordered_map<std::string,std::unordered_map<std::string,int>> sched_string;
+
     //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
     std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
     std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
     for (auto& sched_graph_node : fct->sched_graph)
         for (auto& sched_graph_child : sched_graph_node.second)
+        {
             rs_comps.push_back(sched_graph_child.first);
 
-    for (tiramisu::computation* comp: this->computations_list)
+            sched_string[sched_graph_node.first->get_name()][sched_graph_child.first->get_name()] = sched_graph_child.second;
+        }
+            
+
+    for(auto* comp:this->computations_list)
+    {
+        bool found = false;
+        for(auto& comp_rs:rs_comps)
+        {
+            if(comp_rs->get_name() == comp->get_name())
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if(!found)
+        {
+            nrs_comps.push_back(comp);
+        }
+    }
+
+    /*for (tiramisu::computation* comp: this->computations_list)
         if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
             nrs_comps.push_back(comp);
+            */
 
     std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
 
-    for (tiramisu::computation* comp: nrs_comps){
-        tiramisu::computation* current_comp= comp;
-        while (fct->sched_graph.find(current_comp) != fct->sched_graph.end()) {
-            auto sched_graph_l = fct->sched_graph[current_comp];
-            sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
-            current_comp = sched_graph_l.begin()->first;
-        }
+    //first computation
+    tiramisu::computation* current_comp= nrs_comps[0];
+
+    while (sched_string.find(current_comp->get_name()) != sched_string.end()) 
+    {
+        auto sched_graph_l = fct->sched_graph[fct->get_computation_by_name(current_comp->get_name())[0]];
+
+        sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
+
+        current_comp = sched_graph_l.begin()->first;
     }
+
 
     // We use the sorted scheduling graph to construct the computations AST
     for (auto& sched_graph_node : sorted_sched_graph)
@@ -739,8 +769,8 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
 
     node_2->low_bound = 0;
     node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
-    node_1->up_bound = node_1->low_bound + info.l0_fact * number_space_outer + info.l1_fact *inner_space ;
-    node_2->up_bound =  (( number_space_outer * inner_space )/(node_1->up_bound - node_1->low_bound)) + 1;
+    node_1->low_bound = abs(info.l0_fact) * node_1->low_bound + abs(info.l1_fact) *node_2->low_bound; 
+    node_1->up_bound = node_1->low_bound + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space ;
 
     std::vector<computation_info*> all_data;
         
