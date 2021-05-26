@@ -95,8 +95,8 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     std::string cmd = wrapper_cmd;
     if (timeout!=0) {// check if a timeout is defined for the execution time
         int nb_exec = 30; //by default
-        if (std::getenv("NB_EXEC")!=NULL)
-            nb_exec = std::stoi(std::getenv("NB_EXEC"));
+        if (std::getenv("MAX_RUNS")!=NULL)
+            nb_exec = std::stoi(std::getenv("MAX_RUNS"));
         float cumulative_timeout = timeout * nb_exec; // the timeout for the total number of executions
         cmd = std::string("timeout ") + std::to_string(cumulative_timeout) + std::string(" ") + wrapper_cmd;
     }
@@ -114,7 +114,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     // close the pipe and check if the timeout has been reached
     auto returnCode = pclose(pipe)/256;
     if (exit_on_timeout && (timeout!=0) && (returnCode == 124)){ // a potential issue here is that the 124 exit code is returned by another error
-        std::cerr << "error: Execution time exceeded the defined timeout "<< timeout << "s *"<< std::getenv("NB_EXEC") << "execution" << std::endl;
+        std::cerr << "error: Execution time exceeded the defined timeout "<< timeout << "s *"<< std::getenv("MAX_RUNS") << "execution" << std::endl;
         exit(1);
     }
 

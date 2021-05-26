@@ -22,8 +22,14 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     float initial_timeout = 0;
     if (std::getenv("INITIAL_TIMEOUT")!=NULL)
         initial_timeout = std::stof(std::getenv("INITIAL_TIMEOUT"));
+
+    setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
     std::vector<float> initial_measurements = exec_evaluator->get_measurements(ast, true, initial_timeout);
     initial_exec_time = min_eval(initial_measurements);
+    if (std::isinf(initial_exec_time)){
+        std::cerr << "error: Evaluation of the non scheduled version of the program failed "<< std::endl;
+        exit(1);
+    }
     ast.evaluation = initial_exec_time;
     if (std::getenv("AS_VERBOSE")!=NULL)
         if (std::stoi(std::getenv("AS_VERBOSE"))==1)
@@ -37,6 +43,10 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     empty_schedule_json.pop_back();
     empty_schedule_json += ", \n\"execution_times\" : " + measurements_to_str(initial_measurements) + "\n}\n";
     schedules_annotations.push_back(empty_schedule_json);
+
+    // export the the initial execution time as an env var so that it can be used for adjusting the number of runs by the wrappers
+    setenv("INIT_EXEC_TIME", std::to_string(initial_exec_time).c_str(), true);
+
     // initialize the exploration trace root
     candidate_trace exploration_trace_root = candidate_trace(&ast, 0);
 
@@ -53,15 +63,15 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
     std::string output_json;
 
-    std::string nb_exec = "\"default\"";
-    if (std::getenv("NB_EXEC")!=NULL)
-        nb_exec = std::string(std::getenv("NB_EXEC"));
+//    std::string nb_exec = "\"default\"";
+//    if (std::getenv("MAX_RUNS")!=NULL)
+//        nb_exec = std::string(std::getenv("MAX_RUNS"));
 
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
                   "\n\t\"parameters\" : {" +
                   "\n\t\t\"beam_size\" : " + std::getenv("BEAM_SIZE") + ", " +
-                  "\n\t\t\"max_depth\" : " + std::getenv("MAX_DEPTH") + ", " +
-                  "\n\t\t\"nb_exec\" : " + nb_exec +
+                  "\n\t\t\"max_depth\" : " + std::getenv("MAX_DEPTH") +
+//                  "\n\t\t\"nb_exec\" : " + nb_exec +
                   "\n\t}, " +
                   "\n\t\"program_annotation\" : " + program_json + ", " +
                   "\n\t\"initial_execution_time\" : " + std::to_string(initial_exec_time) + ", " +
