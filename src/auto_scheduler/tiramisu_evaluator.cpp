@@ -93,11 +93,13 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 
     // define the execution command of the wrapper
     std::string cmd = wrapper_cmd;
+
+    float cumulative_timeout;
     if (timeout!=0) {// check if a timeout is defined for the execution time
         int nb_exec = 30; //by default
         if (std::getenv("MAX_RUNS")!=NULL)
             nb_exec = std::stoi(std::getenv("MAX_RUNS"));
-        float cumulative_timeout = timeout * nb_exec; // the timeout for the total number of executions
+        cumulative_timeout = timeout * nb_exec; // the timeout for the total number of executions
         cmd = std::string("timeout ") + std::to_string(cumulative_timeout) + std::string(" ") + wrapper_cmd;
     }
 
@@ -127,7 +129,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
         measurements.push_back(std::numeric_limits<float>::infinity());
 
     else if (measurements.empty() && (returnCode == 124) && (timeout!=0)){  //if there is no output and the cmd timed out, this means that no execution finished before timeout
-        measurements.push_back(timeout*1000); // converted to ms
+        measurements.push_back(cumulative_timeout*1000); // converted to ms
         std::cout<< "Execution timed out"<< std::endl;
     }
 
