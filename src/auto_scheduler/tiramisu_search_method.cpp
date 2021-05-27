@@ -152,34 +152,32 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         child->nb_explored_optims = nb_explored_optims;
         child->transform_ast();
 
-        if (child->ast_is_legal() == false) {
-            if (std::getenv("AS_VERBOSE")!=NULL)
-                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-                    // print deleted Ast
-                    child->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
-                    child->print_new_optims();
-                    child->print_ast();
-                    child->print_isl_states();
-                    std::cout << "\n<illegal>\n";
-                    delete child;
-                    iterator = children.erase(iterator);
-                }
+        if (!child->ast_is_legal()) {
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<illegal>\n";
+            }
+            delete child;
+            iterator = children.erase(iterator);
         }
         else {
 
             // print and evaluate Ast
 
-            if (std::getenv("AS_VERBOSE")!=NULL)
-                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-                    child->print_previous_optims();
-                    std::cout << "\n-----------" << std::endl;
-                    child->print_new_optims();
-                    child->print_ast();
-                    child->print_isl_states();
-                    std::cout << "\n<legal>\n";
-                    child->print_computations_accesses();
-                }
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<legal>\n";
+                child->print_computations_accesses();
+            }
 
             std::vector<float> measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
             child->evaluation = min_eval(measurements);
@@ -199,12 +197,11 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
 
             schedules_annotations->push_back(schedule_annot);
 
-            if (std::getenv("AS_VERBOSE")!=NULL)
-                if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-                    std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
-                    std::cout << "Evaluation : " << child->evaluation << std::endl;
-                    std::cout << "===================================" << std::endl << std::endl;
-                }
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+                std::cout << "Evaluation : " << child->evaluation << std::endl;
+                std::cout << "===================================" << std::endl << std::endl;
+            }
 
             if (std::isinf(child->evaluation))
                 std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;

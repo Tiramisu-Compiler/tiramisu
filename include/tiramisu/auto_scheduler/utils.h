@@ -45,6 +45,19 @@ inline std::string measurements_to_str(std::vector<float> measurements)
 
     return str_array;
 }
+
+/**
+ * return an environment variable value if declared, otherwise returns empty string
+ * This function is just for reducing code clutter
+ */
+inline const char* read_env_var(const char* env_var_name){
+    char* value = std::getenv(env_var_name);
+    if (value!=nullptr)
+        return value;
+    else
+        return "";
+}
+
 }
 
 #endif

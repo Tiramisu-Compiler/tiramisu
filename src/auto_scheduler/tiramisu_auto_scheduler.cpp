@@ -19,11 +19,10 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 {
     std::chrono::steady_clock::time_point sampling_start = std::chrono::steady_clock::now();
     fct->reset_schedules();
-    float initial_timeout = 0;
-    if (std::getenv("INITIAL_TIMEOUT")!=NULL)
-        initial_timeout = std::stof(std::getenv("INITIAL_TIMEOUT"));
 
     setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
+    float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));
+
     std::vector<float> initial_measurements = exec_evaluator->get_measurements(ast, true, initial_timeout);
     initial_exec_time = min_eval(initial_measurements);
     if (std::isinf(initial_exec_time)){
@@ -31,9 +30,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         exit(1);
     }
     ast.evaluation = initial_exec_time;
-    if (std::getenv("AS_VERBOSE")!=NULL)
-        if (std::stoi(std::getenv("AS_VERBOSE"))==1)
-            std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
+        std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
@@ -52,7 +50,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
     float schedule_timeout = 0;
     float schedule_timeout_factor = 50;
-    if (std::getenv("SCHED_TIMEOUT_FACTOR")!=NULL)
+    if (std::getenv("SCHED_TIMEOUT_FACTOR")!=nullptr)
         schedule_timeout_factor = std::stof(std::getenv("SCHED_TIMEOUT_FACTOR"));
     if (timeout_schedules)
         //define a timeout for scheduler evaluation, the max between schedule_timeout_factor times the initial exec_time (converted to seconds) and 3s per run
@@ -69,8 +67,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
                   "\n\t\"parameters\" : {" +
-                  "\n\t\t\"beam_size\" : " + std::getenv("BEAM_SIZE") + ", " +
-                  "\n\t\t\"max_depth\" : " + std::getenv("MAX_DEPTH") +
+                  "\n\t\t\"beam_size\" : " + read_env_var("BEAM_SIZE") + ", " +
+                  "\n\t\t\"max_depth\" : " + read_env_var("MAX_DEPTH") +
 //                  "\n\t\t\"nb_exec\" : " + nb_exec +
                   "\n\t}, " +
                   "\n\t\"program_annotation\" : " + program_json + ", " +
@@ -96,11 +94,10 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     file.close();
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
-    if (std::getenv("AS_VERBOSE")!=NULL)
-        if (std::stoi(std::getenv("AS_VERBOSE"))==1){
-            std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
-            std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
-        }
+    if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+        std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
+        std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
+    }
 }
 
 void auto_scheduler::find_schedule()

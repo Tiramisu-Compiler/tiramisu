@@ -206,10 +206,7 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
     // Get the memory size allocated by the program, if declared
-    std::string mem_size = "\"undeclared\"";
-    if (std::getenv("MEM_SIZE")!=NULL)
-        mem_size = std::string(std::getenv("MEM_SIZE"));
-    std::string mem_size_json = "\"memory_size\" : " + mem_size + " ";
+    std::string mem_size_json = "\"memory_size\" : \"" + std::string(read_env_var("MEM_SIZE")) + "\" ";
 
     // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
