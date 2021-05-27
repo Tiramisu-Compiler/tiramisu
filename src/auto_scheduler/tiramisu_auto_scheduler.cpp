@@ -66,6 +66,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 //        nb_exec = std::string(std::getenv("MAX_RUNS"));
 
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
+                  "\n\t\"node_name\" : \"" + read_env_var("SLURMD_NODENAME") + "\"," +
                   "\n\t\"parameters\" : {" +
                   "\n\t\t\"beam_size\" : " + read_env_var("BEAM_SIZE") + ", " +
                   "\n\t\t\"max_depth\" : " + read_env_var("MAX_DEPTH") +
