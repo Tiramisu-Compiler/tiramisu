@@ -768,9 +768,10 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     std::string new_2 = "_skew";
 
     node_2->low_bound = 0;
-    node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
-    node_1->low_bound = abs(info.l0_fact) * node_1->low_bound + abs(info.l1_fact) *node_2->low_bound; 
+    //node_1->low_bound = info.l0_fact * node_1->low_bound + info.l1_fact *node_2->low_bound; 
+    node_1->low_bound = abs(info.l0_fact) * node_1->low_bound; 
     node_1->up_bound = node_1->low_bound + abs(info.l0_fact) * number_space_outer + abs(info.l1_fact) *inner_space ;
+    node_2->up_bound =  (( number_space_outer * inner_space )/(node_1->up_bound - node_1->low_bound)) + 1;	
 
     std::vector<computation_info*> all_data;
         
