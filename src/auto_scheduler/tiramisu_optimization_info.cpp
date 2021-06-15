@@ -32,10 +32,14 @@ void apply_optimizations(syntax_tree const& ast)
         
     for (optimization_info const& optim_info : ast.new_optims)
         apply_optimizations(optim_info);
-            
+
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
     apply_fusions(ast);
+
+    // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
+    // the tagged ast_nodes
+    apply_parallelization(ast);
 }
 
 void apply_optimizations(optimization_info const& optim_info)
@@ -67,12 +71,6 @@ void apply_optimizations(optimization_info const& optim_info)
             // Apply unrolling on all innermost levels
             else
                 unroll_innermost_levels(optim_info.comps, optim_info.l0_fact);
-            break;
-
-        case optimization_type::PARALLELIZE:
-            // tiramisu::block doesn't implement tag_parallel_level(int), the solution is to iterate over computations and parallelize each
-            for (auto comp: optim_info.comps)
-                comp->tag_parallel_level(optim_info.l0);
             break;
 
         case optimization_type::SKEWING:
@@ -124,6 +122,27 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
         next_comp = apply_fusions(child, next_comp, new_dimension);
     
     return next_comp;
+}
+
+void apply_parallelization(syntax_tree const& ast)
+{
+    for (ast_node *root : ast.roots)
+        apply_parallelization(root);
+}
+
+void apply_parallelization(ast_node* node)
+{
+    // if the ast_node is tagged for parallelization, get the child computations and tag them using tag_parallel_level()
+    if (node->parallelized)
+    {
+        std::vector<tiramisu::computation*> involved_computations;
+        node->get_all_computations(involved_computations);
+        for (tiramisu::computation* comp: involved_computations)
+            comp->tag_parallel_level(node->depth);
+    }
+    for (ast_node *child : node->children)
+        apply_parallelization(child);
+
 }
 
 void print_optim(optimization_info optim)
