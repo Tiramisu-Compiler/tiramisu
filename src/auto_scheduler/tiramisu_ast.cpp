@@ -472,10 +472,10 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         // Set lower and upper bounds
         i_outer->low_bound = 0;
-        i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
+        i_outer->up_bound =  (int)ceil((double)i_outer->get_extent() / (double)opt.l0_fact) - 1;
             
         j_outer->low_bound = 0;
-        j_outer->up_bound = j_outer->get_extent() / opt.l1_fact - 1;
+        j_outer->up_bound = (int)ceil((double)j_outer->get_extent() / (double)opt.l1_fact) - 1;
             
         i_inner->low_bound = 0;
         i_inner->up_bound = opt.l0_fact - 1;
@@ -576,13 +576,13 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             
         // Set lower and upper bounds
         i_outer->low_bound = 0;
-        i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
+        i_outer->up_bound = (int)ceil((double)i_outer->get_extent() / (double)opt.l0_fact) - 1;
             
         j_outer->low_bound = 0;
-        j_outer->up_bound = j_outer->get_extent() / opt.l1_fact - 1;
+        j_outer->up_bound = (int)ceil((double)j_outer->get_extent() / (double)opt.l1_fact) - 1;
             
         k_outer->low_bound = 0;
-        k_outer->up_bound = k_outer->get_extent() / opt.l2_fact - 1;
+        k_outer->up_bound = (int)ceil((double)k_outer->get_extent() / (double)opt.l2_fact) - 1;
             
         i_inner->low_bound = 0;
         i_inner->up_bound = opt.l0_fact - 1;
