@@ -200,6 +200,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
                 std::cout << "Evaluation : " << child->evaluation << std::endl;
+                std::cout << "Number of measurements : " << measurements.size() << std::endl;
                 std::cout << "===================================" << std::endl << std::endl;
             }
 

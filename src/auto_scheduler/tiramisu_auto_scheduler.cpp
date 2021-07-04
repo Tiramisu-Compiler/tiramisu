@@ -52,9 +52,12 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     float schedule_timeout_factor = 50;
     if (std::getenv("SCHED_TIMEOUT_FACTOR")!=nullptr)
         schedule_timeout_factor = std::stof(std::getenv("SCHED_TIMEOUT_FACTOR"));
-    if (timeout_schedules)
+    if (timeout_schedules) {
         //define a timeout for scheduler evaluation, the max between schedule_timeout_factor times the initial exec_time (converted to seconds) and 3s per run
-        schedule_timeout = std::max(initial_exec_time*schedule_timeout_factor/1000, (float)3.0);
+        schedule_timeout = std::max(initial_exec_time * schedule_timeout_factor / 1000, (float) 3.0);
+        if (std::atoi(read_env_var("AS_VERBOSE")) == 1)
+            std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
+    }
 
     searcher->set_exec_eval(exec_evaluator);
     searcher->search_save(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
