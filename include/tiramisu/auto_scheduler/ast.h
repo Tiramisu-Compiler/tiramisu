@@ -623,6 +623,11 @@ public:
      * sampling schedules
      */
     std::string get_schedule_str();
+
+    /**
+     * Predicts if the schedule applied to the ast is worth evaluating for further exploration.
+     */
+     bool schedule_is_prunable();
 };
 
 /**

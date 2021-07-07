@@ -2,6 +2,7 @@
 #define _TIRAMISU_AUTO_SCHEDULER_UTILS_
 
 #include <vector>
+#include <regex>
 
 namespace tiramisu::auto_scheduler
 {

@@ -1514,6 +1514,30 @@ std::string syntax_tree::get_schedule_str()
     return schedule_str;
 }
 
+bool syntax_tree::schedule_is_prunable()
+{
+    // Please note that this function currently only works for single computation programs
+    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
+
+    assert(computations_list.size()==1 && "current implementation of syntax_tree::schedule_is_prunable() supports only single computation programs");  // assuming the ast has only one computation
+
+    int original_ast_depth = computations_list[0]->get_loop_levels_number();
+    std::string schedule_str = get_schedule_str();
+
+    if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)U\(L3,\d+\))")))
+        return true;
+
+    if (original_ast_depth==2)
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)(?:[^T]|$))")))
+            return true;
+
+    if (original_ast_depth==3)
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)(?:[^T]|$|T2\(L0,L1))")))
+            return true;
+
+    return false;
+}
+
     candidate_trace::candidate_trace(syntax_tree *ast, int candidate_id)
 {
     this->evaluation = ast->evaluation;

@@ -152,7 +152,20 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         child->nb_explored_optims = nb_explored_optims;
         child->transform_ast();
 
-        if (!child->ast_is_legal()) {
+        if (child->schedule_is_prunable()){
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                std::cout << "\n<Schedule pruned>\n";
+            }
+            delete child;
+            iterator = children.erase(iterator);
+        }
+
+        else if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
                 child->print_previous_optims();
