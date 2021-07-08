@@ -625,9 +625,14 @@ public:
     std::string get_schedule_str();
 
     /**
-     * Predicts if the schedule applied to the ast is worth evaluating for further exploration.
+     * Predicts if the schedule applied to the ast is worth evaluating and exploring further.
      */
-     bool schedule_is_prunable();
+    bool schedule_is_prunable();
+
+    /**
+     * Checks if the AST's evaluation can be predicted using manual engineered rules
+     */
+    bool can_set_default_evaluation();
 };
 
 /**

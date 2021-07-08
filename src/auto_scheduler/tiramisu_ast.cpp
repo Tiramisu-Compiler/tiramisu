@@ -1528,12 +1528,39 @@ bool syntax_tree::schedule_is_prunable()
         return true;
 
     if (original_ast_depth==2)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)(?:[^T]|$))")))
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)U)")))
             return true;
 
     if (original_ast_depth==3)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)(?:[^T]|$|T2\(L0,L1))")))
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)(?:U|T2\(L0,L1))")))
             return true;
+
+    return false;
+}
+
+bool syntax_tree::can_set_default_evaluation()
+{
+    // Please note that this function currently only works for single computation programs
+    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
+    assert(computations_list.size()==1 && "current implementation of syntax_tree::schedule_is_prunable() supports only single computation programs");  // assuming the ast has only one computation
+
+    int original_ast_depth = computations_list[0]->get_loop_levels_number();
+    std::string schedule_str = get_schedule_str();
+
+    //check if innermost loop is parallelized, if yes set the speedup to 0.001
+    if (original_ast_depth==2)
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)$)")))
+        {
+            evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
+            return true;
+        }
+
+    if (original_ast_depth==3)
+        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)$)")))
+        {
+            evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
+            return true;
+        }
 
     return false;
 }

@@ -192,8 +192,14 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                 child->print_computations_accesses();
             }
 
-            std::vector<float> measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
-            child->evaluation = min_eval(measurements);
+            std::vector<float> measurements;
+            if (child->can_set_default_evaluation()) { // if yes the child's evaluation is set to a default value
+                measurements = {child->evaluation};
+            }
+            else{
+                measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
+                child->evaluation = min_eval(measurements);
+            }
 
             parent_trace->add_child_path(child, schedules_annotations->size());
 
