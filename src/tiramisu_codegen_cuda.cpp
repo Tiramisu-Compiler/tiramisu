@@ -375,13 +375,46 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
             case e_op: {
                 switch (tiramisu_expr.get_op_type()) {
                     case o_access: {
+                        cuda_ast::statement_ptr ret = nullptr;
                         buffer_ptr b = this->get_buffer(tiramisu_expr.get_name());
-                        std::vector<statement_ptr> indices;
-                        for (auto &access: tiramisu_expr.get_access()) {
-                            indices.push_back(this->parse_tiramisu(access));
+                        if (b == nullptr)
+                        {
+                            ret = nullptr;
+                        } else 
+                        {
+                            std::vector<statement_ptr> indices;
+
+                            bool failed = false;
+                            tiramisu::expr linear_access = 0;
+                            tiramisu::expr multiplier = 1;
+                            auto accesses = tiramisu_expr.get_access();
+                            std::vector<tiramisu::expr> buffer_size = b->sizes_expr();
+                            for (int i = accesses.size() - 1; i >= 0; --i)
+                            {
+                                linear_access = linear_access + multiplier * accesses[i];
+                                multiplier = multiplier * buffer_size[i];
+                            }
+                            auto stmt = this->parse_tiramisu(linear_access);
+                            if ( stmt != nullptr )
+                                indices.push_back( stmt );
+                            else 
+                                failed = true;
+                            for (statement_ptr ptr : indices)
+                            {
+                                std::stringstream ss;
+                                ptr->print_body( ss, "" );
+                            }
+                            if (!failed) 
+                            {
+                                
+                                buffer_access *access = new buffer_access{b, indices};
+                                ret = statement_ptr{access};
+                            }
                         }
-                        return statement_ptr{new buffer_access{b, indices}};
+                        assert( ret != nullptr );
+                        return ret;
                     }
+                    break;
                     case o_call: {
                         std::vector<statement_ptr> operands{static_cast<size_t>(tiramisu_expr.get_n_arg())};
                         std::transform(tiramisu_expr.get_arguments().begin(), tiramisu_expr.get_arguments().end(),
@@ -468,7 +501,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
                 sizes.push_back(this->parse_tiramisu(dim));
             }
             buffer = buffer_ptr{new cuda_ast::buffer{tiramisu_buffer->get_elements_type(), tiramisu_buffer->get_name(),
-                                                     tiramisu_buffer->location, sizes}};
+                                                     tiramisu_buffer->location, sizes, tiramisu_buffer->get_dim_sizes()}};
             m_buffers[name] = buffer;
         }
         if (in_kernel && gpu_local.find(name) == gpu_local.end()) {
@@ -871,9 +904,7 @@ cuda_ast::statement_ptr cuda_ast::generator::cuda_stmt_handle_isl_if(isl_ast_nod
     }
 
     cuda_ast::buffer::buffer(primitive_t type, const std::string &name, cuda_ast::memory_location location,
-                             const std::vector<cuda_ast::statement_ptr> &size) : abstract_identifier(type, name,
-                                                                                                     location),
-                                                                                 size(size) {}
+                             const std::vector<cuda_ast::statement_ptr> &size, const std::vector<tiramisu::expr>& _sizes_expr) : abstract_identifier(type, name, location), size(size), m_sizes_expr( _sizes_expr ) {  }
 
     cuda_ast::scalar::scalar(primitive_t type, const std::string &name, cuda_ast::memory_location location)
             : abstract_identifier(type, name, location), is_const(false) {}
