@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-#include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_wrapper.h"
-#include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_ref.cpp"
+#include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_single_time_slice_wrapper.h"
+#include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_single_time_slice_ref.cpp"
 
 #define RUN_REFERENCE 0
 #define RUN_CHECK 0
@@ -377,7 +377,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    printf("weights snk %4.1f \n", b_snk_weights(0,0));
    printf("sigs %d \n", b_sigs(0));
    }
-   gpu_tiramisu_make_fused_dibaryon_blocks_correlator(
+   gpu_tiramisu_make_fused_dibaryon_blocks_correlator_single_time_slice(
       b_C_r.raw_buffer(),
       b_C_i.raw_buffer(),
       b_out_buf_C_BB_r.raw_buffer(),

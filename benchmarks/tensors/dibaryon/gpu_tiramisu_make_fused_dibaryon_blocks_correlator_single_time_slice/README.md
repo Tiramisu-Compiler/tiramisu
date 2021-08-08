@@ -17,3 +17,4 @@
     * P_tiling_factor:
         Due to memory limitations, the GPU code needs to divide the computations into tiles.
         This parameter needs to be as low as possible while keeping the used GPU memory below that of the GPU: for example for the V100 GPU we needed to keep P_Vsrc / P_tiling_factor less than or equal to 64
+    * P_Nt and P_TIME_SLICE: because this is the single time slice of the fused dibaryon blocks correlator, the user needs to choose which time slice to compute out of the P_Nt timeslices (0 for the first time slice).
