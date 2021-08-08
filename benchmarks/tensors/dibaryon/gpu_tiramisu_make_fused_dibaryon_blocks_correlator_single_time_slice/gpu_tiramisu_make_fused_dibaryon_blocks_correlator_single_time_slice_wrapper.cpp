@@ -6,6 +6,7 @@
 #include <complex>
 #include "benchmarks.h"
 #include <iomanip>
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,7 +20,21 @@ extern "C" {
 int nb_tests = 1;
 int randommode = 1;
 
+int NsrcTot = Nsrc+NsrcHex;
+int NsnkTot = Nsnk+NsnkHex;
 
+std::string fromBytesToStr( long long size )
+{
+   std::vector<std::string> units = { "bytes", "kilobytes", "megabytes", "gigabytes" };
+   std::vector<std::string> res;
+   for (int i = 0; i < units.size() - 1; ++i)
+   {
+      res.push_back( std::to_string( size % 1024 ) + " " + units[i] );
+      size /= 1024;
+   }
+   res.push_back( std::to_string( size ) + " " + units.back() );
+   return res[3] + " " + res[2] + " " + res[1] + " " + res[0];
+}
 
 void tiramisu_make_two_nucleon_2pt(double* C_re,
     double* C_im,
@@ -362,7 +377,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
    printf("weights snk %4.1f \n", b_snk_weights(0,0));
    printf("sigs %d \n", b_sigs(0));
    }
-   gpu_tiramisu_make_fused_dibaryon_blocks_single_time_slice_correlator(
+   gpu_tiramisu_make_fused_dibaryon_blocks_correlator_single_time_slice(
       b_C_r.raw_buffer(),
       b_C_i.raw_buffer(),
       b_out_buf_C_BB_r.raw_buffer(),
@@ -762,6 +777,67 @@ int main(int, char **)
 
    if (rank == 0) {
    std::cout << "Start Tiramisu code." <<  std::endl;
+
+   long long gpu_buffers_size = Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof ( double )
+                                 + Vsrc * Nsrc * 4 * sizeof ( double )
+                                 + Vsnk * Nsnk * 4 * sizeof ( double )
+                                 + Vsrc * NsrcHex * 2 * sizeof ( double )
+                                 + Vsnk * NsnkHex * 2 * sizeof ( double )
+                                 + Vsnk * Vsnk * NEntangled * 2 * sizeof ( double )
+
+                                 + B2Nrows * 2 * 2 * sizeof( int )
+                                 + B2Nrows * 2 * sizeof ( double )
+                                 + Nperms * sizeof ( int )
+                                 + Nperms * Nq * 2 * sizeof ( int )
+                                 + B2Nrows * Nw * Nq * 2 * sizeof( int )
+                                 + B2Nrows * Nw * sizeof ( double )
+                                 + B2Nrows * Nperms * Nw2 * Nq * 2 * 2 * sizeof ( int )
+                                 + B2Nrows * Nw2 * sizeof ( double )
+                                 + B2Nrows * Nperms * Nw2Hex * Nq * 2 * 2 * sizeof ( int )
+                                 + B2Nrows * Nw2Hex * sizeof ( double )
+
+                                 + Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
+
+                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsnk * sites_per_rank * 16 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
+
+                                 + Lt * Vsnk/sites_per_rank * sites_per_rank * B2Nrows * NsrcTot * B2Nrows * NsnkTot * 2 * sizeof ( double )
+                                 + Vsnk / tiling_factor * B2Nrows * Vsnk / tiling_factor * B2Nrows * 8 * sizeof ( double )
+                                 + Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Vsnk / tiling_factor * 10 * sizeof ( double )
+                                 + Lt * Vsnk/sites_per_rank * sites_per_rank * 16  * sizeof ( double );
+      std::cout << "Tiramisu GPU buffers size: " << fromBytesToStr( gpu_buffers_size ) << "\n";
+
+      long long cpu_buffers_size = Lt * Vsnk/sites_per_rank * sites_per_rank * B2Nrows * NsrcTot * B2Nrows * NsnkTot * 2 * sizeof( double )
+                                 + Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof( double )
+                                 + Lt * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof( double )
+                                 + Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof( double )
+                                 + Vsrc * Nsrc * 4 * sizeof( double )
+                                 + Vsnk * Nsnk * 4 * sizeof( double )
+                                 + Vsrc * NsrcHex * 2 * sizeof( double )
+                                 + Vsnk * NsnkHex * 2 * sizeof( double )
+                                 + Vsnk * Vsnk * NEntangled * 2 * sizeof( double )
+                                 + Vsrc * NsrcHex * 2 * sizeof( double )
+                                 + Vsnk * NsnkHex * 2 * sizeof( double )
+                                 + Vsnk * Vsnk * NEntangled * 2 * sizeof( double )
+                                 + B2Nrows * 2 * 2 * sizeof( int )
+                                 + B2Nrows * 2 * sizeof ( double )
+                                 + Nperms * sizeof ( int )
+                                 + Nperms * Nq * 2 * sizeof ( int )
+                                 + B2Nrows * Nw * Nq * 2 * sizeof( int )
+                                 + B2Nrows * Nw * sizeof ( double )
+                                 + B2Nrows * Nperms * Nw2 * Nq * 2 * 2 * sizeof ( int )
+                                 + B2Nrows * Nw2 * sizeof ( double )
+                                 + B2Nrows * Nperms * Nw2Hex * Nq * 2 * 2 * sizeof ( int )
+                                 + B2Nrows * Nw2Hex * sizeof ( double );
+
+      std::cout << "Tiramisu CPU buffers size: " << fromBytesToStr( cpu_buffers_size ) << "\n";
    }
 
    for (int i = 0; i < nb_tests; i++)
