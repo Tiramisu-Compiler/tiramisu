@@ -401,8 +401,6 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
         case optimization_type::UNROLLING:
             
-            
-
             ast.stage_isl_states();
             
             node->get_innermost_nodes(innermost_nodes);
@@ -420,8 +418,8 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             
                 std::string loop_name = loop_names[inner_most_node->depth];
 
-                bool result = ast.fct->loop_unrolling_is_legal(var(loop_name),involved_computations);
-
+                bool result = (!inner_most_node->vectorized) && (!inner_most_node->parallelized) && 
+                                ast.fct->loop_unrolling_is_legal(var(loop_name),involved_computations);
 
                 if(result) // unrollable: test all possible values
                 {
@@ -651,6 +649,83 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
             ast.recover_isl_states();
             break;
+
+        case optimization_type::VECTORIZATION:
+
+            
+
+            ast.stage_isl_states();
+            
+            node->get_shared_nodes_from_outermost(shared_nodes);
+
+            shared_nodes[0]->get_all_computations(involved_computations);
+
+            {
+                auto res = ast.fct->get_potentiel_vectorizable_loop_level(involved_computations);
+
+                for(int depth : res)
+                {
+                    for (ast_node* inner_most_node: shared_nodes)
+                    {
+                        if(inner_most_node->depth == depth)
+                        {
+                            innermost_nodes.push_back(inner_most_node);
+                            std::cout<<"||"<<inner_most_node->name;
+                        }
+                    }
+                }
+            }
+
+            for (ast_node* inner_most_node: innermost_nodes)
+            {
+                std::cout<<"inner_vexx";
+
+                std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+            
+                std::string loop_name = loop_names[inner_most_node->depth];
+
+                bool result =  (!inner_most_node->parallelized) && 
+                                ast.fct->loop_unrolling_is_legal(var(loop_name),involved_computations);
+
+
+                if(result) // unrollable: test all possible values
+                {
+                    ast.recover_isl_states();
+                    
+
+                    for (int unrolling_fact : unrolling_factors_list)
+                    {
+
+                        if(can_split_iterator(inner_most_node->get_extent(),unrolling_fact))
+                        {
+                            // Copy the AST and add unrolling to the list of optimizations
+                            syntax_tree* new_ast = new syntax_tree();
+                            ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
+
+                            optimization_info optim_info;
+                            optim_info.type = optimization_type::VECTORIZATION;
+                            optim_info.nb_l = 1;
+                            
+                            // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
+                            optim_info.l0 = new_node->depth;
+                            optim_info.l0_fact = unrolling_fact;
+                            // select this node
+                            optim_info.node = new_node;
+                            optim_info.comps = new_ast->get_innermost_computations();
+                            new_ast->new_optims.push_back(optim_info);
+                            states.push_back(new_ast);
+                        }
+    
+                    }
+                    ast.stage_isl_states();
+                }
+
+                nb_try++;
+
+            }
+            ast.recover_isl_states();
+
+        break;
 
         default:
             break;

@@ -508,14 +508,12 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<" Tiling 2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
-           
+            
             
             info->comp_ptr->tile(var(outer_name),var(inner_name)
                                 ,opt.l0_fact,opt.l1_fact,
                                 var(ii_outer),var(jj_outer),var(ii_inner),var(jj_inner));
            
-            
            
         }
 
@@ -625,7 +623,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name_1<<" & "<<outer_name_2 ;
+            //std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name_1<<" & "<<outer_name_2 ;
         }
 
     }
@@ -749,6 +747,64 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
         }
     }
 }
+
+void syntax_tree::transform_ast_by_vectorization(const optimization_info &opt)
+{
+    std::vector<ast_node*> nodes_list;
+    
+    // Apply unrolling on the node provided by opt
+    if (opt.l0 != -1)
+        nodes_list = {opt.node};
+        
+    // Apply unrolling on every innermost loop level
+    else
+        nodes_list = get_innermost_nodes();
+    
+    for (ast_node *node : nodes_list)
+    {
+        if (node->get_extent() <= opt.l0_fact)
+            node->vectorized = true;
+            
+        else 
+        {
+            // Create the new loop structure
+            ast_node *i_outer = node;
+            ast_node *i_inner = new ast_node();
+            
+            // Chain the nodes
+            i_inner->computations = i_outer->computations;
+            i_inner->children = i_outer->children;
+            
+            i_outer->computations.clear();
+            i_outer->children.clear();
+            i_outer->children.push_back(i_inner);
+            
+            i_inner->parent = i_outer;
+            
+            // Location of computations have changed, update computations_mapping
+            for (computation_info& comp_info : i_inner->computations)
+            {
+                computations_mapping[comp_info.comp_ptr] = i_inner;
+            }
+            
+            // Rename the nodes
+            i_inner->name = i_outer->name + "_inner";
+            i_outer->name = i_outer->name + "_outer";
+            
+            // Set lower and upper bounds
+            i_outer->low_bound = 0;
+            i_outer->up_bound = i_outer->get_extent() / opt.l0_fact - 1;
+            
+            i_inner->low_bound = 0;
+            i_inner->up_bound = opt.l0_fact - 1;
+            
+            // Finalize unrolling
+            i_inner->vectorized = true;
+            i_inner->update_depth(i_outer->depth + 1);
+        }
+    }
+}
+
 
 void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
     // Just sets the parallilezed tag to true
@@ -1163,7 +1219,7 @@ void ast_node::print_node() const
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
 
-        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled;
+        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled <<" v "<<vectorized;
         if (parallelized)
             std::cout << " | P";
         std::cout << std::endl;

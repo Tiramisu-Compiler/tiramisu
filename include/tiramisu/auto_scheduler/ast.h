@@ -505,8 +505,10 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
+    void transform_ast_by_vectorization(const optimization_info &opt);
     void transform_ast_by_parallelism(const optimization_info &info);
     void transform_ast_by_skewing(const optimization_info &opt);
+
     
     /**
      * Copy this AST, and return the copy.

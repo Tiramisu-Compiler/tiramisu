@@ -1369,6 +1369,67 @@ void tiramisu::computation::unroll(int L0, int v)
     DEBUG_INDENT(-4);
 }
 
+void computation::vectorize(int L0,int v)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    bool split_happened = this->separateAndSplit(L0, v);
+
+    if (split_happened)
+    {
+        // Tag the inner loop after splitting to be unrolled. That loop
+        // is supposed to have a constant extent.
+        this->get_update(0).tag_vector_level(L0 + 1, v);
+    }
+    else
+    {
+        this->get_update(0).tag_vector_level(L0, v);
+    }
+
+    this->get_function()->align_schedules();
+    DEBUG_INDENT(-4);
+    
+}
+
+
+int computation::get_potentiel_vectorizable_loop_level()
+{
+    DEBUG_INDENT(4);
+
+    int nb_dim = isl_map_dim(this->get_access_relation(),isl_dim_in);
+
+    DEBUG(3, tiramisu::str_dump(" Number of dims is : "+std::to_string(nb_dim)));
+
+    int vector_level = -1;
+
+    for(int dim=nb_dim-1; dim>=0; dim--)
+    {
+        if(isl_map_involves_dims(this->get_access_relation(),isl_dim_in,dim,1) == isl_bool_true)
+        {
+            vector_level = dim;
+            break;
+        }
+    }    
+
+    if(vector_level == -1)
+    {
+        DEBUG(3, tiramisu::str_dump(" No candidate vectorization loop found "));
+
+    }
+    else{
+
+        auto res = this->get_dimension_name_for_loop_level(vector_level);
+        DEBUG(3, tiramisu::str_dump(" candidate vectorization loop found is : "+res));
+
+    }
+
+    DEBUG_INDENT(-4);
+    return vector_level;
+
+
+}
+
 void computation::dump_iteration_domain() const
 {
     if (ENABLE_DEBUG)

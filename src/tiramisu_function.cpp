@@ -4452,5 +4452,28 @@ std::tuple<
 }
 
 
+std::vector<int> function::get_potentiel_vectorizable_loop_level(std::vector<tiramisu::computation *> involved_computations)
+{
+    DEBUG_INDENT(4);
+    std::vector<int> result;
+
+    for(auto const& computation:involved_computations)
+    {
+        int val = computation->get_potentiel_vectorizable_loop_level();
+        if(val != -1)
+        {
+            result.push_back(val);
+        }
+    }
+
+
+    DEBUG_INDENT(-4);
+    
+    return result;
+
+
+}
+
+
 
 }

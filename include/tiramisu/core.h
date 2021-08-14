@@ -1342,7 +1342,10 @@ public:
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
 
-
+    /**
+     * for each computation, it computes potentiel canidate for vectorization, then it regroups it in result vector. 
+    */
+    std::vector<int> get_potentiel_vectorizable_loop_level(std::vector<tiramisu::computation *> involved_computations);
 };
 
 
@@ -4617,9 +4620,17 @@ public:
       * assigned.
       */
     // @{
+    virtual void vectorize(int L,int v);
     virtual void vectorize(var L, int v);
     virtual void vectorize(var L, int v, var L_outer, var L_inner);
     // @}
+
+    /**
+     * Finds the loop level that should be vectorized to improve performance using the access relation.
+     * if level is -1 it means that there is potentiel loop level selected
+    */
+
+    int get_potentiel_vectorizable_loop_level();
 
     /**
       * \brief Generate communication code for this computation
