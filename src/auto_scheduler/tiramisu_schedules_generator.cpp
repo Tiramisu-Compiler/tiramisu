@@ -274,6 +274,107 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             }
             
             break;
+
+        case optimization_type::FUSION:
+            
+
+            /* iterate the ast in preorder */ 
+            {
+
+                std::deque<ast_node*> parcours;
+                std::vector<tiramisu::computation*> seen_computations;
+
+                std::vector<std::pair<computation_info*,ast_node*>> ordered_computations;
+
+                std::vector<tiramisu::var> loop_levels;
+
+                ast_node * current_node = nullptr; 
+                
+                for(auto& node: ast.roots)
+                {
+                    parcours.push_front(node);
+                }
+
+                current_node = parcours[parcours.size()-1];
+                parcours.pop_back();
+
+                while(!parcours.empty())
+                {
+                    //Visit current node
+                    for(auto& computation:current_node->computations)
+                    {
+                        //#cont
+                        ordered_computations.push_back(std::make_pair(&computation,current_node));
+                    }
+                    //the end of the visit section
+                    
+                    for(ast_node * child: current_node->children)
+                    {
+                        parcours.push_front(child);
+                    }
+
+                    if(!parcours.empty())
+                    {
+                        current_node = parcours[parcours.size()-1];
+                        parcours.pop_back();
+                    }
+
+                }
+
+                // computations in correct order
+
+                seen_computations.push_back(std::get<0>(ordered_computations[0])->comp_ptr); 
+
+                for(int index=1 ; index < ordered_computations.size() ; index++)
+                {
+                    ast_node *  previous_node = std::get<1>(ordered_computations[index-1]);
+                    ast_node * current_node = std::get<1>(ordered_computations[index]);
+
+                    auto potentiel_fusion = current_node->get_possible_fusion_candidate(previous_node);
+
+                    previous_node = std::get<0>(potentiel_fusion);
+                    current_node = std::get<1>(potentiel_fusion);
+
+
+                    if((previous_node != current_node) && (previous_node != nullptr) && (current_node != nullptr))
+                    {  
+                        if(previous_node->is_candidate_for_fusion(current_node))
+                        { //similar itr domains
+                            //find loop level subjected to fusion with current common+separated
+                            auto involved_iterators = current_node->get_all_iterators();
+                            auto real_iterators = std::get<0>(ordered_computations[index])->comp_ptr->get_iteration_domain_dimension_names();
+
+                            real_iterators.resize(involved_computations.size());
+
+                            loop_levels.clear();
+
+                            // create a vector of involved vars
+                            for(auto const& str:real_iterators)
+                            {
+                                loop_levels.push_back(tiramisu::var(str));
+                            }
+
+                            //auto shifting_result = ast->fct-> 
+                            auto shifting_res = ast.get_function()->correcting_loop_fusion_with_shifting(
+                                seen_computations,
+                                *std::get<0>(ordered_computations[index])->comp_ptr,
+                                loop_levels);
+
+                            if(shifting_res.size() > 0)
+                            {
+                                //fusion accepted
+                                // must generate shifting optim + transforme a copy of the ast 
+                            } 
+                            
+
+                        }
+                    }
+
+                }
+
+            }
+            
+            break;
             
         case optimization_type::TILING:
             shared_levels_extents = ast.get_shared_levels_extents();

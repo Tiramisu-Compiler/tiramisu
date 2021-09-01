@@ -120,6 +120,9 @@ void computation_info::set_accesses_changes_with_skewing(int first_node_depth,in
 syntax_tree::syntax_tree(tiramisu::function *fct)
     : fct(fct)
 {
+    local_sched_graph =  std::make_shared<std::unordered_map<tiramisu::computation *,
+    std::unordered_map<tiramisu::computation *, int>>>(fct->sched_graph);
+    
     const std::vector<computation*> computations = fct->get_computations();
     
     for (tiramisu::computation *comp : computations) 
@@ -880,6 +883,12 @@ syntax_tree* syntax_tree::copy_ast() const
     return ast;
 }
 
+void syntax_tree::create_new_sched_graph()
+{
+    this->local_sched_graph = std::make_shared<std::unordered_map<tiramisu::computation *,
+    std::unordered_map<tiramisu::computation *, int>>>(this->local_sched_graph.get());
+}
+
 ast_node* ast_node::copy_node() const
 {
     ast_node *node = new ast_node();
@@ -910,6 +919,8 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.computations_list = computations_list;
     new_ast.buffers_list = buffers_list;
     new_ast.buffers_mapping = buffers_mapping;
+
+    new_ast.local_sched_graph = local_sched_graph;
     
     new_ast.iterators_json = iterators_json;
     new_ast.tree_structure_json = tree_structure_json;
@@ -1456,6 +1467,162 @@ void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
         child->collect_all_computation(vector);
     }
 }
+
+
+void ast_node::get_previous_computations_foreign_nodes(std::vector<computation_info*>& vector) 
+{
+    ast_node * parent_ptr = nullptr;
+
+    ast_node * current_node = this;
+
+    parent_ptr = parent;
+
+    while(parent_ptr != nullptr)
+    {
+        // add the parent computations
+        for(computation_info& computation:parent->computations)
+        {
+            vector.push_back(&computation);
+        }
+
+        for(auto& child:parent->children)
+        {
+            if(child == current_node)
+            {
+                //current computation, there is no previous child available anymore.
+                break;
+            }
+            else
+            {
+                child->collect_all_computation(vector);
+            }
+        }
+
+        current_node = parent_ptr;
+        parent_ptr = parent_ptr->parent;
+
+    }
+
+}
+
+bool ast_node::have_similar_itr_domain(ast_node * other)
+{
+    int nb_itr1 = this->up_bound - this->low_bound;
+    int nb_itr2 = other->up_bound - other->low_bound;
+
+    if((nb_itr1 != 0) && (nb_itr2 != 0))
+    {
+        // nb_itr1/nb_itr is 1 or 0
+        if(((nb_itr2/nb_itr1) < 2) && ((nb_itr1/nb_itr2) < 2))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool ast_node::is_candidate_for_fusion(ast_node * other)
+{
+    if(other->depth != this->depth)
+    {
+        return false;
+    }
+
+    ast_node * current_ptr = this;
+    ast_node * other_ptr = other;
+
+    while(current_ptr != other_ptr) // nullptr == nullptr is the possible last exit manner. 
+    {
+        if(current_ptr->have_similar_itr_domain(other_ptr))
+        {
+            current_ptr = current_ptr->parent;
+            other_ptr = other_ptr->parent;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::pair<ast_node *,ast_node*> ast_node::get_possible_fusion_candidate(ast_node * previous_node)
+{
+
+    ast_node * current_ptr = this;
+    ast_node * previous_ptr = previous_ptr;
+
+    while(current_ptr->depth != previous_ptr->depth)
+    {
+        if(current_ptr->depth > previous_ptr->depth)
+        {
+            current_ptr = current_ptr->parent;
+        }
+        else
+        {
+            previous_ptr = previous_ptr->parent;
+        }
+    }
+
+    return std::make_pair(previous_ptr,current_ptr);
+
+}
+
+std::vector<std::string> ast_node::get_all_iterators()
+{
+    std::vector<std::string> iterator_names;
+    ast_node * current = this;
+
+    while(current != nullptr)
+    {
+        if(current->get_extent() > 0)
+        { // not a dummy itr
+            iterator_names.push_back(current->name);
+        }
+  
+
+        current = current->parent;
+    }
+
+    std::reverse(iterator_names.begin(),iterator_names.end());
+
+    return iterator_names;
+
+}
+
+void ast_node::move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation)
+{
+
+    /*
+    adjusted_previous_node->computations.push_back(computation_info(*computation));
+    
+    auto iterator = this->computations.begin();
+    while (iterator != this->computations.end())
+    {
+        if((*iterator).comp_ptr->get_name() == computation->comp_ptr->get_name())
+        {
+            iterator = this->computations.erase(iterator);
+            break;
+        }
+    }
+
+    // check if the node needs to be deleted
+    if(this->computations.empty() && this->children.empty())
+    {
+        ast_node * current_node = this;
+    }*/
+    
+}
+
+
 int ast_node::get_node_loop_extent() const
 {
     return this->up_bound - this->low_bound;
@@ -1485,6 +1652,7 @@ void syntax_tree::stage_isl_states() const
     {
         root->stage_isl_states();
     }
+    this->fct->sched_graph.swap(*this->local_sched_graph);
 
 }
 
@@ -1494,14 +1662,14 @@ void syntax_tree::recover_isl_states() const
     {
         root->recover_isl_states();
     }
-
+    this->fct->sched_graph.swap(*this->local_sched_graph);
 }
 
 bool syntax_tree::ast_is_legal() const
 {
     stage_isl_states();
 
-    this->fct->prepare_schedules_for_legality_checks(false);
+    this->fct->prepare_schedules_for_legality_checks(true);
 
     bool result = this->fct->check_legality_for_function();
     recover_isl_states();

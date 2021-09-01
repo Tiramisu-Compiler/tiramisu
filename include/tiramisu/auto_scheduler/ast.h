@@ -246,6 +246,12 @@ public:
      * Parent of this loop level.
      */
     ast_node *parent = nullptr;
+
+    /**
+     * Used to define the order between children and current computations
+     * */
+
+    //std::vector<std::pair<computation_info*,ast_node*>> ordered_node;
     
 	/**
 	 * Create an empty AST node.
@@ -385,6 +391,41 @@ public:
      * return upper_bound - lower_bound
     */
     int get_node_loop_extent() const;
+
+
+    /**
+     * gets all previous computations for the invoking node, 
+     * taking into consideration other nodes while ignoring the computations within the node.
+    */
+    void get_previous_computations_foreign_nodes(std::vector<computation_info*>& vector);
+
+    /**
+     * checks whether or not two ast_node have the same iteration domaine +/-1 so they can possible be fuzed together.
+    */
+    bool have_similar_itr_domain(ast_node * other);
+
+    /**
+     * checks whether or not two ast_node have the same iteration domaine and depth starting form the commun ast_node. 
+    */
+    bool is_candidate_for_fusion(ast_node * other);
+
+    /**
+     *  returns the two ast_node, first one for the previous ast_node that we fuze into, and the other for this ast_node.
+     *  the result should be two nodes that have the same depth.
+    */
+    std::pair<ast_node *,ast_node*> get_possible_fusion_candidate(ast_node * previous_node);
+
+    /**
+     * finds all loop levels from the ast until the root level.
+     * returns iterators names.
+    */
+    std::vector<std::string> get_all_iterators();
+
+    /**
+     * moves the fuzed computation from current original node to the previous adjusted node.
+     * Basically transform the ast by fusion.
+    */
+    void move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation);
 };
 
 class syntax_tree
@@ -403,6 +444,14 @@ public:
      * The function represented by the AST.
      */
     tiramisu::function *fct;
+
+    /**
+     * the odering scheduling graph which may change during loop fusion.
+     * by ptr to eleminate unnecessary duplications.
+    */
+
+    std::shared_ptr<std::unordered_map<tiramisu::computation *,
+    std::unordered_map<tiramisu::computation *, int>>>  local_sched_graph = nullptr;
     
     /**
       * AST root nodes.
@@ -484,6 +533,8 @@ public:
         for (ast_node *node : roots)
             delete node;
     }
+
+    tiramisu::function * get_function() const { return fct; } 
     
     std::vector<tiramisu::computation*> const& get_computations() const { return computations_list; }
     
@@ -514,6 +565,11 @@ public:
      * Copy this AST, and return the copy.
      */
     syntax_tree* copy_ast() const;
+
+    /**
+     * Create an independent copy of sched_graph in this AST 
+    */
+    void create_new_sched_graph();
 
     /**
      * Copy this AST to new_ast and return a pointer to the copied version of node_to_find.

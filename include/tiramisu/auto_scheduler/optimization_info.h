@@ -17,7 +17,8 @@ enum optimization_type
     UNROLLING,
     PARALLELIZE,
     SKEWING,
-    VECTORIZATION
+    VECTORIZATION,
+    SHIFTING
 };
 
 /**
