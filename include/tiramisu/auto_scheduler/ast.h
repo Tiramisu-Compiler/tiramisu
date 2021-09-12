@@ -392,13 +392,6 @@ public:
     */
     int get_node_loop_extent() const;
 
-
-    /**
-     * gets all previous computations for the invoking node, 
-     * taking into consideration other nodes while ignoring the computations within the node.
-    */
-    void get_previous_computations_foreign_nodes(std::vector<computation_info*>& vector);
-
     /**
      * checks whether or not two ast_node have the same iteration domaine +/-1 so they can possible be fuzed together.
     */
@@ -426,6 +419,21 @@ public:
      * Basically transform the ast by fusion.
     */
     void move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation);
+
+    /**
+     * collects the nodes closer to the root (and also the root) that involves shared nodes underneath.
+    */
+    static std::vector<ast_node*> collect_heads_of_ast(int allowed_splits, ast_node* current);
+
+    /**
+     * get the shared nodes that start from this node
+    */
+    std::vector<ast_node*> collect_shared_nodes_from_head();
+
+    /**
+     * Checks if a node is already tagged and optimized.
+    */
+    bool is_optimized_by_tag();
 };
 
 class syntax_tree
@@ -517,6 +525,12 @@ public:
      * Use by the class evaluate_by_learning_model.
      */
     std::string tree_structure_json;
+
+    /**
+     * a structure that saves the points of previous applied optimizations.
+     * Used by the shedule_generator to explore same optimization in different deapth of the search.
+    */
+    generator_state search_state;
         
     /**
      * Create an empty AST.
@@ -568,6 +582,9 @@ public:
 
     /**
      * Create an independent copy of sched_graph in this AST 
+     * from the fct shed_graph.
+     * In case a copy of another syntax_tree neds to be made, this other tree needs to be staged and swapped with fct_shed_graph before
+     * invoking this methods.
     */
     void create_new_sched_graph();
 
@@ -687,10 +704,59 @@ public:
      */
     bool schedule_is_prunable();
 
+
+    /**
+     * Gets all the computations that are ordered before the current computation.
+     * In case the computation_index is -1, it will bring all the computation within the node.
+    */
+    void get_previous_computations(std::vector<computation*>& result,ast_node*& node, int computation_index);
+
     /**
      * Checks if the AST's evaluation can be predicted using manual engineered rules
      */
     bool can_set_default_evaluation();
+
+    /**
+     * Initialize the search state with potentiel alternatives for the specified optimisation.
+    */
+    std::vector<std::pair<ast_node*,int>> compute_search_space_states(optimization_type optimization) const;
+
+    /**
+     * Initialize the list of explored optimizations in the search space.
+    */
+    void initialize_search_space_optimizations(std::vector<optimization_type> optimizations);
+
+    /**
+     * True if the search space is empty.
+    */
+    bool is_search_space_empty();
+
+    /**
+     * Gets the current optimization target (ast_node : that represent a branch of the AST)
+     *  along with the correspending optimization_type
+     * that need to be explored.
+     * Must only be invoked when the search_space is not fully explored.
+    */
+    std::pair<ast_node*,int> get_current_optimization_target();
+
+     /**
+     * Gets the previous optimization target (ast_node : that represent a branch of the AST)
+     *  along with the correspending optimization_type
+     * as long as the number of alternative for this optimization is >1
+     * and the current_optimization_target index is >0 
+    */
+    std::pair<ast_node*,int> get_previous_optimization_target();
+
+    /**
+     * Gets the current optimization type
+    */
+    optimization_type get_current_optimization_type() const;
+    
+
+    /**
+     * moves to the next alternative or to the next optimization .
+    */
+    void move_to_next_optimization_target();
 };
 
 /**
@@ -751,6 +817,65 @@ public:
 
 };
 
+/**
+ * a class that represent a state for schedule_generator to allow to generate a same optimisation
+ * in different ast_nodes by looking at the previous states and current state.
+*/
+class generator_state
+{
+
+public:
+
+    static std::vector<optimization_type> optimization_list;
+
+    static bool initialized;
+
+    // a list of ast_node to explore with an additional information (int).
+    std::vector<std::pair<ast_node*,int>> target_ast_heads;
+
+    // index in the vector for the explored generations.
+    int current_index = 0;
+
+    // current optimization
+    int optimization_index = 0;
+
+
+
+public:    
+
+    /**
+     *  checks if the current optimization does not have any more possible variants.
+     * */
+    bool is_current_optimization_fully_explored();
+
+    /**
+     *  checks if the current type of optimization is not the last element from wanted optimizations.
+     * */
+    bool can_move_to_next_optimization();
+
+    /**
+     * Set the new alternatives for the current optimization.
+     * */
+    void set_new_heads(std::vector<std::pair<ast_node*,int>>& optim_heads);
+
+    /**
+     * get the currently pointed alternative (state) for the currently pointed optimization.
+    */
+    std::pair<ast_node*,int> get_current_head();
+
+    /**
+     * move to the next alternative within the same optimization
+    */
+    void increment_index();
+
+
+    /**
+     *  True if the search space is empty.
+    */
+    bool is_search_space_empty();
+
+
+};
 
 }
 

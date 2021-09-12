@@ -14,11 +14,27 @@ void beam_search::search(syntax_tree& ast)
     // Look for an optimization that can be applied
     int nb_optims_tried = 0;
     int nb_explored_optims = ast.nb_explored_optims;
-    
-    while (children.size() == 0 && nb_optims_tried < NB_OPTIMIZATIONS && nb_explored_optims < max_depth)
+
+    if(generator_state::initialized == false)
     {
-        optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[nb_explored_optims % NB_OPTIMIZATIONS];
-        children = scheds_gen->generate_schedules(ast, optim_type);
+        
+        ast.initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
+        // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
+    }
+    
+    while (children.size() == 0 && (!ast.is_search_space_empty()))
+    {
+        // schedule generation based on generator_state attribute in the AST.
+        children = scheds_gen->generate_schedules(ast);
+
+        // move to next optimization
+        //explores next optimization/alternative
+        ast.move_to_next_optimization_target();
+
+        for(auto& child:children)
+        {
+            child->move_to_next_optimization_target();
+        }
         
         nb_explored_optims++;
         nb_optims_tried++;

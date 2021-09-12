@@ -72,6 +72,17 @@ public:
      * generate new ASTs by applying the given optimization.
      */
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim) =0;
+
+    /**
+     * Additional default definition, it would be overriden such to generate schedules from
+     * the AST and it's generator_state attribute.
+    */
+    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast)
+    {
+        return this->generate_schedules(ast,optimization_type::TILING);
+    }
+
+    
 };
 
 /**
@@ -140,6 +151,8 @@ public:
           max_nb_iterators(max_nb_iterators) {}
         
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
+
+    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast) override;
 };
 
 }

@@ -152,6 +152,9 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
     order_computations();
 
     create_initial_isl_state();
+
+    // INITIALIZE the generator states as uninitialized
+    generator_state::initialized = false;
     
     // Get the JSON representation of this AST iterators
     for (ast_node *node : roots)
@@ -886,7 +889,7 @@ syntax_tree* syntax_tree::copy_ast() const
 void syntax_tree::create_new_sched_graph()
 {
     this->local_sched_graph = std::make_shared<std::unordered_map<tiramisu::computation *,
-    std::unordered_map<tiramisu::computation *, int>>>(this->local_sched_graph.get());
+    std::unordered_map<tiramisu::computation *, int>>>(this->fct->sched_graph);
 }
 
 ast_node* ast_node::copy_node() const
@@ -930,6 +933,8 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.nb_explored_optims = nb_explored_optims;
     new_ast.previous_optims = previous_optims;
     new_ast.new_optims = new_optims;
+
+    new_ast.search_state = search_state;
 
     // In new_ast, the location of computations have changed, so recompute computations_mapping
     new_ast.recompute_computations_mapping();    
@@ -1469,41 +1474,6 @@ void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
 }
 
 
-void ast_node::get_previous_computations_foreign_nodes(std::vector<computation_info*>& vector) 
-{
-    ast_node * parent_ptr = nullptr;
-
-    ast_node * current_node = this;
-
-    parent_ptr = parent;
-
-    while(parent_ptr != nullptr)
-    {
-        // add the parent computations
-        for(computation_info& computation:parent->computations)
-        {
-            vector.push_back(&computation);
-        }
-
-        for(auto& child:parent->children)
-        {
-            if(child == current_node)
-            {
-                //current computation, there is no previous child available anymore.
-                break;
-            }
-            else
-            {
-                child->collect_all_computation(vector);
-            }
-        }
-
-        current_node = parent_ptr;
-        parent_ptr = parent_ptr->parent;
-
-    }
-
-}
 
 bool ast_node::have_similar_itr_domain(ast_node * other)
 {
@@ -1596,6 +1566,73 @@ std::vector<std::string> ast_node::get_all_iterators()
 
     return iterator_names;
 
+}
+
+void syntax_tree::get_previous_computations(std::vector<computation*>& result,ast_node*& node, int computation_index)
+{
+    
+    if(computation_index == -1)
+    {
+        computation_index = node->computations.size();
+    }
+
+    for(int i=computation_index-1; i>=0; i--)
+    {
+        result.push_back(node->computations[i].comp_ptr);
+    }
+
+    if(node->parent != nullptr)
+    {
+        int superior_index = -1;
+
+        //localize the index of current child in the parent
+        for(int k=0; k<node->parent->children.size(); k++)
+        {
+            if(node->parent->children[k] == node)
+            {
+                superior_index = k;
+                break;
+            }
+        }
+
+        if(superior_index == -1)
+        {
+            ERROR("INDEX PARENT NOT FOUND ",1);
+        }
+
+        // collect computation from children before the current child
+
+        for(int j=0; j<superior_index; j++)
+        {
+            node->parent->children[j]->get_all_computations(result);
+        }
+
+        this->get_previous_computations(result,node->parent,-1);
+    }
+    else
+    {// the case of the root levels
+        int root_index = -1;
+
+        //localize the index of current root in the root vector
+        for(int k=0; k<this->roots.size(); k++)
+        {
+            if(this->roots[k] == node)
+            {
+                root_index = k;
+                break;
+            }
+        }
+
+        if(root_index == -1)
+        {
+            ERROR("INDEX PARENT NOT FOUND ",1);
+        }
+
+        for(int i=0; i<root_index; i++)
+        {
+            this->roots[i]->get_all_computations(result);
+        }
+    }
 }
 
 void ast_node::move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation)
@@ -1789,7 +1826,291 @@ bool syntax_tree::can_set_default_evaluation()
     return false;
 }
 
-    candidate_trace::candidate_trace(syntax_tree *ast, int candidate_id)
+std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_node* current)
+{
+    std::vector<ast_node*> result1;
+
+    if(allowed_splits < 0)
+    {
+        return result1;
+    }
+
+    if(current->get_extent() > 0)
+    {
+        result1.push_back(current);
+    }
+
+    ast_node * itr = current;
+
+    while(current->children.size() == 1)
+    {
+        current = current->children[0];
+    }
+
+    if(current->children.size() == 0)
+    {
+        return result1;
+    }
+    else
+    {
+        for(ast_node * child:current->children)
+        {
+            auto res_i = collect_heads_of_ast(allowed_splits-1,child);
+
+            result1.insert(result1.end(), res_i.begin(), res_i.end());
+        }
+
+        return result1;
+    }
+}
+
+std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
+{
+    std::vector<ast_node*> result;
+
+    ast_node * current = this;
+
+    result.push_back(this);
+
+    while(current->children.size() == 1)
+    {
+        current = current->children[0];
+        result.push_back(current);
+    }
+
+    return result;
+}
+
+bool ast_node::is_optimized_by_tag()
+{
+    return this->parallelized||this->vectorized||this->unrolled;
+}
+
+std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(optimization_type optimization) const
+{
+
+    std::vector<ast_node*> result_vect;
+
+    std::vector<std::pair<ast_node*,int>> heads;
+    // heads : 
+    // represent the node along with the computation's index in the computations's list in that
+    // specific node.
+
+    int allowed_splits = 1;
+    // number of allowed splits when defining the target nodes to explore.
+    // when allowed_split=0 we will explore optimizations on shared nodes only.
+                 
+
+    switch (optimization)
+    {
+        case optimization_type::FUSION:
+
+            {
+                std::deque<ast_node*> parcours;
+
+                ast_node * current_node = nullptr; 
+                
+                for(auto& node: this->roots)
+                {
+                    parcours.push_front(node);
+                }
+
+                current_node = parcours[parcours.size()-1];
+                parcours.pop_back();
+
+                while(!parcours.empty())
+                {
+                    //Visit current node
+                    for(int i=0; i<current_node->computations.size(); i++)
+                    {
+                        heads.push_back(std::make_pair(current_node,i));
+                    }
+                    //the end of the visit section
+                    
+                    for(ast_node * child: current_node->children)
+                    {
+                        parcours.push_front(child);
+                    }
+
+                    if(!parcours.empty())
+                    {
+                        current_node = parcours[parcours.size()-1];
+                        parcours.pop_back();
+                    }
+
+                }
+
+            }
+
+        break;
+
+        // case of other optimisations
+        default:
+
+        {
+
+            if(roots.size() > 1)
+            {
+                for(ast_node * root : roots)
+                {
+                    auto res_i = ast_node::collect_heads_of_ast(allowed_splits-1,root);
+
+                    result_vect.insert(result_vect.end(), res_i.begin(), res_i.end());
+                }
+            }
+            else
+            {
+                result_vect = ast_node::collect_heads_of_ast(allowed_splits,roots[0]);
+            }
+
+            for(auto& node:result_vect)
+            {
+                heads.push_back(std::make_pair(node,0));
+            }
+
+        }        
+
+        break;
+
+    }
+
+    return heads;
+
+}
+
+void syntax_tree::initialize_search_space_optimizations(std::vector<optimization_type> optimizations)
+{
+    generator_state::initialized = true;
+    generator_state::optimization_list = optimizations;
+
+    auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
+
+    this->search_state.set_new_heads(first_optim_alternatives);
+
+}
+
+bool syntax_tree::is_search_space_empty()
+{
+    return this->search_state.is_search_space_empty();
+}
+
+
+std::pair<ast_node*,int> syntax_tree::get_current_optimization_target()
+{
+    return this->search_state.get_current_head();
+}
+
+std::pair<ast_node*,int> syntax_tree::get_previous_optimization_target()
+{
+    assert(this->search_state.current_index > 0);
+
+    return this->search_state.target_ast_heads[this->search_state.current_index-1];
+}
+
+optimization_type syntax_tree::get_current_optimization_type() const
+{
+    return generator_state::optimization_list[this->search_state.optimization_index]; 
+}
+
+
+void syntax_tree::move_to_next_optimization_target()
+{
+    if(this->search_state.current_index < (this->search_state.target_ast_heads.size() - 1))
+    {
+        //return false;
+        this->search_state.increment_index();
+    }
+    else
+    {// we are to change optimization
+
+        if(this->search_state.optimization_index < (generator_state::optimization_list.size() - 1))
+        {
+            //change optimization 
+            this->search_state.optimization_index++;
+            auto optim_alternatives 
+                = this->compute_search_space_states(
+                    generator_state::optimization_list[this->search_state.optimization_index]
+                    );
+            this->search_state.set_new_heads(optim_alternatives);
+            this->search_state.current_index = 0;
+        }
+        else
+        {
+            this->search_state.current_index = this->search_state.target_ast_heads.size();
+            this->search_state.optimization_index = generator_state::optimization_list.size();
+        }
+    }
+}
+
+    
+bool generator_state::is_current_optimization_fully_explored()
+{
+    if(this->current_index < this->target_ast_heads.size())
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+
+bool generator_state::can_move_to_next_optimization()
+{
+    if(this->optimization_index < (generator_state::optimization_list.size() - 1))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+void generator_state::set_new_heads(std::vector<std::pair<ast_node*,int>>& optim_heads)
+{
+    this->target_ast_heads = optim_heads;
+}
+
+
+std::pair<ast_node*,int> generator_state::get_current_head()
+{
+    return this->target_ast_heads[this->current_index];
+}
+
+
+void generator_state::increment_index()
+{
+    this->current_index++;
+}
+
+
+
+bool generator_state::is_search_space_empty()
+{
+    if(this->current_index < this->target_ast_heads.size())
+    {
+        
+        return false;
+    }
+    else
+    {// we are in the last optimization
+
+        if(this->optimization_index < generator_state::optimization_list.size())
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+
+candidate_trace::candidate_trace(syntax_tree *ast, int candidate_id)
 {
     this->evaluation = ast->evaluation;
     this->exploration_depth = ast->search_depth+1;
