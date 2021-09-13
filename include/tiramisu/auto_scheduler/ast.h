@@ -356,7 +356,7 @@ public:
     /**
      * Changes the access within computation_info after applying the skewing optimization
     */
-    void transforme_accesses_with_skewing(int a,int b);
+    void transform_accesses_with_skewing(int a,int b);
 
     void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 

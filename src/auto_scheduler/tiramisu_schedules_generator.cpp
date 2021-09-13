@@ -520,7 +520,7 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
                 nb_try++;
 
-                if(nb_try == this->parallelism_search_deapth)
+                if(nb_try == this->parallelism_search_depth)
                 {
                     break;
                 }

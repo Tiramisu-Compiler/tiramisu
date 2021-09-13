@@ -2612,7 +2612,7 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::performe_full_dependency_analysis()
+void tiramisu::function::perform_full_dependency_analysis()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2815,7 +2815,7 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
     this->gen_ordering_schedules();
 }
 
-bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2825,9 +2825,9 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
 
@@ -2840,7 +2840,7 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
 
     bool result = true;
 
-    for(auto& computation:fuzed_computations)
+    for(auto& computation:fused_computations)
     {
         if(computation->unrolling_is_legal(i) == false)
         {
@@ -2854,7 +2854,7 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     return result;
 }
 
-bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var, std::vector<tiramisu::computation *> fuzed_computations )
+bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var, std::vector<tiramisu::computation *> fused_computations )
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2864,9 +2864,9 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     DEBUG(3, tiramisu::str_dump(" var parallelization check is : "+par_dim_var.get_name()));
 
@@ -2877,7 +2877,7 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
 
     first_computation->check_dimensions_validity(dimensions);
 
-    bool result = this->loop_parallelization_is_legal(dimensions[0],fuzed_computations);
+    bool result = this->loop_parallelization_is_legal(dimensions[0],fused_computations);
 
     DEBUG_INDENT(-4);
 
@@ -2885,7 +2885,7 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
 }
 
 
-bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2893,9 +2893,9 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
 
@@ -2932,7 +2932,7 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
 
     isl_map * schedule_itr = NULL;
 
-    for( auto& computation: fuzed_computations)
+    for( auto& computation: fused_computations)
     {
         schedule_itr = isl_map_copy(computation->get_schedule());
 
@@ -3022,7 +3022,7 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
 
 }
 
-bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -3032,12 +3032,12 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
     DEBUG(3, tiramisu::str_dump(" vectorization check for var : "+i.get_name()));
 
-    bool result = this->loop_unrolling_is_legal(i,fuzed_computations) 
-                && this->loop_parallelization_is_legal(i,fuzed_computations);
+    bool result = this->loop_unrolling_is_legal(i,fused_computations)
+                && this->loop_parallelization_is_legal(i,fused_computations);
 
     DEBUG(3, tiramisu::str_dump(" vectorization legality is : "+result));
 
@@ -3663,7 +3663,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
 }
 
 
-std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
+std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process)
 {
     DEBUG_FCT_NAME(3);
@@ -3676,9 +3676,9 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     assert(this->dep_read_after_write != NULL ) ;
     assert(this->dep_write_after_write != NULL ) ;
     assert(this->dep_write_after_read != NULL ) ;
-    assert(fuzed_computations.size()>0) ;
+    assert(fused_computations.size()>0) ;
 
-    computation * first_computation = fuzed_computations[0]  ;
+    computation * first_computation = fused_computations[0]  ;
     
     DEBUG(3, tiramisu::str_dump(" skewing solving for : "+outer_variable.get_name()+" and "+inner_variable.get_name()));
 
@@ -3728,7 +3728,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     isl_map * schedule_one = NULL ;
 
-    for( auto& computation: fuzed_computations)
+    for( auto& computation: fused_computations)
     {
         schedule_one = isl_map_copy(computation->get_schedule()) ;
 
@@ -4168,7 +4168,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
+      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel)
 {
     DEBUG_FCT_NAME(3);
@@ -4180,7 +4180,7 @@ std::tuple<
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
     isl_basic_set * upper_strongly = NULL;
     isl_basic_set * upper_weakly = NULL;
@@ -4196,7 +4196,7 @@ std::tuple<
     std::vector<std::pair<int,int>> outermost;
     std::vector<std::pair<int,int>> innermost;
 
-    auto result_vector = this->compute_legal_skewing(fuzed_computations,outer_variable,inner_variable,process);
+    auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
 
     if(process == 1)
     {

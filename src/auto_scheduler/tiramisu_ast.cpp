@@ -31,30 +31,6 @@ computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast
         matrix.buffer_id = ast->get_buffer_id_from_computation_name(matrix.buffer_name);
 }
 
-/*
-computation_info::computation_info(computation_info const& reference)
-:accesses(reference.accesses)
-{
-    std::cout<<"IN123";
-    this->iters = reference.iters;
-    std::cout<<"ZZZZ";
-
-    this->buffer_nb_dims = reference.buffer_nb_dims;
-    this->is_reduction = reference.is_reduction;
-    this->nb_additions = reference.nb_additions;
-    this->nb_divisions = reference.nb_divisions;
-    this->nb_multiplications = reference.nb_multiplications;
-    this->nb_substractions = reference.nb_substractions;
-    this->storage_buffer_id = reference.storage_buffer_id;
-    this->write_access_relation = reference.write_access_relation;
-    this->data_type_str = reference.data_type_str;
-    this->data_type_size = reference.data_type_size;
-
-    std::cout<<"INFO_C";
-    
-}
-*/
-
 int computation_info::get_data_type_size(){
     if (comp_ptr->get_data_type()==tiramisu::p_boolean)
         return 1;
@@ -508,8 +484,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<" Tiling 2 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name<<" & "<<inner_name ;
-           
             
             info->comp_ptr->tile(var(outer_name),var(inner_name)
                                 ,opt.l0_fact,opt.l1_fact,
@@ -625,7 +599,7 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name_1<<" & "<<outer_name_2 ;
+
         }
 
     }
@@ -687,7 +661,7 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
         {
             f+=str+" ";
         }
-        std::cout<<" vars "<<f<<" interchange : "<<outer_name<<" & "<<inner_name ;
+
     }
 
     recover_isl_states();
@@ -751,7 +725,7 @@ void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
 }
 
 void syntax_tree::transform_ast_by_parallelism(const optimization_info &info) {
-    // Just sets the parallilezed tag to true
+    // Just sets the parallelized tag to true
     info.node->parallelized = true;
 }
 
@@ -802,7 +776,7 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
         {
             f+=str+" ";
         }
-        std::cout<<" vars "<<f<<" Skewing : "<<outer_name<<" & "<<inner_name ;
+
     }
 
     node_1->name = outer_name+new_1;
@@ -811,7 +785,7 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     node_1->skewed = true;
     node_2->skewed = true;
     
-    node_1->transforme_accesses_with_skewing(info.l0_fact,info.l1_fact);
+    node_1->transform_accesses_with_skewing(info.l0_fact,info.l1_fact);
 
     recover_isl_states();
 }
@@ -1274,7 +1248,7 @@ void ast_node::print_computations_accesses() const
     }
 }
 
-void ast_node::transforme_accesses_with_skewing(int a,int b)
+void ast_node::transform_accesses_with_skewing(int a,int b)
 {
     /*
         compute isl Map of transformation here

@@ -87,12 +87,6 @@ void beam_search::search(syntax_tree& ast)
     children.push_back(ast_copy);
 
     // Sort children from smallest evaluation to largest
-    
-    std::cout<<"\noriginal list\n" ;
-    for (syntax_tree *child : children)
-    {
-        std::cout<<child->evaluation<<"+";
-    }
 
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;
@@ -101,15 +95,8 @@ void beam_search::search(syntax_tree& ast)
     // keep the top 'beam_size' children and delete the rest
     for (int i = beam_size; i < children.size(); ++i)
         delete children[i];
-    
-        
-    children.resize(std::min(beam_size, (int)children.size()));
 
-    std::cout<<"\nremaining list\n" ;
-    for (syntax_tree *child : children)
-    {
-        std::cout<<child->evaluation<<"+";
-    }
+    children.resize(std::min(beam_size, (int)children.size()));
 
     // Search recursively on the best children
     for (syntax_tree *child : children)
