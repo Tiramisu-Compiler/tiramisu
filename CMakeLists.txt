@@ -21,19 +21,19 @@ set(HEADER_FILES
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
         )
-        
+
 # Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
 if (${USE_AUTO_SCHEDULER})
     set(HEADER_FILES ${HEADER_FILES}
-        include/tiramisu/auto_scheduler/auto_scheduler.h
-        include/tiramisu/auto_scheduler/utils.h
-        include/tiramisu/auto_scheduler/optimization_info.h
-        include/tiramisu/auto_scheduler/dnn_accesses.h
-        include/tiramisu/auto_scheduler/ast.h
-        include/tiramisu/auto_scheduler/evaluator.h
-        include/tiramisu/auto_scheduler/schedules_generator.h
-        include/tiramisu/auto_scheduler/search_method.h
-        )
+            include/tiramisu/auto_scheduler/auto_scheduler.h
+            include/tiramisu/auto_scheduler/utils.h
+            include/tiramisu/auto_scheduler/optimization_info.h
+            include/tiramisu/auto_scheduler/dnn_accesses.h
+            include/tiramisu/auto_scheduler/ast.h
+            include/tiramisu/auto_scheduler/evaluator.h
+            include/tiramisu/auto_scheduler/schedules_generator.h
+            include/tiramisu/auto_scheduler/search_method.h
+            )
 endif()
 
 # Add CMake cpp files
@@ -64,9 +64,9 @@ endif()
 
 # Need to define FLEXNLP_LIBRARIES and FLEXNLP_INCLUDE_DIRS
 #if (${USE_FLEXNLP})
-    add_library(flexnlp_wrapper STATIC "src/tiramisu_flexnlp_wrappers.cpp")
-    target_link_libraries(flexnlp_wrapper ${FLEXNLP_LIBRARIES})
-    target_include_directories(flexnlp_wrapper PUBLIC ${FLEXNLP_INCLUDE_DIRS})
+add_library(flexnlp_wrapper STATIC "src/tiramisu_flexnlp_wrappers.cpp")
+target_link_libraries(flexnlp_wrapper ${FLEXNLP_LIBRARIES})
+target_include_directories(flexnlp_wrapper PUBLIC ${FLEXNLP_INCLUDE_DIRS})
 #endif()
 
 FILE(STRINGS tests/test_list.txt TIRAMISU_TESTS_RAW)
@@ -242,7 +242,7 @@ if (${USE_AUTO_SCHEDULER})
     foreach(obj ${OBJS_AUTO_SCHEDULER})
         set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
     endforeach()
-    
+
     add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
     target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
@@ -438,5 +438,3 @@ endforeach()
 
 # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
 add_subdirectory(benchmarks)
-
-add_subdirectory(tutorials/tutorial_autoscheduler)

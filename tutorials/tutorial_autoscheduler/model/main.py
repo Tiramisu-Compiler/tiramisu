@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings('ignore', category=DeprecationWarning) 
 warnings.filterwarnings('ignore', category=UserWarning)
 
-model_path = '/home/nassim/Desktop/tiramisu_raw/tutorials/tutorial_autoscheduler/model/hier_LSTM_fusion_tree_tagLo_transfer_5bl.pkl'
+model_path = '/data/tiramisu/tutorials/tutorial_autoscheduler/model/hier_LSTM_fusion_tree_tagLo_transfer_5bl.pkl'
 
 with torch.no_grad():
     device = 'cpu'
