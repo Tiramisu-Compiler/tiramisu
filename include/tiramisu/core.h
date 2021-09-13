@@ -1390,6 +1390,12 @@ private:
     bool auto_allocate;
 
     /**
+     * A boolean indicating whether the buffer should be allocated
+     * automatically by Tiramisu.
+     */
+    bool auto_deallocate = true;
+
+    /**
      * automatic_gpu_copy = true by default, is it set to false when the user wants
      * to do data transfert to gpu manually.
      */
@@ -1446,6 +1452,11 @@ protected:
       * Return whether the buffer should be allocated automatically.
       */
     bool get_auto_allocate();
+
+    /**
+      * Return whether the buffer should be allocated automatically.
+      */
+    bool get_auto_deallocate();
 
     /**
       * Return whether the copy should be done automatically to the gpu device.
@@ -1598,6 +1609,71 @@ public:
     //@}
 
     /**
+     * \brief Indicate when to deallocate the buffer (i.e., the schedule).
+     *
+     * \details The buffer is deallocated in the same loop of the computation \p C
+     * at the loop level \p level (but the order between the two is not
+     * specified).
+     *
+     * For example, let's assume that buf0 is a buffer, and let's assume
+     * that we have three computations C1, C2 and C3 scheduled as follow
+     *
+     * \code
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     * \endcode
+     *
+     * The following Tiramisu code
+     *
+     * \code
+     * tiramisu::computation *C4 = buf0.allocate_at(C2, j);
+     * C4->before(C2, j);
+     * tiramisu::computation *C5 = buf0.deallocate_at(C3, j);
+     * C5->after(C3, j)
+     * \endcode
+     *
+     * would allocate buf0 in the loop surrounding C2 at the loop
+     * level 0. The allocation computation is called C4, where
+     * C4 is scheduled to execute before C2 at the loop level 1.
+     * And would also deallocate buf0 at the end of the loop level 1
+     * The generated code would look like the following code:
+     *
+     * \code
+     * for (i=0; i<N; i++)
+     *      for (j=0; j<N; j++)
+     *           for (k=0; k<N; k++)
+     *              C1;
+     *
+     * for (i=0; i<N; i++) // level 0
+     *      for (j=0; j<N; j++) // level 1
+     *      {
+     *           allocate(buf0, buffer_size, buffer_type);
+     *           for (k=0; k<N; k++) // level 2
+     *           {
+     *              C2;
+     *              C3;
+     *           }
+     *           deallocate(buf0);
+     *      }
+     * \endcode
+     *
+     */
+    //@{
+    tiramisu::computation *deallocate_at(tiramisu::computation &C, tiramisu::var level);
+    tiramisu::computation *deallocate_at(tiramisu::computation &C, int level);
+    //@}
+
+    /**
       * \brief Dump the function on standard output.
       * \details This functions dumps most of the fields of the buffer class
       * but not all of them.  It is mainly useful for debugging.
@@ -1649,6 +1725,11 @@ public:
       * Set whether the buffer should be allocated automatically.
       */
     void set_auto_allocate(bool auto_allocation);
+
+    /**
+    * Sets whether the buffer should be deallocated automatically.
+    */
+    void set_auto_deallocate(bool auto_deallocation);
 
     /**
       * Set whether the GPU copy should be done automatically.
