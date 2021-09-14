@@ -12,4 +12,4 @@ link_directories($ENV{TIRAMISU_ROOT}/build $ENV{TIRAMISU_ROOT}/3rdParty/Halide/l
 set(generator_SOURCES generator.cpp)
 add_executable(generator ${generator_SOURCES})
  
-target_link_libraries(generator tiramisu tiramisu_auto_scheduler)
+target_link_libraries(generator tiramisu tiramisu_auto_scheduler Halide isl)
