@@ -227,6 +227,12 @@ public:
     */
     bool vectorized = false;
 
+
+    /**
+     * specifies if it contains conditionals as a result of shifting
+    */
+    bool shifted = false;
+
     /**
      * List of the computations computed at this level.
      */
@@ -247,11 +253,6 @@ public:
      */
     ast_node *parent = nullptr;
 
-    /**
-     * Used to define the order between children and current computations
-     * */
-
-    //std::vector<std::pair<computation_info*,ast_node*>> ordered_node;
     
 	/**
 	 * Create an empty AST node.
@@ -415,10 +416,22 @@ public:
     std::vector<std::string> get_all_iterators();
 
     /**
-     * moves the fuzed computation from current original node to the previous adjusted node.
-     * Basically transform the ast by fusion.
+     * Returns this ast_node or one of it's parents that posses the specified depth.
+     * the specified The depth must be less or equal the local depth.
     */
-    void move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation);
+   ast_node * find_node_by_depth(int depth);
+
+   
+    /**
+     * returns a new node as a copy from this node but without copying the children also.
+    */
+    ast_node * copy_local_node(bool copy_first_computation);
+
+    /**
+     * Copies a linear branch from this node and stops with the shared parent.
+     * In case the parent is null_ptr it should create a new linear branch from the root
+    */
+    ast_node * new_branch_leaf(ast_node * shared_node);
 
     /**
      * collects the nodes closer to the root (and also the root) that involves shared nodes underneath.
@@ -573,6 +586,7 @@ public:
     void transform_ast_by_vectorization(const optimization_info &opt);
     void transform_ast_by_parallelism(const optimization_info &info);
     void transform_ast_by_skewing(const optimization_info &opt);
+    void transform_ast_by_shifting(const optimization_info &opt);
 
     
     /**
@@ -583,10 +597,20 @@ public:
     /**
      * Create an independent copy of sched_graph in this AST 
      * from the fct shed_graph.
-     * In case a copy of another syntax_tree neds to be made, this other tree needs to be staged and swapped with fct_shed_graph before
+     * In case a copy of another syntax_tree needs to be made, this other tree needs to be staged and swapped with fct_shed_graph before
      * invoking this methods.
     */
     void create_new_sched_graph();
+
+    /**
+     * Dump current sched graph into the tiramisu_api sched __graph
+    */
+    void dump_local_sched_graph_to_api() const
+    {
+        this->get_function()->sched_graph.clear();
+
+        this->get_function()->sched_graph = *this->local_sched_graph;
+    }
 
     /**
      * Copy this AST to new_ast and return a pointer to the copied version of node_to_find.
@@ -639,6 +663,19 @@ public:
      * Return the nodes representing the innermost loop levels.
      */
     std::vector<ast_node*> get_innermost_nodes() const;
+
+    /**
+     * Deletes the specified node and if the parent becomes empty it adjusts the AST recursively
+    */
+    void delete_duplicated_node_recursively(ast_node * node);
+
+    /**
+    * Moves the computation in this ast_node the specified node and deletes the previous ast_node.
+    * The computation's original ast_node is 
+    * the moved computation allways by analysis and design resides in the start of the computations list.
+   */
+    void move_in_computation(ast_node * new_node, tiramisu::computation * comp_ptr);
+
 
     /**
      * get all the nodes starting from root that have 1 child, 
@@ -757,6 +794,11 @@ public:
      * moves to the next alternative or to the next optimization .
     */
     void move_to_next_optimization_target();
+
+    /**
+     * Recomputes the states to update after a generation of a copy or application of fusion.
+    */
+    void refresh_states();
 };
 
 /**

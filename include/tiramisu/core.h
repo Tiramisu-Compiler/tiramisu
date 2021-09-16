@@ -2584,11 +2584,7 @@ private:
      */
     void set_iterators_map(std::map<std::string, isl_ast_expr *> map);
 
-    /**
-      * Identical to
-      *      void shift(tiramisu::var L0, int n);
-      */
-    void shift(int L0, int n);
+    
 
     /**
       * Simplify \p set using the context and by calling
@@ -4170,6 +4166,12 @@ public:
       * a negative value would mean a shift backward.
       */
     virtual void shift(var L0, int n);
+
+    /**
+      * Identical to
+      *      void shift(tiramisu::var L0, int n);
+      */
+    virtual void shift(int L0, int n);
     
 
     /*

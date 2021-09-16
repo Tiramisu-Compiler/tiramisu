@@ -87,6 +87,16 @@ void apply_optimizations(optimization_info const& optim_info)
             block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
             break;
 
+        case optimization_type::SHIFTING:
+            for(auto const& computation: optim_info.comps)
+            {
+                computation->shift(optim_info.l0,optim_info.l1);
+                
+            }
+            
+            break;
+
+
         default:
             break;
     }
@@ -94,12 +104,16 @@ void apply_optimizations(optimization_info const& optim_info)
 
 void apply_fusions(syntax_tree const& ast)
 {
+    /*
     tiramisu::computation *next_comp = nullptr;
     
     // Use the "after" scheduling command to replicate the structure of the AST
     // on the computations order.
     for (ast_node *root : ast.roots)
         next_comp = apply_fusions(root, next_comp, tiramisu::computation::root_dimension);
+    */
+    // just need to copy content of syntaxe tree into sched_graph of the function
+    ast.dump_local_sched_graph_to_api();
 }
 
 tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension)
@@ -161,6 +175,12 @@ void print_optim(optimization_info optim)
         case optimization_type::FUSION:
             std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
             break;
+
+        case optimization_type::SHIFTING:
+            std::cout << "SHIFTING"
+                      << " L" << optim.l0 << " +"<<optim.l0_fact;
+            break;
+
 
         case optimization_type::UNFUSE:
             std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;

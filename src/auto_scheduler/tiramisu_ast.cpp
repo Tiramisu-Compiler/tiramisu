@@ -272,53 +272,58 @@ void syntax_tree::order_computations()
             tiramisu::computation *child_comp = sched_graph_child.first;
             int level = sched_graph_child.second;
             
-            if (level < 0)
-                continue;
-            
-            ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
-            ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
-            
-            // Insert computations
-            if (!child_comp_ast_node->computations.empty())
+            if (level >= 0)
             {
-                if (parent_comp_ast_node->children.empty())
+                ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
+                ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
+                
+                // Insert computations
+                if (!child_comp_ast_node->computations.empty())
                 {
-                    for (computation_info& comp_info : child_comp_ast_node->computations)
+                    if (parent_comp_ast_node->children.empty())
                     {
-                        parent_comp_ast_node->computations.push_back(comp_info);
-                        computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
+                        for (computation_info& comp_info : child_comp_ast_node->computations)
+                        {
+                            parent_comp_ast_node->computations.push_back(comp_info);
+                            computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
+                        }
+                    }
+                    
+                    else
+                    {
+                        // We have here a special case (see PFE manuscript page 46)
+
+                        ERROR("DUMMY ITR CREATED, CASE NOT SUPPORTED",1);
+                        ast_node *new_node = new ast_node();
+                        
+                        new_node->depth = child_comp_ast_node->depth;
+                        new_node->name = "dummy_iter";
+                        new_node->low_bound = 0;
+                        new_node->up_bound = 0;
+                        new_node->computations = child_comp_ast_node->computations;
+                        new_node->parent = parent_comp_ast_node;
+                        
+                        for (computation_info& comp_info : child_comp_ast_node->computations)
+                            computations_mapping[comp_info.comp_ptr] = new_node;
+                            
+                        parent_comp_ast_node->children.push_back(new_node);
                     }
                 }
                 
-                else
+                // Insert children
+                for (ast_node *child : child_comp_ast_node->children)
                 {
-                    // We have here a special case (see PFE manuscript page 46)
-                    ast_node *new_node = new ast_node();
-                    
-                    new_node->depth = child_comp_ast_node->depth;
-                    new_node->name = "dummy_iter";
-                    new_node->low_bound = 0;
-                    new_node->up_bound = 0;
-                    new_node->computations = child_comp_ast_node->computations;
-                    new_node->parent = parent_comp_ast_node;
-                    
-                    for (computation_info& comp_info : child_comp_ast_node->computations)
-                        computations_mapping[comp_info.comp_ptr] = new_node;
-                        
-                    parent_comp_ast_node->children.push_back(new_node);
+                    parent_comp_ast_node->children.push_back(child);
+                    child->parent = parent_comp_ast_node;
                 }
+                        
+                ast_node *root_node = child_comp_ast_node->get_root_node();
+                auto it = std::find(roots.begin(), roots.end(), root_node);
+                roots.erase(it);
+
+
             }
-            
-            // Insert children
-            for (ast_node *child : child_comp_ast_node->children)
-            {
-                parent_comp_ast_node->children.push_back(child);
-                child->parent = parent_comp_ast_node;
-            }
-                    
-            ast_node *root_node = child_comp_ast_node->get_root_node();
-            auto it = std::find(roots.begin(), roots.end(), root_node);
-            roots.erase(it);
+                
         }
     }
 }
@@ -335,13 +340,14 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 {
     switch(opt.type)
     {
-        case optimization_type::FUSION:
+        /*case optimization_type::FUSION:
             transform_ast_by_fusion(opt);
             break;
             
         case optimization_type::UNFUSE:
             transform_ast_by_unfuse(opt);
             break;
+            */
             
         case optimization_type::TILING:
             transform_ast_by_tiling(opt);
@@ -361,6 +367,10 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 
         case optimization_type::SKEWING:
             transform_ast_by_skewing(opt);
+            break;
+
+        case optimization_type::SHIFTING:
+            transform_ast_by_shifting(opt);
             break;
 
         default:
@@ -878,6 +888,18 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
     recover_isl_states();
 }
 
+
+void syntax_tree::transform_ast_by_shifting(const optimization_info &info){
+    stage_isl_states();
+
+    ast_node *node_1 = info.node;
+    node_1->shifted = true;
+    info.comps[0]->shift(info.l0,info.l0_fact);
+
+    recover_isl_states();
+}
+
+
 syntax_tree* syntax_tree::copy_ast() const
 {
     syntax_tree *ast = new syntax_tree();
@@ -935,6 +957,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.new_optims = new_optims;
 
     new_ast.search_state = search_state;
+    new_ast.refresh_states();
 
     // In new_ast, the location of computations have changed, so recompute computations_mapping
     new_ast.recompute_computations_mapping();    
@@ -1105,6 +1128,73 @@ std::vector<ast_node*> syntax_tree::get_innermost_nodes() const
         node->get_innermost_nodes(nodes);
         
     return nodes;
+}
+
+void syntax_tree::delete_duplicated_node_recursively(ast_node * node)
+{
+    if(node->depth == 0)
+    {
+        // delete a root level
+        auto position = std::find(this->roots.begin(), this->roots.end(), node);
+        if (position != this->roots.end())
+        {
+            this->roots.erase(position);
+        }
+
+        delete node;
+    }
+    else
+    {
+        // delete a node 
+        auto position = std::find(node->parent->children.begin(), node->parent->children.end(), node);
+        if (position != node->parent->children.end())
+        {
+            node->parent->children.erase(position);
+        }
+
+        if((node->parent->children.size() == 0) && (node->parent->computations.size() == 0))
+        {
+            delete_duplicated_node_recursively(node->parent);
+        }
+        else
+        {
+            delete node;
+        }
+    }       
+            
+}
+
+void syntax_tree::move_in_computation(ast_node * new_node, tiramisu::computation * comp_ptr)
+{
+    ast_node * old_node = this->computations_mapping[comp_ptr];
+
+    if(old_node->depth == new_node->depth)
+    {
+        new_node->computations.push_back(old_node->computations[0]);
+
+    }
+    else
+    {
+        // old node have more depth than new_node(which is the node in the ast where we will fuze)
+        ast_node * link_node = old_node->find_node_by_depth(new_node->depth);
+        //{#}
+        ast_node * new_leaf = old_node->new_branch_leaf(link_node);
+
+        ast_node * direct_link = new_leaf->find_node_by_depth(link_node->depth + 1);
+
+        new_node->children.push_back(direct_link);
+        direct_link->parent = new_node;
+
+    }
+
+    old_node->computations.erase(old_node->computations.begin());
+
+    if((old_node->computations.size() == 0) && (old_node->children.size() == 0))
+    {
+        this->delete_duplicated_node_recursively(old_node);
+    }
+
+    this->recompute_computations_mapping(); 
 }
 
 void ast_node::get_innermost_nodes(std::vector<ast_node*>& nodes)
@@ -1568,6 +1658,22 @@ std::vector<std::string> ast_node::get_all_iterators()
 
 }
 
+ast_node * ast_node::find_node_by_depth(int depth_val)
+{
+    assert(depth_val > -1);
+    assert(depth_val <= this->depth);
+
+    if(this->depth == depth_val)
+    {
+        return this;
+    }
+    else
+    {
+        return this->parent->find_node_by_depth(depth_val);
+    }
+}
+
+
 void syntax_tree::get_previous_computations(std::vector<computation*>& result,ast_node*& node, int computation_index)
 {
     
@@ -1635,28 +1741,65 @@ void syntax_tree::get_previous_computations(std::vector<computation*>& result,as
     }
 }
 
-void ast_node::move_computation_for_fusion(ast_node * adjusted_previous_node, computation_info * computation)
+ast_node * ast_node::copy_local_node(bool copy_first_computation)
 {
-
-    /*
-    adjusted_previous_node->computations.push_back(computation_info(*computation));
-    
-    auto iterator = this->computations.begin();
-    while (iterator != this->computations.end())
+    ast_node * new_node = new ast_node();
+    new_node->parent = parent;
+    new_node->depth = depth;
+    new_node->name = name;
+    new_node->low_bound = low_bound;
+    new_node->up_bound = up_bound;
+    new_node->unrolled = unrolled;
+    new_node->skewed = skewed;
+    new_node->parallelized = parallelized;
+    if(copy_first_computation)
     {
-        if((*iterator).comp_ptr->get_name() == computation->comp_ptr->get_name())
+        new_node->computations = {computations[0]};
+    }
+    
+
+    //new_node->isl_states = isl_states;
+    for(auto state:isl_states)
+    {
+        new_node->isl_states.push_back(state);
+    }
+
+    return new_node;
+}
+
+
+ast_node * ast_node::new_branch_leaf(ast_node * shared_node)
+{
+    std::vector<ast_node*> copy_target;
+
+    std::vector<ast_node*> new_branch;
+    ast_node * current = this;
+
+    while(current != shared_node)
+    {
+        copy_target.push_back(current);
+    }
+
+    for(int i=0; i<copy_target.size();i++)
+    {
+        if(i == (copy_target.size() - 1))
         {
-            iterator = this->computations.erase(iterator);
-            break;
+            new_branch.push_back(copy_target[i]->copy_local_node(true));
+        }
+        else
+        {
+            new_branch.push_back(copy_target[i]->copy_local_node(false));
         }
     }
 
-    // check if the node needs to be deleted
-    if(this->computations.empty() && this->children.empty())
+    for(int i=0; i < new_branch.size()-1;i++)
     {
-        ast_node * current_node = this;
-    }*/
-    
+       new_branch[i]->parent = new_branch[i+1];
+    }
+
+    return new_branch[0];
+
+
 }
 
 
@@ -1992,6 +2135,15 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
 bool syntax_tree::is_search_space_empty()
 {
     return this->search_state.is_search_space_empty();
+}
+
+void syntax_tree::refresh_states()
+{
+    auto optim_alternatives 
+                = this->compute_search_space_states(
+                    generator_state::optimization_list[this->search_state.optimization_index]
+                    );
+    this->search_state.set_new_heads(optim_alternatives);
 }
 
 
