@@ -934,8 +934,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                         }
 
-                        
-
                         // APPLY changes to the AST it self
                         new_ast->move_in_computation(new_node,current_node->computations[node_computation.second].comp_ptr);
                         

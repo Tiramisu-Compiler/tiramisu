@@ -12,6 +12,68 @@ namespace tiramisu::auto_scheduler
 class syntax_tree;
 
 
+
+/**
+ * a class that represent a state for schedule_generator to allow to generate a same optimisation
+ * in different ast_nodes by looking at the previous states and current state.
+*/
+class generator_state
+{
+
+public:
+
+    static std::vector<optimization_type> optimization_list;
+
+    static bool initialized;
+
+    // a list of ast_node to explore with an additional information (int).
+    std::vector<std::pair<ast_node*,int>> target_ast_heads;
+
+    // index in the vector for the explored generations.
+    int current_index = 0;
+
+    // current optimization
+    int optimization_index = 0;
+
+
+
+public:    
+
+    /**
+     *  checks if the current optimization does not have any more possible variants.
+     * */
+    bool is_current_optimization_fully_explored();
+
+    /**
+     *  checks if the current type of optimization is not the last element from wanted optimizations.
+     * */
+    bool can_move_to_next_optimization();
+
+    /**
+     * Set the new alternatives for the current optimization.
+     * */
+    void set_new_heads(std::vector<std::pair<ast_node*,int>>& optim_heads);
+
+    /**
+     * get the currently pointed alternative (state) for the currently pointed optimization.
+    */
+    std::pair<ast_node*,int> get_current_head();
+
+    /**
+     * move to the next alternative within the same optimization
+    */
+    void increment_index();
+
+
+    /**
+     *  True if the search space is empty.
+    */
+    bool is_search_space_empty();
+
+
+};
+
+
 /**
  * stores the state of the computation's schedule.
 */
@@ -859,65 +921,6 @@ public:
 
 };
 
-/**
- * a class that represent a state for schedule_generator to allow to generate a same optimisation
- * in different ast_nodes by looking at the previous states and current state.
-*/
-class generator_state
-{
-
-public:
-
-    static std::vector<optimization_type> optimization_list;
-
-    static bool initialized;
-
-    // a list of ast_node to explore with an additional information (int).
-    std::vector<std::pair<ast_node*,int>> target_ast_heads;
-
-    // index in the vector for the explored generations.
-    int current_index = 0;
-
-    // current optimization
-    int optimization_index = 0;
-
-
-
-public:    
-
-    /**
-     *  checks if the current optimization does not have any more possible variants.
-     * */
-    bool is_current_optimization_fully_explored();
-
-    /**
-     *  checks if the current type of optimization is not the last element from wanted optimizations.
-     * */
-    bool can_move_to_next_optimization();
-
-    /**
-     * Set the new alternatives for the current optimization.
-     * */
-    void set_new_heads(std::vector<std::pair<ast_node*,int>>& optim_heads);
-
-    /**
-     * get the currently pointed alternative (state) for the currently pointed optimization.
-    */
-    std::pair<ast_node*,int> get_current_head();
-
-    /**
-     * move to the next alternative within the same optimization
-    */
-    void increment_index();
-
-
-    /**
-     *  True if the search space is empty.
-    */
-    bool is_search_space_empty();
-
-
-};
 
 }
 

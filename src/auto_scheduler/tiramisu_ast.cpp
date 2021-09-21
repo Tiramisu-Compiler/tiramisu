@@ -1618,7 +1618,7 @@ std::pair<ast_node *,ast_node*> ast_node::get_possible_fusion_candidate(ast_node
 {
 
     ast_node * current_ptr = this;
-    ast_node * previous_ptr = previous_ptr;
+    ast_node * previous_ptr = previous_node;
 
     while(current_ptr->depth != previous_ptr->depth)
     {
@@ -1755,6 +1755,7 @@ ast_node * ast_node::copy_local_node(bool copy_first_computation)
     if(copy_first_computation)
     {
         new_node->computations = {computations[0]};
+        new_node->isl_states = {isl_states[0]};
     }
     
 
@@ -1983,20 +1984,20 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
         result1.push_back(current);
     }
 
-    ast_node * itr = current;
+    ast_node * current_itr = current;
 
-    while(current->children.size() == 1)
+    while(current_itr->children.size() == 1)
     {
-        current = current->children[0];
+        current_itr = current_itr->children[0];
     }
 
-    if(current->children.size() == 0)
+    if(current_itr->children.size() == 0)
     {
         return result1;
     }
     else
     {
-        for(ast_node * child:current->children)
+        for(ast_node * child:current_itr->children)
         {
             auto res_i = collect_heads_of_ast(allowed_splits-1,child);
 
