@@ -1,5 +1,5 @@
-export TIRAMISU_ROOT=/home/nassim/Desktop/tiramisu_raw/
-export LD_LIBRARY_PATH=/home/nassim/Desktop/tiramisu_raw/3rdParty/Halide/lib
+export TIRAMISU_ROOT=/home/nabil/tiramisu/
+export LD_LIBRARY_PATH=/home/nabil/tiramisu/3rdParty/Halide/lib
 
 cd ${TIRAMISU_ROOT}/tutorials/tutorial_autoscheduler/build
 rm -dr ./*
