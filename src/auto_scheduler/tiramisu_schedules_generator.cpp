@@ -827,6 +827,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
     int nb_try = 0;
 
+    std::cout<<"TT";
+    std::cout<<ast.get_current_optimization_type();
+
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {

@@ -1,9 +1,15 @@
 #include <tiramisu/auto_scheduler/ast.h>
 #include <tiramisu/auto_scheduler/evaluator.h>
 
+
+
+
 namespace tiramisu::auto_scheduler
 {
+    std::vector<optimization_type> generator_state::optimization_list;
 
+    bool generator_state::initialized;
+    
 computation_info::computation_info(tiramisu::computation *comp, syntax_tree *ast)
     : comp_ptr(comp), iters(dnn_iterator::get_iterators_from_computation(*comp)),
       accesses(comp, iters.size(), comp->get_function()), buffer_nb_dims(iters.size()),
@@ -2001,7 +2007,10 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
         {
             auto res_i = collect_heads_of_ast(allowed_splits-1,child);
 
-            result1.insert(result1.end(), res_i.begin(), res_i.end());
+            if(res_i.size() > 0)
+            {
+                result1.insert(result1.end(), res_i.begin(), res_i.end());
+            }
         }
 
         return result1;
@@ -2050,17 +2059,17 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
         case optimization_type::FUSION:
 
             {
-                std::deque<ast_node*> parcours;
+                std::queue<ast_node*> parcours;
 
                 ast_node * current_node = nullptr; 
                 
                 for(auto& node: this->roots)
                 {
-                    parcours.push_front(node);
+                    parcours.push(node);
                 }
 
-                current_node = parcours[parcours.size()-1];
-                parcours.pop_back();
+                current_node = parcours.front();
+                parcours.pop();
 
                 while(!parcours.empty())
                 {
@@ -2068,20 +2077,28 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
                     for(int i=0; i<current_node->computations.size(); i++)
                     {
                         heads.push_back(std::make_pair(current_node,i));
+                        std::cout<<"MX";
                     }
                     //the end of the visit section
                     
                     for(ast_node * child: current_node->children)
                     {
-                        parcours.push_front(child);
+                        parcours.push(child);
                     }
 
                     if(!parcours.empty())
                     {
-                        current_node = parcours[parcours.size()-1];
-                        parcours.pop_back();
+                        current_node = parcours.front();
+                        parcours.pop();
                     }
 
+                }
+
+                std::cout<<"FUSION EXPLORATION";
+                for(auto& pairt:heads)
+                {
+                    std::cout<<std::get<0>(pairt)->name;
+                    std::cout<<"MX";
                 }
 
             }
@@ -2130,6 +2147,14 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
     auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
 
     this->search_state.set_new_heads(first_optim_alternatives);
+
+    std::cout<<"optim_list";
+
+    for(auto const& val:generator_state::optimization_list)
+    {
+        std::cout<<val;
+    }
+    std::cout<<"optim_list_end";
 
 }
 

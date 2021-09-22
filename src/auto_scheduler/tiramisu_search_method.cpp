@@ -20,12 +20,17 @@ void beam_search::search(syntax_tree& ast)
         
         ast.initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
         // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
+        assert(generator_state::initialized == true);
     }
+
+    std::cout<<"TESTED";
     
     while (children.size() == 0 && (!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
         children = scheds_gen->generate_schedules(ast);
+
+        std::cout<<"not empty";
 
         // move to next optimization
         //explores next optimization/alternative
