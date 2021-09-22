@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
     bool perform_autoscheduling = false;
 
-    perform_autoscheduling=false;
+    perform_autoscheduling=true;
     
     // Generate a program with no schedule
     if (!perform_autoscheduling)
