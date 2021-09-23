@@ -106,7 +106,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
 
 void auto_scheduler::find_schedule()
 {
-    fct->reset_schedules();
+    //fct->reset_schedules();
+    fct->reset_all_static_dims_to_zero();
     if (exec_evaluator != nullptr)
         initial_exec_time = exec_evaluator->evaluate(ast);
     

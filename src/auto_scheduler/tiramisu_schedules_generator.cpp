@@ -507,7 +507,7 @@ namespace tiramisu::auto_scheduler
 
                 std::string loop_name = loop_names[inner_most_node->depth];
 
-                bool result = (!inner_most_node->vectorized) && (!inner_most_node->parallelized) &&
+                bool result = (!inner_most_node->is_optimized_by_tag()) &&
                               ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
 
                 if (result) // unrollable: test all possible values
@@ -762,7 +762,7 @@ namespace tiramisu::auto_scheduler
 
                 std::string loop_name = loop_names[inner_most_node->depth];
 
-                bool result = (!inner_most_node->parallelized) &&
+                bool result = (!inner_most_node->is_optimized_by_tag()) &&
                               ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
 
                 if (result) // unrollable: test all possible values
@@ -827,9 +827,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
     int nb_try = 0;
 
-    std::cout<<"TT";
-    std::cout<<ast.get_current_optimization_type();
-
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {
@@ -838,7 +835,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
         /* iteration of the ast in done preorder  */
         {
-            
 
             if (ast.search_state.current_index == 0)
             { // cant fuze the first computation
@@ -861,7 +857,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                    
             auto real_iterators = current_node->computations[node_computation.second].comp_ptr->get_iteration_domain_dimension_names();
 
-            real_iterators.resize(involved_computations.size());
+            real_iterators.resize(involved_iterators.size());
 
             // create a vector of involved tiramisu vars
             std::vector<tiramisu::var> loop_levels;
@@ -919,6 +915,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         {
                             if(std::get<1>(shifting) > 0)
                             {
+                                //std::cout<<"--"<<std::get<0>(shifting).get_name()<<"--";
                                 int depth = new_node->computations[node_computation.second].
                                     comp_ptr->get_loop_level_number_from_dimension_name(std::get<0>(shifting).get_name());
                                 optimization_info optim_info;
@@ -1101,7 +1098,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
             std::string loop_name = loop_names[inner_most_node->depth];
 
-            bool result = (!inner_most_node->vectorized) && (!inner_most_node->parallelized) &&
+            bool result = (!inner_most_node->is_optimized_by_tag()) &&
                             ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
 
             if (result) // unrollable: test all possible values
@@ -1356,10 +1353,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
             std::string loop_name = loop_names[inner_most_node->depth];
 
-            bool result = (!inner_most_node->parallelized) &&
+            bool result = (!inner_most_node->is_optimized_by_tag()) &&
                             ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
 
-            if (result) // unrollable: test all possible values
+            if (result) 
             {
                 ast.recover_isl_states();
 
@@ -1368,7 +1365,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                     if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact))
                     {
-                        // Copy the AST and add unrolling to the list of optimizations
+                        // We use unrolling factors as vectorization factors
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
 
@@ -1376,7 +1373,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         optim_info.type = optimization_type::VECTORIZATION;
                         optim_info.nb_l = 1;
 
-                        // When l0 is set to -1, unrolling is applied to all innermost levels, (1 to avoid that)
+                        // 
                         optim_info.l0 = new_node->depth;
                         optim_info.l0_fact = unrolling_fact;
                         // select this node

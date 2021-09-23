@@ -1331,9 +1331,13 @@ void ast_node::print_node() const
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
 
-        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled <<" v "<<vectorized;
+        std::cout<<this->depth <<"- "<< "for " << low_bound << " <= " << name << " < " << up_bound + 1 << " | " << unrolled ;
         if (parallelized)
             std::cout << " | P";
+
+        if (vectorized)
+            std::cout << " | V";
+        
         std::cout << std::endl;
     }
     
@@ -2039,6 +2043,18 @@ bool ast_node::is_optimized_by_tag()
     return this->parallelized||this->vectorized||this->unrolled;
 }
 
+void collect_computation_states_for_fusion(ast_node * node, std::vector<std::pair<ast_node*,int>>& fusion_candidates)
+{
+    for(int i=0;i<node->computations.size(); i++)
+    {
+        fusion_candidates.push_back(std::make_pair(node,i));
+    }
+    for(ast_node * child:node->children)
+    {
+        collect_computation_states_for_fusion(child,fusion_candidates);
+    }
+}
+
 std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(optimization_type optimization) const
 {
 
@@ -2059,39 +2075,10 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
         case optimization_type::FUSION:
 
             {
-                std::queue<ast_node*> parcours;
 
-                ast_node * current_node = nullptr; 
-                
-                for(auto& node: this->roots)
+                for(ast_node * node: this->roots)
                 {
-                    parcours.push(node);
-                }
-
-                current_node = parcours.front();
-                parcours.pop();
-
-                while(!parcours.empty())
-                {
-                    //Visit current node
-                    for(int i=0; i<current_node->computations.size(); i++)
-                    {
-                        heads.push_back(std::make_pair(current_node,i));
-                        std::cout<<"MX";
-                    }
-                    //the end of the visit section
-                    
-                    for(ast_node * child: current_node->children)
-                    {
-                        parcours.push(child);
-                    }
-
-                    if(!parcours.empty())
-                    {
-                        current_node = parcours.front();
-                        parcours.pop();
-                    }
-
+                    collect_computation_states_for_fusion(node,heads);
                 }
 
                 std::cout<<"FUSION EXPLORATION";
@@ -2193,31 +2180,26 @@ optimization_type syntax_tree::get_current_optimization_type() const
 
 void syntax_tree::move_to_next_optimization_target()
 {
-    if(this->search_state.current_index < (this->search_state.target_ast_heads.size() - 1))
-    {
-        //return false;
-        this->search_state.increment_index();
-    }
-    else
-    {// we are to change optimization
 
-        if(this->search_state.optimization_index < (generator_state::optimization_list.size() - 1))
+    this->search_state.increment_index();
+
+
+    if(this->search_state.current_index >= this->search_state.target_ast_heads.size())
+    {
+        this->search_state.optimization_index++;
+
+        if(this->search_state.optimization_index < generator_state::optimization_list.size())
         {
-            //change optimization 
-            this->search_state.optimization_index++;
             auto optim_alternatives 
                 = this->compute_search_space_states(
                     generator_state::optimization_list[this->search_state.optimization_index]
                     );
             this->search_state.set_new_heads(optim_alternatives);
             this->search_state.current_index = 0;
-        }
-        else
-        {
-            this->search_state.current_index = this->search_state.target_ast_heads.size();
-            this->search_state.optimization_index = generator_state::optimization_list.size();
+            std::cout<<"@GENRATION@";
         }
     }
+    std::cout<<"_mov_in_"<<this->search_state.current_index;
 }
 
     
@@ -2278,11 +2260,11 @@ bool generator_state::is_search_space_empty()
 
         if(this->optimization_index < generator_state::optimization_list.size())
         {
-            return true;
+            return false;
         }
         else
         {
-            return false;
+            return true;
         }
     }
 }

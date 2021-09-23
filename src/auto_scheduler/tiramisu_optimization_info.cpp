@@ -173,12 +173,12 @@ void print_optim(optimization_info optim)
 {
     switch(optim.type) {
         case optimization_type::FUSION:
-            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            std::cout << "Fusion" << " L" << optim.l0 << " " <<std::endl;
             break;
 
         case optimization_type::SHIFTING:
             std::cout << "SHIFTING"
-                      << " L" << optim.l0 << " +"<<optim.l0_fact;
+                      << " L" << optim.l0 << " +"<<optim.l0_fact<<std::endl;
             break;
 
 

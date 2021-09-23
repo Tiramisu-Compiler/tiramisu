@@ -3102,6 +3102,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
     assert(!current_computation.get_name().empty());
     assert(previous_computations.size() > 0);
     assert(!previous_computations[0]->get_name().empty());
+    assert(!vars_subjected_to_shifting.empty());
 
     std::vector<std::string> loops_names;
 
@@ -3111,6 +3112,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
     {
         assert(variable.get_name().length() > 0);
         loops_names.push_back(variable.get_name());
+        DEBUG(3, tiramisu::str_dump(variable.get_name()));
         
     }
     //mapping dynamic loop number into the var itself

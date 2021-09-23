@@ -57,15 +57,15 @@ int main(int argc, char **argv)
 
 
     // this is a major change in the program, as we fuse to the yy loop level
-    B_out.then(A_out,yy);
+    //B_out.then(A_out,yy);
 
     // we must prepare schedules for our solvers like this, since we want applied changes on sched_graph to be reflected in schedules
-    prepare_schedules_for_legality_checks(true);
+    //prepare_schedules_for_legality_checks(true);
 
     bool perform_autoscheduling = false;
 
     // this is the fusion solver
-    auto shiftings = global::get_implicit_function()->correcting_loop_fusion_with_shifting({&B_out},A_out,{t,xx,yy});
+    /*auto shiftings = global::get_implicit_function()->correcting_loop_fusion_with_shifting({&B_out},A_out,{t,xx,yy});
 
     assert(shiftings.size() > 0);// asserts that a fusion is possible (shiftings.size() == 0 means impossible fusion)
 
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
             std::get<0>(tup),
             std::get<1>(tup)
             );
-    }
+    }*/
 
     perform_autoscheduling=true;
     
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
     // Some parameters for the search methods
     const int beam_size = 50;
-    const int max_depth = 2;
+    const int max_depth = 40;
 
     const int nb_samples = 5;
     const int topk = 1;
