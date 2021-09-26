@@ -435,6 +435,11 @@ public:
     void create_initial_states();
 
     /**
+     * erases all isl_states from the nodes and computations recursively 
+    */
+    void erase_isl_states();
+
+    /**
      * stage the isl_states to the real computations
     */
     void stage_isl_states();
@@ -665,6 +670,13 @@ public:
     void create_new_sched_graph();
 
     /**
+     * Swaps the local sched_graph with the sched_graph within tiramisu API.
+    */
+    void stage_local_sched_graph() const;
+
+    void recover_local_sched_graph() const;
+
+    /**
      * Dump current sched graph into the tiramisu_api sched __graph
     */
     void dump_local_sched_graph_to_api() const
@@ -776,6 +788,11 @@ public:
     void print_isl_states() const;
 
     void create_initial_isl_state() const;
+
+    /**
+     * erases all ISL states and creates new ones from the computations.
+    */
+    void recreate_isl_state() const;
 
     /**
      * push isl_states to the real computations to use tiramisu API

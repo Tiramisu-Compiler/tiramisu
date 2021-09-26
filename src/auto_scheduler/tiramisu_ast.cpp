@@ -707,7 +707,7 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
         {
             f+=str+" ";
         }
-        std::cout<<" vars "<<f<<" interchange : "<<outer_name<<" & "<<inner_name ;
+        //std::cout<<" vars "<<f<<" interchange : "<<outer_name<<" & "<<inner_name ;
     }
 
     recover_isl_states();
@@ -880,7 +880,7 @@ void syntax_tree::transform_ast_by_skewing(const optimization_info &info){
         {
             f+=str+" ";
         }
-        std::cout<<" vars "<<f<<" Skewing : "<<outer_name<<" & "<<inner_name ;
+        //std::cout<<" vars "<<f<<" Skewing : "<<outer_name<<" & "<<inner_name ;
     }
 
     node_1->name = outer_name+new_1;
@@ -918,6 +918,16 @@ void syntax_tree::create_new_sched_graph()
 {
     this->local_sched_graph = std::make_shared<std::unordered_map<tiramisu::computation *,
     std::unordered_map<tiramisu::computation *, int>>>(this->fct->sched_graph);
+}
+
+void syntax_tree::stage_local_sched_graph() const
+{
+    this->fct->sched_graph.swap(*this->local_sched_graph);
+}
+
+void syntax_tree::recover_local_sched_graph() const
+{
+    this->fct->sched_graph.swap(*this->local_sched_graph);
 }
 
 ast_node* ast_node::copy_node() const
@@ -1177,6 +1187,7 @@ void syntax_tree::move_in_computation(ast_node * new_node, tiramisu::computation
     if(old_node->depth == new_node->depth)
     {
         new_node->computations.push_back(old_node->computations[0]);
+        new_node->isl_states.push_back(old_node->isl_states[0]);
 
     }
     else
@@ -1194,6 +1205,7 @@ void syntax_tree::move_in_computation(ast_node * new_node, tiramisu::computation
     }
 
     old_node->computations.erase(old_node->computations.begin());
+    old_node->isl_states.erase(old_node->isl_states.begin());
 
     if((old_node->computations.size() == 0) && (old_node->children.size() == 0))
     {
@@ -1533,6 +1545,17 @@ void ast_node::create_initial_states()
     }
 }
 
+void ast_node::erase_isl_states()
+{
+    
+    this->isl_states.clear();
+
+    for(ast_node* child:children)
+    {
+        child->erase_isl_states();
+    }
+}
+
 
 void ast_node::stage_isl_states()
 {
@@ -1769,12 +1792,6 @@ ast_node * ast_node::copy_local_node(bool copy_first_computation)
     }
     
 
-    //new_node->isl_states = isl_states;
-    for(auto state:isl_states)
-    {
-        new_node->isl_states.push_back(state);
-    }
-
     return new_node;
 }
 
@@ -1837,13 +1854,24 @@ void syntax_tree::create_initial_isl_state() const
 
 }
 
+void syntax_tree::recreate_isl_state() const
+{
+    for(ast_node* root:this->roots)
+    {
+        // erase all isl states
+        root->erase_isl_states();
+    }
+
+    this->create_initial_isl_state();
+}
+
 void syntax_tree::stage_isl_states() const
 {
     for(ast_node* root:this->roots)
     {
         root->stage_isl_states();
     }
-    this->fct->sched_graph.swap(*this->local_sched_graph);
+    this->stage_local_sched_graph();
 
 }
 
@@ -1853,7 +1881,7 @@ void syntax_tree::recover_isl_states() const
     {
         root->recover_isl_states();
     }
-    this->fct->sched_graph.swap(*this->local_sched_graph);
+    this->recover_local_sched_graph();
 }
 
 bool syntax_tree::ast_is_legal() const
@@ -2080,13 +2108,14 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
                 {
                     collect_computation_states_for_fusion(node,heads);
                 }
+                /*
 
                 std::cout<<"FUSION EXPLORATION";
                 for(auto& pairt:heads)
                 {
                     std::cout<<std::get<0>(pairt)->name;
                     std::cout<<"MX";
-                }
+                }*/
 
             }
 
@@ -2135,13 +2164,14 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
 
     this->search_state.set_new_heads(first_optim_alternatives);
 
-    std::cout<<"optim_list";
+    //std::cout<<"optim_list";
 
+    /*
     for(auto const& val:generator_state::optimization_list)
     {
         std::cout<<val;
-    }
-    std::cout<<"optim_list_end";
+    }*/
+    //std::cout<<"optim_list_end";
 
 }
 
@@ -2196,10 +2226,10 @@ void syntax_tree::move_to_next_optimization_target()
                     );
             this->search_state.set_new_heads(optim_alternatives);
             this->search_state.current_index = 0;
-            std::cout<<"@GENRATION@";
+            //std::cout<<"@GENRATION@";
         }
     }
-    std::cout<<"_mov_in_"<<this->search_state.current_index;
+    //std::cout<<"_mov_in_"<<this->search_state.current_index;
 }
 
     

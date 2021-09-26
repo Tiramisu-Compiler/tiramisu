@@ -277,95 +277,7 @@ namespace tiramisu::auto_scheduler
 
         case optimization_type::FUSION:
 
-            /* iterate the ast in preorder */
-            {
-
-                std::deque<ast_node *> parcours;
-                std::vector<tiramisu::computation *> seen_computations;
-
-                std::vector<std::pair<computation_info *, ast_node *>> ordered_computations;
-
-                std::vector<tiramisu::var> loop_levels;
-
-                ast_node *current_node = nullptr;
-
-                for (auto &node : ast.roots)
-                {
-                    parcours.push_front(node);
-                }
-
-                current_node = parcours[parcours.size() - 1];
-                parcours.pop_back();
-
-                while (!parcours.empty())
-                {
-                    //Visit current node
-                    for (auto &computation : current_node->computations)
-                    {
-                        //#cont
-                        ordered_computations.push_back(std::make_pair(&computation, current_node));
-                    }
-                    //the end of the visit section
-
-                    for (ast_node *child : current_node->children)
-                    {
-                        parcours.push_front(child);
-                    }
-
-                    if (!parcours.empty())
-                    {
-                        current_node = parcours[parcours.size() - 1];
-                        parcours.pop_back();
-                    }
-                }
-
-                // computations in correct order
-
-                seen_computations.push_back(std::get<0>(ordered_computations[0])->comp_ptr);
-
-                for (int index = 1; index < ordered_computations.size(); index++)
-                {
-                    ast_node *previous_node = std::get<1>(ordered_computations[index - 1]);
-                    ast_node *current_node = std::get<1>(ordered_computations[index]);
-
-                    auto potentiel_fusion = current_node->get_possible_fusion_candidate(previous_node);
-
-                    previous_node = std::get<0>(potentiel_fusion);
-                    current_node = std::get<1>(potentiel_fusion);
-
-                    if ((previous_node != current_node) && (previous_node != nullptr) && (current_node != nullptr))
-                    {
-                        if (previous_node->is_candidate_for_fusion(current_node))
-                        { //similar itr domains
-                            //find loop level subjected to fusion with current common+separated
-                            auto involved_iterators = current_node->get_all_iterators();
-                            auto real_iterators = std::get<0>(ordered_computations[index])->comp_ptr->get_iteration_domain_dimension_names();
-
-                            real_iterators.resize(involved_computations.size());
-
-                            loop_levels.clear();
-
-                            // create a vector of involved vars
-                            for (auto const &str : real_iterators)
-                            {
-                                loop_levels.push_back(tiramisu::var(str));
-                            }
-
-                            //auto shifting_result = ast->fct->
-                            auto shifting_res = ast.get_function()->correcting_loop_fusion_with_shifting(
-                                seen_computations,
-                                *std::get<0>(ordered_computations[index])->comp_ptr,
-                                loop_levels);
-
-                            if (shifting_res.size() > 0)
-                            {
-                                //fusion accepted
-                                // must generate shifting optim + transforme a copy of the ast
-                            }
-                        }
-                    }
-                }
-            }
+            // not possible here
 
             break;
 
@@ -862,9 +774,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             // create a vector of involved tiramisu vars
             std::vector<tiramisu::var> loop_levels;
             // loop levels used for shifting solver
+            //std::cout<<"SHIFTING ITRS";
             for (auto const &str : real_iterators)
             {
                 loop_levels.push_back(tiramisu::var(str));
+                //std::cout<<(str);
             }
 
             std::vector<computation *> seen_computations;
@@ -886,9 +800,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, previous_node);
 
                     // creating new sched graph
-                    ast.stage_isl_states();
+                    ast.stage_local_sched_graph();
                     new_ast->create_new_sched_graph();
-                    ast.recover_isl_states();
+                    ast.recover_local_sched_graph();
 
                     new_ast->stage_isl_states();
                     // modify the schedule graph now using after
@@ -910,7 +824,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         //fusion accepted
                         // must generate shifting optim + transforme a copy of the ast
                     
-            
                         for(auto& shifting:shifting_res)
                         {
                             if(std::get<1>(shifting) > 0)
@@ -934,15 +847,17 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                         }
 
+                        new_ast->recover_isl_states();
+
                         // APPLY changes to the AST it self
                         new_ast->move_in_computation(new_node,current_node->computations[node_computation.second].comp_ptr);
                         
-                        // recompute the states vector
+                        // recompute the states vector because locations changed.
                         new_ast->refresh_states();
 
                         states.push_back(new_ast);
 
-                        new_ast->recover_isl_states();
+                        
                     }
                     else
                     {
