@@ -21,7 +21,7 @@ set(HEADER_FILES
         include/tiramisu/mpi_comm.h
         include/tiramisu/externs.h
         )
-
+        
 # Add autoscheduler headers if USE_AUTO_SCHEDULER is TRUE in configure.cmake
 if (${USE_AUTO_SCHEDULER})
     set(HEADER_FILES ${HEADER_FILES}
@@ -180,7 +180,7 @@ if (${USE_MPI})
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
-    set(CMAKE_CXX_COMPILER "g++")
+    set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
 endif()
 
 
@@ -242,7 +242,7 @@ if (${USE_AUTO_SCHEDULER})
     foreach(obj ${OBJS_AUTO_SCHEDULER})
         set(AUTO_SCHEDULER_CODE ${AUTO_SCHEDULER_CODE} src/auto_scheduler/tiramisu_${obj}.cpp)
     endforeach()
-
+    
     add_library(tiramisu_auto_scheduler SHARED ${AUTO_SCHEDULER_CODE})
     target_link_libraries(tiramisu_auto_scheduler tiramisu ${HalideLib} ${ISLLib})
     target_link_libraries(tiramisu_auto_scheduler ${LINK_FLAGS})
@@ -438,3 +438,5 @@ endforeach()
 
 # Individual benchmarks are moved to benchmarks/CMakeLists.txt to reduce clutter
 add_subdirectory(benchmarks)
+
+add_subdirectory(tutorials/tutorial_autoscheduler)
