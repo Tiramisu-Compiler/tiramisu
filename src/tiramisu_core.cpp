@@ -104,10 +104,10 @@ bool check_legality_of_function()
 }
 
 
-void performe_full_dependency_analysis()
+void perform_full_dependency_analysis()
 {
     function *fct = global::get_implicit_function();
-    fct->performe_full_dependency_analysis() ;
+    fct->perform_full_dependency_analysis() ;
 }
 
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion)
@@ -116,22 +116,22 @@ void prepare_schedules_for_legality_checks(bool reset_static_dimesion)
     fct->prepare_schedules_for_legality_checks(reset_static_dimesion);
 }
 
-bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations)
 {
     function *fct = global::get_implicit_function();
-    return fct->loop_parallelization_is_legal(i,fuzed_computations);
+    return fct->loop_parallelization_is_legal(i,fused_computations);
 }
 
-bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations)
 {
     function *fct = global::get_implicit_function();
-    return fct->loop_unrolling_is_legal(i,fuzed_computations);
+    return fct->loop_unrolling_is_legal(i,fused_computations);
 }
 
-bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations)
+bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations)
 {
     function *fct = global::get_implicit_function();
-    return fct->loop_vectorization_is_legal(i,fuzed_computations);
+    return fct->loop_vectorization_is_legal(i,fused_computations);
 }
 
 

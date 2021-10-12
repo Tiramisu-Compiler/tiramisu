@@ -49,6 +49,8 @@ class computation_info;
 class evaluate_by_execution;
 class dnn_access_matrix;
 class simple_generator;
+class state_computation;
+class ml_model_schedules_generator;
 
 void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 }
@@ -138,7 +140,7 @@ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string
 
 /**
  * Full check of schedule legality for this function using dependency analysis 
- * must be used after invoking : performe_full_dependency_analysis()
+ * must be used after invoking : perform_full_dependency_analysis()
  */
 bool check_legality_of_function();
 
@@ -147,7 +149,7 @@ bool check_legality_of_function();
  * Performe a full dependency analysis RAW/WAR/WAW. The result is stored in the function's attributes
  * Before invoking this method, the user must call tiramisu::prepare_schedules_for_legality_checks() and must define the buffer associated with each computation.
  */
-void performe_full_dependency_analysis();
+void perform_full_dependency_analysis();
 
 
 /**
@@ -161,22 +163,22 @@ void performe_full_dependency_analysis();
 void prepare_schedules_for_legality_checks(bool reset_static_dimesion = false);
 
  /**
-     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * Checks if the given fused computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
   */
-  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+  bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
   /**
-  * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+  * Checks if the given fused computations could legally have their loop level \p i unrolled.
   */
-  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+  bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
   /**
-  * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+  * Checks if the given fused computations could legally have their loop level \p i vectorized.
   */
-  bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+  bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
 //*******************************************************
 
@@ -522,7 +524,7 @@ private:
      * Forth [3]: set of (a,b) where a>0 and b<0 that strongly solves the dependencies.
      * Fifth [4]: set of (a,b) where we could have parallelism on outermost loop level.
      * 
-     * The inputs are a vector of fuzed computations that we want to apply skewing onto,
+     * The inputs are a vector of fused computations that we want to apply skewing onto,
      * and 2 consecutive loop variables (inner & outer).
      * 
      * It should return integer \p legal_process that describes the operation with 3 states depending on it's result:
@@ -530,7 +532,7 @@ private:
      *  0  : correct process while no dependencies were solved.
      * -1  : illegal process (impossible to solve dependencies)
      */
-    std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
+    std::vector<isl_basic_set*> compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process);
 
 
@@ -1232,7 +1234,7 @@ public:
     void set_context_set(isl_set *context);
 
     /**
-      * Computes flow and performe data analysis for this function with all it's computations.
+      * Computes flow and perform data analysis for this function with all it's computations.
       * This includes Reads after write, Write after write, Write after read, live_out_access, and live_in_access.
       * The moment of the call, the computations order and their buffers must be defined, the schedules must be the default ones with no optimizations applied. 
       * So this method should be invoked directly after mapping computations to their buffers.
@@ -1242,11 +1244,11 @@ public:
       * This method also computes live_out and live_in access for this function.
       * After the call the user is free to change & optimize the schedules.
       */
-    void performe_full_dependency_analysis();
+    void perform_full_dependency_analysis();
   
     /**
      *  Uses the dependency analysis to check if the current schedules of all computations are legal
-     *  must be invoked after the correct call to \p performe_full_dependency_analysis()
+     *  must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_legality_for_function();
 
@@ -1268,26 +1270,26 @@ public:
 
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * Checks if the given fused computations could legally have their loop level \p i as parallel using dependence analysis and legality check.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */
     // @{
-    bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_parallelization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
-    bool loop_parallelization_is_legal(int parallel_dim, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_parallelization_is_legal(int parallel_dim, std::vector<tiramisu::computation *> fused_computations);
     // @}
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i unrolled.
+     * Checks if the given fused computations could legally have their loop level \p i unrolled.
     */
-    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_unrolling_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
     /**
-     * Checks if the given fuzed computations could legally have their loop level \p i vectorized.
+     * Checks if the given fused computations could legally have their loop level \p i vectorized.
     */
-    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fuzed_computations);
+    bool loop_vectorization_is_legal(tiramisu::var i, std::vector<tiramisu::computation *> fused_computations);
 
     /**
      * resets all the static beta dimensions in all the computations to Zero.
@@ -1301,7 +1303,7 @@ public:
      * with the vector of computations \p previous_computations if it is possible.
      * This method return a vector of tuples mapping each variable with the required shifting if the fusion is possible, and an empty vector otherwise(impossible fusion).
      * Note: In case where the fusion is legal and doesn't require shifting, the vector of tuples would map the variable to 0.
-     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
      * The shifting parameters given are always superior or equal to zero. This is an additional internal condition.
@@ -1311,13 +1313,13 @@ public:
     /**
      * Uses the dependency analysis to check if the specified schedules of computations are legal.
      * This method only tests the dependencies between the computations specified in the input and ignore the rest.
-     * must be invoked after the correct call to \p performe_full_dependency_analysis()
+     * must be invoked after the correct call to \p perform_full_dependency_analysis()
     */
     bool check_partial_legality_in_function(std::vector<tiramisu::computation * > involved_computations);
 
     /**
      * Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism).
-     * The method relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
      * The output of this method is a tuple of vectors, each vector represent a usecase,
@@ -1331,13 +1333,13 @@ public:
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
      * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
      * 
-     * In case of a lack of dependencies within the scope of fuzed_computations, or in case of some dependencies impossible to solve, 
+     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
      * the output should be 3 empty vectors.
     */
     std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
+      std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
 
 
@@ -1807,7 +1809,8 @@ class computation
     friend auto_scheduler::ast_node;
     friend auto_scheduler::computation_info;
     friend auto_scheduler::evaluate_by_execution;
-    
+    friend auto_scheduler::state_computation;
+    friend auto_scheduler::ml_model_schedules_generator;
     friend void auto_scheduler::unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_list, int unroll_fact);
 
 private:
@@ -4362,7 +4365,7 @@ public:
      * Checks the correctness of a subset of dependencies after applying changes on the schedules (e.g., tiling, skewing, and shifting).
      * The checked subset of dependencies is the set of dependencies mapping from this computation (this) to second computation (second).
      * This methods returns a boolean: True if this subset of dependencies is respected, otherwise False.
-     * It relies fully on the dependence analysis result, so the  method \p performe_full_dependency_analysis() must be invoked before.
+     * It relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
      * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
     */

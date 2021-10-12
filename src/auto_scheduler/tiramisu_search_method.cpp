@@ -29,25 +29,54 @@ void beam_search::search(syntax_tree& ast)
         return ;
        
     // Evaluate children and sort them from smallest to highest evaluation
-    for (syntax_tree *child : children)
+    
+
+   // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
     {
-        child->nb_explored_optims = nb_explored_optims;
-        child->transform_ast();
-            
-        child->evaluation = eval_func->evaluate(*child);
-        
-        child->print_ast();
-        std::cout << "Evaluation : " << child->evaluation << std::endl << std::endl;
-        
-        if (child->evaluation < best_evaluation)
-        {
-            best_evaluation = child->evaluation;
-            best_ast = child;
+        (*iterator)->nb_explored_optims = nb_explored_optims;
+        (*iterator)->transform_ast();
+
+        if ((*iterator)->ast_is_legal() == false) {
+
+            // print deleted Ast 
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            (*iterator)->print_isl_states();
+            std::cout << "\n<illegal>\n";
+            delete (*iterator);
+            iterator = children.erase(iterator);
+        }
+        else {
+
+            // evaluate and print Ast 
+            (*iterator)->evaluation = eval_func->evaluate(*(*iterator));
+
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl << std::endl;
+            (*iterator)->print_isl_states();
+            (*iterator)->print_computations_accesses();
+            std::cout << "\n<legal>\n";
+
+            if ((*iterator)->evaluation < best_evaluation)
+            {
+                best_evaluation = (*iterator)->evaluation;
+                best_ast = (*iterator);
+            }
+
+            ++iterator;
+
         }
         
         nb_explored_schedules++;
     }
-    
+
     // Stop if we reached the maximum depth
     if (nb_explored_optims >= max_depth)
         return ;
@@ -58,20 +87,175 @@ void beam_search::search(syntax_tree& ast)
     children.push_back(ast_copy);
 
     // Sort children from smallest evaluation to largest
+
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;
     });
 
-    // Search recursively on the best children
+    // keep the top 'beam_size' children and delete the rest
     for (int i = beam_size; i < children.size(); ++i)
         delete children[i];
-        
+
     children.resize(std::min(beam_size, (int)children.size()));
 
+    // Search recursively on the best children
     for (syntax_tree *child : children)
     {
         child->search_depth = ast.search_depth + 1;        
         search(*child);
+    }
+}
+
+void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
+{
+    std::default_random_engine rand_generator;
+
+    if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
+        ast.clear_new_optimizations();
+
+    std::vector<syntax_tree*> children;
+
+    // Look for an optimization that can be applied
+    int nb_optims_tried = 0;
+    int nb_explored_optims = ast.nb_explored_optims;
+
+    while (children.size() == 0 && nb_optims_tried < NB_OPTIMIZATIONS && nb_explored_optims < max_depth)
+    {
+        optimization_type optim_type = DEFAULT_OPTIMIZATIONS_ORDER[nb_explored_optims % NB_OPTIMIZATIONS];
+        children = scheds_gen->generate_schedules(ast, optim_type);
+
+        nb_explored_optims++;
+        nb_optims_tried++;
+    }
+
+    // Stop if no more optimizations can be applied
+    if (children.size() == 0)
+        return ;
+
+    // Evaluate children and sort them from smallest to highest evaluation
+    // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
+    {
+        syntax_tree *child = *iterator;
+        child->nb_explored_optims = nb_explored_optims;
+        child->transform_ast();
+
+        if (child->schedule_is_prunable()){
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                std::cout << "\n<Schedule pruned>\n";
+            }
+            delete child;
+            iterator = children.erase(iterator);
+        }
+
+        else if (!child->ast_is_legal()) {
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<illegal>\n";
+            }
+            delete child;
+            iterator = children.erase(iterator);
+        }
+        else {
+
+            // print and evaluate Ast
+
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                child->print_new_optims();
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<legal>\n";
+                child->print_computations_accesses();
+            }
+
+            std::vector<float> measurements;
+            if (child->can_set_default_evaluation()) { // if yes the child's evaluation is set to a default value
+                measurements = {child->evaluation};
+            }
+            else{
+                measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
+                child->evaluation = min_eval(measurements);
+            }
+
+            parent_trace->add_child_path(child, schedules_annotations->size());
+
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
+
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
+
+            if (std::isfinite(child->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_times\" : null\n}\n";
+
+            schedules_annotations->push_back(schedule_annot);
+
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+                std::cout << "Evaluation : " << child->evaluation << std::endl;
+                std::cout << "Number of measurements : " << measurements.size() << std::endl;
+                std::cout << "===================================" << std::endl << std::endl;
+            }
+
+            if (std::isinf(child->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+            if (child->evaluation < best_evaluation)
+            {
+                best_evaluation = child->evaluation;
+                best_ast = child;
+            }
+
+            ++iterator;
+
+        }
+
+        nb_explored_schedules++;
+    }
+
+    // Stop if we reached the maximum depth
+    if (nb_explored_optims >= max_depth)
+        return ;
+
+    // Add the current AST to the list of children
+    syntax_tree *ast_copy = ast.copy_ast();
+    ast_copy->nb_explored_optims = nb_explored_optims;
+    children.push_back(ast_copy);
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
+
+    // Sort children from smallest evaluation to largest
+//    std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
+//        return a->evaluation < b->evaluation;
+//    });
+    // shuffle the children so that they are selected a random
+    std::shuffle(std::begin(children), std::end(children), rand_generator);
+
+    // keep the top 'beam_size' children and delete the rest
+    for (int i = beam_size; i < children.size(); ++i)
+        delete children[i];
+
+    children.resize(std::min(beam_size, (int)children.size()));
+
+    // Search recursively on the best children
+    for (syntax_tree *child : children)
+    {
+        child->search_depth = ast.search_depth + 1;
+        search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
 }
 
@@ -139,6 +323,12 @@ void mcts::search(syntax_tree& ast)
     }
 }
 
+void mcts::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
+{
+    std::cerr<< "mcts::search_save not yet implemented" << std::endl;
+    exit(1);
+}
+
 // -------------------------------------------------------------------------- //
 
 void beam_search_topk::search(syntax_tree& ast)
@@ -162,7 +352,13 @@ void beam_search_topk::search(syntax_tree& ast)
         }
     }
 }
-    
+
+void beam_search_topk::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
+{
+    std::cerr<< "beam_search_topk::search_save not yet implemented" << std::endl;
+    exit(1);
+}
+
 void beam_search_topk::beam_search_subroutine(syntax_tree& ast)
 {
     if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)

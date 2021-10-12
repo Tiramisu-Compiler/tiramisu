@@ -78,6 +78,14 @@ public:
 	 * Apply the specified optimizations, compile the program and execute it.
 	 */
     virtual float evaluate(syntax_tree& ast);
+
+    /**
+     * Apply the specified optimizations, compile the program and execute it.
+     * Returns a vector of measured execution times
+     * If the timeout parameter is defined, it stops the execution after MAX_RUNS*timeout seconds
+     * If exit_on_timeout is set to true, it raises an error when the timeout is reached and terminates the program
+     */
+    std::vector<float> get_measurements(syntax_tree &ast,  bool exit_on_timeout = false, float timeout = 0);
 };
 
 /**
@@ -116,7 +124,7 @@ public:
      * Return a JSON representation of the program represented by the AST.
      * Uses the function : represent_computations_from_nodes. 
      */
-    std::string get_program_json(syntax_tree const& ast);
+    static std::string get_program_json(syntax_tree const& ast);
     
     /**
      * A recursive subroutine that represents in JSON the computations of a given tree.
@@ -126,7 +134,7 @@ public:
     /**
      * Return a JSON representation of the schedule of the given AST.
      */
-    std::string get_schedule_json(syntax_tree const& ast);
+    static std::string get_schedule_json(syntax_tree const& ast);
     
     // --------------------------------------------------------------------------------- //
     

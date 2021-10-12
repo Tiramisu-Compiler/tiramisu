@@ -32,10 +32,14 @@ void apply_optimizations(syntax_tree const& ast)
         
     for (optimization_info const& optim_info : ast.new_optims)
         apply_optimizations(optim_info);
-            
+
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
     apply_fusions(ast);
+
+    // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
+    // the tagged ast_nodes
+    apply_parallelization(ast);
 }
 
 void apply_optimizations(optimization_info const& optim_info)
@@ -68,7 +72,11 @@ void apply_optimizations(optimization_info const& optim_info)
             else
                 unroll_innermost_levels(optim_info.comps, optim_info.l0_fact);
             break;
-                
+
+        case optimization_type::SKEWING:
+            block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
+            break;
+
         default:
             break;
     }
@@ -116,4 +124,63 @@ tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last
     return next_comp;
 }
 
+void apply_parallelization(syntax_tree const& ast)
+{
+    for (ast_node *root : ast.roots)
+        apply_parallelization(root);
+}
+
+void apply_parallelization(ast_node* node)
+{
+    // if the ast_node is tagged for parallelization, get the child computations and tag them using tag_parallel_level()
+    if (node->parallelized)
+    {
+        std::vector<tiramisu::computation*> involved_computations;
+        node->get_all_computations(involved_computations);
+        for (tiramisu::computation* comp: involved_computations)
+            comp->tag_parallel_level(node->depth);
+    }
+    for (ast_node *child : node->children)
+        apply_parallelization(child);
+
+}
+
+void print_optim(optimization_info optim)
+{
+    switch(optim.type) {
+        case optimization_type::FUSION:
+            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            break;
+
+        case optimization_type::UNFUSE:
+            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+            break;
+
+        case optimization_type::INTERCHANGE:
+            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1  << std::endl;
+            break;
+
+        case optimization_type::TILING:
+            std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
+            if (optim.nb_l == 3)
+                std::cout << " L" << optim.l2 << " " << optim.l2_fact;
+            std::cout << std::endl;
+            break;
+
+        case optimization_type::UNROLLING:
+            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact << std::endl;
+            break;
+
+        case optimization_type::PARALLELIZE:
+            std::cout << "Parallelize" << " L" << optim.l0 << std::endl;
+            break;
+
+        case optimization_type::SKEWING:
+            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact << std::endl;
+            break;
+
+        default:
+            break;
+    }
+}
 }

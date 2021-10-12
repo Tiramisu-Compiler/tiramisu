@@ -11,6 +11,81 @@ namespace tiramisu::auto_scheduler
 
 class syntax_tree;
 
+
+/**
+ * stores the state of the computation's schedule.
+*/
+class state_computation
+{
+    friend tiramisu::computation;
+
+    private:
+    /**
+     * Isl_map that represent the schedule of the computation
+    */
+    isl_map * current_schedule = NULL;
+
+   /**
+    * Computation reference that points to the real computation object.
+    * Useful to stage optimizations with setting current_schedule as schedule then use computations features.
+   */
+    tiramisu::computation * staging_computation = NULL;
+    /**
+     * Describes wether this state is staged inside the computation or not.
+    */
+    bool is_state_staged;
+
+    protected:
+
+    public:
+
+    /**
+     * constructors
+    */
+    //@{
+    state_computation(tiramisu::computation * reference);
+    state_computation(state_computation const& reference);
+    //@}
+
+    /**
+     * returns the isl_map
+    */
+   isl_map * get_inner_isl_map() const;
+
+    /**
+     * moves current schedule into the computation object as staging area.
+     * mermutes the schedules between the computation and this schedule.
+    */
+    void move_schedule_to_staging();
+
+    /**
+     * Gets the schedule back from the computation and store it in this class instance.
+    */
+    void recover_schedule_from_staging();
+
+    /**
+     * get real computation in which we set the current state as a schedule inside it. 
+    */
+    tiramisu::computation * get_computation_staged();
+
+    /**
+     * get real computation without staging a schedule inside it.
+    */
+
+    tiramisu::computation * get_computation_unstated() const;
+
+    /**
+     * 
+    */
+    bool is_this_state_staged() const;
+
+    ~state_computation()
+    {
+        isl_map_free(current_schedule);
+    }
+
+};
+
 /**
  * Stores information about a computation.
  */
@@ -45,7 +120,27 @@ public:
      * True if this computation is a reduction.
      */
     bool is_reduction;
-    
+
+    /**
+     * A string representing the ISL write access relation of the computation.
+     */
+    std::string write_access_relation;
+
+    /**
+     * The ID of the buffer where the computation is stored
+     */
+    int storage_buffer_id;
+
+    /**
+     * A string representing the data type of the computation
+     */
+    std::string data_type_str;
+
+    /**
+     * Size of the data type in Bytes
+     */
+    int data_type_size;
+
     /**
      * Some metrics about the computation.
      */
@@ -58,12 +153,28 @@ public:
      * Get info about the given computation. The AST is needed to get some info.
      */
     computation_info(tiramisu::computation *comp, syntax_tree *ast);
+
+
+    /**
+     * Copy constructor
+    */
+    //computation_info(computation_info const& reference);
+
+    /**
+     * modifies the accesses by skewing
+    */
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
     
     /**
      * Compute nb_additions, nb_substractions, nb_multiplications and nb_divisions
      * from the given expr.
      */
     void get_info_from_expr(tiramisu::expr const& e);
+
+    /**
+     * Returns the size of the computation's data type in Bytes
+     */
+    int get_data_type_size();
 };
 
 /**
@@ -102,9 +213,29 @@ public:
     bool unrolled = false;
 
     /**
+     * True if the loop level has been parallelized
+     */
+    bool parallelized = false;
+
+    /**
+    * True if the loop level has been skewed
+    */
+    bool skewed = false;
+
+    /**
+    * True if the loop level has been vectorized
+    */
+    bool vectorized = false;
+
+    /**
      * List of the computations computed at this level.
      */
     std::vector<computation_info> computations;
+
+    /**
+     * Structure that holds the state of each computation inside this node.
+    */
+    std::vector<state_computation> isl_states;
 
 	/**
 	 * Next loop levels.
@@ -184,6 +315,12 @@ public:
     ast_node* get_rightmost_node();
 
     /**
+     * get all the nodes starting from root that have 1 child, 
+     * i.e. the shared nodes between all computations
+    */
+    void get_shared_nodes_from_outermost(std::vector<ast_node*>& shared) const;
+
+    /**
      * Recompute the depth of each node of the tree rooted at
      * this node, with the given depth being the depth of this node.
      */
@@ -205,6 +342,49 @@ public:
      * Print the subtree rooted at this node.
      */
     void print_node() const;
+
+    /**
+     * Print the subtree of isl_states
+    */
+    void print_isl_states() const;
+
+    /**
+     * prints the computations's accesses of this AST
+    */
+    void print_computations_accesses() const;
+
+    /**
+     * Changes the access within computation_info after applying the skewing optimization
+    */
+    void transform_accesses_with_skewing(int a,int b);
+
+    void set_accesses_changes_with_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
+
+    /**
+     * create initial isl_states from current computations
+    */
+    void create_initial_states();
+
+    /**
+     * stage the isl_states to the real computations
+    */
+    void stage_isl_states();
+
+    /**
+     * recover the states from the computations
+    */
+    void recover_isl_states();
+
+    /**
+     * pushs all the computations inside this node recursively 
+    */
+    void collect_all_computation(std::vector<computation_info*>& vector);
+
+    /**
+     * get the extent of this node, i.e:
+     * return upper_bound - lower_bound
+    */
+    int get_node_loop_extent() const;
 };
 
 class syntax_tree
@@ -325,6 +505,8 @@ public:
     void transform_ast_by_tiling(optimization_info const& opt);
     void transform_ast_by_interchange(optimization_info const& opt);
     void transform_ast_by_unrolling(optimization_info const& opt);
+    void transform_ast_by_parallelism(const optimization_info &info);
+    void transform_ast_by_skewing(const optimization_info &opt);
     
     /**
      * Copy this AST, and return the copy.
@@ -382,6 +564,12 @@ public:
      * Return the nodes representing the innermost loop levels.
      */
     std::vector<ast_node*> get_innermost_nodes() const;
+
+    /**
+     * get all the nodes starting from root that have 1 child, 
+     * i.e. the shared nodes between all computations
+    */
+    void get_shared_nodes_from_outermost(std::vector<ast_node*>& shared) const;
     
     /**
      * Return the position, in the list of the buffers, of the buffer where
@@ -398,7 +586,113 @@ public:
      * Print the AST to stdout.
      */
     void print_ast() const;
+
+    /**
+     * prints the computations's accesses of this AST
+    */
+    void print_computations_accesses() const;
+
+    /**
+     * Print information about the applied optimizations
+     */
+    void print_new_optims() const;
+
+    void print_previous_optims() const;
+
+    void print_isl_states() const;
+
+    void create_initial_isl_state() const;
+
+    /**
+     * push isl_states to the real computations to use tiramisu API
+    */
+    void stage_isl_states() const;
+
+    /**
+     * Recover the isl_states from the computation 
+    */
+    void recover_isl_states() const;
+
+    /**
+     * Check the correctness of the list of applied structurel optimizations
+    */
+    bool ast_is_legal() const;
+
+    /**
+     * Encodes the transformations applied to the ast as a string, this is used for saving the exploration trace while
+     * sampling schedules
+     */
+    std::string get_schedule_str();
+
+    /**
+     * Predicts if the schedule applied to the ast is worth evaluating and exploring further.
+     */
+    bool schedule_is_prunable();
+
+    /**
+     * Checks if the AST's evaluation can be predicted using manual engineered rules
+     */
+    bool can_set_default_evaluation();
 };
+
+/**
+ * The candidate_trace class is used to recursively record the visited candidates during the search space exploration
+ */
+class candidate_trace
+{
+private:
+    /**
+     * A numerical id is assigned for each explored candidate
+     */
+    int candidate_id;
+
+public:
+    int get_candidate_id() const;
+
+private:
+    /**
+     * The search depth where this candidate was visited
+     */
+    int exploration_depth;
+
+    /**
+     * candidate's evaluation
+     */
+    float evaluation;
+
+    /**
+     * The applied schedule, encoded as a string
+     */
+    std::string schedule_str;
+
+    /**
+     * The child candidates that are derived from this candidate
+     */
+    std::vector<candidate_trace*> child_candidates;
+
+public:
+
+    candidate_trace(syntax_tree* ast, int candidate_id);
+
+    ~candidate_trace();
+
+    /**
+     * Initializes a new child candidate from an AST and adds it to the children list
+     */
+    void add_child_path(syntax_tree* ast, int candidate_id);
+
+    /**
+     * Recursively exports the exploration trace into a JSON format
+     */
+    std::string get_exploration_trace_json();
+
+    /**
+     * A mapping between ASTs and explored child candidates
+     */
+    std::unordered_map<syntax_tree*, candidate_trace*> child_mappings;
+
+};
+
 
 }
 

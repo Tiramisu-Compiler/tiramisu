@@ -39,8 +39,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
 {
     // Apply all the optimizations
     apply_optimizations(ast);
-    parallelize_outermost_levels(ast.computations_list);
-    
+
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();
@@ -58,7 +57,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     int status = system(gcc_cmd.c_str());
     
     // Execute the wrapper and get execution time
-    double exec_time = 0.f;
+    double exec_time = std::numeric_limits<double>::infinity();
     FILE *pipe = popen(wrapper_cmd.c_str(), "r");
     
     fscanf(pipe, "%lf", &exec_time);
@@ -68,6 +67,76 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     fct->reset_schedules();
     
     return exec_time;
+}
+
+std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout)
+{
+    // Apply all the optimizations
+    apply_optimizations(ast);
+
+    // Compile the program to an object file
+    fct->lift_dist_comps();
+    fct->gen_time_space_domain();
+    fct->gen_isl_ast();
+    fct->gen_halide_stmt();
+
+    Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
+                                             Halide::Internal::LoweredFunc::External,
+                                             fct->get_halide_stmt());
+
+    m.compile(Halide::Outputs().object(obj_filename));
+
+    // Turn the object file to a shared library
+    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    int status = system(gcc_cmd.c_str());
+
+    // define the execution command of the wrapper
+    std::string cmd = wrapper_cmd;
+
+    float cumulative_timeout;
+    if (timeout!=0) {// check if a timeout is defined for the execution time
+        int nb_exec = 30; //by default
+        if (std::getenv("MAX_RUNS")!=NULL)
+            nb_exec = std::stoi(std::getenv("MAX_RUNS"));
+        cumulative_timeout = timeout * nb_exec; // the timeout for the total number of executions
+        cmd = std::string("timeout ") + std::to_string(cumulative_timeout) + std::string(" ") + wrapper_cmd;
+    }
+
+
+    // execute the command
+    FILE *pipe = popen(cmd.c_str(), "r");
+
+    // read the output into a string
+    char buf[100];
+    std::string output;
+    while (fgets(buf, 100, pipe))
+        output += buf;
+
+    // close the pipe and check if the timeout has been reached
+    auto returnCode = pclose(pipe)/256;
+    if (exit_on_timeout && (timeout!=0) && (returnCode == 124)){ // a potential issue here is that the 124 exit code is returned by another error
+        std::cerr << "error: Execution time exceeded the defined timeout "<< timeout << "s *"<< std::getenv("MAX_RUNS") << "execution" << std::endl;
+        exit(1);
+    }
+
+    // parse the output into a vector of floats
+    std::vector<float> measurements;
+    std::istringstream iss(output);
+    std::copy(std::istream_iterator<float>(iss), std::istream_iterator<float>(), std::back_inserter(measurements));
+
+    if (measurements.empty() && (returnCode != 124)) // if there is no output and the cmd didn't timeout, this means that the execution failed
+        measurements.push_back(std::numeric_limits<float>::infinity());
+
+    else if (measurements.empty() && (returnCode == 124) && (timeout!=0)){  //if there is no output and the cmd timed out, this means that no execution finished before timeout
+        measurements.push_back(cumulative_timeout*1000); // converted to ms
+        std::cout<< "Execution timed out"<< std::endl;
+    }
+
+
+    // Remove all the optimizations
+    fct->reset_schedules();
+
+    return measurements;
 }
 
 evaluate_by_learning_model::evaluate_by_learning_model(std::string const& cmd_path, std::vector<std::string> const& cmd_args)
@@ -135,6 +204,9 @@ float evaluate_by_learning_model::evaluate(syntax_tree& ast)
 
 std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
 {
+    // Get the memory size allocated by the program, if declared
+    std::string mem_size_json = "\"memory_size\" : \"" + std::string(read_env_var("MEM_SIZE")) + "\" ";
+
     // Get JSON for iterators from ast.iterators_json
     std::string iterators_json = "\"iterators\" : {" + ast.iterators_json + "}";
     
@@ -149,7 +221,7 @@ std::string evaluate_by_learning_model::get_program_json(syntax_tree const& ast)
     computations_json += "}";
     
     // Return JSON of the program
-    return "{" + iterators_json + "," + computations_json + "}\n";
+    return "{" + mem_size_json + "," + iterators_json + "," + computations_json + "}\n";
 }
 
 void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *node, std::string& computations_json, int& comp_absolute_order)
@@ -171,16 +243,16 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         
         comp_json += "],";
         
-        comp_json += "\"real_dimensions\" : [";
-        
-        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
-        {
-            comp_json += "\"" + comp_info.iters[i].name + "\"";
-            if (i != comp_info.buffer_nb_dims - 1)
-                comp_json += ",";
-        }
-        
-        comp_json += "],";
+//        comp_json += "\"real_dimensions\" : [";
+//
+//        for (int i = 0; i < comp_info.buffer_nb_dims; ++i)
+//        {
+//            comp_json += "\"" + comp_info.iters[i].name + "\"";
+//            if (i != comp_info.buffer_nb_dims - 1)
+//                comp_json += ",";
+//        }
+//
+//        comp_json += "],";
         
         comp_json += "\"comp_is_reduction\" : ";
         if (comp_info.is_reduction)
@@ -192,6 +264,11 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         comp_json += "\"number_of_subtraction\" : " + std::to_string(comp_info.nb_substractions) + ",";
         comp_json += "\"number_of_multiplication\" : " + std::to_string(comp_info.nb_multiplications) + ",";
         comp_json += "\"number_of_division\" : " + std::to_string(comp_info.nb_divisions) + ",";
+
+        comp_json += "\"write_access_relation\" : \"" +  comp_info.write_access_relation + "\",";
+        comp_json += "\"write_buffer_id\" : " +  std::to_string(comp_info.storage_buffer_id) + ",";
+        comp_json += "\"data_type\" : \"" +  comp_info.data_type_str + "\",";
+        comp_json += "\"data_type_size\" : " +  std::to_string(comp_info.data_type_size) + ",";
         
         // Build JSON for the accesses of this computation
         comp_json += "\"accesses\" : [";
@@ -203,7 +280,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
             comp_json += "{";
             
             comp_json += "\"access_is_reduction\" : ";
-            if (i == 0 && comp_info.is_reduction)
+            if (comp_info.storage_buffer_id==matrix.buffer_id)
                 comp_json += "true,";
             else
                 comp_json += "false,";
@@ -249,11 +326,17 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     bool interchanged = false;
     bool tiled = false;
     bool unrolled = false;
+    bool skewed = false;
+    bool parallelized = false;
     
     int unfuse_l0 = -1;
     int int_l0, int_l1;
     int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
     int unrolling_fact;
+    int skewing_fact_l0, skewing_fact_l1;
+    int skewing_l0, skewing_l1;
+    int skew_extent_l0, skew_extent_l1;
+    int parallelized_level;
     
     // Get information about the schedule
     for (optimization_info const& optim_info : ast.new_optims)
@@ -293,6 +376,22 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
             case optimization_type::UNROLLING:
                 unrolled = true;
                 unrolling_fact = optim_info.l0_fact;
+                break;
+
+            case optimization_type::PARALLELIZE:
+                parallelized = true;
+                parallelized_level = optim_info.l0;
+                break;
+
+            case optimization_type::SKEWING:
+                skewed = true;
+                skewing_fact_l0 = optim_info.l0_fact;
+                skewing_fact_l1 = optim_info.l1_fact;
+                skewing_l0 = optim_info.l0;
+                skewing_l1 = optim_info.l1;
+                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
+                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
+                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
                 break;
                 
             default:
@@ -370,9 +469,84 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         
         if (unrolled)
         {
-            comp_sched_json += "\"" + std::to_string(unrolling_fact) + "\"";
+            comp_sched_json += "\"" + std::to_string(unrolling_fact) + "\",";
         }
-        
+        else
+        {
+            comp_sched_json += "null,";
+        }
+
+        // Parallelization tag
+        comp_sched_json += "\"parallelized_dim\" : ";
+        if (parallelized)
+        {
+            comp_sched_json += "\"" + iterators_list[parallelized_level].name + "\",";
+        }
+        else
+        {
+            comp_sched_json += "null, ";
+
+        }
+
+        // Skewing info
+        comp_sched_json += "\"skewing\" : ";
+        if (skewed)
+        {
+            comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
+            comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
+            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"], ";
+
+            // Adding the access matrices transformed by skewing
+
+            // get the comp_info corresponding to the current computation
+            ast_node* comp_node = ast.computations_mapping.at(comp);
+            std::vector<dnn_access_matrix> comp_accesses_list;
+            for (auto comp_i: comp_node->computations)
+            {
+                if (comp_i.comp_ptr == comp)
+                {
+                    comp_accesses_list = comp_i.accesses.accesses_list;
+                    break;
+                }
+            }
+
+            // Build JSON of the transformed accesses
+            comp_sched_json += "\"transformed_accesses\" : [";
+
+            for (int i = 0; i < comp_accesses_list.size(); ++i)
+            {
+                dnn_access_matrix const& matrix  = comp_accesses_list[i];
+                comp_sched_json += "{";
+
+                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
+                comp_sched_json += "\"access_matrix\" : [";
+
+                for (int x = 0; x < matrix.matrix.size(); ++x)
+                {
+                    comp_sched_json += "[";
+                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
+                    {
+                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
+                        if (y != matrix.matrix[x].size() - 1)
+                            comp_sched_json += ", ";
+                    }
+
+                    comp_sched_json += "]";
+                    if (x != matrix.matrix.size() - 1)
+                        comp_sched_json += ",";
+                }
+
+                comp_sched_json += "]";
+
+                comp_sched_json += "}";
+
+                if (i != comp_accesses_list.size() - 1)
+                    comp_sched_json += ",";
+            }
+
+            comp_sched_json += "]}";
+
+        }
         else
         {
             comp_sched_json += "null";

@@ -30,27 +30,41 @@ isl_map *isl_map_align_range_dims(isl_map *map, int max_dim)
 
     assert(map != NULL);
     int mdim = isl_map_dim(map, isl_dim_out);
-    assert(max_dim >= mdim);
+    //assert(max_dim >= mdim);
 
-    DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
-
-    const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
-
-    map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
-
-    for (int i = mdim; i < max_dim; i++)
+    // in case where the max_dim is bigger than this map dimension, we add zeros to the schedule.
+    if(max_dim >= mdim)
     {
-        isl_space *sp = isl_map_get_space(map);
-        isl_local_space *lsp = isl_local_space_from_space(sp);
-        isl_constraint *cst = isl_constraint_alloc_equality(lsp);
-        cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, i, 1);
-        map = isl_map_add_constraint(map, cst);
+        DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
+
+        const char *original_range_name = isl_map_get_tuple_name(map, isl_dim_out);
+
+        map = isl_map_add_dims(map, isl_dim_out, max_dim - mdim);
+
+        for (int i = mdim; i < max_dim; i++)
+        {
+            isl_space *sp = isl_map_get_space(map);
+            isl_local_space *lsp = isl_local_space_from_space(sp);
+            isl_constraint *cst = isl_constraint_alloc_equality(lsp);
+            cst = isl_constraint_set_coefficient_si(cst, isl_dim_out, i, 1);
+            map = isl_map_add_constraint(map, cst);
+        }
+
+        map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
+
+        DEBUG(10, tiramisu::str_dump("After alignment, map = ",
+                                    isl_map_to_str(map)));
+    }
+    else
+    {
+      // in case where the max_dim is smaller than this map dimension, we project_out (delete) additional dimensions
+       
+        DEBUG(10, tiramisu::str_dump("Input map:", isl_map_to_str(map)));
+        map = isl_map_project_out(map,isl_dim_out,max_dim,mdim-max_dim);
+        DEBUG(10, tiramisu::str_dump("After alignment, map = ",
+                                    isl_map_to_str(map)));
     }
 
-    map = isl_map_set_tuple_name(map, isl_dim_out, original_range_name);
-
-    DEBUG(10, tiramisu::str_dump("After alignment, map = ",
-                                 isl_map_to_str(map)));
 
     DEBUG_INDENT(-4);
     return map;
@@ -158,7 +172,34 @@ void tiramisu::function::calculate_dep_flow()
 
     DEBUG(3, tiramisu::str_dump(" generating depandencies graph"));
 
-     isl_union_map * ref_graph = isl_union_map_reverse(this->compute_dep_graph());
+    isl_union_map * ref_res = this->compute_dep_graph();
+
+    if(ref_res == NULL)
+    {
+        // no deps fill with empty union maps
+
+        std::string str_map = "{}";
+
+        this->dep_read_after_write = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());
+
+        this->dep_write_after_read = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->dep_write_after_write = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->live_in_access = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        this->live_out_access = isl_union_map_read_from_str(this->get_isl_ctx(),str_map.c_str());;
+
+        DEBUG(3, tiramisu::str_dump(" No deps detected just empty maps "));
+
+        DEBUG_INDENT(-4);
+
+        return ;
+    }
+
+    isl_union_map * ref_graph = isl_union_map_reverse(ref_res);
+
+    
 
     DEBUG(3, tiramisu::str_dump(" the referencing union map is for dependecy analysis: "+std::string(isl_union_map_to_str(ref_graph))));
 
@@ -1678,9 +1719,12 @@ int tiramisu::function::get_max_schedules_range_dim() const
     int max_dim = 0;
     for (const auto &comp : this->get_computations())
     {
-        isl_map *sched = comp->get_schedule();
-        int m = isl_map_dim(sched, isl_dim_out);
-        max_dim = std::max(max_dim, m);
+        if(comp->schedule_this_computation){
+
+            isl_map *sched = comp->get_schedule();
+            int m = isl_map_dim(sched, isl_dim_out);
+            max_dim = std::max(max_dim, m);
+        }
     }
 
     DEBUG_INDENT(-4);
@@ -1736,11 +1780,13 @@ void tiramisu::function::align_schedules()
 
     for (auto &comp : this->get_computations())
     {
+        
         isl_map *dup_sched = comp->get_schedule();
         assert((dup_sched != NULL) && "Schedules should be set before calling align_schedules");
         dup_sched = isl_map_align_range_dims(dup_sched, max_dim);
         comp->set_schedule(dup_sched);
         comp->name_unnamed_time_space_dimensions();
+        
     }
 
     DEBUG_INDENT(-4);
@@ -2566,7 +2612,7 @@ const std::vector<std::string> tiramisu::function::get_invariant_names() const
     return inv_str;
 }
 
-void tiramisu::function::performe_full_dependency_analysis()
+void tiramisu::function::perform_full_dependency_analysis()
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2769,7 +2815,7 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
     this->gen_ordering_schedules();
 }
 
-bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2779,9 +2825,9 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
 
@@ -2794,7 +2840,7 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
 
     bool result = true;
 
-    for(auto& computation:fuzed_computations)
+    for(auto& computation:fused_computations)
     {
         if(computation->unrolling_is_legal(i) == false)
         {
@@ -2808,7 +2854,7 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     return result;
 }
 
-bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var, std::vector<tiramisu::computation *> fuzed_computations )
+bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var, std::vector<tiramisu::computation *> fused_computations )
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2818,9 +2864,9 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     DEBUG(3, tiramisu::str_dump(" var parallelization check is : "+par_dim_var.get_name()));
 
@@ -2831,7 +2877,7 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
 
     first_computation->check_dimensions_validity(dimensions);
 
-    bool result = this->loop_parallelization_is_legal(dimensions[0],fuzed_computations);
+    bool result = this->loop_parallelization_is_legal(dimensions[0],fused_computations);
 
     DEBUG_INDENT(-4);
 
@@ -2839,7 +2885,7 @@ bool tiramisu::function::loop_parallelization_is_legal(tiramisu::var par_dim_var
 }
 
 
-bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2847,9 +2893,9 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
-    computation * first_computation = fuzed_computations[0];
+    computation * first_computation = fused_computations[0];
     
     std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
 
@@ -2886,7 +2932,7 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
 
     isl_map * schedule_itr = NULL;
 
-    for( auto& computation: fuzed_computations)
+    for( auto& computation: fused_computations)
     {
         schedule_itr = isl_map_copy(computation->get_schedule());
 
@@ -2905,6 +2951,14 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
     all_deps = isl_union_map_apply_domain(all_deps,isl_union_map_copy(schedules));
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
+
+    if(isl_union_map_is_empty(all_deps))
+    {
+        DEBUG(3, tiramisu::str_dump(" No dependencies , parallelism is legal by default "));
+        DEBUG_INDENT(-4);
+        return true;
+
+    }
 
     isl_map * equation_map = isl_map_from_union_map(all_deps);
 
@@ -2968,7 +3022,7 @@ bool tiramisu::function::loop_parallelization_is_legal(int dim_parallel , std::v
 
 }
 
-bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
+bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
@@ -2978,12 +3032,12 @@ bool tiramisu::function::loop_vectorization_is_legal(tiramisu::var i , std::vect
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
     DEBUG(3, tiramisu::str_dump(" vectorization check for var : "+i.get_name()));
 
-    bool result = this->loop_unrolling_is_legal(i,fuzed_computations) 
-                && this->loop_parallelization_is_legal(i,fuzed_computations);
+    bool result = this->loop_unrolling_is_legal(i,fused_computations)
+                && this->loop_parallelization_is_legal(i,fused_computations);
 
     DEBUG(3, tiramisu::str_dump(" vectorization legality is : "+result));
 
@@ -3609,7 +3663,7 @@ std::vector<std::tuple<tiramisu::var,int>> function::correcting_loop_fusion_with
 }
 
 
-std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fuzed_computations, tiramisu::var outer_variable, 
+std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vector<tiramisu::computation *> fused_computations, tiramisu::var outer_variable,
                                               tiramisu::var inner_variable, int&  legal_process)
 {
     DEBUG_FCT_NAME(3);
@@ -3622,9 +3676,9 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     assert(this->dep_read_after_write != NULL ) ;
     assert(this->dep_write_after_write != NULL ) ;
     assert(this->dep_write_after_read != NULL ) ;
-    assert(fuzed_computations.size()>0) ;
+    assert(fused_computations.size()>0) ;
 
-    computation * first_computation = fuzed_computations[0]  ;
+    computation * first_computation = fused_computations[0]  ;
     
     DEBUG(3, tiramisu::str_dump(" skewing solving for : "+outer_variable.get_name()+" and "+inner_variable.get_name()));
 
@@ -3674,7 +3728,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     isl_map * schedule_one = NULL ;
 
-    for( auto& computation: fuzed_computations)
+    for( auto& computation: fused_computations)
     {
         schedule_one = isl_map_copy(computation->get_schedule()) ;
 
@@ -3687,13 +3741,23 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     // application to discard unused dep & modeling them in their time space
 
-    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules)) ;
+    all_deps = isl_union_map_apply_range(all_deps,isl_union_map_copy(schedules));
 
-    all_deps = isl_union_map_apply_domain(all_deps,schedules) ;
+    all_deps = isl_union_map_apply_domain(all_deps,schedules);
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies union map are  : "+std::string(isl_union_map_to_str(all_deps))));
 
-    isl_map * equation_map = isl_map_from_union_map(all_deps) ;
+    if(isl_union_map_is_empty(all_deps))
+    {
+        DEBUG(3, tiramisu::str_dump(" No dependencies to be solved => skewing not necessary & no skewing proposed "));
+
+        legal_process = 0 ; // disables skewing
+        DEBUG_INDENT(-4);
+        return {NULL,NULL,NULL,NULL,NULL};
+        
+    }
+
+    isl_map * equation_map = isl_map_from_union_map(all_deps);
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
 
@@ -3773,7 +3837,10 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     double second_int=0.0;
     double tan_value = 0.0;
 
-    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+    std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+
+    //std::string normal_map_str = "{ [0,j]->[1,0]: j>0; [i,0]->[0,1]: i!=0 ; [i,j]->[j,-i] : j>0 and i!=0 ; [i,j]->[-j,i] : j<0 and i!=0 }";
+
     isl_map * normal_map_calculator = isl_map_read_from_str(this->get_isl_ctx(),normal_map_str.c_str());
 
     std::string upper_domain_str = "{[a,b] : a>0 and b>0 }";
@@ -3799,6 +3866,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     /**
      * strongly solve for parallelism & weakly solve for legality
     */
+   int iteration = 0;
 
     for(auto dependency:all_basic_maps)
     {
@@ -4041,6 +4109,8 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
                     }
                     
                 }
+
+                iteration++;
             }
            
             
@@ -4053,7 +4123,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     }
 
 
-    if(isl_map_is_empty(equation_map))
+    if((iteration == 0) || (isl_map_is_empty(equation_map)))
     {
         legal_process = 0;
         DEBUG(3, tiramisu::str_dump(" Lack of dependencies within scope "));
@@ -4098,7 +4168,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
-      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fuzed_computations,
+      std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel)
 {
     DEBUG_FCT_NAME(3);
@@ -4110,7 +4180,7 @@ std::tuple<
     assert(this->dep_read_after_write != NULL );
     assert(this->dep_write_after_write != NULL );
     assert(this->dep_write_after_read != NULL );
-    assert(fuzed_computations.size()>0);
+    assert(fused_computations.size()>0);
 
     isl_basic_set * upper_strongly = NULL;
     isl_basic_set * upper_weakly = NULL;
@@ -4126,7 +4196,7 @@ std::tuple<
     std::vector<std::pair<int,int>> outermost;
     std::vector<std::pair<int,int>> innermost;
 
-    auto result_vector = this->compute_legal_skewing(fuzed_computations,outer_variable,inner_variable,process);
+    auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
 
     if(process == 1)
     {
@@ -4319,6 +4389,13 @@ std::tuple<
             DEBUG(3, tiramisu::str_dump("# lower inner parallism solution set :"+std::string(isl_set_to_str(lower_set))));
 
             isl_set * solution = isl_set_lexmin(isl_set_copy(lower_set));
+
+            if(isl_set_is_empty(solution) != isl_bool_false)
+            {
+                isl_set_free(solution);
+                break;
+            }
+
             DEBUG(3, tiramisu::str_dump(" choosen inner parallism "+std::string(isl_set_to_str(solution))));
 
             isl_basic_set * result = isl_set_polyhedral_hull(solution);
