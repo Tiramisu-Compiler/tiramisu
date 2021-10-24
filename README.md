@@ -44,7 +44,7 @@ void generate_code()
 
 ## Building Tiramisu from Sources
 
-This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04 and 18.04) and MacOS (10.12) but should work on other Linux and MacOS versions. Some users reported issues with Ubuntu 20.04 (and the default packages installed in Ubunut 20.04). For building Tiramisu on MacOS 11 and newer versions, please refer to this [guide](utils/scripts/MacOS11_patch/README.md).
+This section provides a short description of how to build Tiramisu.  A more detailed description is provided in [INSTALL](INSTALL.md).  The installation instructions below have been tested on Linux Ubuntu (14.04 and 18.04) and MacOS (10.12) but should work on other Linux and MacOS versions. Some users reported issues with Ubuntu 20.04 (and the default packages installed in Ubunut 20.04). For building Tiramisu on MacOS 11 and newer versions, please refer to this [guide](utils/scripts/macOS11_patch/README.md).
 
 #### Prerequisites
 ###### Required
