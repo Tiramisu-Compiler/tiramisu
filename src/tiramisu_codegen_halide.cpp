@@ -2474,8 +2474,7 @@ void function::gen_halide_stmt()
 
     DEBUG(3, this->gen_c_code());
 
-    Halide::Internal::set_always_upcast();
-
+    //    Halide::Internal::set_always_upcast();
     // This vector is used in generate_Halide_stmt_from_isl_node to figure
     // out what are the statements that have already been visited in the
     // AST tree.
