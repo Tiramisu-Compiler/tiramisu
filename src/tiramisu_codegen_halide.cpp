@@ -2580,10 +2580,11 @@ Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector
     using cuda_ast::memory_location;
     auto h_type = halide_type_from_tiramisu_type(b->get_elements_type());
     if (b->location == memory_location::host)
-    {
-        return Halide::Internal::Allocate::make(
+      {//Note: When this was created originally, Halide didn't have a memory type, but now it does - I think setting this to heap best resembles the old semantics
+      return Halide::Internal::Allocate::make(
                 b->get_name(),
                 h_type,
+		Halide::MemoryType::Heap,
                 extents, Halide::Internal::const_true(), stmt);
     }
     else if (b->location == memory_location::global)
@@ -2593,6 +2594,7 @@ Halide::Internal::Stmt generator::make_buffer_alloc(buffer *b, const std::vector
         {
             size = size * extents[i];
         }
+	//This should potentially be something else
         return Halide::Internal::LetStmt::make(
                 b->get_name(),
                 Halide::Internal::Call::make(Halide::type_of<void *>(), "tiramisu_cuda_malloc",
@@ -3134,7 +3136,8 @@ void computation::create_halide_assignment()
                 this->stmt = Halide::Internal::Store::make(
                         buffer_name,
                         generator::halide_expr_from_tiramisu_expr(this->get_function(), this->index_expr, tiramisu_rhs, this),
-                        index, param, Halide::Internal::const_true(type.lanes()));
+                        index, param, Halide::Internal::const_true(type.lanes()),
+			Halide::Internal::ModulusRemainder()); //ModulusRemainder has been added here but this might be wrong
 
                 DEBUG(3, tiramisu::str_dump("Halide::Internal::Store::make statement created."));
             } else if (this->is_library_call()) {
@@ -4014,7 +4017,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     m.compile(Halide::Output().object(obj_file_name));
     m.compile(Halide::Output().c_header(obj_file_name + ".h"));
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
-        m.compile(Halide::Output().c_source(obj_file_name + "_generated.c"));
+        m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
 
     if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);
