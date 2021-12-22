@@ -207,11 +207,13 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // We're about to drop the environment and outputs vector, which
     // contain the only strong refs to Functions that may still be
     // pointed to by the IR. So make those refs strong.
+    //Compare with https://github.com/halide/Halide/blob/0b297f2944a0fe2076f8febdc1226796e5a13376/src/Function.cpp#L35
     class StrengthenRefs : public IRMutator {
         using IRMutator::visit;
-        void visit(const Call *c) {
-            IRMutator::visit(c);
-            c = expr.as<Call>();
+        Expr visit(const Call *c) override {
+            Expr expr = IRMutator::visit(c);
+	    c = expr.as<Call>();
+            //c = expr.as<Call>();
             //internal_assert(c);
             if (c->func.defined()) {
                 FunctionPtr ptr = c->func;
@@ -220,6 +222,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
                                   ptr, c->value_index,
                                   c->image, c->param);
             }
+	    return expr;
         }
     };
     s = StrengthenRefs().mutate(s);
