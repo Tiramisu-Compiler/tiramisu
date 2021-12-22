@@ -3798,7 +3798,8 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                         if (tiramisu_expr.get_op_type() != tiramisu::o_address_of) {
                             result = Halide::Internal::Load::make(
                                     type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    param, Halide::Internal::const_true(type.lanes()));
+                                    param, Halide::Internal::const_true(type.lanes()),
+				    Halide::Internal::ModulusRemainder());
                         } else {
                             result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                                    tiramisu_buffer->get_name() + ".buffer");
@@ -3814,7 +3815,8 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
                         if (tiramisu_expr.get_op_type() != tiramisu ::o_address_of) {
                             result = Halide::Internal::Load::make(
                                     type, tiramisu_buffer->get_name(), index, Halide::Buffer<>(),
-                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()));
+                                    Halide::Internal::Parameter(), Halide::Internal::const_true(type.lanes()),
+				    Halide::Internal::ModulusRemainder());
                         } else {
                             result = Halide::Internal::Variable::make(Halide::type_of<struct halide_buffer_t *>(),
                                                                       tiramisu_buffer->get_name() + ".buffer");
@@ -4003,7 +4005,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                 buf->get_name(),
                 halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
                 halide_type_from_tiramisu_type(buf->get_elements_type()),
-                buf->get_n_dims());
+                buf->get_n_dims(), ArgumentEstimates{});
 
         fct_arguments.push_back(buffer_arg);
     }
