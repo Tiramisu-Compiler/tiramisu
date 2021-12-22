@@ -89,8 +89,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     if (t.has_gpu_feature() ||
         t.has_feature(Target::OpenGLCompute) ||
-        t.has_feature(Target::OpenGL) ||
-        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_64, Target::HVX_128})))) {
+        (t.arch != Target::Hexagon && (t.features_any_of({Target::HVX_128})))) {
         DEBUG(3, tiramisu::str_dump("Selecting a GPU API for GPU loops...\n"));
         s = select_gpu_api(s, t);
         DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after selecting a GPU API:\n", s)));
@@ -101,12 +100,12 @@ Module lower_halide_pipeline(const string &pipeline_name,
                                     s)));
     }
 
-    if (t.has_feature(Target::OpenGL))
-    {
-        DEBUG(3, tiramisu::str_dump("Injecting OpenGL texture intrinsics...\n"));
-        s = inject_opengl_intrinsics(s);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after OpenGL intrinsics:\n", s)));
-    }
+    // if (t.has_feature(Target::OpenGL))
+    // {
+    //     DEBUG(3, tiramisu::str_dump("Injecting OpenGL texture intrinsics...\n"));
+    //     s = inject_opengl_intrinsics(s);
+    //     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after OpenGL intrinsics:\n", s)));
+    // }
 
     if (t.has_gpu_feature() ||
             t.has_feature(Target::OpenGLCompute))
@@ -172,16 +171,16 @@ Module lower_halide_pipeline(const string &pipeline_name,
     DEBUG(3, tiramisu::str_dump("Simplifying...\n"));
     s = common_subexpression_elimination(s);
 
-    if (t.has_feature(Target::OpenGL))
-    {
-        DEBUG(3, tiramisu::str_dump("Detecting varying attributes...\n"));
-        s = find_linear_expressions(s);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after detecting varying attributes:\n", s)));
+    // if (t.has_feature(Target::OpenGL))
+    // {
+    //     DEBUG(3, tiramisu::str_dump("Detecting varying attributes...\n"));
+    //     s = find_linear_expressions(s);
+    //     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after detecting varying attributes:\n", s)));
 
-        DEBUG(3, tiramisu::str_dump("Moving varying attribute expressions out of the shader...\n"));
-        s = setup_gpu_vertex_buffer(s);
-        DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after removing varying attributes:\n", s)));
-    }
+    //     DEBUG(3, tiramisu::str_dump("Moving varying attribute expressions out of the shader...\n"));
+    //     s = setup_gpu_vertex_buffer(s);
+    //     DEBUG(4, tiramisu::str_dump(stmt_to_string("Lowering after removing varying attributes:\n", s)));
+    // }
 
     s = remove_dead_allocations(s);
     s = remove_trivial_for_loops(s);
