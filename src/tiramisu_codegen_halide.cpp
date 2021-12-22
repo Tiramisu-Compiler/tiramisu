@@ -4011,10 +4011,10 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                                              Halide::Internal::LoweredFunc::External,
                                              this->get_halide_stmt());
 
-    m.compile(Halide::Outputs().object(obj_file_name));
-    m.compile(Halide::Outputs().c_header(obj_file_name + ".h"));
+    m.compile(Halide::Output().object(obj_file_name));
+    m.compile(Halide::Output().c_header(obj_file_name + ".h"));
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
-        m.compile(Halide::Outputs().c_source(obj_file_name + "_generated.c"));
+        m.compile(Halide::Output().c_source(obj_file_name + "_generated.c"));
 
     if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);
