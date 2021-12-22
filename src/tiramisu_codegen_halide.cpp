@@ -1,3 +1,4 @@
+#include <map>
 #include <isl/aff.h>
 #include <isl/set.h>
 #include <isl/constraint.h>
@@ -4005,21 +4006,24 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                 buf->get_name(),
                 halide_argtype_from_tiramisu_argtype(buf->get_argument_type()),
                 halide_type_from_tiramisu_type(buf->get_elements_type()),
-                buf->get_n_dims(), ArgumentEstimates{});
+                buf->get_n_dims(), Halide::ArgumentEstimates{});
 
         fct_arguments.push_back(buffer_arg);
     }
 
 
     Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
-                                             Halide::Internal::LoweredFunc::External,
+                                             Halide::LinkageType::External,
                                              this->get_halide_stmt());
 
-    m.compile(Halide::Output().object(obj_file_name));
-    m.compile(Halide::Output().c_header(obj_file_name + ".h"));
+    std::map<Halide::Output, std::string> omap = {{Halide::Output::object, obj_file_name}, {Halide::Output::c_header, obj_file_name + ".h"},};
+   
+    //    m.compile(Halide::Output().c_header(obj_file_name + ".h"));
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
-        m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
+      omap[Halide::Output::c_source] = obj_file_name + "_generated.c";
+      //m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
 
+    m.compile(omap);
     if (nvcc_compiler) {
         nvcc_compiler->compile(obj_file_name);
     }
