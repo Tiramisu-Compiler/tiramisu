@@ -5669,7 +5669,7 @@ Halide::Module lower_halide_pipeline(
     const std::string &pipeline_name,
     const Halide::Target &t,
     const std::vector<Halide::Argument> &args,
-    const Halide::Internal::LoweredFunc::LinkageType linkage_type,
+    const Halide::LinkageType linkage_type,
     Halide::Internal::Stmt s);
 
 int loop_level_into_dynamic_dimension(int level);

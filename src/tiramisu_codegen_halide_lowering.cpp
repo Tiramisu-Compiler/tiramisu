@@ -29,7 +29,7 @@ string stmt_to_string(const string &str, const Stmt &s)
 Module lower_halide_pipeline(const string &pipeline_name,
                              const Target &t,
                              const vector<Argument> &args,
-                             const Internal::LoweredFunc::LinkageType linkage_type,
+                             const Halide::LinkageType linkage_type,
                              Stmt s)
 {
     Module result_module(pipeline_name, t);
