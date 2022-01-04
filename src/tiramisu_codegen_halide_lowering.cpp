@@ -41,10 +41,11 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // the sliding window and storage folding passes.
   //    map<string, Function> env;
   //Get output_funcs
-  map<std::string, Function> envPre;
+  map<std::string, Function> env;
   Function dummy;
-  vector<Function> output_funcs = {dummy,};
-  auto [outputs, env] = deep_copy(output_funcs, envPre);
+  vector<Function> outputs = {dummy,};
+  
+  //  auto [outputs, env] = deep_copy(output_funcs, envPre);
 
     if (ENABLE_DEBUG)
     {
@@ -53,8 +54,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     }
 
     
-    bool any_strict_float = strictify_float(env, t);
-    result_module.set_any_strict_float(any_strict_float);
+    //    bool any_strict_float = strictify_float(env, t);
+    //    result_module.set_any_strict_float(any_strict_float);
 
     // Output functions should all be computed and stored at root.
     // // for (const Function &f : outputs) {
@@ -120,7 +121,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     // debug(1) << "Removing extern loops...\n";
     //FIXME: I feel like this should be removed
-    s = remove_extern_loops(s);
+    //    s = remove_extern_loops(s);
     //    log("Lowering after removing extern loops:", s);
 
     // debug(1) << "Performing sliding window optimization...\n";
@@ -185,7 +186,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after dynamically skipping stages:", s);
 
     // debug(1) << "Forking asynchronous producers...\n";
-    s = fork_async_producers(s, env);
+    //segfaults:
+    //    s = fork_async_producers(s, env);
     //log("Lowering after forking asynchronous producers:", s);
 
     // debug(1) << "Destructuring tuple-valued realizations...\n";
@@ -207,7 +209,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after bounding small realizations:", s);
 
     // debug(1) << "Performing storage flattening...\n";
-    s = storage_flattening(s, outputs, env, t);
+    //segfaults:
+    //    s = storage_flattening(s, outputs, env, t);
     //log("Lowering after storage flattening:", s);
 
     // debug(1) << "Adding atomic mutex allocation...\n";
@@ -279,7 +282,6 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = partition_loops(s);
     s = simplify(s);
     //log("Lowering after partitioning loops:", s);
-
     // debug(1) << "Trimming loops to the region over which they do something...\n";
     //Removed because Tiramisu previously removed it
     //    s = trim_no_ops(s);
@@ -391,6 +393,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // so they don't add overhead to the closure.
     //    vector<InferredArgument> inferred_args = infer_arguments(s, outputs);
 
+    //This makes me suspicious so I am just going to remove it.
     std::vector<LoweredFunc> closure_implementations;
     // debug(1) << "Lowering Parallel Tasks...\n";
     s = lower_parallel_tasks(s, closure_implementations, pipeline_name, t);
