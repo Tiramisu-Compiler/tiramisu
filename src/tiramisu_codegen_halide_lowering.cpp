@@ -41,51 +41,58 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // the sliding window and storage folding passes.
   //    map<string, Function> env;
   //Get output_funcs
-  auto [outputs, env] = deep_copy(output_funcs, build_environment(output_funcs));
+  map<std::string, Function> env;
+  Function dummy;
+  vector<Function> outputs = {dummy,};
+  
+  //  auto [outputs, env] = deep_copy(output_funcs, envPre);
 
     if (ENABLE_DEBUG)
     {
         std::cout << "Lower halide pipeline...\n" << s << "\n";
         std::flush(std::cout);
     }
-    bool any_strict_float = strictify_float(env, t);
-    result_module.set_any_strict_float(any_strict_float);
+
+    
+    //    bool any_strict_float = strictify_float(env, t);
+    //    result_module.set_any_strict_float(any_strict_float);
 
     // Output functions should all be computed and stored at root.
-    for (const Function &f : outputs) {
-        Func(f).compute_root().store_root();
-    }
+    // // for (const Function &f : outputs) {
+    // //     Func(f).compute_root().store_root();
+    // // }
 
-    // Finalize all the LoopLevels
-    for (auto &iter : env) {
-        iter.second.lock_loop_levels();
-    }
+    // // Finalize all the LoopLevels
+    // for (auto &iter : env) {
+    //     iter.second.lock_loop_levels();
+    // }
 
     // Substitute in wrapper Funcs
-    env = wrap_func_calls(env);
+    // Doesn't do anything with an empty inv
+    // env = wrap_func_calls(env);
 
     // Compute a realization order and determine group of functions which loops
     // are to be fused together
-    auto [order, fused_groups] = realization_order(outputs, env);
+    //    auto [order, fused_groups] = realization_order(outputs, env);
 
     // Try to simplify the RHS/LHS of a function definition by propagating its
     // specializations' conditions
-    simplify_specializations(env);
+    //    simplify_specializations(env);
 
     //    LoweringLogger log;
 
     //    DEBUG(3, "Creating initial loop nests...\n");
-    bool any_memoized = false;
-    Stmt s = schedule_functions(outputs, fused_groups, env, t, any_memoized);
+    //    bool any_memoized = false;
+    //    Stmt s = schedule_functions(outputs, fused_groups, env, t, any_memoized);
     //    log("Lowering after creating initial loop nests:", s);
 
-    if (any_memoized) {
+    //    if (any_memoized) {
       //        debug(1) << "Injecting memoization...\n";
-        s = inject_memoization(s, env, pipeline_name, outputs);
+    //        s = inject_memoization(s, env, pipeline_name, outputs);
 	//        log("Lowering after injecting memoization:", s);
-    } else {
+    //    } else {
       //        debug(1) << "Skipping injecting memoization...\n";
-    }
+    //    }
     // debug(1) << "Injecting tracing...\n";
     // s = inject_tracing(s, pipeline_name, trace_pipeline, env, outputs, t);
     // log("Lowering after injecting tracing:", s);
@@ -97,23 +104,24 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // Compute the maximum and minimum possible value of each
     // function. Used in later bounds inference passes.
     // debug(1) << "Computing bounds of each function's value\n";
-    FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
+    //FuncValueBounds func_bounds = compute_function_value_bounds(order, env);
 
     // Clamp unsafe instances where a Func f accesses a Func g using
     // an index which depends on a third Func h.
     // debug(1) << "Clamping unsafe data-dependent accesses\n";
-    s = clamp_unsafe_accesses(s, env, func_bounds);
+    //    s = clamp_unsafe_accesses(s, env, func_bounds);
     //    log("Lowering after clamping unsafe data-dependent accesses", s);
 
     // This pass injects nested definitions of variable names, so we
     // can't simplify statements from here until we fix them up. (We
     // can still simplify Exprs).
     // debug(1) << "Performing computation bounds inference...\n";
-    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, t);
+    //    s = bounds_inference(s, outputs, order, fused_groups, env, func_bounds, t);
     //    log("Lowering after computation bounds inference:", s);
 
     // debug(1) << "Removing extern loops...\n";
-    s = remove_extern_loops(s);
+    //FIXME: I feel like this should be removed
+    //    s = remove_extern_loops(s);
     //    log("Lowering after removing extern loops:", s);
 
     // debug(1) << "Performing sliding window optimization...\n";
@@ -136,7 +144,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after simplifying correlated differences:", s);
 
     // debug(1) << "Performing allocation bounds inference...\n";
-    s = allocation_bounds_inference(s, env, func_bounds);
+    //REmoved because we do not calculcute func_bounds
+    //    s = allocation_bounds_inference(s, env, func_bounds);
     //log("Lowering after allocation bounds inference:", s);
 
     bool will_inject_host_copies =
@@ -146,7 +155,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
          (t.arch != Target::Hexagon && (t.has_feature(Target::HVX))));
 
     // debug(1) << "Adding checks for images\n";
-    s = add_image_checks(s, outputs, t, order, env, func_bounds, will_inject_host_copies);
+    //s = add_image_checks(s, outputs, t, order, env, func_bounds, will_inject_host_copies);
     //log("Lowering after injecting image checks:", s);
 
     // debug(1) << "Removing code that depends on undef values...\n";
@@ -158,11 +167,13 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after storage folding:", s);
 
     // debug(1) << "Injecting debug_to_file calls...\n";
-    s = debug_to_file(s, outputs, env);
+    //Probably do not need debug file info
+    //    s = debug_to_file(s, outputs, env);
     //log("Lowering after injecting debug_to_file calls:", s);
 
     // debug(1) << "Injecting prefetches...\n";
-    s = inject_prefetch(s, env);
+    //Removed b/c Tiramisu previously removed it
+    //    s = inject_prefetch(s, env);
     //log("Lowering after injecting prefetches:", s);
 
     // debug(1) << "Discarding safe promises...\n";
@@ -170,11 +181,13 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after discarding safe promises:", s);
 
     // debug(1) << "Dynamically skipping stages...\n";
-    s = skip_stages(s, order);
+    //removed because it is about ordering
+    //    s = skip_stages(s, order);
     //log("Lowering after dynamically skipping stages:", s);
 
     // debug(1) << "Forking asynchronous producers...\n";
-    s = fork_async_producers(s, env);
+    //segfaults:
+    //    s = fork_async_producers(s, env);
     //log("Lowering after forking asynchronous producers:", s);
 
     // debug(1) << "Destructuring tuple-valued realizations...\n";
@@ -196,7 +209,8 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after bounding small realizations:", s);
 
     // debug(1) << "Performing storage flattening...\n";
-    s = storage_flattening(s, outputs, env, t);
+    //segfaults:
+    //    s = storage_flattening(s, outputs, env, t);
     //log("Lowering after storage flattening:", s);
 
     // debug(1) << "Adding atomic mutex allocation...\n";
@@ -207,13 +221,14 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = unpack_buffers(s);
     //log("Lowering after unpacking buffer arguments:", s);
 
-    if (any_memoized) {
-        // debug(1) << "Rewriting memoized allocations...\n";
-        s = rewrite_memoized_allocations(s, env);
-        //log("Lowering after rewriting memoized allocations:", s);
-    } else {
-        // debug(1) << "Skipping rewriting memoized allocations...\n";
-    }
+    //Removed because we ignored any_memoized
+    // if (any_memoized) {
+    //     // debug(1) << "Rewriting memoized allocations...\n";
+    //     s = rewrite_memoized_allocations(s, env);
+    //     //log("Lowering after rewriting memoized allocations:", s);
+    // } else {
+    //     // debug(1) << "Skipping rewriting memoized allocations...\n";
+    // }
 
     if (will_inject_host_copies) {
         // debug(1) << "Selecting a GPU API for GPU loops...\n";
@@ -267,18 +282,19 @@ Module lower_halide_pipeline(const string &pipeline_name,
     s = partition_loops(s);
     s = simplify(s);
     //log("Lowering after partitioning loops:", s);
-
     // debug(1) << "Trimming loops to the region over which they do something...\n";
-    s = trim_no_ops(s);
+    //Removed because Tiramisu previously removed it
+    //    s = trim_no_ops(s);
     //log("Lowering after loop trimming:", s);
 
     // debug(1) << "Rebasing loops to zero...\n";
     s = rebase_loops_to_zero(s);
     // debug(2) << "Lowering after rebasing loops to zero:\n"
-             << s << "\n\n";
+    //             << s << "\n\n";
 
     // debug(1) << "Hoisting loop invariant if statements...\n";
-    s = hoist_loop_invariant_if_statements(s);
+    //removed because Tiramisu previously removed loop_invariant code motion
+    //    s = hoist_loop_invariant_if_statements(s);
     //log("Lowering after hoisting loop invariant if statements:", s);
 
     // debug(1) << "Injecting early frees...\n";
@@ -307,7 +323,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     if (t.has_feature(Target::CUDA)) {
         // debug(1) << "Injecting warp shuffles...\n";
-        s = lower_warp_shuffles(s);
+      s = lower_warp_shuffles(s, t);
         //log("Lowering after injecting warp shuffles:", s);
     }
 
@@ -331,8 +347,9 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // debug(1) << "Removing dead allocations and moving loop invariant code...\n";
     s = remove_dead_allocations(s);
     s = simplify(s);
-    s = hoist_loop_invariant_values(s);
-    s = hoist_loop_invariant_if_statements(s);
+    //Removed because Tiramisu previously removed loop_invariant code motion
+    //    s = hoist_loop_invariant_values(s);
+    //    s = hoist_loop_invariant_if_statements(s);
     //log("Lowering after removing dead allocations and hoisting loop invariants:", s);
 
     // debug(1) << "Finding intrinsics...\n";
@@ -346,21 +363,23 @@ Module lower_halide_pipeline(const string &pipeline_name,
     //log("Lowering after hoisting prefetches:", s);
 
     // debug(1) << "Lowering after final simplification:\n"
-             << s << "\n\n";
-    if (t.arch != Target::Hexagon && t.has_feature(Target::HVX)) {
-        // debug(1) << "Splitting off Hexagon offload...\n";
-        s = inject_hexagon_rpc(s, t, result_module);
-        // debug(2) << "Lowering after splitting off Hexagon offload:\n"
-                 << s << "\n";
-    } else {
-        // debug(1) << "Skipping Hexagon offload...\n";
-    }
+    //             << s << "\n\n";
+    //remoed because Tiramisu previous removed inject_heaxgon_rpc
+    //TODO: why allow any Hexagon related stuff in here?
+    // if (t.arch != Target::Hexagon && t.has_feature(Target::HVX)) {
+    //     // debug(1) << "Splitting off Hexagon offload...\n";
+    //     s = inject_hexagon_rpc(s, t, result_module);
+    //     // debug(2) << "Lowering after splitting off Hexagon offload:\n"
+    // 	//           << s << "\n";
+    // } else {
+    //     // debug(1) << "Skipping Hexagon offload...\n";
+    // }
 
     if (t.has_gpu_feature()) {
         // debug(1) << "Offloading GPU loops...\n";
         s = inject_gpu_offload(s, t);
         // debug(2) << "Lowering after splitting off GPU loops:\n"
-                 << s << "\n\n";
+	//                 << s << "\n\n";
     } else {
         // debug(1) << "Skipping GPU offload...\n";
     }
@@ -372,11 +391,15 @@ Module lower_halide_pipeline(const string &pipeline_name,
     // infer_arguments prior to lower_parallel_tasks is a hacky solution to this
     // problem. It would be better if closures could directly reference globals
     // so they don't add overhead to the closure.
-    vector<InferredArgument> inferred_args = infer_arguments(s, outputs);
+    //    vector<InferredArgument> inferred_args = infer_arguments(s, outputs);
 
+    //This makes me suspicious so I am just going to remove it.
     std::vector<LoweredFunc> closure_implementations;
     // debug(1) << "Lowering Parallel Tasks...\n";
     s = lower_parallel_tasks(s, closure_implementations, pipeline_name, t);
+
+
+
     // Process any LoweredFunctions added by other passes. In practice, this
     // will likely not work well enough due to ordering issues with
     // closure generating passes and instead all such passes will need to
@@ -391,59 +414,61 @@ Module lower_halide_pipeline(const string &pipeline_name,
         result_module.append(lowered_func);
     }
     // debug(2) << "Lowering after generating parallel tasks and closures:\n"
-             << s << "\n\n";
+    //             << s << "\n\n";
 
     vector<Argument> public_args = args;
-    for (const auto &out : outputs) {
-        for (const Parameter &buf : out.output_buffers()) {
-            public_args.emplace_back(buf.name(),
-                                     Argument::OutputBuffer,
-                                     buf.type(), buf.dimensions(), buf.get_argument_estimates());
-        }
-    }
+    //We compute arguments outside of this, I think, so we can ignore this.
+    // for (const auto &out : outputs) {
+    //     for (const Parameter &buf : out.output_buffers()) {
+    //         public_args.emplace_back(buf.name(),
+    //                                  Argument::OutputBuffer,
+    //                                  buf.type(), buf.dimensions(), buf.get_argument_estimates());
+    //     }
+    // }
 
-    for (const InferredArgument &arg : inferred_args) {
-        if (arg.param.defined() && arg.param.name() == "__user_context") {
-            // The user context is always in the inferred args, but is
-            // not required to be in the args list.
-            continue;
-        }
 
-        internal_assert(arg.arg.is_input()) << "Expected only input Arguments here";
+    // for (const InferredArgument &arg : inferred_args) {
+    //     if (arg.param.defined() && arg.param.name() == "__user_context") {
+    //         // The user context is always in the inferred args, but is
+    //         // not required to be in the args list.
+    //         continue;
+    //     }
 
-        bool found = false;
-        for (const Argument &a : args) {
-            found |= (a.name == arg.arg.name);
-        }
+    //     internal_assert(arg.arg.is_input()) << "Expected only input Arguments here";
 
-        if (arg.buffer.defined() && !found) {
-            // It's a raw Buffer used that isn't in the args
-            // list. Embed it in the output instead.
-            // debug(1) << "Embedding image " << arg.buffer.name() << "\n";
-            result_module.append(arg.buffer);
-        } else if (!found) {
-            std::ostringstream err;
-            err << "Generated code refers to ";
-            if (arg.arg.is_buffer()) {
-                err << "image ";
-            }
-            err << "parameter " << arg.arg.name
-                << ", which was not found in the argument list.\n";
+    //     bool found = false;
+    //     for (const Argument &a : args) {
+    //         found |= (a.name == arg.arg.name);
+    //     }
 
-            err << "\nArgument list specified: ";
-            for (const auto &arg : args) {
-                err << arg.name << " ";
-            }
-            err << "\n\nParameters referenced in generated code: ";
-            for (const InferredArgument &ia : inferred_args) {
-                if (ia.arg.name != "__user_context") {
-                    err << ia.arg.name << " ";
-                }
-            }
-            err << "\n\n";
-            user_error << err.str();
-        }
-    }
+    //     if (arg.buffer.defined() && !found) {
+    //         // It's a raw Buffer used that isn't in the args
+    //         // list. Embed it in the output instead.
+    //         // debug(1) << "Embedding image " << arg.buffer.name() << "\n";
+    //         result_module.append(arg.buffer);
+    //     } else if (!found) {
+    //         std::ostringstream err;
+    //         err << "Generated code refers to ";
+    //         if (arg.arg.is_buffer()) {
+    //             err << "image ";
+    //         }
+    //         err << "parameter " << arg.arg.name
+    //             << ", which was not found in the argument list.\n";
+
+    //         err << "\nArgument list specified: ";
+    //         for (const auto &arg : args) {
+    //             err << arg.name << " ";
+    //         }
+    //         err << "\n\nParameters referenced in generated code: ";
+    //         for (const InferredArgument &ia : inferred_args) {
+    //             if (ia.arg.name != "__user_context") {
+    //                 err << ia.arg.name << " ";
+    //             }
+    //         }
+    //         err << "\n\n";
+    //         user_error << err.str();
+    //     }
+    // }
 
     // We're about to drop the environment and outputs vector, which
     // contain the only strong refs to Functions that may still be
@@ -453,7 +478,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
         Expr visit(const Call *c) override {
             Expr expr = IRMutator::visit(c);
             c = expr.as<Call>();
-            internal_assert(c);
+	    //            internal_assert(c);
             if (c->func.defined()) {
                 FunctionPtr ptr = c->func;
                 ptr.strengthen();
@@ -468,28 +493,7 @@ Module lower_halide_pipeline(const string &pipeline_name,
 
     LoweredFunc main_func(pipeline_name, public_args, s, linkage_type);
 
-    // If we're in debug mode, add code that prints the args.
-    if (t.has_feature(Target::Debug)) {
-        debug_arguments(&main_func, t);
-    }
-
     result_module.append(main_func);
-
-    auto *logger = get_compiler_logger();
-    if (logger) {
-        auto time_end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> diff = time_end - time_start;
-        logger->record_compilation_time(CompilerLogger::Phase::HalideLowering, diff.count());
-    }
-    // Append a wrapper for this pipeline that accepts old buffer_ts
-    // and upgrades them. It will use the same name, so it will
-    // require C++ linkage. We don't need it when jitting.
-    // if (!t.has_feature(Target::JIT)) {
-    //     add_legacy_wrapper(result_module, main_func);
-    // }
-
-    // Also append any wrappers for extern stages that expect the old buffer_t
-    // wrap_legacy_extern_stages(result_module);
 
     return result_module;
 }
