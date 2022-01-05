@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USE_LIBJPEG=0
-USE_PNG=0
+USE_LIBPNG=0
 
 if [ "$#" -eq 0 ]; then
 	echo "Usage: install_submodules.sh <TIRAMISU_ROOT_PATH>"
@@ -60,33 +60,37 @@ else
     echo "#### Skipping LLVM Installation ####"
 fi
 
-# Get ISL installed (usE our clang)
+# Get ISL installed (use our clang)
+
+echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
+CLANG=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin/clang++
 echo "#### Installing isl ####"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
 if [ ! -d "build" ]; then
     echo_and_run_cmd "mkdir build/"
 fi
 echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
-A="CXX=../../3rdParty/llvm/build/bin/clang++"
-echo_and_run_cmd "${A} ./configure --prefix=$PWD/build/ --with-int=imath"
+export CXX=$PROJECT_SRC_DIR/3rdParty/llvm/build/bin/clang++
+echo_and_run_cmd "./configure --prefix=/data/scratch/teoc/installs/tiramisup/tiramisu/3rdParty/isl/build/ --with-int=imath"
 echo_and_run_cmd "make -j $CORES"
 echo_and_run_cmd "make install"
 echo "Done installing isl"
-
-# Set LLVM_CONFIG and CLANG env variables
-
+export CXX=""
 
 # # Get halide installed
 # echo "#### Installing Halide ####"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/Halide"
 if [ "${USE_LIBJPEG}" = "0" ]; then
-    CXXFLAGS_JPEG="-DHALIDE_NO_JPEG"
+    CXXFLAGS_JPEG="-DHALIDE_NO_JPEG=1"
 fi
 if [ "${USE_LIBPNG}" = "0" ]; then
-    CXXFLAGS_PNG="-DHALIDE_NO_PNG"
+    CXXFLAGS_PNG="-DHALIDE_NO_PNG=1"
 fi
 echo_and_run_cmd "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=${PROJECT_SRC_DIR}/3rdParty/llvm/prefix/lib/cmake/llvm ${CXXFLAGS_JPEG} ${CXXFLAGS_PNG} -S . -B build"
 echo_and_run_cmd "cmake --build build -j ${CORES}"
 
 cd ${PROJECT_SRC_DIR}
 echo "Done installing Halide"
+echo "Having installed all depends, we suggest you set your PATH and LD_LIBRARY_PATH as follows:"
+echo "export PATH=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin:$PATH"
+echo "export LD_LIBRARY_PATH=${PROJECT_SRC_DIR}/3rdParty/Halide/build/src:${PROJECT_SRC_DIR}/3rdParty/llvm/build/lib:$LD_LIBRARY_PATH"
