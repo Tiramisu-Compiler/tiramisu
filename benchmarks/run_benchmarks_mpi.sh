@@ -25,10 +25,12 @@ KERNEL_FOLDER=$1
 KERNEL=$2
 source configure_paths.sh
 
-CXXFLAGS="-std=c++11 -O3 -fno-rtti -mavx512f -m64 $MPIINCLUDE $MPILIB -lmpi"
+CXXFLAGS="-m64 -std=c++11 -O3 -fno-rtti -mavx2 $MPIINCLUDE $MPILIB -lmpi"
 #CORES=128
-CORES=216
+#CORES=54
+#CORES=216
 #CORES=2
+CORES=8
 
 # Compile options
 # - Make ${CXX} dump generated assembly
@@ -55,19 +57,9 @@ echo "Compiling ${KERNEL}"
 
 cd ${KERNEL_FOLDER}
 
-rm -rf ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}_halide.o
-
-# Generate code from Tiramisu
-${CXX} ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_generator.cpp ${LIBRARIES_DIR} ${LIBRARIES}                       -o ${KERNEL}_generator
-echo "Running ${KERNEL} generator (Tiramisu)"
-LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ./${KERNEL}_generator
-
-if [ $? -ne 0 ]; then
-	exit
-fi
-
 echo "Compiling ${KERNEL} wrapper"
 ${DXX} ${LANKA_OPTIONS} $CXXFLAGS ${INCLUDES} ${DEFINED_SIZE} ${KERNEL}_wrapper.cpp   ${LIBRARIES_DIR} ${LIBRARIES} generated_${KERNEL}.o ${LIBRARIES} -o ${KERNEL}_wrapper
+
 echo "Running ${KERNEL} wrapper"
 # To enable profiling:
 ## Perf:
@@ -77,7 +69,8 @@ echo "Running ${KERNEL} wrapper"
 #VTUNE_METRIC=memory-access
 #PROFILING_COMMAND="amplxe-cl -collect ${VTUNE_METRIC} -result-dir vtune_results -quiet"
 #rm -rf vtune_results
-#RUN_REF=1 RUN_TIRAMISU=1 HL_NUM_THREADS=$CORES LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ${PROFILING_COMMAND} mpirun -np ${CORES} ./${KERNEL}_wrapper
+
+RUN_REF=1 RUN_TIRAMISU=1 HL_NUM_THREADS=$CORES LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${ISL_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${HALIDE_LIB_DIRECTORY}:${TIRAMISU_ROOT}/build/:${MKL_PREFIX}/lib/${MKL_LIB_PATH_SUFFIX} ${PROFILING_COMMAND} srun -n ${CORES} --mpi=pmi2 ./${KERNEL}_wrapper
 
 #rm -rf ${KERNEL}_generator ${KERNEL}_wrapper generated_${KERNEL}.o generated_${KERNEL}.o.h
 
