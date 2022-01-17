@@ -10,6 +10,7 @@ fi
 
 PROJECT_SRC_DIR=$1
 CMAKE=cmake
+#CMAKE=/data/scratch/baghdadi/libs/cmake-3.22.1_prefix/bin/cmake
 CORES=4
 
 # For Travis build we skip LLVM installation and use a custom binary.
@@ -53,7 +54,7 @@ if [ "$2" = "" ]; then
         echo_and_run_cmd "mkdir prefix/"
     fi
     echo_and_run_cmd "cd build"
-    echo_and_run_cmd "$CMAKE -G Ninja -S ../llvm -DHAVE_LIBEDIT=0 -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_PROJECTS='clang;lld;clang-tools-extra' -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_BUILD_32_BITS=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;NVPTX;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/"
+    echo_and_run_cmd "$CMAKE -G Ninja -S ../llvm -DHAVE_LIBEDIT=0 -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_PROJECTS='clang;lld;clang-tools-extra' -DLLVM_ENABLE_EH=ON -DLLVM_ENABLE_RTTI=ON -DLLVM_BUILD_32_BITS=OFF -DLLVM_TARGETS_TO_BUILD='X86;ARM;AArch64;Mips;NVPTX;PowerPC' -DLLVM_ENABLE_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/../prefix/"
     echo_and_run_cmd "cmake --build . -j $CORES"
     echo_and_run_cmd "cmake --install ."
 else
@@ -62,16 +63,14 @@ fi
 
 # Get ISL installed (use our clang)
 
-echo_and_run_cmd "cd ${PROJECT_SRC_DIR}"
-CLANG=${PROJECT_SRC_DIR}/3rdParty/llvm/build/bin/clang++
+# Get ISL installed
 echo "#### Installing isl ####"
 echo_and_run_cmd "cd ${PROJECT_SRC_DIR}/3rdParty/isl"
 if [ ! -d "build" ]; then
     echo_and_run_cmd "mkdir build/"
 fi
 echo_and_run_cmd "touch aclocal.m4 Makefile.am Makefile.in"
-export CXX=$PROJECT_SRC_DIR/3rdParty/llvm/build/bin/clang++
-echo_and_run_cmd "./configure --prefix=/data/scratch/teoc/installs/tiramisup/tiramisu/3rdParty/isl/build/ --with-int=imath"
+echo_and_run_cmd "./configure --prefix=$PWD/build/ --with-int=imath"
 echo_and_run_cmd "make -j $CORES"
 echo_and_run_cmd "make install"
 echo "Done installing isl"
