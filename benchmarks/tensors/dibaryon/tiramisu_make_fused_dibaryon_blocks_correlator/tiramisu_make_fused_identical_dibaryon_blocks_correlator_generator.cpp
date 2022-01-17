@@ -1169,6 +1169,8 @@ void generate_function(std::string name)
 
 
     // H_H
+    // only diagonal part in spin is calculated (r = rp)
+    // only upper-triagle in msc, mscH
     computation C_H_H_prop_init_r("C_H_H_prop_init_r", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
     computation C_H_H_prop_init_i("C_H_H_prop_init_i", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
 

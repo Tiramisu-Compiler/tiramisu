@@ -1173,21 +1173,23 @@ void generate_function(std::string name)
 
 
     // H_H
-    computation C_H_H_prop_init_r("C_H_H_prop_init_r", {t, x_out, rp, mscH, mH, r, nscH, nH}, expr((double) 0));
-    computation C_H_H_prop_init_i("C_H_H_prop_init_i", {t, x_out, rp, mscH, mH, r, nscH, nH}, expr((double) 0));
+    // only diagonal part in spin is calculated (r = rp)
+    // only upper-triagle in msc, mscH
+    computation C_H_H_prop_init_r("C_H_H_prop_init_r", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
+    computation C_H_H_prop_init_i("C_H_H_prop_init_i", {t, x_out, rp, mscH, mH, nscH, nH}, expr((double) 0));
 
 
-    complex_expr H_H_B1_prop_0 =  B1_prop(0, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,0,0), hex_snk_spin_weights(r,nscH,nperm,wnumHex,0,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,0,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,0,0), x_out*sites_per_rank+x_in, y);
-    complex_expr H_H_B1_prop_2 =  B1_prop(2, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,2,0), hex_snk_spin_weights(r,nscH,nperm,wnumHex,2,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,2,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,2,0), x_out*sites_per_rank+x_in, y);
-    complex_expr H_H_B1_prop_1 = B1_prop(1, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,1,0), hex_snk_spin_weights(r,nscH,nperm,wnumHex,1,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,1,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,1,0), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B1_prop_0 =  B1_prop(0, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,0,0), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,0,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,0,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,0,0), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B1_prop_2 =  B1_prop(2, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,2,0), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,2,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,2,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,2,0), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B1_prop_1 = B1_prop(1, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,1,0), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,1,0), hex_snk_color_weights(rp,mscH,0,wnumHexHex,1,0), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,1,0), x_out*sites_per_rank+x_in, y);
     complex_expr B1_H = H_H_B1_prop_0 * H_H_B1_prop_2 * H_H_B1_prop_1;
 
-    complex_expr H_H_B2_prop_0 =  B2_prop(0, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,0,1), hex_snk_spin_weights(r,nscH,nperm,wnumHex,0,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,0,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,0,1), x_out*sites_per_rank+x_in, y);
-    complex_expr H_H_B2_prop_2 =  B2_prop(2, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,2,1), hex_snk_spin_weights(r,nscH,nperm,wnumHex,2,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,2,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,2,1), x_out*sites_per_rank+x_in, y);
-    complex_expr H_H_B2_prop_1 = B2_prop(1, t, hex_snk_color_weights(r,nscH,nperm,wnumHex,1,1), hex_snk_spin_weights(r,nscH,nperm,wnumHex,1,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,1,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,1,1), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B2_prop_0 =  B2_prop(0, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,0,1), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,0,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,0,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,0,1), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B2_prop_2 =  B2_prop(2, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,2,1), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,2,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,2,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,2,1), x_out*sites_per_rank+x_in, y);
+    complex_expr H_H_B2_prop_1 = B2_prop(1, t, hex_snk_color_weights(rp,nscH,nperm,wnumHex,1,1), hex_snk_spin_weights(rp,nscH,nperm,wnumHex,1,1), hex_snk_color_weights(rp,mscH,0,wnumHexHex,1,1), hex_snk_spin_weights(rp,mscH,0,wnumHexHex,1,1), x_out*sites_per_rank+x_in, y);
     complex_expr B2_H = H_H_B2_prop_0 * H_H_B2_prop_2 * H_H_B2_prop_1;
 
-    complex_expr hex_hex_prefactor(cast(p_float64, sigs(nperm)) * hex_snk_weights(r, nscH, wnumHex) * hex_snk_weights(rp, mscH, wnumHexHex), 0.0);
+    complex_expr hex_hex_prefactor(cast(p_float64, sigs(nperm)) * hex_snk_weights(rp, nscH, wnumHex) * hex_snk_weights(rp, mscH, wnumHexHex), 0.0);
 
     complex_expr H_H_term_res = hex_hex_prefactor * hex_hex_src_psi * hex_snk_psi * B1_H * B2_H;
 
@@ -1210,7 +1212,7 @@ void generate_function(std::string name)
 
     complex_computation C_H_H_prop_update(&C_H_H_prop_update_r, &C_H_H_prop_update_i); 
 
-    complex_expr H_H_term = C_H_H_prop_update(t, x_out, rp, mscH, mH, r, nscH, nH, Nw2Hex-1, Nw2Hex-1, Nperms-1, sites_per_rank-1, Vsnk-1);
+    complex_expr H_H_term = C_H_H_prop_update(t, x_out, rp, mscH, mH, nscH, nH, Nw2Hex-1, Nw2Hex-1, Nperms-1, sites_per_rank-1, Vsnk-1);
 
     // only upper-triangular part (diagonal inclusive) is calculated, other entries are copied over
     computation C_H_H_update_r("C_H_H_update_r", {t, x_out, rp, mscH, mH, nscH, nH}, C_init_r(t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH) + C_H_H_prop_init_r(t, x_out, rp, mscH, mH, nscH, nH));
@@ -2618,8 +2620,8 @@ void generate_function(std::string name)
     C_H_H_start_snk.store_in(&buf_C_H_H_check_snk, {0});
     C_H_H_check_snk.store_in(&buf_C_H_H_check_snk, {0}); 
 
-    C_H_H_update_r.store_in(&buf_C_r, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, r, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});
-    C_H_H_update_i.store_in(&buf_C_i, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, r, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});  
+    C_H_H_update_r.store_in(&buf_C_r, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});
+    C_H_H_update_i.store_in(&buf_C_i, {t, x_out, rp, B1NsrcSC*Nsrc+mscH*NsrcHex+mH, rp, B1NsnkSC*Nsnk+nscH*NsnkHex+nH});  
 
     // -------------------------------------------------------
     // Code Generation
