@@ -11,17 +11,21 @@ int main(int, char **argv)
     Halide::Buffer<int32_t> buf01(1024, 1024,"buffer01");
 
     init_buffer(buf01, (int32_t)2);
+
+    Halide::Buffer<int32_t> buf001(1024, 1024,"buffer001");
+
+    init_buffer(buf001, (int32_t)2);
     
     std::vector<double> duration_vector;
     double start, end;
     
-    for (int i = 0; i < 0; ++i) 
-        conv(buf01.raw_buffer());
+//    for (int i = 0; i < 1; ++i)
+//        conv(buf01.raw_buffer(),buf001.raw_buffer());
     
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 1; i++)
     {
         start = rtclock();
-        conv(buf01.raw_buffer());
+        conv(buf01.raw_buffer(),buf001.raw_buffer());
         end = rtclock();
         
         duration_vector.push_back((end - start) * 1000);

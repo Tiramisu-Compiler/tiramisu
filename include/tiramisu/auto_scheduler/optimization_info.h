@@ -98,7 +98,7 @@ void apply_fusions(syntax_tree const& ast);
 /**
  * A recursive subroutine used by apply_fusions(syntax_tree const& ast).
  */
-tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
+//tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
 
 /**
  * Apply parallelization through tiramisu API to the loop levels that correspond to the ast_nodes that are tagged for

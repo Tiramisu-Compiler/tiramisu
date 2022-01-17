@@ -90,7 +90,7 @@ void apply_optimizations(optimization_info const& optim_info)
         case optimization_type::SHIFTING:
             for(auto const& computation: optim_info.comps)
             {
-                computation->shift(optim_info.l0,optim_info.l1);
+                computation->shift(optim_info.l0,optim_info.l0_fact);
                 
             }
             
@@ -116,37 +116,37 @@ void apply_fusions(syntax_tree const& ast)
     ast.dump_local_sched_graph_to_api();
 }
 
-tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension)
-{
-    tiramisu::computation *next_comp;
-    
-    if (node->computations.size() > 0)
-    {
-        next_comp = node->computations[0].comp_ptr;
-        
-        if (last_comp != nullptr)
-            next_comp->after(*last_comp, dimension);
-            
-        last_comp = next_comp;
-        for (int i = 1; i < node->computations.size(); ++i)
-        {
-            next_comp = node->computations[i].comp_ptr;
-            next_comp->after(*last_comp, node->depth);
-        }
-    }
-    
-    else
-        next_comp = last_comp;
-    
-    int new_dimension = dimension;
-    if (node->children.size() >= 2 || node->computations.size() >= 1)
-        new_dimension = node->depth;
-    
-    for (ast_node *child : node->children)
-        next_comp = apply_fusions(child, next_comp, new_dimension);
-    
-    return next_comp;
-}
+//tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension)
+//{
+//    tiramisu::computation *next_comp;
+//
+//    if (node->computations.size() > 0)
+//    {
+//        next_comp = node->computations[0].comp_ptr;
+//
+//        if (last_comp != nullptr)
+//            next_comp->after(*last_comp, dimension);
+//
+//        last_comp = next_comp;
+//        for (int i = 1; i < node->computations.size(); ++i)
+//        {
+//            next_comp = node->computations[i].comp_ptr;
+//            next_comp->after(*last_comp, node->depth);
+//        }
+//    }
+//
+//    else
+//        next_comp = last_comp;
+//
+//    int new_dimension = dimension;
+//    if (node->children.size() >= 2 || node->computations.size() >= 1)
+//        new_dimension = node->depth;
+//
+//    for (ast_node *child : node->children)
+//        next_comp = apply_fusions(child, next_comp, new_dimension);
+//
+//    return next_comp;
+//}
 
 void apply_parallelization(syntax_tree const& ast)
 {

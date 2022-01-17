@@ -46,7 +46,7 @@ extern "C" {
 #endif
 
 
-int conv(halide_buffer_t *buf01);
+int conv(halide_buffer_t *buf01,halide_buffer_t *buf02);
 
 #ifdef __cplusplus
 }  // extern "C"
