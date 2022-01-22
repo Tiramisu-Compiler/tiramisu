@@ -176,7 +176,7 @@ typedef tiramisu::buffer *BufferPtrTy;
   */
 void allocate_complex_buffers(
     BufferPtrTy &real_buff, BufferPtrTy &imag_buff, 
-    std::vector<tiramisu::expr> dims, std::string name)
+    std::vector<tiramisu::expr> dims, std::string name, bool inGPU=false)
 {
   real_buff = new tiramisu::buffer(
       // name
@@ -187,6 +187,7 @@ void allocate_complex_buffers(
       tiramisu::p_float64, 
       // usage/source
       tiramisu::a_temporary);
+  if (inGPU) real_buff->tag_gpu_global();
   imag_buff = new tiramisu::buffer(
       // name
       str_fmt("%s_i", name.c_str()),
@@ -196,6 +197,7 @@ void allocate_complex_buffers(
       tiramisu::p_float64, 
       // usage/source
       tiramisu::a_temporary);
+  if (inGPU) imag_buff->tag_gpu_global();
 }
 
 #endif

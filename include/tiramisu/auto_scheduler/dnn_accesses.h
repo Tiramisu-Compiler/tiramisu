@@ -68,6 +68,22 @@ public:
      * "comp" is the computation containing the expression "e".
      */
     dnn_access_matrix(int nb_iterators, tiramisu::expr const& e, tiramisu::computation *comp);
+
+    /**
+     * Copy constructor
+    */
+    //dnn_access_matrix(dnn_access_matrix const& reference);
+    /**
+     * Prints Matrix for debug in the format:
+     * line1,line2,line3
+    */
+    void print_access_matrix() const;
+
+    /**
+     * transforms the matrix by skewing
+    */
+    void transform_matrix_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
+
 };
 
 /**
@@ -91,11 +107,20 @@ public:
      * Create the list of accesses of the given computation.
      */
     dnn_accesses(tiramisu::computation *comp, int nb_iterators, tiramisu::function *fct);
+
+    /**
+     * copy constructor
+    */
+    //dnn_accesses(dnn_accesses const& reference);
         
     /**
      * Recursively retrieve accesses from expression "e".
      */
     void create_accesses(tiramisu::expr const& e);
+
+    void print_all_access() const;
+
+    void modify_accesses_by_skewing(int first_node_depth,int alpha,int beta,int gamma,int sigma);
 };
 
 }

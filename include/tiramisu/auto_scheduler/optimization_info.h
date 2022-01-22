@@ -14,7 +14,9 @@ enum optimization_type
     FUSION,
     TILING,
     INTERCHANGE,
-    UNROLLING
+    UNROLLING,
+    PARALLELIZE,
+    SKEWING
 };
 
 /**
@@ -63,7 +65,7 @@ struct optimization_info
      * For example, if the optimization is a 2 level tiling,
      * l0_fact and l1_fact will contain the tiling factors for each loop level.
      */
-    int l0_fact, l1_fact, l2_fact;
+    int l0_fact = 0, l1_fact = 0, l2_fact = 0;
 };
 
 /**
@@ -96,6 +98,21 @@ void apply_fusions(syntax_tree const& ast);
  */
 tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension);
 
+/**
+ * Apply parallelization through tiramisu API to the loop levels that correspond to the ast_nodes that are tagged for
+ * parallelization in the AST
+ */
+void apply_parallelization(syntax_tree const& ast);
+
+/**
+ * A recursive subroutine used by apply_parallelization(syntax_tree const& ast).
+ */
+    void apply_parallelization(ast_node *node);
+
+/**
+ * Prints the optimization information
+ */
+    void print_optim(optimization_info optim);
 }
 
 #endif

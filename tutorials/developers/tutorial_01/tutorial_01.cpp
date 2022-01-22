@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     // Layer I: provide the algorithm.
     // -------------------------------------------------------
 
-    // Declare an iterator. The range of this iterator is [0, 10[
+    // Declare an iterator. The range of this iterator is [0, 10)
     // i.e., 0<=i<10
     var i("i", 0, 10);
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     // of size 10.
     // The third argument is the type of the buffer elements (uint8).
     // The fourth argument indicates whether the buffer is in input or an output buffer.
-    // Othr types are a_input (for input buffers) and a_temporary (for temporary buffers
+    // Other types are a_input (for input buffers) and a_temporary (for temporary buffers
     // allocated and freed within the function).
     // For more details about the constructor of buffers please refer to the
     // documentation https://tiramisu-compiler.github.io/doc/classtiramisu_1_1buffer.html
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 
 /**
 
-  If you want to compile the tutorial manuall, you can follow the following steps.
+  If you want to compile the tutorial manual, you can follow the following steps.
   
   Assuming that the variable TIRAMISU_ROOT contains the path to the root directory of Tiramisu
   and that Tiramisu and it dependences are built using the default paths.
