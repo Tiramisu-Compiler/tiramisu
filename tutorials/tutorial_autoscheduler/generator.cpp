@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024),z("z", 0, 128);;
 
     //var  yy("yy", 1, 223), xx("xx", 1, 223);
-    var  yy("yy", 1, 1024), xx("xx", 1, 1024), zz("zz", 1, 128);
+    var  yy("yy", 1, 1020), xx("xx", 1, 1024), zz("zz", 1, 128);
 
     var t2("t2"),t1("t1"),y1("y1"),x1("x1"),y2("y2"),x2("x2") ,x0("x0");
     

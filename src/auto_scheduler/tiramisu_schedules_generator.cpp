@@ -988,7 +988,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 optim_info.l0 = shared_nodes[i]->depth;
                 optim_info.l1 = shared_nodes[j]->depth;
 
-                optim_info.comps = new_ast->computations_list;
+                optim_info.comps = involved_computations;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }

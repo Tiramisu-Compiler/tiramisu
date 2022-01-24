@@ -73,17 +73,20 @@ void beam_search::search(syntax_tree& ast)
         }
         else {
 
-            // evaluate and print Ast 
-            (*iterator)->evaluation = eval_func->evaluate(*(*iterator));
-
+            // evaluate and print Ast
             (*iterator)->print_previous_optims();
             std::cout << "\n-----------" << std::endl;
             (*iterator)->print_new_optims();
             (*iterator)->print_ast();
-            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl << std::endl;
             (*iterator)->print_isl_states();
             (*iterator)->print_computations_accesses();
             std::cout << "\n<legal>\n";
+
+            (*iterator)->evaluation = eval_func->evaluate(*(*iterator));
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl << std::endl;
+
+
+            std::cout << "\n============================================================================================================" << std::endl;
 
             if ((*iterator)->evaluation < best_evaluation)
             {
