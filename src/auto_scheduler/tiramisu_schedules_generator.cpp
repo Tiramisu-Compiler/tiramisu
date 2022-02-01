@@ -814,6 +814,20 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                     new_ast->fct->prepare_schedules_for_legality_checks(true);
 
+
+                    int depth = previous_node_adjusted->depth;
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::FUSION;
+
+                    optim_info.node = new_node->find_node_by_depth(depth);
+                    optim_info.nb_l = 1;
+                    optim_info.l0 =  depth;
+                    optim_info.l1 =-1;
+                    optim_info.l0_fact = -1;
+                    optim_info.l1_fact = -1;
+                    optim_info.comps = {previous_node->computations[previous_node_computation.second].comp_ptr,current_node->computations[node_computation.second].comp_ptr};
+                    new_ast->new_optims.push_back(optim_info);
+
                     auto shifting_res = ast.get_function()->correcting_loop_fusion_with_shifting(
                         seen_computations,
                         *current_node->computations[node_computation.second].comp_ptr,

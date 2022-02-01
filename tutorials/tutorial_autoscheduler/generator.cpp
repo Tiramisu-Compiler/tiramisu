@@ -17,10 +17,10 @@ int main(int argc, char **argv)
 {
     tiramisu::init("conv");
     
-    var t("t", 0, 200), y("y", 0, 1024), x("x", 0, 1024),z("z", 0, 128);;
+    var t("t", 0, 100), y("y", 0, 1024), x("x", 0, 1024),z("z", 0, 128);;
 
     //var  yy("yy", 1, 223), xx("xx", 1, 223);
-    var  yy("yy", 1, 1020), xx("xx", 1, 1024), zz("zz", 1, 128);
+    var  yy("yy", 1, 300), xx("xx", 1, 200), zz("zz", 1, 128);
 
     var t2("t2"),t1("t1"),y1("y1"),x1("x1"),y2("y2"),x2("x2") ,x0("x0");
     
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
     computation B_out("B_out", {t,xx,yy}, A(xx, yy) + A(xx, yy-1) + A(xx, 1+yy) + A(1+xx, yy) + A(xx-1, yy));
 
-    computation A_out("A_out", {t,xx,yy}, B(xx, yy) + B(xx, yy-1) + B(xx, 1+yy) + B(1+xx, yy) + B(xx-1, yy));
+//    computation A_out("A_out", {t,xx,yy}, B(xx, yy) + B(xx, yy-1) + B(xx, 1+yy) + B(1+xx, yy) + B(xx-1, yy));
 
     
 
@@ -43,11 +43,16 @@ int main(int argc, char **argv)
     B.store_in(&b_B);
 
     //Store computations
-    A_out.store_in(&b_A, {xx,yy});
-    B_out.store_in(&b_B, {xx,yy});  
-
-
-    B_out.then(A_out, t);
+//    A_out.store_in(&b_A, {xx,yy});
+    B_out.store_in(&b_B, {xx,yy});
+    auto ast = tiramisu::auto_scheduler::syntax_tree(tiramisu::global::get_implicit_function());
+    std::string program_json = tiramisu::auto_scheduler::evaluate_by_learning_model::get_program_json(ast);
+    std::ofstream out("output.txt");
+    out << program_json;
+    out.close();
+//    std::cout<<program_json<<std::endl;
+//    B_out.then(A_out, t);
+//    B_out.interchange(1,2);
     // the code above is the initial unfused code since we used "B_out.then(A_out, t)" 
     // we want to dependency analysis to be performed on the original code correctly
 
@@ -78,12 +83,13 @@ int main(int argc, char **argv)
             );
     }*/
 
-    perform_autoscheduling=true;
+    perform_autoscheduling= false;
     
     // Generate a program with no schedule
     if (!perform_autoscheduling)
     {
-;
+//        A_out.interchange(1,2);
+        B_out.parallelize(xx);
 
         tiramisu::codegen({
             &b_A,&b_B

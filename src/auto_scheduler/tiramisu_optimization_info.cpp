@@ -173,43 +173,66 @@ void print_optim(optimization_info optim)
 {
     switch(optim.type) {
         case optimization_type::FUSION:
-            std::cout << "Fusion" << " L" << optim.l0 << " " <<std::endl;
+            std::cout << "Fusion" << " L" << optim.l0 << " " << optim.comps[0]->get_name() << " then "<< optim.comps[1]->get_name() <<std::endl;
             break;
 
         case optimization_type::SHIFTING:
             std::cout << "SHIFTING"
-                      << " L" << optim.l0 << " +"<<optim.l0_fact<<std::endl;
+                      << " L" << optim.l0 << " +"<<optim.l0_fact<<" " << optim.comps[0]->get_name() <<std::endl;
             break;
 
 
-        case optimization_type::UNFUSE:
-            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
-            break;
+//        case optimization_type::UNFUSE:
+//            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
+//            break;
 
         case optimization_type::INTERCHANGE:
-            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1  << std::endl;
+            std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1 <<" { " ;
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::TILING:
             std::cout << "Tiling" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
             if (optim.nb_l == 3)
                 std::cout << " L" << optim.l2 << " " << optim.l2_fact;
-            std::cout << std::endl;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
+//            std::cout << std::endl;
             break;
 
         case optimization_type::UNROLLING:
-            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact << std::endl;
+            std::cout << "Unrolling" << " L" << optim.l0 << " " << optim.l0_fact ;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::PARALLELIZE:
-            std::cout << "Parallelize" << " L" << optim.l0 << std::endl;
+            std::cout << "Parallelize" << " L" << optim.l0;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::SKEWING:
-            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact << std::endl;
+            std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
         case optimization_type::VECTORIZATION:
-            std::cout << "VECTORIZATION" << " L" << optim.l0 << " " << optim.l0_fact << std::endl;
+            std::cout << "VECTORIZATION" << " L" << optim.l0 << " " << optim.l0_fact;
+            std::cout<<" { ";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
             break;
 
         default:

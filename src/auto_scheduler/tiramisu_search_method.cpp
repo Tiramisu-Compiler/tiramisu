@@ -78,8 +78,8 @@ void beam_search::search(syntax_tree& ast)
             std::cout << "\n-----------" << std::endl;
             (*iterator)->print_new_optims();
             (*iterator)->print_ast();
-            (*iterator)->print_isl_states();
-            (*iterator)->print_computations_accesses();
+//            (*iterator)->print_isl_states();
+//            (*iterator)->print_computations_accesses();
             std::cout << "\n<legal>\n";
 
             (*iterator)->evaluation = eval_func->evaluate(*(*iterator));
