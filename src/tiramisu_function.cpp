@@ -2815,6 +2815,11 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
     this->gen_ordering_schedules();
 }
 
+bool tiramisu::function::loop_unrolling_is_legal(int i , std::vector<tiramisu::computation *> fused_computations)
+{
+    return loop_unrolling_is_legal(var(fused_computations[0]->get_loop_level_names()[i]),fused_computations);
+}
+
 bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fused_computations)
 {
     DEBUG_FCT_NAME(3);
