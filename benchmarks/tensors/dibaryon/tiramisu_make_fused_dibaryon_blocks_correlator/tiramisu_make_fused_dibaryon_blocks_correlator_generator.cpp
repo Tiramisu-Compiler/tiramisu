@@ -70,8 +70,11 @@ void generate_function(std::string name)
    input hex_src_psi_i("hex_src_psi_i",    {y, mH}, p_float64);
    input hex_snk_psi_r("hex_snk_psi_r",    {x, nH}, p_float64);
    input hex_snk_psi_i("hex_snk_psi_i",    {x, nH}, p_float64);
-   input snk_psi_r("snk_psi_r", {x, x2, ne}, p_float64);
-   input snk_psi_i("snk_psi_i", {x, x2, ne}, p_float64);
+   // computation is local in x1, only rank=x_out components of sink wavefunction stored
+   input snk_psi_r("snk_psi_r", {x_in, x2, ne}, p_float64);
+   input snk_psi_i("snk_psi_i", {x_in, x2, ne}, p_float64);
+   //input snk_psi_r("snk_psi_r", {x, x2, ne}, p_float64);
+   //input snk_psi_i("snk_psi_i", {x, x2, ne}, p_float64);
 
    input src_spins("src_spins", {rp, s, to}, p_int32);
    input src_spin_block_weights("src_spin_block_weights", {rp, s}, p_float64);
@@ -107,7 +110,8 @@ void generate_function(std::string name)
     complex_expr hex_hex_src_psi(hex_src_psi_r(y, mH), hex_src_psi_i(y, mH));
     complex_expr hex_snk_psi(hex_snk_psi_r(x_out*sites_per_rank+x_in, nH), hex_snk_psi_i(x_out*sites_per_rank+x_in, nH));
 
-    complex_expr snk_psi(snk_psi_r(x_out*sites_per_rank+x_in, x2, ne), snk_psi_i(x_out*sites_per_rank+x_in, x2, ne));
+    //complex_expr snk_psi(snk_psi_r(x_out*sites_per_rank+x_in, x2, ne), snk_psi_i(x_out*sites_per_rank+x_in, x2, ne));
+    complex_expr snk_psi(snk_psi_r(x_in, x2, ne), snk_psi_i(x_in, x2, ne));
 
      /* Baryon blocks */
 
