@@ -766,7 +766,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             ast_node * current_node_adjusted = std::get<1>(potentiel_fusion);
 
             auto involved_iterators = previous_node_adjusted->get_all_iterators();
-                   
+
             auto real_iterators = current_node->computations[node_computation.second].comp_ptr->get_iteration_domain_dimension_names();
 
             real_iterators.resize(involved_iterators.size());
@@ -787,13 +787,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
 
 
-            if ((previous_node != current_node) && (previous_node_adjusted == previous_node) 
+            if ((previous_node != current_node) && (previous_node_adjusted == previous_node)
                     && (previous_node != nullptr) && (current_node != nullptr))
-            {   
+            {
                 // the fusion that will generate dummy itr is removed by previous_node_adjusted == previous_node
                 if (previous_node->is_candidate_for_fusion(current_node))
                 { //similar itr domains
-                    
+
 
                             // create AST copy to falsely fuze and check legality
                     syntax_tree *new_ast = new syntax_tree();
@@ -837,7 +837,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     {
                         //fusion accepted
                         // must generate shifting optim + transforme a copy of the ast
-                    
+
                         for(auto& shifting:shifting_res)
                         {
                             if(std::get<1>(shifting) > 0)
@@ -856,7 +856,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                                 optim_info.l1_fact = -1;
                                 optim_info.comps = {current_node->computations[node_computation.second].comp_ptr};
                                 new_ast->new_optims.push_back(optim_info);
-                
+
                             }
 
                         }
@@ -865,26 +865,26 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                         // APPLY changes to the AST it self
                         new_ast->move_in_computation(new_node,current_node->computations[node_computation.second].comp_ptr);
-                        
+
                         // recompute the states vector because locations changed.
                         new_ast->refresh_states();
 
                         states.push_back(new_ast);
 
-                        
+
                     }
                     else
                     {
                         new_ast->recover_isl_states();
                         delete new_ast;
                     }
-                    
+
                 }
             }
 
-            
 
-            
+
+
 
         }
 
@@ -915,7 +915,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                             // Copy the AST and add tiling with 2 dimensions to the list of optimizations
                             syntax_tree *new_ast = new syntax_tree();
                             ast_node *new_node = ast.copy_and_return_node(*new_ast, node_iterator);
-
+                            involved_computations = {};
+                            node_iterator->get_all_computations(involved_computations);
                             optimization_info optim_info;
                             optim_info.type = optimization_type::TILING;
                             optim_info.node = new_node;
@@ -924,7 +925,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                             optim_info.l1 = node_iterator->depth + 1;
                             optim_info.l0_fact = tiling_size1;
                             optim_info.l1_fact = tiling_size2;
-                            optim_info.comps = new_ast->computations_list;
+                            optim_info.comps = involved_computations;
                             new_ast->new_optims.push_back(optim_info);
                             states.push_back(new_ast);
 
@@ -956,7 +957,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                                         optim_info.l1_fact = tiling_size2;
                                         optim_info.l2_fact = tiling_size3;
 
-                                        optim_info.comps = new_ast->computations_list;
+                                        optim_info.comps = involved_computations;
                                         new_ast->new_optims.push_back(optim_info);
                                         states.push_back(new_ast);
                                     }
@@ -1009,17 +1010,25 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         }
         break;
 
-    case optimization_type::UNROLLING:
-
+    case optimization_type::UNROLLING: {
         ast.stage_isl_states();
 
         node->get_innermost_nodes(innermost_nodes);
 
+        //check that the sbutree starting from node is a branch (has no splits)
+                ast_node *temp_node = node;
+        while (temp_node->children.size() == 1 && temp_node->computations.size() == 0)
+            temp_node = temp_node->children[0];
+        if (temp_node->children.size() > 0) // if branch splits, return
+        {
+            ast.recover_isl_states();
+            return states;
+        }
+
         //search for possible unrolling from the bottom loop until one is found
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
-        for (ast_node *inner_most_node : innermost_nodes)
-        {
+        for (ast_node *inner_most_node: innermost_nodes) {
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
 
@@ -1028,17 +1037,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             std::string loop_name = loop_names[inner_most_node->depth];
 
             bool result = (!inner_most_node->is_optimized_by_tag()) &&
-                            ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
+                          ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
 
             if (result) // unrollable: test all possible values
             {
                 ast.recover_isl_states();
 
-                for (int unrolling_fact : unrolling_factors_list)
-                {
+                for (int unrolling_fact: unrolling_factors_list) {
 
-                    if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact))
-                    {
+                    if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact)) {
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
@@ -1052,7 +1059,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         optim_info.l0_fact = unrolling_fact;
                         // select this node
                         optim_info.node = new_node;
-                        optim_info.comps = new_ast->get_innermost_computations();
+                        new_node->get_innermost_computations(optim_info.comps);
                         new_ast->new_optims.push_back(optim_info);
                         states.push_back(new_ast);
                     }
@@ -1063,13 +1070,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             nb_try++;
         }
         ast.recover_isl_states();
-
+    }
         break;
 
     case optimization_type::PARALLELIZE:
+        std::cout<<"before_gen";
+        ast.print_isl_states();
+        std::cout<<"\n";
 
-        //ast.print_isl_states();
-        //ast.print_ast();
+            //ast.print_ast();
 
         ast.stage_isl_states();
 
@@ -1084,6 +1093,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         }
         else
         {
+            ast.recover_isl_states();
             return states;
         }
 
@@ -1097,7 +1107,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
             if (result) // unrollable: test all possible values
             {
+                std::cout<<"in if before_recover";
+                ast.print_isl_states();
+                std::cout<<"\n";
                 ast.recover_isl_states();
+                std::cout<<"in if after_recover";
+                ast.print_isl_states();
+                std::cout<<"\n";
 
                 // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
@@ -1126,18 +1142,28 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 break;
             }
         }
-
+            std::cout<<"before_recover";
+            ast.print_isl_states();
+            std::cout<<"\n";
         ast.recover_isl_states();
+            std::cout<<"after_recover";
+            ast.print_isl_states();
+            std::cout<<"\n";
 
         break;
 
     case optimization_type::SKEWING:
 
-        /* 
+        /*
             optim_info.comps = new_ast->computations_list;
         }*/
-
+        std::cout<<"Before skewing_stage";
+            ast.print_isl_states();
+            std::cout<<"\n";
         ast.stage_isl_states();
+            std::cout<<"after skewing_stage";
+            ast.print_isl_states();
+            std::cout<<"\n";
         //for shared nodes the list of involved computations is always the same.
         // that's only the case when we compute test shared loop levels only (not always the case).
         shared_nodes = node->collect_shared_nodes_from_head();
@@ -1149,6 +1175,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         }
         else
         {
+            ast.recover_isl_states();
             return states;
         }
 
@@ -1246,80 +1273,88 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 ast.stage_isl_states();
             }
         }
-
+            std::cout<<"after skewing_recover";
+            ast.print_isl_states();
+            std::cout<<"\n";
         ast.recover_isl_states();
+            std::cout<<"after skewing_recover";
+            ast.print_isl_states();
+            std::cout<<"\n";
         break;
 
-    case optimization_type::VECTORIZATION:
-
-        ast.stage_isl_states();
-
-        shared_nodes = node->collect_shared_nodes_from_head();
-
-        shared_nodes[0]->get_all_computations(involved_computations);
-
-        {
-            auto res = ast.fct->get_potentiel_vectorizable_loop_level(involved_computations);
-
-            for (int depth : res)
-            {
-                for (ast_node *inner_most_node : shared_nodes)
-                {
-                    if (inner_most_node->depth == depth)
-                    {
-                        innermost_nodes.push_back(inner_most_node);
-                        std::cout << "||" << inner_most_node->name;
-                    }
-                }
-            }
-        }
-
-        for (ast_node *inner_most_node : innermost_nodes)
-        {
-            std::cout << "inner_vexx";
-
-            std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
-
-            std::string loop_name = loop_names[inner_most_node->depth];
-
-            bool result = (!inner_most_node->is_optimized_by_tag()) &&
-                            ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
-
-            if (result) 
-            {
-                ast.recover_isl_states();
-
-                for (int unrolling_fact : unrolling_factors_list)
-                {
-
-                    if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact))
-                    {
-                        // We use unrolling factors as vectorization factors
-                        syntax_tree *new_ast = new syntax_tree();
-                        ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
-
-                        optimization_info optim_info;
-                        optim_info.type = optimization_type::VECTORIZATION;
-                        optim_info.nb_l = 1;
-
-                        // 
-                        optim_info.l0 = new_node->depth;
-                        optim_info.l0_fact = unrolling_fact;
-                        // select this node
-                        optim_info.node = new_node;
-                        optim_info.comps = new_ast->get_innermost_computations();
-                        new_ast->new_optims.push_back(optim_info);
-                        states.push_back(new_ast);
-                    }
-                }
-                ast.stage_isl_states();
-            }
-
-            nb_try++;
-        }
-        ast.recover_isl_states();
-
-        break;
+//    case optimization_type::VECTORIZATION: {
+//        //check that the sbutree starting from node is a branch (has no splits)
+//
+//        ast.stage_isl_states();
+//
+//        ast_node *temp_node = node;
+//        while (temp_node->children.size() == 1 && temp_node->computations.size() == 0)
+//            temp_node = temp_node->children[0];
+//        if (temp_node->children.size() > 0) // if branch splits, return
+//        {
+//            ast.recover_isl_states();
+//            return states;
+//        }
+//        shared_nodes = node->collect_shared_nodes_from_head();
+//
+//        shared_nodes[0]->get_all_computations(involved_computations);
+//
+//        {
+//            auto res = ast.fct->get_potentiel_vectorizable_loop_level(involved_computations);
+//
+//            for (int depth: res) {
+//                for (ast_node *inner_most_node: shared_nodes) {
+//                    if (inner_most_node->depth == depth) {
+//                        innermost_nodes.push_back(inner_most_node);
+//                        std::cout << "||" << inner_most_node->name;
+//                    }
+//                }
+//            }
+//        }
+//
+//        for (ast_node *inner_most_node: innermost_nodes) {
+//            std::cout << "inner_vexx";
+//
+//            std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+//
+//            std::string loop_name = loop_names[inner_most_node->depth];
+//
+//            bool result = (!inner_most_node->is_optimized_by_tag()) &&
+//                          ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
+//
+//            if (result) {
+//                ast.recover_isl_states();
+//
+//                for (int unrolling_fact: unrolling_factors_list) {
+//
+//                    if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact)) {
+//                        // We use unrolling factors as vectorization factors
+//                        syntax_tree *new_ast = new syntax_tree();
+//                        ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
+//
+//                        optimization_info optim_info;
+//                        optim_info.type = optimization_type::VECTORIZATION;
+//                        optim_info.nb_l = 1;
+//
+//                        //
+//                        optim_info.l0 = new_node->depth;
+//                        optim_info.l0_fact = unrolling_fact;
+//                        // select this node
+//                        optim_info.node = new_node;
+//                        new_node->get_innermost_computations(optim_info.comps);
+//                        new_ast->new_optims.push_back(optim_info);
+//                        states.push_back(new_ast);
+//                    }
+//                }
+//                ast.stage_isl_states();
+//            }
+//
+//            nb_try++;
+//        }
+//        ast.recover_isl_states();
+//
+//        break;
+//    }
 
     default:
         break;

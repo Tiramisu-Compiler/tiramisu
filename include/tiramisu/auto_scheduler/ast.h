@@ -790,6 +790,10 @@ public:
     void create_initial_isl_state() const;
 
     /**
+    * Returns the last (deepest in the AST) parent node shared by node1 and node2. Returns nullptr if no shared loops were found
+    */
+    ast_node *get_last_shared_parent(ast_node *node1, ast_node *node2) const;
+    /**
      * erases all ISL states and creates new ones from the computations.
     */
     void recreate_isl_state() const;

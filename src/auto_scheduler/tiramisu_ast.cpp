@@ -150,7 +150,7 @@ syntax_tree::syntax_tree(tiramisu::function *fct)
         node->parent = nullptr;
         
         roots.push_back(node);
-        computations_list.push_back(comp);
+        computations_list.push_back(comp);// at this level computations are stored in their declaration order, this list will be sorted by computing order after calling order_computations()
         computations_mapping[comp] = node->get_leftmost_node();
     }
 
@@ -211,78 +211,55 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
     nodes.back()->computations.push_back(computation_info(comp, ast));
 }
 
-void syntax_tree::order_computations()
-{
-    if (roots.size() < 2)
-        return ;
-
-    std::unordered_map<std::string,std::unordered_map<std::string,int>> sched_string;
-
-    //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
-    std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
-    std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
-    for (auto& sched_graph_node : fct->sched_graph)
-        for (auto& sched_graph_child : sched_graph_node.second)
-        {
-            rs_comps.push_back(sched_graph_child.first);
-
-            sched_string[sched_graph_node.first->get_name()][sched_graph_child.first->get_name()] = sched_graph_child.second;
-        }
-            
-
-    for(auto* comp:this->computations_list)
+    void syntax_tree::order_computations()
     {
-        bool found = false;
-        for(auto& comp_rs:rs_comps)
-        {
-            if(comp_rs->get_name() == comp->get_name())
-            {
-                found = true;
-                break;
+        if (roots.size() < 2)
+            return ;
+
+        //Sort the scheduling graph (fct->sched_graph) into a list of tuples that represents the order of computations
+        std::vector <tiramisu::computation*> rs_comps; //computations appearing on the right side of the ordering tuples
+        std::vector <tiramisu::computation*> nrs_comps; //computations that never appear on the right side of the ordering tuples
+        for (auto& sched_graph_node : fct->sched_graph)
+            for (auto& sched_graph_child : sched_graph_node.second)
+                rs_comps.push_back(sched_graph_child.first);
+
+        for (tiramisu::computation* comp: this->computations_list)
+            if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
+                nrs_comps.push_back(comp);
+
+        std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
+        std::vector<tiramisu::computation *> ordered_computations_list; // a list that will contain computations on their computing order
+
+        for (tiramisu::computation* comp: nrs_comps){
+            tiramisu::computation* current_comp= comp;
+            ordered_computations_list.push_back(current_comp);
+            while (fct->sched_graph.find(current_comp) != fct->sched_graph.end()) {
+                auto sched_graph_l = fct->sched_graph[current_comp];
+                if (sched_graph_l.empty()) // if empty
+                    break; //not sure if it's the right way to do it
+                sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
+                current_comp = sched_graph_l.begin()->first;
+                ordered_computations_list.push_back(current_comp);
             }
         }
+        this->computations_list = ordered_computations_list; // replace the computation list with the ordered one
 
-        if(!found)
+        // We use the sorted scheduling graph to construct the computations AST
+        for (auto& sched_graph_node : sorted_sched_graph)
         {
-            nrs_comps.push_back(comp);
-        }
-    }
+            tiramisu::computation *parent_comp = sched_graph_node.first;
 
-    /*for (tiramisu::computation* comp: this->computations_list)
-        if(std::find(rs_comps.begin(), rs_comps.end(), comp) == rs_comps.end()) // if comp never appears on the right side of the ordering tuples
-            nrs_comps.push_back(comp);
-            */
-
-    std::vector<std::pair<tiramisu::computation*, std::unordered_map<tiramisu::computation*, int>>> sorted_sched_graph;
-
-    //first computation
-    tiramisu::computation* current_comp= nrs_comps[0];
-
-    while (sched_string.find(current_comp->get_name()) != sched_string.end()) 
-    {
-        auto sched_graph_l = fct->sched_graph[fct->get_computation_by_name(current_comp->get_name())[0]];
-
-        sorted_sched_graph.push_back(std::make_pair(current_comp, sched_graph_l));
-
-        current_comp = sched_graph_l.begin()->first;
-    }
-
-
-    // We use the sorted scheduling graph to construct the computations AST
-    for (auto& sched_graph_node : sorted_sched_graph)
-    {
-        tiramisu::computation *parent_comp = sched_graph_node.first;
-        
-        for (auto& sched_graph_child : sched_graph_node.second)
-        {
-            tiramisu::computation *child_comp = sched_graph_child.first;
-            int level = sched_graph_child.second;
-            
-            if (level >= 0)
+            for (auto& sched_graph_child : sched_graph_node.second)
             {
+                tiramisu::computation *child_comp = sched_graph_child.first;
+                int level = sched_graph_child.second;
+
+                if (level < 0)
+                    continue;
+
                 ast_node *parent_comp_ast_node = find_node_by_level(parent_comp, level);
                 ast_node *child_comp_ast_node = find_node_by_level(child_comp, level);
-                
+
                 // Insert computations
                 if (!child_comp_ast_node->computations.empty())
                 {
@@ -294,45 +271,72 @@ void syntax_tree::order_computations()
                             computations_mapping[comp_info.comp_ptr] = parent_comp_ast_node;
                         }
                     }
-                    
+
                     else
                     {
                         // We have here a special case (see PFE manuscript page 46)
-
-                        ERROR("DUMMY ITR CREATED, CASE NOT SUPPORTED",1);
                         ast_node *new_node = new ast_node();
-                        
+
                         new_node->depth = child_comp_ast_node->depth;
                         new_node->name = "dummy_iter";
                         new_node->low_bound = 0;
                         new_node->up_bound = 0;
                         new_node->computations = child_comp_ast_node->computations;
                         new_node->parent = parent_comp_ast_node;
-                        
+
                         for (computation_info& comp_info : child_comp_ast_node->computations)
                             computations_mapping[comp_info.comp_ptr] = new_node;
-                            
+
                         parent_comp_ast_node->children.push_back(new_node);
                     }
                 }
-                
+
                 // Insert children
                 for (ast_node *child : child_comp_ast_node->children)
                 {
                     parent_comp_ast_node->children.push_back(child);
                     child->parent = parent_comp_ast_node;
                 }
-                        
+
                 ast_node *root_node = child_comp_ast_node->get_root_node();
                 auto it = std::find(roots.begin(), roots.end(), root_node);
                 roots.erase(it);
-
-
             }
-                
         }
     }
-}
+    ast_node* syntax_tree::get_last_shared_parent(ast_node* node1, ast_node* node2) const
+    {
+        std::vector<ast_node*> parent_list_1;
+        std::vector<ast_node*> parent_list_2;
+
+        // construct the list of ancestors of both nodes
+        ast_node* parent_node = node1;
+        while (parent_node != nullptr)
+        {
+            if (parent_node->name != "dummy_iter") // ignore dummy iterators
+                parent_list_1.push_back(parent_node);
+            parent_node = parent_node->parent;
+        }
+        std::reverse(parent_list_1.begin(), parent_list_1.end());
+
+        parent_node = node2;
+        while (parent_node != nullptr)
+        {
+            if (parent_node->name != "dummy_iter") // ignore dummy iterators
+                parent_list_2.push_back(parent_node);
+            parent_node = parent_node->parent;
+        }
+        std::reverse(parent_list_2.begin(), parent_list_2.end());
+
+        ast_node* latest_shared_parent = nullptr;
+        for (int i = 0; i< std::min(parent_list_1.size(), parent_list_2.size()); i++)
+            if (parent_list_1[i]==parent_list_2[i])
+                latest_shared_parent = parent_list_2[i];
+            else
+                break;
+
+        return latest_shared_parent;
+    }
 
 void syntax_tree::transform_ast()
 {
@@ -382,6 +386,7 @@ void syntax_tree::transform_ast(optimization_info const& opt)
         default:
             break;
     }
+    recompute_computations_mapping();
 }
 
 void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
@@ -2142,7 +2147,7 @@ std::vector<std::pair<ast_node*,int>> syntax_tree::compute_search_space_states(o
 
             for(auto& node:result_vect)
             {
-                heads.push_back(std::make_pair(node,0));
+                heads.push_back(std::make_pair(node,0)); // why always first comp?
             }
 
         }        
@@ -2235,7 +2240,7 @@ void syntax_tree::move_to_next_optimization_target()
     
 bool generator_state::is_current_optimization_fully_explored()
 {
-    if(this->current_index < this->target_ast_heads.size())
+    if(this->current_index < this->target_ast_heads.size()-1)
     {
         return false;
     }

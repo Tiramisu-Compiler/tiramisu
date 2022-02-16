@@ -37,6 +37,7 @@ evaluate_by_execution::evaluate_by_execution(std::vector<tiramisu::buffer*> cons
 
 float evaluate_by_execution::evaluate(syntax_tree& ast)
 {
+    fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
 //    parallelize_outermost_levels(ast.computations_list);

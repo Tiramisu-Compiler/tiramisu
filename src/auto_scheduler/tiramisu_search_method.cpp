@@ -6,14 +6,14 @@ namespace tiramisu::auto_scheduler
 
 void beam_search::search(syntax_tree& ast)
 {
-    if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
-        ast.clear_new_optimizations();
+//    if (ast.nb_explored_optims % NB_OPTIMIZATIONS == 0)
+//        ast.clear_new_optimizations();
        
     std::vector<syntax_tree*> children;
         
     // Look for an optimization that can be applied
-    int nb_optims_tried = 0;
-    int nb_explored_optims = ast.nb_explored_optims;
+//    int nb_optims_tried = 0;
+//    int nb_explored_optims = ast.nb_explored_optims;
 
     if(generator_state::initialized == false)
     {
@@ -25,24 +25,28 @@ void beam_search::search(syntax_tree& ast)
 
     std::cout<<"TESTED";
     
-    while (children.size() == 0 && (!ast.is_search_space_empty()))
+    while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
-        children = scheds_gen->generate_schedules(ast);
+        auto new_children = scheds_gen->generate_schedules(ast);
 
-        std::cout<<"not empty";
-
-        // move to next optimization
-        //explores next optimization/alternative
-        ast.move_to_next_optimization_target();
-
-        for(auto& child:children)
+        for(auto& child:new_children)
         {
             child->move_to_next_optimization_target();
         }
         
-        nb_explored_optims++;
-        nb_optims_tried++;
+//        nb_explored_optims++;
+//        nb_optims_tried++;
+        children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
+
+        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
+            // move to next optimization
+            //explores next optimization/alternative
+            ast.move_to_next_optimization_target();
+            break;
+        }
+        else
+            ast.move_to_next_optimization_target();
     }
        
     // Stop if no more optimizations can be applied
@@ -56,9 +60,12 @@ void beam_search::search(syntax_tree& ast)
     auto iterator = children.begin();
     while (iterator != children.end())
     {
-        (*iterator)->nb_explored_optims = nb_explored_optims;
+//        (*iterator)->nb_explored_optims = nb_explored_optims;
+        (*iterator)->print_isl_states();
         (*iterator)->transform_ast();
-
+//        (*iterator)->fct->reset_schedules();
+//        (*iterator)->recreate_isl_state();
+        (*iterator)->print_isl_states();
         if ((*iterator)->ast_is_legal() == false) {
 
             // print deleted Ast 
@@ -102,21 +109,21 @@ void beam_search::search(syntax_tree& ast)
     }
 
     // Stop if we reached the maximum depth
-    if (nb_explored_optims >= max_depth)
-        return ;
+//    if (nb_explored_optims >= max_depth)
+//        return ;
         
     // Add the current AST to the list of children
     syntax_tree *ast_copy = ast.copy_ast();
-    ast_copy->nb_explored_optims = nb_explored_optims;
+//    ast_copy->nb_explored_optims = nb_explored_optims;
     children.push_back(ast_copy);
 
     // Sort children from smallest evaluation to largest
     
-    std::cout<<"\noriginal list\n" ;
-    for (syntax_tree *child : children)
-    {
-        std::cout<<child->evaluation<<"+";
-    }
+//    std::cout<<"\noriginal list\n" ;
+//    for (syntax_tree *child : children)
+//    {
+//        std::cout<<child->evaluation<<"+";
+//    }
 
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;
@@ -129,11 +136,11 @@ void beam_search::search(syntax_tree& ast)
         
     children.resize(std::min(beam_size, (int)children.size()));
 
-    std::cout<<"\nremaining list\n" ;
-    for (syntax_tree *child : children)
-    {
-        std::cout<<child->evaluation<<"+";
-    }
+//    std::cout<<"\nremaining list\n" ;
+//    for (syntax_tree *child : children)
+//    {
+//        std::cout<<child->evaluation<<"+";
+//    }
 
     // Search recursively on the best children
     for (syntax_tree *child : children)

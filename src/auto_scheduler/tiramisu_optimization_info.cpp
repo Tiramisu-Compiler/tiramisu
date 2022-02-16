@@ -85,6 +85,9 @@ void apply_optimizations(optimization_info const& optim_info)
 
         case optimization_type::SKEWING:
             block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
+            if(optim_info.l2_fact == -1)
+                for(auto const& computation: optim_info.comps)
+                    computation->loop_reversal(optim_info.l1);
             break;
 
         case optimization_type::SHIFTING:
@@ -102,51 +105,37 @@ void apply_optimizations(optimization_info const& optim_info)
     }
 }
 
-void apply_fusions(syntax_tree const& ast)
-{
-    /*
-    tiramisu::computation *next_comp = nullptr;
-    
-    // Use the "after" scheduling command to replicate the structure of the AST
-    // on the computations order.
-    for (ast_node *root : ast.roots)
-        next_comp = apply_fusions(root, next_comp, tiramisu::computation::root_dimension);
-    */
-    // just need to copy content of syntaxe tree into sched_graph of the function
-    ast.dump_local_sched_graph_to_api();
-}
+    void apply_fusions(syntax_tree const& ast)
+    {
+        // Use the "after" scheduling command to replicate the structure of the AST
+        // on the computations order.
 
-//tiramisu::computation* apply_fusions(ast_node *node, tiramisu::computation *last_comp, int dimension)
-//{
-//    tiramisu::computation *next_comp;
-//
-//    if (node->computations.size() > 0)
-//    {
-//        next_comp = node->computations[0].comp_ptr;
-//
-//        if (last_comp != nullptr)
-//            next_comp->after(*last_comp, dimension);
-//
-//        last_comp = next_comp;
-//        for (int i = 1; i < node->computations.size(); ++i)
-//        {
-//            next_comp = node->computations[i].comp_ptr;
-//            next_comp->after(*last_comp, node->depth);
-//        }
-//    }
-//
-//    else
-//        next_comp = last_comp;
-//
-//    int new_dimension = dimension;
-//    if (node->children.size() >= 2 || node->computations.size() >= 1)
-//        new_dimension = node->depth;
-//
-//    for (ast_node *child : node->children)
-//        next_comp = apply_fusions(child, next_comp, new_dimension);
-//
-//    return next_comp;
-//}
+        tiramisu::computation *previous_comp = nullptr;
+
+        for (tiramisu::computation* current_comp : ast.computations_list) // iterate over the ordered computations list
+        {
+            if (previous_comp == nullptr) // if current comp is the first computation
+            {
+                previous_comp = current_comp;
+                continue;
+            }
+
+            ast_node *current_comp_node = ast.computations_mapping.at(current_comp);
+            ast_node *previous_comp_node = ast.computations_mapping.at(previous_comp);
+            ast_node *last_shared_parent = ast.get_last_shared_parent(current_comp_node, previous_comp_node);
+
+            int fusion_level;
+            if (last_shared_parent != nullptr)
+                fusion_level = last_shared_parent->depth;
+            else
+                fusion_level = tiramisu::computation::root_dimension;
+
+            current_comp->after(*previous_comp, fusion_level);
+            previous_comp = current_comp;
+
+        }
+
+    }
 
 void apply_parallelization(syntax_tree const& ast)
 {
