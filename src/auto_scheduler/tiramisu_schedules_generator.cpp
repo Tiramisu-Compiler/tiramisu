@@ -1074,10 +1074,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::PARALLELIZE:
-        std::cout<<"before_gen";
-        ast.print_isl_states();
-        std::cout<<"\n";
-
             //ast.print_ast();
 
         ast.stage_isl_states();
@@ -1107,13 +1103,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
             if (result) // unrollable: test all possible values
             {
-                std::cout<<"in if before_recover";
-                ast.print_isl_states();
-                std::cout<<"\n";
                 ast.recover_isl_states();
-                std::cout<<"in if after_recover";
-                ast.print_isl_states();
-                std::cout<<"\n";
 
                 // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
@@ -1142,14 +1132,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 break;
             }
         }
-            std::cout<<"before_recover";
-            ast.print_isl_states();
-            std::cout<<"\n";
-        ast.recover_isl_states();
-            std::cout<<"after_recover";
-            ast.print_isl_states();
-            std::cout<<"\n";
 
+        ast.recover_isl_states();
         break;
 
     case optimization_type::SKEWING:
@@ -1157,13 +1141,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         /*
             optim_info.comps = new_ast->computations_list;
         }*/
-        std::cout<<"Before skewing_stage";
-            ast.print_isl_states();
-            std::cout<<"\n";
+
         ast.stage_isl_states();
-            std::cout<<"after skewing_stage";
-            ast.print_isl_states();
-            std::cout<<"\n";
+
         //for shared nodes the list of involved computations is always the same.
         // that's only the case when we compute test shared loop levels only (not always the case).
         shared_nodes = node->collect_shared_nodes_from_head();
@@ -1273,13 +1253,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 ast.stage_isl_states();
             }
         }
-            std::cout<<"after skewing_recover";
-            ast.print_isl_states();
-            std::cout<<"\n";
+
         ast.recover_isl_states();
-            std::cout<<"after skewing_recover";
-            ast.print_isl_states();
-            std::cout<<"\n";
         break;
 
 //    case optimization_type::VECTORIZATION: {

@@ -60,12 +60,9 @@ void beam_search::search(syntax_tree& ast)
     auto iterator = children.begin();
     while (iterator != children.end())
     {
-//        (*iterator)->nb_explored_optims = nb_explored_optims;
-        (*iterator)->print_isl_states();
+
         (*iterator)->transform_ast();
-//        (*iterator)->fct->reset_schedules();
-//        (*iterator)->recreate_isl_state();
-        (*iterator)->print_isl_states();
+
         if ((*iterator)->ast_is_legal() == false) {
 
             // print deleted Ast 
