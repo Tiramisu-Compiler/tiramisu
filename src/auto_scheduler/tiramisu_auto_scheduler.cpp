@@ -18,7 +18,7 @@ auto_scheduler::auto_scheduler(search_method *searcher, evaluation_function *eva
 void auto_scheduler::sample_search_space(std::string filename, bool timeout_schedules)
 {
     std::chrono::steady_clock::time_point sampling_start = std::chrono::steady_clock::now();
-    fct->reset_schedules();
+    fct->reset_all_static_dims_to_zero();
 
     setenv("INIT_EXEC_TIME", "0", true); // set the INIT_EXEC_TIME to 0 meaning that it's the non scheduled version
     float initial_timeout = std::atof(read_env_var("INITIAL_TIMEOUT"));

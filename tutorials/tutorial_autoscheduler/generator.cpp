@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     }
 
     // Some parameters for the search methods
-    const int beam_size = 1;
+    const int beam_size = 5;
     const int max_depth = 6;
 
     const int nb_samples = 5;
@@ -138,7 +138,8 @@ int main(int argc, char **argv)
     // Create the autoscheduler and start search
     auto_scheduler::auto_scheduler as(bs, exec_eval);
     as.set_exec_evaluator(exec_eval);
-    as.find_schedule();
+//    as.find_schedule();
+    as.sample_search_space("test.json");
 //    as.apply_best_schedule();
 
     delete scheds_gen;

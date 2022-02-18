@@ -148,8 +148,132 @@ void beam_search::search(syntax_tree& ast)
 }
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
-    std::cerr<< "search_save::search_save temporarily removed" << std::endl;
-    exit(1);
+    std::vector<syntax_tree*> children;
+    if(generator_state::initialized == false)
+    {
+        ast.initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
+        // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
+        assert(generator_state::initialized == true);
+    }
+
+    std::cout<<"TESTED";
+
+    while ((!ast.is_search_space_empty()))
+    {
+        // schedule generation based on generator_state attribute in the AST.
+        auto new_children = scheds_gen->generate_schedules(ast);
+
+        for(auto& child:new_children)
+            child->move_to_next_optimization_target();
+
+        children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
+
+        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
+            // move to next optimization
+            //explores next optimization/alternative
+            ast.move_to_next_optimization_target();
+            break;
+        }
+        else
+            ast.move_to_next_optimization_target();
+    }
+
+    // Stop if no more optimizations can be applied
+    if (children.size() == 0)
+        return ;
+
+    // Evaluate children and sort them from smallest to highest evaluation
+    // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
+    {
+        (*iterator)->transform_ast();
+        if ((*iterator)->ast_is_legal() == false) {
+            // print deleted Ast
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            (*iterator)->print_isl_states();
+            std::cout << "\n<illegal>\n";
+            delete (*iterator);
+            iterator = children.erase(iterator);
+        }
+        else {
+            // evaluate and print Ast
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+//            (*iterator)->print_isl_states();
+//            (*iterator)->print_computations_accesses();
+            std::cout << "\n<legal>\n";
+
+            std::vector<float> measurements;
+            measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+            (*iterator)->evaluation = min_eval(measurements);
+
+            parent_trace->add_child_path((*iterator), schedules_annotations->size());
+
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
+
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
+
+            if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_times\" : null\n}\n";
+
+            schedules_annotations->push_back(schedule_annot);
+
+            std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
+            std::cout << "Number of measurements : " << measurements.size() << std::endl;
+            std::cout << "===================================" << std::endl << std::endl;
+
+            if (std::isinf((*iterator)->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+            if ((*iterator)->evaluation < best_evaluation)
+            {
+                best_evaluation = (*iterator)->evaluation;
+                best_ast = (*iterator);
+            }
+
+            ++iterator;
+
+        }
+
+        nb_explored_schedules++;
+    }
+
+    // Add the current AST to the list of children
+    syntax_tree *ast_copy = ast.copy_ast();
+    children.push_back(ast_copy);
+
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
+
+    // Sort children from smallest evaluation to largest
+
+    std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
+        return a->evaluation < b->evaluation;
+    });
+
+    // keep the top 'beam_size' children and delete the rest
+    for (int i = beam_size; i < children.size(); ++i)
+        delete children[i];
+
+
+    children.resize(std::min(beam_size, (int)children.size()));
+    // Search recursively on the best children
+    for (syntax_tree *child : children)
+    {
+        child->search_depth = ast.search_depth + 1;
+        search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
+    }
+
 }
 //void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 //{
