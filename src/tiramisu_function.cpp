@@ -4168,6 +4168,15 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
 }
 
+std::tuple<
+        std::vector<std::pair<int,int>>,
+        std::vector<std::pair<int,int>>,
+        std::vector<std::pair<int,int>>> tiramisu::function::skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                                                                                  int outer_level, int inner_level, int nb_parallel)
+{
+    assert(!fused_computations.empty());
+    return skewing_local_solver(fused_computations, var(fused_computations[0]->get_loop_level_names()[outer_level]), var(fused_computations[0]->get_loop_level_names()[inner_level]),nb_parallel);
+}
 
 
 std::tuple<

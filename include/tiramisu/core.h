@@ -1343,12 +1343,18 @@ public:
      * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
      * the output should be 3 empty vectors.
     */
+    // @{
     std::tuple<
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>,
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
-
+    std::tuple<
+            std::vector<std::pair<int,int>>,
+            std::vector<std::pair<int,int>>,
+            std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
+                                                                  int outer_level,int inner_level, int nb_parallel);
+    // @}
 
 };
 
