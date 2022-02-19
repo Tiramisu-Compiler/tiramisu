@@ -30,8 +30,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
         exit(1);
     }
     ast.evaluation = initial_exec_time;
-    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
-        std::cout << "Initial exec time : " << initial_exec_time << std::endl;
+//    if (std::atoi(read_env_var("AS_VERBOSE"))==1)
+    std::cout << "Initial exec time : " << initial_exec_time << std::endl;
     std::string program_json = evaluate_by_learning_model::get_program_json(ast);
     std::vector<std::string> schedules_annotations;
 
@@ -55,8 +55,8 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     if (timeout_schedules) {
         //define a timeout for scheduler evaluation, the max between schedule_timeout_factor times the initial exec_time (converted to seconds) and 3s per run
         schedule_timeout = std::max(initial_exec_time * schedule_timeout_factor / 1000, (float) 3.0);
-        if (std::atoi(read_env_var("AS_VERBOSE")) == 1)
-            std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
+//        if (std::atoi(read_env_var("AS_VERBOSE")) == 1)
+        std::cout << "Schedule measurements timeout set to " << schedule_timeout << "*" << read_env_var("MAX_RUNS") << "(MAX_RUNS) s" << std::endl;
     }
 
     searcher->set_exec_eval(exec_evaluator);
@@ -98,10 +98,10 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     file.close();
 
     std::chrono::steady_clock::time_point sampling_end = std::chrono::steady_clock::now();
-    if (std::atoi(read_env_var("AS_VERBOSE"))==1){
-        std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
-        std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
-    }
+//    if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+    std::cout << "Search time : " << std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count() << " ms" << std::endl;
+    std::cout << "Best execution time : " << searcher->get_best_evaluation() << std::endl;
+//    }
 }
 
 void auto_scheduler::find_schedule()

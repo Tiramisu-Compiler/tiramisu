@@ -1909,7 +1909,14 @@ void syntax_tree::print_computations_accesses() const
         root->print_computations_accesses();
     }
 }
+int syntax_tree::get_computation_index(tiramisu::computation *comp)
+{
+    auto it = find(computations_list.begin(), computations_list.end(), comp);
 
+    assert(it != computations_list.end()); // element has to be found
+    int index = it - computations_list.begin();
+    return index;
+}
 std::string syntax_tree::get_schedule_str()
 {
     std::vector<optimization_info> schedule_vect = this->get_schedule();
@@ -1917,38 +1924,51 @@ std::string syntax_tree::get_schedule_str()
 
     for (auto optim: schedule_vect)
     {
+        std::string comps_list_str="{";
+        for (auto comp:optim.comps)
+        {
+            comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";
+        }
+        comps_list_str.pop_back(); //remove the last comma
+        comps_list_str+="}";
+
         switch(optim.type) {
             case optimization_type::FUSION:
-                schedule_str += "F(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                schedule_str += "F("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
                 break;
 
-            case optimization_type::UNFUSE:
-                schedule_str += "F(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+            case optimization_type::SHIFTING:
+                schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
                 break;
+
+
+//            case optimization_type::UNFUSE:
+//                schedule_str += "F(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+//                break;
 
             case optimization_type::INTERCHANGE:
-                schedule_str += "I(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                schedule_str += "I("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
                 break;
 
             case optimization_type::TILING:
                 if (optim.nb_l == 2)
-                    schedule_str += "T2(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
+                    schedule_str += "T2("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
                             std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
                 else if (optim.nb_l == 3)
-                    schedule_str += "T3(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+",L"+std::to_string(optim.l2)+","+
+                    schedule_str += "T3("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+",L"+std::to_string(optim.l2)+","+
                             std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+std::to_string(optim.l2_fact)+"),";
                 break;
 
             case optimization_type::UNROLLING:
-                schedule_str += "U(L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
+                schedule_str += "U("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
                 break;
 
             case optimization_type::PARALLELIZE:
-                schedule_str += "P(L"+std::to_string(optim.l0)+"),";
+                schedule_str += "P("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
                 break;
 
             case optimization_type::SKEWING:
-                schedule_str += "S(L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
+                schedule_str += "S("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
                                 std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
                 break;
 

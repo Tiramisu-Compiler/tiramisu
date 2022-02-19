@@ -882,6 +882,12 @@ public:
      * Recomputes the states to update after a generation of a copy or application of fusion.
     */
     void refresh_states();
+
+    /**
+     * Return the computation's execution order (it's index in computation_list, index starts from 0)
+     */
+    int get_computation_index(computation *comp);
+
 };
 
 /**
