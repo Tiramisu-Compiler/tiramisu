@@ -868,6 +868,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                         // recompute the states vector because locations changed.
                         new_ast->refresh_states();
+                        new_ast->tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*new_ast);
 
                         states.push_back(new_ast);
 

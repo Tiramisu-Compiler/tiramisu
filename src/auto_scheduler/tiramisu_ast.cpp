@@ -389,60 +389,60 @@ void syntax_tree::transform_ast(optimization_info const& opt)
     recompute_computations_mapping();
 }
 
-void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
-{
-    std::vector<ast_node*> *tree_level;
-    
-    if (opt.node->parent != nullptr)
-        tree_level = &opt.node->parent->children;
-    else
-        tree_level = &roots;
-    
-    ast_node *node1 = (*tree_level)[opt.l0];
-    ast_node *node2 = (*tree_level)[opt.l1];
-
-    for (ast_node *child : node2->children)
-        node1->children.push_back(child);
-
-    for (computation_info& comp_info : node2->computations)
-    {
-        node1->computations.push_back(comp_info);
-        computations_mapping[comp_info.comp_ptr] = node1;
-    }
-
-    tree_level->erase(tree_level->begin() + opt.l1);
-}
-
-void syntax_tree::transform_ast_by_unfuse(optimization_info const& opt)
-{
-    ast_node *unfuse_node, *shared_node;
-    
-    int i = 0;
-    shared_node = roots[0];
-    
-    while (shared_node->children.size() == 1)
-    {
-        if (i == opt.l0)
-            unfuse_node = shared_node;
-            
-        shared_node = shared_node->children[0];
-        i++;
-    }
-    
-    std::vector<ast_node*> shared_node_children = shared_node->children;
-    ast_node *removed_node = unfuse_node->children[0];
-    unfuse_node->children.clear();
-    
-    for (ast_node *node : shared_node_children)
-    {
-        shared_node->children.clear();
-        shared_node->children.push_back(node);
-        
-        unfuse_node->children.push_back(removed_node->copy_node());
-    }
-    
-    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
-}
+//void syntax_tree::transform_ast_by_fusion(optimization_info const& opt)
+//{
+//    std::vector<ast_node*> *tree_level;
+//
+//    if (opt.node->parent != nullptr)
+//        tree_level = &opt.node->parent->children;
+//    else
+//        tree_level = &roots;
+//
+//    ast_node *node1 = (*tree_level)[opt.l0];
+//    ast_node *node2 = (*tree_level)[opt.l1];
+//
+//    for (ast_node *child : node2->children)
+//        node1->children.push_back(child);
+//
+//    for (computation_info& comp_info : node2->computations)
+//    {
+//        node1->computations.push_back(comp_info);
+//        computations_mapping[comp_info.comp_ptr] = node1;
+//    }
+//
+//    tree_level->erase(tree_level->begin() + opt.l1);
+//}
+//
+//void syntax_tree::transform_ast_by_unfuse(optimization_info const& opt)
+//{
+//    ast_node *unfuse_node, *shared_node;
+//
+//    int i = 0;
+//    shared_node = roots[0];
+//
+//    while (shared_node->children.size() == 1)
+//    {
+//        if (i == opt.l0)
+//            unfuse_node = shared_node;
+//
+//        shared_node = shared_node->children[0];
+//        i++;
+//    }
+//
+//    std::vector<ast_node*> shared_node_children = shared_node->children;
+//    ast_node *removed_node = unfuse_node->children[0];
+//    unfuse_node->children.clear();
+//
+//    for (ast_node *node : shared_node_children)
+//    {
+//        shared_node->children.clear();
+//        shared_node->children.push_back(node);
+//
+//        unfuse_node->children.push_back(removed_node->copy_node());
+//    }
+//
+//    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
+//}
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 {

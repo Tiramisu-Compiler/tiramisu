@@ -325,13 +325,16 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
 
 std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast)
 {
+    std::string sched_json = "{";
+    for (tiramisu::computation *comp : ast.computations_list)
+    {
     bool interchanged = false;
     bool tiled = false;
     bool unrolled = false;
     bool skewed = false;
     bool parallelized = false;
-    
-    int unfuse_l0 = -1;
+    bool shifted = false;
+
     int int_l0, int_l1;
     int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
     int unrolling_fact;
@@ -339,16 +342,22 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     int skewing_l0, skewing_l1;
     int skew_extent_l0, skew_extent_l1;
     int parallelized_level;
+    std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
+
     
     // Get information about the schedule
     for (optimization_info const& optim_info : ast.new_optims)
     {
+        if(std::find(optim_info.comps.begin(), optim_info.comps.end(), comp) == optim_info.comps.end()) {
+           // if the current computation isn't affected by the current optim_info
+           continue;
+        }
         switch (optim_info.type)
         {
-            case optimization_type::UNFUSE:
-                unfuse_l0 = optim_info.l0;
+            case optimization_type::SHIFTING:
+                shifted = true;
+                shiftings.emplace_back(optim_info.l0,optim_info.l0_fact);
                 break;
-                
             case optimization_type::TILING:
                 tiled = true;
                 if (optim_info.nb_l == 2)
@@ -403,15 +412,24 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     
     // Transform the schedule to JSON
     std::vector<dnn_iterator> iterators_list;
-    std::string sched_json = "{";
     
     // Set the schedule for every computation
     // For the moment, all computations share the same schedule
-    for (tiramisu::computation *comp : ast.computations_list)
-    {
+//    for (tiramisu::computation *comp : ast.computations_list)
+//    {
         std::string comp_sched_json;
         iterators_list = dnn_iterator::get_iterators_from_computation(*comp);
-        
+
+        comp_sched_json += "\"shiftings\" : ";
+        if (shifted){
+            comp_sched_json+= "[";
+            for (auto shifting:shiftings)
+                comp_sched_json+= "[\"" + iterators_list[std::get<0>(shifting)].name+"\","+std::to_string(std::get<1>(shifting))+"],";
+            comp_sched_json.pop_back(); //remove last comma
+            comp_sched_json += "], ";
+        }
+        else
+            comp_sched_json += "null,";
         // JSON for interchange
         comp_sched_json += "\"interchange_dims\" : [";
         
@@ -496,57 +514,57 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
         {
             comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
             comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
-            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"], ";
+            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"]} ";
 
             // Adding the access matrices transformed by skewing
 
             // get the comp_info corresponding to the current computation
-            ast_node* comp_node = ast.computations_mapping.at(comp);
-            std::vector<dnn_access_matrix> comp_accesses_list;
-            for (auto comp_i: comp_node->computations)
-            {
-                if (comp_i.comp_ptr == comp)
-                {
-                    comp_accesses_list = comp_i.accesses.accesses_list;
-                    break;
-                }
-            }
+//            ast_node* comp_node = ast.computations_mapping.at(comp);
+//            std::vector<dnn_access_matrix> comp_accesses_list;
+//            for (auto comp_i: comp_node->computations)
+//            {
+//                if (comp_i.comp_ptr == comp)
+//                {
+//                    comp_accesses_list = comp_i.accesses.accesses_list;
+//                    break;
+//                }
+//            }
 
-            // Build JSON of the transformed accesses
-            comp_sched_json += "\"transformed_accesses\" : [";
-
-            for (int i = 0; i < comp_accesses_list.size(); ++i)
-            {
-                dnn_access_matrix const& matrix  = comp_accesses_list[i];
-                comp_sched_json += "{";
-
-                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
-                comp_sched_json += "\"access_matrix\" : [";
-
-                for (int x = 0; x < matrix.matrix.size(); ++x)
-                {
-                    comp_sched_json += "[";
-                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
-                    {
-                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
-                        if (y != matrix.matrix[x].size() - 1)
-                            comp_sched_json += ", ";
-                    }
-
-                    comp_sched_json += "]";
-                    if (x != matrix.matrix.size() - 1)
-                        comp_sched_json += ",";
-                }
-
-                comp_sched_json += "]";
-
-                comp_sched_json += "}";
-
-                if (i != comp_accesses_list.size() - 1)
-                    comp_sched_json += ",";
-            }
-
-            comp_sched_json += "]}";
+//            // Build JSON of the transformed accesses
+//            comp_sched_json += "\"transformed_accesses\" : [";
+//
+//            for (int i = 0; i < comp_accesses_list.size(); ++i)
+//            {
+//                dnn_access_matrix const& matrix  = comp_accesses_list[i];
+//                comp_sched_json += "{";
+//
+//                comp_sched_json += "\"buffer_id\" : " + std::to_string(matrix.buffer_id) + ",";
+//                comp_sched_json += "\"access_matrix\" : [";
+//
+//                for (int x = 0; x < matrix.matrix.size(); ++x)
+//                {
+//                    comp_sched_json += "[";
+//                    for (int y = 0; y < matrix.matrix[x].size(); ++y)
+//                    {
+//                        comp_sched_json += std::to_string(matrix.matrix[x][y]);
+//                        if (y != matrix.matrix[x].size() - 1)
+//                            comp_sched_json += ", ";
+//                    }
+//
+//                    comp_sched_json += "]";
+//                    if (x != matrix.matrix.size() - 1)
+//                        comp_sched_json += ",";
+//                }
+//
+//                comp_sched_json += "]";
+//
+//                comp_sched_json += "}";
+//
+//                if (i != comp_accesses_list.size() - 1)
+//                    comp_sched_json += ",";
+//            }
+//
+//            comp_sched_json += "]}";
 
         }
         else
@@ -554,16 +572,31 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
             comp_sched_json += "null";
         }
         
-        sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "},";
+        sched_json += "\"" + comp->get_name() + "\" : {" + comp_sched_json + "}, ";
     }
     
-    // Write JSON information about unfused iterators (not specific to a computation)
-    sched_json += "\"unfuse_iterators\" : ["; 
-    if (unfuse_l0 != -1)
-        sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
+//    // Write JSON information about unfused iterators (not specific to a computation)
+//    sched_json += "\"unfuse_iterators\" : [";
+//    if (unfuse_l0 != -1)
+//        sched_json += "\"" + iterators_list[unfuse_l0].name + "\"";
         
-    sched_json += "],";
-    
+//    sched_json += "],";
+
+    bool has_fusions = false;
+    sched_json += "\"fusions\" : [";
+    for (optimization_info const& optim_info : ast.new_optims)
+        if (optim_info.type==optimization_type::FUSION) {
+            sched_json += " [\"" + optim_info.comps[0]->get_name() + "\",\"" + optim_info.comps[1]->get_name() + "\"," +
+                          std::to_string(optim_info.l0) + "],"; //Fusion ordered with the .then semantic
+            has_fusions=true;
+        }
+    sched_json.pop_back(); //drop the last comma or '['
+    if (has_fusions)
+        sched_json +="], ";
+    else
+        sched_json += "null, ";
+
+
     // Write the structure of the tree
     sched_json += "\"tree_structure\": {";
     sched_json += ast.tree_structure_json;
