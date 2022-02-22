@@ -323,7 +323,7 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
         represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
 
-std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast)
+std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 {
     std::string sched_json = "{";
     for (tiramisu::computation *comp : ast.computations_list)
@@ -596,6 +596,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
     else
         sched_json += "null, ";
 
+    sched_json += "\"sched_str\": \"" + ast.get_schedule_str() + "\", ";
 
     // Write the structure of the tree
     sched_json += "\"tree_structure\": {";

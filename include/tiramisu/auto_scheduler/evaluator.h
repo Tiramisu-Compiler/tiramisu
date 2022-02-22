@@ -134,7 +134,7 @@ public:
     /**
      * Return a JSON representation of the schedule of the given AST.
      */
-    static std::string get_schedule_json(syntax_tree const& ast);
+    static std::string get_schedule_json(syntax_tree & ast);
     
     // --------------------------------------------------------------------------------- //
     
