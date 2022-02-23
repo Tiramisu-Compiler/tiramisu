@@ -156,7 +156,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         assert(generator_state::initialized == true);
     }
 
-    std::cout<<"TESTED";
+//    std::cout<<"TESTED";
 
     while ((!ast.is_search_space_empty()))
     {
