@@ -57,6 +57,8 @@ if (${USE_GPU})
     endif()
 endif()
 
+
+
 if (${USE_MKL_WRAPPERS})
     add_library(mkl_wrapper STATIC "src/tiramisu_mkl_wrappers.cpp")
     target_include_directories(mkl_wrapper PUBLIC ${MKL_PREFIX}/include)
@@ -166,7 +168,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -180,7 +182,8 @@ if (${USE_MPI})
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
-    set(CMAKE_CXX_COMPILER "g++")
+  #set(CMAKE_CXX_COMPILER "g++")
+  #get_filename_component(CMAKE_CXX_COMPILER "g++" REALPATH)
 endif()
 
 
@@ -236,6 +239,12 @@ add_library(tiramisu SHARED ${T_CODE})
 
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
+
+if (WITH_PYTHON_BINDINGS)
+  message(STATUS "Building Python bindings enabled")
+  add_subdirectory(python_bindings)
+  target_include_directories(Tiramisu_Python PRIVATE "include")
+endif()
 
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")

@@ -12,6 +12,8 @@ option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
 
 option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
+option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
+
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 
