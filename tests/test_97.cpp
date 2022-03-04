@@ -13,13 +13,19 @@
 
 using namespace tiramisu;
 
+/*
+ * This test was originally for big buffers (int64 index type), but was reverted to int32
+ * after updating to the new Halide.
+ */
 void generate_function_1(std::string name, int size, int val0, int val1)
 {
     tiramisu::global::set_default_tiramisu_options();
-    tiramisu::global::set_loop_iterator_type(p_int64);
+//    tiramisu::global::set_loop_iterator_type(p_int64);
+    tiramisu::global::set_loop_iterator_type(p_int32);
 
     tiramisu::function function0(name);
-    tiramisu::constant N("N", tiramisu::expr((int64_t) size), p_int64, true, NULL, 0, &function0);
+//    tiramisu::constant N("N", tiramisu::expr((int64_t) size), p_int64, true, NULL, 0, &function0);
+    tiramisu::constant N("N", tiramisu::expr((int32_t) size), p_int64, true, NULL, 0, &function0);
     tiramisu::var i("i"), j("j"), i0("i0"), j0("j0"), i1("i1"), j1("j1");
     tiramisu::expr e1 = tiramisu::expr(tiramisu::o_add, tiramisu::expr((uint8_t) val0),
                                        tiramisu::expr((uint8_t) val1));

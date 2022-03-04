@@ -66,7 +66,7 @@ void generate_function_1(int size)
     Expr f_s0_x = Variable::make(Int(32), "f_s0_x");
     Expr f_s0_y = Variable::make(Int(32), "f_s0_y");
 
-    Stmt producer = Provide::make("f", {make_const(UInt(8), 13)}, {f_s0_x, f_s0_y});
+    Stmt producer = Provide::make("f", {make_const(UInt(8), 13)}, {f_s0_x, f_s0_y}, {Halide::Internal::make_bool(true)});
     producer = For::make("f_s0_y", y_loop_min, y_loop_extent, ForType::Serial, DeviceAPI::None,
                          producer);
     producer = For::make("f_s0_x", x_loop_min, x_loop_extent, ForType::Serial, DeviceAPI::None,
