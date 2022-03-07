@@ -897,7 +897,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
         //shared nodes minus last shared node
         shared_nodes = node->collect_shared_nodes_from_head();
-        shared_nodes.pop_back();
+        shared_nodes.pop_back(); // remove the last because we can't start a tiling from the last iterator
+
+        if (!shared_nodes.empty())
+            shared_nodes[0]->get_all_computations(involved_computations); // since we are trying tilings on the shared nodes, we can directly get the involved comps from here.
+        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::TILING)) // check if one of the involved computations is already tiled
+            return states;
 
         // use nb try as to count if we reached last commun possible node (to disable 3layers tiling);
         nb_try = 0;
@@ -985,6 +990,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         {
             return states;
         }
+        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::INTERCHANGE)) // check if one of the involved computations is already interchanged
+            return states;
 
         // To apply interchange, we pick all combinations of two iterators
         // in the shared loop levels.
@@ -1094,6 +1101,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             return states;
         }
 
+        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::PARALLELIZE)) // check if one of the involved computations is already parallelized
+        {
+            ast.recover_isl_states();
+            return states;
+        }
+
         for (ast_node *commun_node : shared_nodes)
         {
             std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
@@ -1155,6 +1168,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             shared_nodes.pop_back(); //removes 2nd loop level, first is enough
         }
         else
+        {
+            ast.recover_isl_states();
+            return states;
+        }
+
+        if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::SKEWING)) // check if one of the involved computations is already skewed
         {
             ast.recover_isl_states();
             return states;

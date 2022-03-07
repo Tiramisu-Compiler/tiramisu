@@ -888,6 +888,15 @@ public:
      */
     int get_computation_index(computation *comp);
 
+    /**
+     * Checks whether the optimization type opt_type is  already applied to computation comp (searches in new_optims)
+     */
+     bool optim_already_applied_on_comp(tiramisu::computation* comp,tiramisu::auto_scheduler::optimization_type opt_type);
+
+     /**
+     * Checks whether the optimization type opt_type is  already applied to at least one computation from comp_list (searches in new_optims)
+     */
+     bool optim_already_applied_on_comps(const std::vector<tiramisu::computation *>comp_list, tiramisu::auto_scheduler::optimization_type opt_type);
 };
 
 /**

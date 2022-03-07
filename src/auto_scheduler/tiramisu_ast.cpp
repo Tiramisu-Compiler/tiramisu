@@ -483,7 +483,8 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         j_outer->computations.clear();
 
         j_outer->children.push_back(i_inner);
-
+        for (auto child:j_inner->children)
+            child->parent = j_inner;
 
         
         j_outer->parent = i_outer;
@@ -581,6 +582,8 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
         k_outer->computations.clear();
 
         k_outer->children.push_back(i_inner);
+        for (auto child:k_inner->children)
+            child->parent = k_inner;
         
         j_outer->parent = i_outer;
         k_outer->parent = j_outer;
@@ -2257,7 +2260,23 @@ void syntax_tree::move_to_next_optimization_target()
     //std::cout<<"_mov_in_"<<this->search_state.current_index;
 }
 
-    
+bool syntax_tree::optim_already_applied_on_comp(tiramisu::computation *comp, tiramisu::auto_scheduler::optimization_type opt_type) {
+    for (auto opt_info:new_optims) {
+        if (opt_info.type != opt_type) //if different optimization, skip to next
+            continue;
+        if (std::find(opt_info.comps.begin(), opt_info.comps.end(), comp) != opt_info.comps.end()) // if comp in computations list
+            return true;
+    }
+    return false;
+}
+
+bool syntax_tree::optim_already_applied_on_comps(const std::vector<tiramisu::computation *>comp_list, tiramisu::auto_scheduler::optimization_type opt_type) {
+    for (auto comp:comp_list)
+        if (optim_already_applied_on_comp(comp,opt_type))
+            return true;
+    return false;
+}
+
 bool generator_state::is_current_optimization_fully_explored()
 {
     if(this->current_index < this->target_ast_heads.size()-1)
