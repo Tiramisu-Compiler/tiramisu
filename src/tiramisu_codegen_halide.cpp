@@ -4016,11 +4016,11 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
                                              Halide::LinkageType::External,
                                              this->get_halide_stmt());
 
-    std::map<Halide::Output, std::string> omap = {{Halide::Output::object, obj_file_name}, {Halide::Output::c_header, obj_file_name + ".h"},};
+    std::map<Halide::OutputFileType, std::string> omap = {{Halide::OutputFileType::object, obj_file_name}, {Halide::OutputFileType::c_header, obj_file_name + ".h"},};
    
     //    m.compile(Halide::Output().c_header(obj_file_name + ".h"));
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
-      omap[Halide::Output::c_source] = obj_file_name + "_generated.c";
+      omap[Halide::OutputFileType::c_source] = obj_file_name + "_generated.c";
       //m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
 
     m.compile(omap);
