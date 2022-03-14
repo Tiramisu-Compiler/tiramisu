@@ -3962,6 +3962,7 @@ public:
       */
     buffer *get_automatically_allocated_buffer();
 
+    virtual void matrix_transform(std::vector<std::vector<int>> matrix);
     /**
       * Interchange (swap) the two loop levels \p L0 and \p L1.
       */

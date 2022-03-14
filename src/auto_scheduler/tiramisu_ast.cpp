@@ -1,6 +1,7 @@
 #include <tiramisu/auto_scheduler/ast.h>
 #include <tiramisu/auto_scheduler/evaluator.h>
-
+#include <algorithm> //for searching in comps list
+#include <iostream>
 
 
 
@@ -358,7 +359,9 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             transform_ast_by_unfuse(opt);
             break;
             */
-            
+        /*case optimization_type::MATRIX:
+            transform_ast_by_matrix(opt);
+            break;*/
         case optimization_type::TILING:
             transform_ast_by_tiling(opt);
             break;
@@ -443,6 +446,100 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 //
 //    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 //}
+std::vector<std::vector<int>>  multiply(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
+{
+std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
+
+    for(std::size_t row = 0; row < result.size(); ++row) {
+        for(std::size_t col = 0; col < result.at(0).size(); ++col) {
+            for(std::size_t inner = 0; inner < m2.size(); ++inner) {
+                result.at(row).at(col) += m1.at(row).at(inner) * m2.at(inner).at(col);
+            }
+        }
+    }
+    return result;
+}
+std::vector<std::vector<int>> get_bounds(std::vector<ast_node *> shared_nodes){
+    
+    std::vector<std::vector<int>> bounds_mat;
+    for (int i=0; i <shared_nodes.size();i++){
+        std::vector<int> vec;
+        // Updating the node using isl_ast_map 
+        vec.push_back (shared_nodes[i]->low_bound);
+        vec.push_back (shared_nodes[i]->up_bound);
+        bounds_mat.push_back(vec);
+        vec.clear();
+    }
+    return bounds_mat;
+
+}
+void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<int>> bounds_mat){
+    
+    for (int i=0; i <shared_nodes.size();i++){
+        // Updating the node using transformed bounds matrix 
+        shared_nodes[i]->low_bound = bounds_mat[i][0];
+        shared_nodes[i]->up_bound = bounds_mat[i][0];
+    }
+    /*if (level >= isl_ast_mat.size()){
+        if (node->children.size() != 0){node = node->children[0];}
+        else{node = nullptr; return;}      
+    }
+    else{
+        // Updating the node using isl_ast_map 
+        node->low_bound = isl_ast_mat[level][0];
+        node->up_bound = isl_ast_mat[level][1];
+    
+    }
+    
+    level++;    
+    // Updating nodes recursivly
+    for (ast_node *child : node->children)
+        {         
+            update_node(child,isl_ast_mat,level);
+        }*/
+}
+void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
+{
+    stage_isl_states();
+/**
+ * Applying to staging
+*/
+    std::vector<tiramisu::computation *> all_data;
+    
+    for(int i=0;i < opt.nodes.size();i++){
+
+        opt.nodes[i]->get_all_computations(all_data);
+        std::cout <<"Index Current Matri: x"<<i<<std::endl<<" Matrix : "<<std::endl;
+        for (int k = 0; k < opt.mats[i].size(); k++) {
+                for (int j = 0; j < opt.mats[i][i].size(); j++)
+                    std::cout << opt.mats[i][k][j] << " ";
+                std::cout << std::endl;
+            }
+        for(computation* info:all_data)
+        {        
+            std::vector<std::string> loop_names = info->get_loop_level_names();
+            info->matrix_transform(opt.mats[i]);
+            
+            std::cout <<"Index Current Matrix"<<i<<std::endl;
+            std::string f = "";
+            for(auto& str:loop_names)
+            {
+                f+=str+" ";
+            } 
+        }
+
+        int starting_level=0;
+       
+        std::vector<ast_node *> shared_nodes = opt.nodes[i]->collect_shared_nodes_from_head();
+        std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
+        std::vector<std::vector<int>> transformed_bounds_matrix = multiply( opt.mats[i],starting_bounds_mat);
+        
+        update_node( shared_nodes,transformed_bounds_matrix);
+           
+    }   
+     
+    recover_isl_states();
+}
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
 {

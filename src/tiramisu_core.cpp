@@ -3052,6 +3052,124 @@ void computation::interchange(tiramisu::var L0_var, tiramisu::var L1_var)
 
     DEBUG_INDENT(-4);
 }
+void computation::matrix_transform(std::vector<std::vector<int>> matrix)
+{
+
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+    
+    isl_map *schedule = this->get_schedule();
+    DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
+    DEBUG(3, tiramisu::str_dump("Matrix_transformation the dimensions " + std::to_string(matrix.size())));
+
+    int n_dims = isl_map_dim(schedule, isl_dim_out);
+
+    std::vector<isl_id *> dimensions;
+
+    std::vector<std::string> dim_vector;
+    
+
+    // ------------------------------------------------------------
+    // Create a map for the duplicate schedule.
+    // ------------------------------------------------------------
+    
+    std::string map = "{ " + this->get_name() + "[";
+    
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+            map = map + std::to_string(duplicate_ID);
+        }
+        else
+        {
+            if (isl_map_get_dim_name(schedule, isl_dim_out, i) == NULL)
+            {
+                isl_id *new_id = isl_id_alloc(this->get_ctx(), generate_new_variable_name().c_str(), NULL);
+                schedule = isl_map_set_dim_id(schedule, isl_dim_out, i, new_id);
+            }
+            dim_vector.push_back(isl_map_get_dim_name(schedule, isl_dim_out, i));
+            map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+    
+    map = map + "] ->" + this->get_name() + "[";
+    
+    std::vector<std::string> temp_vector;
+    std::string vector_content;
+    int t = 1;
+    
+    for (int i = 0; i < matrix.size(); i++) {
+    
+        for (int j = 0; j < matrix[i].size(); j++){
+            if(j != matrix[i].size()-1){
+                vector_content = vector_content + std::to_string(matrix[i][j]) + dim_vector[t] + "+";
+                t += 2;
+            }
+            else{
+                vector_content = vector_content + std::to_string(matrix[i][j])+dim_vector[t];
+                t += 2;
+            }
+        }
+        t=1;
+        temp_vector.push_back(vector_content);
+        vector_content.clear();     
+    }
+    
+    
+    t = 0;
+    for (int i = 0; i < n_dims; i++)
+    {
+        if (i == 0)
+        {
+            int duplicate_ID = isl_map_get_static_dim(schedule, 0);
+            map = map + std::to_string(duplicate_ID);
+        }
+        else
+        {
+            if (i % 2 == 0){
+                map = map + temp_vector[t];t++;
+            }else{
+                map = map + isl_map_get_dim_name(schedule, isl_dim_out, i);
+                dimensions.push_back(isl_map_get_dim_id(schedule, isl_dim_out, i));
+            }
+        }
+
+        if (i != n_dims - 1)
+        {
+            map = map + ",";
+        }
+    }
+
+    map = map + "]}";
+    
+
+    DEBUG(3, tiramisu::str_dump("A map that transforms the duplicate"));
+    DEBUG(3, tiramisu::str_dump(map.c_str()));
+
+    isl_map *transformation_map = isl_map_read_from_str(this->get_ctx(), map.c_str());
+
+    transformation_map = isl_map_set_tuple_id(
+        transformation_map, isl_dim_in, isl_map_get_tuple_id(isl_map_copy(schedule), isl_dim_out));
+    isl_id *id_range = isl_id_alloc(this->get_ctx(), this->get_name().c_str(), NULL);
+    transformation_map = isl_map_set_tuple_id(
+        transformation_map, isl_dim_out, id_range);
+
+
+    DEBUG(3, tiramisu::str_dump("Final transformation map : ", isl_map_to_str(transformation_map)));
+    schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
+    DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
+
+    this->set_schedule(schedule);
+
+    DEBUG_INDENT(-4);
+}
 
 /**
  * This function modifies the schedule of the computation so that the two loop

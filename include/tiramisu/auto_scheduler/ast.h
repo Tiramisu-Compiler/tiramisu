@@ -654,6 +654,7 @@ public:
     void transform_ast_by_parallelism(const optimization_info &info);
     void transform_ast_by_skewing(const optimization_info &opt);
     void transform_ast_by_shifting(const optimization_info &opt);
+    void transform_ast_by_matrix(const optimization_info &opt);
 
     
     /**
