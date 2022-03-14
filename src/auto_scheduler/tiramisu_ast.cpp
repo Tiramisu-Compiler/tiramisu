@@ -2063,7 +2063,7 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
     }
     else
     {
-        for(ast_node * child:current_itr->children)
+        for(ast_node * child : current_itr->children)
         {
             auto res_i = collect_heads_of_ast(allowed_splits-1,child);
 
@@ -2331,7 +2331,6 @@ bool generator_state::is_search_space_empty()
     }
     else
     {// we are in the last optimization
-
         if(this->optimization_index < generator_state::optimization_list.size())
         {
             return false;

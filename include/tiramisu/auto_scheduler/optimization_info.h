@@ -35,7 +35,7 @@ struct optimization_info
     /**
      * The list of computations that this optimization will be applied to.
      */
-    std::vector<std::vector<std::vector<int>>> mats;
+    std::vector<std::vector<int>> matrix;
     /**
      * The list of computations that this optimization will be applied to.
      */
@@ -46,7 +46,6 @@ struct optimization_info
      * It indicates the node at which to start the transformation.
      */
     ast_node *node;
-    
     /**
      * The number of loop levels that this optimization affects.
      * For example, a 2 level tiling affects 2 loop levels, an interchange
