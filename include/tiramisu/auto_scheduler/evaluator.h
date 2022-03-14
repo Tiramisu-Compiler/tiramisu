@@ -50,10 +50,7 @@ protected:
     Halide::Target halide_target;
     std::vector<Halide::Argument> halide_arguments;
 
-    /**
-     * The program to compile and to execute.
-     */
-	tiramisu::function *fct;
+    
 	
 	/**
 	 * The name of the ".o" to generate (it will contain the compiled Tiramisu program).
@@ -66,6 +63,10 @@ protected:
     std::string wrapper_cmd;
 
 public:
+/**
+     * The program to compile and to execute.
+     */
+	tiramisu::function *fct;
     /**
      * arguments : the input and output buffers of the program.
      */

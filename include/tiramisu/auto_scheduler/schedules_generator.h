@@ -82,6 +82,7 @@ public:
 //        return this->generate_schedules(ast,optimization_type::TILING);
 //    }
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast)=0;
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast)=0;
     
 };
 
@@ -125,6 +126,7 @@ public:
         : schedules_generator(tiling_factors_list, unrolling_factors_list) {}
 
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast);
 };
 
 /**
@@ -153,6 +155,7 @@ public:
 //    virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
 
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree& ast);
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast);
 };
 
 }

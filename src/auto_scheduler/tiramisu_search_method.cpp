@@ -1,6 +1,13 @@
+#include <sys/wait.h>
 #include <tiramisu/auto_scheduler/search_method.h>
 #include <random>
 
+#include <random>
+#include <functional>
+#include <exception>
+
+#include <stdexcept>
+#define TIME_LIMIT 1000
 namespace tiramisu::auto_scheduler
 {
 
@@ -146,6 +153,39 @@ void beam_search::search(syntax_tree& ast)
         search(*child);
     }
 }
+
+int timeout = 0;
+int child_done = 0;
+int cont = 0;
+  void child_handler(int sig)
+{
+    child_done = 1;
+}
+int nb_exec = std::stoi(std::getenv("MAX_RUNS"));
+void alarm_handler(int sig)
+{
+    timeout = 1;
+}
+void sig_usr(int signo){
+    cont = 1; 
+    
+}
+/*
+multiply two matrices AxB
+*/
+std::vector<std::vector<int>>  multiply(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
+{
+std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
+
+    for(std::size_t row = 0; row < result.size(); ++row) {
+        for(std::size_t col = 0; col < result.at(0).size(); ++col) {
+            for(std::size_t inner = 0; inner < m2.size(); ++inner) {
+                result.at(row).at(col) += m1.at(row).at(inner) * m2.at(inner).at(col);
+            }
+        }
+    }
+    return result;
+}
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
     std::vector<syntax_tree*> children;
@@ -170,7 +210,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
 
         if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
             // move to next optimization
-            //explores next optimization/alternative
+            // explores next optimization/alternative
             ast.move_to_next_optimization_target();
             break;
         }
@@ -274,6 +314,356 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
 
+}
+// list of matrices to explore at each level of the exploration tree
+//std::vector <std::vector < std::vector<int> >> matrices;
+// list of hashes of matrices we explored before to avoid repeating schedules 
+std::vector<std::size_t> hashes;
+void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
+{
+
+    //     
+    std::default_random_engine rand_generator;
+
+    
+    std::vector<syntax_tree*> children;
+    // list of ASTs to be explored for next level 
+    std::vector<syntax_tree*> to_be_explored;
+
+    std::vector<optimization_type> optims;
+    optims.push_back(optimization_type::MATRIX);
+    
+    if(generator_state::initialized == false)
+    {
+        ast.initialize_search_space_optimizations(optims);
+        // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
+        assert(generator_state::initialized == true);
+    }
+
+
+
+    while ((!ast.is_search_space_empty()))
+    {
+        // schedule generation based on generator_state attribute in the AST.
+        auto new_children = scheds_gen->generate_matrices(ast);
+
+        for(auto& child:new_children)
+            child->move_to_next_optimization_target();
+
+        children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
+
+        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
+            // move to next optimization
+            // explores next optimization/alternative
+            ast.move_to_next_optimization_target();
+            break;
+        }
+        else
+            ast.move_to_next_optimization_target();
+    }
+
+    std::hash<std::string> hasher;
+    // hash the parent 
+    std::size_t parent_hash=hasher(ast.get_schedule_str());
+    // generate the matrices to be explored at this level
+    
+    // if this is the roor of the exploration tree 
+    if (ast.search_depth==0){
+
+        optimization_info optim_info;
+        optim_info.type = optimization_type::MATRIX;
+        optim_info.comps = ast.computations_list;
+        // for the original schedule, the transformation matrix is the identity
+        //optim_info.matrix = get_identity(ast.get_program_depth());
+        ast.new_optims.push_back(optim_info);
+        // the root to the hashes to avoid repeating the identity matrix
+        hashes.push_back(hasher(ast.get_schedule_str()));
+    }
+    
+    
+    
+    // stop if no more optimizations can be applied
+    if (children.size() == 0) return ;
+    
+
+
+    
+    auto iterator = children.begin();
+    
+
+    
+   
+    
+    std::vector<std::vector<std::vector<int>>> repeated;
+    
+
+    // number of matrices explored so far at this level. used to go through the matrices global variable
+    int nb_matrices =0;
+
+    syntax_tree *child = *iterator;
+
+
+    // evaluate children and sort them from smallest to highest evaluation
+    // evaluate while removing illegal versions
+    while (iterator != children.end())
+    {
+         
+        child = *iterator;
+        child->transform_ast();
+
+        if (!child->ast_is_legal()) {
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                // print deleted Ast
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                std::cout<<ast.get_schedule_str()<<std::endl;
+                child->print_new_optims();
+                
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<illegal>\n";
+            }
+            delete child;
+            iterator = children.erase(iterator);
+        }
+        else {
+            
+            
+        
+            
+            
+            // hash the legal matrix 
+            std::size_t hash=hasher(child->get_schedule_str());
+            
+
+            bool repeated = false;
+            // check if we explored this matrix before  
+            for(std::size_t hashe:hashes){
+                
+                if(hashe==hash){
+                    delete child;
+                    iterator = children.erase(iterator);
+                    repeated = true;
+                    break;
+                    
+                }
+            }
+        
+            if(repeated) continue;
+
+            
+            // if the matrix is legal and not repeated we add its hash to the list of seen hashes and we start the evaluation 
+            hashes.push_back(hash);
+               
+            // print and evaluate Ast
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                child->print_previous_optims();
+                std::cout << "\n-----------" << std::endl;
+                std::cout<<ast.get_schedule_str()<<std::endl;
+                child->print_new_optims();
+                //std::cout<<child->get_schedule_str()<<std::endl;
+                child->print_ast();
+                child->print_isl_states();
+                std::cout << "\n<legal>\n";
+                child->print_computations_accesses();
+            }
+            int fd[2];
+            
+            // create pipe descriptors
+	        pipe(fd);
+            timeout=0;
+            child_done=0;
+            cont = false;
+            std::vector<float> measurements;
+            
+            
+            // create a child process to execute the code and get measurements
+            // this is added so that we can limit the code generation time for large programs
+            pid_t pid;
+            pid = fork();
+
+            if (pid == -1) {
+                perror("fork failed");
+                exit(1);
+            } else if (pid == 0) {
+                measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
+                int size =measurements.size();
+                float ar[measurements.size()];
+
+                // put the measurements in an array to be sent to the parent process
+                
+                for(int i=0;i<measurements.size();i++) ar[i]=measurements.at(i);
+                
+                close(fd[0]);
+                // send number of measurements to parent process
+                write(fd[1], &size, sizeof(size));
+                // send measurements to parent process
+                write(fd[1], &ar, sizeof(ar));
+                // close the pipe
+                close(fd[1]);
+                // end child process
+                _exit(1);
+            }
+
+            // set up the signal handlers after forking so the child doesn't inherit them
+            // an alarm in the case of the timelimit is reached and the child process was interrupted
+            signal(SIGALRM, alarm_handler);
+            // an alarm in the case of the child process ending ie. both data generation and evaluation are done
+            signal(SIGCHLD, child_handler);
+            // an alarm in the case of the data generation ending before the timelimit. We still need to wait for the evaluation to be done. 
+            signal(SIGUSR1,sig_usr);
+            // install an alarm to be fired after TIME_LIMIT
+            
+            // set the alarm
+            alarm(TIME_LIMIT);
+            
+            pause();
+
+            if (timeout) {
+                
+                // if the timeout has been reached    
+                    
+                int result = waitpid(pid, NULL, WNOHANG);
+                if (result == 0) {
+                    // child still running, so kill it
+                    
+                    
+                    // Remove all the optimizations
+                    exec_eval->fct->reset_schedules();
+                    measurements.clear();
+                    // if the timeout has been reached, put infinity as a measurement
+
+                    measurements.push_back(std::numeric_limits<float>::infinity());
+                    // cancel any previously set alarm 
+                    alarm(0); 
+                    // kill child process
+                    kill(pid, 9);
+                    
+                
+                    waitpid(-1,NULL,0);
+                } else {
+                    // if by the time we detect that the alarm has been raised, the evaluation has been completed
+                    // we recieve the measurements from the child
+                    int size = 0;
+                    close(fd[1]);
+                    read(fd[0], &size, sizeof(int));
+                    float ar[size];
+                    read(fd[0], &ar, size*sizeof(float));
+                    for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                    close(fd[0]);
+                    
+                }
+                
+                
+            }else if (child_done) {
+                // the execution of the child is done, both code generation and evaluation
+                // we recieve the measurements from the child
+                int size =0;
+                close(fd[1]);
+                read(fd[0], &size, sizeof(int));
+                float ar[size];
+                read(fd[0], &ar, size*sizeof(float));
+                for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                close(fd[0]);
+                
+                waitpid(-1,NULL,0);
+            }else if(cont){
+                // execution is not done but the code generation is done. This happens for large programs that take a long time to execute
+                // cancel the timeout alarm  
+                alarm(0);
+                int size=0;
+                // we wait for the evalution of the generated code
+                while(!child_done){}
+                // after evealuation is done, we recieve the measurements from the child
+                close(fd[1]);
+                read(fd[0], &size, sizeof(int));
+                float ar[size];
+                read(fd[0], &ar, size*sizeof(float));
+                for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                close(fd[0]);
+                waitpid(-1,NULL,0);
+            }
+                    
+            child->evaluation = min_eval(measurements);
+
+            //if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
+            parent_trace->add_child_path(child, schedules_annotations->size());
+
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
+            
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
+            
+            if (std::isfinite(child->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_times\" : null\n}\n";
+
+            schedules_annotations->push_back(schedule_annot);
+
+            if (std::atoi(read_env_var("AS_VERBOSE"))==1){
+                std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+                std::cout << "Evaluation : " << child->evaluation << std::endl;
+                std::cout << "Number of measurements : " << measurements.size() << std::endl;
+                std::cout << "===================================" << std::endl << std::endl;
+            }
+
+            if (std::isinf(child->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+            if (child->evaluation < best_evaluation)
+            {
+                best_evaluation = child->evaluation;
+                best_ast = child;
+            }
+            to_be_explored.push_back(child);
+            ++iterator;  
+            
+        }
+    }
+    syntax_tree *ast_copy = ast.copy_ast();
+    //ast_copy->nb_explored_optims = nb_explored_optims;
+                    
+    to_be_explored.push_back(ast_copy);
+    
+                    
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id());
+    
+
+
+    
+    // Sort children from smallest evaluation to largest
+    std::sort(to_be_explored.begin(), to_be_explored.end(), [](syntax_tree *a, syntax_tree *b) {
+       return a->evaluation < b->evaluation;
+    });
+
+    // shuffle the children so that they are selected a random
+    //std::shuffle(std::begin(to_be_explored), std::end(to_be_explored), rand_generator);
+    
+    // keep the top 'beam_size' children and delete the rest
+    for (int i = beam_size; i < to_be_explored.size(); ++i)
+       delete to_be_explored[i];
+    
+    
+    
+
+    to_be_explored.resize(std::min(beam_size, (int)to_be_explored.size()));
+   
+    
+    for (syntax_tree *child : to_be_explored)
+    {
+        // increment the search depth for the recursive call 
+        child->search_depth = ast.search_depth + 1;
+        // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
+        if (child->search_depth<MAX_MAT_DEPTH  ){
+            search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
+        }else{
+            // if we surpassed the MAX_MAT_DEPTH amount of matrices to explore OR we detected the parent of this level through
+            // the child->search_depth<=child->nb_explored_matrices condition which means that the search level is greater than the number of applied matrices
+            search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
+        }
+    }
 }
 //void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 //{
