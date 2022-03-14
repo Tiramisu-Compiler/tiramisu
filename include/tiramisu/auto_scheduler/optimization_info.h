@@ -17,6 +17,7 @@ enum optimization_type
     UNROLLING,
     PARALLELIZE,
     SKEWING,
+    MATRIX,
     VECTORIZATION,
     SHIFTING
 };
@@ -31,7 +32,10 @@ struct optimization_info
      * The type of this optimization.
      */
     optimization_type type;
-    
+    /**
+     * The list of computations that this optimization will be applied to.
+     */
+    std::vector<std::vector<std::vector<int>>> mats;
     /**
      * The list of computations that this optimization will be applied to.
      */
