@@ -1,6 +1,7 @@
 set(SOURCES
   PyTiramisu.cpp
   PyExpr.cpp
+  PyType.cpp
   )
 
 pybind11_add_module(Tiramisu_Python MODULE ${SOURCES})
