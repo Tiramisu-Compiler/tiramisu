@@ -14,5 +14,4 @@ static_assert(PY_VERSION_HEX >= 0x03000000,
 PYBIND11_MODULE(TIRAMISU_PYBIND_MODULE_NAME, m) {
   using namespace tiramisu::PythonBindings;
   define_expr(m);
-  
 }
