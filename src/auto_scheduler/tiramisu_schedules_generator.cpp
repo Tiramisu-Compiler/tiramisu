@@ -1378,7 +1378,32 @@ int gcd_extend(int a, int b,
         return g;
     }
 }
+bool is_repeated( std::vector < std::vector<int> >  matrix,std::vector < std::vector < std::vector<int> > > matrices)
+{
+    //if there are no matrices to compare to then we return false
+    if(matrices.size()==0) return false;
+    //if there are no matrices to compare to then we return false
+    if(matrices.at(0).size()==0) return false;
 
+    int depth = matrix.size();
+    int i=0;
+    while(i<matrices.size() && matrices.at(i).size()!=0){ 
+        //for each matrix that we already explored  
+        bool diffrent = false;
+        for (int s=0;s<depth;s++){
+                for (int d=0;d<depth;d++){
+                            // set diffrent to true if we find one element that is not the same
+                            if (matrix.at(s).at(d)!=matrices.at(i).at(s).at(d)) diffrent =true ;
+                    }
+        }
+        //if we found the same matrix return true
+        if (!diffrent) return true;
+    i++;
+    }
+
+
+    return false;
+}
 // the given equations ax + by = c
 std::vector<int> get_equation_solution(int a, int b, int c)
 {
@@ -1392,9 +1417,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     //this method uses the AST custom schedule generator
 
     std::vector<syntax_tree *> states;
-
+    std::vector<std::vector<std::vector<int>>> matrices;
     ast_node *node = std::get<0>(ast.get_current_optimization_target());
-
+    
     std::vector<int> shared_levels_extents;
     std::vector<int> innermost_extents;
     std::vector<ast_node *> innermost_nodes;
@@ -1405,9 +1430,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     int nb_shared_iterators;
 
     int nb_try = 0;
-
+    
     shared_nodes = node->collect_shared_nodes_from_head();
-    int depth = node->depth + shared_nodes.size(); // TO CHECK
+    
+    int depth = node->depth + shared_nodes.size(); 
     if (shared_nodes.size() > 0)
     {
         node->get_all_computations(involved_computations);
@@ -1416,8 +1442,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     {
         return states;
     }
-    if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::INTERCHANGE)) // check if one of the involved computations is already interchanged
-        return states;
+    
 
     // To apply interchange, we pick all combinations of two iterators
     // in the shared loop levels.
@@ -1427,13 +1452,14 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         {
             // Copy the AST and add interchange to the list of optimizations
             syntax_tree *new_ast = new syntax_tree();
-            ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
+            ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
 
             optimization_info optim_info;
             optim_info.type = optimization_type::MATRIX;
             optim_info.node = new_node;
-
+            
             optim_info.nb_l = 2;
+            
             std::vector <  std::vector<int> >  matrix(depth);
             for(int l = 0; l<matrix.size(); l++){
                 matrix.at(l)= std::vector<int>(depth);
@@ -1458,16 +1484,34 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             states.push_back(new_ast);
         }
     }
+    
+    std::vector<tiramisu::computation *> involved_computations_reversal;
+    //for shared nodes the list of involved computations is always the same.
+    // that's only the case when we compute test shared loop levels only (not always the case).
+    shared_nodes = node->collect_shared_nodes_from_head();
+
+    if (shared_nodes.size() > 1)
+    {
+        shared_nodes[0]->get_all_computations(involved_computations_reversal);
+        shared_nodes.pop_back(); //removes 2nd loop level, first is enough
+    }
+    else
+    {
+        ast.recover_isl_states();
+        return states;
+    }
     // add reversal
     // add reversal matriecs
-    for(int i=0;i<depth;i++){
+    
+    for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
-        ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[i]);
+        ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
 
         optimization_info optim_info;
         optim_info.type = optimization_type::MATRIX;
         optim_info.node = new_node;
+        
         std::vector <  std::vector<int> >  matrix(depth);
         for(int l = 0; l<matrix.size(); l++){
             matrix.at(l)= std::vector<int>(depth);
@@ -1479,22 +1523,23 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                             }
             }
         }
-        matrix.at(i).at(i) = -1; 
-        optim_info.comps = involved_computations;
+        matrix.at(shared_nodes[i]->depth).at(shared_nodes[i]->depth) = -1; 
+        optim_info.comps = involved_computations_reversal;
         optim_info.matrix = matrix;
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
+    
     // add skweing 
     ast.stage_isl_states();
-
+    std::vector<tiramisu::computation *> involved_computations_skew;
     //for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
     shared_nodes = node->collect_shared_nodes_from_head();
 
     if (shared_nodes.size() > 1)
     {
-        shared_nodes[0]->get_all_computations(involved_computations);
+        shared_nodes[0]->get_all_computations(involved_computations_skew);
         shared_nodes.pop_back(); //removes 2nd loop level, first is enough
     }
     else
@@ -1502,36 +1547,35 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         ast.recover_isl_states();
         return states;
     }
-
-    if (ast.optim_already_applied_on_comps(involved_computations,optimization_type::SKEWING)) // check if one of the involved computations is already skewed
-    {
-        ast.recover_isl_states();
-        return states;
-    }
+    
+    
 
     for (ast_node *commun_node : shared_nodes)
     {
-        std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
+        std::vector<std::string> loop_names = involved_computations_skew[0]->get_loop_level_names();
 
         std::string loop_name = loop_names[commun_node->depth];
         std::string loop_name_inner = loop_names[commun_node->depth + 1];
 
-        auto result_skewing = ast.fct->skewing_local_solver(involved_computations,
+        auto result_skewing = ast.fct->skewing_local_solver(involved_computations_skew,
                                                             var(loop_name), var(loop_name_inner),
                                                             skewing_inner_parallelism_number);
 
         if (std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
         {
+            
             ast.recover_isl_states();
             for (auto &param : std::get<1>(result_skewing))
             {
+                ///std::cout<<"skewing first cond"<<std::endl;
                 // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
                 ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
 
                 optimization_info optim_info;
-                optim_info.type = optimization_type::SKEWING;
+                optim_info.type = optimization_type::MATRIX;
                 optim_info.node = new_node;
+                
 
                 optim_info.nb_l = 2;
                 optim_info.l0 = new_node->depth;
@@ -1564,7 +1608,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
                 }
                 optim_info.matrix = matrix;
-                optim_info.comps = involved_computations;
+                optim_info.comps = involved_computations_skew;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
@@ -1576,12 +1620,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             ast.recover_isl_states();
             for (auto &param : std::get<0>(result_skewing))
             {
+                //std::cout<<"skewing second cond"<<std::endl;
                 // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 
                 optimization_info optim_info;
-                optim_info.type = optimization_type::SKEWING;
+                optim_info.type = optimization_type::MATRIX;
                 optim_info.node = new_node;
 
                 optim_info.nb_l = 2;
@@ -1613,7 +1658,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
                 }
                 optim_info.matrix = matrix;
-                optim_info.comps = involved_computations;
+                optim_info.comps = involved_computations_skew;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
@@ -1625,12 +1670,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             ast.recover_isl_states();
             for (auto &param : std::get<2>(result_skewing))
             {
+                //std::cout<<"skewing thrid cond"<<std::endl;
                 // Copy the AST and add unrolling to the list of optimizations
                 syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 
                 optimization_info optim_info;
-                optim_info.type = optimization_type::SKEWING;
+                optim_info.type = optimization_type::MATRIX;
                 optim_info.node = new_node;
 
                 optim_info.nb_l = 2;
@@ -1667,11 +1713,186 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 }
                 optim_info.matrix = matrix;
 
-                optim_info.comps = involved_computations;
+                optim_info.comps = involved_computations_skew;
                 new_ast->new_optims.push_back(optim_info);
                 states.push_back(new_ast);
             }
             ast.stage_isl_states();
+        }
+    }
+    ast.recover_isl_states();
+    // boolean for adding random skew patterns
+    bool add_3d_skew=false;
+    // number of random 3d skews to add
+    int d3_skew = 2;
+
+    // add 2d random skew
+    bool add_random_skew=false;
+    // number of random 2d skews to add
+    int rand_skew = 2;
+    // skew interval
+    int max_skew=7; 
+    if(add_random_skew){
+        for(int i=0;i<rand_skew;i++){
+            std::vector <  std::vector<int> >  matrix(depth);
+            for(int l = 0; l<depth; l++){
+                matrix.at(l)= std::vector<int>(depth);
+                for(int c = 0; c<depth; c++){
+                                if (l!=c ){
+                                    matrix.at(l).at(c) = 0;
+                                }else{
+                                    matrix.at(l).at(c) = 1;
+                                }
+                }
+            } // SKEW IS NOT RESPECTING CONSTRANINTS
+            // add the skew at a random position in the upper triangle  
+            int l0 =(rand() % (depth-1))+1;
+            int l1 = rand() % l0;
+            // generate the factor randomly in the interval [-max_skew, max_skew] - {0}
+            int l0_fact = (rand() %(max_skew)*2) - 7;
+            if (l0_fact==0) l0_fact++;
+            matrix.at(l0).at(l1) = l0_fact;
+            // if we haven't added this skew patter yet
+            if(!is_repeated(matrix, matrices)){
+                matrices.push_back(matrix);
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
+                optim_info.matrix = matrix;
+                optim_info.comps = involved_computations;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+            }else{i--;};
+        }
+    }
+    // second skewing pattern
+    
+    
+    if(add_random_skew){
+        for(int i=0;i<rand_skew;i++){
+            std::vector <  std::vector<int> >  matrix(depth);
+            for(int l = 0; l<depth; l++){
+                matrix.at(l)= std::vector<int>(depth);
+                for(int c = 0; c<depth; c++){
+                                if (l!=c ){
+                                    matrix.at(l).at(c) = 0;
+                                }else{
+                                    matrix.at(l).at(c) = 1;
+                                }
+                }
+            }
+            // add the skew at a random position in the upper triangle 
+            int l0 =(rand() % (depth-1))+1;
+            int l1 = rand() % l0;
+            // generate the factor randomly in the interval [-max_skew, max_skew] - {0}
+            int l0_fact = (rand() %(max_skew)*2) - 7;
+            if (l0_fact==0) l0_fact++;
+            matrix.at(l1).at(l0) = l0_fact;
+            // if we haven't added this skew patter yet
+            if(!is_repeated(matrix, matrices)){
+                matrices.push_back(matrix);
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
+                optim_info.matrix = matrix;
+                optim_info.comps = involved_computations;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+                }else{i--;}
+        }
+    }
+    bool saw_zero = false;
+    int cpt = 0;
+    
+    
+    if(add_3d_skew){
+        for(int i=0;i<d3_skew;i++){
+            saw_zero = false;
+            cpt = 0;
+            std::vector <  std::vector<int> >  matrix(depth);
+            for(int l = 0; l<depth; l++){
+                matrix.at(l)= std::vector<int>(depth);
+                for(int c = 0; c<depth; c++){
+                                if (l!=c ){
+                                    matrix.at(l).at(c) = 0;
+                                }else{
+                                    matrix.at(l).at(c) = 1;
+                                }
+                }
+            }
+            int l0 =rand() % (depth-1);
+            int l0_fact;
+            
+            for(int j=0;j<depth;j++){
+                // we only add a zero a limited number of times
+                if (saw_zero){int l0_fact = (rand() %(max_skew)*2) - 7;if (l0_fact==0) l0_fact++;}else{l0_fact = (rand() %(max_skew)*2) - 7;}
+                if(l0_fact == 0) cpt++;
+                if(l0_fact == 0 && cpt==depth-3) saw_zero = true;
+                if (j!=l0)matrix.at(l0).at(j) = l0_fact;
+            }
+            // if we haven't added this skew patter yet
+            if(!is_repeated(matrix, matrices)){
+                matrices.push_back(matrix);
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
+                optim_info.matrix = matrix;
+                optim_info.comps = involved_computations;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+                }else{i--;}
+        }
+        
+        for(int i=0;i<d3_skew;i++){
+            saw_zero = false;
+            cpt = 0;
+            std::vector <  std::vector<int> >  matrix(depth);
+            for(int l = 0; l<depth; l++){
+                matrix.at(l)= std::vector<int>(depth);
+                for(int c = 0; c<depth; c++){
+                                if (l!=c ){
+                                    matrix.at(l).at(c) = 0;
+                                }else{
+                                    matrix.at(l).at(c) = 1;
+                                }
+                }
+            }
+            int l0 =rand() % (depth-1);
+            int l0_fact;
+            for(int k=0;k<depth;k++){
+                // we only add a zero a limited number of times
+                if (saw_zero){int l0_fact = (rand() %(max_skew)*2) - 7;if (l0_fact==0) l0_fact++;}else{l0_fact = (rand() %(max_skew)*2) - 7;}
+                if(l0_fact == 0) cpt++;
+                if(l0_fact == 0 && cpt==depth-3) saw_zero = true;
+                if (k!=l0)matrix.at(k).at(l0) = l0_fact;
+            }
+            // if we haven't added this skew patter yet
+            if(!is_repeated(matrix, matrices)){
+                matrices.push_back(matrix);
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
+                optim_info.matrix = matrix;
+                optim_info.comps = involved_computations;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+                }else{i--;}
         }
     }
 

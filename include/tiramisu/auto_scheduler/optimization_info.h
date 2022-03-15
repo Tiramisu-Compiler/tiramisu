@@ -46,6 +46,11 @@ struct optimization_info
      */
     ast_node *node;
     /**
+     * This attribute is used when transforming the AST.
+     * It indicates the head of the branch at which to start the transformation.
+     */
+    ast_node *head;
+    /**
      * The number of loop levels that this optimization affects.
      * For example, a 2 level tiling affects 2 loop levels, an interchange
      * affects 2 loop levels, an unrolling affects 1 loop level.

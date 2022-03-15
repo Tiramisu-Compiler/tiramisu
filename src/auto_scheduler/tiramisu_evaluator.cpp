@@ -71,7 +71,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     return exec_time;
 }
 
-std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout)
+std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout, bool code_gen_timeout )
 {
     // Apply all the optimizations
     apply_optimizations(ast);
@@ -81,6 +81,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     fct->gen_time_space_domain();
     fct->gen_isl_ast();
     fct->gen_halide_stmt();
+    if (code_gen_timeout) kill(getppid(), SIGUSR1);
 
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,
                                              Halide::Internal::LoweredFunc::External,
@@ -322,7 +323,22 @@ void evaluate_by_learning_model::represent_computations_from_nodes(ast_node *nod
     for (ast_node *child : node->children)
         represent_computations_from_nodes(child, computations_json, comp_absolute_order);
 }
+/*
+multiply two matrices AxB
+*/
+std::vector<std::vector<int>>  mat_mul(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
+{
+std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
 
+    for(std::size_t row = 0; row < result.size(); ++row) {
+        for(std::size_t col = 0; col < result.at(0).size(); ++col) {
+            for(std::size_t inner = 0; inner < m2.size(); ++inner) {
+                result.at(row).at(col) += m1.at(row).at(inner) * m2.at(inner).at(col);
+            }
+        }
+    }
+    return result;
+}
 std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 {
     std::string sched_json = "{";
@@ -334,6 +350,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     bool skewed = false;
     bool parallelized = false;
     bool shifted = false;
+    bool transformed_by_matrix = false;
 
     int int_l0, int_l1;
     int tile_nb_l, tile_l0, tile_l0_fact, tile_l1_fact, tile_l2_fact;
@@ -342,6 +359,20 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     int skewing_l0, skewing_l1;
     int skew_extent_l0, skew_extent_l1;
     int parallelized_level;
+    int depth = 0;
+    if(ast.new_optims.size()>0) depth = ast.new_optims.at(0).matrix.size();
+    std::vector < std::vector<int> > matrix(depth);
+    std::vector <std::vector < std::vector<int> >> matrices;
+    for(int l = 0; l<matrix.size(); l++){
+                            matrix.at(l)= std::vector<int>(depth);
+                            for(int c = 0; c<matrix.size(); c++){
+                                            if (l!=c ){
+                                                matrix.at(l).at(c) = 0;
+                                            }else{
+                                                matrix.at(l).at(c) = 1;
+                                            }
+                            }
+                        }
     std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
 
     
@@ -382,6 +413,12 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 interchanged = true;
                 int_l0 = optim_info.l0;
                 int_l1 = optim_info.l1;
+                break;
+
+            case optimization_type::MATRIX:
+                transformed_by_matrix = true;
+                matrices.push_back(optim_info.matrix);
+                matrix = mat_mul( optim_info.matrix, matrix);
                 break;
                 
             case optimization_type::UNROLLING:
@@ -443,7 +480,38 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         }
         
         comp_sched_json += "],";
+        comp_sched_json += "\"transformation_matrices\" : [";
         
+        if (transformed_by_matrix)
+        {
+            for(int i = 0; i < matrices.size(); i++){
+                comp_sched_json += "[";
+                for(int j = 0; j < depth; j++){
+                            for(int k = 0; k< depth; k++){
+                                
+                                comp_sched_json += "\"" + std::to_string(matrices.at(i).at(j).at(k))+"\"";
+                                if(!(j==depth-1 && k==depth-1)) comp_sched_json += ", ";
+                            }
+                }
+                comp_sched_json += "] ";
+                if(i!=matrices.size()-1) comp_sched_json += ", ";
+            }
+        }
+        
+        comp_sched_json += "],";
+        // JSON for matrix
+        comp_sched_json += "\"transformation_matrix\" : [";
+        
+        if (transformed_by_matrix)
+        {
+            for(int i = 0; i < matrix.size(); i++){
+                        for(int j = 0; j< matrix.size(); j++){
+                            comp_sched_json += "\"" + std::to_string(matrix.at(i).at(j))+"\"";
+                            if(!(i==matrix.size()-1 && j==matrix.size()-1)) comp_sched_json += ", ";
+                        }
+            }
+        }
+        comp_sched_json += "]," ;
         // JSON for tiling
         comp_sched_json += "\"tiling\" : {";
         

@@ -86,7 +86,7 @@ public:
      * If the timeout parameter is defined, it stops the execution after MAX_RUNS*timeout seconds
      * If exit_on_timeout is set to true, it raises an error when the timeout is reached and terminates the program
      */
-    std::vector<float> get_measurements(syntax_tree &ast,  bool exit_on_timeout = false, float timeout = 0);
+    std::vector<float> get_measurements(syntax_tree &ast,  bool exit_on_timeout = false, float timeout = 0, bool code_gen_timeout = false);
 };
 
 /**

@@ -359,9 +359,9 @@ void syntax_tree::transform_ast(optimization_info const& opt)
             transform_ast_by_unfuse(opt);
             break;
             */
-        /*case optimization_type::MATRIX:
+        case optimization_type::MATRIX:
             transform_ast_by_matrix(opt);
-            break;*/
+            break;
         case optimization_type::TILING:
             transform_ast_by_tiling(opt);
             break;
@@ -465,8 +465,10 @@ std::vector<std::vector<int>> get_bounds(std::vector<ast_node *> shared_nodes){
     for (int i=0; i <shared_nodes.size();i++){
         std::vector<int> vec;
         // Updating the node using isl_ast_map 
-        vec.push_back (shared_nodes[i]->low_bound);
-        vec.push_back (shared_nodes[i]->up_bound);
+        vec.push_back(shared_nodes[i]->low_bound);
+        //std::cout<<"lower: "<<shared_nodes[i]->low_bound<<std::endl;
+        vec.push_back(shared_nodes[i]->up_bound);
+        //std::cout<<"upper: "<<shared_nodes[i]->up_bound<<std::endl;
         bounds_mat.push_back(vec);
         vec.clear();
     }
@@ -478,7 +480,7 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
     for (int i=0; i <shared_nodes.size();i++){
         // Updating the node using transformed bounds matrix 
         shared_nodes[i]->low_bound = bounds_mat[i][0];
-        shared_nodes[i]->up_bound = bounds_mat[i][0];
+        shared_nodes[i]->up_bound = bounds_mat[i][1];
     }
     /*if (level >= isl_ast_mat.size()){
         if (node->children.size() != 0){node = node->children[0];}
@@ -504,37 +506,68 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 /**
  * Applying to staging
 */
+    
     std::vector<tiramisu::computation *> all_data;
     
-    //for(int i=0;i < opt.node.size();i++){
-
-        opt.node->get_all_computations(all_data);
-        std::cout <<"Index Current Matri: x"<<std::endl<<" Matrix : "<<std::endl;
-        for (int k = 0; k < opt.matrix.size(); k++) {
-                for (int j = 0; j < opt.matrix[k].size(); j++)
-                    std::cout << opt.matrix[k][j] << " ";
-                std::cout << std::endl;
-            }
-        for(computation* info:all_data)
-        {        
-            std::vector<std::string> loop_names = info->get_loop_level_names();
-            info->matrix_transform(opt.matrix);
-            
-           
-            std::string f = "";
-            for(auto& str:loop_names)
-            {
-                f+=str+" ";
-            } 
+    //std::cout <<"Index Current Matrix: "<<opt.matrix.size()<<std::endl<<" Matrix : "<<std::endl;
+    for (int k = 0; k < opt.matrix.size(); k++) {
+            for (int j = 0; j < opt.matrix[k].size(); j++)
+                std::cout << opt.matrix[k][j] << " ";
+            std::cout << std::endl;
         }
+    opt.node->get_all_computations(all_data);
+    
+    for(computation* info:all_data)
+    {   
+        //std::cout <<"inside one computation "<<std::endl;     
+        std::vector<std::string> loop_names = info->get_loop_level_names();
 
-        int starting_level=0;
-       
-        std::vector<ast_node *> shared_nodes = opt.node->collect_shared_nodes_from_head();
-        std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
-        std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( opt.matrix,starting_bounds_mat);
+        //std::cout <<"loop names "<<std::endl;
+        //for (std::string name:loop_names) std::cout <<name<<std::endl;
+        info->matrix_transform(opt.matrix);
         
-        update_node( shared_nodes,transformed_bounds_matrix);
+        
+        std::string f = "";
+        for(auto& str:loop_names)
+        {
+            f+=str+" ";
+        } 
+    }
+
+    
+    std::vector<ast_node *> shared_nodes ;
+    opt.node->get_shared_nodes_from_outermost(shared_nodes);
+    std::vector<ast_node *> shared_nodes_under = opt.node->collect_shared_nodes_from_head() ;
+    //std::cout<<"shared nodes under: "<<shared_nodes_under.size()<<std::endl;
+    for (auto nodes: shared_nodes_under){
+        shared_nodes.push_back(nodes);
+    }
+    //std::cout<<"shared nodes: "<<shared_nodes.size()<<std::endl;
+    
+    std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
+    //std::cout<<"starting_bounds_mat"<<std::endl;
+    for (int k = 0; k < starting_bounds_mat.size(); k++) {
+            for (int j = 0; j < starting_bounds_mat[k].size(); j++)
+                std::cout << starting_bounds_mat[k][j] << " ";
+            std::cout << std::endl;
+        }
+    std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( opt.matrix,starting_bounds_mat);
+    int temp;
+    for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
+        for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
+            {
+                if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
+                {
+                    temp = transformed_bounds_matrix[i][0];
+                    transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
+                    transformed_bounds_matrix[i][1] = temp;
+                    break;
+                }
+            } 
+    }
+    
+
+    update_node( shared_nodes , transformed_bounds_matrix);
            
     
      
@@ -1997,7 +2030,8 @@ bool syntax_tree::ast_is_legal() const
 
     bool result = this->fct->check_legality_for_function();
     recover_isl_states();
-
+    
+    
     return result;
 
 }
@@ -2021,11 +2055,15 @@ std::string syntax_tree::get_schedule_str()
 {
     std::vector<optimization_info> schedule_vect = this->get_schedule();
     std::string schedule_str;
-
+    if(schedule_vect.size()<1) return schedule_str;
+    bool first_time = true;
+    int start = 0;
     for (auto optim: schedule_vect)
     {
+        //std::cout<<"inside optim loop in get schedule str"<<std::endl;
         std::string comps_list_str="{";
-        for (auto comp:optim.comps)
+        
+        for (auto comp: optim.comps)
         {
             comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";
         }
@@ -2037,6 +2075,20 @@ std::string syntax_tree::get_schedule_str()
                 schedule_str += "F("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
                 break;
 
+            case optimization_type::MATRIX:
+
+                schedule_str += comps_list_str;
+                schedule_str += "M(";
+                for(int i = 0; i < optim.matrix.size(); i++){
+                        for(int j = 0; j< optim.matrix.size(); j++){
+                            
+                            schedule_str += std::to_string(optim.matrix.at(i).at(j));
+                            if(!(i==optim.matrix.size()-1 && j==optim.matrix.size()-1)) schedule_str += ",";
+                        }
+                }
+                schedule_str += "),";
+                
+                break;
             case optimization_type::SHIFTING:
                 schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
                 break;
@@ -2286,7 +2338,6 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
     generator_state::optimization_list = optimizations;
 
     auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
-
     this->search_state.set_new_heads(first_optim_alternatives);
 
     //std::cout<<"optim_list";
@@ -2332,6 +2383,16 @@ optimization_type syntax_tree::get_current_optimization_type() const
     return generator_state::optimization_list[this->search_state.optimization_index]; 
 }
 
+void syntax_tree::move_to_next_optimization_target_matrix()
+{
+
+    this->search_state.increment_index();
+    if(this->search_state.current_index >= this->search_state.target_ast_heads.size())
+    {
+        this->search_state.optimization_index++;
+    }
+
+}
 
 void syntax_tree::move_to_next_optimization_target()
 {
@@ -2341,7 +2402,7 @@ void syntax_tree::move_to_next_optimization_target()
 
     if(this->search_state.current_index >= this->search_state.target_ast_heads.size())
     {
-        this->search_state.optimization_index++;
+        //this->search_state.optimization_index++;
 
         if(this->search_state.optimization_index < generator_state::optimization_list.size())
         {
@@ -2430,10 +2491,12 @@ bool generator_state::is_search_space_empty()
     {// we are in the last optimization
         if(this->optimization_index < generator_state::optimization_list.size())
         {
+            
             return false;
         }
         else
         {
+            
             return true;
         }
     }

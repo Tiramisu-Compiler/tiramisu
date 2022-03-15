@@ -46,7 +46,7 @@ void apply_optimizations(optimization_info const& optim_info)
 {
     // tiramisu::block can be used to apply the same optimization to a set of computations
     tiramisu::block block(optim_info.comps);
-        
+       
     switch (optim_info.type)
     {
         case optimization_type::TILING:
@@ -90,8 +90,8 @@ void apply_optimizations(optimization_info const& optim_info)
                     computation->loop_reversal(optim_info.l1);
             break;
         case optimization_type::MATRIX:
-                    block.matrix_transform(optim_info.matrix);
-                    break;
+            block.matrix_transform(optim_info.matrix);
+            break;
         case optimization_type::SHIFTING:
             for(auto const& computation: optim_info.comps)
             {

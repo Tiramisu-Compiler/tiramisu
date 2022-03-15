@@ -30,7 +30,7 @@ void beam_search::search(syntax_tree& ast)
         assert(generator_state::initialized == true);
     }
 
-    std::cout<<"TESTED";
+    //std::cout<<"TESTED";
     
     while ((!ast.is_search_space_empty()))
     {
@@ -42,13 +42,11 @@ void beam_search::search(syntax_tree& ast)
             child->move_to_next_optimization_target();
         }
         
-//        nb_explored_optims++;
-//        nb_optims_tried++;
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
 
         if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
             // move to next optimization
-            //explores next optimization/alternative
+            // explores next optimization/alternative
             ast.move_to_next_optimization_target();
             break;
         }
@@ -197,7 +195,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     }
 
 //    std::cout<<"TESTED";
-
+    std::cout<<"before search space empty"<<std::endl;
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
@@ -217,7 +215,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         else
             ast.move_to_next_optimization_target();
     }
-
+    std::cout<<"children size is: "<<children.size()<<std::endl;
     // Stop if no more optimizations can be applied
     if (children.size() == 0)
         return ;
@@ -339,35 +337,37 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
         assert(generator_state::initialized == true);
     }
+    
 
-
-
+    //ast.search_state.optimization_index = 0;
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_matrices(ast);
-
+        //std::cout<<"new children size: "<<new_children.size()<<std::endl; 
         for(auto& child:new_children)
             child->move_to_next_optimization_target();
-
+        
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
-
         if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
             // move to next optimization
             // explores next optimization/alternative
             ast.move_to_next_optimization_target();
+            //std::cout<<"about to break"<<std::endl;
             break;
         }
         else
             ast.move_to_next_optimization_target();
     }
-
+    
+    //std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
     std::hash<std::string> hasher;
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
     // generate the matrices to be explored at this level
     
     // if this is the roor of the exploration tree 
+    /*
     if (ast.search_depth==0){
 
         optimization_info optim_info;
@@ -379,6 +379,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         // the root to the hashes to avoid repeating the identity matrix
         hashes.push_back(hasher(ast.get_schedule_str()));
     }
+    */
     
     
     
@@ -409,14 +410,16 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     {
          
         child = *iterator;
+        //std::cout<<"before transform"<<std::endl;
         child->transform_ast();
-
+        //std::cout<<"after transform"<<std::endl;
         if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
                 std::cout<<ast.get_schedule_str()<<std::endl;
+                std::cout << "\n-----------" << std::endl;
                 child->print_new_optims();
                 
                 child->print_ast();
@@ -431,11 +434,11 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             
         
             
-            
+            /*
             // hash the legal matrix 
             std::size_t hash=hasher(child->get_schedule_str());
             
-
+            std::cout<<"before repeated"<<std::endl;
             bool repeated = false;
             // check if we explored this matrix before  
             for(std::size_t hashe:hashes){
@@ -454,14 +457,13 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             
             // if the matrix is legal and not repeated we add its hash to the list of seen hashes and we start the evaluation 
             hashes.push_back(hash);
-               
+            */   
             // print and evaluate Ast
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
-                std::cout<<ast.get_schedule_str()<<std::endl;
                 child->print_new_optims();
-                //std::cout<<child->get_schedule_str()<<std::endl;
+                std::cout<<child->get_schedule_str()<<std::endl;
                 child->print_ast();
                 child->print_isl_states();
                 std::cout << "\n<legal>\n";
@@ -486,7 +488,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 perror("fork failed");
                 exit(1);
             } else if (pid == 0) {
-                measurements = exec_eval->get_measurements(*child, false, schedule_timeout);
+                measurements = exec_eval->get_measurements(*child, false, schedule_timeout,true);
+                //std::cout<<"passed get measurements "<<measurements.size()<<std::endl;
                 int size =measurements.size();
                 float ar[measurements.size()];
 
@@ -583,14 +586,14 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 close(fd[0]);
                 waitpid(-1,NULL,0);
             }
-                    
+            //std::cout<<"after while "<<std::endl;       
             child->evaluation = min_eval(measurements);
-
+            //std::cout<<"after child path "<<std::endl;
             //if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
             parent_trace->add_child_path(child, schedules_annotations->size());
-
+            //std::cout<<"after child p ath "<<std::endl;
             std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*child);
-            
+            //std::cout<<" after schedule json "<<std::endl;
             //remove the last two characters }\n
             schedule_annot.pop_back();
             schedule_annot.pop_back();
@@ -601,7 +604,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 schedule_annot += ", \n\"execution_times\" : null\n}\n";
 
             schedules_annotations->push_back(schedule_annot);
-
+            //std::cout<<" schedules_annotations->push_back "<<std::endl;
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
                 std::cout << "Evaluation : " << child->evaluation << std::endl;
@@ -617,7 +620,9 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 best_evaluation = child->evaluation;
                 best_ast = child;
             }
+             
             to_be_explored.push_back(child);
+            
             ++iterator;  
             
         }
@@ -657,11 +662,13 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
         if (child->search_depth<MAX_MAT_DEPTH  ){
+            //std::cout<<"search saving matrix"<<std::endl;
             search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
         }else{
+            std::cout<<"search saving"<<std::endl;
             // if we surpassed the MAX_MAT_DEPTH amount of matrices to explore OR we detected the parent of this level through
             // the child->search_depth<=child->nb_explored_matrices condition which means that the search level is greater than the number of applied matrices
-            search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
+            //search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
         }
     }
 }

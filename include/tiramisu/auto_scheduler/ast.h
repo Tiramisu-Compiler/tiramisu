@@ -878,7 +878,10 @@ public:
      * moves to the next alternative or to the next optimization .
     */
     void move_to_next_optimization_target();
-
+    /**
+     * moves to the next alternative.
+    */
+    void move_to_next_optimization_target_matrix();
     /**
      * Recomputes the states to update after a generation of a copy or application of fusion.
     */

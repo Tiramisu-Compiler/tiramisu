@@ -60,7 +60,7 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     }
 
     searcher->set_exec_eval(exec_evaluator);
-    searcher->search_save(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
+    searcher->search_save_matrix(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
     std::string output_json;
 

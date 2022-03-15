@@ -3061,7 +3061,9 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     isl_map *schedule = this->get_schedule();
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Matrix_transformation the dimensions " + std::to_string(matrix.size())));
-
+    //std::cout<<"Original schedule: "<< isl_map_to_str(schedule) <<std::endl;
+    //std::cout<<"O "<<std::endl;
+    
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
     std::vector<isl_id *> dimensions;
@@ -3100,11 +3102,11 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     }
     
     map = map + "] ->" + this->get_name() + "[";
-    
+    //std::cout<<"left side of map: "<<map<<std::endl;
     std::vector<std::string> temp_vector;
     std::string vector_content;
     int t = 1;
-    
+    int last_t = -1;
     for (int i = 0; i < matrix.size(); i++) {
     
         for (int j = 0; j < matrix[i].size(); j++){
@@ -3116,16 +3118,36 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
                 vector_content = vector_content + std::to_string(matrix[i][j])+dim_vector[t];
                 t += 2;
             }
+            if(i== matrix.size()-1 && j==matrix[i].size()-1) last_t = t;
         }
         t=1;
+        
         temp_vector.push_back(vector_content);
         vector_content.clear();     
     }
+    //std::cout<<"temp vector before: "<<std::endl;
+    //for (std::string name:temp_vector) std::cout <<name<<std::endl;
+
+
+    //std::cout<<"last t is: "<<last_t<<std::endl;
+    int dim_vector_size = (dim_vector.size()-2) / 2;
+    if(last_t<dim_vector.size()-1){
+        for (int j =0;j<dim_vector_size;j++){
+        temp_vector.push_back(dim_vector[last_t]);
+        last_t+=2;
+    }
+    }
     
-    
+    //std::cout<<"temp vector: "<<std::endl;
+    //for (std::string name:temp_vector) std::cout <<name<<std::endl;
+    //std::cout<<"dim_vector: "<<std::endl;
+    //for (std::string name:dim_vector) std::cout <<name<<std::endl;
     t = 0;
+    //std::cout<<"m_dims: "<<n_dims<<std::endl;
     for (int i = 0; i < n_dims; i++)
     {
+        //std::cout<<"i: "<<i<<std::endl;
+        //std::cout<<"left side of map: "<<map<<std::endl;
         if (i == 0)
         {
             int duplicate_ID = isl_map_get_static_dim(schedule, 0);
@@ -3149,7 +3171,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
 
     map = map + "]}";
     
-
+    //std::cout<<"left side of map final: "<<map<<std::endl;
     DEBUG(3, tiramisu::str_dump("A map that transforms the duplicate"));
     DEBUG(3, tiramisu::str_dump(map.c_str()));
 
@@ -3167,7 +3189,8 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
 
     this->set_schedule(schedule);
-
+    //std::cout<<"schedule to be set: "<< isl_map_to_str(schedule) <<std::endl;
+    //std::cout<<"schedule set: "<< isl_map_to_str(this->get_schedule()) <<std::endl;
     DEBUG_INDENT(-4);
 }
 
