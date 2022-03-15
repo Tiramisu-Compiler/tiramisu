@@ -446,7 +446,7 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 //
 //    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 //}
-std::vector<std::vector<int>>  multiply(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
+std::vector<std::vector<int>>  multiply1(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
 {
 std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
 
@@ -506,21 +506,21 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 */
     std::vector<tiramisu::computation *> all_data;
     
-    for(int i=0;i < opt.nodes.size();i++){
+    //for(int i=0;i < opt.node.size();i++){
 
-        opt.nodes[i]->get_all_computations(all_data);
-        std::cout <<"Index Current Matri: x"<<i<<std::endl<<" Matrix : "<<std::endl;
-        for (int k = 0; k < opt.mats[i].size(); k++) {
-                for (int j = 0; j < opt.mats[i][i].size(); j++)
-                    std::cout << opt.mats[i][k][j] << " ";
+        opt.node->get_all_computations(all_data);
+        std::cout <<"Index Current Matri: x"<<std::endl<<" Matrix : "<<std::endl;
+        for (int k = 0; k < opt.matrix.size(); k++) {
+                for (int j = 0; j < opt.matrix[k].size(); j++)
+                    std::cout << opt.matrix[k][j] << " ";
                 std::cout << std::endl;
             }
         for(computation* info:all_data)
         {        
             std::vector<std::string> loop_names = info->get_loop_level_names();
-            info->matrix_transform(opt.mats[i]);
+            info->matrix_transform(opt.matrix);
             
-            std::cout <<"Index Current Matrix"<<i<<std::endl;
+           
             std::string f = "";
             for(auto& str:loop_names)
             {
@@ -530,13 +530,13 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 
         int starting_level=0;
        
-        std::vector<ast_node *> shared_nodes = opt.nodes[i]->collect_shared_nodes_from_head();
+        std::vector<ast_node *> shared_nodes = opt.node->collect_shared_nodes_from_head();
         std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
-        std::vector<std::vector<int>> transformed_bounds_matrix = multiply( opt.mats[i],starting_bounds_mat);
+        std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( opt.matrix,starting_bounds_mat);
         
         update_node( shared_nodes,transformed_bounds_matrix);
            
-    }   
+    
      
     recover_isl_states();
 }

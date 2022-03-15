@@ -17,7 +17,7 @@ enum optimization_type
     UNROLLING,
     PARALLELIZE,
     SKEWING,
-    //MATRIX,
+    MATRIX,
     VECTORIZATION,
     SHIFTING
 };
@@ -40,10 +40,6 @@ struct optimization_info
      * The list of computations that this optimization will be applied to.
      */
     std::vector<tiramisu::computation*> comps;
-    /**
-     * The list of nodes (heads) that each matrix of the list of mats is applied .
-     */
-    std::vector<ast_node*> nodes;
     /**
      * This attribute is used when transforming the AST.
      * It indicates the node at which to start the transformation.

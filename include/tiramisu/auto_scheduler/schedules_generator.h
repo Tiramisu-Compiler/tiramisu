@@ -126,7 +126,7 @@ public:
         : schedules_generator(tiling_factors_list, unrolling_factors_list) {}
 
     virtual std::vector<syntax_tree*> generate_schedules(syntax_tree const& ast, optimization_type optim);
-    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast);
+    virtual std::vector<syntax_tree *> generate_matrices(syntax_tree &ast)=0;
 };
 
 /**
