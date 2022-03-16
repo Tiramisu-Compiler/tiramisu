@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     // we must prepare schedules for our solvers like this, since we want applied changes on sched_graph to be reflected in schedules
     //prepare_schedules_for_legality_checks(true);
 
-    bool perform_autoscheduling = false;
+    bool perform_autoscheduling = true;
 
     // this is the fusion solver
     /*auto shiftings = global::get_implicit_function()->correcting_loop_fusion_with_shifting({&B_out},A_out,{t,xx,yy});
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
             );
     }*/
 
-    perform_autoscheduling= true;
+
     
     // Generate a program with no schedule
     if (!perform_autoscheduling)

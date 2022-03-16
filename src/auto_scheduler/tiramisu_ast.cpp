@@ -511,7 +511,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     
     std::vector<tiramisu::computation *> all_data;
     
-    //std::cout <<"Index Current Matrix: "<<opt.matrix.size()<<std::endl<<" Matrix : "<<std::endl;
+    std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
     for (int k = 0; k < opt.matrix.size(); k++) {
             for (int j = 0; j < opt.matrix[k].size(); j++)
                 std::cout << opt.matrix[k][j] << " ";
@@ -548,7 +548,8 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     //std::cout<<"shared nodes: "<<shared_nodes.size()<<std::endl;
     
     std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
-    //std::cout<<"starting_bounds_mat"<<std::endl;
+    std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
+
     for (int k = 0; k < starting_bounds_mat.size(); k++) {
             for (int j = 0; j < starting_bounds_mat[k].size(); j++)
                 std::cout << starting_bounds_mat[k][j] << " ";

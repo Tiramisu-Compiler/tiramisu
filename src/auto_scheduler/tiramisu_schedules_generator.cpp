@@ -1722,6 +1722,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         }
     }
     ast.recover_isl_states();
+    /*
     // boolean for adding random skew patterns
     bool add_3d_skew=false;
     // number of random 3d skews to add
@@ -1895,9 +1896,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 states.push_back(new_ast);
                 }else{i--;}
         }
-    }
+    }*/
 
-    ast.recover_isl_states();
+    
 
 
     

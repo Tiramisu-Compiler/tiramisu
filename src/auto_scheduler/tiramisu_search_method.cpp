@@ -339,7 +339,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         assert(generator_state::initialized == true);
     }
     
-
+    
     //ast.search_state.optimization_index = 0;
     while ((!ast.is_search_space_empty()))
     {
@@ -360,14 +360,14 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         else
             ast.move_to_next_head();
     }
-    
+    //exec_eval->fct->reset_schedules();
     //std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
     std::hash<std::string> hasher;
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
     // generate the matrices to be explored at this level
     
-    // if this is the roor of the exploration tree 
+    // if this is the root of the exploration tree 
     /*
     if (ast.search_depth==0){
 
@@ -392,7 +392,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     
     auto iterator = children.begin();
     
-    //exec_eval->fct->reset_schedules();
+    
     
    
     
@@ -415,7 +415,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         //std::cout<<"in the cont condition"<<std::endl;
         
         child->transform_ast();
-        //std::cout<<"after transform"<<std::endl;
+        std::cout<<"after transform ast in search save"<<std::endl;
         if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
@@ -437,15 +437,13 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             
         
             
-            /*
+            
             // hash the legal matrix 
             std::size_t hash=hasher(child->get_schedule_str());
             
-            std::cout<<"before repeated"<<std::endl;
             bool repeated = false;
             // check if we explored this matrix before  
             for(std::size_t hashe:hashes){
-                
                 if(hashe==hash){
                     delete child;
                     iterator = children.erase(iterator);
@@ -460,7 +458,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             
             // if the matrix is legal and not repeated we add its hash to the list of seen hashes and we start the evaluation 
             hashes.push_back(hash);
-            */   
+              
             // print and evaluate Ast
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 child->print_previous_optims();
@@ -663,7 +661,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     
     for (syntax_tree *child : to_be_explored)
     {
-        // increment the search depth for the recursive call 
+        // increment the search depth for the recursive call
+        //generator_state::initialized= false;; 
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
         if (child->search_depth<MAX_MAT_DEPTH  ){
@@ -674,7 +673,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             std::cout<<"search saving"<<std::endl;
             // if we surpassed the MAX_MAT_DEPTH amount of matrices to explore OR we detected the parent of this level through
             // the child->search_depth<=child->nb_explored_matrices condition which means that the search level is greater than the number of applied matrices
-            search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
+            //search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
         }
     }
 }

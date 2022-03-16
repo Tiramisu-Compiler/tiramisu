@@ -3061,8 +3061,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     isl_map *schedule = this->get_schedule();
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Matrix_transformation the dimensions " + std::to_string(matrix.size())));
-    std::cout<<"Starting schedule used in matrix trasnform: "<< isl_map_to_str(schedule) <<std::endl;
-    //std::cout<<"O "<<std::endl;
+    std::cout<<"Original schedule matrix transform: "<< isl_map_to_str(schedule)<<std::endl;
     
     int n_dims = isl_map_dim(schedule, isl_dim_out);
 
