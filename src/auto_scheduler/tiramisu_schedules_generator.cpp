@@ -1493,7 +1493,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     if (shared_nodes.size() > 1)
     {
         shared_nodes[0]->get_all_computations(involved_computations_reversal);
-        shared_nodes.pop_back(); //removes 2nd loop level, first is enough
     }
     else
     {
@@ -1503,7 +1502,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     // add reversal
     // add reversal matriecs
     
-    
+    std::cout<<"applying "<<shared_nodes.size()<< " reversals"<<std::endl;
     for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
@@ -1524,6 +1523,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                             }
             }
         }
+        std::cout<<"applying reversal at "<<shared_nodes[i]->depth<< " reversals"<<std::endl;
         matrix.at(shared_nodes[i]->depth).at(shared_nodes[i]->depth) = -1; 
         optim_info.comps = involved_computations_reversal;
         optim_info.matrix = matrix;

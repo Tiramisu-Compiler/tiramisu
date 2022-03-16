@@ -415,7 +415,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         //std::cout<<"in the cont condition"<<std::endl;
         
         child->transform_ast();
-        std::cout<<"after transform ast in search save"<<std::endl;
+        std::cout<<"after transform ast in search save matrix"<<std::endl;
         if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
@@ -662,7 +662,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     for (syntax_tree *child : to_be_explored)
     {
         // increment the search depth for the recursive call
-        //generator_state::initialized= false;; 
+        generator_state::initialized= false; 
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
         if (child->search_depth<MAX_MAT_DEPTH  ){

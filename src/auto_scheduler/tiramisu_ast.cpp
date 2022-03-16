@@ -2064,8 +2064,10 @@ std::string syntax_tree::get_schedule_str()
     std::vector<optimization_info> schedule_vect = this->get_schedule();
     std::string schedule_str;
     if(schedule_vect.size()<1) return schedule_str;
-    bool first_time = true;
-    int start = 0;
+    std::vector<std::vector<std::vector<int>>> matrices(this->get_computations().size());
+    std::vector<int> start(this->get_computations().size());
+    std::vector<int> first_time(this->get_computations().size());
+    for(int i=0;i<first_time.size();i++) first_time.at(i)=1;
     for (auto optim: schedule_vect)
     {
         //std::cout<<"inside optim loop in get schedule str"<<std::endl;
@@ -2084,18 +2086,29 @@ std::string syntax_tree::get_schedule_str()
                 break;
 
             case optimization_type::MATRIX:
-
-                schedule_str += comps_list_str;
-                schedule_str += "M(";
-                for(int i = 0; i < optim.matrix.size(); i++){
-                        for(int j = 0; j< optim.matrix.size(); j++){
-                            
-                            schedule_str += std::to_string(optim.matrix.at(i).at(j));
-                            if(!(i==optim.matrix.size()-1 && j==optim.matrix.size()-1)) schedule_str += ",";
-                        }
+                for (auto comp: optim.comps)
+                {
+                    int index = get_computation_index(comp);
+                    if(first_time.at(index)){
+                            start.at(index) = schedule_str.size();
+                            first_time.at(index) = 0;
+                            matrices.at(index) =optim.matrix;
+                    }else{
+                            matrices.at(index) = multiply1(optim.matrix, matrices.at(index) );
+                    }
+                    schedule_str = schedule_str.substr(0, start.at(index));
+                    schedule_str += "M(";
+                    for(int i = 0; i < matrices.at(index).size(); i++){
+                            for(int j = 0; j< matrices.at(index).size(); j++){
+                                
+                                schedule_str += std::to_string(matrices.at(index).at(i).at(j));
+                                if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)) schedule_str += ",";
+                            }
+                    }
+                    schedule_str += ")";
+                    schedule_str+= "{C"+std::to_string(index)+"}";
+                    schedule_str += ",";
                 }
-                schedule_str += "),";
-                
                 break;
             case optimization_type::SHIFTING:
                 schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
