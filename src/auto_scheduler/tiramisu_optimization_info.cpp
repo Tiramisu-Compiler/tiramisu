@@ -27,11 +27,15 @@ void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_li
 void apply_optimizations(syntax_tree const& ast)
 {
     // Check ast.h for the difference between ast.previous_optims and ast.new_optims
-    for (optimization_info const& optim_info : ast.previous_optims)
+    for (optimization_info const& optim_info : ast.previous_optims){
         apply_optimizations(optim_info);
+    }
         
-    for (optimization_info const& optim_info : ast.new_optims)
-        apply_optimizations(optim_info);
+        
+    for (optimization_info const& optim_info : ast.new_optims){
+            apply_optimizations(optim_info);
+    }
+        
 
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.

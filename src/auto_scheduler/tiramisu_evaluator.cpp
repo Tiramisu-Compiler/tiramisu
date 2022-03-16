@@ -73,6 +73,8 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
 
 std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout, bool code_gen_timeout )
 {
+    // Remove all the optimizations
+    //fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
 
@@ -138,7 +140,6 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
 
     // Remove all the optimizations
     fct->reset_schedules();
-
     return measurements;
 }
 

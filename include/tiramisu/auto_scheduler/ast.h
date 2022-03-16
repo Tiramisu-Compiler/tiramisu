@@ -879,6 +879,10 @@ public:
     */
     void move_to_next_optimization_target();
     /**
+     * in matrix exploration, move to the next head or to the next optimization or stop exploration at this level.
+    */
+    void move_to_next_head();
+    /**
      * moves to the next alternative.
     */
     void move_to_next_optimization_target_matrix();

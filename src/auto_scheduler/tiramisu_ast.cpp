@@ -502,7 +502,9 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
+    
     stage_isl_states();
+    
 /**
  * Applying to staging
 */
@@ -532,6 +534,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
         {
             f+=str+" ";
         } 
+
     }
 
     
@@ -572,6 +575,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     
      
     recover_isl_states();
+    
 }
 
 void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
@@ -2024,13 +2028,16 @@ void syntax_tree::recover_isl_states() const
 
 bool syntax_tree::ast_is_legal() const
 {
+    
     stage_isl_states();
-
+    
     this->fct->prepare_schedules_for_legality_checks(true);
 
     bool result = this->fct->check_legality_for_function();
+      
+
     recover_isl_states();
-    
+     
     
     return result;
 
@@ -2393,8 +2400,30 @@ void syntax_tree::move_to_next_optimization_target_matrix()
     }
 
 }
-
 void syntax_tree::move_to_next_optimization_target()
+{
+
+    this->search_state.increment_index();
+
+
+    if(this->search_state.current_index >= this->search_state.target_ast_heads.size())
+    {
+        this->search_state.optimization_index++;
+
+        if(this->search_state.optimization_index < generator_state::optimization_list.size())
+        {
+            auto optim_alternatives 
+                = this->compute_search_space_states(
+                    generator_state::optimization_list[this->search_state.optimization_index]
+                    );
+            this->search_state.set_new_heads(optim_alternatives);
+            this->search_state.current_index = 0;
+            //std::cout<<"@GENRATION@";
+        }
+    }
+    //std::cout<<"_mov_in_"<<this->search_state.current_index;
+}
+void syntax_tree::move_to_next_head()
 {
 
     this->search_state.increment_index();

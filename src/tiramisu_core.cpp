@@ -3061,7 +3061,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     isl_map *schedule = this->get_schedule();
     DEBUG(3, tiramisu::str_dump("Original schedule: ", isl_map_to_str(schedule)));
     DEBUG(3, tiramisu::str_dump("Matrix_transformation the dimensions " + std::to_string(matrix.size())));
-    //std::cout<<"Original schedule: "<< isl_map_to_str(schedule) <<std::endl;
+    std::cout<<"Starting schedule used in matrix trasnform: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"O "<<std::endl;
     
     int n_dims = isl_map_dim(schedule, isl_dim_out);
@@ -3187,8 +3187,10 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     DEBUG(3, tiramisu::str_dump("Final transformation map : ", isl_map_to_str(transformation_map)));
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
+    
 
     this->set_schedule(schedule);
+    //std::cout<<"Original schedule before returning: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"schedule to be set: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"schedule set: "<< isl_map_to_str(this->get_schedule()) <<std::endl;
     DEBUG_INDENT(-4);
@@ -3321,7 +3323,7 @@ void computation::interchange(int L0, int L1)
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
 
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
-
+    
     this->set_schedule(schedule);
 
     DEBUG_INDENT(-4);
