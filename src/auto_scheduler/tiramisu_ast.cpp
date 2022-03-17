@@ -2294,6 +2294,7 @@ std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
 
     while(current->children.size() == 1)
     {
+        std::cout<<"one"<<std::endl;
         current = current->children[0];
         result.push_back(current);
     }
@@ -2394,10 +2395,10 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
 {
     generator_state::initialized = true;
     generator_state::optimization_list = optimizations;
-
+    
     auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
     this->search_state.set_new_heads(first_optim_alternatives);
-
+    //this->search_state.optimization_index = 0;
     //std::cout<<"optim_list";
 
     /*

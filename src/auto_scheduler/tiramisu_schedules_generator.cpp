@@ -738,11 +738,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
     int nb_shared_iterators;
 
     int nb_try = 0;
-
+    std::cout<<"exploring: "<<ast.get_current_optimization_type()<<std::endl;
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {
-
+    
     case optimization_type::FUSION:
 
         /* iteration of the ast in done preorder  */
@@ -1019,6 +1019,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::UNROLLING: {
+        std::cout<<"unrolling"<<std::endl;
         ast.stage_isl_states();
 
         node->get_innermost_nodes(innermost_nodes);
@@ -1032,28 +1033,32 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             ast.recover_isl_states();
             return states;
         }
-
+        
         //search for possible unrolling from the bottom loop until one is found
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
         for (ast_node *inner_most_node: innermost_nodes) {
+            std::cout<<"inside for loop"<<std::endl;
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
 
             std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
 
             std::string loop_name = loop_names[inner_most_node->depth];
-
+            std::cout<<"is_optimized_by_tag"<<std::endl;
             bool result = (!inner_most_node->is_optimized_by_tag()) &&
                           ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
-
+            std::cout<<"after is_optimized_by_tag"<<std::endl;    
             if (result) // unrollable: test all possible values
             {
+                std::cout<<"unrollable: test all possible values"<<std::endl;
+
                 ast.recover_isl_states();
 
                 for (int unrolling_fact: unrolling_factors_list) {
 
                     if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact)) {
+                        std::cout<<"can_split_iterator"<<std::endl;
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
@@ -1417,6 +1422,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     //this method uses the AST custom schedule generator
 
     std::vector<syntax_tree *> states;
+    bool explre_interchange = true;
+    bool explre_solver_skew = true;
     std::vector<std::vector<std::vector<int>>> matrices;
     ast_node *node = std::get<0>(ast.get_current_optimization_target());
     
@@ -1432,75 +1439,81 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     int nb_try = 0;
     
     shared_nodes = node->collect_shared_nodes_from_head();
-    
+    std::cout<<"depth of the head "<<node->depth<<std::endl;
     int depth = node->depth + shared_nodes.size(); 
+    std::cout<<"shared nodes size: "<<shared_nodes.size()<<std::endl;
     if (shared_nodes.size() > 0)
     {
         node->get_all_computations(involved_computations);
     }
     else
     {
-        return states;
+        explre_interchange = false;
     }
     
 
     // To apply interchange, we pick all combinations of two iterators
     // in the shared loop levels.
-    for (int i = 0; i < shared_nodes.size(); ++i)
-    {
-        for (int j = i + 1; j < shared_nodes.size(); ++j)
-        {
-            // Copy the AST and add interchange to the list of optimizations
-            syntax_tree *new_ast = new syntax_tree();
-            ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+    if(explre_interchange){
 
-            optimization_info optim_info;
-            optim_info.type = optimization_type::MATRIX;
-            optim_info.node = new_node;
-            
-            optim_info.nb_l = 2;
-            
-            std::vector <  std::vector<int> >  matrix(depth);
-            for(int l = 0; l<matrix.size(); l++){
-                matrix.at(l)= std::vector<int>(depth);
-                for(int c = 0; c<matrix.size(); c++){
-                                if (l!=c ){
-                                    matrix.at(l).at(c) = 0;
-                                }else{
-                                    matrix.at(l).at(c) = 1;
-                                }
-                }
-            }
+        for (int i = 0; i < shared_nodes.size(); ++i)
+        {
+            for (int j = i + 1; j < shared_nodes.size(); ++j)
+            {
+                // Copy the AST and add interchange to the list of optimizations
+                syntax_tree *new_ast = new syntax_tree();
+                ast_node *new_node = ast.copy_and_return_node(*new_ast, shared_nodes[0]);
+
+                optimization_info optim_info;
+                optim_info.type = optimization_type::MATRIX;
+                optim_info.node = new_node;
                 
-            int first_loop = shared_nodes[i]->depth;
-            int second_loop = shared_nodes[j]->depth;
-            matrix.at(first_loop).at(second_loop) = 1;
-            matrix.at(second_loop).at(first_loop) = 1;
-            matrix.at(second_loop).at(second_loop) = 0;
-            matrix.at(first_loop).at(first_loop) = 0;
-            optim_info.comps = involved_computations;
-            optim_info.matrix = matrix;
-            new_ast->new_optims.push_back(optim_info);
-            states.push_back(new_ast);
+                optim_info.nb_l = 2;
+                
+                std::vector <  std::vector<int> >  matrix(depth);
+                for(int l = 0; l<matrix.size(); l++){
+                    matrix.at(l)= std::vector<int>(depth);
+                    for(int c = 0; c<matrix.size(); c++){
+                                    if (l!=c ){
+                                        matrix.at(l).at(c) = 0;
+                                    }else{
+                                        matrix.at(l).at(c) = 1;
+                                    }
+                    }
+                }
+                    
+                int first_loop = shared_nodes[i]->depth;
+                int second_loop = shared_nodes[j]->depth;
+                matrix.at(first_loop).at(second_loop) = 1;
+                matrix.at(second_loop).at(first_loop) = 1;
+                matrix.at(second_loop).at(second_loop) = 0;
+                matrix.at(first_loop).at(first_loop) = 0;
+                optim_info.comps = involved_computations;
+                optim_info.matrix = matrix;
+                new_ast->new_optims.push_back(optim_info);
+                states.push_back(new_ast);
+            }
         }
-    }
+        }
+
+    // add reversal
+    // add reversal matriecs
     ast.stage_isl_states();
     std::vector<tiramisu::computation *> involved_computations_reversal;
     //for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
     shared_nodes = node->collect_shared_nodes_from_head();
 
-    if (shared_nodes.size() > 1)
+    if (shared_nodes.size() > 0)
     {
         shared_nodes[0]->get_all_computations(involved_computations_reversal);
     }
     else
     {
         ast.recover_isl_states();
-        return states;
     }
-    // add reversal
-    // add reversal matriecs
+    
+    
     
     std::cout<<"applying "<<shared_nodes.size()<< " reversals"<<std::endl;
     for(int i=0;i<shared_nodes.size();i++){
@@ -1531,6 +1544,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         states.push_back(new_ast);
     }
     ast.recover_isl_states();
+
     // add skweing 
     ast.stage_isl_states();
     std::vector<tiramisu::computation *> involved_computations_skew;
@@ -1546,182 +1560,181 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     else
     {
         ast.recover_isl_states();
-        return states;
+        explre_solver_skew = false;
     }
-    
-    
-
-    for (ast_node *commun_node : shared_nodes)
-    {
-        std::vector<std::string> loop_names = involved_computations_skew[0]->get_loop_level_names();
-
-        std::string loop_name = loop_names[commun_node->depth];
-        std::string loop_name_inner = loop_names[commun_node->depth + 1];
-
-        auto result_skewing = ast.fct->skewing_local_solver(involved_computations_skew,
-                                                            var(loop_name), var(loop_name_inner),
-                                                            skewing_inner_parallelism_number);
-
-        if (std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
+    if(explre_solver_skew){
+        for (ast_node *commun_node : shared_nodes)
         {
-            
-            ast.recover_isl_states();
-            for (auto &param : std::get<1>(result_skewing))
+            std::vector<std::string> loop_names = involved_computations_skew[0]->get_loop_level_names();
+
+            std::string loop_name = loop_names[commun_node->depth];
+            std::string loop_name_inner = loop_names[commun_node->depth + 1];
+
+            auto result_skewing = ast.fct->skewing_local_solver(involved_computations_skew,
+                                                                var(loop_name), var(loop_name_inner),
+                                                                skewing_inner_parallelism_number);
+
+            if (std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
             {
-                ///std::cout<<"skewing first cond"<<std::endl;
-                // Copy the AST and add unrolling to the list of optimizations
-                syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+                
+                ast.recover_isl_states();
+                for (auto &param : std::get<1>(result_skewing))
+                {
+                    ///std::cout<<"skewing first cond"<<std::endl;
+                    // Copy the AST and add unrolling to the list of optimizations
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
 
-                optimization_info optim_info;
-                optim_info.type = optimization_type::MATRIX;
-                optim_info.node = new_node;
-                
-
-                optim_info.nb_l = 2;
-                optim_info.l0 = new_node->depth;
-                optim_info.l1 = new_node->depth + 1;
-                optim_info.l0_fact = std::get<0>(param);
-                optim_info.l1_fact = std::get<1>(param);
-                
-
-                
-                std::vector <  std::vector<int> >  matrix(depth);
-                for(int l = 0; l<matrix.size(); l++){
-                    matrix.at(l)= std::vector<int>(depth);
-                    for(int c = 0; c<matrix.size(); c++){
-                                    if (l!=c ){
-                                        matrix.at(l).at(c) = 0;
-                                    }else{
-                                        matrix.at(l).at(c) = 1;
-                                    }
-                    }
-                }
-                matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                
-                
-                
-                if(optim_info.l0_fact!=1){
-                    std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::MATRIX;
+                    optim_info.node = new_node;
                     
-                    matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                    matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
-                }
-                optim_info.matrix = matrix;
-                optim_info.comps = involved_computations_skew;
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
-            }
-            ast.stage_isl_states();
-        }
 
-        if (std::get<0>(result_skewing).size() > 0) // outer parallelism has solutions
-        {
-            ast.recover_isl_states();
-            for (auto &param : std::get<0>(result_skewing))
+                    optim_info.nb_l = 2;
+                    optim_info.l0 = new_node->depth;
+                    optim_info.l1 = new_node->depth + 1;
+                    optim_info.l0_fact = std::get<0>(param);
+                    optim_info.l1_fact = std::get<1>(param);
+                    
+
+                    
+                    std::vector <  std::vector<int> >  matrix(depth);
+                    for(int l = 0; l<matrix.size(); l++){
+                        matrix.at(l)= std::vector<int>(depth);
+                        for(int c = 0; c<matrix.size(); c++){
+                                        if (l!=c ){
+                                            matrix.at(l).at(c) = 0;
+                                        }else{
+                                            matrix.at(l).at(c) = 1;
+                                        }
+                        }
+                    }
+                    matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
+                    
+                    
+                    
+                    if(optim_info.l0_fact!=1){
+                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
+                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                    }
+                    optim_info.matrix = matrix;
+                    optim_info.comps = involved_computations_skew;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
+                }
+                ast.stage_isl_states();
+            }
+
+            if (std::get<0>(result_skewing).size() > 0) // outer parallelism has solutions
             {
-                //std::cout<<"skewing second cond"<<std::endl;
-                // Copy the AST and add unrolling to the list of optimizations
-                syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                ast.recover_isl_states();
+                for (auto &param : std::get<0>(result_skewing))
+                {
+                    //std::cout<<"skewing second cond"<<std::endl;
+                    // Copy the AST and add unrolling to the list of optimizations
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 
-                optimization_info optim_info;
-                optim_info.type = optimization_type::MATRIX;
-                optim_info.node = new_node;
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::MATRIX;
+                    optim_info.node = new_node;
 
-                optim_info.nb_l = 2;
-                optim_info.l0 = new_node->depth;
-                optim_info.l1 = new_node->depth + 1;
-                optim_info.l0_fact = std::get<0>(param);
-                optim_info.l1_fact = std::get<1>(param);
-                
-                std::vector <  std::vector<int> >  matrix(depth);
-                for(int l = 0; l<matrix.size(); l++){
-                    matrix.at(l)= std::vector<int>(depth);
-                    for(int c = 0; c<matrix.size(); c++){
-                                    if (l!=c ){
-                                        matrix.at(l).at(c) = 0;
-                                    }else{
-                                        matrix.at(l).at(c) = 1;
-                                    }
-                    }
-                }
-                matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                
-                
-                
-                if(optim_info.l0_fact!=1){
-                    std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                    optim_info.nb_l = 2;
+                    optim_info.l0 = new_node->depth;
+                    optim_info.l1 = new_node->depth + 1;
+                    optim_info.l0_fact = std::get<0>(param);
+                    optim_info.l1_fact = std::get<1>(param);
                     
-                    matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                    matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                    std::vector <  std::vector<int> >  matrix(depth);
+                    for(int l = 0; l<matrix.size(); l++){
+                        matrix.at(l)= std::vector<int>(depth);
+                        for(int c = 0; c<matrix.size(); c++){
+                                        if (l!=c ){
+                                            matrix.at(l).at(c) = 0;
+                                        }else{
+                                            matrix.at(l).at(c) = 1;
+                                        }
+                        }
+                    }
+                    matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
+                    
+                    
+                    
+                    if(optim_info.l0_fact!=1){
+                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
+                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                    }
+                    optim_info.matrix = matrix;
+                    optim_info.comps = involved_computations_skew;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
                 }
-                optim_info.matrix = matrix;
-                optim_info.comps = involved_computations_skew;
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
+                ast.stage_isl_states();
             }
-            ast.stage_isl_states();
-        }
 
-        if (std::get<2>(result_skewing).size() > 0) // locality has solutions
-        {
-            ast.recover_isl_states();
-            for (auto &param : std::get<2>(result_skewing))
+            if (std::get<2>(result_skewing).size() > 0) // locality has solutions
             {
-                //std::cout<<"skewing thrid cond"<<std::endl;
-                // Copy the AST and add unrolling to the list of optimizations
-                syntax_tree *new_ast = new syntax_tree();
-                ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
+                ast.recover_isl_states();
+                for (auto &param : std::get<2>(result_skewing))
+                {
+                    //std::cout<<"skewing thrid cond"<<std::endl;
+                    // Copy the AST and add unrolling to the list of optimizations
+                    syntax_tree *new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
 
-                optimization_info optim_info;
-                optim_info.type = optimization_type::MATRIX;
-                optim_info.node = new_node;
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::MATRIX;
+                    optim_info.node = new_node;
 
-                optim_info.nb_l = 2;
-                optim_info.l0 = new_node->depth;
-                optim_info.l1 = new_node->depth + 1;
-                optim_info.l0_fact = std::get<0>(param);
-                optim_info.l1_fact = std::get<1>(param);
+                    optim_info.nb_l = 2;
+                    optim_info.l0 = new_node->depth;
+                    optim_info.l1 = new_node->depth + 1;
+                    optim_info.l0_fact = std::get<0>(param);
+                    optim_info.l1_fact = std::get<1>(param);
 
-                if ((optim_info.l0 > 0) && (optim_info.l1 > 0))
-                { //require loop reversal for correctness
-                    optim_info.l2_fact = -1;
-                }
-                std::vector <  std::vector<int> >  matrix(depth);
-                for(int l = 0; l<matrix.size(); l++){
-                    matrix.at(l)= std::vector<int>(depth);
-                    for(int c = 0; c<matrix.size(); c++){
-                                    if (l!=c ){
-                                        matrix.at(l).at(c) = 0;
-                                    }else{
-                                        matrix.at(l).at(c) = 1;
-                                    }
+                    if ((optim_info.l0 > 0) && (optim_info.l1 > 0))
+                    { //require loop reversal for correctness
+                        optim_info.l2_fact = -1;
                     }
-                }
-                matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                
-                
-                
-                if(optim_info.l0_fact!=1){
-                    std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                    std::vector <  std::vector<int> >  matrix(depth);
+                    for(int l = 0; l<matrix.size(); l++){
+                        matrix.at(l)= std::vector<int>(depth);
+                        for(int c = 0; c<matrix.size(); c++){
+                                        if (l!=c ){
+                                            matrix.at(l).at(c) = 0;
+                                        }else{
+                                            matrix.at(l).at(c) = 1;
+                                        }
+                        }
+                    }
+                    matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
                     
-                    matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                    matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
-                }
-                optim_info.matrix = matrix;
+                    
+                    
+                    if(optim_info.l0_fact!=1){
+                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
+                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                    }
+                    optim_info.matrix = matrix;
 
-                optim_info.comps = involved_computations_skew;
-                new_ast->new_optims.push_back(optim_info);
-                states.push_back(new_ast);
+                    optim_info.comps = involved_computations_skew;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
+                }
+                ast.stage_isl_states();
             }
-            ast.stage_isl_states();
         }
+        ast.recover_isl_states();
     }
-    ast.recover_isl_states();
     /*
     // boolean for adding random skew patterns
     bool add_3d_skew=false;
