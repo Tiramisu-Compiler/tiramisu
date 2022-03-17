@@ -28,19 +28,24 @@ void apply_optimizations(syntax_tree const& ast)
 {
     // Check ast.h for the difference between ast.previous_optims and ast.new_optims
     for (optimization_info const& optim_info : ast.previous_optims){
+        std::cout<<"prev optims: "<<optim_info.type<<std::endl;
         apply_optimizations(optim_info);
     }
         
         
     for (optimization_info const& optim_info : ast.new_optims){
+            std::cout<<"new optims: "<<optim_info.type<<std::endl;
             apply_optimizations(optim_info);
     }
         
 
     // Fusion is a particular case, and we use apply_fusions() to apply it.
     // apply_fusions() uses the structure of the AST to correctly order the computations.
+    std::cout<<"schedule before apply fusion: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
+    std::cout<<"schedule before apply fusion: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
     apply_fusions(ast);
-
+    std::cout<<"schedule after apply fusion: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
+    std::cout<<"schedule after apply fusion: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
     // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of
     // the tagged ast_nodes
     apply_parallelization(ast);
@@ -176,10 +181,20 @@ void print_optim(optimization_info optim)
                       << " L" << optim.l0 << " +"<<optim.l0_fact<<" " << optim.comps[0]->get_name() <<std::endl;
             break;
 
-
-//        case optimization_type::UNFUSE:
-//            std::cout << "Fusion" << " L" << optim.l0 << " " << " L" << optim.l1 << std::endl;
-//            break;
+        case optimization_type::MATRIX:
+            std::cout << "Matrix Transform " << std::to_string(optim.matrix.size()) << "x" << std::to_string(optim.matrix.size())<< " [";
+            for(int i = 0; i < optim.matrix.size(); i++){
+                for(int j = 0; j< optim.matrix.size(); j++){
+                    std::cout << std::to_string(optim.matrix.at(i).at(j));
+                    if(!(i==optim.matrix.size()-1 && j==optim.matrix.size()-1)) std::cout << ", ";
+                }
+            }
+            std::cout << "]" << std::endl;
+            std::cout<<"{";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<<"}"<< std::endl;
+            break;
 
         case optimization_type::INTERCHANGE:
             std::cout << "Interchange" << " L" << optim.l0 << " " << " L" << optim.l1 <<" { " ;

@@ -537,15 +537,18 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 
     }
 
-    
+    /*
     std::vector<ast_node *> shared_nodes ;
     opt.node->get_shared_nodes_from_outermost(shared_nodes);
+    std::cout<<"shared_nodes before"<<shared_nodes.size()<<std::endl;
     std::vector<ast_node *> shared_nodes_under = opt.node->collect_shared_nodes_from_head() ;
+    std::cout<<"opt node depth"<<opt.node->depth<<std::endl;
+    std::cout<<"opt.node->collect_shared_nodes_from_head()"<<shared_nodes_under.size()<<std::endl;
     //std::cout<<"shared nodes under: "<<shared_nodes_under.size()<<std::endl;
     for (auto nodes: shared_nodes_under){
         shared_nodes.push_back(nodes);
     }
-    //std::cout<<"shared nodes: "<<shared_nodes.size()<<std::endl;
+    std::cout<<"shared nodes: "<<shared_nodes.size()<<std::endl;
     
     std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
     std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
@@ -574,7 +577,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     update_node( shared_nodes , transformed_bounds_matrix);
            
     
-     
+     */
     recover_isl_states();
     
 }
@@ -2257,6 +2260,7 @@ std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
 
     while(current->children.size() == 1)
     {
+        std::cout<<"one"<<std::endl;
         current = current->children[0];
         result.push_back(current);
     }
@@ -2357,10 +2361,10 @@ void syntax_tree::initialize_search_space_optimizations(std::vector<optimization
 {
     generator_state::initialized = true;
     generator_state::optimization_list = optimizations;
-
+    
     auto first_optim_alternatives = this->compute_search_space_states(generator_state::optimization_list[0]);
     this->search_state.set_new_heads(first_optim_alternatives);
-
+    //this->search_state.optimization_index = 0;
     //std::cout<<"optim_list";
 
     /*

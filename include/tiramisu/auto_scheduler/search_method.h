@@ -8,7 +8,7 @@
 #include "schedules_generator.h"
 #include "evaluator.h"
 #include "utils.h"
-const int MAX_MAT_DEPTH = 4; 
+const int MAX_MAT_DEPTH = 2; 
 namespace tiramisu::auto_scheduler
 {
 
@@ -92,6 +92,7 @@ public:
       * The explored schedules annotation and their execution time are stored in schedules_annotations
       */
     virtual void search_save_matrix(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0) =0;
+    virtual void explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0)=0;
 };
 
 /**
@@ -125,7 +126,8 @@ public:
      *
      */
     virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
-    virtual void search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout);
+    virtual void search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual void explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
 
 };
 

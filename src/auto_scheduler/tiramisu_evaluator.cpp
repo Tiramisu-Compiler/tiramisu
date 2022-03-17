@@ -137,7 +137,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
         std::cout<< "Execution timed out"<< std::endl;
     }
 
-
+    
     // Remove all the optimizations
     fct->reset_schedules();
     return measurements;
@@ -361,19 +361,10 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     int skew_extent_l0, skew_extent_l1;
     int parallelized_level;
     int depth = 0;
+    bool first_time = true;
     if(ast.new_optims.size()>0) depth = ast.new_optims.at(0).matrix.size();
-    std::vector < std::vector<int> > matrix(depth);
+    std::vector < std::vector<int> > matrix;
     std::vector <std::vector < std::vector<int> >> matrices;
-    for(int l = 0; l<matrix.size(); l++){
-                            matrix.at(l)= std::vector<int>(depth);
-                            for(int c = 0; c<matrix.size(); c++){
-                                            if (l!=c ){
-                                                matrix.at(l).at(c) = 0;
-                                            }else{
-                                                matrix.at(l).at(c) = 1;
-                                            }
-                            }
-                        }
     std::vector<std::pair<int,int>> shiftings; //pairs of loop_level,shift_factor
 
     
@@ -411,12 +402,27 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 break;
                 
             case optimization_type::INTERCHANGE:
+                
                 interchanged = true;
                 int_l0 = optim_info.l0;
                 int_l1 = optim_info.l1;
                 break;
 
             case optimization_type::MATRIX:
+            if(first_time){
+                        depth = optim_info.matrix.size();
+                        for(int l = 0; l<depth; l++){
+                            matrix.push_back(std::vector<int>(depth));
+                            for(int c = 0; c<depth; c++){
+                                            if (l!=c ){
+                                                matrix.at(l).at(c) = 0;
+                                            }else{
+                                                matrix.at(l).at(c) = 1;
+                                            }
+                            }
+                        }
+                        first_time =false;
+                } 
                 transformed_by_matrix = true;
                 matrices.push_back(optim_info.matrix);
                 matrix = mat_mul( optim_info.matrix, matrix);
