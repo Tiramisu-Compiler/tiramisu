@@ -500,61 +500,6 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
             update_node(child,isl_ast_mat,level);
         }*/
 }
-void printArray(std::vector<ast_node*> ints, int len);
-void printPaths(ast_node* node,computation* target_comp);
-void printPathsRecur(ast_node* node, std::vector<ast_node*> path, int pathLen, computation*);
-
-void printPaths(ast_node* node, computation* target_comp)
-{
-	std::vector<ast_node*> path;
-	printPathsRecur(node, path, 0, target_comp);
-}
-
-/* Recursive helper function -- given a node,
-and an array containing the path from the root
-node up to but not including this node,
-print out all the root-leaf paths.*/
-void printPathsRecur(ast_node* node, std::vector<ast_node*> path, int pathLen, computation* target_comp)
-{
-	if (node == NULL)
-		return;
-	std::vector<computation*> comps ;
-     node->get_all_computations(comps);
-	/* append this node to the path array */
-	if(std::find(comps.begin(), comps.end(), target_comp) != comps.end())path.push_back (node);
-	pathLen++;
-	bool leaf = true;
-    
-	for (int i=0 ;i <node->children.size();i++){//if it is a leaf for loop that have the comp X
-	    if(node->children[i]!=NULL && std::find(comps.begin(), comps.end(), target_comp) != comps.end() ) {
-            leaf=false;
-        }
-	}
-	/* it's a leaf, so print the path that lead to here */
-	if (leaf)
-	{
-		if(std::find(comps.begin(), comps.end(), target_comp) != comps.end()) printArray(path, pathLen);
-	}
-	else
-	{
-		/* otherwise try both subtrees */
-		for (int i=0 ;i <node->children.size();i++){
-		printPathsRecur(node->children[i], path, pathLen, target_comp);
-		//printPathsRecur(node->right, path, pathLen);
-		}
-	}
-}
-void printArray(std::vector<ast_node*> ints, int len)
-{
-	int i;
-	for (i = 0; i < ints.size(); i++)
-	{
-		std::cout << ints[i]->low_bound << " "<<ints[i]->up_bound << " "<<std::endl;
-	}
-	std::cout<<"Mother fing next path"<<std::endl;
-}
-
-
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
     
@@ -600,6 +545,9 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                 //if(current->)
                 current= current->parent;
             }
+
+            std::reverse(to_change_nodes.begin(),to_change_nodes.end());
+
             std::vector <  std::vector<int> >  matrix(to_change_nodes.size());
             for(int l = 0; l<matrix.size(); l++){
                 matrix.at(l)= std::vector<int>(to_change_nodes.size());
@@ -611,13 +559,40 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                                 }
                 }
             }
+
             for(int i=0 ; i<opt.matrix.size();i++){
                 for(int j=0 ; j<opt.matrix.size();j++){
                     matrix.at(i).at(j)= opt.matrix.at(i).at(j);
                 }
             }
+            
+            std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
+            std::vector<std::vector<int>> starting_bounds_mat;
+            std::vector<int> vec;
+            for (int k = 0; k < to_change_nodes.size(); k++) {
+                vec.push_back(to_change_nodes[k]->low_bound);
+                vec.push_back(to_change_nodes[k]->up_bound);
+                starting_bounds_mat.push_back(vec);
+                std::cout <<to_change_nodes[k]->low_bound << " "<<to_change_nodes[k]->up_bound << " "<<std::endl;
+                vec.clear();
+            }
+                
+            std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( matrix,starting_bounds_mat);
+            int temp;
+            for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
+                for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
+                    {
+                        if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
+                        {
+                            temp = transformed_bounds_matrix[i][0];
+                            transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
+                            transformed_bounds_matrix[i][1] = temp;
+                            break;
+                        }
+                    } 
+            }
+            update_node( to_change_nodes , transformed_bounds_matrix);
             info.comp_ptr->matrix_transform(matrix);
-            for(ast_node* node2:to_change_nodes ) std::cout <<"Node Inside: "<< node2->low_bound << " "<<node2->up_bound << " "<<std::endl;
             to_change_nodes.clear();
             std::string f = "";
             for(auto& str:loop_names)
@@ -629,76 +604,8 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
         
         }
     }
-    std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
-    std::vector<std::vector<int>> starting_bounds_mat;
-    std::vector<int> vec;
-    for (int k = 0; k < to_change_nodes.size(); k++) {
-        vec.push_back(to_change_nodes[k]->low_bound);
-        vec.push_back(to_change_nodes[k]->up_bound);
-        starting_bounds_mat.push_back(vec);
-        std::cout <<to_change_nodes[k]->low_bound << " "<<to_change_nodes[k]->up_bound << " "<<std::endl;
-    }
-           
-    std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( opt.matrix,starting_bounds_mat);
-    int temp;
-    for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
-        for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
-            {
-                if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
-                {
-                    temp = transformed_bounds_matrix[i][0];
-                    transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
-                    transformed_bounds_matrix[i][1] = temp;
-                    break;
-                }
-            } 
-    }
-    update_node( to_change_nodes , transformed_bounds_matrix);
-
-
-    
-
-  
-  
-
-        
-    /*std::vector<ast_node *> shared_nodes ;
-    opt.node->get_shared_nodes_from_outermost(shared_nodes);
-    std::vector<ast_node *> shared_nodes_under = opt.node->collect_shared_nodes_from_head() ;
-    //std::cout<<"shared nodes under: "<<shared_nodes_under.size()<<std::endl;
-    for (auto nodes: shared_nodes_under){
-        shared_nodes.push_back(nodes);
-    }
-    //std::cout<<"shared nodes: "<<shared_nodes.size()<<std::endl;
-    
-    std::vector<std::vector<int>> starting_bounds_mat = get_bounds(shared_nodes);
-    std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
-
-    for (int k = 0; k < starting_bounds_mat.size(); k++) {
-            for (int j = 0; j < starting_bounds_mat[k].size(); j++)
-                std::cout << starting_bounds_mat[k][j] << " ";
-            std::cout << std::endl;
-        }
-    std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( opt.matrix,starting_bounds_mat);
-    int temp;
-    for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
-        for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
-            {
-                if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
-                {
-                    temp = transformed_bounds_matrix[i][0];
-                    transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
-                    transformed_bounds_matrix[i][1] = temp;
-                    break;
-                }
-            } 
-    }*/
-    
-
-   // update_node( shared_nodes , transformed_bounds_matrix);
-           
-    
-     
+      
+ 
     recover_isl_states();
     
 }
