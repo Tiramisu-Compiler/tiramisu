@@ -337,7 +337,7 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
 
         children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
 
-        if  (ast.search_state.is_current_optimization_fully_explored() && !children.empty()) {
+        if  (ast.search_state.is_current_optimization_fully_explored()) {
             // move to next optimization
             // explores next optimization/alternative
             ast.move_to_next_head();
@@ -347,9 +347,6 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
             ast.move_to_next_head();
     }
     std::cout<<"children size is: "<<children.size()<<std::endl;
-    // Stop if no more optimizations can be applied
-    if (children.size() == 0)
-        return ;
 
     // Evaluate children and sort them from smallest to highest evaluation
     // evaluate while removing illegal versions
@@ -419,10 +416,10 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     }
 
     // Add the current AST to the list of children
-    //syntax_tree *ast_copy = ast.copy_ast();
-    //children.push_back(ast_copy);
+    syntax_tree *ast_copy = ast.copy_ast();
+    children.push_back(ast_copy);
 
-    //parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
 
     // Sort children from smallest evaluation to largest
 
@@ -439,9 +436,7 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     // Search recursively on the best children
     for (syntax_tree *child : children)
     {
-        child->search_depth = ast.search_depth + 1;
-        //***************************************************************************************
-        //child->initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
+
         search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
 
@@ -787,13 +782,14 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
 
     to_be_explored.resize(std::min(beam_size, (int)to_be_explored.size()));
    
+   int nb_comps= ast.get_computations().size();
     
     for (syntax_tree *child : to_be_explored)
     {
         // increment the search depth for the recursive call
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
-        if (child->search_depth<MAX_MAT_DEPTH +1 ){
+        if (child->search_depth<MAX_MAT_DEPTH * nb_comps ){
             //std::cout<<"search saving matrix"<<std::endl;
             
             search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);

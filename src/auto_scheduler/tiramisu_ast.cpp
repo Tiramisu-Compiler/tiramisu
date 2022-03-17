@@ -520,10 +520,11 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
         }
    
     opt.node->get_all_nodes(all_nodes);
-    
     std::vector<ast_node*> to_change_nodes;
+    std::vector<ast_node*> temp_to_change;
+    std::vector<std::vector<int>> temp_matrix;
     for(ast_node* node1:all_nodes ){
-
+        
         std::cout <<"Node : "<< node1->low_bound << " "<<node1->up_bound << " "<<std::endl;
        
     
@@ -547,7 +548,6 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
             }
 
             std::reverse(to_change_nodes.begin(),to_change_nodes.end());
-
             std::vector <  std::vector<int> >  matrix(to_change_nodes.size());
             for(int l = 0; l<matrix.size(); l++){
                 matrix.at(l)= std::vector<int>(to_change_nodes.size());
@@ -566,18 +566,40 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                 }
             }
             
+            info.comp_ptr->matrix_transform(matrix);
+            if(temp_to_change.size()==0){
+                for(ast_node* node:to_change_nodes){
+                    temp_to_change.push_back(node);
+                }
+                temp_matrix = matrix;
+            }
+            
+            to_change_nodes.clear();
+            std::string f = "";
+            for(auto& str:loop_names)
+            {
+                f+=str+" ";
+            } 
+        
+            
+        
+        }
+    }
+    
+    
+            
             std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
             std::vector<std::vector<int>> starting_bounds_mat;
             std::vector<int> vec;
-            for (int k = 0; k < to_change_nodes.size(); k++) {
-                vec.push_back(to_change_nodes[k]->low_bound);
-                vec.push_back(to_change_nodes[k]->up_bound);
+            for (int k = 0; k < temp_to_change.size(); k++) {
+                vec.push_back(temp_to_change[k]->low_bound);
+                vec.push_back(temp_to_change[k]->up_bound);
                 starting_bounds_mat.push_back(vec);
-                std::cout <<to_change_nodes[k]->low_bound << " "<<to_change_nodes[k]->up_bound << " "<<std::endl;
+                std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
                 vec.clear();
             }
                 
-            std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( matrix,starting_bounds_mat);
+            std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( temp_matrix,starting_bounds_mat);
             int temp;
             for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
                 for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
@@ -591,20 +613,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                         }
                     } 
             }
-            update_node( to_change_nodes , transformed_bounds_matrix);
-            info.comp_ptr->matrix_transform(matrix);
-            to_change_nodes.clear();
-            std::string f = "";
-            for(auto& str:loop_names)
-            {
-                f+=str+" ";
-            } 
-        
-            
-        
-        }
-    }
-      
+            update_node( temp_to_change , transformed_bounds_matrix);
  
     recover_isl_states();
     
