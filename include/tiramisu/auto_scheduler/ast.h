@@ -400,7 +400,11 @@ public:
      * at this level and the levels below.
      */
     void get_all_computations(std::vector<tiramisu::computation*>& comps);
-
+     /**
+     * Fill the given array with all the nodes 
+     * at this level and the levels below.
+     */
+    void get_all_nodes(std::vector<ast_node*>   &nodes);
     /**
      * Starting from this node, get the number of nodes that have no computation,
      * and only one child.
