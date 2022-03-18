@@ -2626,7 +2626,34 @@ void computation::set_loop_level_names(std::vector<std::string> names)
 
     DEBUG_INDENT(-4);
 }
+void computation::set_loop_level_names_matrix(std::vector<std::string> names)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
 
+    assert(names.size() > 0);
+
+    DEBUG(3, tiramisu::str_dump("Number of loop levels: " + std::to_string(this->get_loop_levels_number())));
+    DEBUG(3, tiramisu::str_dump("Number of names to be set: " + std::to_string(names.size())));
+
+    for (int i = 0; i < names.size(); i++)
+    {
+        /*if (isl_map_has_dim_name(this->get_schedule(), isl_dim_out, loop_level_into_dynamic_dimension(i)) == isl_bool_true)
+        {*/
+          //  std::cout<<" loop_level####"<< loop_level_into_dynamic_dimension(i)<<std::endl;
+
+            this->schedule = isl_map_set_dim_name(this->get_schedule(),
+                                                  isl_dim_out,
+                                                  loop_level_into_dynamic_dimension(i),
+                                                  names[i].c_str());
+            DEBUG(3, tiramisu::str_dump("Setting the name of loop level " + std::to_string(i) + " into " + names[i].c_str()));
+       // }
+    }
+
+    DEBUG(3, tiramisu::str_dump("The schedule after renaming: ", isl_map_to_str(this->get_schedule())));
+
+    DEBUG_INDENT(-4);
+}
 void computation::set_schedule_domain_dim_names(std::vector<int> loop_levels,
         std::vector<std::string> names)
 {
@@ -3071,8 +3098,9 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     std::vector<isl_id *> dimensions;
 
     std::vector<std::string> dim_vector;
-    
-
+        //std::cout <<" Loop level name befors ==="<<std::endl;
+    std::vector<std::string> str = this->get_loop_level_names();
+    //for (std::string name : str)std::cout <<" Loop level name "<< name<< std::endl;
     // ------------------------------------------------------------
     // Create a map for the duplicate schedule.
     // ------------------------------------------------------------
@@ -3174,6 +3202,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     map = map + "]}";
     
     //std::cout<<"left side of map final: "<<map<<std::endl;
+//map ="{ comp01[0,t28,i0,t29,i1,t30,i3,t31] ->comp01[0,t28,i0=0i0+1i1+0i3,t29,i1=1i0+0i1+0i3,t30,i2=0i0+0i1+1i3,t31]}";
     DEBUG(3, tiramisu::str_dump("A map that transforms the duplicate"));
     DEBUG(3, tiramisu::str_dump(map.c_str()));
 
@@ -3189,9 +3218,20 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     DEBUG(3, tiramisu::str_dump("Final transformation map : ", isl_map_to_str(transformation_map)));
     schedule = isl_map_apply_range(isl_map_copy(schedule), isl_map_copy(transformation_map));
     DEBUG(3, tiramisu::str_dump("Schedule after interchange: ", isl_map_to_str(schedule)));
-    
-
+   
     this->set_schedule(schedule);
+    std::cout<<"Schedule bfore ###"<< isl_map_to_str(this->get_schedule())<<std::endl;
+
+    
+    this->set_loop_level_names_matrix(str);
+    std::cout<<"Schedule after: #####"<< isl_map_to_str(this->get_schedule())<<std::endl;
+
+   // std::cout <<" Loop level name after ==="<<std::endl;
+  
+  
+    //std::vector<std::string> str1= this->get_loop_level_names();
+
+    //for (std::string name : str1)std::cout <<" Loop level name "<< name<< std::endl;
     //std::cout<<"Original schedule before returning: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"schedule to be set: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"schedule set: "<< isl_map_to_str(this->get_schedule()) <<std::endl;
@@ -4885,7 +4925,7 @@ bool computation::unrolling_is_legal(var l)
         std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names: "<<l.get_name()<<std::endl;
         std::vector<int> dimensions =
             this->get_loop_level_numbers_from_dimension_names({l.get_name()});
-
+        for(int dimm : dimensions)std::cout<<"dimm int :"<<dimm<<std::endl;
         std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names "<<std::endl;
         this->check_dimensions_validity(dimensions);
 
@@ -7700,10 +7740,12 @@ std::vector<std::string> computation::get_loop_level_names()
 
     std::vector<std::string> names;
     std::string names_to_print_for_debugging = "";
-
+    //std::cout<<"outside loop"<<std::endl;
     for (int i = 0; i < this->get_loop_levels_number(); i++)
-    {
+    {   
+        //std::cout<<"inside loop"<<std::endl;
         std::string dim_name = isl_map_get_dim_name(this->get_schedule(), isl_dim_out, loop_level_into_dynamic_dimension(i));
+        //std::cout<<"inside loop"<<dim_name<<std::endl;
         names.push_back(dim_name);
         names_to_print_for_debugging += dim_name + " ";
     }

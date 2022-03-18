@@ -2547,6 +2547,7 @@ private:
       * the static dimension names are set to default names.
       */
     void set_loop_level_names(std::vector<std::string> names);
+    void set_loop_level_names_matrix(std::vector<std::string> names);
 
     /**
       * Set the names of the dimensions of the schedule domain.
