@@ -343,6 +343,7 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 {
     std::string sched_json = "{";
+
     for (tiramisu::computation *comp : ast.computations_list)
     {
     bool interchanged = false;
@@ -424,8 +425,35 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                         first_time =false;
                 } 
                 transformed_by_matrix = true;
-                matrices.push_back(optim_info.matrix);
-                matrix = mat_mul( optim_info.matrix, matrix);
+                
+                if(optim_info.matrix.size()<matrix.size()){
+                    //std::cout<<"filling the matrix:  "<<optim.matrix.size()<<std::endl;
+                    std::vector <  std::vector<int> >  matrix_padded(matrix.size());
+                    for(int l = 0; l<matrix_padded.size(); l++){
+                        matrix_padded.at(l)= std::vector<int>(matrix.size());
+                        for(int c = 0; c<matrix_padded.size(); c++){
+                                        if (l!=c ){
+                                            matrix_padded.at(l).at(c) = 0;
+                                        }else{
+                                            matrix_padded.at(l).at(c) = 1;
+                                        }
+                        }
+                    }
+
+                    for(int i=0 ; i<optim_info.matrix.size();i++){
+                        for(int j=0 ; j<optim_info.matrix.size();j++){
+                            matrix_padded.at(i).at(j)= optim_info.matrix.at(i).at(j);
+                        }
+                    }
+                    std::cout<<"multiplying "<< matrix_padded.size()<< "and "<< matrix.size(); 
+                    matrix = mat_mul( matrix_padded, matrix);
+                    matrices.push_back(matrix_padded);
+                }else{
+                    std::cout<<"multiplying "<< optim_info.matrix.size()<< "and "<< matrix.size();
+                    matrices.push_back(optim_info.matrix); 
+                    matrix = mat_mul( optim_info.matrix, matrix);
+                }
+                
                 break;
                 
             case optimization_type::UNROLLING:

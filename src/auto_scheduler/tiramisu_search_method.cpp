@@ -570,10 +570,10 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         child = *iterator;
         //std::cout<<"before transform"<<std::endl;
         //std::cout<<"in the cont condition"<<std::endl;
-        std::cout<<"nb_optims prev in child: "<<child->previous_optims.size()<<std::endl;
-        std::cout<<"nb_optims in child: "<<child->new_optims.size()<<std::endl;
+        //std::cout<<"nb_optims prev in child: "<<child->previous_optims.size()<<std::endl;
+        //std::cout<<"nb_optims in child: "<<child->new_optims.size()<<std::endl;
         child->transform_ast();
-        std::cout<<"after transform ast in search save matrix"<<std::endl;
+        //std::cout<<"after transform ast in search save matrix"<<std::endl;
         if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
@@ -748,9 +748,11 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 close(fd[0]);
                 waitpid(-1,NULL,0);
             }
-            std::cout<<"after while "<<std::endl;       
+            std::cout<<"before min eval "<<std::endl;       
             child->evaluation = min_eval(measurements);
-            //std::cout<<"after child path "<<std::endl;
+            std::cout<<" befpre nb_explored_matrices "<<std::endl;
+            if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
+            std::cout<<" nb_explored_matrices "<<std::endl;
             //if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
             
             
@@ -826,7 +828,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         // increment the search depth for the recursive call
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
-        if (child->search_depth<MAX_MAT_DEPTH * nb_comps ){
+        if (child->search_depth<MAX_MAT_DEPTH * nb_comps && child->search_depth<=child->nb_explored_matrices){
             //std::cout<<"search saving matrix"<<std::endl;
             
             search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);

@@ -512,7 +512,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
     
-    std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
+    //std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
     for (int k = 0; k < opt.matrix.size(); k++) {
             for (int j = 0; j < opt.matrix[k].size(); j++)
                 std::cout << opt.matrix[k][j] << " ";
@@ -525,12 +525,12 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     std::vector<std::vector<int>> temp_matrix;
     for(ast_node* node1:all_nodes ){
         
-        std::cout <<"Node : "<< node1->low_bound << " "<<node1->up_bound << " "<<std::endl;
+        //std::cout <<"Node : "<< node1->low_bound << " "<<node1->up_bound << " "<<std::endl;
        
     
         for(computation_info info:node1->computations)
         {   
-            std::cout <<"inside one computation "<<std::endl;     
+            //std::cout <<"inside one computation "<<std::endl;     
             std::vector<std::string> loop_names = info.comp_ptr->get_loop_level_names();
 
             //std::cout <<"loop names "<<std::endl;
@@ -541,7 +541,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
             ast_node * current = node1;
             while (current!= nullptr){
 
-                 std::cout <<"Node Inside while: "<< current->low_bound << " "<<current->up_bound << " "<<std::endl;
+                 //std::cout <<"Node Inside while: "<< current->low_bound << " "<<current->up_bound << " "<<std::endl;
                 to_change_nodes.push_back(current);
                 //if(current->)
                 current= current->parent;
@@ -588,7 +588,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     
     
             
-            std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
+            //std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
             std::vector<std::vector<int>> starting_bounds_mat;
             std::vector<int> vec;
             for (int k = 0; k < temp_to_change.size(); k++) {
@@ -2111,17 +2111,17 @@ std::string syntax_tree::get_schedule_str()
     std::string schedule_str;
     bool transformed_by_matrix = false;
     int start_matrices = -1;
-    int nb_matrices = 0;
+    bool non_matrix =  false;
     int first_matrix = true;
     if(schedule_vect.size()<1) return schedule_str;
     std::vector<std::vector<std::vector<int>>> matrices(this->get_computations().size());
-    std::vector<int> start(this->get_computations().size());
     std::vector<int> first_time(this->get_computations().size());
     
     for(int i=0;i<first_time.size();i++) first_time.at(i)=1;
     //std::cout<<"optims size:  "<<schedule_vect.size()<<std::endl;
     for (auto optim: schedule_vect)
     {
+        if(optim.type!=optimization_type::MATRIX) non_matrix = true;
         //std::cout<<"optim type:  "<<optim.type<<std::endl;
         //std::cout<<"inside optim loop in get schedule str"<<std::endl;
         std::string comps_list_str="{";
@@ -2136,12 +2136,10 @@ std::string syntax_tree::get_schedule_str()
 
         switch(optim.type) {
             case optimization_type::FUSION:
-                schedule_str += "F("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
+                schedule_str += "F("+comps_list_str+",L"+std::to_string(optim.l0)+")";
                 break;
             
             case optimization_type::MATRIX:
-                nb_matrices++;
-                //std::cout<<"nb matrices: "<<nb_matrices<<std::endl;
                 
                 transformed_by_matrix = true;
                 if(first_matrix){
@@ -2193,7 +2191,7 @@ std::string syntax_tree::get_schedule_str()
                 
                 break;
             case optimization_type::SHIFTING:
-                schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
+                schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+")";
                 break;
 
 
@@ -2202,37 +2200,37 @@ std::string syntax_tree::get_schedule_str()
 //                break;
 
             case optimization_type::INTERCHANGE:
-                schedule_str += "I("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+"),";
+                schedule_str += "I("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+")";
                 break;
 
             case optimization_type::TILING:
                 if (optim.nb_l == 2)
                     schedule_str += "T2("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
-                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
+                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+")";
                 else if (optim.nb_l == 3)
                     schedule_str += "T3("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+",L"+std::to_string(optim.l2)+","+
-                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+std::to_string(optim.l2_fact)+"),";
+                            std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+","+std::to_string(optim.l2_fact)+")";
                 break;
 
             case optimization_type::UNROLLING:
-                schedule_str += "U("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
+                schedule_str += "U("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+")";
                 break;
 
             case optimization_type::PARALLELIZE:
-                schedule_str += "P("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
+                schedule_str += "P("+comps_list_str+",L"+std::to_string(optim.l0)+")";
                 break;
 
             case optimization_type::SKEWING:
                 schedule_str += "S("+comps_list_str+",L"+std::to_string(optim.l0)+",L"+std::to_string(optim.l1)+","+
-                                std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+"),";
+                                std::to_string(optim.l0_fact)+","+std::to_string(optim.l1_fact)+")";
                 break;
 
             default:
                 break;
         }
        
-    if (!schedule_str.empty())
-            schedule_str.pop_back(); // remove last comma    
+    
+              
     }
     //std::cout<<"schedule_str before: "<<schedule_str<<std::endl;
     if(transformed_by_matrix){

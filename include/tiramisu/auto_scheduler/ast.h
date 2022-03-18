@@ -581,7 +581,11 @@ public:
      * Used to keep track of the depth reached by a search method.
      */
     int search_depth = 0;
-    
+    /**
+     * The depth of this AST in a search method.
+     * Used to keep track of the depth reached by a search method.
+     */
+    int nb_explored_matrices = 0;
     /**
      * The total number of explored optimizations.
      * Used to keep track of the number of optimizations explored by a search method.

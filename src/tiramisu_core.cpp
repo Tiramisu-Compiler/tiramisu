@@ -3132,7 +3132,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
 
 
     //std::cout<<"last t is: "<<last_t<<std::endl;
-    int dim_vector_size = (dim_vector.size()-2) / 2;
+    int dim_vector_size = (dim_vector.size()-1) / 2 - temp_vector.size();
     if(last_t<dim_vector.size()-1){
         for (int j =0;j<dim_vector_size;j++){
         temp_vector.push_back(dim_vector[last_t]);
