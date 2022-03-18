@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
     computation B_out("B_out", {t,xx,yy}, A(xx, yy) + A(xx, yy-1) + A(xx, 1+yy) + A(1+xx, yy) + A(xx-1, yy));
 
-    computation A_out("A_out", {t,xx,yy}, B(xx, yy) + B(xx, yy-1) + B(xx, 1+yy) + B(1+xx, yy) + B(xx-1, yy));
+    computation A_out("A_out", {t,yy}, B(yy, yy) + B(yy, yy-1) + B(yy, 1+yy) + B(0, yy) + B(0, yy));
 
     
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     B.store_in(&b_B);
 
     //Store computations
-    A_out.store_in(&b_A, {xx,yy});
+    A_out.store_in(&b_A, {yy,yy});
     B_out.store_in(&b_B, {xx,yy});  
 
 

@@ -2109,13 +2109,20 @@ std::string syntax_tree::get_schedule_str()
 {
     std::vector<optimization_info> schedule_vect = this->get_schedule();
     std::string schedule_str;
+    bool transformed_by_matrix = false;
+    int start_matrices = -1;
+    int nb_matrices = 0;
+    int first_matrix = true;
     if(schedule_vect.size()<1) return schedule_str;
     std::vector<std::vector<std::vector<int>>> matrices(this->get_computations().size());
     std::vector<int> start(this->get_computations().size());
     std::vector<int> first_time(this->get_computations().size());
+    
     for(int i=0;i<first_time.size();i++) first_time.at(i)=1;
+    //std::cout<<"optims size:  "<<schedule_vect.size()<<std::endl;
     for (auto optim: schedule_vect)
     {
+        //std::cout<<"optim type:  "<<optim.type<<std::endl;
         //std::cout<<"inside optim loop in get schedule str"<<std::endl;
         std::string comps_list_str="{";
         
@@ -2123,6 +2130,7 @@ std::string syntax_tree::get_schedule_str()
         {
             comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";
         }
+        //if(optim.comps.size()>1) std::cout<<"this opt has more than one comp"<<std::endl;
         comps_list_str.pop_back(); //remove the last comma
         comps_list_str+="}";
 
@@ -2130,31 +2138,59 @@ std::string syntax_tree::get_schedule_str()
             case optimization_type::FUSION:
                 schedule_str += "F("+comps_list_str+",L"+std::to_string(optim.l0)+"),";
                 break;
-
+            
             case optimization_type::MATRIX:
+                nb_matrices++;
+                //std::cout<<"nb matrices: "<<nb_matrices<<std::endl;
+                
+                transformed_by_matrix = true;
+                if(first_matrix){
+                    start_matrices = schedule_str.size();
+                    //std::cout<<"start_matrices: "<<start_matrices<<std::endl;
+                    first_matrix = false;
+                }
                 for (auto comp: optim.comps)
                 {
+                    
                     int index = get_computation_index(comp);
+                    //std::cout<<"index of computation:  "<<index<<std::endl;
                     if(first_time.at(index)){
-                            start.at(index) = schedule_str.size();
+                            
                             first_time.at(index) = 0;
-                            matrices.at(index) =optim.matrix;
+                            //std::cout<<"first time 0:  "<<index<<std::endl;
+                            matrices.at(index) = optim.matrix;
+                            //std::cout<<"done"  <<index<<std::endl;
                     }else{
-                            matrices.at(index) = multiply1(optim.matrix, matrices.at(index) );
-                    }
-                    schedule_str = schedule_str.substr(0, start.at(index));
-                    schedule_str += "M(";
-                    for(int i = 0; i < matrices.at(index).size(); i++){
-                            for(int j = 0; j< matrices.at(index).size(); j++){
-                                
-                                schedule_str += std::to_string(matrices.at(index).at(i).at(j));
-                                if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)) schedule_str += ",";
+                            //std::cout<<"adding matrix of size:  "<<optim.matrix.size()<<std::endl;
+                            if(optim.matrix.size()<matrices.at(index).size()){
+                                //std::cout<<"filling the matrix:  "<<optim.matrix.size()<<std::endl;
+                                std::vector <  std::vector<int> >  matrix(matrices.at(index).size());
+                                for(int l = 0; l<matrix.size(); l++){
+                                    matrix.at(l)= std::vector<int>(matrices.at(index).size());
+                                    for(int c = 0; c<matrix.size(); c++){
+                                                    if (l!=c ){
+                                                        matrix.at(l).at(c) = 0;
+                                                    }else{
+                                                        matrix.at(l).at(c) = 1;
+                                                    }
+                                    }
+                                }
+
+                                for(int i=0 ; i<optim.matrix.size();i++){
+                                    for(int j=0 ; j<optim.matrix.size();j++){
+                                        matrix.at(i).at(j)= optim.matrix.at(i).at(j);
+                                    }
+                                }
+                                //std::cout<<"multiplying sizes: "<<matrix.size()<<" and: "<<matrices.at(index).size();
+                                matrices.at(index) = multiply1(matrix, matrices.at(index) );
+                            }else{
+                                matrices.at(index) = multiply1(optim.matrix, matrices.at(index) );
                             }
+                            
                     }
-                    schedule_str += ")";
-                    schedule_str+= "{C"+std::to_string(index)+"}";
-                    schedule_str += ",";
+                    
                 }
+                
                 break;
             case optimization_type::SHIFTING:
                 schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+"),";
@@ -2194,10 +2230,40 @@ std::string syntax_tree::get_schedule_str()
             default:
                 break;
         }
-        if (!schedule_vect.empty())
-            schedule_str.pop_back(); // remove last comma
+       
+    if (!schedule_str.empty())
+            schedule_str.pop_back(); // remove last comma    
     }
-
+    //std::cout<<"schedule_str before: "<<schedule_str<<std::endl;
+    if(transformed_by_matrix){
+        for(int index = 0; index<matrices.size();index++){
+            //std::cout<<"copying one matrix"<<std::endl;
+            schedule_str.insert(start_matrices,"M(");
+            start_matrices+=2;
+            
+            
+            
+            for(int i = 0; i < matrices.at(index).size(); i++){
+                    for(int j = 0; j< matrices.at(index).size(); j++){
+                        //std::cout<<"schedule_str.size(): "<<schedule_str.size()<<std::endl;
+                        //std::cout<<"start_matrices inside loop: "<<start_matrices<<std::endl;
+                        //std::cout<<"string to add: "<<std::to_string(matrices.at(index).at(i).at(j))<<std::endl;
+                        //std::cout<<"schedule_str before insert: "<<schedule_str<<std::endl;
+                        schedule_str.insert(start_matrices,std::to_string(matrices.at(index).at(i).at(j)));
+                        //std::cout<<"schedule_str after insert: "<<schedule_str<<std::endl;
+                        start_matrices+=std::to_string(matrices.at(index).at(i).at(j)).size();
+                        if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)){schedule_str.insert(start_matrices,",");start_matrices+=1;}
+                    }
+            }
+            schedule_str.insert(start_matrices,")");
+            start_matrices+=1;
+            schedule_str.insert(start_matrices,"{C"+std::to_string(index)+"}");
+            start_matrices+=4;
+        }
+        
+    }
+    
+    //std::cout<<"schedule_str before returning: "<<schedule_str<<std::endl;        
     return schedule_str;
 }
 

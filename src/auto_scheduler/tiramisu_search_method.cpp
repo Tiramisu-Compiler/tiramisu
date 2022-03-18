@@ -441,6 +441,23 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     }
 
 }
+/*
+return identity matrix
+*/
+std::vector <  std::vector<int> > get_identity(int depth){
+    std::vector <  std::vector<int> >  matrix(depth);
+        for(int l = 0; l<matrix.size(); l++){
+            matrix.at(l)= std::vector<int>(depth);
+            for(int c = 0; c<matrix.size(); c++){
+                            if (l!=c ){
+                                matrix.at(l).at(c) = 0;
+                            }else{
+                                matrix.at(l).at(c) = 1;
+                            }
+            }
+        }
+        return matrix;
+}
 // list of matrices to explore at each level of the exploration tree
 //std::vector <std::vector < std::vector<int> >> matrices;
 // list of hashes of matrices we explored before to avoid repeating schedules 
@@ -456,13 +473,41 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     // list of ASTs to be explored for next level 
     std::vector<syntax_tree*> to_be_explored;
 
+    std::hash<std::string> hasher;
+
     std::vector<optimization_type> optims;
     optims.push_back(optimization_type::MATRIX);
     
     
     ast.initialize_search_space_optimizations(optims);
+    // if this is the roor of the exploration tree 
+    // needs to be optimized
+    if (ast.search_depth==0){
+        std::cout<<"inside parent of search sapce "<<std::endl;
+        std::vector<ast_node*> nodes;
+        for(auto root: ast.roots){
+            std::vector<ast_node*> nodes;
+            root->get_all_nodes(nodes);
+            for(auto node : nodes){
+                if(node->computations.size()>0){
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::MATRIX;
+                    node->get_all_computations(optim_info.comps);
+                    // for the original schedule, the transformation matrix is the identity
+                    std::cout<<"node->depth: "<<node->depth+1<<std::endl;
+                    optim_info.matrix = get_identity(node->depth+1);
+                    ast.new_optims.push_back(optim_info);
+                    std::cout<<"pushed optims"<<ast.new_optims.size()<<std::endl;
+                    
+                }
+                
+            }
+        }
+        
+        
+    }
     
-    
+    hashes.push_back(hasher(ast.get_schedule_str()));
     //ast.search_state.optimization_index = 0;
     std::cout<<"!ast.is_search_space_empty(): "<<!ast.is_search_space_empty()<<std::endl;
     while ((!ast.is_search_space_empty()))
@@ -486,25 +531,13 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     }
     //exec_eval->fct->reset_schedules();
     std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
-    std::hash<std::string> hasher;
+   
+    
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
     // generate the matrices to be explored at this level
     
-    // if this is the root of the exploration tree 
-    /*
-    if (ast.search_depth==0){
-
-        optimization_info optim_info;
-        optim_info.type = optimization_type::MATRIX;
-        optim_info.comps = ast.computations_list;
-        // for the original schedule, the transformation matrix is the identity
-        //optim_info.matrix = get_identity(ast.get_program_depth());
-        ast.new_optims.push_back(optim_info);
-        // the root to the hashes to avoid repeating the identity matrix
-        hashes.push_back(hasher(ast.get_schedule_str()));
-    }
-    */
+    
     
     
     
@@ -537,7 +570,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         child = *iterator;
         //std::cout<<"before transform"<<std::endl;
         //std::cout<<"in the cont condition"<<std::endl;
-        
+        std::cout<<"nb_optims prev in child: "<<child->previous_optims.size()<<std::endl;
+        std::cout<<"nb_optims in child: "<<child->new_optims.size()<<std::endl;
         child->transform_ast();
         std::cout<<"after transform ast in search save matrix"<<std::endl;
         if (!child->ast_is_legal()) {
@@ -545,7 +579,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 // print deleted Ast
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
-                std::cout<<ast.get_schedule_str()<<std::endl;
+                std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 std::cout << "\n-----------" << std::endl;
                 child->print_new_optims();
                 
@@ -577,7 +611,10 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 }
             }
         
-            if(repeated) continue;
+            if(repeated){
+                std::cout<<"this schedule was repeated"<<ast.get_schedule_str()<<std::endl;
+                continue;
+            } 
 
             
             // if the matrix is legal and not repeated we add its hash to the list of seen hashes and we start the evaluation 
@@ -782,8 +819,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
 
     to_be_explored.resize(std::min(beam_size, (int)to_be_explored.size()));
    
-   int nb_comps= ast.get_computations().size();
-    
+    int nb_comps= ast.get_computations().size();
+    std::cout<<"max levels is:"<<MAX_MAT_DEPTH * nb_comps<<std::endl;
     for (syntax_tree *child : to_be_explored)
     {
         // increment the search depth for the recursive call
@@ -798,7 +835,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             child->initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
             // if we surpassed the MAX_MAT_DEPTH amount of matrices to explore OR we detected the parent of this level through
             // the child->search_depth<=child->nb_explored_matrices condition which means that the search level is greater than the number of applied matrices
-            //search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
+            search_save(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);  
         }
     }
 }
