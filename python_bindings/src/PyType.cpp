@@ -3,7 +3,17 @@
 namespace tiramisu {
   namespace PythonBindings {
 
+
+
     void define_type(py::module &m){
+      auto expr_t_enum = py::enum_<tiramisu::expr_t>(m, "expr_t")
+	.value("e_val", e_val)
+	.value("e_var", e_var)
+	.value("e_sync", e_sync)
+	.value("e_op", e_op)
+	.value("e_none", e_none)
+	.export_values();
+      
       auto primitive_t_enum = py::enum_<tiramisu::primitive_t>(m, "primitive_t").value("p_uint8", p_uint8)
 	.value("p_uint16", p_uint16)
 	.value("p_uint32", p_uint32)
