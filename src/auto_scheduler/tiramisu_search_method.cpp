@@ -187,6 +187,12 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
     std::cout<<"inside search saving"<<std::endl;
+    ast.print_previous_optims();
+    std::cout<<"inside search saving"<<std::endl;
+    ast.print_new_optims();
+    std::cout<<"inside search saving"<<std::endl;
+    ast.print_ast();
+    std::cout<<"inside search saving"<<std::endl;
     std::vector<syntax_tree*> children;
     if(generator_state::initialized == false)
     {
@@ -422,7 +428,9 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
 
     // Sort children from smallest evaluation to largest
-
+    std::cout<<"Schedule of first comp after applying fusion: "<<isl_map_to_str(children.at(0)->computations_list.at(0)->get_schedule())<<std::endl;
+    std::cout<<"Schedule of second comp after applying fusion: "<<isl_map_to_str(children.at(0)->computations_list.at(1)->get_schedule())<<std::endl;
+    
     std::sort(children.begin(), children.end(), [](syntax_tree *a, syntax_tree *b) {
         return a->evaluation < b->evaluation;
     });

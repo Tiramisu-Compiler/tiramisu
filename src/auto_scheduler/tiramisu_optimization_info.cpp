@@ -26,6 +26,7 @@ void unroll_innermost_levels(std::vector<tiramisu::computation*> const& comps_li
 
 void apply_optimizations(syntax_tree const& ast)
 {
+    std::cout<<"in apply optimizations "<<std::endl;
     // Check ast.h for the difference between ast.previous_optims and ast.new_optims
     for (optimization_info const& optim_info : ast.previous_optims){
         std::cout<<"prev optims: "<<optim_info.type<<std::endl;
@@ -43,7 +44,11 @@ void apply_optimizations(syntax_tree const& ast)
     // apply_fusions() uses the structure of the AST to correctly order the computations.
     //std::cout<<"schedule before apply fusion: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
     //std::cout<<"schedule before apply fusion: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
+    std::cout<<"about to apply fusion "<<std::endl;
     apply_fusions(ast);
+     std::cout<<"Schedule of first comp after applying fusion in apply: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
+    std::cout<<"Schedule of second comp after applying fusion in apply: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
+    std::cout<<"end to apply fusion "<<std::endl;
     //std::cout<<"schedule after apply fusion: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
     //std::cout<<"schedule after apply fusion: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
     // Parallelization needs to be applied after the other transformations in order to have the accurate loop depth of

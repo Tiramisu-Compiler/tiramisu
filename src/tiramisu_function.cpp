@@ -2841,6 +2841,7 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     std::cout<<"function:: check dimension validity "<<std::endl;
     bool result = true;
     std::cout<<"will loop: "<<fuzed_computations.size()<<std::endl;
+    
     for(auto& computation:fuzed_computations)
     {
         std::cout<<"iteration: "<<std::endl;

@@ -1037,17 +1037,20 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         //search for possible unrolling from the bottom loop until one is found
         // Apply all possible unrolling factors to all innermost iterators
         //test unrolling for all inner nodes until we find a valid
+        bool result = true;
         for (ast_node *inner_most_node: innermost_nodes) {
             std::cout<<"inside for loop"<<std::endl;
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
-
-            std::vector<std::string> loop_names = involved_computations[0]->get_loop_level_names();
-
-            std::string loop_name = loop_names[inner_most_node->depth];
-            std::cout<<"is_optimized_by_tag"<<std::endl;
-            bool result = (!inner_most_node->is_optimized_by_tag()) &&
-                          ast.fct->loop_unrolling_is_legal(var(loop_name), involved_computations);
+            for (auto comp: involved_computations){
+                std::vector<std::string> loop_names = comp->get_loop_level_names();
+                
+                std::vector<tiramisu::computation *> involved_comp_first; involved_comp_first.push_back(comp);
+                std::string loop_name = loop_names[inner_most_node->depth];
+                std::cout<<"is_optimized_by_tag"<<std::endl;
+                result = result && (!inner_most_node->is_optimized_by_tag()) &&
+                                ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
+            }
             std::cout<<"after is_optimized_by_tag"<<std::endl;    
             if (result) // unrollable: test all possible values
             {

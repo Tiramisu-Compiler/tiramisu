@@ -3098,9 +3098,9 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     std::vector<isl_id *> dimensions;
 
     std::vector<std::string> dim_vector;
-        //std::cout <<" Loop level name befors ==="<<std::endl;
+    std::cout <<" Loop level name befors ==="<<std::endl;
     std::vector<std::string> str = this->get_loop_level_names();
-    //for (std::string name : str)std::cout <<" Loop level name "<< name<< std::endl;
+    for (std::string name : str)std::cout <<" Loop level name "<< name<< std::endl;
     // ------------------------------------------------------------
     // Create a map for the duplicate schedule.
     // ------------------------------------------------------------
