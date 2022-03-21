@@ -1,6 +1,9 @@
 #include "PyTiramisu.h"
 #include "PyType.h"
 #include "PyExpr.h"
+#include "PyBuffer.h"
+#include "PyInit.h"
+#include "PyConstant.h"
 
 static_assert(PYBIND11_VERSION_MAJOR == 2 && PYBIND11_VERSION_MINOR >= 6,
               "Halide requires PyBind 2.6+");
@@ -17,4 +20,7 @@ PYBIND11_MODULE(TIRAMISU_PYBIND_MODULE_NAME, m) {
   using namespace tiramisu::PythonBindings;
   define_type(m);
   define_expr(m);
+  define_buffer(m);
+  define_init(m);
+  define_const(m);
 }
