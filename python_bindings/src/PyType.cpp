@@ -29,7 +29,11 @@ namespace tiramisu {
 	.value("p_wait_ptr", p_wait_ptr)
 	.value("p_void_ptr", p_void_ptr)
 	.value("p_none", p_none).export_values();
+
+      py::implicitly_convertible<int, tiramisu::primitive_t>();
     }
+
+
 
   }  // namespace PythonBindings
 }  // namespace tiramisu
