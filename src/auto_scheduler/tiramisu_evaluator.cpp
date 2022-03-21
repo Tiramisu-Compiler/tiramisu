@@ -77,8 +77,8 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     //fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
-    std::cout<<"Schedule of first comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
-    std::cout<<"Schedule of second comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
+    //std::cout<<"Schedule of first comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
+    //std::cout<<"Schedule of second comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();
@@ -446,11 +446,11 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                             matrix_padded.at(i).at(j)= optim_info.matrix.at(i).at(j);
                         }
                     }
-                    std::cout<<"multiplying "<< matrix_padded.size()<< "and "<< matrix.size(); 
+                    //std::cout<<"multiplying "<< matrix_padded.size()<< "and "<< matrix.size(); 
                     matrix = mat_mul( matrix_padded, matrix);
                     matrices.push_back(matrix_padded);
                 }else{
-                    std::cout<<"multiplying "<< optim_info.matrix.size()<< "and "<< matrix.size();
+                    //std::cout<<"multiplying "<< optim_info.matrix.size()<< "and "<< matrix.size();
                     matrices.push_back(optim_info.matrix); 
                     matrix = mat_mul( optim_info.matrix, matrix);
                 }

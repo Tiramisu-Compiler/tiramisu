@@ -2817,7 +2817,7 @@ void tiramisu::function::prepare_schedules_for_legality_checks(bool reset_static
 
 bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<tiramisu::computation *> fuzed_computations)
 {
-    std::cout<<"function:: loop_unrolling_is_legal "<<std::endl;
+    //std::cout<<"function:: loop_unrolling_is_legal "<<std::endl;
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
 
@@ -2833,25 +2833,25 @@ bool tiramisu::function::loop_unrolling_is_legal(tiramisu::var i , std::vector<t
     DEBUG(3, tiramisu::str_dump(" unrolling check for var : "+i.get_name()));
 
     std::vector<std::string> original_loop_level_names = first_computation->get_loop_level_names();
-    std::cout<<"function:: after get loop level names "<<std::endl;
+    //std::cout<<"function:: after get loop level names "<<std::endl;
     std::vector<int> dimensions =
         first_computation->get_loop_level_numbers_from_dimension_names({i.get_name()});
 
     first_computation->check_dimensions_validity(dimensions);
-    std::cout<<"function:: check dimension validity "<<std::endl;
+    //std::cout<<"function:: check dimension validity "<<std::endl;
     bool result = true;
-    std::cout<<"will loop: "<<fuzed_computations.size()<<std::endl;
+    //std::cout<<"will loop: "<<fuzed_computations.size()<<std::endl;
     
     for(auto& computation:fuzed_computations)
     {
-        std::cout<<"iteration: "<<std::endl;
+        //std::cout<<"iteration: "<<std::endl;
         if(computation->unrolling_is_legal(i) == false)
         {
             result = false;
             break;
         }
     }
-    std::cout<<"function:: about return "<<std::endl;
+    //std::cout<<"function:: about return "<<std::endl;
     DEBUG_INDENT(-4);
 
     return result;

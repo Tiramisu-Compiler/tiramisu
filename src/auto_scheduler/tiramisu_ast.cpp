@@ -512,13 +512,13 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
     
-    //std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
+    /*std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
     for (int k = 0; k < opt.matrix.size(); k++) {
             for (int j = 0; j < opt.matrix[k].size(); j++)
                 std::cout << opt.matrix[k][j] << " ";
             std::cout << std::endl;
         }
-   
+    */
     opt.node->get_all_nodes(all_nodes);
     std::vector<ast_node*> to_change_nodes;
     std::vector<ast_node*> temp_to_change;
@@ -595,7 +595,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                 vec.push_back(temp_to_change[k]->low_bound);
                 vec.push_back(temp_to_change[k]->up_bound);
                 starting_bounds_mat.push_back(vec);
-                std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
+                //std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
                 vec.clear();
             }
                 
@@ -2367,7 +2367,7 @@ std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
 
     while(current->children.size() == 1)
     {
-        std::cout<<"one"<<std::endl;
+        //std::cout<<"one"<<std::endl;
         current = current->children[0];
         result.push_back(current);
     }

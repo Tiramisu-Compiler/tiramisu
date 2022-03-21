@@ -738,7 +738,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
     int nb_shared_iterators;
 
     int nb_try = 0;
-    std::cout<<"exploring: "<<ast.get_current_optimization_type()<<std::endl;
+    //std::cout<<"exploring: "<<ast.get_current_optimization_type()<<std::endl;
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {
@@ -1019,7 +1019,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::UNROLLING: {
-        std::cout<<"unrolling"<<std::endl;
+        //std::cout<<"unrolling"<<std::endl;
         ast.stage_isl_states();
 
         node->get_innermost_nodes(innermost_nodes);
@@ -1039,7 +1039,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         //test unrolling for all inner nodes until we find a valid
         bool result = true;
         for (ast_node *inner_most_node: innermost_nodes) {
-            std::cout<<"inside for loop"<<std::endl;
+            //std::cout<<"inside for loop"<<std::endl;
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
             for (auto comp: involved_computations){
@@ -1047,21 +1047,21 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 
                 std::vector<tiramisu::computation *> involved_comp_first; involved_comp_first.push_back(comp);
                 std::string loop_name = loop_names[inner_most_node->depth];
-                std::cout<<"is_optimized_by_tag"<<std::endl;
+                //std::cout<<"is_optimized_by_tag"<<std::endl;
                 result = result && (!inner_most_node->is_optimized_by_tag()) &&
                                 ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
             }
-            std::cout<<"after is_optimized_by_tag"<<std::endl;    
+            //std::cout<<"after is_optimized_by_tag"<<std::endl;    
             if (result) // unrollable: test all possible values
             {
-                std::cout<<"unrollable: test all possible values"<<std::endl;
+                //std::cout<<"unrollable: test all possible values"<<std::endl;
 
                 ast.recover_isl_states();
 
                 for (int unrolling_fact: unrolling_factors_list) {
 
                     if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact)) {
-                        std::cout<<"can_split_iterator"<<std::endl;
+                        //std::cout<<"can_split_iterator"<<std::endl;
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
@@ -1442,9 +1442,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     int nb_try = 0;
     
     shared_nodes = node->collect_shared_nodes_from_head();
-    std::cout<<"depth of the head "<<node->depth<<std::endl;
+    //std::cout<<"depth of the head "<<node->depth<<std::endl;
     int depth = node->depth + shared_nodes.size(); 
-    std::cout<<"shared nodes size: "<<shared_nodes.size()<<std::endl;
+    //std::cout<<"shared nodes size: "<<shared_nodes.size()<<std::endl;
     if (shared_nodes.size() > 0)
     {
         node->get_all_computations(involved_computations);
@@ -1518,7 +1518,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     
     
     
-    std::cout<<"applying "<<shared_nodes.size()<< " reversals"<<std::endl;
+    //std::cout<<"applying "<<shared_nodes.size()<< " reversals"<<std::endl;
     for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
@@ -1539,7 +1539,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                             }
             }
         }
-        std::cout<<"applying reversal at "<<shared_nodes[i]->depth<< " reversals"<<std::endl;
+        //std::cout<<"applying reversal at "<<shared_nodes[i]->depth<< " reversals"<<std::endl;
         matrix.at(shared_nodes[i]->depth).at(shared_nodes[i]->depth) = -1; 
         optim_info.comps = involved_computations_reversal;
         optim_info.matrix = matrix;
