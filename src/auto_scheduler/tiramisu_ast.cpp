@@ -595,7 +595,6 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                 vec.push_back(temp_to_change[k]->low_bound);
                 vec.push_back(temp_to_change[k]->up_bound);
                 starting_bounds_mat.push_back(vec);
-                std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
                 vec.clear();
             }
                 

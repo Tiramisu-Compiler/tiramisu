@@ -4930,7 +4930,6 @@ bool computation::unrolling_is_legal(var l)
         //std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names: "<<l.get_name()<<std::endl;
         std::vector<int> dimensions =
             this->get_loop_level_numbers_from_dimension_names({l.get_name()});
-        for(int dimm : dimensions)std::cout<<"dimm int :"<<dimm<<std::endl;
         //std::cout<<"computation::unrolling_is_legal: get_loop_level_numbers_from_dimension_names "<<std::endl;
         this->check_dimensions_validity(dimensions);
 

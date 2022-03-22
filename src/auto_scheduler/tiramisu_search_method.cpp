@@ -254,6 +254,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
 //            (*iterator)->print_isl_states();
 //            (*iterator)->print_computations_accesses();
             std::cout << "\n<legal>\n";
+
             int fd[2];
             
             // create pipe descriptors
@@ -275,7 +276,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                 // put get_measurements in a try block in the case of erroneous unrolling
                 // this should be added to ast_is_legal but for now it can only be detected at apply_optimization level
                 try{
-                     measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+                     measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout,true);
                 }
                 catch(UnrollingException e){ 
                      // Remove all the optimizations
@@ -375,51 +376,40 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                 waitpid(-1,NULL,0);
             }
             
-            /*
-            std::vector<float> measurements;
+            
 
-            try{
-            measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
-            }catch(UnrollingException e){ 
-                     // Remove all the optimizations
-                    exec_eval->fct->reset_schedules();
-                    measurements.clear();
-                    measurements.push_back(std::numeric_limits<float>::infinity());
-                    unrolling_exception_thrown = true;
-                    cont = 1;
+                (*iterator)->evaluation = min_eval(measurements);
+
+                parent_trace->add_child_path((*iterator), schedules_annotations->size());
+
+
+                std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
+
+                //remove the last two characters }\n
+                schedule_annot.pop_back();
+                schedule_annot.pop_back();
+
+                if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                    schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+                else
+                    schedule_annot += ", \n\"execution_times\" : null\n}\n";
+            if(!unrolling_exception_thrown){
+                schedules_annotations->push_back(schedule_annot);
+
+                std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+                std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
+                std::cout << "Number of measurements : " << measurements.size() << std::endl;
+                std::cout << "===================================" << std::endl << std::endl;
+
+                if (std::isinf((*iterator)->evaluation))
+                    std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+                if ((*iterator)->evaluation < best_evaluation)
+                {
+                    best_evaluation = (*iterator)->evaluation;
+                    best_ast = (*iterator);
+                }
             }
-            */
-            (*iterator)->evaluation = min_eval(measurements);
-
-            parent_trace->add_child_path((*iterator), schedules_annotations->size());
-
-            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
-
-            //remove the last two characters }\n
-            schedule_annot.pop_back();
-            schedule_annot.pop_back();
-
-            if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
-                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
-            else
-                schedule_annot += ", \n\"execution_times\" : null\n}\n";
-
-            schedules_annotations->push_back(schedule_annot);
-
-            std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
-            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
-            std::cout << "Number of measurements : " << measurements.size() << std::endl;
-            std::cout << "===================================" << std::endl << std::endl;
-
-            if (std::isinf((*iterator)->evaluation))
-                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
-
-            if ((*iterator)->evaluation < best_evaluation)
-            {
-                best_evaluation = (*iterator)->evaluation;
-                best_ast = (*iterator);
-            }
-
             ++iterator;
 
         }
@@ -720,7 +710,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 // print deleted Ast
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
-                std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
+                //std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_new_optims();
                 
                 child->print_ast();
@@ -765,7 +755,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
                 child->print_new_optims();
-                std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
+                //std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_ast();
                 child->print_isl_states();
                 std::cout << "\n<legal>\n";
