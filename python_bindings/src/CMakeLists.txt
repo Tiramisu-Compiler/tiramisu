@@ -5,6 +5,7 @@ set(SOURCES
   PyBuffer.cpp
   PyInit.cpp
   PyConstant.cpp
+  PyVar.cpp
   )
 
 pybind11_add_module(Tiramisu_Python MODULE ${SOURCES})
