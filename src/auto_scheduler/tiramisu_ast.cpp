@@ -595,7 +595,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
                 vec.push_back(temp_to_change[k]->low_bound);
                 vec.push_back(temp_to_change[k]->up_bound);
                 starting_bounds_mat.push_back(vec);
-                //std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
+                std::cout <<temp_to_change[k]->low_bound << " "<<temp_to_change[k]->up_bound << " "<<std::endl;
                 vec.clear();
             }
                 
@@ -2149,7 +2149,6 @@ std::string syntax_tree::get_schedule_str()
                 }
                 for (auto comp: optim.comps)
                 {
-                    
                     int index = get_computation_index(comp);
                     //std::cout<<"index of computation:  "<<index<<std::endl;
                     if(first_time.at(index)){
@@ -2238,6 +2237,10 @@ std::string syntax_tree::get_schedule_str()
             //std::cout<<"copying one matrix"<<std::endl;
             schedule_str.insert(start_matrices,"M(");
             start_matrices+=2;
+            schedule_str.insert(start_matrices,"{C"+std::to_string(index)+"}");
+            start_matrices+=4;
+            schedule_str.insert(start_matrices,",");
+            start_matrices+=1;
             
             
             
@@ -2255,8 +2258,6 @@ std::string syntax_tree::get_schedule_str()
             }
             schedule_str.insert(start_matrices,")");
             start_matrices+=1;
-            schedule_str.insert(start_matrices,"{C"+std::to_string(index)+"}");
-            start_matrices+=4;
         }
         
     }

@@ -8,6 +8,12 @@
 
 #include <stdexcept>
 #define TIME_LIMIT 1000
+struct UnrollingException : public std::exception {
+    const char * what () const throw ()
+        {
+            return "unrolling error : unrolled loop level is a user node due to dimension error";
+        }
+};
 namespace tiramisu::auto_scheduler
 {
 
@@ -226,6 +232,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     auto iterator = children.begin();
     while (iterator != children.end())
     {
+        bool unrolling_exception_thrown = false;
         (*iterator)->transform_ast();
         if ((*iterator)->ast_is_legal() == false) {
             // print deleted Ast
@@ -247,9 +254,141 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
 //            (*iterator)->print_isl_states();
 //            (*iterator)->print_computations_accesses();
             std::cout << "\n<legal>\n";
-
+            int fd[2];
+            
+            // create pipe descriptors
+	        pipe(fd);
+            timeout=0;
+            child_done=0;
+            cont = false;
             std::vector<float> measurements;
+            
+            // create a child process to execute the code and get measurements
+            // this is added so that we can limit the code generation time for large programs
+            pid_t pid;
+            pid = fork();
+
+            if (pid == -1) {
+                perror("fork failed");
+                exit(1);
+            } else if (pid == 0) {
+                // put get_measurements in a try block in the case of erroneous unrolling
+                // this should be added to ast_is_legal but for now it can only be detected at apply_optimization level
+                try{
+                     measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+                }
+                catch(UnrollingException e){ 
+                     // Remove all the optimizations
+                    exec_eval->fct->reset_schedules();
+                    measurements.clear();
+                    measurements.push_back(std::numeric_limits<float>::infinity());
+                    unrolling_exception_thrown = true;
+                    cont = 1;
+                }
+                int size =measurements.size();
+                float ar[measurements.size()];
+                // put the measurements in an array to be sent to the parent process
+                for(int i=0;i<measurements.size();i++) ar[i]=measurements.at(i);
+                close(fd[0]);
+                // send number of measurements to parent process
+                write(fd[1], &size, sizeof(size));
+                // send measurements to parent process
+                write(fd[1], &ar, sizeof(ar));
+                // close the pipe
+                close(fd[1]);
+                // end child process
+                _exit(1);
+            }
+
+            // set up the signal handlers after forking so the child doesn't inherit them
+            // an alarm in the case of the timelimit is reached and the child process was interrupted
+            signal(SIGALRM, alarm_handler);
+            // an alarm in the case of the child process ending ie. both data generation and evaluation are done
+            signal(SIGCHLD, child_handler);
+            // an alarm in the case of the data generation ending before the timelimit. We still need to wait for the evaluation to be done. 
+            signal(SIGUSR1,sig_usr);
+            // install an alarm to be fired after TIME_LIMIT
+            
+            // set the alarm
+            alarm(TIME_LIMIT);
+            
+            pause();
+
+            if (timeout) {
+                
+                // if the timeout has been reached    
+                int result = waitpid(pid, NULL, WNOHANG);
+                if (result == 0) {
+                    // child still running, so kill it
+                    
+                    // remove all the optimizations
+                    exec_eval->fct->reset_schedules();
+                    measurements.clear();
+                    // if the timeout has been reached, put infinity as a measurement
+                    measurements.push_back(std::numeric_limits<float>::infinity());
+                    // cancel any previously set alarm 
+                    alarm(0); 
+                    // kill child process
+                    kill(pid, 9);
+                    
+                
+                    waitpid(-1,NULL,0);
+                } else {
+                    // if by the time we detect that the alarm has been raised, the evaluation has been completed
+                    // we recieve the measurements from the child 
+                    int size = 0;
+                    close(fd[1]);
+                    read(fd[0], &size, sizeof(int));
+                    float ar[size];
+                    read(fd[0], &ar, size*sizeof(float));
+                    for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                    close(fd[0]);
+                    
+                }
+                   
+            }else if (child_done) {
+                // the execution of the child is done, both code generation and evaluation
+                // we recieve the measurements from the child
+                int size =0;
+                close(fd[1]);
+                read(fd[0], &size, sizeof(int));
+                float ar[size];
+                read(fd[0], &ar, size*sizeof(float));
+                for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                close(fd[0]);
+                
+                waitpid(-1,NULL,0);
+            }else if(cont){
+                // execution is not done but the code generation is done. This happens for large programs that take a long time to execute
+                // cancel the timeout alarm 
+                alarm(0);
+                int size=0;
+                // we wait for the evalution of the generated code
+                while(!child_done){}
+                // after evealuation is done, we recieve the measurements from the child
+                close(fd[1]);
+                read(fd[0], &size, sizeof(int));
+                float ar[size];
+                read(fd[0], &ar, size*sizeof(float));
+                for(int i=0;i<size;i++) measurements.push_back(ar[i]);
+                close(fd[0]);
+                waitpid(-1,NULL,0);
+            }
+            
+            /*
+            std::vector<float> measurements;
+
+            try{
             measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+            }catch(UnrollingException e){ 
+                     // Remove all the optimizations
+                    exec_eval->fct->reset_schedules();
+                    measurements.clear();
+                    measurements.push_back(std::numeric_limits<float>::infinity());
+                    unrolling_exception_thrown = true;
+                    cont = 1;
+            }
+            */
             (*iterator)->evaluation = min_eval(measurements);
 
             parent_trace->add_child_path((*iterator), schedules_annotations->size());
@@ -581,7 +720,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 // print deleted Ast
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
-                //std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
+                std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_new_optims();
                 
                 child->print_ast();
@@ -626,7 +765,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
                 child->print_new_optims();
-                std::cout<<child->get_schedule_str()<<std::endl;
+                std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_ast();
                 child->print_isl_states();
                 std::cout << "\n<legal>\n";

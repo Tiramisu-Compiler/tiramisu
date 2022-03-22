@@ -14,7 +14,12 @@
 #ifdef _WIN32
 #include <iso646.h>
 #endif
-
+struct UnrollingException : public std::exception {
+    const char * what () const throw ()
+        {
+            return "unrolling error";
+        }
+};
 namespace tiramisu
 {
 int send::next_msg_tag = 0;
@@ -6105,6 +6110,26 @@ tiramisu::expr utility::get_bound(isl_set *set, int dim, int upper)
     ast_build = isl_ast_build_set_iterators(ast_build, iterators);
 
     isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
+
+    // handle the case when the actual number of for loops is less than the target unrolled loop
+    isl_ast_node* node1 = node;
+    int cpt = 0;
+    bool stop = false;
+    // calculate the number of for loops 
+    while(!stop){
+        if(isl_ast_node_get_type(node1) == isl_ast_node_for ){
+            cpt++;
+            node1 = isl_ast_node_for_get_body(node1);
+        }
+        else if(isl_ast_node_get_type(node1) == isl_ast_node_user ){
+            stop = true;
+        }
+        else if(isl_ast_node_get_type(node1) == isl_ast_node_if){
+            node1 = isl_ast_node_if_get_then(node1);
+        }             
+    }
+    // if the number of for levels is less or equal to the unrolled loop, skip the optimization (exception handled when getting measurements)
+    if(cpt <= dim){throw UnrollingException();}
     e = utility::extract_bound_expression(node, dim, upper);
     isl_ast_build_free(ast_build);
 
