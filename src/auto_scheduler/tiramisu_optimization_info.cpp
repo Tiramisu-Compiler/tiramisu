@@ -188,7 +188,10 @@ void print_optim(optimization_info optim)
             break;
 
         case optimization_type::MATRIX:
-            std::cout << "Matrix Transform " << std::to_string(optim.matrix.size()) << "x" << std::to_string(optim.matrix.size())<< " [";
+            std::cout << "Matrix Transform " << std::to_string(optim.matrix.size()) << "x" << std::to_string(optim.matrix.size())<< " {";
+            for (auto comp:optim.comps)
+                std::cout<< comp->get_name() <<", ";
+            std::cout<< "} [";
             for(int i = 0; i < optim.matrix.size(); i++){
                 for(int j = 0; j< optim.matrix.size(); j++){
                     std::cout << std::to_string(optim.matrix.at(i).at(j));
@@ -196,10 +199,6 @@ void print_optim(optimization_info optim)
                 }
             }
             std::cout << "]" << std::endl;
-            std::cout<<"{";
-            for (auto comp:optim.comps)
-                std::cout<< comp->get_name() <<", ";
-            std::cout<<"}"<< std::endl;
             break;
 
         case optimization_type::INTERCHANGE:
