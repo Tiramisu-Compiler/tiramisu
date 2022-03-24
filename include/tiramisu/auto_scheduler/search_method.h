@@ -8,7 +8,8 @@
 #include "schedules_generator.h"
 #include "evaluator.h"
 #include "utils.h"
-const int MAX_MAT_DEPTH = 2; 
+// max matrices to be explored per computation
+const int MAX_MAT_DEPTH = 5; 
 namespace tiramisu::auto_scheduler
 {
 

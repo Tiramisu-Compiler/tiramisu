@@ -192,7 +192,7 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 }
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
-    
+    return;
     std::vector<syntax_tree*> children;
     if(generator_state::initialized == false)
     {
@@ -878,12 +878,12 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 close(fd[0]);
                 waitpid(-1,NULL,0);
             }
-            //std::cout<<"before min eval "<<std::endl;       
+                   
             child->evaluation = min_eval(measurements);
-            //std::cout<<" befpre nb_explored_matrices "<<std::endl;
+            
             if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
-            //std::cout<<" nb_explored_matrices "<<std::endl;
-            //if(hash != parent_hash) child->nb_explored_matrices = child->nb_explored_matrices +1; 
+            
+            
             
             
             parent_trace->add_child_path(child, schedules_annotations->size());
@@ -958,7 +958,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         // increment the search depth for the recursive call
         child->search_depth = ast.search_depth + 1;
         // if we are under the maximum depth of matrices to explore then call search_save_matrix recursivly
-        if (child->search_depth<MAX_MAT_DEPTH * nb_comps && child->search_depth<=child->nb_explored_matrices){
+        //std::cout<<child->nb_explored_matrices<<" : nb_explored_matrices and search_depth: "<<child->search_depth<<std::endl;
+        if (child->search_depth< MAX_MAT_DEPTH * nb_comps && child->search_depth <= child->nb_explored_matrices){
             //std::cout<<"search saving matrix"<<std::endl;
             
             search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);

@@ -502,7 +502,6 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
-    
     stage_isl_states();
     
 /**
@@ -1151,6 +1150,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     new_ast.evaluation = evaluation;
     new_ast.search_depth = search_depth;
     new_ast.nb_explored_optims = nb_explored_optims;
+    new_ast.nb_explored_matrices = nb_explored_matrices;
     new_ast.previous_optims = previous_optims;
     new_ast.new_optims = new_optims;
 
