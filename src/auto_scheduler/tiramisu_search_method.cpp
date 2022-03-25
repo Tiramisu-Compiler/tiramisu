@@ -42,6 +42,7 @@ void beam_search::search(syntax_tree& ast)
     {
         // schedule generation based on generator_state attribute in the AST.
         auto new_children = scheds_gen->generate_schedules(ast);
+        
 
         for(auto& child:new_children)
         {
@@ -201,7 +202,8 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         assert(generator_state::initialized == true);
     }
 
-//    std::cout<<"TESTED";
+    //std::cout<<"TESTED 0"<< isl_map_to_str (ast.computations_list[0]->get_schedule())<<std::endl;
+    //std::cout<<"TESTED 1 "<< isl_map_to_str (ast.computations_list[1]->get_schedule())<<std::endl;
     //std::cout<<"before search space empty"<<std::endl;
     while ((!ast.is_search_space_empty()))
     {
@@ -222,7 +224,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         else
             ast.move_to_next_optimization_target();
     }
-    //children size is: "<<children.size()<<std::endl;
+    //children size is: "
     // Stop if no more optimizations can be applied
     if (children.size() == 0)
         return ;
@@ -699,18 +701,15 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
     {
          
         child = *iterator;
-        //std::cout<<"before transform"<<std::endl;
         //std::cout<<"in the cont condition"<<std::endl;
         //std::cout<<"nb_optims prev in child: "<<child->previous_optims.size()<<std::endl;
         //std::cout<<"nb_optims in child: "<<child->new_optims.size()<<std::endl;
         child->transform_ast();
-        //std::cout<<"after transform ast in search save matrix"<<std::endl;
         if (!child->ast_is_legal()) {
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
-                //std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_new_optims();
                 
                 child->print_ast();
@@ -755,7 +754,6 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 child->print_previous_optims();
                 std::cout << "\n-----------" << std::endl;
                 child->print_new_optims();
-                //std::cout<<"get_schedule_str: "<<child->get_schedule_str()<<std::endl;
                 child->print_ast();
                 child->print_isl_states();
                 std::cout << "\n<legal>\n";
@@ -781,7 +779,6 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
                 exit(1);
             } else if (pid == 0) {
                 measurements = exec_eval->get_measurements(*child, false, schedule_timeout,true);
-                //std::cout<<"passed get measurements "<<measurements.size()<<std::endl;
                 int size =measurements.size();
                 float ar[measurements.size()];
 
