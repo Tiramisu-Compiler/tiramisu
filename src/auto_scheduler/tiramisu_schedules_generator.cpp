@@ -1019,11 +1019,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::UNROLLING: {
-        //std::cout<<"unrolling"<<std::endl;
         ast.stage_isl_states();
-
         node->get_innermost_nodes(innermost_nodes);
-
         //check that the sbutree starting from node is a branch (has no splits)
                 ast_node *temp_node = node;
         while (temp_node->children.size() == 1 && temp_node->computations.size() == 0)
@@ -1039,13 +1036,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         //test unrolling for all inner nodes until we find a valid
         bool result = true;
         for (ast_node *inner_most_node: innermost_nodes) {
-            //std::cout<<"inside for loop"<<std::endl;
             std::vector<tiramisu::computation *> involved_computations;
             inner_most_node->get_innermost_computations(involved_computations);
             for (auto comp: involved_computations){
                 std::vector<std::string> loop_names = comp->get_loop_level_names();
-                
-                std::vector<tiramisu::computation *> involved_comp_first; involved_comp_first.push_back(comp);
+                std::vector<tiramisu::computation *> involved_comp_first; 
+                involved_comp_first.push_back(comp);
                 std::string loop_name = loop_names[inner_most_node->depth];
                 //std::cout<<"is_optimized_by_tag"<<std::endl;
                 result = result && (!inner_most_node->is_optimized_by_tag()) &&
@@ -1454,7 +1450,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         explre_interchange = false;
     }
     
-
+/*
     // To apply interchange, we pick all combinations of two iterators
     // in the shared loop levels.
     if(explre_interchange){
@@ -1498,10 +1494,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             }
         }
         }
-
+    */
     // add reversal
     // add reversal matriecs
-    ast.stage_isl_states();
+    
+    //ast.stage_isl_states();
+    
     std::vector<tiramisu::computation *> involved_computations_reversal;
     //for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
@@ -1513,7 +1511,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     }
     else
     {
-        ast.recover_isl_states();
+        //ast.recover_isl_states();
     }
     
     
@@ -1546,10 +1544,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
-    ast.recover_isl_states();
-
+   
+    //ast.recover_isl_states();
+   
     // add skweing 
     ast.stage_isl_states();
+  
     std::vector<tiramisu::computation *> involved_computations_skew;
     //for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
@@ -1565,6 +1565,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         ast.recover_isl_states();
         explre_solver_skew = false;
     }
+    
     if(explre_solver_skew){
         for (ast_node *commun_node : shared_nodes)
         {

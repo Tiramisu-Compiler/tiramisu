@@ -77,8 +77,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     //fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
-    //std::cout<<"Schedule of first comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(0)->get_schedule())<<std::endl;
-    //std::cout<<"Schedule of second comp after applying fusion get measurements: "<<isl_map_to_str(ast.computations_list.at(1)->get_schedule())<<std::endl;
+
     // Compile the program to an object file
     fct->lift_dist_comps();
     fct->gen_time_space_domain();

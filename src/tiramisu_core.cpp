@@ -1357,9 +1357,7 @@ void tiramisu::computation::unroll(int L0, int v)
 {
     DEBUG_FCT_NAME(3);
     DEBUG_INDENT(4);
-    
     bool split_happened = this->separateAndSplit(L0, v);
-
     if (split_happened)
     {
         // Tag the inner loop after splitting to be unrolled. That loop
@@ -3104,7 +3102,7 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
 
     std::vector<std::string> dim_vector;
     //std::cout <<" Loop level name befors ==="<<std::endl;
-    std::vector<std::string> str = this->get_loop_level_names();
+    //std::vector<std::string> str = this->get_loop_level_names();
     //for (std::string name : str)std::cout <<" Loop level name "<< name<< std::endl;
     // ------------------------------------------------------------
     // Create a map for the duplicate schedule.
@@ -3227,8 +3225,9 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     this->set_schedule(schedule);
     //std::cout<<"Schedule bfore ###"<< isl_map_to_str(this->get_schedule())<<std::endl;
 
-    
-    this->set_loop_level_names_matrix(str);
+    //this->name_unnamed_iteration_domain_dimensions();
+    //this->name_unnamed_time_space_dimensions();
+    //this->set_loop_level_names_matrix(str);
     //std::cout<<"Schedule after: #####"<< isl_map_to_str(this->get_schedule())<<std::endl;
 
    // std::cout <<" Loop level name after ==="<<std::endl;
@@ -3239,7 +3238,6 @@ void computation::matrix_transform(std::vector<std::vector<int>> matrix)
     //for (std::string name : str1)std::cout <<" Loop level name "<< name<< std::endl;
     //std::cout<<"Original schedule before returning: "<< isl_map_to_str(schedule) <<std::endl;
     //std::cout<<"schedule to be set: "<< isl_map_to_str(schedule) <<std::endl;
-    //std::cout<<"schedule set: "<< isl_map_to_str(this->get_schedule()) <<std::endl;
     DEBUG_INDENT(-4);
 }
 
@@ -5027,8 +5025,7 @@ bool computation::unrolling_is_legal(var l)
         DEBUG_INDENT(-4);
 
         isl_set_free(normal_set);
-        //std::cout<<"computation::unrolling_is_legal: about to return "<<std::endl;
-        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && (is_number(max_string)) );
+        return ((n_piece_max == 1) && (n_piece_min == 1) && (is_number(min_string)) && ( is_number(max_string)) );
     }
 
 
@@ -5977,7 +5974,6 @@ int computation::compute_maximal_AST_depth()
 {
     DEBUG_FCT_NAME(10);
     DEBUG_INDENT(4);
-
     this->name_unnamed_time_space_dimensions();
     this->gen_time_space_domain();
     isl_set *set = this->get_trimmed_time_processor_domain();
@@ -6023,7 +6019,6 @@ int computation::compute_maximal_AST_depth()
         isl_id *id = isl_id_alloc(ctx, name.c_str(), NULL);
         iterators = isl_id_list_add(iterators, id);
     }
-
     ast_build = isl_ast_build_set_iterators(ast_build, iterators);
 
     isl_ast_node *node = isl_ast_build_node_from_schedule_map(ast_build, isl_union_map_from_map(map));
@@ -6163,7 +6158,6 @@ bool computation::separateAndSplit(int L0, int v)
     DEBUG(3, tiramisu::str_dump("Applying separateAndSplit on loop level " + std::to_string(L0) + " with a split factor of " + std::to_string(v)));
 
     this->gen_time_space_domain();
-
     // Compute the depth before any scheduling.
     int original_depth = this->compute_maximal_AST_depth();
 

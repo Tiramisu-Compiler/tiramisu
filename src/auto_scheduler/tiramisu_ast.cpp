@@ -1137,6 +1137,7 @@ ast_node* syntax_tree::copy_and_return_node(syntax_tree& new_ast, ast_node *node
     }
 
     // Copy AST data
+    new_ast.nb_explored_matrices = nb_explored_matrices;
     new_ast.fct = fct;
     new_ast.computations_list = computations_list;
     new_ast.buffers_list = buffers_list;
@@ -2681,9 +2682,13 @@ std::string candidate_trace::get_exploration_trace_json()
 {
     std::string trace_json = "{ \"id\": "+std::to_string(this->candidate_id)+
             ", \"schedule\": \"" + this->schedule_str + "\"" +
-            ", \"depth\": " + std::to_string(this->exploration_depth) +
-            ", \"evaluation\": " + std::to_string(this->evaluation) +
+            ", \"depth\": " + std::to_string(this->exploration_depth);
+            if (std::isfinite(this->evaluation)){ // the evaluation is not finite mean that the schedule didn't run
+                trace_json+=", \"evaluation\": " + std::to_string(this->evaluation) +
             ", \"children\": [";
+            }else{
+                trace_json+=", \"evaluation\": null , \"children\": [";
+            }
 
     if (!this->child_candidates.empty())
     {
