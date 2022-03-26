@@ -7,7 +7,7 @@ namespace tiramisu {
       auto expr_class = py::class_<expr>(m, "expr").def(py::init<>())
 	      .def(py::init<primitive_t>())
         // for implicitly_convertible
-        .def(py::init([](const tiramisu::constant &c) -> tiramisu::expr { return c.expr(); }));
+        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }));
       //operator
       //casts
       //vars
