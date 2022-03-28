@@ -7,7 +7,11 @@ namespace tiramisu {
       auto expr_class = py::class_<expr>(m, "expr").def(py::init<>())
 	      .def(py::init<primitive_t>())
         // for implicitly_convertible
-        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }));
+	      .def(py::init<int>())
+	      .def(py::init<double>())
+        // constant convert
+        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }))
+        .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); });
       //operator
       //casts
       //vars
@@ -17,7 +21,8 @@ namespace tiramisu {
       
 
       py::implicitly_convertible<tiramisu::constant, tiramisu::expr>();
-      py::implicitly_convertible<tiramisu::primitive_t, tiramisu::expr>();
+      py::implicitly_convertible<int, tiramisu::expr>();
+      py::implicitly_convertible<double, tiramisu::expr>();
     }
 
   }  // namespace PythonBindings

@@ -30,8 +30,6 @@ namespace tiramisu {
 	.value("p_void_ptr", p_void_ptr)
 	.value("p_none", p_none).export_values();
 
-      py::implicitly_convertible<int, tiramisu::primitive_t>();
-
       auto op_t_enum = py::enum_<tiramisu::op_t>(m, "op_t")
 	.value("o_minus", o_minus)
 	.value("o_floor", o_floor)
@@ -77,12 +75,6 @@ namespace tiramisu {
 	.value("o_right_shift", o_right_shift)
 	.value("o_left_shift", o_left_shift)
 	.value("o_memcpy", o_memcpy)
-	.value("o_select", o_select)
-	.value("o_cond", o_cond)
-	.value("o_lerp", o_lerp)
-	.value("o_call", o_call)
-	.value("o_access", o_access)
-	.value("o_address_of", o_address_of)
 	.value("o_select", o_select)
 	.value("o_cond", o_cond)
 	.value("o_lerp", o_lerp)

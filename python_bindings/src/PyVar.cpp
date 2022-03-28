@@ -8,7 +8,8 @@ namespace tiramisu {
         .def(py::init<tiramisu::primitive_t, std::string>())
         .def(py::init<std::string>())
         .def(py::init<std::string, tiramisu::expr, tiramisu::expr>())
-        .def(py::init<>());
+        .def(py::init<>())
+        .def("dump", [](const tiramisu::var &e) -> auto { return e.dump(true); });
     }
 
   }  // namespace PythonBindings
