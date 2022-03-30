@@ -193,7 +193,7 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 }
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
-    return;
+    
     std::vector<syntax_tree*> children;
     if(generator_state::initialized == false)
     {
@@ -278,7 +278,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                 // put get_measurements in a try block in the case of erroneous unrolling
                 // this should be added to ast_is_legal but for now it can only be detected at apply_optimization level
                 try{
-                     measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout,true);
+                     measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout,false);
                 }
                 catch(UnrollingException e){ 
                      // Remove all the optimizations
@@ -288,7 +288,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
                     unrolling_exception_thrown = true;
                     cont = 1;
                 }
-                int size =measurements.size();
+                int size = measurements.size();
                 float ar[measurements.size()];
                 // put the measurements in an array to be sent to the parent process
                 for(int i=0;i<measurements.size();i++) ar[i]=measurements.at(i);
@@ -572,6 +572,118 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
 
         search_save_matrix(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
     }
+
+}
+void beam_search::explore_parallelization(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
+{
+    //std::cout<<"inside explore fusion"<<std::endl;
+    std::vector<syntax_tree*> children;
+    std::vector<optimization_type> optims;
+
+    optims.push_back(optimization_type::PARALLELIZE);
+    
+    ast.initialize_search_space_optimizations(optims);
+
+
+//    std::cout<<"TESTED";
+    //std::cout<<"before search space empty in fusion"<<std::endl;
+    while ((!ast.is_search_space_empty()))
+    {
+        // schedule generation based on generator_state attribute in the AST.
+        auto new_children = scheds_gen->generate_schedules(ast);
+
+        for(auto& child:new_children)
+            child->move_to_next_head();
+
+        children.insert(children.end(), new_children.begin(), new_children.end()); // concatenate
+
+        if  (ast.search_state.is_current_optimization_fully_explored()) {
+            // move to next optimization
+            // explores next optimization/alternative
+            ast.move_to_next_head();
+            break;
+        }
+        else
+            ast.move_to_next_head();
+    }
+    //std::cout<<"children size is: "<<children.size()<<std::endl;
+
+    // Evaluate children and sort them from smallest to highest evaluation
+    // evaluate while removing illegal versions
+    auto iterator = children.begin();
+    while (iterator != children.end())
+    {
+        (*iterator)->transform_ast();
+        if ((*iterator)->ast_is_legal() == false) {
+            // print deleted Ast
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+            (*iterator)->print_isl_states();
+            std::cout << "\n<illegal>\n";
+            delete (*iterator);
+            iterator = children.erase(iterator);
+        }
+        else {
+            // evaluate and print Ast
+            (*iterator)->print_previous_optims();
+            std::cout << "\n-----------" << std::endl;
+            (*iterator)->print_new_optims();
+            (*iterator)->print_ast();
+//            (*iterator)->print_isl_states();
+//            (*iterator)->print_computations_accesses();
+            std::cout << "\n<legal>\n";
+
+            std::vector<float> measurements;
+            measurements = exec_eval->get_measurements(**iterator, false, schedule_timeout);
+            (*iterator)->evaluation = min_eval(measurements);
+
+            parent_trace->add_child_path((*iterator), schedules_annotations->size());
+
+            std::string schedule_annot = evaluate_by_learning_model::get_schedule_json(*(*iterator));
+
+            //remove the last two characters }\n
+            schedule_annot.pop_back();
+            schedule_annot.pop_back();
+
+            if (std::isfinite((*iterator)->evaluation)) // the evaluation is not finite mean that the schedule didn't run
+                schedule_annot += ", \n\"execution_times\" : " + measurements_to_str(measurements) + "\n}\n";
+            else
+                schedule_annot += ", \n\"execution_times\" : null\n}\n";
+
+            schedules_annotations->push_back(schedule_annot);
+
+            std::cout << "Schedule number "<< schedules_annotations->size() << std::endl;
+            std::cout << "Evaluation : " << (*iterator)->evaluation << std::endl;
+            std::cout << "Number of measurements : " << measurements.size() << std::endl;
+            std::cout << "===================================" << std::endl << std::endl;
+
+            if (std::isinf((*iterator)->evaluation))
+                std::cerr<< "Evaluation of schedule "<< schedules_annotations->size() <<" failed "<< std::endl;
+
+            if ((*iterator)->evaluation < best_evaluation)
+            {
+                best_evaluation = (*iterator)->evaluation;
+                best_ast = (*iterator);
+            }
+
+            ++iterator;
+
+        }
+
+        nb_explored_schedules++;
+    }
+
+    // Add the current AST to the list of children
+    syntax_tree *ast_copy = ast.copy_ast();
+    children.push_back(ast_copy);
+
+    parent_trace->add_child_path(ast_copy, parent_trace->get_candidate_id()); // keeps the same id since it's just copy
+
+    // Sort children from smallest evaluation to largest
+    //std::cout<<"Schedule of first comp after applying fusion: "<<isl_map_to_str(children.at(0)->computations_list.at(0)->get_schedule())<<std::endl;
+    //std::cout<<"Schedule of second comp after applying fusion: "<<isl_map_to_str(children.at(0)->computations_list.at(1)->get_schedule())<<std::endl;
 
 }
 /*
@@ -936,6 +1048,10 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
        return a->evaluation < b->evaluation;
     });
 
+    for (syntax_tree *child : to_be_explored)
+    {
+        explore_parallelization(*child, schedules_annotations, parent_trace->child_mappings[child], schedule_timeout);
+    }
     // shuffle the children so that they are selected a random
     //std::shuffle(std::begin(to_be_explored), std::end(to_be_explored), rand_generator);
     

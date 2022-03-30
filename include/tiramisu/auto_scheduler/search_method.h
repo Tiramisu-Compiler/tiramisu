@@ -9,7 +9,7 @@
 #include "evaluator.h"
 #include "utils.h"
 // max matrices to be explored per computation
-const int MAX_MAT_DEPTH = 5; 
+const int MAX_MAT_DEPTH = 1; 
 namespace tiramisu::auto_scheduler
 {
 
@@ -129,6 +129,7 @@ public:
     virtual void search_save(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
     virtual void search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
     virtual void explore_fusion(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
+    virtual void explore_parallelization(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout=0);
 
 };
 
