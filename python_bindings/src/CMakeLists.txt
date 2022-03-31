@@ -7,6 +7,7 @@ set(SOURCES
   PyConstant.cpp
   PyVar.cpp
   PyComputation.cpp
+  PyCodegen.cpp
   )
 
 pybind11_add_module(Tiramisu_Python MODULE ${SOURCES})
