@@ -13,4 +13,4 @@ buf0 = tm.buffer("buf0", [10], tm.primitive_t.p_uint8, tm.argument_t.a_output)
 
 S0.store_in(buf0)
 
-tm.codegen([buf0], "../build/generated_fct_developers_tutorial_01.o", False)
+tm.codegen([buf0], "generated_fct_developers_tutorial_01.o", False)
