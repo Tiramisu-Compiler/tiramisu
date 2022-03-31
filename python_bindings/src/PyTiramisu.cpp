@@ -5,6 +5,7 @@
 #include "PyInit.h"
 #include "PyConstant.h"
 #include "PyVar.h"
+#include "PyComputation.h"
 
 static_assert(PYBIND11_VERSION_MAJOR == 2 && PYBIND11_VERSION_MINOR >= 6,
               "Halide requires PyBind 2.6+");
@@ -25,4 +26,5 @@ PYBIND11_MODULE(TIRAMISU_PYBIND_MODULE_NAME, m) {
   define_init(m);
   define_const(m);
   define_var(m);
+  define_computation(m);
 }

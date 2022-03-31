@@ -11,7 +11,8 @@ namespace tiramisu {
 	      .def(py::init<double>())
         // constant convert
         .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }))
-        .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); });
+        .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); })
+        .def("__add__", [](tiramisu::expr &l, tiramisu::expr &r) -> auto { return l + r; });
       //operator
       //casts
       //vars
