@@ -112,12 +112,17 @@ void add_binary_operators(PythonClass &class_instance) {
 	.def(py::init([](tiramisu::op_t o, std::string name, std::vector<tiramisu::expr> vec, tiramisu::primitive_t type) ->
 		      tiramisu::expr {return expr(o, name, vec, type);}))
         .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); })
+	.def("get_name", [](tiramisu::expr &e) -> std::string {return e.get_name();})
+	.def("set_name", [](tiramisu::expr &e, std::string & name) -> void {return e.set_name(name);})
+	.def("is_equal", [](tiramisu::expr &e, tiramisu::expr &ep) -> bool {return e.is_equal(ep);})
+	.def("__repr__", [](tiramisu::expr &e) -> std::string {return e.to_str();})
 	.def("cast", [](tiramisu::primitive_t tT, tiramisu::expr &e) -> tiramisu::expr { return cast(tT, e);});
+
+      auto sync_class = py::class_<tiramisu::sync, expr>(m, "sync").def(py::init<>());
       
-	//        .def("__add__", [](tiramisu::expr &l, tiramisu::expr &r) -> auto { return l + r; });
 
       add_binary_operators(expr_class);
-      //get names, types, is_defined, equality, to_str
+
 
       //synch cclass
       //integral_type operators...
