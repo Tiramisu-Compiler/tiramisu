@@ -95,6 +95,7 @@ void add_binary_operators(PythonClass &class_instance) {
         .def(-py::self)  // neg
         .def("logical_not", logical_not_wrap);
 }
+
     
     void define_expr(py::module &m){
       auto expr_class = py::class_<expr>(m, "expr").def(py::init<>())
@@ -117,15 +118,16 @@ void add_binary_operators(PythonClass &class_instance) {
 	.def("is_equal", [](tiramisu::expr &e, tiramisu::expr &ep) -> bool {return e.is_equal(ep);})
 	.def("__repr__", [](tiramisu::expr &e) -> std::string {return e.to_str();})
 	.def("cast", [](tiramisu::primitive_t tT, tiramisu::expr &e) -> tiramisu::expr { return cast(tT, e);});
-
-      auto sync_class = py::class_<tiramisu::sync, expr>(m, "sync").def(py::init<>());
-      
-
       add_binary_operators(expr_class);
+      
+      auto memcpy_value = m.def("memcpy", py::overload_cast<const tiramisu::buffer &, const tiramisu::buffer &>(&tiramisu::memcpy));
+      auto allocate_value = m.def("allocate", py::overload_cast<const tiramisu::buffer &>(&tiramisu::allocate));
+      
+      
+      auto sync_class = py::class_<tiramisu::sync, expr>(m, "sync").def(py::init<>());
 
+      //Integral only operations and value cast...
 
-      //synch cclass
-      //integral_type operators...
 
       //memcyp, allocate
       //various var acesses
