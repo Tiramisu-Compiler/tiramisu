@@ -10,4 +10,4 @@ namespace tiramisu {
   }  // namespace PythonBindings
 }  // namespace tiramisu
 
-#endif  // TIRAMISU_PYTHON_BINDINGS_PYVAR_H
+#endif // TIRAMISU_PYTHON_BINDINGS_PYVAR_H

@@ -19,4 +19,4 @@ namespace py = pybind11;
 } //namespace pythonbindings
 } //namespace tiramisu
 
-#endif TIRAMISU_PYTHON_BINDINGS_PYTIRAMISU_H
+#endif // TIRAMISU_PYTHON_BINDINGS_PYTIRAMISU_H
