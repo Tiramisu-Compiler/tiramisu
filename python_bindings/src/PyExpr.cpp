@@ -122,20 +122,14 @@ void add_binary_operators(PythonClass &class_instance) {
       
       auto memcpy_value = m.def("memcpy", py::overload_cast<const tiramisu::buffer &, const tiramisu::buffer &>(&tiramisu::memcpy));
       auto allocate_value = m.def("allocate", py::overload_cast<const tiramisu::buffer &>(&tiramisu::allocate));
+      auto cuda_stream_synchronize_value = m.def("cuda_stream_synchronize", py::overload_cast<>(&tiramisu::cuda_stream_synchronize));
       
       
       auto sync_class = py::class_<tiramisu::sync, expr>(m, "sync").def(py::init<>());
 
       //Integral only operations and value cast...
 
-
-      //memcyp, allocate
       //various var acesses
-      //cuda_stream_synchronize
-
-      //vars
-      //buffer
-      //cuda syncrnize
 
 // #define IMPC(ty)
 //       py::implicitly_convertible<ty, tiramisu::expr>();
