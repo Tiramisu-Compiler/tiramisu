@@ -4,6 +4,7 @@
 namespace tiramisu {
   namespace PythonBindings {
 
+
     template<typename other_t, typename PythonClass>
 void add_binary_operators_with(PythonClass &class_instance) {
     using self_t = typename PythonClass::type;
@@ -103,24 +104,66 @@ void add_binary_operators(PythonClass &class_instance) {
 	      .def(py::init<double>())
         // constant convert
         .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }))
+	.def(py::init([](tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, dtype, expr0);}))
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, expr0);}))
+	.def(py::init([](tiramisu::op_t o, std::string name) -> tiramisu::expr {return expr(o, name);}))
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1) -> tiramisu::expr {return expr(o, expr0,expr1);}))
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1, tiramisu::expr expr2) -> tiramisu::expr {return expr(o, expr0, expr1, expr2);}))
+	.def(py::init([](tiramisu::op_t o, std::string name, std::vector<tiramisu::expr> vec, tiramisu::primitive_t type) ->
+		      tiramisu::expr {return expr(o, name, vec, type);}))
         .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); })
 	.def("cast", [](tiramisu::primitive_t tT, tiramisu::expr &e) -> tiramisu::expr { return cast(tT, e);});
       
 	//        .def("__add__", [](tiramisu::expr &l, tiramisu::expr &r) -> auto { return l + r; });
 
       add_binary_operators(expr_class);
-      //operator
-      //casts
+      //get names, types, is_defined, equality, to_str
+
+      //synch cclass
+      //integral_type operators...
+
+      //memcyp, allocate
+      //various var acesses
+      //cuda_stream_synchronize
+
       //vars
       //buffer
       //cuda syncrnize
 
+// #define IMPC(ty)
+//       py::implicitly_convertible<ty, tiramisu::expr>();
+//       expr_class.def("get_" + #ty + "_value", [](tiramisu::expr &e) -> auto {return e.get_})
+// #undef
       
 
       py::implicitly_convertible<tiramisu::constant, tiramisu::expr>();
-      py::implicitly_convertible<int, tiramisu::expr>();
+      py::implicitly_convertible<uint8_t, tiramisu::expr>();
+      expr_class.def("get_uint8_value", [](tiramisu::expr &e) -> auto {return e.get_uint8_value();});
+      py::implicitly_convertible<int8_t, tiramisu::expr>();
+      expr_class.def("get_int8_value", [](tiramisu::expr &e) -> auto {return e.get_int8_value();});
+      py::implicitly_convertible<uint16_t, tiramisu::expr>();
+      expr_class.def("get_uint16_value", [](tiramisu::expr &e) -> auto {return e.get_uint16_value();});
+      py::implicitly_convertible<int16_t, tiramisu::expr>();
+      expr_class.def("get_int16_value", [](tiramisu::expr &e) -> auto {return e.get_int16_value();});
+      py::implicitly_convertible<uint32_t, tiramisu::expr>();
+      expr_class.def("get_uint32_value", [](tiramisu::expr &e) -> auto {return e.get_uint32_value();});
+      py::implicitly_convertible<int32_t, tiramisu::expr>();
+      expr_class.def("get_int32_value", [](tiramisu::expr &e) -> auto {return e.get_int32_value();});
+      py::implicitly_convertible<uint64_t, tiramisu::expr>();
+      expr_class.def("get_uint64_value", [](tiramisu::expr &e) -> auto {return e.get_uint64_value();});
+      py::implicitly_convertible<int64_t, tiramisu::expr>();
+      expr_class.def("get_int64_value", [](tiramisu::expr &e) -> auto {return e.get_int64_value();});
+      py::implicitly_convertible<float, tiramisu::expr>();
+      expr_class.def("get_float32_value", [](tiramisu::expr &e) -> auto {return e.get_float32_value();});
       py::implicitly_convertible<double, tiramisu::expr>();
+      expr_class.def("get_float64_value", [](tiramisu::expr &e) -> auto {return e.get_float64_value();});
+      expr_class.def("get_double_val", [](tiramisu::expr &e) -> auto {return e.get_double_val();});
+      expr_class.def("get_int_val", [](tiramisu::expr &e) -> auto {return e.get_int_val();});
     }
 
   }  // namespace PythonBindings
 }  // namespace tiramisu
+
+
+
+
