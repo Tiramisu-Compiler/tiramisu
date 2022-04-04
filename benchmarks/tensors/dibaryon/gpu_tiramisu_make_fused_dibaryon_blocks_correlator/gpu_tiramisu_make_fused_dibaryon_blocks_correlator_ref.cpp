@@ -535,8 +535,8 @@ void make_dibaryon_correlator(double* C_re,
          snk_2_nq[b] = snk_2[b] % Nq_f;
          snk_3_nq[b] = snk_3[b] % Nq_f;
       }
-      if ((x1 == 0) && (x2 == 0))
-         printf("perm %d is %d %d %d %d %d %d, sig %d \n", nperm, perms[index_2d(nperm,0 ,2*Nq_f)] , perms[index_2d(nperm,1 ,2*Nq_f)], perms[index_2d(nperm,2 ,2*Nq_f)], perms[index_2d(nperm,3 ,2*Nq_f)], perms[index_2d(nperm,4 ,2*Nq_f)], perms[index_2d(nperm,5 ,2*Nq_f)], sigs[nperm] );
+      //if ((x1 == 0) && (x2 == 0))
+      //   printf("perm %d is %d %d %d %d %d %d, sig %d \n", nperm, perms[index_2d(nperm,0 ,2*Nq_f)] , perms[index_2d(nperm,1 ,2*Nq_f)], perms[index_2d(nperm,2 ,2*Nq_f)], perms[index_2d(nperm,3 ,2*Nq_f)], perms[index_2d(nperm,4 ,2*Nq_f)], perms[index_2d(nperm,5 ,2*Nq_f)], sigs[nperm] );
       for (wnum=0; wnum< Nw2_f; wnum++) {
          iC1 = snk_color_weights[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2_f,Nq_f)];
          iS1 = snk_spin_weights[index_3d(snk_1_b[0],wnum,snk_1_nq[0] ,Nw2_f,Nq_f)];
@@ -556,228 +556,228 @@ void make_dibaryon_correlator(double* C_re,
                if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, local x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, local x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, local x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, local x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Bsecond_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bsecond_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, second x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, second x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Bsecond_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bsecond_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, second x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, second x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Bfirst_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bfirst_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, first x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, first x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Bfirst_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bfirst_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, first x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, first x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B1_r1_Bthird_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bthird_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, third x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, third x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B2_r1_Bthird_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bthird_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r1 perms %d, B=%d, third x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r1 perms %d, B=%d, third x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, local x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, local x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Blocal_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Blocal_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, local x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, local x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Bsecond_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bsecond_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, second x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, second x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Bsecond_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bsecond_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, second x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, second x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Bfirst_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bfirst_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, first x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, first x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Bfirst_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bfirst_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, first x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, first x2 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B1_r2_Bthird_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bthird_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, third x1 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, third x1 \n", nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B2_r2_Bthird_re[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bthird_im[Blocal_index(iC1,iS1,kC1,kS1,jC1,jS1,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("r2 perms %d, B=%d, third x2 \n", nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("r2 perms %d, B=%d, third x2 \n", nperm, b);
+                  //}
                }
                term = new_term;
             b=1;
                if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, local x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, local x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, local x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, local x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Bsecond_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bsecond_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, second x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, second x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Bsecond_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bsecond_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, second x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, second x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r1_Bfirst_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bfirst_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, first x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, first x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r1_Bfirst_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bfirst_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, first x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, first x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B1_r1_Bthird_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r1_Bthird_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, third x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, third x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 1) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B2_r1_Bthird_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r1_Bthird_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r1 perms %d, B=%d, third x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r1 perms %d, B=%d, third x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, local x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, local x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Blocal_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Blocal_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, local x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, local x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Bsecond_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bsecond_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, second x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, second x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Bsecond_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bsecond_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, second x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, second x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 0) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B1_r2_Bfirst_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bfirst_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, first x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, first x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 1) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B2_r2_Bfirst_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bfirst_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, first x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, first x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 0) && (snk_2_b[b] == 0) && (snk_3_b[b] == 1)) {
                   std::complex<double> block(B1_r2_Bthird_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B1_r2_Bthird_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, third x1 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, third x1 \n", src_spins[b], nperm, b);
+                  //}
                }
                else if ((src_spins[b] == 2) && (snk_1_b[b] == 1) && (snk_2_b[b] == 1) && (snk_3_b[b] == 0)) {
                   std::complex<double> block(B2_r2_Bthird_re[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)], B2_r2_Bthird_im[Blocal_index(iC2,iS2,kC2,kS2,jC2,jS2,m ,Nc_f,Ns_f,Nsrc_f)]);
                   new_term = term * block;
-                  if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
-                     printf("src spins = %d, r2 perms %d, B=%d, third x2 \n", src_spins[b], nperm, b);
-                  }
+                  //if ((m == 0) && (x1 == 0) && (x2 == 0) && (wnum == 0)) {
+                  //   printf("src spins = %d, r2 perms %d, B=%d, third x2 \n", src_spins[b], nperm, b);
+                  //}
                }
                term = new_term;
             for (n=0; n<Nsnk_f; n++) {

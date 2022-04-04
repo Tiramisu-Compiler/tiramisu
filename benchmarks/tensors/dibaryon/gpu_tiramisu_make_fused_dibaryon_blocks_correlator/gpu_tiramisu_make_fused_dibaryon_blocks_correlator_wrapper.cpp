@@ -18,14 +18,14 @@ extern "C" {
 #define RUN_REFERENCE 0
 #define RUN_CHECK 0
 int nb_tests = 1;
-int randommode = 1;
+int randommode = 0;
 
 int NsrcTot = Nsrc+NsrcHex;
 int NsnkTot = Nsnk+NsnkHex;
 
 std::string fromBytesToStr( long long size )
 {
-   std::vector<std::string> units = { "bytes", "kilobytes", "megabytes", "gigabytes" };
+   std::vector<std::string> units = { "bytes", "kilobytes", "megabytes", "gigabytes", "terrabytes" };
    std::vector<std::string> res;
    for (int i = 0; i < units.size() - 1; ++i)
    {
@@ -489,7 +489,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
       for (int m=0; m<Nsrc+NsrcHex; m++)
          for (int n=0; n<Nsnk+NsnkHex; n++)
             for (int t=0; t<Lt; t++) {
-                  printf("r=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) \n", b, m, n, t, C_re[index_5d(b,m,b,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  C_im[index_5d(b,m,b,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
+                  printf("r=%d, m=%d, n=%d, t=%d: %4.9f + I (%4.9f) \n", b, m, n, t, C_re[index_5d(b,m,b,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  C_im[index_5d(b,m,b,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
             }
    }
    }
@@ -778,6 +778,29 @@ int main(int, char **)
    if (rank == 0) {
    std::cout << "Start Tiramisu code." <<  std::endl;
 
+   long long gpu_prop_buffer_size = Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof ( double );
+   std::cout << "Tiramisu GPU prop buffer size: " << fromBytesToStr( gpu_prop_buffer_size ) << "\n";
+
+   long long gpu_wf_buffer_size = Vsrc * Nsrc * 4 * sizeof ( double )
+                                 + Vsnk * Nsnk * 4 * sizeof ( double )
+                                 + Vsrc * NsrcHex * 2 * sizeof ( double )
+                                 + Vsnk * NsnkHex * 2 * sizeof ( double )
+                                 + Vsnk * Vsnk * NEntangled * 2 * sizeof ( double );
+   std::cout << "Tiramisu GPU wavefunction buffer size: " << fromBytesToStr( gpu_wf_buffer_size ) << "\n";
+
+   long long gpu_block_buffer_size = Vsnk / tiling_factor * Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Nsnk * 2 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Nsrc * Vsnk / tiling_factor * Nc * Ns * 64 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 24 * sizeof ( double )
+                                 + Vsnk / tiling_factor * Nc * Ns * Nc * Ns * Vsnk / tiling_factor * Nc * Ns * 32 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsrc * sites_per_rank * 16 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
+
+                                 + Vsnk/sites_per_rank * Nc * Ns * Nc * Ns * Nc * Ns * Nsnk * sites_per_rank * 16 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * sites_per_rank * 8 * sizeof ( double )
+                                 + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double );
+   std::cout << "Tiramisu GPU block buffer size: " << fromBytesToStr( gpu_block_buffer_size ) << "\n";
+
    long long gpu_buffers_size = Nq * Lt * Nc * Ns * Nc * Ns * Vsnk * Vsrc * 4 * sizeof ( double )
                                  + Vsrc * Nsrc * 4 * sizeof ( double )
                                  + Vsnk * Nsnk * 4 * sizeof ( double )
@@ -919,7 +942,8 @@ int main(int, char **)
     //     for (r=0; r<B2Nrows; r++)
             for (n=0; n<Nsnk+NsnkHex; n++)
                for (t=0; t<Lt; t++) {
-                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.1f + I (%4.1f) \n", rp, m, rp, n, t, C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.9f + I (%4.9f) \n", rp, m, rp, n, t, C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, r=%d, n=%d, t=%d: %4.9f + I (%4.9f) \n", rp, m, rp, n, t, t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
             }
    } 
 
@@ -936,15 +960,15 @@ int main(int, char **)
     
    for (rp=0; rp<B2Nrows; rp++) {
       printf("\n");
-      // for (m=0; m<Nsrc+NsrcHex; m++)
       for (m = 0; m < Nsrc + NsrcHex; m++)
          for (n=0; n<Nsnk+NsnkHex; n++)
 //            for (r=0; r<B2Nrows; r++)
               for (t=0; t<Lt; t++) {
-                 if ((std::abs(C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] - t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk) ||
-	               (std::abs(C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]) >= 0.01*Vsnk*Vsnk))
+                 double diff = std::sqrt(std::pow(std::abs(C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] - t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]),2) + std::pow(std::abs(C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)] -  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]),2));
+                 double mag = std::sqrt(std::pow(std::abs(C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)]),2) + std::pow(std::abs(C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)]),2));
+                 if (diff / mag >= 1/1e12 )
 	            {
-                  printf("rp=%d, m=%d, n=%d, t=%d: %4.1f + I (%4.1f) vs %4.1f + I (%4.1f) \n", rp, m, n, t, C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)], C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
+                  printf("rp=%d, m=%d, n=%d, t=%d: %4.9f + I (%4.9f) vs %4.9f + I (%4.9f) \n", rp, m, n, t, C_re[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)], C_im[index_4d(rp,m,n,t, Nsrc+NsrcHex,Nsnk+NsnkHex,Lt)],  t_C_re[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)],  t_C_im[index_5d(rp,m,rp,n,t, Nsrc+NsrcHex,B2Nrows,Nsnk+NsnkHex,Lt)]);
 		            std::cout << "Error: different computed values for C_r or C_i!" << std::endl;
 		            exit(1);
 	            }

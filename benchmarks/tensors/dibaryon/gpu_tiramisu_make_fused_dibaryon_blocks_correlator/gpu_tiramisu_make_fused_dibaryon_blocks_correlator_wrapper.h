@@ -1,7 +1,7 @@
 #ifndef TIRAMISU_test_h
 #define TIRAMISU_test_h
 
-#include "qblocks_2pt_parameters.h"
+#include "../../utils/qblocks_2pt_parameters.h"
 
 #define Nq P_Nq
 #define Nc P_Nc
