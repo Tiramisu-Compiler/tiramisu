@@ -9,6 +9,11 @@ namespace tiramisu {
             py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool>(&tiramisu::codegen),
             "This function generates the declared function and computations in an object file",
             py::arg("arguments"), py::arg("obj_filename"), py::arg("gen_cuda_stmt") = false);
+      
+      m.def("codegen", 
+            py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const tiramisu::hardware_architecture_t>(&tiramisu::codegen),
+            "This function generates the declared function and computations in an object file",
+            py::arg("arguments"), py::arg("obj_filename"), py::arg("gen_architecture_flag"));
     }
 
   }  // namespace PythonBindings
