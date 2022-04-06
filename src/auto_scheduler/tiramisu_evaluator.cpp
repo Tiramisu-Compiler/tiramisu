@@ -53,7 +53,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     m.compile(Halide::Outputs().object(obj_filename));
     
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = "${GXX} -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
     
     // Execute the wrapper and get execution time
@@ -87,7 +87,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     m.compile(Halide::Outputs().object(obj_filename));
 
     // Turn the object file to a shared library
-    std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    std::string gcc_cmd = "${GXX} -shared -o " + obj_filename + ".so " + obj_filename;
     int status = system(gcc_cmd.c_str());
 
     // define the execution command of the wrapper
