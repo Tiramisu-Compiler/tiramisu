@@ -79,7 +79,10 @@ namespace tiramisu {
         .def("split", py::overload_cast<var, int>(&computation::split))
         .def("split", py::overload_cast<var, int, var, var>(&computation::split))
         .def("split", py::overload_cast<int, int>(&computation::split))
+	//	.def("allocate_at", py::overload_cast<computation &, var>(&computation::allocate_at))
+	//	.def("allocate_at", py::overload_cast<computation &, int>(&computation::allocate_at))
         .def("cache_shared", &computation::cache_shared);
+      
     }
 
   }  // namespace PythonBindings

@@ -16,6 +16,8 @@ namespace tiramisu {
         ) {
             return new buffer(name, dim_sizes, type, argt);
         }));
+
+      buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at));
     }
 
   }  // namespace PythonBindings
