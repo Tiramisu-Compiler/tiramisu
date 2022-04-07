@@ -9,7 +9,14 @@ namespace tiramisu {
         .def(py::init<std::string, std::vector< var >, tiramisu::expr >())
         // .def("__call__", &computation::operator())
         // .def("__call__", py::overload_cast<expr, expr>(&computation::operator())) // temporary workaround
-        .def("__getitem__", [](tiramisu::computation &c, std::vector<expr> a) -> expr { return c.template operator()<expr, expr>(a[0], a[1]); })
+        .def("__getitem__", [](tiramisu::computation &c, std::vector<expr> a) -> expr {
+            switch (a.size()) {
+                case 1: return c.template operator()<expr>(a[0]);
+                case 2: return c.template operator()<expr, expr>(a[0], a[1]);
+                case 3: return c.template operator()<expr, expr, expr>(a[0], a[1], a[2]);
+            }
+            throw std::invalid_argument("invalid number of arguments");
+        })
         .def("parallelize", &computation::parallelize)
         .def("store_in", py::overload_cast<tiramisu::buffer*>(&computation::store_in))
         .def("store_in", py::overload_cast<tiramisu::buffer*, std::vector<tiramisu::expr>>(&computation::store_in))
