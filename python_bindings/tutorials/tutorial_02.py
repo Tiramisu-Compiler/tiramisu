@@ -7,12 +7,11 @@ MM = 20
 N = tm.constant("N", NN)
 M = tm.constant("M", MM)
 
-A = tm.input("A", ["i", "j"], {N, M}, tm.primitive_t.p_uint8)
+A = tm.input("A", ["i", "j"], [NN, MM], tm.primitive_t.p_uint8)
 
 i, j = tm.var("i", 0, N), tm.var("j", 0, M)
 
-# Casting issue?
-output = tm.computation("output", [i,j], A(i, j) + cast(p_uint8, i) + (uint8_t)4)
+output = tm.computation("output", [i,j], A[i, j] + i.cast(tm.primitive_t.p_uint8) + tm.expr(4).cast(tm.primitive_t.p_uint8))
 
 
 i0, i1, j0, j1 = tm.var("i0"), tm.var("i1"), tm.var("j0"), tm.var("j1")
