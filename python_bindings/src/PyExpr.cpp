@@ -117,7 +117,7 @@ void add_binary_operators(PythonClass &class_instance) {
 	.def("set_name", [](tiramisu::expr &e, std::string & name) -> void {return e.set_name(name);})
 	.def("is_equal", [](tiramisu::expr &e, tiramisu::expr &ep) -> bool {return e.is_equal(ep);})
 	.def("__repr__", [](tiramisu::expr &e) -> std::string {return e.to_str();})
-	.def("cast", [](tiramisu::primitive_t tT, tiramisu::expr &e) -> tiramisu::expr { return cast(tT, e);});
+	.def("cast", [](tiramisu::expr &e, tiramisu::primitive_t tT) -> tiramisu::expr { return cast(tT, e);});
       add_binary_operators(expr_class);
       
       auto memcpy_value = m.def("memcpy", py::overload_cast<const tiramisu::buffer &, const tiramisu::buffer &>(&tiramisu::memcpy));
