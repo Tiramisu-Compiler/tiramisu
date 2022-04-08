@@ -21,7 +21,7 @@ init("sequence")
 # Layer I
 # -------------------------------------------------------
 
-M = constant("M", expr(SIZE0).cast(primitive_t.uint32_t))
+M = constant("M", expr(SIZE0).cast(primitive_t.p_int32))
 
 i, j = var("i", 0, M),  var("j", 0, M)
 
@@ -65,4 +65,4 @@ c3.store_in(b3)
 # Code Generator
 # -------------------------------------------------------
 
-codegen([b0, b1, b2, b3], "build/generated_fct_developers_tutorial_03.o")
+codegen([b0, b1, b2, b3], "generated_fct_developers_tutorial_03.o")

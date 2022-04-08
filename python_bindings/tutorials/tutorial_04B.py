@@ -85,8 +85,8 @@ E.after(C, j1)
 b_A = buffer("b_A", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
 b_B = buffer("b_B", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
 b_C = buffer("b_C", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_output)
-b_D = buffer("b_A", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
-b_E = buffer("b_B", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
+b_D = buffer("b_D", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
+b_E = buffer("b_E", [expr(SIZE0), expr(SIZE0)], primitive_t.p_uint8, argument_t.a_input)
 
 # Map the computations to a buffer.
 A.store_in(b_A)

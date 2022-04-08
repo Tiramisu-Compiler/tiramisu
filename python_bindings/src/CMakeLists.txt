@@ -9,6 +9,7 @@ set(SOURCES
   PyComputation.cpp
   PyCodegen.cpp
   PyInput.cpp
+  PyFunction.cpp
   )
 
 pybind11_add_module(Tiramisu_Python MODULE ${SOURCES})

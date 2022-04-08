@@ -89,4 +89,4 @@ C.store_in(b_C, [i,j])
 # Code Generation
 # -------------------------------------------------------
 
-codegen([b_A, b_B, b_C], "build/generated_fct_developers_tutorial_04A.o")
+codegen([b_A, b_B, b_C], "generated_fct_developers_tutorial_04A.o")
