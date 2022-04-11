@@ -1,7 +1,7 @@
 #include <tiramisu/tiramisu.h>
 #include <string.h>
 #include "gpu_single_tiramisu_make_fused_identical_dibaryon_blocks_correlator_wrapper.h"
-#include "../../utils/complex_util.h"
+#include "../../utils/complex_float_util.h"
 #include "../../utils/util.h"
 
 using namespace tiramisu;
