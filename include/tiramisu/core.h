@@ -135,8 +135,8 @@ void init();
   * If \p gen_cuda_stmt is set to true, CUDA code is generated instead of code
   * targeting CPU (i.e., instead of generating Halide IR then LLVM IR).
   */
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
+ void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
 /**
  * Full check of schedule legality for this function using dependency analysis 
@@ -1149,23 +1149,24 @@ public:
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
                         Halide::Target::Arch arch, int bits,
-                        const tiramisu::hardware_architecture_t hw_architecture) const;
+                        const tiramisu::hardware_architecture_t hw_architecture,
+			bool gen_python = false) const;
 
     /**
       * \overload
       */
     void gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
-                        Halide::Target::Arch arch, int bits) const;
+                        Halide::Target::Arch arch, int bits, bool gen_python = false) const;
 
     /**
       * \overload
       */
-    void gen_halide_obj(const std::string &obj_file_name) const;
+    void gen_halide_obj(const std::string &obj_file_name, bool gen_python = false) const;
 
     /**
       * \overload
       */
-    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const;
+    void gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python = false) const;
 
     /**
       * Generate a Halide stmt that represents the function.
@@ -1209,8 +1210,8 @@ public:
      * Wrapper for all the functions required to run code generation of a
      * tiramisu program.
      */
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false);
-    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt = false, bool gen_python = false);
+    void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python = false);
 
     /**
      * \brief Set the context of the function.
