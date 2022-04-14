@@ -4013,7 +4013,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
 
 
     Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
-                                             Halide::LinkageType::External,
+                                             Halide::LinkageType::ExternalPlusMetadata,
                                              this->get_halide_stmt());
 
     std::map<Halide::OutputFileType, std::string> omap = {{Halide::OutputFileType::object, obj_file_name}, {Halide::OutputFileType::c_header, obj_file_name + ".h"},};

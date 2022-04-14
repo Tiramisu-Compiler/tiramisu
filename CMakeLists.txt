@@ -193,8 +193,8 @@ find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 # Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
 string(STRIP "${LLVM_VERSION}" LLVM_VERSION)
-if ("${LLVM_VERSION}" VERSION_LESS 5.0)
-    message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
+if ("${LLVM_VERSION}" VERSION_LESS 12.0)
+    message(FATAL_ERROR "tiramisu requires LLVM version >= 12.0")
 endif()
 
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
@@ -220,6 +220,9 @@ if(${USE_LIBJPEG})
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
 endif()
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${CMAKE_SOURCE_DIR}/${HALIDE_LIB_DIRECTORY}\"")
 
 if(${ENABLE_DEBUG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
