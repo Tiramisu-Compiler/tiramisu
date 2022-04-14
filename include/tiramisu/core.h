@@ -718,10 +718,6 @@ protected:
       */
     const std::vector<std::string> &get_iterator_names() const;
 
-    /**
-      * Get the name of the function.
-      */
-    const std::string &get_name() const;
 
     /**
       * Return a set that represents the parameters of the function
@@ -927,6 +923,12 @@ protected:
     void clear_sched_graph();
 
 public:
+
+        /**
+      * Get the name of the function.
+      */
+    const std::string &get_name() const;
+
 
     /**
      * \brief Construct a function called \p name.
