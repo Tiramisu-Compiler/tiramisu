@@ -85,16 +85,16 @@ void init()
     global::set_default_tiramisu_options();
 }
 
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+  void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt, bool gen_python)
 {
     function *fct = global::get_implicit_function();
-    fct->codegen(arguments, obj_filename, gen_cuda_stmt);
+    fct->codegen(arguments, obj_filename, gen_cuda_stmt, gen_python = gen_python);
 }
 
-void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const hardware_architecture_t gen_architecture_flag)
+  void codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const hardware_architecture_t gen_architecture_flag, bool gen_python)
 {
     function *fct = global::get_implicit_function();
-    fct->codegen(arguments, obj_filename, gen_architecture_flag);
+    fct->codegen(arguments, obj_filename, gen_architecture_flag, gen_python = gen_python);
 }
 
 bool check_legality_of_function()

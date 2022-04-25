@@ -3981,7 +3981,7 @@ Halide::Expr generator::halide_expr_from_tiramisu_expr(const tiramisu::function 
 }
 
 void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os,
-                              Halide::Target::Arch arch, int bits, const tiramisu::hardware_architecture_t hw_architecture) const
+                              Halide::Target::Arch arch, int bits, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python) const
 {
     // TODO(tiramisu): For GPU schedule, we need to set the features, e.g.
     // Halide::Target::OpenCL, etc.
@@ -4013,7 +4013,7 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
 
 
     Halide::Module m = lower_halide_pipeline(this->get_name(), target, fct_arguments,
-                                             Halide::LinkageType::External,
+                                             Halide::LinkageType::ExternalPlusMetadata,
                                              this->get_halide_stmt());
 
     std::map<Halide::OutputFileType, std::string> omap = {{Halide::OutputFileType::object, obj_file_name}, {Halide::OutputFileType::c_header, obj_file_name + ".h"},};
@@ -4022,6 +4022,9 @@ void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::
     if (hw_architecture == tiramisu::hardware_architecture_t::arch_flexnlp)
       omap[Halide::OutputFileType::c_source] = obj_file_name + "_generated.c";
       //m.compile(Halide::Output().c_source2587(obj_file_name + "_generated.c"));
+    if (gen_python){
+      omap[Halide::OutputFileType::python_extension] = obj_file_name + ".py.cpp";
+    }
 
     m.compile(omap);
     if (nvcc_compiler) {
