@@ -9,6 +9,7 @@ namespace tiramisu {
         .def(py::init<std::string>())
         .def(py::init<std::string, tiramisu::expr, tiramisu::expr>())
         .def(py::init<>())
+        .def("get_name", &var::get_name)
         .def("dump", [](const tiramisu::var &e) -> auto { return e.dump(true); });
 
       //TODO missing inits from tiramisu_expr.ccp

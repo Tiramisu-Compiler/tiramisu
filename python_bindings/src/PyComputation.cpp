@@ -7,6 +7,8 @@ namespace tiramisu {
     
       auto computation_class = py::class_<computation>(m, "computation")
         .def(py::init<std::string, std::vector< var >, tiramisu::expr >())
+        .def(py::init<std::string, std::vector< var >, tiramisu::primitive_t >())
+        .def(py::init<std::vector< var >, tiramisu::primitive_t >())
         // .def("__call__", &computation::operator())
         // .def("__call__", py::overload_cast<expr, expr>(&computation::operator())) // temporary workaround
         .def("__getitem__", [](tiramisu::computation &c, std::vector<expr> a) -> expr {
@@ -47,18 +49,6 @@ namespace tiramisu {
             throw std::invalid_argument("invalid number of arguments");
         })
         .def("parallelize", &computation::parallelize)
-	.def("interchange", py::overload_cast<var, var>(&computation::interchange))
-	.def("interchange", py::overload_cast<int, int>(&computation::interchange))
-	// .def("shift", py::overload_cast<int, int>(&computation::shift))
-	// .def("shift", py::overload_cast<var, int>(&computation::shift))
-	//isl_map
-	.def("unroll", py::overload_cast<int, int>(&computation::unroll))
-	.def("unroll", py::overload_cast<var, int>(&computation::unroll))
-	.def("vectorize", py::overload_cast<var, int>(&computation::vectorize))
-	.def("vectorize", py::overload_cast<var, int, var, var>(&computation::vectorize))
-	.def("set_inline", &computation::set_inline)
-	.def("compute_at", py::overload_cast<computation &, int>(&computation::compute_at))
-	.def("compute_at", py::overload_cast<computation &, var>(&computation::compute_at))
         .def("store_in", py::overload_cast<tiramisu::buffer*>(&computation::store_in))
         .def("store_in", py::overload_cast<tiramisu::buffer*, std::vector<tiramisu::expr>>(&computation::store_in))
         .def("tile", py::overload_cast<var, var, int, int>(&computation::tile))
@@ -70,7 +60,6 @@ namespace tiramisu {
         .def("after", py::overload_cast<computation&, var>(&computation::after))
         .def("after", py::overload_cast<computation&, int>(&computation::after))
         .def("set_expression", &computation::set_expression)
-	.def("get_buffer", &computation::get_buffer)
         .def("gpu_tile", py::overload_cast<var, var, int, int>(&computation::gpu_tile))
         .def("gpu_tile", py::overload_cast<var, var, int, int, var, var, var, var>(&computation::gpu_tile))
         .def("gpu_tile", py::overload_cast<var, var, var, int, int, int>(&computation::gpu_tile))
@@ -79,10 +68,7 @@ namespace tiramisu {
         .def("split", py::overload_cast<var, int>(&computation::split))
         .def("split", py::overload_cast<var, int, var, var>(&computation::split))
         .def("split", py::overload_cast<int, int>(&computation::split))
-	//	.def("allocate_at", py::overload_cast<computation &, var>(&computation::allocate_at))
-	//	.def("allocate_at", py::overload_cast<computation &, int>(&computation::allocate_at))
         .def("cache_shared", &computation::cache_shared);
-      
     }
 
   }  // namespace PythonBindings
