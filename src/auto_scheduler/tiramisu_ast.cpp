@@ -2271,48 +2271,54 @@ bool syntax_tree::schedule_is_prunable()
     // Please note that this function currently only works for single computation programs
     // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
 
-    assert(computations_list.size()==1 && "current implementation of syntax_tree::schedule_is_prunable() supports only single computation programs");  // assuming the ast has only one computation
 
-    int original_ast_depth = computations_list[0]->get_loop_levels_number();
     std::string schedule_str = get_schedule_str();
 
-    if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)U\(L3,\d+\))")))
+    std::vector<int> depths(this->get_computations().size());
+    for (optimization_info optim: new_optims){
+            if(optim.type == optimization_type::MATRIX){
+                for(int i=0;i<optim.comps.size();i++){
+                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
+                }  
+            }
+        }
+    
+    std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)U.*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*");
+    
+    if (std::regex_search(schedule_str, regexp))
         return true;
-
-    if (original_ast_depth==2)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)U)")))
-            return true;
-
-    if (original_ast_depth==3)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)(?:U|T2\(L0,L1))")))
-            return true;
+        
+    std::regex regexpt(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)T2\\(\\{C0\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C1\\},L"+std::to_string(depths.at(1)-3)+",L"+std::to_string(depths.at(1)-2)+".*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C0,C1\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*");
+    if (std::regex_search(schedule_str, regexpt))
+        return true;
 
     return false;
 }
 
 bool syntax_tree::can_set_default_evaluation()
 {
-    // Please note that this function currently only works for single computation programs
-    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
-    assert(computations_list.size()==1 && "current implementation of syntax_tree::schedule_is_prunable() supports only single computation programs");  // assuming the ast has only one computation
-
-    int original_ast_depth = computations_list[0]->get_loop_levels_number();
+    std::vector<int> depths(this->get_computations().size());
+    for (optimization_info optim: new_optims){
+            if(optim.type == optimization_type::MATRIX){
+                for(int i=0;i<optim.comps.size();i++){
+                    depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
+                }  
+            }
+        }
+    
     std::string schedule_str = get_schedule_str();
+    
+    //check if innermost loop is parallelized, if yes set the speedup to 0.001 
 
-    //check if innermost loop is parallelized, if yes set the speedup to 0.001
-    if (original_ast_depth==2)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L1\)$)")))
-        {
-            evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
-            return true;
-        }
+    std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)$|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$");
+    
 
-    if (original_ast_depth==3)
-        if (std::regex_search(schedule_str, std::regex(R"(P\(L2\)$)")))
-        {
-            evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
-            return true;
-        }
+    if (std::regex_search(schedule_str,regexp))
+    {
+
+        evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
+        return true;
+    }
 
     return false;
 }

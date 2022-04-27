@@ -16,6 +16,7 @@ const int DEFAULT_MAX_NB_ITERATORS = 7;
  * Generate a set of AST's from a given AST.
  * Inherit this class to implement a new way to generate schedules.
  */
+
 class schedules_generator
 {
 private:
