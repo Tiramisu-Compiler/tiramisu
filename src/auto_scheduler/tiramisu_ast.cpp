@@ -2,6 +2,7 @@
 #include <tiramisu/auto_scheduler/evaluator.h>
 #include <algorithm> //for searching in comps list
 #include <iostream>
+#include <tiramisu/auto_scheduler/search_method.h>
 
 
 
@@ -2294,7 +2295,23 @@ bool syntax_tree::schedule_is_prunable()
 
     return false;
 }
+bool syntax_tree::ast_is_prunable()
+{
+    
+    std::vector<int> optims(this->get_computations().size());
+    for (optimization_info optim: new_optims){
+            if(optim.type == optimization_type::MATRIX){
+                for(int i=0;i<optim.comps.size();i++){
+                    optims.at(this->get_computation_index(optim.comps.at(i))) += 1;
+                }  
+        }
+    }
+    
+    int max = *std::max_element(optims.begin(), optims.end());
+    if(max>MAX_MAT_DEPTH) return true;
 
+    return false;
+}
 bool syntax_tree::can_set_default_evaluation()
 {
     std::vector<int> depths(this->get_computations().size());

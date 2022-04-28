@@ -832,7 +832,7 @@ public:
      * Predicts if the schedule applied to the ast is worth evaluating and exploring further.
      */
     bool schedule_is_prunable();
-
+    bool ast_is_prunable();
 
     /**
      * Gets all the computations that are ordered before the current computation.

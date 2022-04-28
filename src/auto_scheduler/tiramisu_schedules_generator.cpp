@@ -1408,6 +1408,75 @@ bool is_repeated( std::vector < std::vector<int> >  matrix,std::vector < std::ve
 
     return false;
 }
+std::vector<int> get_skew_params(int f_i, int f_j)
+{
+        int n1 = abs(f_i);
+        int n2 = abs(f_j);
+
+        while (n1 != n2)
+        {
+            if (n1 > n2)
+                n1 -= n2;
+            else
+                n2 -= n1;
+        }
+
+        DEBUG(3, tiramisu::str_dump("The gcd of f_i = " + std::to_string(f_i) + " and fj = " + std::to_string(f_j) + " is pgcd = " + std::to_string(n1)));
+
+        // Update f_i and f_j to equivalent but prime between themselfs value
+        f_i = f_i / n1;
+        f_j = f_j / n1;
+
+        int gamma = 0;
+        int sigma = 1;
+        bool found = false;
+
+        if ((f_j == 1) || (f_i == 1))
+        {
+            gamma = f_i - 1;
+            sigma = 1;
+            /* Since sigma = 1  then
+            f_i - gamma * f_j = 1 & using the previous condition :
+             - f_i = 1 : then gamma = 0 (f_i-1) is enough
+             - f_j = 1 : then gamma = f_i -1  */
+        }
+        else
+        {
+            if ((f_j == -1) && (f_i > 1))
+            {
+                gamma = 1;
+                sigma = 0;
+            }
+            else
+            { //General case : solving the Linear Diophantine equation & finding basic solution (sigma & gamma) for : f_i* sigma - f_j*gamma = 1
+                int i = 0;
+                while ((i < 100) && (!found))
+                {
+                    if (((sigma * f_i) % abs(f_j)) == 1)
+                    {
+                        found = true;
+                    }
+                    else
+                    {
+                        sigma++;
+                        i++;
+                    }
+                };
+
+                if (!found)
+                {
+                    // Detect infinite loop and prevent it in case where f_i and f_j are not prime between themselfs
+                    ERROR(" Error in solving the Linear Diophantine equation f_i* sigma - f_j*gamma = 1  ", true);
+                }
+
+                gamma = ((sigma * f_i) - 1) / f_j;
+            }
+        }
+        std::vector<int> result;
+        result.push_back(gamma);
+        result.push_back(sigma);
+        return result;
+}
 // the given equations ax + by = c
 std::vector<int> get_equation_solution(int a, int b, int c)
 {
@@ -1450,7 +1519,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         explre_interchange = false;
     }
     
-/*
     // To apply interchange, we pick all combinations of two iterators
     // in the shared loop levels.
     if(explre_interchange){
@@ -1494,7 +1562,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             }
         }
         }
-    */
     // add reversal
     // add reversal matriecs
     
@@ -1544,7 +1611,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
-   
     //ast.recover_isl_states();
    
     // add skweing 
@@ -1619,11 +1685,12 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     
                     
                     if(optim_info.l0_fact!=1){
-                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
                         
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
                     }
+
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations_skew;
                     new_ast->new_optims.push_back(optim_info);
@@ -1669,10 +1736,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     
                     
                     if(optim_info.l0_fact!=1){
-                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
                         
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
                     }
                     optim_info.matrix = matrix;
                     optim_info.comps = involved_computations_skew;
@@ -1723,10 +1790,10 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     
                     
                     if(optim_info.l0_fact!=1){
-                        std::vector<int> solutions=get_equation_solution(optim_info.l0_fact, -optim_info.l1_fact,1);
+                        std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
                         
-                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(0);
-                        matrix.at(optim_info.l0+1).at(optim_info.l1-1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1) =  solutions.at(1);
+                        matrix.at(optim_info.l1).at(optim_info.l1-1) =  solutions.at(0);
                     }
                     optim_info.matrix = matrix;
 
@@ -1917,8 +1984,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
 
     
 
-
-    
 
     return states;
 }
