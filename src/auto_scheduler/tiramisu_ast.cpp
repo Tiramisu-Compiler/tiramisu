@@ -2271,17 +2271,19 @@ bool syntax_tree::schedule_is_prunable()
 {
     // Please note that this function currently only works for single computation programs
     // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
-
-
     std::string schedule_str = get_schedule_str();
 
     std::vector<int> depths(this->get_computations().size());
+    int min ;
     for (optimization_info optim: new_optims){
             if(optim.type == optimization_type::MATRIX){
                 for(int i=0;i<optim.comps.size();i++){
                     depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
                 }  
             }
+            min= *std::min_element(depths.begin(), depths.end());
+            // Only get the depths from identity matrices
+            if(min>0) break;
         }
     
     std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)U.*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*");
@@ -2289,7 +2291,7 @@ bool syntax_tree::schedule_is_prunable()
     if (std::regex_search(schedule_str, regexp))
         return true;
         
-    std::regex regexpt(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)T2\\(\\{C0\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C1\\},L"+std::to_string(depths.at(1)-3)+",L"+std::to_string(depths.at(1)-2)+".*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C0,C1\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*");
+    std::regex regexpt(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)T2\\(\\{C0(,C1)?\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{(C0,)?C1\\},L"+std::to_string(depths.at(1)-3)+",L"+std::to_string(depths.at(1)-2)+".*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C0,C1\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*");
     if (std::regex_search(schedule_str, regexpt))
         return true;
 
@@ -2297,7 +2299,6 @@ bool syntax_tree::schedule_is_prunable()
 }
 bool syntax_tree::ast_is_prunable()
 {
-    
     std::vector<int> optims(this->get_computations().size());
     for (optimization_info optim: new_optims){
             if(optim.type == optimization_type::MATRIX){
@@ -2308,34 +2309,42 @@ bool syntax_tree::ast_is_prunable()
     }
     
     int max = *std::max_element(optims.begin(), optims.end());
-    if(max>MAX_MAT_DEPTH) return true;
+    // compare the maximum number of applied matrices on any computation with MAX_MAT_DEPTH+1 (the plus 1 is to take into considiration the identity matrix)
+    if(max>MAX_MAT_DEPTH+1) return true;
 
     return false;
 }
 bool syntax_tree::can_set_default_evaluation()
 {
     std::vector<int> depths(this->get_computations().size());
+    int min;
     for (optimization_info optim: new_optims){
+            
             if(optim.type == optimization_type::MATRIX){
                 for(int i=0;i<optim.comps.size();i++){
                     depths.at(this->get_computation_index(optim.comps.at(i))) = optim.matrix.size();
                 }  
             }
+
+            min= *std::min_element(depths.begin(), depths.end());
+            // Only get the depths from identity matrices
+            if(min>0) break;
         }
     
     std::string schedule_str = get_schedule_str();
     
     //check if innermost loop is parallelized, if yes set the speedup to 0.001 
-
+    
     std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)$|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$");
     
 
     if (std::regex_search(schedule_str,regexp))
     {
-
         evaluation =  std::atof(read_env_var("INIT_EXEC_TIME"))*1000;
         return true;
     }
+    
+    
 
     return false;
 }

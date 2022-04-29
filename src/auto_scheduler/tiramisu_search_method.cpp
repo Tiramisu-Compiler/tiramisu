@@ -193,7 +193,6 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 }
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
-    
     std::vector<syntax_tree*> children;
     if(generator_state::initialized == false)
     {
@@ -791,9 +790,8 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
             ast.move_to_next_head();
     }
     //exec_eval->fct->reset_schedules();
-    std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
-   
-    
+    //std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
+ 
     // hash the parent 
     std::size_t parent_hash=hasher(ast.get_schedule_str());
     // generate the matrices to be explored at this level
