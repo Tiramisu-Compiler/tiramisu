@@ -4,9 +4,9 @@ set(SOURCES
   PyType.cpp
   PyBuffer.cpp
   PyInit.cpp
-  PyConstant.cpp
   PyVar.cpp
   PyComputation.cpp
+  PyConstant.cpp
   PyCodegen.cpp
   PyInput.cpp
   PyFunction.cpp

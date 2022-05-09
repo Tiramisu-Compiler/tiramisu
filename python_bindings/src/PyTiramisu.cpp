@@ -26,9 +26,9 @@ PYBIND11_MODULE(TIRAMISU_PYBIND_MODULE_NAME, m) {
   define_expr(m);
   define_buffer(m);
   define_init(m);
+  define_computation(m);
   define_const(m);
   define_var(m);
-  define_computation(m);
   define_codegen(m);
   define_input(m);
   define_function(m);

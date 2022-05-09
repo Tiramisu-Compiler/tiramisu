@@ -5,7 +5,7 @@ namespace tiramisu {
 
     void define_buffer(py::module &m){
       auto buffer_class = py::class_<buffer>(m, "buffer")
-        .def(py::init<>())
+        .def(py::init<>(), py::return_value_policy::reference)
         .def(py::init([]( // Create new constructor that doesn't use the last 2 args to avoid having to add the default values in python
             std::string name, 
             std::vector<tiramisu::expr> dim_sizes,
@@ -15,7 +15,9 @@ namespace tiramisu {
             //std::string// corr
         ) {
             return new buffer(name, dim_sizes, type, argt);
-        }));
+        }), py::return_value_policy::reference)
+        .def("get_name", &buffer::get_name)
+        .def("dump", &buffer::dump);
 
       buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at));
     }

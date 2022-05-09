@@ -9,7 +9,7 @@ namespace tiramisu {
     }
 
     void define_init(py::module &m){
-      m.def("init", &init_py, "Set up Tiramisu default function");
+      m.def("init", &init_py, "Set up Tiramisu default function", py::return_value_policy::reference);
     }
 
   }  // namespace PythonBindings

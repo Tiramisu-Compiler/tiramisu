@@ -24,14 +24,14 @@ void add_binary_operators_with(PythonClass &class_instance) {
                 auto result = self op (other);                                          \
                 return result;                                                                 \
             },                                                                                 \
-            py::is_operator());                                                                \
+            py::is_operator(), py::return_value_policy::reference);                                                                \
         class_instance.def(                                                                    \
             "__r" #method "__",                                                                \
             [](const self_t &self, const other_t &other) -> decltype((other) op self) { \
                 auto result = (other) op self;                                          \
                 return result;                                                                 \
             },                                                                                 \
-            py::is_operator());                                                                \
+            py::is_operator(), py::return_value_policy::reference);                                                                \
     } while (0)
 
     BINARY_OP(+, add);
@@ -92,19 +92,19 @@ void add_binary_operators(PythonClass &class_instance) {
 
     // Define unary operators
     class_instance
-        .def(-py::self)  // neg
-        .def("logical_not", logical_not_wrap);
+        .def(-py::self, py::return_value_policy::reference)  // neg
+        .def("logical_not", logical_not_wrap, py::return_value_policy::reference);
 }
 
     
     void define_expr(py::module &m){
-      auto expr_class = py::class_<expr>(m, "expr").def(py::init<>())
-	      .def(py::init<primitive_t>())
+      auto expr_class = py::class_<expr>(m, "expr").def(py::init<>(), py::return_value_policy::reference)
+	      .def(py::init<primitive_t>(), py::return_value_policy::reference)
         // for implicitly_convertible
-	      .def(py::init<int>())
-	      .def(py::init<double>())
+	      .def(py::init<int>(), py::return_value_policy::reference)
+	      .def(py::init<double>(), py::return_value_policy::reference)
         // constant convert
-        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }))
+        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }), py::return_value_policy::reference)
 	.def(py::init([](tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, dtype, expr0);}))
 	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, expr0);}))
 	.def(py::init([](tiramisu::op_t o, std::string name) -> tiramisu::expr {return expr(o, name);}))
@@ -113,11 +113,11 @@ void add_binary_operators(PythonClass &class_instance) {
 	.def(py::init([](tiramisu::op_t o, std::string name, std::vector<tiramisu::expr> vec, tiramisu::primitive_t type) ->
 		      tiramisu::expr {return expr(o, name, vec, type);}))
         .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); })
-	.def("get_name", [](tiramisu::expr &e) -> std::string {return e.get_name();})
+	.def("get_name", [](tiramisu::expr &e) -> std::string {return e.get_name();}, py::return_value_policy::reference)
 	.def("set_name", [](tiramisu::expr &e, std::string & name) -> void {return e.set_name(name);})
 	.def("is_equal", [](tiramisu::expr &e, tiramisu::expr &ep) -> bool {return e.is_equal(ep);})
 	.def("__repr__", [](tiramisu::expr &e) -> std::string {return e.to_str();})
-	.def("cast", [](tiramisu::expr &e, tiramisu::primitive_t tT) -> tiramisu::expr { return cast(tT, e);});
+	.def("cast", [](tiramisu::expr &e, tiramisu::primitive_t tT) -> tiramisu::expr { return cast(tT, e);}, py::return_value_policy::reference);
       add_binary_operators(expr_class);
       
       auto memcpy_value = m.def("memcpy", py::overload_cast<const tiramisu::buffer &, const tiramisu::buffer &>(&tiramisu::memcpy));
