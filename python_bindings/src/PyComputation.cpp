@@ -65,6 +65,7 @@ namespace tiramisu {
         .def("gpu_tile", py::overload_cast<var, var, var, int, int, int>(&computation::gpu_tile))
         .def("gpu_tile", py::overload_cast<var, var, var, int, int, int, var, var, var, var, var, var>(&computation::gpu_tile))
         .def("then", py::overload_cast<computation&, var>(&computation::then))
+	.def("then", py::overload_cast<computation&, int>(&computation::then))
         .def("split", py::overload_cast<var, int>(&computation::split))
         .def("split", py::overload_cast<var, int, var, var>(&computation::split))
         .def("split", py::overload_cast<int, int>(&computation::split))

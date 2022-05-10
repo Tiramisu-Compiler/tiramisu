@@ -13,6 +13,7 @@ namespace tiramisu {
       auto function_class = py::class_<function>(m, "function")
 	.def(py::init<std::string>(), py::return_value_policy::reference)
 	.def("dump", &function::dump)
+	.def("gen_c_code", &function::gen_c_code)
 	.def("codegen", py::overload_cast<const std::vector<tiramisu::buffer *> &, const std::string, const bool, bool>(&tiramisu::function::codegen));
 
       function_class.def("pycodegen", [](tiramisu::function & fct, const std::vector<tiramisu::buffer *> & buffs, const std::string name, const bool cuda)
