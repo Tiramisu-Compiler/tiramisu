@@ -173,7 +173,6 @@ void alarm_handler(int sig)
 }
 void sig_usr(int signo){
     cont = 1; 
-    
 }
 /*
 multiply two matrices AxB
@@ -193,6 +192,7 @@ std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()
 }
 void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
+    
     std::vector<syntax_tree*> children;
     if(generator_state::initialized == false)
     {
@@ -200,7 +200,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         // the optimizations are specified along with the parameters in the generator_state attribute inside the AST.
         assert(generator_state::initialized == true);
     }
-
+    
     //std::cout<<"TESTED 0"<< isl_map_to_str (ast.computations_list[0]->get_schedule())<<std::endl;
     //std::cout<<"TESTED 1 "<< isl_map_to_str (ast.computations_list[1]->get_schedule())<<std::endl;
     //std::cout<<"before search space empty"<<std::endl;
@@ -223,6 +223,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
         else
             ast.move_to_next_optimization_target();
     }
+    
     //children size is: "
     // Stop if no more optimizations can be applied
     if (children.size() == 0)
@@ -235,6 +236,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
     {
         bool unrolling_exception_thrown = false;
         if ((*iterator)->schedule_is_prunable()){
+        
             if (std::atoi(read_env_var("AS_VERBOSE"))==1){
                 // print deleted Ast
                 (*iterator)->print_previous_optims();
@@ -246,6 +248,7 @@ void beam_search::search_save(syntax_tree& ast, std::vector<std::string> *schedu
             delete (*iterator);
             iterator = children.erase(iterator);
         }else{
+            
             (*iterator)->transform_ast();
             if ((*iterator)->ast_is_legal() == false) {
                 // print deleted Ast
@@ -580,7 +583,6 @@ void beam_search::explore_fusion(syntax_tree& ast, std::vector<std::string> *sch
     for (int i = beam_size; i < children.size(); ++i)
         delete children[i];
 
-
     children.resize(std::min(beam_size, (int)children.size()));
     // Search recursively on the best children
     for (syntax_tree *child : children)
@@ -789,6 +791,7 @@ void beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> 
         else
             ast.move_to_next_head();
     }
+    
     //exec_eval->fct->reset_schedules();
     //std::cout<<"passed while loop with size: "<<children.size()<<std::endl;
  

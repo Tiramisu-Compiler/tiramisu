@@ -42,7 +42,7 @@ void parallel_init_buffer(double* buf, unsigned long long int size, double value
 #ifdef __cplusplus
 extern "C" {
 #endif
-int function760036(halide_buffer_t *buf00, halide_buffer_t *buf01);
+int function000274(halide_buffer_t *buf00, halide_buffer_t *buf01, halide_buffer_t *buf02, halide_buffer_t *buf03, halide_buffer_t *buf04);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
@@ -66,7 +66,7 @@ int get_max_depth(){
 }
 
 void declare_memory_usage(){
-    setenv("MEM_SIZE", "33.015625", true); // This value was set by the Code Generator
+    setenv("MEM_SIZE", "0.04205322265625", true); // This value was set by the Code Generator
 }
 
 

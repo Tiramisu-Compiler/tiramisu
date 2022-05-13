@@ -2285,13 +2285,30 @@ bool syntax_tree::schedule_is_prunable()
             // Only get the depths from identity matrices
             if(min>0) break;
         }
+    std::string reg = "";
+    for(int i=0;i<depths.size();i++){
+        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)U.*|"; 
+    }
+    if(depths.size()>0){
+        reg.pop_back();
+    }
+
     
-    std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)U.*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)U.*");
+    std::regex regexp(reg);
     
     if (std::regex_search(schedule_str, regexp))
         return true;
-        
-    std::regex regexpt(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)T2\\(\\{C0(,C1)?\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{(C0,)?C1\\},L"+std::to_string(depths.at(1)-3)+",L"+std::to_string(depths.at(1)-2)+".*|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)T2\\(\\{C0,C1\\},L"+std::to_string(depths.at(0)-3)+",L"+std::to_string(depths.at(0)-2)+".*");
+    
+    reg = "";
+    for(int i=0;i<depths.size();i++){
+        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)T2\\(\\{(C[0-9],)*C" + std::to_string(i)+ "(,C[0-9])*\\},L"+std::to_string(depths.at(i)-3)+",L"+std::to_string(depths.at(i)-2)+".*|"; 
+    }
+    if(depths.size()>0){
+        reg.pop_back();
+    }
+    
+    std::regex regexpt(reg);
+    
     if (std::regex_search(schedule_str, regexpt))
         return true;
 
@@ -2334,8 +2351,14 @@ bool syntax_tree::can_set_default_evaluation()
     std::string schedule_str = get_schedule_str();
     
     //check if innermost loop is parallelized, if yes set the speedup to 0.001 
-    
-    std::regex regexp(".*P\\(\\{C0\\},L"+std::to_string(depths.at(0)-1)+"\\)$|.*P\\(\\{C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$|.*P\\(\\{C0,C1\\},L"+std::to_string(depths.at(1)-1)+"\\)$");
+    std::string reg = "";
+    for(int i=0;i<depths.size();i++){
+        reg += ".*P\\(\\{(C[0-9],)*C" + std::to_string(i) + "(,C[0-9])*\\},L"+ std::to_string(depths.at(i)-1)+"\\)$|"; 
+    }
+    if(depths.size()>0){
+        reg.pop_back();
+    }
+    std::regex regexp(reg);
     
 
     if (std::regex_search(schedule_str,regexp))

@@ -1,5 +1,5 @@
 #include "Halide.h"
-#include "function760036_wrapper.h"
+#include "function000274_wrapper.h"
 #include "tiramisu/utils.h"
 #include <iostream>
 #include <time.h>
@@ -9,10 +9,22 @@ using namespace std::chrono;
 using namespace std;                
 int main(int, char **argv)
 {
-	double *c_buf00 = (double*)malloc(32*32*66* sizeof(double));
-	parallel_init_buffer(c_buf00, 32*32*66, (double)94);
-	Halide::Buffer<double> buf00(c_buf00, 32,32,66);
-	Halide::Buffer<double> buf01(64,32,32,65);
+	Halide::Buffer<double> buf00(33,33);
+	double *c_buf02 = (double*)malloc(33*33* sizeof(double));
+	parallel_init_buffer(c_buf02, 33*33, (double)8);
+	Halide::Buffer<double> buf02(c_buf02, 33,33);
+
+	double *c_buf01 = (double*)malloc(34*34* sizeof(double));
+	parallel_init_buffer(c_buf01, 34*34, (double)51);
+	Halide::Buffer<double> buf01(c_buf01, 34,34);
+
+	double *c_buf03 = (double*)malloc(33*33* sizeof(double));
+	parallel_init_buffer(c_buf03, 33*33, (double)36);
+	Halide::Buffer<double> buf03(c_buf03, 33,33);
+
+	double *c_buf04 = (double*)malloc(33*33* sizeof(double));
+	parallel_init_buffer(c_buf04, 33*33, (double)68);
+	Halide::Buffer<double> buf04(c_buf04, 33,33);
 
     bool nb_runs_dynamic = is_nb_runs_dynamic();
     
@@ -22,7 +34,7 @@ int main(int, char **argv)
         for (int i = 0; i < nb_exec; i++) 
         {  
             auto begin = std::chrono::high_resolution_clock::now(); 
-            function760036(buf00.raw_buffer(),buf01.raw_buffer());
+            function000274(buf00.raw_buffer(),buf01.raw_buffer(),buf02.raw_buffer(),buf03.raw_buffer(),buf04.raw_buffer());
             auto end = std::chrono::high_resolution_clock::now(); 
 
             std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() / (double)1000000 << " " << std::flush; 
@@ -38,7 +50,7 @@ int main(int, char **argv)
         for (int i = 0; i < nb_exec; i++) 
         {  
             auto begin = std::chrono::high_resolution_clock::now(); 
-            function760036(buf00.raw_buffer(),buf01.raw_buffer());
+            function000274(buf00.raw_buffer(),buf01.raw_buffer(),buf02.raw_buffer(),buf03.raw_buffer(),buf04.raw_buffer());
             auto end = std::chrono::high_resolution_clock::now(); 
 
             duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() / (double)1000000;
@@ -51,7 +63,7 @@ int main(int, char **argv)
         for (int i = 0; i < nb_exec_remaining; i++) 
         {  
             auto begin = std::chrono::high_resolution_clock::now(); 
-            function760036(buf00.raw_buffer(),buf01.raw_buffer());
+            function000274(buf00.raw_buffer(),buf01.raw_buffer(),buf02.raw_buffer(),buf03.raw_buffer(),buf04.raw_buffer());
             auto end = std::chrono::high_resolution_clock::now(); 
 
             std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count() / (double)1000000 << " " << std::flush; 
