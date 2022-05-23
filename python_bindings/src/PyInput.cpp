@@ -19,8 +19,8 @@ namespace tiramisu {
         }), py::return_value_policy::reference)
         .def("get_buffer", &input::get_buffer, py::return_value_policy::reference)
         .def("get_name", &input::get_name, py::return_value_policy::reference)
-        .def("store_in", py::overload_cast<tiramisu::buffer*>(&computation::store_in))
-        .def("store_in", py::overload_cast<tiramisu::buffer*, std::vector<tiramisu::expr>>(&computation::store_in));
+        .def("store_in", py::overload_cast<tiramisu::buffer*>(&computation::store_in), py::keep_alive<1, 2>())
+        .def("store_in", py::overload_cast<tiramisu::buffer*, std::vector<tiramisu::expr>>(&computation::store_in), py::keep_alive<1, 2>());
 
     }
 

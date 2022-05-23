@@ -19,7 +19,7 @@ namespace tiramisu {
         .def("get_name", &buffer::get_name)
         .def("dump", &buffer::dump);
 
-      buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at));
+      buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at), py::keep_alive<1, 2>());
     }
 
   }  // namespace PythonBindings
