@@ -16,7 +16,7 @@ extern "C" {
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
 int nb_tests = 1;
-int randommode = 1;
+int randommode = 0;
 
 
 
@@ -385,15 +385,15 @@ int main(int, char **)
    }
    int perms_array[2][3] = { {1,2,3}, {3,2,1} };
    int sigs_array[2] = {1,-1};
+   //int perms_array[1][3] = { {1,2,3} };
+   //int sigs_array[1] = {1};
    int* perms = (int *) malloc(B1Nperms * Nq * sizeof (int));
    int sigs[B1Nperms];
-   int permnum = 0;
    for (int i = 0; i < B1Nperms; i++) {
          for (int q = 0; q < Nq; q++) {
-            perms[index_2d(permnum,q ,Nq)] = perms_array[i][q];
+            perms[index_2d(i,q ,Nq)] = perms_array[i][q];
          }
-         sigs[permnum] = sigs_array[i];
-         permnum += 1;
+         sigs[i] = sigs_array[i];
    }
    // Correlators
    double* C_re = (double *) malloc(B1Nrows * B1Nrows * (NsrcHex) * (NsnkHex) * Lt * sizeof (double));
