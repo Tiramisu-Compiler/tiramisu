@@ -1,4 +1,4 @@
-## Quick Guide
+## CPU Code
 * [Build Tiramisu](https://github.com/Tiramisu-Compiler/tiramisu#building-tiramisu-from-sources).
     * If your machine supports avx2 and fma (fused multipliy add) instructions, you can enable those two fitures in Tiramisu by uncommenting [these two lines](https://github.com/Tiramisu-Compiler/tiramisu/blob/85fe07e465790b1254606079b3060db5af7fb36a/src/tiramisu_codegen_halide.cpp#L3928) before building Tiramisu.
 
