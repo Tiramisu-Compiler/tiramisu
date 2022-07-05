@@ -1,0 +1,1 @@
+Link to the manuscript on ResearchGate: https://www.researchgate.net/publication/361770213_Optimisation_automatique_dans_le_compilateur_Tiramisu_Amelioration_de_la_scalabilite_par_la_selection_des_parametres
