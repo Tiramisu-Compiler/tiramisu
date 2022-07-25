@@ -11,23 +11,23 @@ from ray.tune.registry import register_env
 
 # file_path="run_out.txt"
 #sys.stdout = open(file_path, "w+")
-tiramisu_path = '/scratch/nhh256/tiramisu/' # Put the path to your tiramisu installation here
-#tiramisu_path='/home/narimane/tiramisu/'
+#tiramisu_path = '/scratch/nhh256/tiramisu/' # Put the path to your tiramisu installation here
+tiramisu_path='/home/narimane/tiramisu/'
 
 os.environ["RAY_OBJECT_STORE_ALLOW_SLOW_STORAGE"]="1"
 os.environ["RAY_ALLOW_SLOW_STORAGE"] = "1"
 
 os.environ['TIRAMISU_ROOT'] = tiramisu_path
 
-register_env("Tiramisu_env_v1", lambda a:SearchSpaceSparseEnhanced("../new_dataset_enhanced_hyper.json", "../Dataset_batches/6"))
+register_env("Tiramisu_env_v1", lambda a:SearchSpaceSparseEnhanced("../../../Desktop/PFE/new_dataset.json", "../../../Desktop/PFE/Dataset"))
 
 f=open("output_results.txt", "w+")
 f.write("")
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--num-workers", default=2, type=int)
+parser.add_argument("--num-workers", default=0, type=int)
 parser.add_argument("--training-iteration", default=1000, type=int)
-parser.add_argument("--ray-num-cpus", default=84, type=int)
+parser.add_argument("--ray-num-cpus", default=6, type=int)
 #parser.add_argument("--ray-num-gpus", default=1, type=int)
 parser.add_argument("--checkpoint-freq", default=5, type=int)
 args = parser.parse_args()
@@ -37,7 +37,7 @@ ModelCatalog.register_custom_model("tiramisu_model_v1",TiramisuModelV2)
 
 analysis=tune.run(
     "PPO",
-    local_dir="/scratch/nhh256/ray_results",
+    #local_dir="/scratch/nhh256/ray_results",
     name="Training_1000_sparse_enhanced_hyper",
     stop={"training_iteration": args.training_iteration},
     max_failures=0,

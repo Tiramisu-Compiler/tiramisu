@@ -54,6 +54,9 @@ class SkewUnrollException(Exception):
 
 class SearchSpaceSparseEnhanced(gym.Env):
 
+# the maximum of loop levels is 5, in the transformations we consider till 8 levels because tiling can create new loops,
+# and since tiling is applied only once, the maximum of new loops generated is 3, so 5+3 = 8
+
     INTERCHANGE01 = 0
     INTERCHANGE02 = 1
     INTERCHANGE03 = 2
@@ -114,6 +117,7 @@ class SearchSpaceSparseEnhanced(gym.Env):
 
     EXIT=52
 
+    # Max number of of transformations in the schedule == thenumber of possible transformations
     MAX_DEPTH = 6
 
     ACTIONS_ARRAY=[ 'INTERCHANGE01', 'INTERCHANGE02', 'INTERCHANGE03', 'INTERCHANGE04', 'INTERCHANGE05', 'INTERCHANGE06', 'INTERCHANGE07',
@@ -123,6 +127,11 @@ class SearchSpaceSparseEnhanced(gym.Env):
     'TILING2D45', 'TILING2D56', 'TILING2D67', 'TILING3D012', 'TILING3D123', 'TILING3D234', 'TILING3D345', 'TILING3D456', 'TILING3D567', 'UNROLLING',
     'SKEWING', 'PARALLELIZATION', 'REVERSAL0', 'REVERSAL1', 'REVERSAL2', 'REVERSAL3', 'REVERSAL4', 'REVERSAL5', 'REVERSAL6', 'REVERSAL7', 'EXIT']
 
+    '''
+    The init function required by gym to initialise the env, it's called only once
+    programs_file: path to the json file that contains the data generated during the training
+    dataset_path: path to the folder that contains the files to use for training o testing
+    '''
     def __init__(self, programs_file, dataset_path):
         
         f = Figlet(font='banner3-D')
@@ -155,7 +164,8 @@ class SearchSpaceSparseEnhanced(gym.Env):
         )  # to use it to get the execution time
 
         self.action_space = gym.spaces.Discrete(53)
-        #self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(794,))
+        #the program representation is a vector of length 784, fix for all programs
+        # the action mask is a vector of size 53 (thenumber of actions)
         self.observation_space = gym.spaces.Dict({
             "representation": gym.spaces.Box(low=-np.inf, high=np.inf, shape=(784,)),
             "action_mask":gym.spaces.Box(low=0, high=1, shape=(53,))
@@ -170,35 +180,35 @@ class SearchSpaceSparseEnhanced(gym.Env):
         self.prog_ind=0
 
 
-    def reset(self, file=None):
-        print("\nRéinitialisation de l'environnement\n")
 
+#    The reset function required by gym to reset the environement at the begining of each new episode
+
+    def reset(self):
+        print("\nRéinitialisation de l'environnement\n")
+        #added these to see where most of the time is spent
         self.episode_total_time=time.time()
         self.lc_total_time=0
         self.codegen_total_time=0
         print("Choix d'un programme Tiramisu...\n")
         while True:
             try:
+                
+                # A progam is chosen randomely from the list of programs
+                init_indc = random.randint(0, len(self.progs_list) - 1)
 
-                # init_indc = random.randint(0, len(self.progs_list) - 1)
-
-<<<<<<< HEAD
                 file = get_cpp_file(self.dataset_path,self.progs_list[init_indc])
                 
+                # To work with a specific program, put the path to that file, in relative path, in the next line
                 #file='../benchmarks_sources/function_heat2d_MEDIUM/function_heat2d_MEDIUM_generator.cpp'
-                #file='../benchmarks_sources/function_matmul_SMALL/function_matmul_SMALL_generator.cpp'
-=======
-                # file = get_cpp_file(self.dataset_path,self.progs_list[init_indc])
+                
 
-                file='../benchmarks_sources/function_heat2d_SMALL/function_heat2d_SMALL_generator.cpp'
->>>>>>> 6405030e15f319c97eea94c2480d0f5e219b84f9
-
-                # self.prog contains the tiramisu prog from the RL interface
+                # Instance the tiramisu prog 
                 self.prog = Tiramisu_Program(file)
-                #print("Le programme numéro {} de la liste, nommé {} est choisi \n".format(init_indc, self.prog.name))
+                print("Le programme numéro {} de la liste, nommé {} est choisi \n".format(init_indc, self.prog.name))
 
                 self.annotations=self.prog.get_program_annotations()
 
+                # Get the computation representation
                 rep_temp = get_representation_template(self.annotations)
 
                 print("\n *-*-*- Le code source -*-*-* \n")
@@ -208,6 +218,7 @@ class SearchSpaceSparseEnhanced(gym.Env):
                 if len(rep_temp[0]) != 784:
                     raise RepresentationLengthException
 
+                # Check if this program is used before and if we have its initial exec time saved so that we don't do another execution
                 if self.progs_dict == {} or self.prog.name not in self.progs_dict.keys():
                     try: 
                         print("\nC'est un nouveau programme, il sera éxecuté pour obtenir le temps d'execution initial\n")
@@ -216,6 +227,8 @@ class SearchSpaceSparseEnhanced(gym.Env):
                         cg_time=time.time()-start_time 
                         #print("\nLe temps d'execution initial de ce programme est", self.initial_execution_time)
                         self.codegen_total_time +=cg_time
+
+                    # We have a TimeOutException because we don't allow to work with slow programs, some may take hours just to execute them
                     except TimeOutException:
                         print("Désolé, je dois changer le programme choisi car son exécution a pris beaucoup de temps...\n ")
                         continue
@@ -235,6 +248,8 @@ class SearchSpaceSparseEnhanced(gym.Env):
             self.comp=self.prog.comp_name
             iterators=list(self.annotations["iterators"].keys())
             self.it_dict={}
+
+            # We keep track of the program's structure in a dictionary, so that we can easy see the changes and use it with the next tranformations
             print("\nLes niveaux de boucles de ce programme sont:")
             for i in range (len(self.annotations["iterators"])):
                   self.it_dict[i]={}
@@ -250,6 +265,9 @@ class SearchSpaceSparseEnhanced(gym.Env):
             self.obs={}
             self.obs["representation"] = np.array(rep_temp[0],dtype=np.float32)
             print("\nLa représentation vectorielle initiale de ce programme est:", self.obs["representation"] )
+
+            # The initial mask depends on the number of the loops in the program, if the program have for example only 3 loop 
+            # we can't allow having Interchange (3,4) because these loop levels don't exist
 
             if len(self.annotations["iterators"]) == 5:
                 self.obs["action_mask"] = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=np.float32)
@@ -293,15 +311,23 @@ class SearchSpaceSparseEnhanced(gym.Env):
         exit=False
         done=False
         info={}
+
+        #if the transformation is already applied
         applied_exception=False
+
+        #If there are no valid skewing params 
         skew_params_exception=False
+
+        #it's not allowed to apply skewing after unrolling
         skew_unroll=False
         reward=0
         self.steps+=1
 
         try:
             
+            # We use the action class to get the parameters of the transformations
             action = Action(raw_action, self.it_dict)
+            print("after the action class")
 
             self.obs = copy.deepcopy(self.obs) # get current observation
             try:
@@ -327,6 +353,7 @@ class SearchSpaceSparseEnhanced(gym.Env):
                    
                     params=[int(action_params["first_dim_index"]), int(action_params["second_dim_index"])]
 
+                    #The optimization_command class helps checking the legality of a tranformation a well as the evaluation of the schedule
                     optim1 = optimization_command(self.comp, "Interchange", params)
                     self.schedule.append(optim1)
            
@@ -421,7 +448,8 @@ class SearchSpaceSparseEnhanced(gym.Env):
 
                     params=[int(action_params["dim_index"]), int(action_params["unrolling_factor"])]
 
-                    #we don't apply unrolling on a level that's skewed, we get the tag to see if it's skewed or not
+                    # We can't apply unrolling on a level that's skewed, because for unrolling the bounds need to be fix, 
+                    # so we get the tag from the rpresentation vector to see if the level is skewed or not
                     if not self.is_skewed and self.obs["representation"][params[0]*9+3]!=1:
 
                         optim3 = optimization_command(self.comp, "Unrolling", params)
@@ -472,6 +500,7 @@ class SearchSpaceSparseEnhanced(gym.Env):
 
                 
                     if (action_params["first_factor"] != None and action_params["second_factor"] != None):
+                        # We don't apply skewing on the innermost loops because they are the ones that will be unrolled
                         if (action_params["first_dim_index"] != len(self.it_dict)-1 and action_params["second_dim_index"] != len(self.it_dict)-1) or ( (action_params["first_dim_index"] == len(self.it_dict)-1 or action_params["second_dim_index"] == len(self.it_dict)-1 and not self.is_unrolled )) :
 
                             params=[int(action_params["first_dim_index"]), int(action_params["second_dim_index"])]
@@ -601,6 +630,8 @@ class SearchSpaceSparseEnhanced(gym.Env):
             if action.id==self.EXIT:
                 done=True
                 exit=True
+
+            # If the transformation is legal and it's applied successfully, we update the schedule string as well as the iterators
                 
             if (not exit and lc_check!=0) and not (action.id == 41 and self.is_skewed):
                 self.schedule_str = sched_str(self.schedule_str, action.id, action_params)
@@ -622,7 +653,7 @@ class SearchSpaceSparseEnhanced(gym.Env):
                 return self.obs, reward, done, info
 
             else:
-                ex_type, ex_value, ex_traceback = sys.exc_info()
+                # If a transformation generatesan error after that it was added to the schedule it shoudl be removed
                 if self.schedule != [] and not skew_params_exception and not skew_unroll:
                     self.schedule.pop()
                 print("\nCette action a généré une erreur, elle ne sera pas appliquée.")
@@ -642,7 +673,10 @@ class SearchSpaceSparseEnhanced(gym.Env):
 
 
             if done: 
-                print("\nFin de l'épisode")
+                print("\nFin de l'episode")
+
+                # Since in reality unrolling is applied in the end, we modify the schedule at the end of the episode so that the 
+                # unrolling is considered as the last transformation to apply
 
                 if self.is_unrolled:       
                     for optim in self.schedule:
@@ -672,10 +706,11 @@ class SearchSpaceSparseEnhanced(gym.Env):
                 self.search_time= time.time()-self.search_time
                 
                 try:
+                    # We check of applying parallelization would improve the execution time
                     exec_time=0
                     writing_time=0
                     exec_time = self.get_exec_time()
-                    print("\nTester si la parallélisation apporte un meilleur speedup...")
+                    print("Tester si la parallélisation apporte un meilleur speedup...")
 
                     if not self.is_parallelized:
                         #print("inside parallelization in done")
@@ -723,7 +758,9 @@ class SearchSpaceSparseEnhanced(gym.Env):
 
                 if exec_time!=0:
                     print("\nLe schedule final trouvé est: ",self.schedule_str)
-                    print("\nLe nouveau temps d'exécution est: {} s".format(exec_time))
+                    print("\nLe nouveau temps d'exécution est: ", exec_time)
+
+                    # Calculate the speedup which is also the reward
                     if self.initial_execution_time >=  exec_time:
                         self.speedup = (self.initial_execution_time / exec_time)
 
@@ -817,7 +854,9 @@ class SearchSpaceSparseEnhanced(gym.Env):
                 #print("after loop tiling 3")
         
         
-        if self.is_interchaged == False:
+        # As tiling may generate new iterators, in that case we unmask the actions corresponding to interchange and reversal
+        #  that suppport the new iterators
+        if self.is_interchaged == False: #because we allow interchange only once
 
             if len(self.annotations["iterators"]) == 5:
                 if action_params["tiling_loop_1"] and action_params["tiling_loop_2"] and action_params["tiling_loop_3"]:
@@ -1128,5 +1167,5 @@ class SearchSpaceSparseEnhanced(gym.Env):
         if self.schedule_str == "":
             print("\nAucun schedule à appliquer")
         else:
-            print("\nLe temps de l'execution du programme {} en appliquant le schedule {} est {} s".format(self.prog.name, self.schedule_str,execution_time))
+            print("\nLe temps de l'execution du programme {} en appliquant le schedule {} est {} ".format(self.prog.name, self.schedule_str,execution_time))
         return execution_time

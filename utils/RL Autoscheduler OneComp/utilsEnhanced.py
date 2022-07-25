@@ -16,7 +16,7 @@ class LoopExtentException(Exception):
     pass
 
 def get_dataset(path):
-    os.getcwd()
+    print("**********************************",os.getcwd())
     prog_list=os.listdir(path)
     return prog_list
 
@@ -145,6 +145,7 @@ def get_representation_template(program_annot):
 #${CXX} -Wl,--no-as-needed -ldl -g -fno-rtti -lpthread -std=c++11 -O0 ${FILE_PATH}.o -o ./${FILE_PATH}.out   -L${TIRAMISU_ROOT}/build  -L${TIRAMISU_ROOT}/3rdParty/Halide/lib  -L${TIRAMISU_ROOT}/3rdParty/isl/build/lib  -Wl,-rpath,${TIRAMISU_ROOT}/build:${TIRAMISU_ROOT}/3rdParty/Halide/lib:${TIRAMISU_ROOT}/3rdParty/isl/build/lib -ltiramisu -ltiramisu_auto_scheduler -lHalide -lisl' 
 
 def compile_and_run_tiramisu_code(file_path, log_message='No message'):
+    print("in compile and run")
     os.environ['FUNC_DIR'] = ('/'.join(Path(file_path).parts[:-1]) if len(Path(file_path).parts)>1 else '.') +'/'
     os.environ['FILE_PATH'] = file_path
     log_message_cmd = 'printf "'+log_message+'\n">> ${FUNC_DIR}log.txt'
@@ -164,6 +165,8 @@ c++ -Wl,--no-as-needed -ldl -g -fno-rtti -lz -lpthread -std=c++11 -O0 ${FILE_PAT
         if failed:
             print(f'Error occured while running {file_path}')
             return False
+    
+    print("done with compile and run")
     return True
 
 
