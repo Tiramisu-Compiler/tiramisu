@@ -18,7 +18,7 @@ class Action():
     """"
     Action class to store and standardize the action for the environment.
     """
-    def __init__(self, id_, it_dict, common_it):
+    def __init__(self, id_, it_dict):
         """"
         Initialization of an action.
         Args:
@@ -28,7 +28,6 @@ class Action():
         self.id = id_
         #iterators list dict with depth as keys
         self.it_dict=it_dict
-        self.common_it= common_it
 
 
 
@@ -231,8 +230,7 @@ class Action():
                 print("after choosing first and second params and factors")
 
                 #calculate the loop extent to see if we should create new iterators or not
-                #since it's applicable on the common iterators, we retrieve the information from the first computation
-                loop_extent_1=abs(self.it_dict[0][first_it]['upper_bound']-self.it_dict[0][first_it]['lower_bound'])
+                loop_extent_1=abs(self.it_dict[first_it]['upper_bound']-self.it_dict[first_it]['lower_bound'])
                 print("\n first loop extent is ", loop_extent_1)
                 print("first factor is", first_fact)
                 if loop_extent_1==first_fact:
@@ -242,7 +240,7 @@ class Action():
                     print("exceeeption, loop extent 1 smaller than factor")
                     raise LoopExtentException
 
-                loop_extent_2=abs(self.it_dict[0][second_it]['upper_bound']-self.it_dict[0][second_it]['lower_bound'])
+                loop_extent_2=abs(self.it_dict[second_it]['upper_bound']-self.it_dict[second_it]['lower_bound'])
                 print("\n second loop extent is ", loop_extent_2)
                 print("second factor is", second_fact)
                 if loop_extent_2==second_fact:
@@ -298,7 +296,7 @@ class Action():
                 second_fact=random.choice([32, 64, 128])
                 third_fact=random.choice([32, 64, 128])
                  #calculate the loop extent to see if we should create new iterators or not
-                loop_extent_1=abs(self.it_dict[0][first_it]['upper_bound']-self.it_dict[0][first_it]['lower_bound'])
+                loop_extent_1=abs(self.it_dict[first_it]['upper_bound']-self.it_dict[first_it]['lower_bound'])
                 print("\n first loop extent is ", loop_extent_1)
                 print("first factor is", first_fact)
                 if loop_extent_1==first_fact:
@@ -308,7 +306,7 @@ class Action():
                     print("exceeeption, loop extent 1 smaller than factor")
                     raise LoopExtentException
 
-                loop_extent_2=abs(self.it_dict[0][second_it]['upper_bound']-self.it_dict[0][second_it]['lower_bound'])
+                loop_extent_2=abs(self.it_dict[second_it]['upper_bound']-self.it_dict[second_it]['lower_bound'])
                 print("\n second loop extent is ", loop_extent_2)
                 print("second factor is", second_fact)
                 if loop_extent_2==second_fact:
@@ -318,7 +316,7 @@ class Action():
                     print("exceeeption, loop extent 2 smaller than factor")
                     raise LoopExtentException
 
-                loop_extent_3=abs(self.it_dict[0][third_it]['upper_bound']-self.it_dict[0][third_it]['lower_bound'])
+                loop_extent_3=abs(self.it_dict[third_it]['upper_bound']-self.it_dict[third_it]['lower_bound'])
                 print("\n third loop extent is ", loop_extent_3)
                 print("third factor is", third_fact)
                 if loop_extent_3==third_fact:
@@ -342,14 +340,13 @@ class Action():
                 }
 
         elif self.id==41:#UNROLLING
-            params = {}
-            for comp in self.it_dict:
-                it=len(self.it_dict[comp])-1
-                unrolling_fact=random.choice([4, 8, 16])
-                params[comp]={
-                "dim_index":it,
-                "unrolling_factor":unrolling_fact
-                }
+            params = {}  
+            it=len(self.it_dict)-1
+            unrolling_fact=random.choice([4, 8, 16])
+            params={
+            "dim_index":it,
+            "unrolling_factor":unrolling_fact
+            }
                 
             return params
 
@@ -357,8 +354,8 @@ class Action():
 
         elif self.id==42:#SKEWING
 
-            # The loop levels are randm
-            it_len = len(self.common_it)
+            # The loop levels are random
+            it_len = len(self.it_dict)
             first_it=random.randint(0,it_len-1)
             if first_it == it_len-1:
                 second_it = first_it
@@ -390,10 +387,10 @@ class Action():
         elif self.id==43: #PARALLELIZATION
             # Parallelization is better applied on the two outermost loops, we make a random choice
             # we iterate over the iterators list and look for the outermost loop, the one without a parent
-            if len(self.common_it) >1:
-                it=random.choice([len(self.it)-2, len(self.it)-1])
+            if len(self.it_dict) >1:
+                it=random.choice([len(self.it_dict)-2, len(self.it_dict)-1])
             else:
-                it=len(self.common_it)
+                it=len(self.it_dict)-1
             return {
                 "dim_index":it,
             } 

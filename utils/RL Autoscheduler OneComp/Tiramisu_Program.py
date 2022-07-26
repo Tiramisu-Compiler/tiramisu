@@ -3,7 +3,7 @@ import os
 import json
 from pathlib import Path
 import random, time
-from utils import TimeOutException, compile_and_run_tiramisu_code, launch_cmd
+from utilsEnhanced import TimeOutException, compile_and_run_tiramisu_code, launch_cmd
 
 class InternalExecException(Exception):
     pass

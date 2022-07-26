@@ -3,7 +3,7 @@ import os
 import json
 from pathlib import Path
 import random, time
-from utilsLocal import TimeOutException, compile_and_run_tiramisu_code, launch_cmd
+from utilsEnhanced import TimeOutException, compile_and_run_tiramisu_code, launch_cmd
 
 class InternalExecException(Exception):
     pass
@@ -48,6 +48,7 @@ class Tiramisu_Program():
         return self.program_annotations
     
     def check_legality_of_schedule(self,optims_list): #Optims_list should be the order of which they should be applied # works only for single comp
+        print("in check legality")
         legality_check_lines = '''
     prepare_schedules_for_legality_checks();
     perform_full_dependency_analysis();
@@ -92,7 +93,9 @@ class Tiramisu_Program():
             f.write(LC_code)
         self.reset_legality_check_result_file()
         log_message = 'Checking legality for: ' + ' '.join([o.tiramisu_optim_str for o in optims_list])
+        print("before compile and run")
         compile_and_run_tiramisu_code(output_file, log_message)
+        print("after compile and run")
         lc_result = self.read_legality_check_result_file()
         
         return lc_result
