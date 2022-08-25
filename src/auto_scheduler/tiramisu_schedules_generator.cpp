@@ -738,7 +738,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
     int nb_shared_iterators;
 
     int nb_try = 0;
-    //std::cout<<"exploring: "<<ast.get_current_optimization_type()<<std::endl;
     // Generate the specified optimization
     switch (ast.get_current_optimization_type())
     {
@@ -747,7 +746,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
         /* iteration of the ast in done preorder  */
         {
-
             if (ast.search_state.current_index == 0)
             { // cant fuze the first computation
                 return states;
@@ -774,11 +772,9 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             // create a vector of involved tiramisu vars
             std::vector<tiramisu::var> loop_levels;
             // loop levels used for shifting solver
-            //std::cout<<"SHIFTING ITRS";
             for (auto const &str : real_iterators)
             {
                 loop_levels.push_back(tiramisu::var(str));
-                //std::cout<<(str);
             }
 
             std::vector<computation *> seen_computations;
@@ -792,10 +788,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
             {
                 // the fusion that will generate dummy itr is removed by previous_node_adjusted == previous_node
                 if (previous_node->is_candidate_for_fusion(current_node))
-                { //similar itr domains
-
-
-                            // create AST copy to falsely fuze and check legality
+                { // similar itr domains
+                    // create AST copy to falsely fuze and check legality
                     syntax_tree *new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, previous_node);
 
@@ -813,7 +807,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                     );
 
                     new_ast->fct->prepare_schedules_for_legality_checks(true);
-
 
                     int depth = previous_node_adjusted->depth;
                     optimization_info optim_info;
@@ -842,7 +835,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         {
                             if(std::get<1>(shifting) > 0)
                             {
-                                //std::cout<<"--"<<std::get<0>(shifting).get_name()<<"--";
                                 int depth = new_node->computations[node_computation.second].
                                     comp_ptr->get_loop_level_number_from_dimension_name(std::get<0>(shifting).get_name());
                                 optimization_info optim_info;
@@ -871,8 +863,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                         new_ast->tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*new_ast);
 
                         states.push_back(new_ast);
-
-
                     }
                     else
                     {
@@ -882,13 +872,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
 
                 }
             }
-
-
-
-
-
         }
-
         break;
 
     case optimization_type::TILING:
@@ -1043,21 +1027,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
                 std::vector<tiramisu::computation *> involved_comp_first; 
                 involved_comp_first.push_back(comp);
                 std::string loop_name = loop_names[inner_most_node->depth];
-                //std::cout<<"is_optimized_by_tag"<<std::endl;
                 result = result && (!inner_most_node->is_optimized_by_tag()) &&
                                 ast.fct->loop_unrolling_is_legal(var(loop_name), involved_comp_first);
             }
-            //std::cout<<"after is_optimized_by_tag"<<std::endl;    
             if (result) // unrollable: test all possible values
             {
-                //std::cout<<"unrollable: test all possible values"<<std::endl;
-
                 ast.recover_isl_states();
 
                 for (int unrolling_fact: unrolling_factors_list) {
-
                     if (can_split_iterator(inner_most_node->get_extent(), unrolling_fact)) {
-                        //std::cout<<"can_split_iterator"<<std::endl;
                         // Copy the AST and add unrolling to the list of optimizations
                         syntax_tree *new_ast = new syntax_tree();
                         ast_node *new_node = ast.copy_and_return_node(*new_ast, inner_most_node);
@@ -1086,7 +1064,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_schedules(synt
         break;
 
     case optimization_type::PARALLELIZE:
-            //ast.print_ast();
 
         ast.stage_isl_states();
 
@@ -1507,9 +1484,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     int nb_try = 0;
     
     shared_nodes = node->collect_shared_nodes_from_head();
-    //std::cout<<"depth of the head "<<node->depth<<std::endl;
     int depth = node->depth + shared_nodes.size(); 
-    //std::cout<<"shared nodes size: "<<shared_nodes.size()<<std::endl;
     if (shared_nodes.size() > 0)
     {
         node->get_all_computations(involved_computations);
@@ -1541,11 +1516,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 for(int l = 0; l<matrix.size(); l++){
                     matrix.at(l)= std::vector<int>(depth);
                     for(int c = 0; c<matrix.size(); c++){
-                                    if (l!=c ){
-                                        matrix.at(l).at(c) = 0;
-                                    }else{
-                                        matrix.at(l).at(c) = 1;
-                                    }
+                        if (l!=c ){
+                            matrix.at(l).at(c) = 0;
+                        }else{
+                            matrix.at(l).at(c) = 1;
+                        }
                     }
                 }
                     
@@ -1580,10 +1555,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     {
         //ast.recover_isl_states();
     }
-    
-    
-    
-    //std::cout<<"applying "<<shared_nodes.size()<< " reversals"<<std::endl;
+      
     for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
         syntax_tree *new_ast = new syntax_tree();
@@ -1597,14 +1569,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         for(int l = 0; l<matrix.size(); l++){
             matrix.at(l)= std::vector<int>(depth);
             for(int c = 0; c<matrix.size(); c++){
-                            if (l!=c ){
-                                matrix.at(l).at(c) = 0;
-                            }else{
-                                matrix.at(l).at(c) = 1;
-                            }
+                if (l!=c ){
+                    matrix.at(l).at(c) = 0;
+                }else{
+                    matrix.at(l).at(c) = 1;
+                }
             }
         }
-        //std::cout<<"applying reversal at "<<shared_nodes[i]->depth<< " reversals"<<std::endl;
         matrix.at(shared_nodes[i]->depth).at(shared_nodes[i]->depth) = -1; 
         optim_info.comps = involved_computations_reversal;
         optim_info.matrix = matrix;
@@ -1650,7 +1621,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 ast.recover_isl_states();
                 for (auto &param : std::get<1>(result_skewing))
                 {
-                    ///std::cout<<"skewing first cond"<<std::endl;
                     // Copy the AST and add unrolling to the list of optimizations
                     syntax_tree *new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
@@ -1666,23 +1636,19 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     optim_info.l0_fact = std::get<0>(param);
                     optim_info.l1_fact = std::get<1>(param);
                     
-
-                    
                     std::vector <  std::vector<int> >  matrix(depth);
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
                         for(int c = 0; c<matrix.size(); c++){
-                                        if (l!=c ){
-                                            matrix.at(l).at(c) = 0;
-                                        }else{
-                                            matrix.at(l).at(c) = 1;
-                                        }
+                            if (l!=c ){
+                                matrix.at(l).at(c) = 0;
+                            }else{
+                                matrix.at(l).at(c) = 1;
+                            }
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                    
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;   
                     
                     if(optim_info.l0_fact!=1){
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
@@ -1704,7 +1670,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 ast.recover_isl_states();
                 for (auto &param : std::get<0>(result_skewing))
                 {
-                    //std::cout<<"skewing second cond"<<std::endl;
                     // Copy the AST and add unrolling to the list of optimizations
                     syntax_tree *new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
@@ -1723,17 +1688,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
                         for(int c = 0; c<matrix.size(); c++){
-                                        if (l!=c ){
-                                            matrix.at(l).at(c) = 0;
-                                        }else{
-                                            matrix.at(l).at(c) = 1;
-                                        }
+                            if (l!=c ){
+                                matrix.at(l).at(c) = 0;
+                            }else{
+                                matrix.at(l).at(c) = 1;
+                            }
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                    
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;  
                     
                     if(optim_info.l0_fact!=1){
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
@@ -1754,7 +1717,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 ast.recover_isl_states();
                 for (auto &param : std::get<2>(result_skewing))
                 {
-                    //std::cout<<"skewing thrid cond"<<std::endl;
                     // Copy the AST and add unrolling to the list of optimizations
                     syntax_tree *new_ast = new syntax_tree();
                     ast_node *new_node = ast.copy_and_return_node(*new_ast, node);
@@ -1777,17 +1739,15 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                     for(int l = 0; l<matrix.size(); l++){
                         matrix.at(l)= std::vector<int>(depth);
                         for(int c = 0; c<matrix.size(); c++){
-                                        if (l!=c ){
-                                            matrix.at(l).at(c) = 0;
-                                        }else{
-                                            matrix.at(l).at(c) = 1;
-                                        }
+                            if (l!=c ){
+                                matrix.at(l).at(c) = 0;
+                            }else{
+                                matrix.at(l).at(c) = 1;
+                            }
                         }
                     }
                     matrix.at(optim_info.l0).at(optim_info.l1) = optim_info.l1_fact;
-                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;
-                    
-                    
+                    matrix.at(optim_info.l0).at(optim_info.l0) = optim_info.l0_fact;     
                     
                     if(optim_info.l0_fact!=1){
                         std::vector<int> solutions=get_skew_params(optim_info.l0_fact, optim_info.l1_fact);
@@ -1981,10 +1941,6 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
                 }else{i--;}
         }
     }*/
-
-    
-
-
     return states;
 }
 

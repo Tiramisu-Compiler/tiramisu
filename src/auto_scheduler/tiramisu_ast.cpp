@@ -447,6 +447,9 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 //
 //    tree_structure_json = evaluate_by_learning_model::get_tree_structure_json(*this);
 //}
+/**
+ * Multiply two matrices 
+ */
 std::vector<std::vector<int>>  multiply1(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
 {
 std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
@@ -467,15 +470,16 @@ std::vector<std::vector<int>> get_bounds(std::vector<ast_node *> shared_nodes){
         std::vector<int> vec;
         // Updating the node using isl_ast_map 
         vec.push_back(shared_nodes[i]->low_bound);
-        //std::cout<<"lower: "<<shared_nodes[i]->low_bound<<std::endl;
         vec.push_back(shared_nodes[i]->up_bound);
-        //std::cout<<"upper: "<<shared_nodes[i]->up_bound<<std::endl;
         bounds_mat.push_back(vec);
         vec.clear();
     }
     return bounds_mat;
 
 }
+/**
+ * Update the loop bounds of a list of nodes
+ */
 void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<int>> bounds_mat){
     
     for (int i=0; i <shared_nodes.size();i++){
@@ -492,8 +496,7 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
         node->low_bound = isl_ast_mat[level][0];
         node->up_bound = isl_ast_mat[level][1];
     
-    }
-    
+    } 
     level++;    
     // Updating nodes recursivly
     for (ast_node *child : node->children)
@@ -503,47 +506,23 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
-    stage_isl_states();
-    
+    stage_isl_states();  
 /**
  * Applying to staging
-*/
-    
+*/  
     std::vector<tiramisu::computation *> all_data;
     std::vector<ast_node *> all_nodes;
-    
-    /*std::cout <<"transformation matrix at transform_ast_by_matrix "<<std::endl;
-    for (int k = 0; k < opt.matrix.size(); k++) {
-            for (int j = 0; j < opt.matrix[k].size(); j++)
-                std::cout << opt.matrix[k][j] << " ";
-            std::cout << std::endl;
-        }
-    */
     opt.node->get_all_nodes(all_nodes);
     std::vector<ast_node*> to_change_nodes;
     std::vector<ast_node*> temp_to_change;
     std::vector<std::vector<int>> temp_matrix;
     for(ast_node* node1:all_nodes ){
-        
-        //std::cout <<"Node : "<< node1->low_bound << " "<<node1->up_bound << " "<<std::endl;
-       
-    
         for(computation_info info:node1->computations)
         {   
-            //std::cout <<"inside one computation "<<std::endl;     
             std::vector<std::string> loop_names = info.comp_ptr->get_loop_level_names();
-
-            //std::cout <<"loop names "<<std::endl;
-            //for (std::string name:loop_names) std::cout <<name<<std::endl;
-            
-            /*std::vector<std::string> its =node1->get_all_iterators();
-            for(std::string str:its ) std::cout<<"Its : "<<str<<std::endl;*/
             ast_node * current = node1;
             while (current!= nullptr){
-
-                 //std::cout <<"Node Inside while: "<< current->low_bound << " "<<current->up_bound << " "<<std::endl;
                 to_change_nodes.push_back(current);
-                //if(current->)
                 current= current->parent;
             }
 
@@ -552,11 +531,11 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
             for(int l = 0; l<matrix.size(); l++){
                 matrix.at(l)= std::vector<int>(to_change_nodes.size());
                 for(int c = 0; c<matrix.size(); c++){
-                                if (l!=c ){
-                                    matrix.at(l).at(c) = 0;
-                                }else{
-                                    matrix.at(l).at(c) = 1;
-                                }
+                    if (l!=c ){
+                        matrix.at(l).at(c) = 0;
+                    }else{
+                        matrix.at(l).at(c) = 1;
+                    }
                 }
             }
 
@@ -579,40 +558,35 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
             for(auto& str:loop_names)
             {
                 f+=str+" ";
-            } 
-        
-            
-        
+            }    
         }
     }
-    
-    
-            
-            //std::cout<<"starting_bounds_mat in transform_ast_by_matrix"<<std::endl;
-            std::vector<std::vector<int>> starting_bounds_mat;
-            std::vector<int> vec;
-            for (int k = 0; k < temp_to_change.size(); k++) {
-                vec.push_back(temp_to_change[k]->low_bound);
-                vec.push_back(temp_to_change[k]->up_bound);
-                starting_bounds_mat.push_back(vec);
-                vec.clear();
-            }
-                
-            std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( temp_matrix,starting_bounds_mat);
-            int temp;
-            for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
-                for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
-                    {
-                        if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
-                        {
-                            temp = transformed_bounds_matrix[i][0];
-                            transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
-                            transformed_bounds_matrix[i][1] = temp;
-                            break;
-                        }
-                    } 
-            }
-            update_node( temp_to_change , transformed_bounds_matrix);
+    // Getting the intial bounds of the program loops        
+    std::vector<std::vector<int>> starting_bounds_mat;
+    std::vector<int> vec;
+    for (int k = 0; k < temp_to_change.size(); k++) {
+        vec.push_back(temp_to_change[k]->low_bound);
+        vec.push_back(temp_to_change[k]->up_bound);
+        starting_bounds_mat.push_back(vec);
+        vec.clear();
+    }
+    // Applying the transformation matrix to get the transformaed program loops   
+    std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( temp_matrix,starting_bounds_mat);
+    int temp;
+    for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
+        for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
+            {
+                if(j==0 && transformed_bounds_matrix[i][0] > transformed_bounds_matrix[i][1])
+                {
+                    temp = transformed_bounds_matrix[i][0];
+                    transformed_bounds_matrix[i][0] = transformed_bounds_matrix[i][1];
+                    transformed_bounds_matrix[i][1] = temp;
+                    break;
+                }
+            } 
+    }
+    // Update the AST with new loop bounds 
+    update_node( temp_to_change , transformed_bounds_matrix);
  
     recover_isl_states();
     
@@ -2119,19 +2093,15 @@ std::string syntax_tree::get_schedule_str()
     std::vector<int> first_time(this->get_computations().size());
     
     for(int i=0;i<first_time.size();i++) first_time.at(i)=1;
-    //std::cout<<"optims size:  "<<schedule_vect.size()<<std::endl;
     for (auto optim: schedule_vect)
     {
         if(optim.type!=optimization_type::MATRIX) non_matrix = true;
-        //std::cout<<"optim type:  "<<optim.type<<std::endl;
-        //std::cout<<"inside optim loop in get schedule str"<<std::endl;
         std::string comps_list_str="{";
         
         for (auto comp: optim.comps)
         {
             comps_list_str+= "C"+std::to_string(get_computation_index(comp))+",";
         }
-        //if(optim.comps.size()>1) std::cout<<"this opt has more than one comp"<<std::endl;
         comps_list_str.pop_back(); //remove the last comma
         comps_list_str+="}";
 
@@ -2145,51 +2115,41 @@ std::string syntax_tree::get_schedule_str()
                 transformed_by_matrix = true;
                 if(first_matrix){
                     start_matrices = schedule_str.size();
-                    //std::cout<<"start_matrices: "<<start_matrices<<std::endl;
                     first_matrix = false;
                 }
                 for (auto comp: optim.comps)
                 {
                     int index = get_computation_index(comp);
-                    //std::cout<<"index of computation:  "<<index<<std::endl;
-                    if(first_time.at(index)){
-                            
-                            first_time.at(index) = 0;
-                            //std::cout<<"first time 0:  "<<index<<std::endl;
-                            matrices.at(index) = optim.matrix;
-                            //std::cout<<"done"  <<index<<std::endl;
+                    if(first_time.at(index)){ 
+                        first_time.at(index) = 0;
+                        matrices.at(index) = optim.matrix;
                     }else{
-                            //std::cout<<"adding matrix of size:  "<<optim.matrix.size()<<std::endl;
-                            if(optim.matrix.size()<matrices.at(index).size()){
-                                //std::cout<<"filling the matrix:  "<<optim.matrix.size()<<std::endl;
-                                std::vector <  std::vector<int> >  matrix(matrices.at(index).size());
-                                for(int l = 0; l<matrix.size(); l++){
-                                    matrix.at(l)= std::vector<int>(matrices.at(index).size());
-                                    for(int c = 0; c<matrix.size(); c++){
-                                                    if (l!=c ){
-                                                        matrix.at(l).at(c) = 0;
-                                                    }else{
-                                                        matrix.at(l).at(c) = 1;
-                                                    }
+                        if(optim.matrix.size()<matrices.at(index).size()){
+                            std::vector <  std::vector<int> >  matrix(matrices.at(index).size());
+                            for(int l = 0; l<matrix.size(); l++){
+                                matrix.at(l)= std::vector<int>(matrices.at(index).size());
+                                for(int c = 0; c<matrix.size(); c++){
+                                    if (l!=c ){
+                                        matrix.at(l).at(c) = 0;
+                                    }else{
+                                        matrix.at(l).at(c) = 1;
                                     }
                                 }
+                            }
 
-                                for(int i=0 ; i<optim.matrix.size();i++){
-                                    for(int j=0 ; j<optim.matrix.size();j++){
-                                        matrix.at(i).at(j)= optim.matrix.at(i).at(j);
-                                    }
+                            for(int i=0 ; i<optim.matrix.size();i++){
+                                for(int j=0 ; j<optim.matrix.size();j++){
+                                    matrix.at(i).at(j)= optim.matrix.at(i).at(j);
                                 }
-                                //std::cout<<"multiplying sizes: "<<matrix.size()<<" and: "<<matrices.at(index).size();
-                                matrices.at(index) = multiply1(matrix, matrices.at(index) );
+                            }
+                            matrices.at(index) = multiply1(matrix, matrices.at(index) );
                             }else{
                                 matrices.at(index) = multiply1(optim.matrix, matrices.at(index) );
-                            }
-                            
-                    }
-                    
-                }
-                
+                            }       
+                    }          
+                }          
                 break;
+
             case optimization_type::SHIFTING:
                 schedule_str += "Sh("+comps_list_str+",L"+std::to_string(optim.l0)+","+std::to_string(optim.l0_fact)+")";
                 break;
@@ -2232,38 +2192,27 @@ std::string syntax_tree::get_schedule_str()
     
               
     }
-    //std::cout<<"schedule_str before: "<<schedule_str<<std::endl;
     if(transformed_by_matrix){
         for(int index = 0; index<matrices.size();index++){
-            //std::cout<<"copying one matrix"<<std::endl;
             schedule_str.insert(start_matrices,"M(");
             start_matrices+=2;
             schedule_str.insert(start_matrices,"{C"+std::to_string(index)+"}");
             start_matrices+=4;
             schedule_str.insert(start_matrices,",");
             start_matrices+=1;
-            
-            
-            
+
             for(int i = 0; i < matrices.at(index).size(); i++){
-                    for(int j = 0; j< matrices.at(index).size(); j++){
-                        //std::cout<<"schedule_str.size(): "<<schedule_str.size()<<std::endl;
-                        //std::cout<<"start_matrices inside loop: "<<start_matrices<<std::endl;
-                        //std::cout<<"string to add: "<<std::to_string(matrices.at(index).at(i).at(j))<<std::endl;
-                        //std::cout<<"schedule_str before insert: "<<schedule_str<<std::endl;
-                        schedule_str.insert(start_matrices,std::to_string(matrices.at(index).at(i).at(j)));
-                        //std::cout<<"schedule_str after insert: "<<schedule_str<<std::endl;
-                        start_matrices+=std::to_string(matrices.at(index).at(i).at(j)).size();
-                        if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)){schedule_str.insert(start_matrices,",");start_matrices+=1;}
-                    }
+                for(int j = 0; j< matrices.at(index).size(); j++){         
+                    schedule_str.insert(start_matrices,std::to_string(matrices.at(index).at(i).at(j)));
+                    start_matrices+=std::to_string(matrices.at(index).at(i).at(j)).size();
+                    if(!(i==matrices.at(index).size()-1 && j==matrices.at(index).size()-1)){schedule_str.insert(start_matrices,",");start_matrices+=1;}
+                }
             }
             schedule_str.insert(start_matrices,")");
             start_matrices+=1;
-        }
-        
+        }    
     }
     
-    //std::cout<<"schedule_str before returning: "<<schedule_str<<std::endl;        
     return schedule_str;
 }
 
@@ -2599,10 +2548,8 @@ void syntax_tree::move_to_next_optimization_target()
                     );
             this->search_state.set_new_heads(optim_alternatives);
             this->search_state.current_index = 0;
-            //std::cout<<"@GENRATION@";
         }
     }
-    //std::cout<<"_mov_in_"<<this->search_state.current_index;
 }
 void syntax_tree::move_to_next_head()
 {
@@ -2622,10 +2569,8 @@ void syntax_tree::move_to_next_head()
                     );
             this->search_state.set_new_heads(optim_alternatives);
             this->search_state.current_index = 0;
-            //std::cout<<"@GENRATION@";
         }
     }
-    //std::cout<<"_mov_in_"<<this->search_state.current_index;
 }
 
 bool syntax_tree::optim_already_applied_on_comp(tiramisu::computation *comp, tiramisu::auto_scheduler::optimization_type opt_type) {
