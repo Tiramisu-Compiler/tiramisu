@@ -73,8 +73,6 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
 
 std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, bool exit_on_timeout, float timeout, bool code_gen_timeout )
 {
-    // Remove all the optimizations
-    //fct->reset_schedules();
     // Apply all the optimizations
     apply_optimizations(ast);
 
@@ -83,6 +81,7 @@ std::vector<float> evaluate_by_execution::get_measurements(syntax_tree& ast, boo
     fct->gen_time_space_domain();
     fct->gen_isl_ast();
     fct->gen_halide_stmt();
+    // if the code generation timeout is activated, send a signal to the parent process to communicate that code generation is now done
     if (code_gen_timeout) kill(getppid(), SIGUSR1);
 
     Halide::Module m = lower_halide_pipeline(fct->get_name(), halide_target, halide_arguments,

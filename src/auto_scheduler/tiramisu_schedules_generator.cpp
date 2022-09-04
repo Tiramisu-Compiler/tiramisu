@@ -1537,13 +1537,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             }
         }
         }
-    // add reversal
+
     // add reversal matriecs
     
-    //ast.stage_isl_states();
+
     
     std::vector<tiramisu::computation *> involved_computations_reversal;
-    //for shared nodes the list of involved computations is always the same.
+    // for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
     shared_nodes = node->collect_shared_nodes_from_head();
 
@@ -1551,10 +1551,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     {
         shared_nodes[0]->get_all_computations(involved_computations_reversal);
     }
-    else
-    {
-        //ast.recover_isl_states();
-    }
+    
       
     for(int i=0;i<shared_nodes.size();i++){
         // Copy the AST and add interchange to the list of optimizations
@@ -1582,13 +1579,13 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
-    //ast.recover_isl_states();
+    
    
     // add skweing 
     ast.stage_isl_states();
   
     std::vector<tiramisu::computation *> involved_computations_skew;
-    //for shared nodes the list of involved computations is always the same.
+    // for shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
     shared_nodes = node->collect_shared_nodes_from_head();
 

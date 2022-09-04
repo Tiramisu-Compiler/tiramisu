@@ -60,13 +60,12 @@ void auto_scheduler::sample_search_space(std::string filename, bool timeout_sche
     }
 
     searcher->set_exec_eval(exec_evaluator);
+    // start exploration with fusion and explore other transformations recursivly
     searcher->explore_fusion(ast, &schedules_annotations, &exploration_trace_root, schedule_timeout);
 
     std::string output_json;
 
-//    std::string nb_exec = "\"default\"";
-//    if (std::getenv("MAX_RUNS")!=NULL)
-//        nb_exec = std::string(std::getenv("MAX_RUNS"));
+
 
     output_json = "{\n\t\"filename\" : \"" + filename + "\"," +
                   "\n\t\"node_name\" : \"" + read_env_var("SLURMD_NODENAME") + "\"," +

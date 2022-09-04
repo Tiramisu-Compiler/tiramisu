@@ -450,7 +450,7 @@ void syntax_tree::transform_ast(optimization_info const& opt)
 /**
  * Multiply two matrices 
  */
-std::vector<std::vector<int>>  multiply1(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
+std::vector<std::vector<int>>  multiply_mats(const std::vector<std::vector<int>> & m1, const std::vector<std::vector<int>> & m2)
 {
 std::vector<std::vector<int>> result(m1.size(), std::vector<int>(m2.at(0).size()));
 
@@ -487,22 +487,7 @@ void update_node(std::vector<ast_node *> shared_nodes, std::vector<std::vector<i
         shared_nodes[i]->low_bound = bounds_mat[i][0];
         shared_nodes[i]->up_bound = bounds_mat[i][1];
     }
-    /*if (level >= isl_ast_mat.size()){
-        if (node->children.size() != 0){node = node->children[0];}
-        else{node = nullptr; return;}      
-    }
-    else{
-        // Updating the node using isl_ast_map 
-        node->low_bound = isl_ast_mat[level][0];
-        node->up_bound = isl_ast_mat[level][1];
     
-    } 
-    level++;    
-    // Updating nodes recursivly
-    for (ast_node *child : node->children)
-        {         
-            update_node(child,isl_ast_mat,level);
-        }*/
 }
 void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
 {
@@ -571,7 +556,7 @@ void syntax_tree::transform_ast_by_matrix(const optimization_info &opt)
         vec.clear();
     }
     // Applying the transformation matrix to get the transformaed program loops   
-    std::vector<std::vector<int>> transformed_bounds_matrix = multiply1( temp_matrix,starting_bounds_mat);
+    std::vector<std::vector<int>> transformed_bounds_matrix = multiply_mats( temp_matrix,starting_bounds_mat);
     int temp;
     for (int i = 0; i < transformed_bounds_matrix.size(); i++) {
         for (int j = 0; j < transformed_bounds_matrix[i].size(); j++)
@@ -2111,7 +2096,8 @@ std::string syntax_tree::get_schedule_str()
                 break;
             
             case optimization_type::MATRIX:
-                
+                // In the case of the matrix transformation, we start by saving the transformation matrices
+                // We add the final matrices after this loop
                 transformed_by_matrix = true;
                 if(first_matrix){
                     start_matrices = schedule_str.size();
@@ -2142,9 +2128,9 @@ std::string syntax_tree::get_schedule_str()
                                     matrix.at(i).at(j)= optim.matrix.at(i).at(j);
                                 }
                             }
-                            matrices.at(index) = multiply1(matrix, matrices.at(index) );
+                            matrices.at(index) = multiply_mats(matrix, matrices.at(index) );
                             }else{
-                                matrices.at(index) = multiply1(optim.matrix, matrices.at(index) );
+                                matrices.at(index) = multiply_mats(optim.matrix, matrices.at(index) );
                             }       
                     }          
                 }          
@@ -2218,8 +2204,7 @@ std::string syntax_tree::get_schedule_str()
 
 bool syntax_tree::schedule_is_prunable()
 {
-    // Please note that this function currently only works for single computation programs
-    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns on single computation programs
+    // The following filtering rules are selected after a statistical analysis of inefficient schedule patterns
     std::string schedule_str = get_schedule_str();
 
     std::vector<int> depths(this->get_computations().size());
