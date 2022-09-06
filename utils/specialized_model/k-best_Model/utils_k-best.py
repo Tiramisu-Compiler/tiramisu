@@ -33,6 +33,8 @@ benchmark_dataset_file=environ.get('benchmark_dataset_file')
 
 #hyperparameter of the k-best model
 k = 5
+depth_max = 7
+one_output = 22 # C{2,7} + 1= 22
 
 #################################### Filtering functions for Data loading ####################################
 
@@ -40,7 +42,8 @@ k = 5
 def filter_schedule_MC(schedule_str): # needs to return True if we want the passed schedule to be dropped 
     
     regex1 = "^I\(\{[C0-9,]+\},L[0-9]+,L[0-9]+\)$"
-    if re.search(regex1, schedule_str): # drops all the schedules except the loop interchanges
+    regex2 = "F\(\{[C0-9,]+\},L[0-9]+\)I\(\{[C0-9,]+\},L[0-9]+,L[0-9]+\)$"
+    if re.search(regex1, schedule_str) or re.search(regex2, schedule_str) : # drops all the schedules except the loop interchanges
         return True
     if schedule_str=="":
         return True
@@ -65,12 +68,13 @@ class LargeAccessMatices(Exception):
 
 
 #format the json file into arrays (X representation)
-def get_representation(program_json, schedule_json):
-    max_dims= 8
-    max_accesses = 15 # TODO: check if 10 is enough
+#program_dict added to retrieve the tree structure
+def get_representation(program_json, schedule_json, program_dict):
+    max_dims= depth_max
+    max_accesses = 15
     program_representation = []
     indices_dict = dict()
-    computations_dict = program_json['computations']
+    computations_dict = program_json['computations'] #dict_keys(['memory_size', 'iterators', 'computations'])
     ordered_comp_list = sorted(list(computations_dict.keys()), key = lambda x: computations_dict[x]['absolute_order'])
     
     for index, comp_name in enumerate(ordered_comp_list):
@@ -85,62 +89,28 @@ def get_representation(program_json, schedule_json):
         #         Is this computation a reduction 
         comp_representation.append(+comp_dict['comp_is_reduction'])
 
-
-#         iterators representation + tiling and interchage
+        #fusion transformation -L
+        fused_levels = []
+        if 'fusions' in schedule_json and schedule_json['fusions']:
+            for fusion in schedule_json['fusions']:#check if comp is involved in fusions 
+                 # fusions format [compname1, compname2, loop depth]
+                if comp_name in fusion:
+                    fused_levels.append(fusion[2])
+        
         iterators_repr = []
-        for iterator_name in comp_dict['iterators']:
+#         for iterator_name in comp_dict['iterators']: #-L
+        for iter_i,iterator_name in enumerate(comp_dict['iterators']):
             
             iterator_dict = program_json['iterators'][iterator_name]
             iterators_repr.append(iterator_dict['upper_bound']) 
-#             iterators_repr.append(iterator_dict['lower_bound'])
-            # unfuse schedule replacing the lower bound for compability issue, this enables the use transfer learning from an older model 
-            parent_iterator = program_json['iterators'][iterator_name]['parent_iterator']
+            iterators_repr.append(iterator_dict['lower_bound'])
             
-            # changed bcs it cause an error, to verify  ( as well as line 228) !!!!!!
-            #if parent_iterator in schedule_json['unfuse_iterators']:
-                #iterators_repr.append(1) #unfused true
-            #else:
-                #iterators_repr.append(0) #unfused false
-            
-            
-            if iterator_name in schedule_json[comp_name]['interchange_dims']:
-                iterators_repr.append(1) #interchanged true
+            # Fusion representation -L
+            if iter_i in fused_levels:
+                iterators_repr.append(1) #fused true
             else:
-                iterators_repr.append(0) #interchanged false
-            
-            # Skewing representation
-            skewed = 0
-            skew_factor = 0
-            skew_extent = 0
-            if schedule_json[comp_name]['skewing'] and (iterator_name in schedule_json[comp_name]['skewing']['skewed_dims']):
-                skewed = 1 #skewed: true
-                skew_factor_index = schedule_json[comp_name]['skewing']['skewed_dims'].index(iterator_name)
-                skew_factor = int(schedule_json[comp_name]['skewing']['skewing_factors'][skew_factor_index]) # skew factor
-                skew_extent = int(schedule_json[comp_name]['skewing']['average_skewed_extents'][skew_factor_index]) # skew extent
-            iterators_repr.append(skewed)
-            iterators_repr.append(skew_factor)
-            iterators_repr.append(skew_extent)
-            
-             # Parallelization representation
-            parallelized = 0
-            if iterator_name == schedule_json[comp_name]['parallelized_dim']:
-                parallelized = 1 # parallelized true
-            iterators_repr.append(parallelized)
-            
-            if (schedule_json[comp_name]['tiling']!={}):
-                if iterator_name in schedule_json[comp_name]['tiling']['tiling_dims']:
-                    iterators_repr.append(1) #tiled: true
-                    tile_factor_index = schedule_json[comp_name]['tiling']['tiling_dims'].index(iterator_name)
-                    iterators_repr.append(int(schedule_json[comp_name]['tiling']['tiling_factors'][tile_factor_index])) #tile factor
-                else:
-                    iterators_repr.append(0) #tiled: false
-                    iterators_repr.append(0) #tile factor 0
-            else: #tiling = None
-                iterators_repr.append(0) #tiled: false
-                iterators_repr.append(0) #tile factor 0    
-            # is this dimension saved (this dimension does not disapear aftre reduction)
-#             iterators_repr.append(+(iterator_name in comp_dict['real_dimensions']))
-                    
+                iterators_repr.append(0) #fused false
+                            
         iterator_repr_size = int(len(iterators_repr)/len(comp_dict['iterators']))
         iterators_repr.extend([0]*iterator_repr_size*(max_dims-len(comp_dict['iterators']))) # adding iterators padding 
 
@@ -182,14 +152,9 @@ def get_representation(program_json, schedule_json):
         comp_representation.append(comp_dict['number_of_multiplication'])
         comp_representation.append(comp_dict['number_of_division'])
         
-#         unrolling representation
-        if (schedule_json[comp_name]['unrolling_factor']!=None):
-            comp_representation.append(1) #unrolled True
-            comp_representation.append(int(schedule_json[comp_name]['unrolling_factor'])) #unroll factor
-        else:
-            comp_representation.append(0) #unrolled false
-            comp_representation.append(0) #unroll factor 0
-
+        #added in new reduced -L
+        comp_representation.append(len(comp_dict['iterators'])) #the depth! 
+   
         # adding log(x+1) of the representation
 #         log_rep = list(np.log1p(comp_representation))
 #         comp_representation.extend(log_rep)
@@ -197,61 +162,26 @@ def get_representation(program_json, schedule_json):
         program_representation.append(comp_representation)
         indices_dict[comp_name] = index
     
-    # transforming the schedule_json inorder to have loops as key instead of computations, this dict helps building the loop vectors
+    
+    #added for fusion -L
+#     # transforming the schedule_json in order to have loops as key instead of computations, this dict helps building the loop vectors
     loop_schedules_dict = dict()
     for loop_name in program_json['iterators']:
         loop_schedules_dict[loop_name]=dict()
-        loop_schedules_dict[loop_name]['interchanged']=False
-        loop_schedules_dict[loop_name]['interchanged_with']=None
-        loop_schedules_dict[loop_name]['skewed']=False
-        loop_schedules_dict[loop_name]['skewed_dims']=None
-        loop_schedules_dict[loop_name]['skew_factor']=None
-        loop_schedules_dict[loop_name]['skew_extent']=None
-        loop_schedules_dict[loop_name]['parallelized']=False
-        loop_schedules_dict[loop_name]['tiled']=False
-        loop_schedules_dict[loop_name]['tile_depth']=None
-        loop_schedules_dict[loop_name]['tiled_dims']=None
-        loop_schedules_dict[loop_name]['tile_factor']=None
-        loop_schedules_dict[loop_name]['unrolled']=False
-        loop_schedules_dict[loop_name]['unroll_factor']=None
-        loop_schedules_dict[loop_name]['unroll_comp']=None
-        loop_schedules_dict[loop_name]['unfused']=False     
-    for comp_name in schedule_json:
-        if not comp_name.startswith('comp'): 
-            continue # skip the non computation keys
-        if schedule_json[comp_name]['interchange_dims']!=[]:
-            interchanged_loop1=schedule_json[comp_name]['interchange_dims'][0]
-            interchanged_loop2=schedule_json[comp_name]['interchange_dims'][1]
-            loop_schedules_dict[interchanged_loop1]['interchanged']=True
-            loop_schedules_dict[interchanged_loop1]['interchanged_with']=interchanged_loop2
-            loop_schedules_dict[interchanged_loop2]['interchanged']=True
-            loop_schedules_dict[interchanged_loop2]['interchanged_with']=interchanged_loop1
-        if schedule_json[comp_name]['skewing']:
-            for skewed_loop_index,skewed_loop in enumerate(schedule_json[comp_name]['skewing']['skewed_dims']):
-                loop_schedules_dict[skewed_loop]['skewed']=True
-                loop_schedules_dict[skewed_loop]['skew_factor'] = int(schedule_json[comp_name]['skewing']['skewing_factors'][skewed_loop_index])
-                loop_schedules_dict[skewed_loop]['skew_extent'] = int(schedule_json[comp_name]['skewing']['average_skewed_extents'][skewed_loop_index])
-        if schedule_json[comp_name]['parallelized_dim']:
-             loop_schedules_dict[schedule_json[comp_name]['parallelized_dim']]['parallelized']=True
-        if schedule_json[comp_name]['tiling']!={}:
-            for tiled_loop_index,tiled_loop in enumerate(schedule_json[comp_name]['tiling']['tiling_dims']):
-                loop_schedules_dict[tiled_loop]['tiled']=True
-                loop_schedules_dict[tiled_loop]['tile_depth']=schedule_json[comp_name]['tiling']['tiling_depth']
-                loop_schedules_dict[tiled_loop]['tiled_dims']=schedule_json[comp_name]['tiling']['tiling_dims']
-                loop_schedules_dict[tiled_loop]['tile_factor']=int(schedule_json[comp_name]['tiling']['tiling_factors'][tiled_loop_index])
-        if schedule_json[comp_name]['unrolling_factor']!=None:
-            comp_innermost_loop=computations_dict[comp_name]['iterators'][-1] 
-            tiling_dims = [] if schedule_json[comp_name]['tiling']=={} else schedule_json[comp_name]['tiling']['tiling_dims']
-            interchange_dims =schedule_json[comp_name]['interchange_dims']
-            if (not ((comp_innermost_loop in tiling_dims)or(comp_innermost_loop in interchange_dims))):#unrolling always applied to innermost loop, if tilling or interchange is applied to innermost, unroll is applied to the resulting loop instead of the orginal, hence we don't represent it
-                loop_schedules_dict[comp_innermost_loop]['unrolled']=True
-                loop_schedules_dict[comp_innermost_loop]['unroll_factor']=int(schedule_json[comp_name]['unrolling_factor'])
-                loop_schedules_dict[comp_innermost_loop]['unroll_comp']=comp_name
-    
-    #for unfuse_parent in schedule_json['unfuse_iterators'] :
-        #for unfused_loop in program_json['iterators'][unfuse_parent]['child_iterators']:
-            #loop_schedules_dict[unfused_loop]['unfused']=True
-    
+        loop_schedules_dict[loop_name]['fused']=0
+        
+    for comp_index, comp_name in enumerate(ordered_comp_list):
+        comp_schedule_dict = schedule_json[comp_name]
+
+    #update the fusions in loops dict 
+    if 'fusions' in schedule_json and schedule_json['fusions']:
+        for fusion in schedule_json['fusions']:
+            fused_loop1 = computations_dict[fusion[0]]['iterators'][fusion[2]]
+            fused_loop2 = computations_dict[fusion[1]]['iterators'][fusion[2]]
+            loop_schedules_dict[fused_loop1]['fused']=1
+            loop_schedules_dict[fused_loop2]['fused']=1
+    #end of added for fusion
+
     # collect the set of iterators that are used for computation (to eleminate those that are only used for inputs)
     real_loops = set()
     for comp_name in computations_dict:
@@ -269,42 +199,15 @@ def get_representation(program_json, schedule_json):
         # upper and lower bound
         loop_representation.append(loop_dict['upper_bound'])
         loop_representation.append(loop_dict['lower_bound'])
-        if loop_schedules_dict[loop_name]['unfused']:
-            loop_representation.append(1) #unfused True
-        else:
-            loop_representation.append(0) #unfused False
-        if loop_schedules_dict[loop_name]['interchanged']:
-            loop_representation.append(1) #interchanged True
-        else:
-            loop_representation.append(0) #interchanged False     
-        if loop_schedules_dict[loop_name]['skewed']:
-            loop_representation.append(1) #skewed True
-            loop_representation.append(loop_schedules_dict[loop_name]['skew_factor']) #skew factor
-            loop_representation.append(loop_schedules_dict[loop_name]['skew_extent']) #skew extent
-        else:
-            loop_representation.append(0) # skewed false
-            loop_representation.append(0) # factor
-            loop_representation.append(0) # extent
-        if loop_schedules_dict[loop_name]['parallelized']:
-            loop_representation.append(1) #parallelized True
-        else:
-            loop_representation.append(0) # parallelized false
-        if loop_schedules_dict[loop_name]['tiled']:
-            loop_representation.append(1) #tiled True
-            loop_representation.append(loop_schedules_dict[loop_name]['tile_factor']) #tile factor
-        else:
-            loop_representation.append(0) #tiled False
-            loop_representation.append(0) #tile factor 0
-        # TODO: check if unroll representation should be moved to comp vector instead of loop vector
-        if loop_schedules_dict[loop_name]['unrolled']:
-            loop_representation.append(1) #unrolled True
-            loop_representation.append(loop_schedules_dict[loop_name]['unroll_factor']) #unroll factor
-        else:
-            loop_representation.append(0) #unrolled False
-            loop_representation.append(0) #unroll factor 0
-        # adding log(x+1) of the loop representation
-        loop_log_rep = list(np.log1p(loop_representation))
-        loop_representation.extend(loop_log_rep)
+        
+        #added for fusion
+        loop_representation.append(loop_schedules_dict[loop_name]['fused'])
+        
+#      REMOVED IN NEW REDUCED REPRESENTATION        ----------------------------------------------
+#         # adding log(x+1) of the loop representation
+#         loop_log_rep = list(np.log1p(loop_representation)) #WHAT ?!! -L No need for log now! All numbers
+#         loop_representation.extend(loop_log_rep)
+#      REMOVED IN NEW REDUCED REPRESENTATION        ----------------------------------------------
         loops_representation_list.append(loop_representation)    
         loops_indices_dict[loop_name]=loop_index
         loop_index+=1
@@ -320,8 +223,18 @@ def get_representation(program_json, schedule_json):
             update_tree_atributes(child_node)
         return node
     
-    tree_annotation = copy.deepcopy(schedule_json['tree_structure']) #to avoid altering the original tree from the json
+    # getting the original tree structure 
+    no_sched_json = program_dict['schedules_list'][0]
+    assert 'fusions' not in no_sched_json or no_sched_json['fusions']==None
+    orig_tree_structure = no_sched_json['tree_structure']
+    tree_annotation = copy.deepcopy(orig_tree_structure) #to avoid altering the original tree from the json
     prog_tree = update_tree_atributes(tree_annotation) 
+    
+    
+    #using resulting tree structure of the fused program
+#     tree_annotation = copy.deepcopy(schedule_json['tree_structure']) #to avoid altering the original tree from the json
+#     prog_tree = update_tree_atributes(tree_annotation) 
+        
     
     loops_tensor = torch.unsqueeze(torch.FloatTensor(loops_representation_list),0)#.to(device)
     computations_tensor = torch.unsqueeze(torch.FloatTensor(program_representation),0)#.to(device)     
@@ -386,7 +299,7 @@ class Dataset():
                 program_json = self.programs_dict_MC[function_name]['program_annotation']
                 program_exec_time = self.programs_dict_MC[function_name]['initial_execution_time']
                 loops = shared_loop_nest(program_json)
-
+                
                 schedules_dict = {}  
                 explored_schedules = {}
 
@@ -409,12 +322,12 @@ class Dataset():
 
                     #look for the parent schedule
                     scheduleP_str = re.sub("I\(\{[C0-9,]+\},L[0-9]+,L[0-9]+\)", '', sched_str)
-#                     print(scheduleP_str, sched_str)
+#                         print(self.programs_dict_MC[function_name]['schedules_list'])
                     if scheduleP_str in explored_schedules.keys():  #parent schedule exist, check if the current schedule is better
                         schedulePID = explored_schedules[scheduleP_str]
             
                         # logging all LIs in this vector, to extract the best k LI later
-                        ind_LI = index_interchage(sched_str, len(program_json['iterators']))
+                        ind_LI = index_interchage(sched_str)
                         if sched_exec_time < schedules_dict[schedulePID]['all'][ind_LI]:
                             schedules_dict[schedulePID]['all'][ind_LI] = sched_exec_time
                     
@@ -428,6 +341,10 @@ class Dataset():
                         
 
                     else: # parent schedule is new 
+                        #tracking fusions
+                        if scheduleP_str != "":
+                            print(scheduleP_str, function_name)
+                        
                         scheduleP, schedulePID = get_sched_by_string(scheduleP_str, self.programs_dict_MC[function_name]['schedules_list'])
 #                         print(scheduleP, schedulePID )
                         explored_schedules[scheduleP_str]=schedulePID  # discoverd a new schedule
@@ -441,10 +358,10 @@ class Dataset():
                             sched_dict = {'best':sched_exec_time, 'sched':schedule_index}
                             schedules_dict[schedulePID] = sched_dict
                         
-                        #create a vector, with 106 output, to save execution times of all possible LIs, to be able to extract the k-best option later.
-                        output = np.zeros(106,dtype=np.float64) + np.inf # because, a priori, all of them are very bad and does not execute well
+                        #create a vector, with 'one_output' size, to save execution times of all possible LIs, to be able to extract the k-best option later.
+                        output = np.zeros(one_output,dtype=np.float64) + np.inf # because, a priori, all of them are very bad and does not execute well
                         output[0] = schedP_exec_time
-                        ind_LI = index_interchage(sched_str, len(program_json['iterators']))
+                        ind_LI = index_interchage(sched_str)
                         output[ind_LI] = sched_exec_time
                         schedules_dict[schedulePID]['all'] = output
 
@@ -452,7 +369,7 @@ class Dataset():
                 for elem in schedules_dict.items():
                     sched_json = self.programs_dict_MC[function_name]['schedules_list'][elem[0]]
                     try:
-                        tree, comps_tensor, loops_tensor = get_representation(program_json, sched_json) ######
+                        tree, comps_tensor, loops_tensor = get_representation(program_json, sched_json, self.programs_dict_MC[function_name]) ######
                     except LargeAccessMatices:
                         self.nb_long_access +=1
                         continue   
@@ -476,12 +393,12 @@ class Dataset():
                     output= elem[1]['all']
                     output = output[0] / output 
                     order = np.flip(np.argsort(output, -1)) #highest to smallest
-                    y = np.zeros(106 * k,dtype=np.float64)
+                    y = np.zeros(one_output * k,dtype=np.float64)
                     for i in range(k):
                         if output[order[i]] == 0:
-                            y[106*i] = 1 # No LI
+                            y[one_output*i] = 1 # No LI
                             continue
-                        y[106*i+order[i]] = 1 #define the output, using the best order we have in order % speedups. Because,it returns the indexes of the best options, and thus, the ones that should be put in 1.
+                        y[one_output*i+order[i]] = 1 #define the output, using the best order we have in order % speedups. Because,it returns the indexes of the best options, and thus, the ones that should be put in 1.
                     self.batches_dict[tree_footprint]['output'].append(torch.tensor(y)) 
 
         #loading single computation programs
@@ -511,14 +428,14 @@ class Dataset():
 
 
                 try:
-                    tree, comps_tensor, loops_tensor = get_representation(program_json, Parent_sched_json) ######
+                    tree, comps_tensor, loops_tensor = get_representation(program_json, Parent_sched_json, self.programs_dict_SC[function_name]) ######
                 except LargeAccessMatices:
                     self.nb_long_access +=1
                     continue        
 
                 #######
                 min_sch_time = np.inf   
-                output = np.zeros(106,dtype=np.float64) + np.inf # because, a priori, all of them are very bad and does not execute well
+                output = np.zeros(one_output,dtype=np.float64) + np.inf # because, a priori, all of them are very bad and does not execute well
                 
                 for schedule_index in range(len(self.programs_dict_SC[function_name]['schedules_list'])):
                     sched_str = sched_json_to_sched_str( self.programs_dict_SC[function_name]['schedules_list'][schedule_index] )
@@ -533,8 +450,8 @@ class Dataset():
                         continue
 
                     #if another schedule used the same interchange before
-                    if output[index_interchage(sched_str,15)] > sched_exec_time:
-                        output[index_interchage(sched_str,15)] = sched_exec_time #position all the execution times
+                    if output[index_interchage(sched_str)] > sched_exec_time:
+                        output[index_interchage(sched_str)] = sched_exec_time #position all the execution times
                 
                     if sched_exec_time >= min_sch_time:
                             continue   # we only keep the best loop interchange for a given program
@@ -547,6 +464,7 @@ class Dataset():
                 self.batches_dict[tree_footprint] = self.batches_dict.get(tree_footprint,{'tree':tree,'comps_tensor_list':[],'loops_tensor_list':[],'program_names_list':[],'sched_names_list':[],'speedups_list':[],'exec_time_list':[], 'output':[]}) 
                 self.batches_dict[tree_footprint]['comps_tensor_list'].append(comps_tensor)
                 self.batches_dict[tree_footprint]['loops_tensor_list'].append(loops_tensor)
+#                 print(comps_tensor.shape, loops_tensor.shape)
                 #self.batches_dict[tree_footprint]['sched_names_list'].append(schedule_name)  ommit it bcs the schedule is always the 0th schedule ==> not significant
                 self.batches_dict[tree_footprint]['program_names_list'].append(function_name)
                 self.batches_dict[tree_footprint]['speedups_list'].append(self.programs_dict_SC[function_name]['schedules_list'][0]['speedup'])  ######
@@ -555,12 +473,12 @@ class Dataset():
                 #Y
                 output = output[0] / output 
                 order = np.flip(np.argsort(output, -1)) #highest to smallest
-                y = np.zeros(106 * k,dtype=np.float64)
+                y = np.zeros(one_output * k,dtype=np.float64)
                 for i in range(k):
                     if output[order[i]] == 0:
-                        y[106*i] = 1 # No LI
+                        y[one_output*i] = 1 # No LI
                         continue
-                    y[106*i+order[i]] = 1 #define the output, using the best order we have in order % speedups. Because,it returns the indexes of the best options, and thus, the ones that should be put in 1.
+                    y[one_output*i+order[i]] = 1 #define the output, using the best order we have in order % speedups. Because,it returns the indexes of the best options, and thus, the ones that should be put in 1.
                 self.batches_dict[tree_footprint]['output'].append(torch.tensor(y))
 
 # Batching the data. 
@@ -580,8 +498,8 @@ class Dataset():
                 self.X.append( ( T, R , S ) )
                     
                 temp_tens = torch.cat(self.batches_dict[tree_footprint]['output'][chunk:chunk+max_batch_size])
-                dim_temp_tens = int(temp_tens.shape[0] / (106 * 5))
-                self.Y.append(torch.reshape(temp_tens, (dim_temp_tens,106 *5)).to(storing_device))
+                dim_temp_tens = int(temp_tens.shape[0] / (one_output * k))
+                self.Y.append(torch.reshape(temp_tens, (dim_temp_tens,one_output *k)).to(storing_device))
                 
                 #sanity check
                 if len(self.X) != len(self.Y):
@@ -672,7 +590,7 @@ def train_model(model, criterion, optimizer, max_lr, dataloader, num_epochs=100,
                     loss = 0
                     #apply cross entropy on each prediction in the sub-vectors.
                     for i in range(k):
-                        loss += 100*criterion(outputs[...,106*i:106*(i+1)], torch.argmax(labels[...,106*i:106*(i+1)],-1))                     
+                        loss += 100*criterion(outputs[...,one_output*i:one_output*(i+1)], torch.argmax(labels[...,one_output*i:one_output*(i+1)],-1))                     
                     # backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
@@ -735,7 +653,8 @@ class Model_Recursive_LSTM_v2(nn.Module):
         super().__init__()
         embedding_size = comp_embed_layer_sizes[-1]
         regression_layer_sizes = [embedding_size] + comp_embed_layer_sizes[-2:]
-        concat_layer_sizes = [embedding_size*2+24] + comp_embed_layer_sizes[-2:]
+#         concat_layer_sizes = [embedding_size*2+24] + comp_embed_layer_sizes[-2:] # before reduced -L
+        concat_layer_sizes = [embedding_size*2+3] + comp_embed_layer_sizes[-2:]
         comp_embed_layer_sizes = [input_size] + comp_embed_layer_sizes
         self.comp_embedding_layers = nn.ModuleList()
         self.comp_embedding_dropouts= nn.ModuleList()
@@ -821,27 +740,28 @@ def get_results_df(dataset, batches_list, indices, model, log=False):
     exec_times=[]
     soft = nn.Softmax(-1)
 
-    for k, (inputs, labels) in tqdm(list(enumerate(batches_list))):
+    for kk, (inputs, labels) in tqdm(list(enumerate(batches_list))):
         original_device = labels.device
         inputs=(inputs[0], inputs[1].to(train_device), inputs[2].to(train_device))
         labels=labels.to(train_device)
         outputs = model(inputs)
         assert outputs.shape == labels.shape
         
-        outputs_soft = soft(outputs[...,0:106]) # special case
-        for i in range(1,5):
-            outputs_soft = torch.cat((outputs_soft,soft(outputs[...,106*i:106*(i+1)])),-1)
-
+        outputs_soft = soft(outputs[...,0:one_output]) # special case
+        for i in range(1,k):
+            outputs_soft = torch.cat((outputs_soft,soft(outputs[...,one_output*i:one_output*(i+1)])),-1)
+        print(outputs_soft.shape, labels.shape)
         assert outputs_soft.shape == labels.shape
+
         #verified: outputs_softmax has the same shape
         
         all_outputs.append(outputs_soft) ##fixed
         all_labels.append(labels)
 
-        for j, prog_name in enumerate(dataset.batched_program_names[indices[k]]):   #####
+        for j, prog_name in enumerate(dataset.batched_program_names[indices[kk]]):   #####
             #sched_names.append(sched_name)
-            prog_names.append(dataset.batched_program_names[indices[k]][j])
-            exec_times.append(dataset.batched_exec_time[indices[k]][j])
+            prog_names.append(dataset.batched_program_names[indices[kk]][j])
+            exec_times.append(dataset.batched_exec_time[indices[kk]][j])
         inputs=(inputs[0], inputs[1].to(original_device), inputs[2].to(original_device))
         labels=labels.to(original_device)
         
@@ -890,8 +810,8 @@ def pos(a,depth):  # calculate the position of the interchange in the output vec
         return pos(a-1,depth)+depth-a
 
 #encode the output vector to get '1' in the right LI, '0' elsewhere
-def encode_interchage(str_sched,program_depth):
-    output = np.zeros(106,dtype=int) # 106 = 2 C 15 + 1
+def encode_interchage(str_sched):
+    output = np.zeros(one_output,dtype=int) 
     str_interchange = re.findall('I\(.*\)', str_sched)  # get the LI string
     if str_interchange==[]:
         output[0] = 1
@@ -900,13 +820,13 @@ def encode_interchage(str_sched,program_depth):
         a = min(int(m[-2]),int(m[-1]))
         b = max(int(m[-2]),int(m[-1]))
         i2 = b-a
-        i1 = pos(a,15)
+        i1 = pos(a,depth_max)
         output[i1+i2]=1      
     return output
 
 #same as precedent, but return the index
-def index_interchage(str_sched,program_depth): #encode the output vector to get '1' in the right LI, '0' elsewhere
-    output = np.zeros(106,dtype=int) # 106 = 2 C 15 + 1
+def index_interchage(str_sched): #encode the output vector to get '1' in the right LI, '0' elsewhere
+    output = np.zeros(one_output,dtype=int)
     str_interchange = re.findall('I\(.*\)', str_sched)  # get the LI string
     if str_interchange==[]:
         return(0)
@@ -915,7 +835,7 @@ def index_interchage(str_sched,program_depth): #encode the output vector to get 
         a = min(int(m[-2]),int(m[-1]))
         b = max(int(m[-2]),int(m[-1]))
         i2 = b-a
-        i1 = pos(a,15)
+        i1 = pos(a,depth_max)
         return(i1+i2)      
 
     
@@ -947,9 +867,9 @@ def get_results_times_function(vector,schedules):
 def format_output(arr):  
     pred = np.zeros(arr.shape)
     for b in range(k):
-        indices = np.argmax(arr[...,106*b:106*(b+1)], -1)
+        indices = np.argmax(arr[...,one_output*b:one_output*(b+1)], -1)
         for i in range(indices.shape[0]):
-            pred[i,106*b + indices[i]] = 1
+            pred[i,one_output*b + indices[i]] = 1
     return pred
 
 #################################### Helper functions for Single computation functions ####################################
