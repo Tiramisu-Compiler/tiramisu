@@ -1,0 +1,44 @@
+experiment:
+    name: "bidirectional_static_input_nn"
+    base_path: "/home/user/cost_model/recursive_lstm_cost_model"
+
+
+data_generation:
+    train_dataset_file: "/home/user/datasets/dataset_batch550000-838143_train.pkl"  # training / validation set
+    valid_dataset_file: "/home/user/datasets/dataset_batch550000-838143_val.pkl"
+    benchmark_dataset_file: "/home/user/datasets/benchmarks_mats1.pkl"
+    dataset_name:  "dataset_factorization"
+    batch_size: 1024
+
+
+training: 
+    log_file: "logs.txt" # Just the name
+    lr: 0.001
+    max_epochs: 500
+
+testing:
+    datasets: # choose from valid, bench.
+        # - valid
+        - bench
+    checkpoint: "best_model.pt"
+
+wandb:
+    use_wandb: True
+    project: "recursive_lstm"
+    
+model: 
+    input_size: 776
+    comp_embed_layer_sizes:
+        - 600
+        - 350
+        - 200
+        - 180
+    drops:
+        - 0.050
+        - 0.050
+        - 0.050
+        - 0.050
+        - 0.050
+
+defaults:
+  - override hydra/job_logging: disabled
