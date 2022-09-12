@@ -158,12 +158,11 @@ def train_model(
             time_elapsed // 60, time_elapsed % 60, best_loss
         )
     )
-    with open(log_file, "a+") as f:
-        f.write(
-            "-----> Training complete in {:.0f}m {:.0f}s   "
-            "best validation loss: {:.4f}\n ".format(
-                time_elapsed // 60, time_elapsed % 60, best_loss
-            )
+    logger.info(
+        "-----> Training complete in {:.0f}m {:.0f}s   "
+        "best validation loss: {:.4f}\n ".format(
+            time_elapsed // 60, time_elapsed % 60, best_loss
         )
+    )
 
     return losses, best_model
