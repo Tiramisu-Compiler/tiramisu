@@ -6,7 +6,7 @@
 
 ```
     cd benchmarks/
-    ./compile_and_run_benchmarks.sh tensors/dibaryon/tiramisu_make_local_single_double_block/ tiramisu_make_local_single_double_block 
+    ./compile_and_run_benchmarks.sh tensors/dibaryon/tiramisu_make_fused_dibaryon_blocks_correlator/ tiramisu_make_fused_dibaryon_blocks_correlator 
 ```
 
 The previous script will go to the folder "tensors/dibaryon/tiramisu_make_local_single_double_block/" and build the Tiramisu code "tiramisu_make_local_single_double_block" and run it to generate the object file.
