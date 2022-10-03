@@ -1342,6 +1342,36 @@ public:
       std::vector<std::pair<int,int>>> skewing_local_solver(std::vector<tiramisu::computation *> fused_computations,
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
 
+    /**
+     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism).
+     * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The output of this method is a tuple of vectors, each vector represent a usecase,
+     * the elements of the vector are the 4 skewing parameters (alpha,beta,gamma,sigma) that should be given 
+     * as an input for Computation.skew() method (skewing method that takes 4 parameters).
+     * 
+     * 
+     * First vector contains either 1 set of parameters that allows parallism on outer_variable, or an empty vector.
+     * Second vector contains a vector of parameters that enables parallism on inner_variable.
+     * Third vector contains a vector of parameters that should in theory improve locality (without any parallism).
+     * Fourth vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
+     * 
+     * nb_parallel is the number of solutions (pairs) inside the second vector (parallism on inner_variable),
+     * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
+     * for nb_parallel=1 it only returns the smallest skewing (best) possible for this use case.
+     * 
+     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
+     * the output should be 3 empty vectors.
+    */
+    std::tuple<
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>> skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+
 
 };
 

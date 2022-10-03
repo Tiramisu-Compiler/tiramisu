@@ -4451,6 +4451,258 @@ std::tuple<
 
 }
 
+/**
+ * Given skewing parameters alpha & beta, this method computes the corresponding parameters for gamma and sigma
+ * to enforce the condition Det(A)=1 while also making the dependencies positive and enabling tiling.
+ * Legal_domain is the isl_set for the correct values of alpha and beta.
+ * This set is proven to be exactly the same for gamma and sigma 
+ * values is a tuple providing <alpha, beta, gamma, sigma> were will use alpha & beta given to fill gamma & sigma.
+*/
+void compute_gamma_sigma_values(isl_basic_set * legal_domain, std::tuple<int,int,int,int>& values)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
 
+    isl_set * domain = isl_set_from_basic_set(isl_basic_set_copy(legal_domain));
+    // add constraint alpha*gamma - beta*sigma = 1
+
+    isl_space * space = isl_set_get_space(domain);
+
+    isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 0, -std::get<1>(values));
+    constraint = isl_constraint_set_coefficient_si(constraint, isl_dim_set, 1, std::get<0>(values));
+    constraint = isl_constraint_set_constant_si(constraint, -1);
+    domain = isl_set_add_constraint(domain, constraint);
+
+    DEBUG(3, tiramisu::str_dump(" For alpha & beta  :" + std::to_string(std::get<0>(values)) + " & " +
+         std::to_string(std::get<1>(values))));
+
+    DEBUG(3, tiramisu::str_dump(" set of gamma & sigma  :"+std::string(isl_set_to_str(domain))));
+
+    // extract the min parameters for gamma and sigma
+    isl_set * result = isl_set_lexmin(domain);
+    DEBUG(3, tiramisu::str_dump(" choosen gamma & sigma "+std::string(isl_set_to_str(result))));
+    isl_basic_set * result_basic = isl_set_polyhedral_hull(result);
+
+    DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result_basic))));
+    
+    isl_val * gamma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 0);
+    isl_val * sigma_val = isl_basic_set_dim_max_val(isl_basic_set_copy(result_basic), 1);
+
+    int gamma = isl_val_get_d(gamma_val);
+    int sigma = isl_val_get_d(sigma_val);
+
+    std::get<2>(values) = gamma;
+    std::get<3>(values) = sigma;
+
+    isl_basic_set_free(result_basic);
+    isl_val_free(gamma_val);
+    isl_val_free(sigma_val);
+
+    DEBUG_INDENT(-4);
+}
+
+std::tuple<
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int>>> tiramisu::function::skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
+                                                          tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel)
+{
+    DEBUG_FCT_NAME(3);
+    DEBUG_INDENT(4);
+
+    assert(outer_variable.get_name().length() > 0);
+    assert(inner_variable.get_name().length() > 0);
+    assert(!this->get_name().empty());
+    assert(this->dep_read_after_write != NULL );
+    assert(this->dep_write_after_write != NULL );
+    assert(this->dep_write_after_read != NULL );
+    assert(fused_computations.size()>0);
+
+    isl_basic_set * upper_strongly = NULL;
+    isl_basic_set * upper_weakly = NULL;
+
+    // set used to computed gamma & sigma
+    isl_basic_set * positive_secondary_set = NULL;
+
+    isl_basic_set * parallism = NULL;
+
+    int process = -1;
+
+    std::vector<std::tuple<int,int,int,int>> locality;
+    std::vector<std::tuple<int,int,int,int>> outermost;
+    std::vector<std::tuple<int,int,int,int>> innermost;
+    std::vector<std::tuple<int,int,int,int>> identity;
+
+    identity.push_back(std::make_tuple(1, 0, 0, 0));
+
+    auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
+
+    if(process == 1)
+    {
+        assert(result_vector.size() == 5);
+        upper_weakly = result_vector[0];
+
+        // set is exactly similar to constraints for alpha and beta
+        positive_secondary_set = isl_basic_set_copy(upper_weakly);
+        upper_strongly = result_vector[1];
+        parallism = result_vector[4];
+        DEBUG(3, tiramisu::str_dump(" EXTRACTING Values of alpha & beta : "));
+
+        DEBUG(3, tiramisu::str_dump(" Upper weakly : "+std::string(isl_basic_set_to_str(upper_weakly))));
+        DEBUG(3, tiramisu::str_dump(" Upper strongly : "+std::string(isl_basic_set_to_str(upper_strongly))));
+        DEBUG(3, tiramisu::str_dump(" outermost parallism : "+std::string(isl_basic_set_to_str(parallism))));
+
+        bool once_used = false;
+
+        /**
+         * Solving locality
+        */
+
+       isl_set * upper_intersect = isl_set_subtract(
+           isl_set_from_basic_set(upper_weakly),
+           isl_set_from_basic_set(isl_basic_set_copy(upper_strongly))
+       );
+
+       DEBUG(3, tiramisu::str_dump(" substracted locality upper "+std::string(isl_set_to_str(upper_intersect))));
+
+       if(!isl_set_is_empty(upper_intersect))
+       {
+           upper_intersect = isl_set_lexmin(upper_intersect);
+           DEBUG(3, tiramisu::str_dump(" choosen locality upper "+std::string(isl_set_to_str(upper_intersect))));
+           isl_basic_set * result = isl_set_polyhedral_hull(upper_intersect);
+
+           DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+           isl_val * value1 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),0);
+           isl_val * value2 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),1);
+
+           int locality_var1 = isl_val_get_d(value1);
+           int locality_var2 = isl_val_get_d(value2);
+
+           DEBUG(3, tiramisu::str_dump(" skewing upper locality is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+           locality.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+           isl_basic_set_free(result);
+           isl_val_free(value1);
+           isl_val_free(value2);
+
+           once_used = !once_used;
+       }
+       else
+       {
+           isl_set_free(upper_intersect);
+       }
+
+        /**
+         * Solving outermost parallelism 
+        */
+        
+        if((!isl_basic_set_is_empty(parallism)) && once_used)
+        {
+           isl_set * isl_outer_sol = isl_basic_set_lexmin(parallism);
+           DEBUG(3, tiramisu::str_dump(" choosen outer parallism "+std::string(isl_set_to_str(isl_outer_sol))));
+           isl_basic_set * result = isl_set_polyhedral_hull(isl_outer_sol);
+
+           DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+           isl_val * value1 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),0);
+           isl_val * value2 = isl_basic_set_dim_max_val( isl_basic_set_copy(result),1);
+
+           int locality_var1 = isl_val_get_d(value1);
+           int locality_var2 = isl_val_get_d(value2);
+
+           DEBUG(3, tiramisu::str_dump(" skewing outer_parallelism is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+           outermost.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+           isl_basic_set_free(result);
+           isl_val_free(value1);
+           isl_val_free(value2);
+        }
+
+        /**
+         * Solving the parallelism 
+         * */
+        isl_set * upper_set = isl_set_from_basic_set(upper_strongly);
+
+        std::string upper_new_set_str = "{[a,b]:a>0 and b>0}";
+
+        //extracting from upper domain
+        int i = 0;
+        
+        while((i < nb_parallel) && (!isl_set_is_empty(upper_set)))
+        {
+            DEBUG(3, tiramisu::str_dump("# upper inner parallism solution set :"+std::string(isl_set_to_str(upper_set))));
+
+            isl_set * solution = isl_set_lexmin(isl_set_copy(upper_set));
+            DEBUG(3, tiramisu::str_dump(" choosen inner parallism "+std::string(isl_set_to_str(solution))));
+
+            isl_basic_set * result = isl_set_polyhedral_hull(solution);
+
+            DEBUG(3, tiramisu::str_dump(" polyhedral hull is :"+std::string(isl_basic_set_to_str(result))));
+           
+            isl_val * value1 = isl_basic_set_dim_max_val(isl_basic_set_copy(result),0);
+            isl_val * value2 = isl_basic_set_dim_max_val(result,1);
+
+            int locality_var1 = isl_val_get_d(value1);
+            int locality_var2 = isl_val_get_d(value2);
+
+            DEBUG(3, tiramisu::str_dump(" skewing upper inner_parallelism is (alpha,beta) = ("+std::to_string(locality_var1)+","+std::to_string(locality_var2)+")"));
+
+            innermost.push_back(std::make_tuple(locality_var1, locality_var2, 0, 0));
+
+            // adding new constraint a!=b as to avoid same solution twice
+            isl_space * space = isl_set_get_space(upper_set);
+
+            isl_set * new_set = isl_set_read_from_str(this->get_isl_ctx(),upper_new_set_str.c_str());
+
+            DEBUG(3, tiramisu::str_dump(" new set  :"+std::string(isl_set_to_str(new_set))));
+
+            isl_constraint * constraint = isl_constraint_alloc_equality(isl_local_space_from_space(space));
+
+            constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,0, locality_var2);
+            constraint = isl_constraint_set_coefficient_si(constraint,isl_dim_set,1, -locality_var1);
+            new_set = isl_set_add_constraint(new_set,constraint);
+
+            DEBUG(3, tiramisu::str_dump(" new set with constraint :"+std::string(isl_set_to_str(new_set))));
+
+            upper_set = isl_set_subtract(upper_set,new_set);
+
+            upper_set = isl_set_coalesce(upper_set);
+
+            isl_val_free(value1);
+            isl_val_free(value2);
+
+            i++;
+        }
+
+        isl_set_free(upper_set);
+        
+    }
+    // compute gamma & sigma for all produced alpha & beta
+    for (auto& params :outermost){
+        compute_gamma_sigma_values(positive_secondary_set, params);
+    }
+    for (auto& params :innermost){
+        compute_gamma_sigma_values(positive_secondary_set, params);
+    }
+    for (auto& params :locality){
+        compute_gamma_sigma_values(positive_secondary_set, params);
+    }
+    for (auto& params :identity){
+        compute_gamma_sigma_values(positive_secondary_set, params);
+    }
+
+    isl_basic_set_free(positive_secondary_set);
+     
+    DEBUG_INDENT(-4);
+
+    return std::make_tuple(outermost,innermost,locality,identity);
+
+}
 
 }
