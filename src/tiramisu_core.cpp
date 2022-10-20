@@ -4555,7 +4555,7 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
 void computation::skew(int L0 , int L1, int alpha , int beta, int gamma , int sigma)
 {
 
-    assert(abs(alpha * gamma - beta * sigma) == 1);
+    assert(abs(alpha * sigma - beta * gamma) == 1);
 
     int dim0 = loop_level_into_dynamic_dimension(L0);
     int dim1 = loop_level_into_dynamic_dimension(L1);

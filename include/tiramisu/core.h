@@ -1343,7 +1343,7 @@ public:
                                                             tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
 
     /**
-     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, locality and innermost parallelism).
+     * Computes the best legal skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
      * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
      * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
      * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
@@ -1355,8 +1355,7 @@ public:
      * 
      * First vector contains either 1 set of parameters that allows parallism on outer_variable, or an empty vector.
      * Second vector contains a vector of parameters that enables parallism on inner_variable.
-     * Third vector contains a vector of parameters that should in theory improve locality (without any parallism).
-     * Fourth vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
+     * Third vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
      * 
      * nb_parallel is the number of solutions (pairs) inside the second vector (parallism on inner_variable),
      * the second vector size's should be equal to twice the value of nb_parallel in the regular case.
@@ -1366,7 +1365,6 @@ public:
      * the output should be 3 empty vectors.
     */
     std::tuple<
-      std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>> skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,

@@ -61,3 +61,4 @@ test number `XX` in the file `tests/test_list.txt`.
 - vectorization check : 188
 - .correcting_loop_fusion_with_shifting() + partial legality 189 190 191
 - custom allocation test : 197
+- positive skewing : 198 199
