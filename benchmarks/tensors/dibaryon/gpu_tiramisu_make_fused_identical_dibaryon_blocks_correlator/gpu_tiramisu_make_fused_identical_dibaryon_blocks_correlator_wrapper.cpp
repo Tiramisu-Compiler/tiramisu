@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <complex>
-#include "benchmarks.h"
+//#include "benchmarks.h"
 #include <iomanip>
 #include <string>
 
@@ -15,10 +15,10 @@ extern "C" {
 #include "gpu_tiramisu_make_fused_identical_dibaryon_blocks_correlator_wrapper.h"
 #include "gpu_tiramisu_make_fused_dibaryon_blocks_correlator_ref.cpp"
 
-#define RUN_REFERENCE 1
-#define RUN_CHECK 1
+#define RUN_REFERENCE 0
+#define RUN_CHECK 0
 int nb_tests = 1;
-int randommode = 1;
+int randommode = 0;
 
 int NsrcTot = Nsrc+NsrcHex;
 int NsnkTot = Nsnk+NsnkHex;
@@ -109,8 +109,9 @@ void gpu_tiramisu_make_identical_two_nucleon_2pt(double* C_re,
    Halide::Buffer<double> b_C_r(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, B2Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_r");
    Halide::Buffer<double> b_C_i(Nsnk+NsnkHex, B2Nrows, Nsrc+NsrcHex, B2Nrows, sites_per_rank, Vsnk/sites_per_rank, Lt, "C_i");
 // Vsnk / tiling_factor, Vsnk / tiling_factor, B2Nrows, Nsrc, B2Nrows, Nsnk
-   Halide::Buffer<double> b_C_BB_r(Nsnk, B2Nrows, Nsrc, B2Nrows, Vsnk / tiling_factor, Vsnk / tiling_factor, "b_C_BB_r");
-   Halide::Buffer<double> b_C_BB_i(Nsnk, B2Nrows, Nsrc, B2Nrows, Vsnk / tiling_factor, Vsnk / tiling_factor, "b_C_BB_i");
+// TODO
+   Halide::Buffer<double> b_C_BB_r(Nsnk, B2Nrows, Nsrc, Vsnk / tiling_factor, B2Nrows, Vsnk / tiling_factor, tiling_factor, tiling_factor, Lt, "b_C_BB_r");
+   Halide::Buffer<double> b_C_BB_i(Nsnk, B2Nrows, Nsrc, Vsnk / tiling_factor, B2Nrows, Vsnk / tiling_factor, tiling_factor, tiling_factor, Lt, "b_C_BB_i");
 // Lt, B2Nrows, Nsrc, B2Nrows, Nsnk
    Halide::Buffer<double> b_out_buf_C_BB_r(Nsnk, B2Nrows, Nsrc, B2Nrows, Lt, "b_out_buf_C_BB_r");
    Halide::Buffer<double> b_out_buf_C_BB_i(Nsnk, B2Nrows, Nsrc, B2Nrows, Lt, "b_out_buf_C_BB_i");
@@ -809,7 +810,7 @@ int main(int, char **)
                                  + Vsnk/sites_per_rank * Nc * Ns * sites_per_rank * 8 * sizeof ( double )
 
                                  + Lt * Vsnk/sites_per_rank * sites_per_rank * B2Nrows * NsrcTot * B2Nrows * NsnkTot * 2 * sizeof ( double )
-                                 + Vsnk / tiling_factor * B2Nrows * Vsnk / tiling_factor * B2Nrows * 8 * sizeof ( double )
+                                 + Vsnk / tiling_factor * B2Nrows * Vsnk / tiling_factor * Nsrc * 8 * sizeof ( double )
                                  + Vsnk / tiling_factor * B2Nrows * Nsrc * B2Nrows * Vsnk / tiling_factor * 10 * sizeof ( double )
                                  + Lt * Vsnk/sites_per_rank * sites_per_rank * 16  * sizeof ( double );
       std::cout << "Tiramisu GPU buffers size: " << fromBytesToStr( gpu_buffers_size ) << "\n";
