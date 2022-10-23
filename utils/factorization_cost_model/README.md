@@ -3,12 +3,16 @@ Train a recursive lstm architecture on Tiramisu schedules.
 
 
 ## Installation  
-Here are the steps of the installtion:  
-1. Install pytorch. Note that the repo was tested only with the version 1.10.2 of pytorch.
-2. Install the required packages using the command:  
-```python
-pip install -r requirements.txt
+Install the environment using the `environment.yml` file as follows:
+```bash
+conda env create -f environment.yml
 ```  
+This should create an environment called `cost_model_env`. 
+In addition to that, set the environment variable `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION` to `python` as follows:   
+```bash
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+```  
+This step needs to be done everytime you use the scripts. Therefore, it is better to add to the `.bashrc` file (or `.zshrc`, depending on your shell).
 
 ## Configuring the repository
 All of the main scripts use Hydra for configuration management. To configure the repository, copy the `conf/conf.yml.example` file to `conf/conf.yml` as follows:  
