@@ -76,6 +76,11 @@ void apply_optimizations(optimization_info const& optim_info)
         case optimization_type::SKEWING:
             block.skew(optim_info.l0, optim_info.l1, optim_info.l0_fact, optim_info.l1_fact);
             break;
+        
+        case optimization_type::SKEWING_POSITIVE:
+            block.skew(optim_info.l0, optim_info.l1,
+                optim_info.l0_fact, optim_info.l1_fact, optim_info.l2_fact, optim_info.l3_fact);
+            break;
 
         default:
             break;
@@ -177,6 +182,10 @@ void print_optim(optimization_info optim)
 
         case optimization_type::SKEWING:
             std::cout << "Skewing" << " L" << optim.l0 << " " << optim.l0_fact << " L" << optim.l1 << " " << optim.l1_fact << std::endl;
+            break;
+        case optimization_type::SKEWING_POSITIVE:
+            std::cout << "Skewing" << " L" << optim.l0 << " L" << optim.l1 << " "
+                << optim.l0_fact << " " << optim.l1_fact << " "<< optim.l2_fact << " " << optim.l3_fact << std::endl;
             break;
 
         default:

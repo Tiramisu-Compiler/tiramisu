@@ -3753,7 +3753,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
         legal_process = 0 ; // disables skewing
         DEBUG_INDENT(-4);
-        return {NULL,NULL,NULL,NULL,NULL};
+        return {NULL,NULL,NULL,NULL,NULL,NULL};
         
     }
 
@@ -4190,7 +4190,7 @@ std::tuple<
 
     if(process == 1)
     {
-        assert(result_vector.size() == 5);
+        assert(result_vector.size() == 6);
         upper_weakly = result_vector[0];
         upper_strongly = result_vector[1];
         lower_weakly = result_vector[2];
@@ -4532,14 +4532,14 @@ std::tuple<
     std::vector<std::tuple<int,int,int,int>> innermost;
     std::vector<std::tuple<int,int,int,int>> identity;
 
-    identity.push_back(std::make_tuple(1, 0, 0, 0));
-
     auto result_vector = this->compute_legal_skewing(fused_computations,outer_variable,inner_variable,process);
 
     if(process == 1)
     {
         assert(result_vector.size() == 6);
         upper_weakly = result_vector[0];
+
+        identity.push_back(std::make_tuple(1, 0, 0, 0));
 
         // set is exactly similar to constraints for alpha and beta
         positive_secondary_set = result_vector[5];

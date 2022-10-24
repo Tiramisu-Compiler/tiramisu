@@ -127,6 +127,19 @@ void block::skew(int i, int j, int a, int b) {
     }
 }
 
+void block::skew(var i, var j, int a, int b, int c, int d, var ni, var nj) {
+    for (auto &child : this->children) {
+        child->skew(i, j, a, b, c, d, ni, nj);
+    }
+}
+
+
+void block::skew(int i, int j, int a, int b, int c, int d) {
+    for (auto &child : this->children) {
+        child->skew(i, j, a, b, c, d);
+    }
+}
+
 void block::split(var L0, int sizeX) {
     for (auto &child : this->children) {
         child->split(L0, sizeX);

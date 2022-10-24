@@ -532,10 +532,6 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
 
         case optimization_type::SKEWING:
 
-            /* 
-                optim_info.comps = new_ast->computations_list;
-            }*/
-
             ast.stage_isl_states();
             //for shared nodes the list of involved computations is always the same.
             // that's only the case when we compute test shared loop levels only (not always the case). 
@@ -557,11 +553,28 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
             
                 std::string loop_name = loop_names[commun_node->depth];
                 std::string loop_name_inner = loop_names[commun_node->depth+1];
-                
+                // compute the possible skewings parameters
+                // legacy skewing 2 parameters
                 auto result_skewing = ast.fct->skewing_local_solver(involved_computations,
                         var(loop_name),var(loop_name_inner),
                         skewing_inner_parallelism_number
                         );
+                // positive skewing 4 parameters in one vector
+                auto positive_skewing = ast.fct->skewing_local_solver_positive(involved_computations,
+                        var(loop_name),var(loop_name_inner),
+                        skewing_inner_parallelism_number
+                        );
+                std::vector<std::tuple<int, int, int, int>> positive_param_vector = std::get<1>(positive_skewing);
+                
+                if(std::get<0>(positive_skewing).size() > 0){
+                    positive_param_vector.push_back(std::get<0>(positive_skewing)[0]);
+                }
+                if(std::get<2>(positive_skewing).size() > 0){
+                    positive_param_vector.push_back(std::get<2>(positive_skewing)[0]);
+                }
+
+                
+                // explore the legacy skewing
 
                 if(std::get<1>(result_skewing).size() > 0) // inner parallelism has solutions
                 {
@@ -645,6 +658,34 @@ std::vector<syntax_tree*> ml_model_schedules_generator::generate_schedules(synta
                     }
                     ast.stage_isl_states();
                 }
+                // explore the positive skewing
+
+                ast.recover_isl_states();
+                for(auto& param : positive_param_vector)
+                {
+                    // Copy the AST and add unrolling to the list of optimizations
+                    syntax_tree* new_ast = new syntax_tree();
+                    ast_node *new_node = ast.copy_and_return_node(*new_ast, commun_node);
+
+                    optimization_info optim_info;
+                    optim_info.type = optimization_type::SKEWING_POSITIVE;
+                    optim_info.node = new_node;
+
+                    optim_info.nb_l = 2;
+                    optim_info.l0 = new_node->depth;
+                    optim_info.l1 = new_node->depth+1;
+                    optim_info.l0_fact = std::get<0>(param);
+                    optim_info.l1_fact = std::get<1>(param);
+                    optim_info.l2_fact = std::get<2>(param);
+                    optim_info.l3_fact = std::get<3>(param);
+
+
+                    optim_info.comps = involved_computations;
+                    new_ast->new_optims.push_back(optim_info);
+                    states.push_back(new_ast);
+                }
+                ast.stage_isl_states();
+                
 
 
             }
