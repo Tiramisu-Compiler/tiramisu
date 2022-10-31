@@ -16,7 +16,8 @@ enum optimization_type
     INTERCHANGE,
     UNROLLING,
     PARALLELIZE,
-    SKEWING
+    SKEWING,
+    SKEWING_POSITIVE // a specialisation of SKEWING optimization
 };
 
 /**
@@ -65,7 +66,7 @@ struct optimization_info
      * For example, if the optimization is a 2 level tiling,
      * l0_fact and l1_fact will contain the tiling factors for each loop level.
      */
-    int l0_fact = 0, l1_fact = 0, l2_fact = 0;
+    int l0_fact = 0, l1_fact = 0, l2_fact = 0, l3_fact = 0;
 };
 
 /**

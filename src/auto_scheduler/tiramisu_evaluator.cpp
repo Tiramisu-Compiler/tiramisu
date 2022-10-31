@@ -393,6 +393,17 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree const& ast
                 assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
                 skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
                 break;
+            
+            case optimization_type::SKEWING_POSITIVE:
+                skewed = true;
+                skewing_fact_l0 = optim_info.l0_fact;
+                skewing_fact_l1 = optim_info.l1_fact;
+                skewing_l0 = optim_info.l0;
+                skewing_l1 = optim_info.l1;
+                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
+                assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
+                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
+                break;
                 
             default:
                 break;
