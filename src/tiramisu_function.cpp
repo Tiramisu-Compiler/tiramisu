@@ -249,7 +249,7 @@ void tiramisu::function::calculate_dep_flow()
         isl_map * corrected = isl_map_apply_range(isl_map_copy(comput->get_schedule()),isl_identity);
 
         DEBUG(10, tiramisu::str_dump(" - > compuatation's schedule to time stamp op result is : "+std::string(isl_map_to_str(corrected))));
-
+        
         isl_schedule = isl_union_map_union(isl_schedule , isl_union_map_from_map(corrected));
 
         write_access = isl_union_map_union(write_access,isl_union_map_from_map(isl_map_copy(comput->get_access_relation())));
@@ -3692,7 +3692,7 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
     int outer_dim_full = tiramisu::loop_level_into_dynamic_dimension(dimensions[0]);
     int inner_dim_full = tiramisu::loop_level_into_dynamic_dimension(dimensions[1]);
 
-    assert((outer_dim_full + 2) == inner_dim_full);
+    // assert((outer_dim_full + 2) == inner_dim_full);
 
 
     DEBUG(3, tiramisu::str_dump(" par dim number is : "+std::to_string(outer_dim_full)+ " and "+std::to_string(inner_dim_full)));
@@ -3761,14 +3761,30 @@ std::vector<isl_basic_set*> tiramisu::function::compute_legal_skewing(std::vecto
 
     DEBUG(3, tiramisu::str_dump(" all the used dependencies after transformed to map are  : "+std::string(isl_map_to_str(equation_map))));
 
-     for(int i=0;i<outer_dim_full;i++)
+    // remove already solved dimensions and project them out
+    for(int i=0;i<outer_dim_full;i++)
     {
         equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i);
         DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr "+std::to_string(i)+" : "+std::string(isl_map_to_str(equation_map))));    
     }
 
-    equation_map = isl_map_equate(equation_map,isl_dim_in,outer_dim_full+1,isl_dim_out,outer_dim_full+1);
     //equate the middle static dimension [i,_0_,j]
+    equation_map = isl_map_equate(equation_map,isl_dim_in,outer_dim_full+1,isl_dim_out,outer_dim_full+1);
+
+    for (int i = outer_dim_full + 2; i < inner_dim_full; i++){
+        equation_map = isl_map_equate(equation_map,isl_dim_in,i,isl_dim_out,i);
+        DEBUG(3, tiramisu::str_dump(" --> remaining deps at itr "+std::to_string(i)+" : "+std::string(isl_map_to_str(equation_map)))); 
+    }
+
+    if (inner_dim_full - outer_dim_full - 2 > 0){
+        // case where there is more than 1 static dimension in between target loops
+        // remove and project them out
+        equation_map = isl_map_project_out(equation_map, isl_dim_in,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+        equation_map = isl_map_project_out(equation_map, isl_dim_out,
+                outer_dim_full + 2,inner_dim_full - outer_dim_full - 2);
+    }
+    DEBUG(3, tiramisu::str_dump(" Map without in between dimensions : "+std::string(isl_map_to_str(equation_map))));
 
     int left_size = isl_map_dim(equation_map, isl_dim_in);
     int right_size = isl_map_dim(equation_map, isl_dim_out);
