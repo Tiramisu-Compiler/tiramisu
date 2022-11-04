@@ -1369,7 +1369,35 @@ public:
       std::vector<std::tuple<int,int,int,int>>,
       std::vector<std::tuple<int,int,int,int>>> skewing_local_solver_positive(std::vector<tiramisu::computation *> fused_computations,
                                                           tiramisu::var outer_variable,tiramisu::var inner_variable, int nb_parallel);
+                                                          
+    /**
+     * Computes the best legal 3D skewing parameters for 3 use cases (outer parallelism, innermost parallelism and identity).
+     * This method also make sure the dependencies becomes positive with skewing in order to enable Tiling. 
+     * The method relies fully on the dependence analysis result, so the  method \p perform_full_dependency_analysis() must be invoked before.
+     * To correctly invoke this method : schedules must be aligned (same out dimension size) and ordered,
+     * so invoking \p prepare_schedules_for_legality_checks() method before is mandatory. 
+     * The output of this method is a tuple of vectors, each vector represent a usecase,
+     * the elements of the vector are the 9 skewing parameters (3 for 1st dimension, 3 for second, then 3 for the third)
+     * 
+     * 
+     * First vector contains either 1 set of parameters that allows parallism on outer_variable, or an empty vector.
+     * Second vector contains a vector of parameters that enables parallism on inner_variable.
+     * Third vector contains a vector of parameters that enables tiling and makes the dependencies positive for identity (alpha=1, beta=0).
+     * 
+     * Note that for all 3 cases the dependencies becomes positive in all 3 dimensions which will enable tiling 3D.
+     * In case of a lack of dependencies within the scope of fused_computations, or in case of some dependencies impossible to solve,
+     * the output should be 3 empty vectors.
+    */
+    std::tuple<
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>,
+      std::vector<std::tuple<int,int,int,int,int,int,int,int,int>>> skewing_local_3D_solver_positive(
+                                                  std::vector<tiramisu::computation *> fused_computations, tiramisu::var var_outer,
+                                                  tiramisu::var var2, tiramisu::var var_inner);
+                                                          
+    std::vector<int> extract_transformation_coeffcients(isl_basic_map * transformation, int position);
 
+    std::tuple<int,int,int,int,int,int,int,int,int> extract_3d_skewing_params(isl_basic_map * transformation);
 
 };
 
