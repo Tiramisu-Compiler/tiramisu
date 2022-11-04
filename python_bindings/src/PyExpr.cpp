@@ -20,19 +20,19 @@ void add_binary_operators_with(PythonClass &class_instance) {
     do {                                                                                       \
         class_instance.def(                                                                    \
             "__" #method "__",                                                                 \
-            [](const self_t &self, const other_t &other) -> decltype(self op (other)) { \
-                auto result = self op (other);                                          \
+            [](const self_t &self, const other_t &other) -> decltype(self op (other)) {        \
+                auto result = self op (other);                                                 \
                 return result;                                                                 \
             },                                                                                 \
-            py::is_operator(), py::return_value_policy::reference);                                                                \
+            py::is_operator(), py::keep_alive<0, 1>(), py::keep_alive<0, 2>());	\
         class_instance.def(                                                                    \
             "__r" #method "__",                                                                \
-            [](const self_t &self, const other_t &other) -> decltype((other) op self) { \
-                auto result = (other) op self;                                          \
+            [](const self_t &self, const other_t &other) -> decltype((other) op self) {        \
+                auto result = (other) op self;                                                 \
                 return result;                                                                 \
             },                                                                                 \
-            py::is_operator(), py::return_value_policy::reference);                                                                \
-    } while (0)
+            py::is_operator(), py::keep_alive<0, 1>(), py::keep_alive<0, 2>());	\
+    } while (0)                                                                                \
 
     BINARY_OP(+, add);
     BINARY_OP(-, sub);
@@ -92,32 +92,40 @@ void add_binary_operators(PythonClass &class_instance) {
 
     // Define unary operators
     class_instance
-        .def(-py::self, py::return_value_policy::reference)  // neg
-        .def("logical_not", logical_not_wrap, py::return_value_policy::reference);
+        .def(-py::self, py::keep_alive<0, 1>())  // neg
+        .def("logical_not", logical_not_wrap, py::keep_alive<0, 1>());
 }
 
     
     void define_expr(py::module &m){
       auto expr_class = py::class_<expr>(m, "expr").def(py::init<>(), py::return_value_policy::reference)
-	      .def(py::init<primitive_t>(), py::return_value_policy::reference)
+	.def(py::init<primitive_t>(), py::keep_alive<0, 1>())
         // for implicitly_convertible
-	      .def(py::init<int>(), py::return_value_policy::reference)
-	      .def(py::init<double>(), py::return_value_policy::reference)
+	.def(py::init<int>(), py::keep_alive<0, 1>())
+	.def(py::init<double>(), py::keep_alive<0, 1>())
         // constant convert
-        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr { return (tiramisu::expr) c; }), py::return_value_policy::reference)
-	.def(py::init([](tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, dtype, expr0);}))
-	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0) -> tiramisu::expr {return expr(o, expr0);}))
+        .def(py::init([](tiramisu::constant &c) -> tiramisu::expr {
+	      return (tiramisu::expr) c; }),
+	  py::keep_alive<0, 1>())
+	.def(py::init([](tiramisu::op_t o, tiramisu::primitive_t dtype, tiramisu::expr expr0) -> tiramisu::expr {
+	      return expr(o, dtype, expr0);}),
+	  py::keep_alive<0, 3>())
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0) -> tiramisu::expr {
+	      return expr(o, expr0);}), py::keep_alive<0, 2>()) 
 	.def(py::init([](tiramisu::op_t o, std::string name) -> tiramisu::expr {return expr(o, name);}))
-	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1) -> tiramisu::expr {return expr(o, expr0,expr1);}))
-	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1, tiramisu::expr expr2) -> tiramisu::expr {return expr(o, expr0, expr1, expr2);}))
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1) -> tiramisu::expr {
+	      return expr(o, expr0,expr1);}), py::keep_alive<0, 2>(), py::keep_alive<0, 3>())
+	.def(py::init([](tiramisu::op_t o, tiramisu::expr expr0, tiramisu::expr expr1, tiramisu::expr expr2) -> tiramisu::expr {
+	      return expr(o, expr0, expr1, expr2);}), py::keep_alive<0, 2>(), py::keep_alive<0, 3>(), py::keep_alive<0, 4>())
 	.def(py::init([](tiramisu::op_t o, std::string name, std::vector<tiramisu::expr> vec, tiramisu::primitive_t type) ->
-		      tiramisu::expr {return expr(o, name, vec, type);}))
+		      tiramisu::expr {return expr(o, name, vec, type);}), py::keep_alive<0, 2>())
         .def("dump", [](const tiramisu::expr &e) -> auto { return e.dump(true); })
 	.def("get_name", [](tiramisu::expr &e) -> std::string {return e.get_name();}, py::return_value_policy::reference)
 	.def("set_name", [](tiramisu::expr &e, std::string & name) -> void {return e.set_name(name);})
 	.def("is_equal", [](tiramisu::expr &e, tiramisu::expr &ep) -> bool {return e.is_equal(ep);})
 	.def("__repr__", [](tiramisu::expr &e) -> std::string {return e.to_str();})
-	.def("cast", [](tiramisu::expr &e, tiramisu::primitive_t tT) -> tiramisu::expr { return cast(tT, e);}, py::return_value_policy::reference);
+	.def("cast", [](tiramisu::expr &e, tiramisu::primitive_t tT) -> tiramisu::expr {
+	    return cast(tT, e);}, py::keep_alive<0, 1>());
       add_binary_operators(expr_class);
       
       auto memcpy_value = m.def("memcpy", py::overload_cast<const tiramisu::buffer &, const tiramisu::buffer &>(&tiramisu::memcpy));

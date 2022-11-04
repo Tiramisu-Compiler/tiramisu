@@ -40,7 +40,7 @@ set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
 
 # Debug
-option(ENABLE_DEBUG "Enable debug printing" FALSE)
+option(ENABLE_DEBUG "Enable debug printing" TRUE)
 set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 
 # ISL paths

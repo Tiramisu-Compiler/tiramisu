@@ -15,11 +15,11 @@ namespace tiramisu {
             //std::string// corr
         ) {
             return new buffer(name, dim_sizes, type, argt);
-        }), py::return_value_policy::reference)
+		      }), py::return_value_policy::reference, py::keep_alive<0, 2>())
         .def("get_name", &buffer::get_name)
         .def("dump", &buffer::dump);
 
-      buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at), py::keep_alive<1, 2>());
+      buffer_class.def("allocate_at", py::overload_cast<tiramisu::computation &, tiramisu::var>(&buffer::allocate_at), py::keep_alive<1, 1>());
     }
 
   }  // namespace PythonBindings
