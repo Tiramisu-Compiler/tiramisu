@@ -4549,7 +4549,8 @@ void computation::skew(tiramisu::var L0_var, tiramisu::var L1_var,
     int L0 = dimensions[0];
     int L1 = dimensions[1];
     this->skew(L0, L1, alpha, beta, gamma, sigma);
-    this->update_names(original_loop_level_names, {new_L0_var.get_name(), new_L1_var.get_name()}, dimensions[0], 2);
+    this->update_names(original_loop_level_names, {new_L0_var.get_name()}, dimensions[0], 1);
+    this->update_names(this->get_loop_level_names(), {new_L1_var.get_name()}, dimensions[1], 1);
 }
 
 void computation::skew(int L0 , int L1, int alpha , int beta, int gamma , int sigma)
