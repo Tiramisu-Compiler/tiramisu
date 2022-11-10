@@ -20,7 +20,7 @@ int randommode = 1;
 
 
 
-void tiramisu_make_two_nucleon_2pt(double* C_re,
+void tiramisu_make_identical_two_nucleon_2pt(double* C_re,
     double* C_im,
      double* B1_prop_re, 
      double* B1_prop_im, 
@@ -362,7 +362,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
       for (int wnum=0; wnum< Nw2Hex; wnum++) {
          for (int q=0; q < 2*Nq; q++) {
             int b = (q-(q%Nq))/Nq;
-            int mscB = BB_pairs_src[index_2d(msc,b ,2)]-1;
+            int mscB = msc;
             b_hex_snk_color_weights(b, q%Nq, wnum, nsc, msc, nperm, 0) = hex_snk_color_weights_A1[index_3d(nsc,wnum,hex_perms[index_3d(nperm,mscB,q ,B1NsrcSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
             b_hex_snk_spin_weights(b, q%Nq, wnum, nsc, msc, nperm, 0) = hex_snk_spin_weights_A1[index_3d(nsc,wnum,hex_perms[index_3d(nperm,mscB,q ,B1NsrcSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
             b_hex_snk_color_weights(b, q%Nq, wnum, nsc, msc, nperm, 1) = hex_snk_color_weights_T1_r1[index_3d(nsc,wnum,hex_perms[index_3d(nperm,mscB,q ,B1NsrcSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
@@ -378,7 +378,7 @@ void tiramisu_make_two_nucleon_2pt(double* C_re,
       for (int wnum=0; wnum< Nw2Hex; wnum++) {
          for (int q=0; q < 2*Nq; q++) {
             int b = (q-(q%Nq))/Nq;
-            int nscB = BB_pairs_snk[index_2d(nsc,b ,2)]-1;
+            int nscB = nsc;
             b_hex_src_color_weights(b, q%Nq, wnum, msc, nsc, nperm, 0) = hex_snk_color_weights_A1[index_3d(msc,wnum,hex_perms[index_3d(nperm,nscB,q ,B1NsnkSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
             b_hex_src_spin_weights(b, q%Nq, wnum, msc, nsc, nperm, 0) = hex_snk_spin_weights_A1[index_3d(msc,wnum,hex_perms[index_3d(nperm,nscB,q ,B1NsnkSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
             b_hex_src_color_weights(b, q%Nq, wnum, msc, nsc, nperm, 1) = hex_snk_color_weights_T1_r1[index_3d(msc,wnum,hex_perms[index_3d(nperm,nscB,q ,B1NsnkSC,2*Nq)]-1 ,Nw2Hex,2*Nq)];
@@ -934,7 +934,7 @@ int main(int, char **)
          std::cout << "Run " << i << "/" << nb_tests <<  std::endl;
       auto start1 = std::chrono::high_resolution_clock::now();
 
-       tiramisu_make_two_nucleon_2pt(t_C_re,
+       tiramisu_make_identical_two_nucleon_2pt(t_C_re,
            t_C_im,
            B1_prop_re, 
            B1_prop_im, 

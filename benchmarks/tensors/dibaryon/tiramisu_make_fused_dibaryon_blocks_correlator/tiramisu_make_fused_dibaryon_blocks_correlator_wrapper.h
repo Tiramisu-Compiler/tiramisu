@@ -75,6 +75,13 @@ int tiramisu_make_fused_dibaryon_blocks_correlator(
 			    halide_buffer_t *,
 			    halide_buffer_t *,
 			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
+			    halide_buffer_t *,
 			    halide_buffer_t *);
 
 

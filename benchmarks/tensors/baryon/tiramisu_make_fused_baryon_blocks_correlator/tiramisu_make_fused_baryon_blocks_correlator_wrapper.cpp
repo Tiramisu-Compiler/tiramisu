@@ -16,7 +16,7 @@ extern "C" {
 #define RUN_REFERENCE 1
 #define RUN_CHECK 1
 int nb_tests = 1;
-int randommode = 0;
+int randommode = 1;
 
 
 
@@ -226,7 +226,7 @@ void tiramisu_make_nucleon_2pt(double* C_re,
                for (int n=0; n<NsnkHex; n++)
                   for (int nsc=0; nsc<NsnkSC; nsc++)
                      for (int t=0; t<Lt; t++)
-                        for (int x=0; x<Vsnk; x++) {
+                        for (int x=0; x<Vsnk/sites_per_rank; x++) {
                            double number0r;
                            double number0i;
                            number0r = b_C_r(n,nsc,r,m,msc,rp,x,t);
@@ -369,15 +369,15 @@ int main(int, char **)
    }
    int perms_array[2][3] = { {1,2,3}, {3,2,1} };
    int sigs_array[2] = {1,-1};
+   //int perms_array[1][3] = { {1,2,3} };
+   //int sigs_array[1] = {1};
    int* perms = (int *) malloc(B1Nperms * Nq * sizeof (int));
    int sigs[B1Nperms];
-   int permnum = 0;
    for (int i = 0; i < B1Nperms; i++) {
          for (int q = 0; q < Nq; q++) {
-            perms[index_2d(permnum,q ,Nq)] = perms_array[i][q];
+            perms[index_2d(i,q ,Nq)] = perms_array[i][q];
          }
-         sigs[permnum] = sigs_array[i];
-         permnum += 1;
+         sigs[i] = sigs_array[i];
    }
    // Correlators
    double* C_re = (double *) malloc(B1Nrows * B1Nrows * (NsrcHex) * (NsnkHex) * Lt * sizeof (double));

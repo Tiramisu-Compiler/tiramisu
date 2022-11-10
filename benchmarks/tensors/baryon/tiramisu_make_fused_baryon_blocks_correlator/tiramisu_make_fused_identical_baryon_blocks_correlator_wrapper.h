@@ -34,7 +34,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 // Define these values for each new test
-#define TEST_NAME_STR       "tiramisu_make_fused_identical_baryon_blocks_correaltor"
+#define TEST_NAME_STR       "tiramisu_make_fused_identical_baryon_blocks_correlator"
 
 #include <tiramisu/utils.h>
 
