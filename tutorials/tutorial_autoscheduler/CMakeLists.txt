@@ -11,8 +11,8 @@ include_directories($ENV{TIRAMISU_ROOT}/3rdParty/Halide/include $ENV{TIRAMISU_RO
 link_directories($ENV{TIRAMISU_ROOT}/build $ENV{TIRAMISU_ROOT}/3rdParty/Halide/lib $ENV{TIRAMISU_ROOT}/3rdParty/isl/build/lib)
 
 
-set(generator_SOURCES function_heat3d_MINI_autoscheduler.cpp)
-#set(generator_SOURCES function_heat3d_MINI_generator.cpp)
+set(generator_SOURCES lu_autoscheduler.cpp)
+#set(generator_SOURCES lu_generator.cpp)
 add_executable(generator ${generator_SOURCES})
  
 target_link_libraries(generator tiramisu tiramisu_auto_scheduler Halide isl)

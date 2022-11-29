@@ -262,12 +262,12 @@ public:
     /**
      * Lower bound of this loop level iterator.
      */
-    int low_bound;
+    std::string low_bound;
     
     /**
      * Upper bound of this loop level iterator.
      */
-    int up_bound;
+    std::string up_bound;
 
     /**
      * True if the following loop level has been unrolled.
@@ -335,7 +335,7 @@ public:
     /**
      * Return the extent of this loop level.
      */
-    int get_extent() const { return up_bound - low_bound + 1; }
+    std::string get_extent() const { return up_bound + "-" + low_bound + "+1"; }
     
     /**
      * Copy this node and return the copy.
@@ -355,7 +355,7 @@ public:
      * Fill the given array with the extents of the innermost loop levels
      * contained in this subtree.
      */
-    void get_innermost_extents(std::vector<int>& extents) const;
+    void get_innermost_extents(std::vector<std::string>& extents) const;
     
     /**
      * Get the computations located at the innermost loop levels of this subtree.
@@ -462,7 +462,7 @@ public:
      * get the extent of this node, i.e:
      * return upper_bound - lower_bound
     */
-    int get_node_loop_extent() const;
+    std::string get_node_loop_extent() const;
 
     /**
      * checks whether or not two ast_node have the same iteration domaine +/-1 so they can possible be fuzed together.
