@@ -12,6 +12,8 @@ option(USE_LIBJPEG "Build with libjpeg for the Halide benchmark" FALSE)
 
 option(USE_CUDNN "Build with cuDNN for benchmark comparisons" FALSE)
 
+option(WITH_PYTHON_BINDINGS "Build Python bindings" ON)
+
 # If you set this to true, you should correctly set MKL_PREFIX (see below)
 option(USE_MKL_WRAPPERS "Build with MKL wrappers provided by Tiramisu" TRUE)
 
@@ -38,7 +40,7 @@ set(MKL_PREFIX "" CACHE PATH "Intel MKL library path")
 set(LLVM_CONFIG_BIN "${CMAKE_SOURCE_DIR}/3rdParty/llvm/prefix/bin/" CACHE PATH "Directory containing llvm-config executable")
 
 # Debug
-option(ENABLE_DEBUG "Enable debug printing" FALSE)
+option(ENABLE_DEBUG "Enable debug printing" TRUE)
 set(DEBUG_LEVEL 0 CACHE STRING "Debug level value")
 
 # ISL paths
@@ -46,5 +48,5 @@ set(ISL_INCLUDE_DIRECTORY "3rdParty/isl/build/include/" CACHE PATH "Path to ISL 
 set(ISL_LIB_DIRECTORY "3rdParty/isl/build/lib/" CACHE PATH "Path to ISL library directory")
 
 # Halide Paths
-set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide" CACHE PATH "Path to Halide source directory")
-set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/lib" CACHE PATH "Path to Halide library directory")
+set(HALIDE_SOURCE_DIRECTORY "3rdParty/Halide/build/" CACHE PATH "Path to Halide source directory")
+set(HALIDE_LIB_DIRECTORY "3rdParty/Halide/build/src" CACHE PATH "Path to Halide library directory")

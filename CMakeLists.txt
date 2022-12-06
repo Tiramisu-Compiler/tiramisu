@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(tiramisu)
 
 enable_testing()
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(PROJECT_DIR ${CMAKE_SOURCE_DIR})
 set(CMAKE_VERBOSE_MAKEFILE "ON")
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
@@ -56,6 +56,8 @@ if (${USE_GPU})
         set(CUDNN_INCLUDE_DIRECTORY ${CUDNN_LOCATION}/include)
     endif()
 endif()
+
+
 
 if (${USE_MKL_WRAPPERS})
     add_library(mkl_wrapper STATIC "src/tiramisu_mkl_wrappers.cpp")
@@ -180,7 +182,7 @@ if (${USE_MPI})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wno-sign-compare -fno-rtti")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 include_directories("include"
@@ -194,7 +196,8 @@ if (${USE_MPI})
     link_directories(${MPI_BUILD_DIR}/lib)
     include_directories(${MPI_BUILD_DIR}/include)
 else ()
-    set(CMAKE_CXX_COMPILER "g++")
+  #set(CMAKE_CXX_COMPILER "g++")
+  #get_filename_component(CMAKE_CXX_COMPILER "g++" REALPATH)
 endif()
 
 
@@ -204,8 +207,8 @@ find_library(ISLLib isl PATHS ${ISL_LIB_DIRECTORY} NO_DEFAULT_PATH)
 # Require LLVM 5.0 or greater to keep in line with Halide
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --version OUTPUT_VARIABLE LLVM_VERSION)
 string(STRIP "${LLVM_VERSION}" LLVM_VERSION)
-if ("${LLVM_VERSION}" VERSION_LESS 5.0)
-    message(FATAL_ERROR "tiramisu requires LLVM version >= 5.0")
+if ("${LLVM_VERSION}" VERSION_LESS 12.0)
+    message(FATAL_ERROR "tiramisu requires LLVM version >= 12.0")
 endif()
 
 execute_process(COMMAND ${LLVM_CONFIG_BIN}/llvm-config --ignore-libllvm --system-libs OUTPUT_VARIABLE LLVM_FLAGS)
@@ -232,6 +235,9 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_NO_JPEG")
 endif()
 
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHALIDE_BUILD=\"${CMAKE_SOURCE_DIR}/${HALIDE_LIB_DIRECTORY}\"")
+
 if(${ENABLE_DEBUG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_DEBUG -DDEBUG_LEVEL=${DEBUG_LEVEL}")
 endif()
@@ -250,6 +256,12 @@ add_library(tiramisu SHARED ${T_CODE})
 
 target_link_libraries(tiramisu ${HalideLib} ${ISLLib})
 target_link_libraries(tiramisu ${LINK_FLAGS})
+
+if (WITH_PYTHON_BINDINGS)
+  message(STATUS "Building Python bindings enabled")
+  add_subdirectory(python_bindings)
+  target_include_directories(Tiramisu_Python PRIVATE "include")
+endif()
 
 if (${USE_AUTO_SCHEDULER})
     set(AUTO_SCHEDULER_CODE "")

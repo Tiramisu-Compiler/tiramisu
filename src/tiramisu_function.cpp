@@ -1305,22 +1305,22 @@ void function::add_iterator_name(const std::string &iteratorName)
   */
 // @{
 
-void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os, Halide::Target::Arch arch, int bits) const
+void function::gen_halide_obj(const std::string &obj_file_name, Halide::Target::OS os, Halide::Target::Arch arch, int bits, bool gen_python) const
 {
   Halide::Target target = Halide::get_host_target();
-  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, tiramisu::hardware_architecture_t::arch_cpu);
+  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, tiramisu::hardware_architecture_t::arch_cpu, gen_python = gen_python);
 }
 
-void function::gen_halide_obj(const std::string &obj_file_name) const
+void function::gen_halide_obj(const std::string &obj_file_name, bool gen_python) const
 {
     Halide::Target target = Halide::get_host_target();
-    gen_halide_obj(obj_file_name, target.os, target.arch, target.bits);
+    gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, gen_python);
 }
 
-void function::gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture) const
+void function::gen_halide_obj(const std::string &obj_file_name, const tiramisu::hardware_architecture_t hw_architecture, bool gen_python) const
 {
   Halide::Target target = Halide::get_host_target();
-  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, hw_architecture);
+  gen_halide_obj(obj_file_name, target.os, target.arch, target.bits, hw_architecture, gen_python = gen_python);
 }
 
 
@@ -2537,7 +2537,7 @@ void tiramisu::function::gen_halide_bug_workaround_computations(){
     first_cpt = comp;
 }
 
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt)
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const bool gen_cuda_stmt, bool gen_python)
 {
     if (gen_cuda_stmt)
     {
@@ -2558,7 +2558,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
         this->gen_cuda_stmt();
     }
     this->gen_halide_stmt();
-    this->gen_halide_obj(obj_filename);
+    this->gen_halide_obj(obj_filename, gen_python = gen_python);
 }
 
 /*
@@ -2568,7 +2568,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
 */
 // TODO:FLEXNLP Fix the bug and delete workaround code ()
 #define USE_HALIDE_BUFFERS_BUG_WORKAROUND true
-void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag)
+void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &arguments, const std::string obj_filename, const tiramisu::hardware_architecture_t gen_architecture_flag, bool gen_python)
 {
     this->set_arguments(arguments);
     if (gen_architecture_flag == tiramisu::hardware_architecture_t::arch_nvidia_gpu ||
@@ -2598,7 +2598,7 @@ void tiramisu::function::codegen(const std::vector<tiramisu::buffer *> &argument
         this->gen_cuda_stmt();
     }
     this->gen_halide_stmt();
-    this->gen_halide_obj(obj_filename, gen_architecture_flag);
+    this->gen_halide_obj(obj_filename, gen_architecture_flag, gen_python = false);
 }
 
 const std::vector<std::string> tiramisu::function::get_invariant_names() const
