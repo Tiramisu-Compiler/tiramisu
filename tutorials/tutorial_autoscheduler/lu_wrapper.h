@@ -67,13 +67,6 @@ void declare_memory_usage(){
     setenv("MEM_SIZE", std::to_string((double)18*18*18*2*8/1024/1024).c_str(), true); // This value was set by the Code Generator
 }
 
-int get_nb_exec(){
-    if (std::getenv("NB_EXEC")!=NULL)
-        return std::stoi(std::getenv("NB_EXEC"));
-    else{
-        return 30;
-    }
-}
 
 
 #endif

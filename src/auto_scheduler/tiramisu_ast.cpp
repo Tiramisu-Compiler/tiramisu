@@ -280,7 +280,7 @@ ast_node::ast_node(tiramisu::computation *comp, syntax_tree *ast)
 
                     else
                     {
-                        // We have here a special case (see PFE manuscript page 46)
+                        
                         ast_node *new_node = new ast_node();
 
                         new_node->depth = child_comp_ast_node->depth;
@@ -791,7 +791,6 @@ void syntax_tree::transform_ast_by_tiling(optimization_info const& opt)
             {
                 f+=str+" ";
             }
-            //std::cout<<"Tiling3 loop names: "<<f<<" deapth of outer is:"<<std::to_string(i_outer->depth)<<" test : "<<outer_name_1<<" & "<<outer_name_2 ;
         }
 
     }
@@ -858,17 +857,7 @@ void syntax_tree::transform_ast_by_interchange(optimization_info const& opt)
 
     // recover_isl_states();
 }
-bool is_number(const std::string s)
-{
-    char* p;
-    long converted = strtol(s.c_str(), &p, 10);
-    if (*p) {
-        return false;
-    }
-    else {
-        return true;
-    }
-}
+
 void syntax_tree::transform_ast_by_unrolling(optimization_info const& opt)
 {
     std::vector<ast_node*> nodes_list;
@@ -1227,9 +1216,9 @@ ast_node* syntax_tree::find_node_by_level(tiramisu::computation *comp, int level
     return node;
 }
 
-std::vector<int> syntax_tree::get_shared_levels_extents() const
+std::vector<std::string> syntax_tree::get_shared_levels_extents() const
 {
-    std::vector<int> extents;
+    std::vector<std::string> extents;
     if (roots.size() != 1)
         return extents;
         
@@ -1238,7 +1227,7 @@ std::vector<int> syntax_tree::get_shared_levels_extents() const
     ast_node *node = roots[0];
     while (true)
     {
-        if (node->get_extent() <= 1)
+        if (node->get_extent()  == "0-0+1")
             break;
             
         extents.push_back(node->get_extent());
@@ -1247,13 +1236,16 @@ std::vector<int> syntax_tree::get_shared_levels_extents() const
             
         node = node->children[0];
     }
-        
+    std::cout<<" result of get_shared_levels_extents: "<<std::endl;
+    for (int i=0;i<extents.size();i++){
+        std::cout<<extents.at(i)<<std::endl;
+    }
     return extents;
 }
 
-std::vector<int> syntax_tree::get_innermost_extents() const
+std::vector<std::string> syntax_tree::get_innermost_extents() const
 {
-    std::vector<int> extents;
+    std::vector<std::string> extents;
     
     for (ast_node *node : roots)
         node->get_innermost_extents(extents);
@@ -1263,11 +1255,15 @@ std::vector<int> syntax_tree::get_innermost_extents() const
 
 void ast_node::get_innermost_extents(std::vector<std::string>& extents) const
 {
-    if (children.empty() && get_extent() > 1)
+    if (children.empty() && get_extent() != "0-0+1")
         extents.push_back(get_extent());
         
     for (ast_node *child : children)
         child->get_innermost_extents(extents);
+    std::cout<<" result of get_innermost_extents: "<<std::endl;
+    for (int i=0;i<extents.size();i++){
+        std::cout<<extents.at(i)<<std::endl;
+    }
 }
 
 std::vector<tiramisu::computation*> syntax_tree::get_innermost_computations()
@@ -1282,7 +1278,7 @@ std::vector<tiramisu::computation*> syntax_tree::get_innermost_computations()
 
 void ast_node::get_innermost_computations(std::vector<tiramisu::computation*>& comps)
 {
-    if (children.empty() && get_extent() > 1)
+    if (children.empty() && get_extent() != "0-0+1")
     {
         for (computation_info& comp_info : computations)
             comps.push_back(comp_info.comp_ptr);
@@ -1290,6 +1286,11 @@ void ast_node::get_innermost_computations(std::vector<tiramisu::computation*>& c
     
     for (ast_node *child : children)
         child->get_innermost_computations(comps);
+    
+    std::cout<<" result of get_innermost_extents: "<<std::endl;
+    for (int i=0;i<comps.size();i++){
+        std::cout<<comps.at(i)->get_schedule()<<std::endl;
+    }
 }
 
 std::vector<ast_node*> syntax_tree::get_innermost_nodes() const
@@ -1373,11 +1374,15 @@ void syntax_tree::move_in_computation(ast_node * new_node, tiramisu::computation
 
 void ast_node::get_innermost_nodes(std::vector<ast_node*>& nodes)
 {
-    if (children.empty() && get_extent() > 1)
+    if (children.empty() && get_extent() != "0-0+1")
         nodes.push_back(this);
         
     for (ast_node *child : children)
         child->get_innermost_nodes(nodes);
+    std::cout<<" result of get_innermost_extents: "<<std::endl;
+    for (int i=0;i<nodes.size();i++){
+        std::cout<<nodes.at(i)->name<<std::endl;
+    }
 }
 
 ast_node* ast_node::get_root_node()
@@ -1757,30 +1762,52 @@ void ast_node::collect_all_computation(std::vector<computation_info*>& vector)
         child->collect_all_computation(vector);
     }
 }
+bool is_number_second_algorithm(const std::string s)
+{
+    char* p;
+    long converted = strtol(s.c_str(), &p, 10);
+    if (*p) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(), 
+        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
 
-
-
+// TODOF check if both bounds are ints: same behaviour, otherwise check if strings are equal for now?
 bool ast_node::have_similar_itr_domain(ast_node * other)
 {
-    int nb_itr1 = this->up_bound - this->low_bound;
-    int nb_itr2 = other->up_bound - other->low_bound;
+    if(is_number(this->low_bound) && is_number(this->up_bound)){
+        std::cout<<"both bounds are ints have_similar_itr_domain. Buisnnes as usual."<<std::endl;
+        int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound);
+        int nb_itr2 = stoi(other->up_bound) - stoi(other->low_bound);
 
-    if((nb_itr1 != 0) && (nb_itr2 != 0))
-    {
-        // nb_itr1/nb_itr is 1 or 0
-        if(((nb_itr2/nb_itr1) < 2) && ((nb_itr1/nb_itr2) < 2))
+        if((nb_itr1 != 0) && (nb_itr2 != 0))
         {
-            return true;
+            // nb_itr1/nb_itr is 1 or 0
+            if(((nb_itr2/nb_itr1) < 2) && ((nb_itr1/nb_itr2) < 2))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
             return false;
         }
+    }else{
+        std::cout<<"one of the bounds is not an int. up bound, low bound:"<<up_bound<<low_bound<<std::endl;
+        return true;
     }
-    else
-    {
-        return false;
-    }
+    
 }
 
 bool ast_node::is_candidate_for_fusion(ast_node * other)
@@ -1838,9 +1865,15 @@ std::vector<std::string> ast_node::get_all_iterators()
 
     while(current != nullptr)
     {
-        if(current->get_extent() > 0)
-        { // not a dummy itr
+        if(current->get_extent() != "0-0+1")
+        { // not a dummy itr 
+            // TODOF
+            std::cout<<" not a dummy itr in get_all_iterators"<<current->get_extent()<<std::endl;
+            std::cout<<current->name<<std::endl;
             iterator_names.push_back(current->name);
+        }else{
+            std::cout<<" dummy itr in get_all_iterators"<<current->get_extent()<<std::endl;
+            std::cout<<current->name<<std::endl;
         }
   
 
@@ -1848,7 +1881,7 @@ std::vector<std::string> ast_node::get_all_iterators()
     }
 
     std::reverse(iterator_names.begin(),iterator_names.end());
-
+    std::cout<<" done get all iterators "<<std::endl;
     return iterator_names;
 
 }
@@ -2084,7 +2117,6 @@ std::string syntax_tree::get_schedule_str()
     std::string schedule_str;
     bool transformed_by_matrix = false;
     int start_matrices = -1;
-    bool non_matrix =  false;
     int first_matrix = true;
     if(schedule_vect.size()<1) return schedule_str;
     std::vector<std::vector<std::vector<int>>> matrices(this->get_computations().size());
@@ -2093,7 +2125,6 @@ std::string syntax_tree::get_schedule_str()
     for(int i=0;i<first_time.size();i++) first_time.at(i)=1;
     for (auto optim: schedule_vect)
     {
-        if(optim.type!=optimization_type::MATRIX) non_matrix = true;
         std::string comps_list_str="{";
         
         for (auto comp: optim.comps)
@@ -2328,8 +2359,10 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
         return result1;
     }
 
-    if(current->get_extent() > 0)
+    if(current->get_extent() != "0-0+1")
     {
+        std::cout<<" not a dummy itr in: collect_heads_of_ast "<<current->get_extent()<<std::endl;
+        std::cout<<current->name<<std::endl;
         result1.push_back(current);
     }
 

@@ -37,3 +37,10 @@ int init_array(Halide::Buffer<double> A)
 
 return 0;
 }
+int get_nb_exec(){
+    if (std::getenv("NB_EXEC")!=NULL)
+        return std::stoi(std::getenv("NB_EXEC"));
+    else{
+        return 30;
+    }
+}

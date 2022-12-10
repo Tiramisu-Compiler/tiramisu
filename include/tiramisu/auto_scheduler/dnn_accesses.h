@@ -17,10 +17,10 @@ class dnn_iterator
 {
 public:
     std::string name;
-    int low_bound;
-    int up_bound;
+    std::string low_bound;
+    std::string up_bound;
     
-    dnn_iterator(std::string const& name, int low_bound, int up_bound)
+    dnn_iterator(std::string const& name, std::string low_bound, std::string up_bound)
         : name(name), low_bound(low_bound), up_bound(up_bound) {}
         
     /**

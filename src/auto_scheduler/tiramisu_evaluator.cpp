@@ -56,6 +56,7 @@ float evaluate_by_execution::evaluate(syntax_tree& ast)
     
     // Turn the object file to a shared library
     std::string gcc_cmd = "g++ -shared -o " + obj_filename + ".so " + obj_filename;
+    // run the command and retrieve the execution status
     int status = system(gcc_cmd.c_str());
     
     // Execute the wrapper and get execution time
@@ -358,7 +359,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
     int unrolling_fact;
     int skewing_fact_l0, skewing_fact_l1;
     int skewing_l0, skewing_l1;
-    int skew_extent_l0, skew_extent_l1;
+    std::string skew_extent_l0, skew_extent_l1;
     int parallelized_level;
     int depth = 0;
     bool first_time = true;
@@ -467,9 +468,9 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
                 skewing_fact_l1 = optim_info.l1_fact;
                 skewing_l0 = optim_info.l0;
                 skewing_l1 = optim_info.l1;
-                skew_extent_l0 = optim_info.node->up_bound -optim_info.node->low_bound;
+                skew_extent_l0 = optim_info.node->up_bound + "-" + optim_info.node->low_bound;
                 assert(optim_info.node->children.size()==1); // only shared nodes are currently skewable
-                skew_extent_l1 = optim_info.node->children[0]->up_bound -optim_info.node->children[0]->low_bound;
+                skew_extent_l1 = optim_info.node->children[0]->up_bound + "-" + optim_info.node->children[0]->low_bound;
                 break;
                 
             default:
@@ -612,7 +613,7 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
         {
             comp_sched_json += "{\"skewed_dims\" : [\""+ iterators_list[skewing_l0].name + "\", " + "\"" + iterators_list[skewing_l1].name + "\"],";
             comp_sched_json += "\"skewing_factors\" : ["+std::to_string(skewing_fact_l0)+","+std::to_string(skewing_fact_l1)+"],";
-            comp_sched_json += "\"average_skewed_extents\" : ["+std::to_string(skew_extent_l0)+","+std::to_string(skew_extent_l1)+"]} ";
+            comp_sched_json += "\"average_skewed_extents\" : ["+skew_extent_l0+","+ skew_extent_l1 +"]} ";
 
             // Adding the access matrices transformed by skewing
 
@@ -710,14 +711,14 @@ std::string evaluate_by_learning_model::get_schedule_json(syntax_tree & ast)
 
 void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, std::string& iterators_json)
 {
-    if (node->get_extent() <= 1)
+    if (node->get_extent() == "0-0+1")
         return;
         
     std::string iter_json;
     
     // Represent basic information about this iterator
-    iter_json += "\"lower_bound\" : " + std::to_string(node->low_bound) + ",";
-    iter_json += "\"upper_bound\" : " + std::to_string(node->up_bound + 1) + ",";
+    iter_json += "\"lower_bound\" : " + node->low_bound + ",";
+    iter_json += "\"upper_bound\" : " + node->up_bound + "1" + ",";
         
     iter_json += "\"parent_iterator\" : ";
     if (node->parent == nullptr)
@@ -730,7 +731,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() <= 1)
+        if (node->children[i]->get_extent() == "0-0+1")
             continue;
             
         iter_json += "\"" + node->children[i]->name + "\",";
@@ -753,7 +754,7 @@ void evaluate_by_learning_model::represent_iterators_from_nodes(ast_node *node, 
     
     for (int i = 0; i < node->children.size(); ++i)
     {
-        if (node->children[i]->get_extent() > 1)
+        if (node->children[i]->get_extent() != "0-0+1")
             continue;
             
         ast_node *dummy_child = node->children[i];
@@ -798,7 +799,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
         
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() > 1)
+        if (child->get_extent() != "0-0+1")
             continue;
             
         for (int j = 0; j < child->computations.size(); ++j)
@@ -819,7 +820,7 @@ std::string evaluate_by_learning_model::get_tree_structure_json(ast_node *node)
     bool has_children = false;
     for (ast_node *child : node->children)
     {
-        if (child->get_extent() == 1)
+        if (child->get_extent() == "0-0+1")
             continue;
             
         json += "{" + get_tree_structure_json(child) + "},";

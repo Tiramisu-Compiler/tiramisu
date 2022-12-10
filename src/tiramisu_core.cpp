@@ -1049,7 +1049,7 @@ int utility::get_extent(isl_set *set, int dim)
 
     if(lower_bound.get_expr_type() != tiramisu::e_val or upper_bound.get_expr_type() != tiramisu::e_val)
         ERROR("Check if the context is set for constants of distributed dimension", true);
-
+    std::cout<<"TODOF got here utility::get_extent"<<std::endl;
     return upper_bound.get_int_val() - lower_bound.get_int_val() + 1;
 }
 

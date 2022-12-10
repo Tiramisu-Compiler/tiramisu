@@ -11,18 +11,45 @@ namespace tiramisu::auto_scheduler
  * Return true if an iterator having extent = it_extent can
  * be split perfectly by a factor = split_fact.
  */
-inline bool can_split_iterator(int it_extent, int split_fact)
+inline bool check_if_number(const std::string s)
 {
-    return it_extent > split_fact && it_extent % split_fact == 0;
+    char* p;
+    long converted = strtol(s.c_str(), &p, 10);
+    if (*p) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+inline bool can_split_iterator(std::string up_bound, std::string low_bound, int split_fact)
+{
+    if(check_if_number(up_bound) && check_if_number(low_bound)){
+        std::cout<<"both bounds are ints. Buisnnes as usual."<<std::endl;
+        int it_extent = stoi(up_bound) - stoi(low_bound);
+        return it_extent > split_fact && it_extent % split_fact == 0;
+    }else{
+        std::cout<<"one of the bounds is not an int. up bound, low bound:"<<up_bound<<low_bound<<std::endl;
+        return true;
+    }
+    
 }
 
 /**
  * Returns true if the extent is bigger than split factor,
  * (.i.e more than one iteration would be produced after splitting) 
 */
-inline bool can_split_iterator_sup(int it_extent, int split_fact)
+inline bool can_split_iterator_sup(std::string up_bound, std::string low_bound,  int split_fact)
 {
-    return it_extent > split_fact;
+    if(check_if_number(up_bound) && check_if_number(low_bound)){
+        std::cout<<"both bounds are ints sup. Buisnnes as usual."<<std::endl;
+        int it_extent = stoi(up_bound) - stoi(low_bound);
+        return it_extent > split_fact;
+    }else{
+        std::cout<<"one of the bounds is not an int sup. up bound, low bound:"<<up_bound<<low_bound<<std::endl;
+        return true;
+    }
+    
 }
 
 /**

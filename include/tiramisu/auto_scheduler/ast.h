@@ -730,12 +730,12 @@ public:
     /**
      * Get the extents of the loop levels shared by all computations.
      */
-    std::vector<int> get_shared_levels_extents() const;
+    std::vector<std::string> get_shared_levels_extents() const;
     
     /**
      * Get the extents of all the innermost loop levels.
      */
-    std::vector<int> get_innermost_extents() const;
+    std::vector<std::string> get_innermost_extents() const;
     
     /*
      * Get the computations located at the innermost loop levels.
