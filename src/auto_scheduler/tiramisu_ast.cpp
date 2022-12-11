@@ -1236,10 +1236,6 @@ std::vector<std::string> syntax_tree::get_shared_levels_extents() const
             
         node = node->children[0];
     }
-    std::cout<<" result of get_shared_levels_extents: "<<std::endl;
-    for (int i=0;i<extents.size();i++){
-        std::cout<<extents.at(i)<<std::endl;
-    }
     return extents;
 }
 
@@ -1260,10 +1256,7 @@ void ast_node::get_innermost_extents(std::vector<std::string>& extents) const
         
     for (ast_node *child : children)
         child->get_innermost_extents(extents);
-    std::cout<<" result of get_innermost_extents: "<<std::endl;
-    for (int i=0;i<extents.size();i++){
-        std::cout<<extents.at(i)<<std::endl;
-    }
+    
 }
 
 std::vector<tiramisu::computation*> syntax_tree::get_innermost_computations()
@@ -1287,10 +1280,7 @@ void ast_node::get_innermost_computations(std::vector<tiramisu::computation*>& c
     for (ast_node *child : children)
         child->get_innermost_computations(comps);
     
-    std::cout<<" result of get_innermost_extents: "<<std::endl;
-    for (int i=0;i<comps.size();i++){
-        std::cout<<comps.at(i)->get_schedule()<<std::endl;
-    }
+    
 }
 
 std::vector<ast_node*> syntax_tree::get_innermost_nodes() const
@@ -1379,10 +1369,7 @@ void ast_node::get_innermost_nodes(std::vector<ast_node*>& nodes)
         
     for (ast_node *child : children)
         child->get_innermost_nodes(nodes);
-    std::cout<<" result of get_innermost_extents: "<<std::endl;
-    for (int i=0;i<nodes.size();i++){
-        std::cout<<nodes.at(i)->name<<std::endl;
-    }
+    
 }
 
 ast_node* ast_node::get_root_node()
@@ -1505,7 +1492,7 @@ void syntax_tree::print_previous_optims() const
 
 void ast_node::print_node() const
 {
-    if (true)//get_extent() > 1
+    if (name != "dummy_iter")//get_extent() > 1
     {
         for (int i = 0; i < depth; ++i)
             std::cout << "\t";
@@ -1680,7 +1667,7 @@ void ast_node::transforme_accesses_with_skewing(int a,int b)
     std::string transformation_map = "{[i,j]->["+std::to_string(f_i)+"*i"+std::to_string(f_j)+"*j ,"
                                                 +std::to_string(gamma)+"*i"+std::to_string(sigma)+"*j]}";
     
-    std::cout<<"\n transformation map:"<<transformation_map;
+    // std::cout<<"\n transformation map:"<<transformation_map;
 
     
 
@@ -1783,7 +1770,6 @@ bool is_number(const std::string& s)
 bool ast_node::have_similar_itr_domain(ast_node * other)
 {
     if(is_number(this->low_bound) && is_number(this->up_bound)){
-        std::cout<<"both bounds are ints have_similar_itr_domain. Buisnnes as usual."<<std::endl;
         int nb_itr1 = stoi(this->up_bound) - stoi(this->low_bound);
         int nb_itr2 = stoi(other->up_bound) - stoi(other->low_bound);
 
@@ -1804,7 +1790,6 @@ bool ast_node::have_similar_itr_domain(ast_node * other)
             return false;
         }
     }else{
-        std::cout<<"one of the bounds is not an int. up bound, low bound:"<<up_bound<<low_bound<<std::endl;
         return true;
     }
     
@@ -1866,14 +1851,8 @@ std::vector<std::string> ast_node::get_all_iterators()
     while(current != nullptr)
     {
         if(current->get_extent() != "0-0+1")
-        { // not a dummy itr 
-            // TODOF
-            std::cout<<" not a dummy itr in get_all_iterators"<<current->get_extent()<<std::endl;
-            std::cout<<current->name<<std::endl;
+        { // not a dummy itr             
             iterator_names.push_back(current->name);
-        }else{
-            std::cout<<" dummy itr in get_all_iterators"<<current->get_extent()<<std::endl;
-            std::cout<<current->name<<std::endl;
         }
   
 
@@ -1881,7 +1860,6 @@ std::vector<std::string> ast_node::get_all_iterators()
     }
 
     std::reverse(iterator_names.begin(),iterator_names.end());
-    std::cout<<" done get all iterators "<<std::endl;
     return iterator_names;
 
 }
@@ -2361,8 +2339,6 @@ std::vector<ast_node*> ast_node::collect_heads_of_ast(int allowed_splits, ast_no
 
     if(current->get_extent() != "0-0+1")
     {
-        std::cout<<" not a dummy itr in: collect_heads_of_ast "<<current->get_extent()<<std::endl;
-        std::cout<<current->name<<std::endl;
         result1.push_back(current);
     }
 
@@ -2403,7 +2379,6 @@ std::vector<ast_node*> ast_node::collect_shared_nodes_from_head()
 
     while(current->children.size() == 1)
     {
-        //std::cout<<"one"<<std::endl;
         current = current->children[0];
         result.push_back(current);
     }
